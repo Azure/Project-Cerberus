@@ -1,0 +1,9 @@
+.repo
+external
+projects/*
+!projects/freertos
+!projects/gcc
+!projects/keil
+!projects/linux
+build
+.vscode
