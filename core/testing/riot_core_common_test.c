@@ -7,7 +7,6 @@
 #include "platform.h"
 #include "testing.h"
 #include "riot/riot_core_common.h"
-#include "riot/riot_core_oid.h"
 #include "riot_core_testing.h"
 #include "mock/hash_mock.h"
 #include "mock/ecc_mock.h"
@@ -31,6 +30,11 @@ static struct x509_dice_ueid riot_ueid;
  * RIoT Core TCB information for testing.
  */
 static struct x509_dice_tcbinfo riot_tcb;
+
+/**
+ * Cerberus OID for testing.
+ */
+#define	RIOT_CORE_CERBERUS			"\x2B\x06\x01\x04\x01\x82\x37\x66\x01\x0A\x01"
 
 
 /**
