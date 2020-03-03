@@ -4132,9 +4132,14 @@ static void x509_openssl_test_authenticate_end_entity_root_pathlen_constraint (C
 		X509_CERT_END_ENTITY, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN, &ca, NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	// openssl >=1.1.0 does not ignore the pathLength constraint on the root CA.
+	/* At some point after version 1.1.1, openssl stopped ignoring the pathLength constraint for the
+	 * root CA and generates an authentication failure. */
 	status = engine.base.authenticate (&engine.base, &cert, &store);
-	CuAssertIntEquals (test, X509_ENGINE_CERT_NOT_VALID, status);
+	if (OpenSSL_version_num () >= 0x1010101f)
+		CuAssertIntEquals (test, X509_ENGINE_CERT_NOT_VALID, status);
+	else {
+		CuAssertIntEquals (test, 0, status);
+	}
 
 	platform_free (key_der);
 	engine.base.release_certificate (&engine.base, &ca);
@@ -4191,9 +4196,14 @@ static void x509_openssl_test_authenticate_ca_root_pathlen_constraint (CuTest *t
 		&ca, NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	// openssl >=1.1.0 does not ignore the pathLength constraint on the root CA.
+	/* At some point after version 1.1.1, openssl stopped ignoring the pathLength constraint for the
+	 * root CA and generates an authentication failure. */
 	status = engine.base.authenticate (&engine.base, &cert, &store);
-	CuAssertIntEquals (test, X509_ENGINE_CERT_NOT_VALID, status);
+	if (OpenSSL_version_num () >= 0x1010101f)
+		CuAssertIntEquals (test, X509_ENGINE_CERT_NOT_VALID, status);
+	else {
+		CuAssertIntEquals (test, 0, status);
+	}
 
 	platform_free (key_der);
 	engine.base.release_certificate (&engine.base, &ca);
