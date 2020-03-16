@@ -435,3 +435,32 @@ int cerberus_protocol_get_device_id (struct cmd_interface_device_id *id,
 		struct cerberus_protocol_get_device_id_response_packet);
 	return 0;
 }
+
+/**
+ * Process reset counter packet
+ * 
+ * @param device The device command handler to query the counter data
+ * @param request Reset counter request to process
+ *
+ * @return 0 if request completed successfully or an error code.
+ */
+int cerberus_protocol_reset_counter (struct cmd_device *device,
+	struct cmd_interface_request *request)
+{
+	CERBERUS_PROTOCOL_CMD (rq, struct cerberus_protocol_reset_counter_request_packet*, request);
+	CERBERUS_PROTOCOL_CMD (rsp, struct cerberus_protocol_reset_counter_response_packet*, request);
+	int status;
+
+	if (request->length != CERBERUS_PROTOCOL_CMD_LEN (
+		struct cerberus_protocol_reset_counter_request_packet)) {
+		return CMD_HANDLER_BAD_LENGTH;
+	}
+
+	status = device->get_reset_counter (device, rq->type, rq->port, &rsp->counter);
+	if (status == 0) {
+		request->length = CERBERUS_PROTOCOL_CMD_LEN (
+			struct cerberus_protocol_reset_counter_response_packet);
+	}
+
+	return status;
+}
