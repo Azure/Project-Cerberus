@@ -13,11 +13,13 @@
 /* Status bits indicating when flash is operating in 4-byte address mode. */
 #define	MACRONIX_4BYTE_STATUS		(1U << 5)
 #define	WINBOND_4BYTE_STATUS		(1U << 0)
+#define	MICRON_4BYTE_STATES			(1U << 0)
 
 /* Status bits indicating when flash has QSPI enabled. */
-#define	MACRONIX_QSPI_ENABLE		(1U << 6)
-#define	WINBOND_QSPI_ENABLE			(1U << 1)
-#define	SPANSION_QSPI_ENABLE		(1U << 1)
+#define	RESET_HOLD_ENABLE			(1U << 4)
+#define	QSPI_ENABLE_BIT1			(1U << 1)
+#define	QSPI_ENABLE_BIT6			(1U << 6)
+#define	QSPI_ENABLE_BIT7			(1U << 7)
 
 
 /**
@@ -57,6 +59,11 @@ static void spi_flash_set_read_command (struct spi_flash *flash,
 	}
 }
 
+/**
+ * Configure the program and erase commands for the flash device.
+ *
+ * @param flash The flash interface to configure.
+ */
 static void spi_flash_set_write_commands (struct spi_flash *flash)
 {
 	if ((flash->capabilities & (FLASH_CAP_3BYTE_ADDR | FLASH_CAP_4BYTE_ADDR)) ==
@@ -77,9 +84,10 @@ static void spi_flash_set_write_commands (struct spi_flash *flash)
  *
  * @param flash The flash interface to configure.
  * @param read Information from SFDP for read commands.
+ * @param sfdp SFDP tables for additional command information.
  */
 static void spi_flash_set_device_commands (struct spi_flash *flash,
-	struct spi_flash_sfdp_read_commands *read)
+	struct spi_flash_sfdp_read_commands *read, struct spi_flash_sfdp_basic_table *sfdp)
 {
 	bool use_4byte;
 
@@ -114,6 +122,12 @@ static void spi_flash_set_device_commands (struct spi_flash *flash,
 	}
 
 	spi_flash_set_write_commands (flash);
+
+	if (sfdp) {
+		spi_flash_sfdp_get_reset_command (sfdp, &flash->command.reset);
+		spi_flash_sfdp_get_deep_powerdown_commands (sfdp, &flash->command.enter_pwrdown,
+			&flash->command.release_pwrdown);
+	}
 }
 
 /**
@@ -164,27 +178,6 @@ int spi_flash_initialize_device (struct spi_flash *flash, struct flash_master *s
 		goto fail_flash;
 	}
 
-	/* Make sure the device is not writing any data before we proceed.  Resets will corrupt the
-	 * flash and register writes will fail if a write is currently in progress. */
-	status = spi_flash_wait_for_write (flash, 30000);
-	if (status != 0) {
-		goto fail_flash;
-	}
-
-	if (reset_device) {
-		status = spi_flash_reset_device (flash);
-		if (status != 0) {
-			goto fail_flash;
-		}
-	}
-
-	if (drive_strength) {
-		status = spi_flash_configure_drive_strength (flash);
-		if (status != 0) {
-			goto fail_flash;
-		}
-	}
-
 	status = spi_flash_sfdp_init (&sfdp, spi);
 	if (status != 0) {
 		goto fail_flash;
@@ -193,6 +186,27 @@ int spi_flash_initialize_device (struct spi_flash *flash, struct flash_master *s
 	status = spi_flash_discover_device_properties (flash, &sfdp);
 	if (status != 0) {
 		goto fail_sfdp;
+	}
+
+	/* Make sure the device is not writing any data before we proceed.  Resets will corrupt the
+	 * flash and register writes will fail if a write is currently in progress. */
+	status = spi_flash_wait_for_write (flash, 30000);
+	if (status != 0) {
+		goto fail_sfdp;
+	}
+
+	if (reset_device) {
+		status = spi_flash_reset_device (flash);
+		if (status != 0) {
+			goto fail_sfdp;
+		}
+	}
+
+	if (drive_strength) {
+		status = spi_flash_configure_drive_strength (flash);
+		if (status != 0) {
+			goto fail_sfdp;
+		}
 	}
 
 	if ((flash->capabilities & (FLASH_CAP_3BYTE_ADDR | FLASH_CAP_4BYTE_ADDR)) ==
@@ -259,6 +273,11 @@ int spi_flash_restore_device (struct spi_flash *flash, struct flash_master *spi,
 	memcpy (flash->device_id, info->device_id, sizeof (flash->device_id));
 	flash->device_size = info->device_size;
 	flash->capabilities = info->capabilities;
+	flash->use_busy_flag = !!(info->flags & SPI_FLASH_DEVICE_INFO_BUSY_FLAG);
+	flash->switch_4byte = (enum spi_flash_sfdp_4byte_addressing) info->switch_4byte;
+	flash->reset_3byte = !!(info->flags & SPI_FLASH_DEVICE_INFO_RESET_3BYTE);
+	flash->quad_enable = (enum spi_flash_sfdp_quad_enable) info->quad_enable;
+	flash->sr1_volatile = !!(info->flags & SPI_FLASH_DEVICE_INFO_SR1_VOLATILE);
 
 	flash->command.read = info->read_opcode;
 	flash->command.read_dummy = info->read_dummy;
@@ -266,12 +285,18 @@ int spi_flash_restore_device (struct spi_flash *flash, struct flash_master *spi,
 	flash->command.read_flags = info->read_flags;
 
 	spi_flash_set_write_commands (flash);
+	flash->command.reset = info->reset_opcode;
+	flash->command.enter_pwrdown = info->enter_pwrdown;
+	flash->command.release_pwrdown = info->release_pwrdown;
 
 	return 0;
 }
 
 /**
  * Initialize the SPI flash interface.
+ *
+ * This is not sufficient to be able to fully access the SPI flash device.  Use
+ * {@link spi_flash_initialize_device} for complete device initialization.
  *
  * @param flash The flash interface to initialize.
  * @param spi The SPI master connected to the flash.
@@ -297,6 +322,8 @@ int spi_flash_init (struct spi_flash *flash, struct flash_master *spi)
 	flash->command.write = FLASH_CMD_PP;
 	flash->command.erase_sector = FLASH_CMD_4K_ERASE;
 	flash->command.erase_block = FLASH_CMD_64K_ERASE;
+	flash->command.enter_pwrdown = FLASH_CMD_DP;
+	flash->command.release_pwrdown = FLASH_CMD_RDP;
 
 	flash->spi = spi;
 	flash->device_id[0] = 0xff;
@@ -319,6 +346,9 @@ int spi_flash_init (struct spi_flash *flash, struct flash_master *spi)
 
 /**
  * Initialize the SPI flash interface.  The FAST_READ command will be used for SPI reads.
+ *
+ * This is not sufficient to be able to fully access the SPI flash device.  Use
+ * {@link spi_flash_initialize_device} for complete device initialization.
  *
  * @param flash The flash interface to initialize.
  * @param spi The SPI master connected to the flash.
@@ -376,6 +406,22 @@ int spi_flash_save_device_info (struct spi_flash *flash, struct spi_flash_device
 	info->read_dummy = flash->command.read_dummy;
 	info->read_mode = flash->command.read_mode;
 	info->read_flags = flash->command.read_flags;
+	info->reset_opcode = flash->command.reset;
+	info->enter_pwrdown = flash->command.enter_pwrdown;
+	info->release_pwrdown = flash->command.release_pwrdown;
+	info->switch_4byte = flash->switch_4byte;
+	info->quad_enable = flash->quad_enable;
+
+	info->flags = 0;
+	if (flash->use_busy_flag) {
+		info->flags |= SPI_FLASH_DEVICE_INFO_BUSY_FLAG;
+	}
+	if (flash->reset_3byte) {
+		info->flags |= SPI_FLASH_DEVICE_INFO_RESET_3BYTE;
+	}
+	if (flash->sr1_volatile) {
+		info->flags |= SPI_FLASH_DEVICE_INFO_SR1_VOLATILE;
+	}
 
 	return 0;
 }
@@ -409,6 +455,18 @@ static int spi_flash_write_enable (struct spi_flash *flash)
 }
 
 /**
+ * Send the volatile write enable command to the flash device.
+ *
+ * @param flash The flash instance to use to send the command.
+ *
+ * @return 0 if the command was successfully sent or an error code.
+ */
+static int spi_flash_volatile_write_enable (struct spi_flash *flash)
+{
+	return spi_flash_simple_command (flash, FLASH_CMD_VOLATILE_WREN);
+}
+
+/**
  * Determine if the flash is currently executing a write command.
  *
  * @param flash The flash instance to check.
@@ -421,11 +479,21 @@ static int spi_flash_is_wip_set (struct spi_flash *flash)
 	uint8_t reg;
 	int status;
 
-	FLASH_XFER_INIT_READ_REG (xfer, FLASH_CMD_RDSR, &reg, 1, 0);
+	if (!flash->use_busy_flag) {
+		FLASH_XFER_INIT_READ_REG (xfer, FLASH_CMD_RDSR, &reg, 1, 0);
+	}
+	else {
+		FLASH_XFER_INIT_READ_REG (xfer, FLASH_CMD_RDSR_FLAG, &reg, 1, 0);
+	}
 
 	status = flash->spi->xfer (flash->spi, &xfer);
 	if (status == 0) {
-		return ((reg & FLASH_STATUS_WIP) != 0);
+		if (!flash->use_busy_flag) {
+			return ((reg & FLASH_STATUS_WIP) != 0);
+		}
+		else {
+			return ((reg & FLASH_FLAG_STATUS_READY) == 0);
+		}
 	}
 	else {
 		return status;
@@ -490,11 +558,12 @@ static int spi_flash_wait_for_write_completion (struct spi_flash *flash, int32_t
  * @param cmd The command code that writes the register.
  * @param data The data to write to the register.
  * @param length The length of the data to write.
+ * @param volatile_wren Flag indicating the volatile write enable command should be used.
  *
  * @return 0 if the command was successfully completed or an error code.
  */
 static int spi_flash_write_register (struct spi_flash *flash, uint8_t cmd, uint8_t *data,
-	size_t length)
+	size_t length, bool volatile_wren)
 {
 	struct flash_xfer xfer;
 	int status;
@@ -504,48 +573,17 @@ static int spi_flash_write_register (struct spi_flash *flash, uint8_t cmd, uint8
 		return (status == 1) ? SPI_FLASH_WRITE_IN_PROGRESS : status;
 	}
 
-	status = spi_flash_write_enable (flash);
+	if (volatile_wren) {
+		status = spi_flash_volatile_write_enable (flash);
+	}
+	else {
+		status = spi_flash_write_enable (flash);
+	}
 	if (status != 0) {
 		return status;
 	}
 
 	FLASH_XFER_INIT_WRITE_REG (xfer, cmd, data, length, 0);
-	status = flash->spi->xfer (flash->spi, &xfer);
-	if (status != 0) {
-		return status;
-	}
-
-	return spi_flash_wait_for_write_completion (flash, -1, 1);
-}
-
-/**
- * Send a write command that writes to register that requires addressing.  This will block until
- * the register write has completed.
- *
- * @param flash The flash instance to use to send the command.
- * @param cmd The command code that writes the register.
- * @param data The data to write to the register.
- * @param length The length of the data to write.
- *
- * @return 0 if the command was successfully completed or an error code.
- */
-static int spi_flash_write_register_addr (struct spi_flash *flash, uint8_t cmd, uint32_t addr,
-	uint8_t *data, size_t length)
-{
-	struct flash_xfer xfer;
-	int status;
-
-	status = spi_flash_is_wip_set (flash);
-	if (status != 0) {
-		return (status == 1) ? SPI_FLASH_WRITE_IN_PROGRESS : status;
-	}
-
-	status = spi_flash_write_enable (flash);
-	if (status != 0) {
-		return status;
-	}
-
-	FLASH_XFER_INIT_WRITE (xfer, cmd, addr, 0, data, length, 0);
 	status = flash->spi->xfer (flash->spi, &xfer);
 	if (status != 0) {
 		return status;
@@ -598,12 +636,37 @@ int spi_flash_discover_device_properties (struct spi_flash *flash, struct spi_fl
 
 	flash->capabilities = spi_capabilities;
 
-	if ((flash->capabilities & (FLASH_CAP_3BYTE_ADDR | FLASH_CAP_4BYTE_ADDR)) ==
-		FLASH_CAP_4BYTE_ADDR) {
-		flash->addr_mode = FLASH_FLAG_4BYTE_ADDRESS;
+	switch (flash->capabilities & (FLASH_CAP_3BYTE_ADDR | FLASH_CAP_4BYTE_ADDR)) {
+		case (FLASH_CAP_3BYTE_ADDR | FLASH_CAP_4BYTE_ADDR):
+			if (!spi_flash_sfdp_supports_4byte_commands (&parameters)) {
+				/* We expect the flash device to support explicit 4-byte address commands.  If it
+				 * does not, we can't support communicating with that flash.  It is possible to add
+				 * support for these devices using enter/exit 4-byte commands, EAR, etc., but that
+				 * is a lot more complicated.  Since devices that don't support these commands are
+				 * a minority of devices or older, there is not much benefit to adding this now. */
+				status = SPI_FLASH_NO_4BYTE_CMDS;
+				goto exit;
+			}
+
+			flash->reset_3byte = spi_flash_sfdp_exit_4byte_mode_on_reset (&parameters);
+			break;
+
+		case FLASH_CAP_4BYTE_ADDR:
+			flash->addr_mode = FLASH_FLAG_4BYTE_ADDRESS;
+			break;
 	}
 
-	spi_flash_set_device_commands (flash, &read);
+	spi_flash_set_device_commands (flash, &read, &parameters);
+
+	status = spi_flash_sfdp_get_4byte_mode_switch (&parameters, &flash->switch_4byte);
+	if (status != 0) {
+		goto exit;
+	}
+
+	status = spi_flash_sfdp_get_quad_enable (&parameters, &flash->quad_enable);
+	if (status != 0) {
+		goto exit;
+	}
 
 	status = spi_flash_sfdp_get_device_size (&parameters);
 	if (ROT_IS_ERROR (status)) {
@@ -611,6 +674,9 @@ int spi_flash_discover_device_properties (struct spi_flash *flash, struct spi_fl
 	}
 
 	flash->device_size = status;
+	flash->use_busy_flag = spi_flash_sfdp_use_busy_flag_status (&parameters);
+	flash->sr1_volatile = spi_flash_sfdp_use_volatile_write_enable (&parameters);
+
 	status = 0;
 
 exit:
@@ -641,7 +707,7 @@ int spi_flash_set_device_size (struct spi_flash *flash, uint32_t bytes)
 
 	flash->device_size = bytes;
 	if (bytes > 0x1000000) {
-		spi_flash_set_device_commands (flash, NULL);
+		spi_flash_set_device_commands (flash, NULL, NULL);
 	}
 
 	platform_mutex_unlock (&flash->lock);
@@ -725,6 +791,10 @@ int spi_flash_reset_device (struct spi_flash *flash)
 		return SPI_FLASH_INVALID_ARGUMENT;
 	}
 
+	if (!flash->command.reset) {
+		return SPI_FLASH_RESET_NOT_SUPPORTED;
+	}
+
 	platform_mutex_lock (&flash->lock);
 
 	status = spi_flash_is_wip_set (flash);
@@ -733,13 +803,19 @@ int spi_flash_reset_device (struct spi_flash *flash)
 		goto exit;
 	}
 
-	status = spi_flash_simple_command (flash, FLASH_CMD_RSTEN);
-	if (status != 0) {
-		goto exit;
+	if (flash->command.reset == FLASH_CMD_RST) {
+		status = spi_flash_simple_command (flash, FLASH_CMD_RSTEN);
+		if (status != 0) {
+			goto exit;
+		}
 	}
 
-	status = spi_flash_simple_command (flash, FLASH_CMD_RST);
+	status = spi_flash_simple_command (flash, flash->command.reset);
 	if (status == 0) {
+		if (flash->reset_3byte) {
+			flash->addr_mode = 0;
+		}
+
 		platform_msleep (100);
 	}
 
@@ -758,7 +834,9 @@ exit:
 int spi_flash_clear_block_protect (struct spi_flash *flash)
 {
 	struct flash_xfer xfer;
-	uint8_t reg;
+	uint8_t reg[2];
+	uint8_t cmd_len = 1;
+	uint8_t mask = 0x83;
 	int status;
 
 	if (flash == NULL) {
@@ -767,15 +845,42 @@ int spi_flash_clear_block_protect (struct spi_flash *flash)
 
 	platform_mutex_lock (&flash->lock);
 
-	FLASH_XFER_INIT_READ_REG (xfer, FLASH_CMD_RDSR, &reg, 1, 0);
+	/* Depending on the quad enable bit, the block clear needs to be handled differently:
+	 *   - If the quad bit is in SR1, then we need to be sure not to clear it.
+	 *   - On some devices, writing only 1 byte to SR1 will automatically clear SR2.  On these
+	 *     devices we need to write both SR1 and SR2 to ensure the quad bit doesn't get cleared. */
+	switch (flash->quad_enable) {
+		case SPI_FLASH_SFDP_QUAD_QE_BIT6_SR1:
+			mask = 0xc3;
+			break;
+
+		case SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2:
+			cmd_len = 2;
+			break;
+
+		case SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_35:
+			FLASH_XFER_INIT_READ_REG (xfer, FLASH_CMD_RDSR2, &reg[1], 1, 0);
+			status = flash->spi->xfer (flash->spi, &xfer);
+			if (status != 0) {
+				goto exit;
+			}
+			break;
+	}
+
+	FLASH_XFER_INIT_READ_REG (xfer, FLASH_CMD_RDSR, reg, cmd_len, 0);
 	status = flash->spi->xfer (flash->spi, &xfer);
 	if (status != 0) {
 		goto exit;
 	}
 
-	if (reg & 0x3c) {
-		reg &= 0xc3;	// Clear the middle 4 bits.
-		status = spi_flash_write_register (flash, FLASH_CMD_WRSR, &reg, 1);
+	if (reg[0] & ~mask) {
+		if (flash->quad_enable == SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_35) {
+			cmd_len = 2;
+		}
+
+		reg[0] &= mask;
+		status = spi_flash_write_register (flash, FLASH_CMD_WRSR, reg, cmd_len,
+			flash->sr1_volatile);
 	}
 
 exit:
@@ -801,13 +906,17 @@ int spi_flash_deep_power_down (struct spi_flash *flash, uint8_t enable)
 		return SPI_FLASH_INVALID_ARGUMENT;
 	}
 
+	if (!flash->command.enter_pwrdown) {
+		return (enable) ? SPI_FLASH_PWRDOWN_NOT_SUPPORTED : 0;
+	}
+
 	platform_mutex_lock (&flash->lock);
 
 	if (enable) {
-		status = spi_flash_simple_command (flash, FLASH_CMD_DP);
+		status = spi_flash_simple_command (flash, flash->command.enter_pwrdown);
 	}
 	else {
-		status = spi_flash_simple_command (flash, FLASH_CMD_RDP);
+		status = spi_flash_simple_command (flash, flash->command.release_pwrdown);
 	}
 
 	if (status == 0) {
@@ -815,7 +924,6 @@ int spi_flash_deep_power_down (struct spi_flash *flash, uint8_t enable)
 	}
 
 	platform_mutex_unlock (&flash->lock);
-
 	return status;
 }
 
@@ -864,6 +972,13 @@ int spi_flash_enable_4byte_address_mode (struct spi_flash *flash, uint8_t enable
 			status = 0;
 		}
 		goto exit;
+	}
+
+	if (flash->switch_4byte == SPI_FLASH_SFDP_4BYTE_MODE_COMMAND_WRITE_ENABLE) {
+		status = spi_flash_write_enable (flash);
+		if (status != 0) {
+			goto exit;
+		}
 	}
 
 	if (enable) {
@@ -916,6 +1031,7 @@ int spi_flash_detect_4byte_address_mode (struct spi_flash *flash)
 {
 	struct flash_xfer xfer;
 	uint8_t vendor;
+	uint8_t cmd = FLASH_CMD_RDSR3;
 	uint8_t reg;
 	int status;
 	int mask;
@@ -943,13 +1059,18 @@ int spi_flash_detect_4byte_address_mode (struct spi_flash *flash)
 			mask = WINBOND_4BYTE_STATUS;
 			break;
 
+		case FLASH_ID_MICRON:
+			mask = MICRON_4BYTE_STATES;
+			cmd = FLASH_CMD_RDSR_FLAG;
+			break;
+
 		default:
 			return SPI_FLASH_UNSUPPORTED_DEVICE;
 	}
 
 	platform_mutex_lock (&flash->lock);
 
-	FLASH_XFER_INIT_READ_REG (xfer, FLASH_CMD_RDSR3, &reg, 1, 0);
+	FLASH_XFER_INIT_READ_REG (xfer, cmd, &reg, 1, 0);
 	status = flash->spi->xfer (flash->spi, &xfer);
 	if (status != 0) {
 		goto exit;
@@ -1016,37 +1137,109 @@ exit:
  */
 int spi_flash_enable_quad_spi (struct spi_flash *flash, uint8_t enable)
 {
-	uint8_t vendor;
-	uint8_t reg;
+	struct flash_xfer xfer;
+	uint8_t reg[2];
+	uint8_t cmd_len = 2;
+	uint8_t cmd = FLASH_CMD_RDSR;
+	bool volatile_wren;
 	int status;
 
-	status = spi_flash_get_device_id (flash, &vendor, NULL);
-	if (status != 0) {
-		return status;
+	if (flash == NULL) {
+		return SPI_FLASH_INVALID_ARGUMENT;
 	}
 
 	platform_mutex_lock (&flash->lock);
-	switch (vendor) {
-		case FLASH_ID_MACRONIX:
-			reg = (enable) ? MACRONIX_QSPI_ENABLE : 0x00;
-			status = spi_flash_write_register (flash, FLASH_CMD_WRSR, &reg, 1);
+
+	switch (flash->quad_enable) {
+		case SPI_FLASH_SFDP_QUAD_NO_QE_BIT:
+			status = 0;
+			goto exit;
+
+		case SPI_FLASH_SFDP_QUAD_NO_QE_HOLD_DISABLE:
+			cmd = FLASH_CMD_RD_NV_CFG;
 			break;
 
-		case FLASH_ID_WINBOND:
-			reg = (enable) ? WINBOND_QSPI_ENABLE : 0x00;
-			status = spi_flash_write_register (flash, 0x31, &reg, 1);
+		case SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_35:
+			FLASH_XFER_INIT_READ_REG (xfer, FLASH_CMD_RDSR2, &reg[1], 1, 0);
+			status = flash->spi->xfer (flash->spi, &xfer);
+			if (status != 0) {
+				goto exit;
+			}
+
+			cmd_len = 1;
 			break;
 
-		case FLASH_ID_SPANSION:
-			reg = (enable) ? SPANSION_QSPI_ENABLE : 0x00;
-			status = spi_flash_write_register_addr (flash, 0x71, 0x800002, &reg, 1);
+		case SPI_FLASH_SFDP_QUAD_QE_BIT6_SR1:
+			cmd_len = 1;
 			break;
 
-		default:
-			status = SPI_FLASH_UNSUPPORTED_DEVICE;
+		case SPI_FLASH_SFDP_QUAD_QE_BIT7_SR2:
+			cmd_len = 1;
+			cmd = FLASH_CMD_ALT_RDSR2;
+			break;
 	}
-	platform_mutex_unlock (&flash->lock);
 
+	FLASH_XFER_INIT_READ_REG (xfer, cmd, reg, cmd_len, 0);
+	status = flash->spi->xfer (flash->spi, &xfer);
+	if (status != 0) {
+		goto exit;
+	}
+
+	cmd = FLASH_CMD_WRSR;
+	volatile_wren = flash->sr1_volatile;
+
+	switch (flash->quad_enable) {
+		case SPI_FLASH_SFDP_QUAD_NO_QE_HOLD_DISABLE:
+			if (enable) {
+				reg[0] &= ~RESET_HOLD_ENABLE;
+			}
+			else {
+				reg[0] |= RESET_HOLD_ENABLE;
+			}
+
+			cmd = FLASH_CMD_WR_NV_CFG;
+			volatile_wren = false;
+			break;
+
+		case SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2:
+		case SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_NO_CLR:
+		case SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_35:
+			if (enable) {
+				reg[1] |= QSPI_ENABLE_BIT1;
+			}
+			else {
+				reg[1] &= ~QSPI_ENABLE_BIT1;
+			}
+
+			cmd_len = 2;
+			break;
+
+		case SPI_FLASH_SFDP_QUAD_QE_BIT6_SR1:
+			if (enable) {
+				reg[0] |= QSPI_ENABLE_BIT6;
+			}
+			else {
+				reg[0] &= ~QSPI_ENABLE_BIT6;
+			}
+			break;
+
+		case SPI_FLASH_SFDP_QUAD_QE_BIT7_SR2:
+			if (enable) {
+				reg[0] |= QSPI_ENABLE_BIT7;
+			}
+			else {
+				reg[0] &= ~QSPI_ENABLE_BIT7;
+			}
+
+			cmd = FLASH_CMD_ALT_WRSR2;
+			volatile_wren = false;
+			break;
+	}
+
+	status = spi_flash_write_register (flash, cmd, reg, cmd_len, volatile_wren);
+
+exit:
+	platform_mutex_unlock (&flash->lock);
 	return status;
 }
 
@@ -1060,50 +1253,67 @@ int spi_flash_enable_quad_spi (struct spi_flash *flash, uint8_t enable)
 int spi_flash_is_quad_spi_enabled (struct spi_flash *flash)
 {
 	struct flash_xfer xfer;
-	uint8_t vendor;
-	uint8_t reg;
+	uint8_t reg[2];
+	uint8_t cmd_len = 2;
+	uint8_t cmd = FLASH_CMD_RDSR;
 	int status;
 
-	status = spi_flash_get_device_id (flash, &vendor, NULL);
-	if (status != 0) {
-		return status;
+	if (flash == NULL) {
+		return SPI_FLASH_INVALID_ARGUMENT;
 	}
 
 	platform_mutex_lock (&flash->lock);
-	switch (vendor) {
-		case FLASH_ID_MACRONIX:
-			FLASH_XFER_INIT_READ_REG (xfer, FLASH_CMD_RDSR, &reg, 1, 0);
-			break;
 
-		case FLASH_ID_WINBOND:
-			FLASH_XFER_INIT_READ_REG (xfer, 0x35, &reg, 1, 0);
-			break;
-
-		case FLASH_ID_SPANSION:
-			FLASH_XFER_INIT_READ (xfer, 0x65, 0x800002, 1, 0, &reg, 1, 0);
-			break;
-
-		default:
-			status = SPI_FLASH_UNSUPPORTED_DEVICE;
+	switch (flash->quad_enable) {
+		case SPI_FLASH_SFDP_QUAD_NO_QE_BIT:
+			status = 1;
 			goto exit;
+
+		case SPI_FLASH_SFDP_QUAD_NO_QE_HOLD_DISABLE:
+			cmd = FLASH_CMD_RD_NV_CFG;
+			break;
+
+		case SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_35:
+			cmd = FLASH_CMD_RDSR2;
+			cmd_len = 1;
+			break;
+
+		case SPI_FLASH_SFDP_QUAD_QE_BIT6_SR1:
+			cmd_len = 1;
+			break;
+
+		case SPI_FLASH_SFDP_QUAD_QE_BIT7_SR2:
+			cmd = FLASH_CMD_ALT_RDSR2;
+			cmd_len = 1;
+			break;
 	}
 
+	FLASH_XFER_INIT_READ_REG (xfer, cmd, reg, cmd_len, 0);
 	status = flash->spi->xfer (flash->spi, &xfer);
 	if (status != 0) {
 		goto exit;
 	}
 
-	switch (vendor) {
-		case FLASH_ID_MACRONIX:
-			status = !!(MACRONIX_QSPI_ENABLE & reg);
+	switch (flash->quad_enable) {
+		case SPI_FLASH_SFDP_QUAD_NO_QE_HOLD_DISABLE:
+			status = !(reg[0] & RESET_HOLD_ENABLE);
 			break;
 
-		case FLASH_ID_WINBOND:
-			status = !!(WINBOND_QSPI_ENABLE & reg);
+		case SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_35:
+			reg[1] = reg[0];
+			/* no break */
+
+		case SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2:
+		case SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_NO_CLR:
+			status = !!(reg[1] & QSPI_ENABLE_BIT1);
 			break;
 
-		case FLASH_ID_SPANSION:
-			status = !!(SPANSION_QSPI_ENABLE & reg);
+		case SPI_FLASH_SFDP_QUAD_QE_BIT6_SR1:
+			status = !!(reg[0] & QSPI_ENABLE_BIT6);
+			break;
+
+		case SPI_FLASH_SFDP_QUAD_QE_BIT7_SR2:
+			status = !!(reg[0] & QSPI_ENABLE_BIT7);
 			break;
 	}
 
@@ -1113,7 +1323,8 @@ exit:
 }
 
 /**
-* Configure the output drive strength of the flash device.
+* Configure the output drive strength of the flash device, if necessary.  If no drive strength
+* configuration is needed for the device, nothing is done.
 *
 * @param flash The flash device to configure.
 *
@@ -1125,7 +1336,7 @@ int spi_flash_configure_drive_strength (struct spi_flash *flash)
 	uint8_t vendor;
 	uint8_t reg;
 	uint8_t data = 0x20;	// 75% drive strength
-	int status;
+	int status = 0;
 
 	status = spi_flash_get_device_id (flash, &vendor, NULL);
 	if (status != 0) {
@@ -1133,10 +1344,8 @@ int spi_flash_configure_drive_strength (struct spi_flash *flash)
 	}
 
 	platform_mutex_lock (&flash->lock);
-	switch (vendor) {
-		case FLASH_ID_MACRONIX:
-			break;
 
+	switch (vendor) {
 		case FLASH_ID_WINBOND:
 			FLASH_XFER_INIT_READ_REG (xfer, FLASH_CMD_RDSR3, &reg, 1, 0);
 			status = flash->spi->xfer (flash->spi, &xfer);
@@ -1146,7 +1355,7 @@ int spi_flash_configure_drive_strength (struct spi_flash *flash)
 
 			if (data != (reg & 0x60)) {
 				data |= (reg & ~0x60);
-				status = spi_flash_write_register (flash, 0x11, &data, 1);
+				status = spi_flash_write_register (flash, 0x11, &data, 1, false);
 				if (status != 0) {
 					break;
 				}
@@ -1162,13 +1371,9 @@ int spi_flash_configure_drive_strength (struct spi_flash *flash)
 				}
 			}
 			break;
-
-		default:
-			status = SPI_FLASH_UNSUPPORTED_DEVICE;
-			break;
 	}
-	platform_mutex_unlock (&flash->lock);
 
+	platform_mutex_unlock (&flash->lock);
 	return status;
 }
 
@@ -1224,6 +1429,8 @@ int spi_flash_get_page_size (struct spi_flash *flash, uint32_t *bytes)
 		return SPI_FLASH_INVALID_ARGUMENT;
 	}
 
+	/* All supported devices use a 256 byte page size.  If necessary, this value can be read from
+	 * the SFDP tables. */
 	*bytes = FLASH_PAGE_SIZE;
 	return 0;
 }

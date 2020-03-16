@@ -47,23 +47,35 @@ int flash_master_mock_expect_blank_check (struct flash_master_mock *mock, uint32
 	size_t length);
 int flash_master_mock_expect_blank_check_4byte (struct flash_master_mock *mock, uint32_t start,
 	size_t length);
+int flash_master_mock_expect_blank_check_4byte_explicit (struct flash_master_mock *mock,
+	uint32_t start, size_t length);
 int flash_master_mock_expect_value_check (struct flash_master_mock *mock, uint32_t start,
 	size_t length, uint8_t value);
 int flash_master_mock_expect_value_check_4byte (struct flash_master_mock *mock, uint32_t start,
 	size_t length, uint8_t value);
+int flash_master_mock_expect_value_check_4byte_explicit (struct flash_master_mock *mock,
+	uint32_t start, size_t length, uint8_t value);
 int flash_master_mock_expect_erase_flash (struct flash_master_mock *mock, uint32_t addr);
 int flash_master_mock_expect_erase_flash_4byte (struct flash_master_mock *mock, uint32_t addr);
+int flash_master_mock_expect_erase_flash_4byte_explicit (struct flash_master_mock *mock,
+	uint32_t addr);
 int flash_master_mock_expect_erase_flash_sector (struct flash_master_mock *mock, uint32_t addr);
 int flash_master_mock_expect_erase_flash_sector_4byte (struct flash_master_mock *mock,
+	uint32_t addr);
+int flash_master_mock_expect_erase_flash_sector_4byte_explicit (struct flash_master_mock *mock,
 	uint32_t addr);
 int flash_master_mock_expect_erase_flash_verify (struct flash_master_mock *mock, uint32_t addr,
 	size_t length);
 int flash_master_mock_expect_erase_flash_verify_4byte (struct flash_master_mock *mock,
 	uint32_t addr, size_t length);
+int flash_master_mock_expect_erase_flash_verify_4byte_explicit (struct flash_master_mock *mock,
+	uint32_t addr, size_t length);
 int flash_master_mock_expect_erase_flash_sector_verify (struct flash_master_mock *mock,
 	uint32_t addr, size_t length);
 int flash_master_mock_expect_erase_flash_sector_verify_4byte (struct flash_master_mock *mock,
 	uint32_t addr, size_t length);
+int flash_master_mock_expect_erase_flash_sector_verify_4byte_explicit (
+	struct flash_master_mock *mock, uint32_t addr, size_t length);
 int flash_master_mock_expect_chip_erase (struct flash_master_mock *mock);
 
 int flash_master_mock_expect_copy_page (struct flash_master_mock *mock_dest,
@@ -72,10 +84,16 @@ int flash_master_mock_expect_copy_page (struct flash_master_mock *mock_dest,
 int flash_master_mock_expect_copy_page_4byte (struct flash_master_mock *mock_dest,
 	struct flash_master_mock *mock_src, uint32_t dest_addr, uint32_t src_addr, const uint8_t *data,
 	size_t length, uint8_t verify);
+int flash_master_mock_expect_copy_page_4byte_explicit (struct flash_master_mock *mock_dest,
+	struct flash_master_mock *mock_src, uint32_t dest_addr, uint32_t src_addr, const uint8_t *data,
+	size_t length, uint8_t verify);
 int flash_master_mock_expect_copy_page_verify (struct flash_master_mock *mock_dest,
 	struct flash_master_mock *mock_src, uint32_t dest_addr, uint32_t src_addr, const uint8_t *data,
 	size_t length);
 int flash_master_mock_expect_copy_page_verify_4byte (struct flash_master_mock *mock_dest,
+	struct flash_master_mock *mock_src, uint32_t dest_addr, uint32_t src_addr, const uint8_t *data,
+	size_t length);
+int flash_master_mock_expect_copy_page_verify_4byte_explicit (struct flash_master_mock *mock_dest,
 	struct flash_master_mock *mock_src, uint32_t dest_addr, uint32_t src_addr, const uint8_t *data,
 	size_t length);
 int flash_master_mock_expect_copy_flash (struct flash_master_mock *mock_dest,
@@ -84,22 +102,32 @@ int flash_master_mock_expect_copy_flash (struct flash_master_mock *mock_dest,
 int flash_master_mock_expect_copy_flash_4byte (struct flash_master_mock *mock_dest,
 	struct flash_master_mock *mock_src, uint32_t dest_addr, uint32_t src_addr, const uint8_t *data,
 	size_t length, uint8_t verify);
+int flash_master_mock_expect_copy_flash_4byte_explicit (struct flash_master_mock *mock_dest,
+	struct flash_master_mock *mock_src, uint32_t dest_addr, uint32_t src_addr, const uint8_t *data,
+	size_t length, uint8_t verify);
 int flash_master_mock_expect_copy_flash_verify (struct flash_master_mock *mock_dest,
 	struct flash_master_mock *mock_src, uint32_t dest_addr, uint32_t src_addr, const uint8_t *data,
 	size_t length);
 int flash_master_mock_expect_copy_flash_verify_4byte (struct flash_master_mock *mock_dest,
 	struct flash_master_mock *mock_src, uint32_t dest_addr, uint32_t src_addr, const uint8_t *data,
 	size_t length);
+int flash_master_mock_expect_copy_flash_verify_4byte_explicit (struct flash_master_mock *mock_dest,
+	struct flash_master_mock *mock_src, uint32_t dest_addr, uint32_t src_addr, const uint8_t *data,
+	size_t length);
 int flash_master_mock_expect_verify_flash (struct flash_master_mock *mock, uint32_t start,
 	const uint8_t *data, size_t length);
 int flash_master_mock_expect_verify_flash_4byte (struct flash_master_mock *mock, uint32_t start,
 	const uint8_t *data, size_t length);
+int flash_master_mock_expect_verify_flash_4byte_explicit (struct flash_master_mock *mock,
+	uint32_t start, const uint8_t *data, size_t length);
 int flash_master_mock_expect_write (struct flash_master_mock *flash, uint32_t address,
 	const uint8_t *data, size_t length);
 int flash_master_mock_expect_write_4byte (struct flash_master_mock *flash, uint32_t address,
 	const uint8_t *data, size_t length);
+int flash_master_mock_expect_write_4byte_explicit (struct flash_master_mock *flash,
+	uint32_t address, const uint8_t *data, size_t length);
 int flash_master_mock_expect_write_ext (struct flash_master_mock *flash, uint32_t address,
-	const uint8_t *data, size_t length, bool is_tmp, bool addr4);
+	const uint8_t *data, size_t length, bool is_tmp, uint8_t addr4);
 
 
 /**
@@ -131,12 +159,17 @@ int flash_master_mock_expect_write_ext (struct flash_master_mock *flash, uint32_
 /**
  * Helper to define an expected status register read.
  */
-#define	FLASH_EXP_READ_STATUS_REG	FLASH_EXP_READ_REG (0x05, 1)
+#define	FLASH_EXP_READ_STATUS_REG		FLASH_EXP_READ_REG (0x05, 1)
+
+/**
+ * Helper to define an expected flag status register read.
+ */
+#define	FLASH_EXP_READ_FLAG_STATUS_REG	FLASH_EXP_READ_REG (0x70, 1)
 
 /**
  * Helper to define an expected write enable command.
  */
-#define	FLASH_EXP_WRITE_ENABLE		FLASH_EXP_OPCODE (0x06)
+#define	FLASH_EXP_WRITE_ENABLE			FLASH_EXP_OPCODE (0x06)
 
 /**
  * Helper to define an expected command to read data with any configuration.

@@ -17,6 +17,7 @@
 #include "mock/pfm_manager_mock.h"
 #include "engines/hash_testing_engine.h"
 #include "engines/rsa_testing_engine.h"
+#include "testing/spi_flash_sfdp_testing.h"
 
 
 static const char *SUITE = "host_flash_manager";
@@ -90,6 +91,79 @@ static void host_flash_manager_testing_check_state_persistence (CuTest *test,
 	CuAssertIntEquals (test, 0, status);
 
 	state_manager_store_non_volatile_state (state);
+}
+
+/**
+ * Execute device initialization for a flash device.
+ *
+ * @param test The testing framework.
+ * @param flash The SPI flash to initialize.
+ * @param mock The flash mock for the SPI device.
+ * @param id ID of the flash device.
+ */
+static void host_flash_manager_testing_initialize_flash_device (CuTest *test,
+	struct spi_flash *flash, struct flash_master_mock *mock, const uint8_t *id)
+{
+	uint32_t header[] = {
+		0x50444653,
+		0xff010106,
+		0x10010600,
+		0xff000030
+	};
+	uint32_t params[] = {
+		0xfff320e5,
+		0x00ffffff,
+		0x6b08eb44,
+		0xbb043b08,
+		0xffffffef,
+		0xbb04ffff,
+		0xff00ffff,
+		0xd810200c,
+		0xff00ff00,
+		0x00a60236,
+		0xb314ea82,
+		0x337663e9,
+		0x757a757a,
+		0x5cd5a2f7,
+		0xff2df719,
+		0x80f830e9
+	};
+	uint8_t mode_expected[] = {0x20};
+	int status;
+
+	/* Get Device ID. */
+	status = flash_master_mock_expect_rx_xfer (mock, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+
+	/* Use SFDP to discover device properties. */
+	status |= flash_master_mock_expect_rx_xfer (mock, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+	status |= flash_master_mock_expect_rx_xfer (mock, 0, (uint8_t*) header, sizeof (header),
+		FLASH_EXP_READ_CMD (0x5a, 0x000000, 1, -1, sizeof (header)));
+	status |= flash_master_mock_expect_rx_xfer (mock, 0, (uint8_t*) params, sizeof (params),
+		FLASH_EXP_READ_CMD (0x5a, 0x000030, 1, -1, sizeof (params)));
+	status |= mock_expect (&mock->mock, mock->base.capabilities, mock,
+		FLASH_CAP_3BYTE_ADDR | FLASH_CAP_4BYTE_ADDR);
+
+	/* Detect device WIP state. */
+	status |= flash_master_mock_expect_rx_xfer (mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+
+	/* Detect address mode. */
+	status |= flash_master_mock_expect_rx_xfer (mock, 0, mode_expected, 1,
+		FLASH_EXP_READ_REG (0x15, 1));
+
+	/* Clear block protect bits. */
+	status |= flash_master_mock_expect_rx_xfer (mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_initialize_device (flash, &mock->base, false, false, false, false);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&mock->mock);
+	CuAssertIntEquals (test, 0, status);
 }
 
 
@@ -6826,7 +6900,6 @@ static void host_flash_manager_test_set_flash_for_rot_access (CuTest *test)
 	struct host_flash_manager manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
-	const size_t id_len = sizeof (id);
 	uint8_t bp_status = 0x3c;
 	uint8_t qspi_enable = 0x40;
 	uint8_t addr_mode = 0x20;
@@ -6837,21 +6910,13 @@ static void host_flash_manager_test_set_flash_for_rot_access (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 	flash_mock0.mock.name = "flash_master0";
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_initialize_flash_device (test, &flash0, &flash_mock0, id);
 
 	status = flash_master_mock_init (&flash_mock1);
 	CuAssertIntEquals (test, 0, status);
 	flash_mock1.mock.name = "flash_master1";
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_initialize_flash_device (test, &flash1, &flash_mock1, id);
 
 	status = spi_filter_interface_mock_init (&filter);
 	CuAssertIntEquals (test, 0, status);
@@ -6874,12 +6939,6 @@ static void host_flash_manager_test_set_flash_for_rot_access (CuTest *test)
 	/* Switch SPI mux. */
 	status |= mock_expect (&control.mock, control.base.enable_processor_flash_access, &control, 0,
 		MOCK_ARG (false));
-
-	/* Detect devices. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, id_len,
-		FLASH_EXP_READ_REG (0x9f, id_len));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id, id_len,
-		FLASH_EXP_READ_REG (0x9f, id_len));
 
 	/* Detect device WIP state. */
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
@@ -6909,6 +6968,8 @@ static void host_flash_manager_test_set_flash_for_rot_access (CuTest *test)
 		FLASH_EXP_READ_STATUS_REG);
 
 	/* Enable QSPI mode. */
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
@@ -6965,7 +7026,7 @@ static void host_flash_manager_test_set_flash_for_rot_access (CuTest *test)
 	spi_flash_release (&flash_state);
 }
 
-static void host_flash_manager_test_set_flash_for_rot_access_check_qspi_error (CuTest *test)
+static void host_flash_manager_test_set_flash_for_rot_access_not_initilized_device (CuTest *test)
 {
 	struct flash_master_mock flash_mock0;
 	struct flash_master_mock flash_mock1;
@@ -6980,9 +7041,7 @@ static void host_flash_manager_test_set_flash_for_rot_access_check_qspi_error (C
 	struct host_flash_manager manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
-	const size_t id_len = sizeof (id);
 	uint8_t bp_status = 0x3c;
-	uint8_t qspi_enable = 0x40;
 	uint8_t addr_mode = 0x20;
 
 	TEST_START;
@@ -7030,10 +7089,137 @@ static void host_flash_manager_test_set_flash_for_rot_access_check_qspi_error (C
 		MOCK_ARG (false));
 
 	/* Detect devices. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, id_len,
-		FLASH_EXP_READ_REG (0x9f, id_len));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id, id_len,
-		FLASH_EXP_READ_REG (0x9f, id_len));
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+
+	/* Detect device WIP state. */
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+
+	/* Clear block protect bits. */
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &bp_status, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &bp_status, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_xfer (&flash_mock0, 0, FLASH_EXP_WRITE_ENABLE);
+	status |= flash_master_mock_expect_tx_xfer (&flash_mock0, 0,
+		FLASH_EXP_WRITE_REG (0x01, &WIP_STATUS, 1));
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &bp_status, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &bp_status, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_xfer (&flash_mock1, 0, FLASH_EXP_WRITE_ENABLE);
+	status |= flash_master_mock_expect_tx_xfer (&flash_mock1, 0,
+		FLASH_EXP_WRITE_REG (0x01, &WIP_STATUS, 1));
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+
+	/* Detect 4-byte addressing. */
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &addr_mode, 1,
+		FLASH_EXP_READ_REG (0x15, 1));
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &addr_mode, 1,
+		FLASH_EXP_READ_REG (0x15, 1));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.set_flash_for_rot_access (&manager, &control.base);
+	// CuAssertIntEquals (test, 0, status);
+
+	mock_validate (&flash_mock0.mock);
+
+	status = spi_flash_is_4byte_address_mode (&flash0);
+	CuAssertIntEquals (test, 1, status);
+
+	status = spi_flash_is_4byte_address_mode (&flash1);
+	CuAssertIntEquals (test, 1, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock_state);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_filter_interface_mock_validate_and_release (&filter);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_control_mock_validate_and_release (&control);
+	CuAssertIntEquals (test, 0, status);
+
+	host_flash_manager_release (&manager);
+
+	host_state_manager_release (&host_state);
+	spi_flash_release (&flash0);
+	spi_flash_release (&flash1);
+	spi_flash_release (&flash_state);
+}
+
+static void host_flash_manager_test_set_flash_for_rot_access_check_qspi_error (CuTest *test)
+{
+	struct flash_master_mock flash_mock0;
+	struct flash_master_mock flash_mock1;
+	struct flash_master_mock flash_mock_state;
+	struct spi_flash flash0;
+	struct spi_flash flash1;
+	struct spi_flash flash_state;
+	struct state_manager host_state;
+	struct spi_filter_interface_mock filter;
+	struct flash_mfg_filter_handler_mock handler;
+	struct host_control_mock control;
+	struct host_flash_manager manager;
+	int status;
+	uint8_t id[] = {0xc2, 0x20, 0x19};
+	uint8_t bp_status = 0x3c;
+	uint8_t qspi_enable = 0x40;
+	uint8_t addr_mode = 0x20;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&flash_mock0);
+	CuAssertIntEquals (test, 0, status);
+	flash_mock0.mock.name = "flash_master0";
+
+	host_flash_manager_testing_initialize_flash_device (test, &flash0, &flash_mock0, id);
+
+	status = flash_master_mock_init (&flash_mock1);
+	CuAssertIntEquals (test, 0, status);
+	flash_mock1.mock.name = "flash_master1";
+
+	host_flash_manager_testing_initialize_flash_device (test, &flash1, &flash_mock1, id);
+
+	status = spi_filter_interface_mock_init (&filter);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mfg_filter_handler_mock_init (&handler);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_control_mock_init (&control);
+	CuAssertIntEquals (test, 0, status);
+
+	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
+
+	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
+		&handler.base);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Disable SPI filter. */
+	status = mock_expect (&filter.mock, filter.base.enable_filter, &filter, 0, MOCK_ARG (false));
+
+	/* Switch SPI mux. */
+	status |= mock_expect (&control.mock, control.base.enable_processor_flash_access, &control, 0,
+		MOCK_ARG (false));
 
 	/* Detect device WIP state. */
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
@@ -7064,6 +7250,8 @@ static void host_flash_manager_test_set_flash_for_rot_access_check_qspi_error (C
 
 	/* Enable QSPI mode. */
 	status |= flash_master_mock_expect_xfer (&flash_mock0, FLASH_MASTER_XFER_FAILED,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
@@ -7134,7 +7322,6 @@ static void host_flash_manager_test_set_flash_for_rot_access_wip_set (CuTest *te
 	struct host_flash_manager manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
-	const size_t id_len = sizeof (id);
 	uint8_t bp_status = 0x3c;
 	uint8_t qspi_enable = 0x40;
 	uint8_t wip_set = FLASH_STATUS_WIP;
@@ -7146,21 +7333,13 @@ static void host_flash_manager_test_set_flash_for_rot_access_wip_set (CuTest *te
 	CuAssertIntEquals (test, 0, status);
 	flash_mock0.mock.name = "flash_master0";
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_initialize_flash_device (test, &flash0, &flash_mock0, id);
 
 	status = flash_master_mock_init (&flash_mock1);
 	CuAssertIntEquals (test, 0, status);
 	flash_mock1.mock.name = "flash_master1";
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_initialize_flash_device (test, &flash1, &flash_mock1, id);
 
 	status = spi_filter_interface_mock_init (&filter);
 	CuAssertIntEquals (test, 0, status);
@@ -7183,12 +7362,6 @@ static void host_flash_manager_test_set_flash_for_rot_access_wip_set (CuTest *te
 	/* Switch SPI mux. */
 	status |= mock_expect (&control.mock, control.base.enable_processor_flash_access, &control, 0,
 		MOCK_ARG (false));
-
-	/* Detect devices. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, id_len,
-		FLASH_EXP_READ_REG (0x9f, id_len));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id, id_len,
-		FLASH_EXP_READ_REG (0x9f, id_len));
 
 	/* Detect device WIP state. */
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &wip_set, 1,
@@ -7225,6 +7398,8 @@ static void host_flash_manager_test_set_flash_for_rot_access_wip_set (CuTest *te
 		FLASH_EXP_READ_STATUS_REG);
 
 	/* Enable QSPI mode. */
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
@@ -7299,8 +7474,8 @@ static void host_flash_manager_test_set_flash_for_rot_access_with_flash_initiali
 	int status;
 	uint32_t header[] = {
 		0x50444653,
-		0xff010100,
-		0x09010000,
+		0xff010106,
+		0x10010600,
 		0xff000030
 	};
 	uint32_t params[] = {
@@ -7312,10 +7487,16 @@ static void host_flash_manager_test_set_flash_for_rot_access_with_flash_initiali
 		0xff00ffff,
 		0xff00ffff,
 		0xd810200c,
-		0xff00ff00
+		0xff00ff00,
+		0x00a60236,
+		0xb314ea82,
+		0x337663e9,
+		0x757a757a,
+		0x5cd5a2f7,
+		0xff2df719,
+		0x80f830e9
 	};
 	uint8_t id[] = {0xc2, 0x20, 0x19};
-	const size_t id_len = sizeof (id);
 	uint8_t read_status = 0x7c;
 	uint8_t write_status = 0x40;
 	uint8_t qspi_enable = 0x40;
@@ -7360,20 +7541,22 @@ static void host_flash_manager_test_set_flash_for_rot_access_with_flash_initiali
 	/* Initialize flash devices. */
 
 	/* Get Device ID. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, id_len,
-		FLASH_EXP_READ_REG (0x9f, id_len));
-
-	/* Detect device WIP state. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
 	/* Use SFDP to discover device properties. */
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, (uint8_t*) header, sizeof (header),
 		FLASH_EXP_READ_CMD (0x5a, 0x000000, 1, -1, sizeof (header)));
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, (uint8_t*) params, sizeof (params),
 		FLASH_EXP_READ_CMD (0x5a, 0x000030, 1, -1, sizeof (params)));
 	status |= mock_expect (&flash_mock0.mock, flash_mock0.base.capabilities, &flash_mock0,
 		FLASH_CAP_3BYTE_ADDR | FLASH_CAP_4BYTE_ADDR);
+
+	/* Detect device WIP state. */
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
 
 	/* Detect address mode. */
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &addr_mode, 1,
@@ -7392,20 +7575,22 @@ static void host_flash_manager_test_set_flash_for_rot_access_with_flash_initiali
 		FLASH_EXP_READ_STATUS_REG);
 
 	/* Get Device ID. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id, id_len,
-		FLASH_EXP_READ_REG (0x9f, id_len));
-
-	/* Detect device WIP state. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
 	/* Use SFDP to discover device properties. */
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, (uint8_t*) header, sizeof (header),
 		FLASH_EXP_READ_CMD (0x5a, 0x000000, 1, -1, sizeof (header)));
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, (uint8_t*) params, sizeof (params),
 		FLASH_EXP_READ_CMD (0x5a, 0x000030, 1, -1, sizeof (params)));
 	status |= mock_expect (&flash_mock1.mock, flash_mock1.base.capabilities, &flash_mock1,
 		FLASH_CAP_3BYTE_ADDR | FLASH_CAP_4BYTE_ADDR);
+
+	/* Detect device WIP state. */
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
 
 	/* Detect address mode. */
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &addr_mode, 1,
@@ -7438,6 +7623,8 @@ static void host_flash_manager_test_set_flash_for_rot_access_with_flash_initiali
 		FLASH_EXP_READ_STATUS_REG);
 
 	/* Enable QSPI mode. */
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
@@ -7771,7 +7958,6 @@ static void host_flash_manager_test_set_flash_for_rot_access_wip_error (CuTest *
 	struct host_flash_manager manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
-	const size_t id_len = sizeof (id);
 
 	TEST_START;
 
@@ -7779,21 +7965,13 @@ static void host_flash_manager_test_set_flash_for_rot_access_wip_error (CuTest *
 	CuAssertIntEquals (test, 0, status);
 	flash_mock0.mock.name = "flash_master0";
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_initialize_flash_device (test, &flash0, &flash_mock0, id);
 
 	status = flash_master_mock_init (&flash_mock1);
 	CuAssertIntEquals (test, 0, status);
 	flash_mock1.mock.name = "flash_master1";
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_initialize_flash_device (test, &flash1, &flash_mock1, id);
 
 	status = spi_filter_interface_mock_init (&filter);
 	CuAssertIntEquals (test, 0, status);
@@ -7816,10 +7994,6 @@ static void host_flash_manager_test_set_flash_for_rot_access_wip_error (CuTest *
 	/* Switch SPI mux. */
 	status |= mock_expect (&control.mock, control.base.enable_processor_flash_access, &control, 0,
 		MOCK_ARG (false));
-
-	/* Detect devices. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, id_len,
-		FLASH_EXP_READ_REG (0x9f, id_len));
 
 	/* Detect device WIP state. */
 	status |= flash_master_mock_expect_xfer (&flash_mock0, FLASH_MASTER_XFER_FAILED,
@@ -7871,7 +8045,6 @@ static void host_flash_manager_test_set_flash_for_rot_access_block_protect_error
 	struct host_flash_manager manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
-	const size_t id_len = sizeof (id);
 
 	TEST_START;
 
@@ -7879,21 +8052,13 @@ static void host_flash_manager_test_set_flash_for_rot_access_block_protect_error
 	CuAssertIntEquals (test, 0, status);
 	flash_mock0.mock.name = "flash_master0";
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_initialize_flash_device (test, &flash0, &flash_mock0, id);
 
 	status = flash_master_mock_init (&flash_mock1);
 	CuAssertIntEquals (test, 0, status);
 	flash_mock1.mock.name = "flash_master1";
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_initialize_flash_device (test, &flash1, &flash_mock1, id);
 
 	status = spi_filter_interface_mock_init (&filter);
 	CuAssertIntEquals (test, 0, status);
@@ -7916,10 +8081,6 @@ static void host_flash_manager_test_set_flash_for_rot_access_block_protect_error
 	/* Switch SPI mux. */
 	status |= mock_expect (&control.mock, control.base.enable_processor_flash_access, &control, 0,
 		MOCK_ARG (false));
-
-	/* Detect devices. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, id_len,
-		FLASH_EXP_READ_REG (0x9f, id_len));
 
 	/* Detect device WIP state. */
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
@@ -7975,7 +8136,6 @@ static void host_flash_manager_test_set_flash_for_rot_access_qspi_error (CuTest 
 	struct host_flash_manager manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
-	const size_t id_len = sizeof (id);
 	uint8_t bp_status = 0x3c;
 
 	TEST_START;
@@ -7984,21 +8144,13 @@ static void host_flash_manager_test_set_flash_for_rot_access_qspi_error (CuTest 
 	CuAssertIntEquals (test, 0, status);
 	flash_mock0.mock.name = "flash_master0";
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_initialize_flash_device (test, &flash0, &flash_mock0, id);
 
 	status = flash_master_mock_init (&flash_mock1);
 	CuAssertIntEquals (test, 0, status);
 	flash_mock1.mock.name = "flash_master1";
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_initialize_flash_device (test, &flash1, &flash_mock1, id);
 
 	status = spi_filter_interface_mock_init (&filter);
 	CuAssertIntEquals (test, 0, status);
@@ -8021,10 +8173,6 @@ static void host_flash_manager_test_set_flash_for_rot_access_qspi_error (CuTest 
 	/* Switch SPI mux. */
 	status |= mock_expect (&control.mock, control.base.enable_processor_flash_access, &control, 0,
 		MOCK_ARG (false));
-
-	/* Detect devices. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, id_len,
-		FLASH_EXP_READ_REG (0x9f, id_len));
 
 	/* Detect device WIP state. */
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
@@ -8093,7 +8241,6 @@ static void host_flash_manager_test_set_flash_for_rot_access_4byte_error (CuTest
 	struct host_flash_manager manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
-	const size_t id_len = sizeof (id);
 	uint8_t bp_status = 0x3c;
 	uint8_t qspi_enable = 0x40;
 
@@ -8103,21 +8250,13 @@ static void host_flash_manager_test_set_flash_for_rot_access_4byte_error (CuTest
 	CuAssertIntEquals (test, 0, status);
 	flash_mock0.mock.name = "flash_master0";
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_initialize_flash_device (test, &flash0, &flash_mock0, id);
 
 	status = flash_master_mock_init (&flash_mock1);
 	CuAssertIntEquals (test, 0, status);
 	flash_mock1.mock.name = "flash_master1";
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_initialize_flash_device (test, &flash1, &flash_mock1, id);
 
 	status = spi_filter_interface_mock_init (&filter);
 	CuAssertIntEquals (test, 0, status);
@@ -8141,10 +8280,6 @@ static void host_flash_manager_test_set_flash_for_rot_access_4byte_error (CuTest
 	status |= mock_expect (&control.mock, control.base.enable_processor_flash_access, &control, 0,
 		MOCK_ARG (false));
 
-	/* Detect devices. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, id_len,
-		FLASH_EXP_READ_REG (0x9f, id_len));
-
 	/* Detect device WIP state. */
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
@@ -8161,6 +8296,8 @@ static void host_flash_manager_test_set_flash_for_rot_access_4byte_error (CuTest
 		FLASH_EXP_READ_STATUS_REG);
 
 	/* Enable QSPI mode. */
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
@@ -8315,7 +8452,6 @@ static void host_flash_manager_test_set_flash_for_rot_access_unknown_id_ff (CuTe
 	struct host_flash_manager manager;
 	int status;
 	uint8_t id[] = {0xff, 0xff, 0xff};
-	const size_t id_len = sizeof (id);
 
 	TEST_START;
 
@@ -8362,8 +8498,8 @@ static void host_flash_manager_test_set_flash_for_rot_access_unknown_id_ff (CuTe
 		MOCK_ARG (false));
 
 	/* Detect devices. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, id_len,
-		FLASH_EXP_READ_REG (0x9f, id_len));
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -8411,7 +8547,6 @@ static void host_flash_manager_test_set_flash_for_rot_access_unknown_id_00 (CuTe
 	struct host_flash_manager manager;
 	int status;
 	uint8_t id[] = {0x00, 0x00, 0x00};
-	const size_t id_len = sizeof (id);
 
 	TEST_START;
 
@@ -8458,8 +8593,8 @@ static void host_flash_manager_test_set_flash_for_rot_access_unknown_id_00 (CuTe
 		MOCK_ARG (false));
 
 	/* Detect devices. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, id_len,
-		FLASH_EXP_READ_REG (0x9f, id_len));
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -8947,7 +9082,6 @@ static void host_flash_manager_test_config_spi_filter_flash_type (CuTest *test)
 	struct host_flash_manager manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
-	const size_t id_len = sizeof (id);
 
 	TEST_START;
 
@@ -8981,10 +9115,10 @@ static void host_flash_manager_test_config_spi_filter_flash_type (CuTest *test)
 		&handler.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, id_len,
-		FLASH_EXP_READ_REG (0x9f, id_len));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id, id_len,
-		FLASH_EXP_READ_REG (0x9f, id_len));
+	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
 	status |= mock_expect (&handler.mock, handler.base.set_flash_manufacturer, &handler, 0,
 		MOCK_ARG (0xc2), MOCK_ARG (0x2019));
@@ -9033,7 +9167,6 @@ static void host_flash_manager_test_config_spi_filter_flash_type_set_size_unsupp
 	struct host_flash_manager manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
-	const size_t id_len = sizeof (id);
 
 	TEST_START;
 
@@ -9067,10 +9200,10 @@ static void host_flash_manager_test_config_spi_filter_flash_type_set_size_unsupp
 		&handler.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, id_len,
-		FLASH_EXP_READ_REG (0x9f, id_len));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id, id_len,
-		FLASH_EXP_READ_REG (0x9f, id_len));
+	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
 	status |= mock_expect (&handler.mock, handler.base.set_flash_manufacturer, &handler, 0,
 		MOCK_ARG (0xc2), MOCK_ARG (0x2019));
@@ -9192,7 +9325,6 @@ static void host_flash_manager_test_config_spi_filter_flash_type_diff_vendors (C
 	int status;
 	uint8_t id0[] = {0xc2, 0x20, 0x19};
 	uint8_t id1[] = {0xef, 0x40, 0x19};
-	const size_t id_len = sizeof (id0);
 
 	TEST_START;
 
@@ -9226,10 +9358,10 @@ static void host_flash_manager_test_config_spi_filter_flash_type_diff_vendors (C
 		&handler.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id0, id_len,
-		FLASH_EXP_READ_REG (0x9f, id_len));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id1, id_len,
-		FLASH_EXP_READ_REG (0x9f, id_len));
+	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id0, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id1, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -9274,7 +9406,6 @@ static void host_flash_manager_test_config_spi_filter_flash_type_diff_devices (C
 	int status;
 	uint8_t id0[] = {0xc2, 0x20, 0x19};
 	uint8_t id1[] = {0xc2, 0x20, 0x18};
-	const size_t id_len = sizeof (id0);
 
 	TEST_START;
 
@@ -9308,10 +9439,10 @@ static void host_flash_manager_test_config_spi_filter_flash_type_diff_devices (C
 		&handler.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id0, id_len,
-		FLASH_EXP_READ_REG (0x9f, id_len));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id1, id_len,
-		FLASH_EXP_READ_REG (0x9f, id_len));
+	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id0, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id1, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -9355,7 +9486,6 @@ static void host_flash_manager_test_config_spi_filter_flash_type_diff_sizes (CuT
 	struct host_flash_manager manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
-	const size_t id_len = sizeof (id);
 
 	TEST_START;
 
@@ -9389,10 +9519,10 @@ static void host_flash_manager_test_config_spi_filter_flash_type_diff_sizes (CuT
 		&handler.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, id_len,
-		FLASH_EXP_READ_REG (0x9f, id_len));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id, id_len,
-		FLASH_EXP_READ_REG (0x9f, id_len));
+	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
 	status |= mock_expect (&handler.mock, handler.base.set_flash_manufacturer, &handler, 0,
 		MOCK_ARG (0xc2), MOCK_ARG (0x2019));
@@ -9516,7 +9646,6 @@ static void host_flash_manager_test_config_spi_filter_flash_type_id1_error (CuTe
 	struct host_flash_manager manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
-	const size_t id_len = sizeof (id);
 
 	TEST_START;
 
@@ -9550,10 +9679,10 @@ static void host_flash_manager_test_config_spi_filter_flash_type_id1_error (CuTe
 		&handler.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, id_len,
-		FLASH_EXP_READ_REG (0x9f, id_len));
+	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 	status |= flash_master_mock_expect_xfer (&flash_mock1, FLASH_MASTER_XFER_FAILED,
-		FLASH_EXP_READ_REG (0x9f, id_len));
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -9597,7 +9726,6 @@ static void host_flash_manager_test_config_spi_filter_flash_type_filter_error (C
 	struct host_flash_manager manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
-	const size_t id_len = sizeof (id);
 
 	TEST_START;
 
@@ -9631,10 +9759,10 @@ static void host_flash_manager_test_config_spi_filter_flash_type_filter_error (C
 		&handler.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, id_len,
-		FLASH_EXP_READ_REG (0x9f, id_len));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id, id_len,
-		FLASH_EXP_READ_REG (0x9f, id_len));
+	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
 	status |= mock_expect (&handler.mock, handler.base.set_flash_manufacturer, &handler,
 		MFG_FILTER_HANDLER_SET_MFG_FAILED, MOCK_ARG (0xc2), MOCK_ARG (0x2019));
@@ -9681,7 +9809,6 @@ static void host_flash_manager_test_config_spi_filter_flash_type_unsupported_mfg
 	struct host_flash_manager manager;
 	int status;
 	uint8_t id[] = {0x01, 0x20, 0x19};
-	const size_t id_len = sizeof (id);
 
 	TEST_START;
 
@@ -9715,10 +9842,10 @@ static void host_flash_manager_test_config_spi_filter_flash_type_unsupported_mfg
 		&handler.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, id_len,
-		FLASH_EXP_READ_REG (0x9f, id_len));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id, id_len,
-		FLASH_EXP_READ_REG (0x9f, id_len));
+	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
 	status |= mock_expect (&handler.mock, handler.base.set_flash_manufacturer, &handler,
 		MFG_FILTER_HANDLER_UNSUPPORTED_VENDOR, MOCK_ARG (0x01), MOCK_ARG (0x2019));
@@ -9765,7 +9892,6 @@ static void host_flash_manager_test_config_spi_filter_flash_type_unsupported_dev
 	struct host_flash_manager manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x18};
-	const size_t id_len = sizeof (id);
 
 	TEST_START;
 
@@ -9799,10 +9925,10 @@ static void host_flash_manager_test_config_spi_filter_flash_type_unsupported_dev
 		&handler.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, id_len,
-		FLASH_EXP_READ_REG (0x9f, id_len));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id, id_len,
-		FLASH_EXP_READ_REG (0x9f, id_len));
+	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
 	status |= mock_expect (&handler.mock, handler.base.set_flash_manufacturer, &handler,
 		MFG_FILTER_HANDLER_UNSUPPORTED_DEVICE, MOCK_ARG (0xc2), MOCK_ARG (0x2018));
@@ -9849,7 +9975,6 @@ static void host_flash_manager_test_config_spi_filter_flash_type_filter_size_err
 	struct host_flash_manager manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
-	const size_t id_len = sizeof (id);
 
 	TEST_START;
 
@@ -9883,10 +10008,10 @@ static void host_flash_manager_test_config_spi_filter_flash_type_filter_size_err
 		&handler.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, id_len,
-		FLASH_EXP_READ_REG (0x9f, id_len));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id, id_len,
-		FLASH_EXP_READ_REG (0x9f, id_len));
+	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
 	status |= mock_expect (&handler.mock, handler.base.set_flash_manufacturer, &handler, 0,
 		MOCK_ARG (0xc2), MOCK_ARG (0x2019));
@@ -13001,6 +13126,7 @@ CuSuite* get_host_flash_manager_suite ()
 	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_write_flash_version_error);
 	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_write_flash_verify_error);
 	SUITE_ADD_TEST (suite, host_flash_manager_test_set_flash_for_rot_access);
+	SUITE_ADD_TEST (suite, host_flash_manager_test_set_flash_for_rot_access_not_initilized_device);
 	SUITE_ADD_TEST (suite, host_flash_manager_test_set_flash_for_rot_access_check_qspi_error);
 	SUITE_ADD_TEST (suite, host_flash_manager_test_set_flash_for_rot_access_wip_set);
 	SUITE_ADD_TEST (suite,

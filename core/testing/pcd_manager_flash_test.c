@@ -441,8 +441,7 @@ static int pcd_manager_flash_testing_write_new_pcd (CuTest *test, struct pcd_man
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
 
 	status = flash_master_mock_expect_erase_flash_verify (flash_mock, addr, 0x10000);
-	status |= flash_master_mock_expect_write_ext (flash_mock, addr, data, sizeof (data), true,
-		false);
+	status |= flash_master_mock_expect_write_ext (flash_mock, addr, data, sizeof (data), true, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = manager->base.base.clear_pending_region (&manager->base.base, sizeof (data));
