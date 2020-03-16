@@ -303,12 +303,12 @@ int flash_master_mock_expect_rx_xfer_ext (struct flash_master_mock *mock, intptr
  * @param mock The mock to update with the expectations.
  * @param start The start of the region that will be blank checked.
  * @param length The length of the region.
- * @param addr4 Flag indicating if 4-byte addresses are used.
+ * @param addr4 Type of of 4-byte addressing to use:  0 = None, 1 = 4-byte, 2 = explicit 4-byte
  *
  * @return 0 if the expectations were added successfully or non-zero if not.
  */
 static int flash_master_mock_expect_blank_check_ext (struct flash_master_mock *mock, uint32_t start,
-	size_t length, bool addr4)
+	size_t length, uint8_t addr4)
 {
 	int status = 0;
 	size_t page_len;
@@ -324,7 +324,7 @@ static int flash_master_mock_expect_blank_check_ext (struct flash_master_mock *m
 		}
 		else {
 			status |= flash_master_mock_expect_rx_xfer (mock, 0, mock->blank, sizeof (mock->blank),
-				FLASH_EXP_READ_4B_CMD (0x03, start, 0, -1, page_len));
+				FLASH_EXP_READ_4B_CMD ((addr4 == 1) ? 0x03 : 0x13, start, 0, -1, page_len));
 		}
 
 		length -= page_len;
@@ -346,7 +346,7 @@ static int flash_master_mock_expect_blank_check_ext (struct flash_master_mock *m
 int flash_master_mock_expect_blank_check (struct flash_master_mock *mock, uint32_t start,
 	size_t length)
 {
-	return flash_master_mock_expect_blank_check_ext (mock, start, length, false);
+	return flash_master_mock_expect_blank_check_ext (mock, start, length, 0);
 }
 
 /**
@@ -361,7 +361,22 @@ int flash_master_mock_expect_blank_check (struct flash_master_mock *mock, uint32
 int flash_master_mock_expect_blank_check_4byte (struct flash_master_mock *mock, uint32_t start,
 	size_t length)
 {
-	return flash_master_mock_expect_blank_check_ext (mock, start, length, true);
+	return flash_master_mock_expect_blank_check_ext (mock, start, length, 1);
+}
+
+/**
+ * Add the expectations for blank checking a region of flash using explicit 4-byte address commands.
+ *
+ * @param mock The mock to update with the expectations.
+ * @param start The start of the region that will be blank checked.
+ * @param length The length of the region.
+ *
+ * @return 0 if the expectations were added successfully or non-zero if not.
+ */
+int flash_master_mock_expect_blank_check_4byte_explicit (struct flash_master_mock *mock,
+	uint32_t start, size_t length)
+{
+	return flash_master_mock_expect_blank_check_ext (mock, start, length, 2);
 }
 
 /**
@@ -371,12 +386,12 @@ int flash_master_mock_expect_blank_check_4byte (struct flash_master_mock *mock, 
  * @param start The start of the region that will be blank checked.
  * @param length The length of the region.
  * @param value The static value contained in the flash.
- * @param addr4 Flag indicating if 4-byte addresses are used.
+ * @param addr4 Type of of 4-byte addressing to use:  0 = None, 1 = 4-byte, 2 = explicit 4-byte
  *
  * @return 0 if the expectations were added successfully or non-zero if not.
  */
 static int flash_master_mock_expect_value_check_ext (struct flash_master_mock *mock, uint32_t start,
-	size_t length, uint8_t value, bool addr4)
+	size_t length, uint8_t value, uint8_t addr4)
 {
 	int status = 0;
 	size_t page_len;
@@ -395,7 +410,7 @@ static int flash_master_mock_expect_value_check_ext (struct flash_master_mock *m
 		}
 		else {
 			status |= flash_master_mock_expect_rx_xfer_ext (mock, 0, check, sizeof (check), true,
-				FLASH_EXP_READ_4B_CMD (0x03, start, 0, -1, page_len));
+				FLASH_EXP_READ_4B_CMD ((addr4 == 1) ? 0x03 : 0x13, start, 0, -1, page_len));
 		}
 
 		length -= page_len;
@@ -418,7 +433,7 @@ static int flash_master_mock_expect_value_check_ext (struct flash_master_mock *m
 int flash_master_mock_expect_value_check (struct flash_master_mock *mock, uint32_t start,
 	size_t length, uint8_t value)
 {
-	return flash_master_mock_expect_value_check_ext (mock, start, length, value, false);
+	return flash_master_mock_expect_value_check_ext (mock, start, length, value, 0);
 }
 
 /**
@@ -434,7 +449,23 @@ int flash_master_mock_expect_value_check (struct flash_master_mock *mock, uint32
 int flash_master_mock_expect_value_check_4byte (struct flash_master_mock *mock, uint32_t start,
 	size_t length, uint8_t value)
 {
-	return flash_master_mock_expect_value_check_ext (mock, start, length, value, true);
+	return flash_master_mock_expect_value_check_ext (mock, start, length, value, 1);
+}
+
+/**
+ * Add the expectations for value checking a region of flash using explicit 4-byte address commands.
+ *
+ * @param mock The mock to update with the expectations.
+ * @param start The start of the region that will be blank checked.
+ * @param length The length of the region.
+ * @param value The static value contained in the flash.
+ *
+ * @return 0 if the expectations were added successfully or non-zero if not.
+ */
+int flash_master_mock_expect_value_check_4byte_explicit (struct flash_master_mock *mock,
+	uint32_t start, size_t length, uint8_t value)
+{
+	return flash_master_mock_expect_value_check_ext (mock, start, length, value, 2);
 }
 
 /**
@@ -442,12 +473,12 @@ int flash_master_mock_expect_value_check_4byte (struct flash_master_mock *mock, 
  *
  * @param mock The mock to update.
  * @param addr The starting address of the block.
- * @param addr4 Flag indicating of 4-byte addresses are used.
+ * @param addr4 Type of of 4-byte addressing to use:  0 = None, 1 = 4-byte, 2 = explicit 4-byte
  *
  * @return 0 if the expectations were added successfully or non-zero if not.
  */
 static int flash_master_mock_expect_erase_flash_ext (struct flash_master_mock *mock, uint32_t addr,
-	bool addr4)
+	uint8_t addr4)
 {
 	int status;
 
@@ -458,7 +489,8 @@ static int flash_master_mock_expect_erase_flash_ext (struct flash_master_mock *m
 		status |= flash_master_mock_expect_xfer (mock, 0, FLASH_EXP_ERASE_CMD (0xd8, addr));
 	}
 	else {
-		status |= flash_master_mock_expect_xfer (mock, 0, FLASH_EXP_ERASE_4B_CMD (0xd8, addr));
+		status |= flash_master_mock_expect_xfer (mock, 0,
+			FLASH_EXP_ERASE_4B_CMD ((addr4 == 1) ? 0xd8 : 0xdc, addr));
 	}
 	status |= flash_master_mock_expect_rx_xfer (mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
@@ -476,7 +508,7 @@ static int flash_master_mock_expect_erase_flash_ext (struct flash_master_mock *m
  */
 int flash_master_mock_expect_erase_flash (struct flash_master_mock *mock, uint32_t addr)
 {
-	return flash_master_mock_expect_erase_flash_ext (mock, addr, false);
+	return flash_master_mock_expect_erase_flash_ext (mock, addr, 0);
 }
 
 /**
@@ -489,7 +521,22 @@ int flash_master_mock_expect_erase_flash (struct flash_master_mock *mock, uint32
  */
 int flash_master_mock_expect_erase_flash_4byte (struct flash_master_mock *mock, uint32_t addr)
 {
-	return flash_master_mock_expect_erase_flash_ext (mock, addr, true);
+	return flash_master_mock_expect_erase_flash_ext (mock, addr, 1);
+}
+
+/**
+ * Set up expectations for successfully erasing a block of flash using expliict 4-byte address
+ * commands.
+ *
+ * @param mock The mock to update.
+ * @param addr The starting address of the block.
+ *
+ * @return 0 if the expectations were added successfully or non-zero if not.
+ */
+int flash_master_mock_expect_erase_flash_4byte_explicit (struct flash_master_mock *mock,
+	uint32_t addr)
+{
+	return flash_master_mock_expect_erase_flash_ext (mock, addr, 2);
 }
 
 /**
@@ -497,12 +544,12 @@ int flash_master_mock_expect_erase_flash_4byte (struct flash_master_mock *mock, 
  *
  * @param mock The mock to update.
  * @param addr The starting address of the sector.
- * @param addr4 Flag indicating if 4-byte addresses are used.
+ * @param addr4 Type of of 4-byte addressing to use:  0 = None, 1 = 4-byte, 2 = explicit 4-byte
  *
  * @return 0 if the expectations were added successfully or non-zero if not.
  */
 static int flash_master_mock_expect_erase_flash_sector_ext (struct flash_master_mock *mock,
-	uint32_t addr, bool addr4)
+	uint32_t addr, uint8_t addr4)
 {
 	int status;
 
@@ -513,7 +560,8 @@ static int flash_master_mock_expect_erase_flash_sector_ext (struct flash_master_
 		status |= flash_master_mock_expect_xfer (mock, 0, FLASH_EXP_ERASE_CMD (0x20, addr));
 	}
 	else {
-		status |= flash_master_mock_expect_xfer (mock, 0, FLASH_EXP_ERASE_4B_CMD (0x20, addr));
+		status |= flash_master_mock_expect_xfer (mock, 0,
+			FLASH_EXP_ERASE_4B_CMD ((addr4 == 1) ? 0x20 : 0x21, addr));
 	}
 	status |= flash_master_mock_expect_rx_xfer (mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
@@ -531,7 +579,7 @@ static int flash_master_mock_expect_erase_flash_sector_ext (struct flash_master_
  */
 int flash_master_mock_expect_erase_flash_sector (struct flash_master_mock *mock, uint32_t addr)
 {
-	return flash_master_mock_expect_erase_flash_sector_ext (mock, addr, false);
+	return flash_master_mock_expect_erase_flash_sector_ext (mock, addr, 0);
 }
 
 /**
@@ -545,7 +593,22 @@ int flash_master_mock_expect_erase_flash_sector (struct flash_master_mock *mock,
 int flash_master_mock_expect_erase_flash_sector_4byte (struct flash_master_mock *mock,
 	uint32_t addr)
 {
-	return flash_master_mock_expect_erase_flash_sector_ext (mock, addr, true);
+	return flash_master_mock_expect_erase_flash_sector_ext (mock, addr, 1);
+}
+
+/**
+ * Set up expectations for successfully erasing a sector of flash using explicit 4-byte address
+ * commands.
+ *
+ * @param mock The mock to update.
+ * @param addr The starting address of the sector.
+ *
+ * @return 0 if the expectations were added successfully or non-zero if not.
+ */
+int flash_master_mock_expect_erase_flash_sector_4byte_explicit (struct flash_master_mock *mock,
+	uint32_t addr)
+{
+	return flash_master_mock_expect_erase_flash_sector_ext (mock, addr, 2);
 }
 
 /**
@@ -554,12 +617,12 @@ int flash_master_mock_expect_erase_flash_sector_4byte (struct flash_master_mock 
  * @param mock The mock to update.
  * @param addr The starting address of the region.
  * @param length The length of the region.
- * @param addr4 Flag indicating if 4-byte addresses are used.
+ * @param addr4 Type of of 4-byte addressing to use:  0 = None, 1 = 4-byte, 2 = explicit 4-byte
  *
  * @return 0 if the expectations were added successfully or non-zero if not.
  */
 static int flash_master_mock_expect_erase_flash_verify_ext (struct flash_master_mock *mock,
-	uint32_t addr, size_t length, bool addr4)
+	uint32_t addr, size_t length, uint8_t addr4)
 {
 	int status;
 
@@ -581,7 +644,7 @@ static int flash_master_mock_expect_erase_flash_verify_ext (struct flash_master_
 int flash_master_mock_expect_erase_flash_verify (struct flash_master_mock *mock, uint32_t addr,
 	size_t length)
 {
-	return flash_master_mock_expect_erase_flash_verify_ext (mock, addr, length, false);
+	return flash_master_mock_expect_erase_flash_verify_ext (mock, addr, length, 0);
 }
 
 /**
@@ -597,7 +660,23 @@ int flash_master_mock_expect_erase_flash_verify (struct flash_master_mock *mock,
 int flash_master_mock_expect_erase_flash_verify_4byte (struct flash_master_mock *mock,
 	uint32_t addr, size_t length)
 {
-	return flash_master_mock_expect_erase_flash_verify_ext (mock, addr, length, true);
+	return flash_master_mock_expect_erase_flash_verify_ext (mock, addr, length, 1);
+}
+
+/**
+ * Set up expectations for successfully erasing a region of flash with a blank check using explicit
+ * 4-byte address commands.
+ *
+ * @param mock The mock to update.
+ * @param addr The starting address of the region.
+ * @param length The length of the region.
+ *
+ * @return 0 if the expectations were added successfully or non-zero if not.
+ */
+int flash_master_mock_expect_erase_flash_verify_4byte_explicit (struct flash_master_mock *mock,
+	uint32_t addr, size_t length)
+{
+	return flash_master_mock_expect_erase_flash_verify_ext (mock, addr, length, 2);
 }
 
 /**
@@ -606,12 +685,12 @@ int flash_master_mock_expect_erase_flash_verify_4byte (struct flash_master_mock 
  * @param mock The mock to update.
  * @param addr The starting address of the region.
  * @param length The length of the region.
- * @param addr4 Flag indicating if 4-byte addresses are used.
+ * @param addr4 Type of of 4-byte addressing to use:  0 = None, 1 = 4-byte, 2 = explicit 4-byte
  *
  * @return 0 if the expectations were added successfully or non-zero if not.
  */
 static int flash_master_mock_expect_erase_flash_sector_verify_ext (struct flash_master_mock *mock,
-	uint32_t addr, size_t length, bool addr4)
+	uint32_t addr, size_t length, uint8_t addr4)
 {
 	int status;
 
@@ -634,7 +713,7 @@ static int flash_master_mock_expect_erase_flash_sector_verify_ext (struct flash_
 int flash_master_mock_expect_erase_flash_sector_verify (struct flash_master_mock *mock,
 	uint32_t addr, size_t length)
 {
-	return flash_master_mock_expect_erase_flash_sector_verify_ext (mock, addr, length, false);
+	return flash_master_mock_expect_erase_flash_sector_verify_ext (mock, addr, length, 0);
 }
 
 /**
@@ -650,7 +729,23 @@ int flash_master_mock_expect_erase_flash_sector_verify (struct flash_master_mock
 int flash_master_mock_expect_erase_flash_sector_verify_4byte (struct flash_master_mock *mock,
 	uint32_t addr, size_t length)
 {
-	return flash_master_mock_expect_erase_flash_sector_verify_ext (mock, addr, length, true);
+	return flash_master_mock_expect_erase_flash_sector_verify_ext (mock, addr, length, 1);
+}
+
+/**
+ * Set up expectations for successfully erasing a sector of flash with a blank check using explicit
+ * 4-byte address commands.
+ *
+ * @param mock The mock to update.
+ * @param addr The starting address of the region.
+ * @param length The length of the region.
+ *
+ * @return 0 if the expectations were added successfully or non-zero if not.
+ */
+int flash_master_mock_expect_erase_flash_sector_verify_4byte_explicit (
+	struct flash_master_mock *mock, uint32_t addr, size_t length)
+{
+	return flash_master_mock_expect_erase_flash_sector_verify_ext (mock, addr, length, 2);
 }
 
 /**
@@ -684,13 +779,13 @@ int flash_master_mock_expect_chip_erase (struct flash_master_mock *mock)
  * @param data The data that will be copied.
  * @param length The length of the data.
  * @param verify Flag indicating the copy is expected to be verified.
- * @param addr4 Flag indicating if 4-byte addresses are used.
+ * @param addr4 Type of of 4-byte addressing to use:  0 = None, 1 = 4-byte, 2 = explicit 4-byte
  *
  * @return 0 if the expectations were added successfully or non-zero if not.
  */
 static int flash_master_mock_expect_copy_page_ext (struct flash_master_mock *mock_dest,
 	struct flash_master_mock *mock_src, uint32_t dest_addr, uint32_t src_addr, const uint8_t *data,
-	size_t length, uint8_t verify, bool addr4)
+	size_t length, uint8_t verify, uint8_t addr4)
 {
 	int status;
 
@@ -702,7 +797,7 @@ static int flash_master_mock_expect_copy_page_ext (struct flash_master_mock *moc
 	}
 	else {
 		status |= flash_master_mock_expect_rx_xfer (mock_src, 0, data, length,
-			FLASH_EXP_READ_4B_CMD (0x03, src_addr, 0, -1, length));
+			FLASH_EXP_READ_4B_CMD ((addr4 == 1) ? 0x03 : 0x13, src_addr, 0, -1, length));
 	}
 
 	status |= flash_master_mock_expect_rx_xfer (mock_dest, 0, &WIP_STATUS, 1,
@@ -714,7 +809,7 @@ static int flash_master_mock_expect_copy_page_ext (struct flash_master_mock *moc
 	}
 	else {
 		status |= flash_master_mock_expect_tx_xfer (mock_dest, 0,
-			FLASH_EXP_WRITE_4B_CMD (0x02, dest_addr, 0, data, length));
+			FLASH_EXP_WRITE_4B_CMD ((addr4 == 1) ? 0x02 : 0x12, dest_addr, 0, data, length));
 	}
 	status |= flash_master_mock_expect_rx_xfer (mock_dest, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
@@ -728,7 +823,7 @@ static int flash_master_mock_expect_copy_page_ext (struct flash_master_mock *moc
 		}
 		else {
 			status |= flash_master_mock_expect_rx_xfer (mock_dest, 0, data, length,
-				FLASH_EXP_READ_4B_CMD (0x03, dest_addr, 0, -1, length));
+				FLASH_EXP_READ_4B_CMD ((addr4 == 1) ? 0x03 : 0x13, dest_addr, 0, -1, length));
 		}
 	}
 
@@ -753,7 +848,7 @@ int flash_master_mock_expect_copy_page (struct flash_master_mock *mock_dest,
 	size_t length, uint8_t verify)
 {
 	return flash_master_mock_expect_copy_page_ext (mock_dest, mock_src, dest_addr, src_addr, data,
-		length, verify, false);
+		length, verify, 0);
 }
 
 /**
@@ -774,7 +869,29 @@ int flash_master_mock_expect_copy_page_4byte (struct flash_master_mock *mock_des
 	size_t length, uint8_t verify)
 {
 	return flash_master_mock_expect_copy_page_ext (mock_dest, mock_src, dest_addr, src_addr, data,
-		length, verify, true);
+		length, verify, 1);
+}
+
+/**
+ * Set up expectations for successfully copying a single page of flash using explicit 4-byte address
+ * commands.
+ *
+ * @param mock_dest The mock for the destination flash.
+ * @param mock_src The mock for the source flash.
+ * @param dest_addr The destination address.
+ * @param src_addr The source address.
+ * @param data The data that will be copied.
+ * @param length The length of the data.
+ * @param verify Flag indicating the copy is expected to be verified.
+ *
+ * @return 0 if the expectations were added successfully or non-zero if not.
+ */
+int flash_master_mock_expect_copy_page_4byte_explicit (struct flash_master_mock *mock_dest,
+	struct flash_master_mock *mock_src, uint32_t dest_addr, uint32_t src_addr, const uint8_t *data,
+	size_t length, uint8_t verify)
+{
+	return flash_master_mock_expect_copy_page_ext (mock_dest, mock_src, dest_addr, src_addr, data,
+		length, verify, 2);
 }
 
 /**
@@ -819,6 +936,27 @@ int flash_master_mock_expect_copy_page_verify_4byte (struct flash_master_mock *m
 }
 
 /**
+ * Set up expectations for successfully copying a single page of flash with verification using
+ * explicit 4-byte address commands.
+ *
+ * @param mock_dest The mock for the destination flash.
+ * @param mock_src The mock for the source flash.
+ * @param dest_addr The destination address.
+ * @param src_addr The source address.
+ * @param data The data that will be copied.
+ * @param length The length of the data.
+ *
+ * @return 0 if the expectations were added successfully or non-zero if not.
+ */
+int flash_master_mock_expect_copy_page_verify_4byte_explicit (struct flash_master_mock *mock_dest,
+	struct flash_master_mock *mock_src, uint32_t dest_addr, uint32_t src_addr, const uint8_t *data,
+	size_t length)
+{
+	return flash_master_mock_expect_copy_page_4byte_explicit (mock_dest, mock_src, dest_addr,
+		src_addr, data, length, 1);
+}
+
+/**
  * Set up expectations for successfully copying flash data.
  *
  * @param mock_dest The mock for the destination flash.
@@ -828,13 +966,13 @@ int flash_master_mock_expect_copy_page_verify_4byte (struct flash_master_mock *m
  * @param data The data that will be copied.
  * @param length The length of the data.
  * @param verify Flag indicating if the copy is expected to be verified.
- * @param addr4 Flag indicating if 4-byte addresses are used.
+ * @param addr4 Type of of 4-byte addressing to use:  0 = None, 1 = 4-byte, 2 = explicit 4-byte
  *
  * @return 0 if the expectations were added successfully or non-zero if not.
  */
 static int flash_master_mock_expect_copy_flash_ext (struct flash_master_mock *mock_dest,
 	struct flash_master_mock *mock_src, uint32_t dest_addr, uint32_t src_addr, const uint8_t *data,
-	size_t length, uint8_t verify, bool addr4)
+	size_t length, uint8_t verify, uint8_t addr4)
 {
 	int status = 0;
 	size_t page_len;
@@ -872,7 +1010,7 @@ int flash_master_mock_expect_copy_flash (struct flash_master_mock *mock_dest,
 	size_t length, uint8_t verify)
 {
 	return flash_master_mock_expect_copy_flash_ext (mock_dest, mock_src, dest_addr, src_addr, data,
-		length, verify, false);
+		length, verify, 0);
 }
 
 /**
@@ -893,7 +1031,28 @@ int flash_master_mock_expect_copy_flash_4byte (struct flash_master_mock *mock_de
 	size_t length, uint8_t verify)
 {
 	return flash_master_mock_expect_copy_flash_ext (mock_dest, mock_src, dest_addr, src_addr, data,
-		length, verify, true);
+		length, verify, 1);
+}
+
+/**
+ * Set up expectations for successfully copying flash data using explicit 4-byte address commands.
+ *
+ * @param mock_dest The mock for the destination flash.
+ * @param mock_src The mock for the source flash.
+ * @param dest_addr The destination address.
+ * @param src_addr The source address.
+ * @param data The data that will be copied.
+ * @param length The length of the data.
+ * @param verify Flag indicating if the copy is expected to be verified.
+ *
+ * @return 0 if the expectations were added successfully or non-zero if not.
+ */
+int flash_master_mock_expect_copy_flash_4byte_explicit (struct flash_master_mock *mock_dest,
+	struct flash_master_mock *mock_src, uint32_t dest_addr, uint32_t src_addr, const uint8_t *data,
+	size_t length, uint8_t verify)
+{
+	return flash_master_mock_expect_copy_flash_ext (mock_dest, mock_src, dest_addr, src_addr, data,
+		length, verify, 2);
 }
 
 /**
@@ -937,18 +1096,39 @@ int flash_master_mock_expect_copy_flash_verify_4byte (struct flash_master_mock *
 }
 
 /**
+ * Set up expectations for successfully copying flash data with verification using explicit 4-byte
+ * address commands.
+ *
+ * @param mock_dest The mock for the destination flash.
+ * @param mock_src The mock for the source flash.
+ * @param dest_addr The destination address.
+ * @param src_addr The source address.
+ * @param data The data that will be copied.
+ * @param length The length of the data.
+ *
+ * @return 0 if the expectations were added successfully or non-zero if not.
+ */
+int flash_master_mock_expect_copy_flash_verify_4byte_explicit (struct flash_master_mock *mock_dest,
+	struct flash_master_mock *mock_src, uint32_t dest_addr, uint32_t src_addr, const uint8_t *data,
+	size_t length)
+{
+	return flash_master_mock_expect_copy_flash_4byte_explicit (mock_dest, mock_src, dest_addr,
+		src_addr, data, length, 1);
+}
+
+/**
  * Set up expectations for successfully reading chunks of flash for verification.
  *
  * @param mock The mock for the flash being verified.
  * @param start The address to start verification.
  * @param data The data that should be returned from the flash.
  * @param length The length of data being verified.
- * @param addr4 Flag indicating if 4-byte addresses are being used.
+ * @param addr4 Type of of 4-byte addressing to use:  0 = None, 1 = 4-byte, 2 = explicit 4-byte
  *
  * @return 0 if the expectations were added successfully or non-zero if not.
  */
 static int flash_master_mock_expect_verify_flash_ext (struct flash_master_mock *mock,
-	uint32_t start, const uint8_t *data, size_t length, bool addr4)
+	uint32_t start, const uint8_t *data, size_t length, uint8_t addr4)
 {
 	int status = 0;
 	size_t read_len;
@@ -964,7 +1144,7 @@ static int flash_master_mock_expect_verify_flash_ext (struct flash_master_mock *
 		}
 		else {
 			status |= flash_master_mock_expect_rx_xfer (mock, 0, data, length,
-				FLASH_EXP_READ_4B_CMD (0x03, start, 0, -1, read_len));
+				FLASH_EXP_READ_4B_CMD ((addr4 == 1) ? 0x03 : 0x13, start, 0, -1, read_len));
 		}
 
 		start += read_len;
@@ -988,7 +1168,7 @@ static int flash_master_mock_expect_verify_flash_ext (struct flash_master_mock *
 int flash_master_mock_expect_verify_flash (struct flash_master_mock *mock, uint32_t start,
 	const uint8_t *data, size_t length)
 {
-	return flash_master_mock_expect_verify_flash_ext (mock, start, data, length, false);
+	return flash_master_mock_expect_verify_flash_ext (mock, start, data, length, 0);
 }
 
 /**
@@ -1005,7 +1185,24 @@ int flash_master_mock_expect_verify_flash (struct flash_master_mock *mock, uint3
 int flash_master_mock_expect_verify_flash_4byte (struct flash_master_mock *mock, uint32_t start,
 	const uint8_t *data, size_t length)
 {
-	return flash_master_mock_expect_verify_flash_ext (mock, start, data, length, true);
+	return flash_master_mock_expect_verify_flash_ext (mock, start, data, length, 1);
+}
+
+/**
+ * Set up expectations for successfully reading chunks of flash for verification using explicit
+ * 4-byte address commands.
+ *
+ * @param mock The mock for the flash being verified.
+ * @param start The address to start verification.
+ * @param data The data that should be returned from the flash.
+ * @param length The length of data being verified.
+ *
+ * @return 0 if the expectations were added successfully or non-zero if not.
+ */
+int flash_master_mock_expect_verify_flash_4byte_explicit (struct flash_master_mock *mock,
+	uint32_t start, const uint8_t *data, size_t length)
+{
+	return flash_master_mock_expect_verify_flash_ext (mock, start, data, length, 2);
 }
 
 /**
@@ -1016,12 +1213,12 @@ int flash_master_mock_expect_verify_flash_4byte (struct flash_master_mock *mock,
  * @param data The data to write.
  * @param length The length of the data.
  * @param is_tmp Flag to indicate if the transmit data is a temporary variable.
- * @param addr4 Flag indicating if 4-byte addresses are used.
+ * @param addr4 Type of of 4-byte addressing to use:  0 = None, 1 = 4-byte, 2 = explicit 4-byte
  *
  * @return 0 if the expectations were added successfully or non-zero if not.
  */
 int flash_master_mock_expect_write_ext (struct flash_master_mock *flash, uint32_t address,
-	const uint8_t *data, size_t length, bool is_tmp, bool addr4)
+	const uint8_t *data, size_t length, bool is_tmp, uint8_t addr4)
 {
 	uint32_t page = FLASH_PAGE_BASE (address);
 	uint32_t next = page + FLASH_PAGE_SIZE;
@@ -1053,7 +1250,7 @@ int flash_master_mock_expect_write_ext (struct flash_master_mock *flash, uint32_
 		}
 		else {
 			status |= flash_master_mock_expect_tx_xfer_ext (flash, 0, is_tmp,
-				FLASH_EXP_WRITE_4B_CMD (0x02, address, 0, data, txn_size));
+				FLASH_EXP_WRITE_4B_CMD ((addr4 == 1) ? 0x02 : 0x12, address, 0, data, txn_size));
 		}
 
 		status |= flash_master_mock_expect_rx_xfer (flash, 0, &WIP_STATUS, 1,
@@ -1084,7 +1281,7 @@ int flash_master_mock_expect_write_ext (struct flash_master_mock *flash, uint32_
 int flash_master_mock_expect_write (struct flash_master_mock *flash, uint32_t address,
 	const uint8_t *data, size_t length)
 {
-	return flash_master_mock_expect_write_ext (flash, address, data, length, false, false);
+	return flash_master_mock_expect_write_ext (flash, address, data, length, false, 0);
 }
 
 /**
@@ -1100,5 +1297,22 @@ int flash_master_mock_expect_write (struct flash_master_mock *flash, uint32_t ad
 int flash_master_mock_expect_write_4byte (struct flash_master_mock *flash, uint32_t address,
 	const uint8_t *data, size_t length)
 {
-	return flash_master_mock_expect_write_ext (flash, address, data, length, false, true);
+	return flash_master_mock_expect_write_ext (flash, address, data, length, false, 1);
+}
+
+/**
+ * Set up expectations for successfully programming data to a flash device using explicit 4-byte
+ * address commands.
+ *
+ * @param flash The mock for the flash.
+ * @param address The address to start writing to.
+ * @param data The data to write.
+ * @param length The length of the data.
+ *
+ * @return 0 if the expectations were added successfully or non-zero if not.
+ */
+int flash_master_mock_expect_write_4byte_explicit (struct flash_master_mock *flash,
+	uint32_t address, const uint8_t *data, size_t length)
+{
+	return flash_master_mock_expect_write_ext (flash, address, data, length, false, 2);
 }

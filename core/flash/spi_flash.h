@@ -28,27 +28,35 @@ struct spi_flash_commands {
 	uint16_t sector_flags;				/**< Transfer flags for sector erase requests. */
 	uint8_t erase_block;				/**< The command to erase a 64kB block. */
 	uint16_t block_flags;				/**< Transfer flags for block erase requests. */
+	uint8_t reset;						/**< The command to soft reset the device. */
+	uint8_t enter_pwrdown;				/**< The command to enter deep powerdown. */
+	uint8_t release_pwrdown;			/**< The command to release deep powerdown. */
 };
 
 /**
  * Interface to a single SPI flash.
  */
 struct spi_flash {
-	struct flash base;					/**< Base flash instance. */
-	struct flash_master *spi;			/**< The SPI master connected to the flash device. */
-	platform_mutex lock;				/**< Synchronization lock for accessing the flash. */
-	uint16_t addr_mode;					/**< The current address mode of the SPI flash device. */
-	uint8_t device_id[3];				/**< Device identification data. */
-	uint32_t device_size;				/**< The total capacity of the flash device. */
-	struct spi_flash_commands command;	/**< Commands to use with the flash device. */
-	uint32_t capabilities;				/**< Capabilities of the flash device. */
-	bool use_fast_read;					/**< Flag to use fast read for SPI reads. */
+	struct flash base;									/**< Base flash instance. */
+	struct flash_master *spi;							/**< The SPI master connected to the flash device. */
+	platform_mutex lock;								/**< Synchronization lock for accessing the flash. */
+	uint16_t addr_mode;									/**< The current address mode of the SPI flash device. */
+	uint8_t device_id[3];								/**< Device identification data. */
+	uint32_t device_size;								/**< The total capacity of the flash device. */
+	struct spi_flash_commands command;					/**< Commands to use with the flash device. */
+	uint32_t capabilities;								/**< Capabilities of the flash device. */
+	bool use_fast_read;									/**< Flag to use fast read for SPI reads. */
+	bool use_busy_flag;									/**< Flag to use the busy status instead of WIP. */
+	enum spi_flash_sfdp_4byte_addressing switch_4byte;	/**< Method for switching address mode. */
+	bool reset_3byte;									/**< Flag to switch to 3-byte mode on reset. */
+	enum spi_flash_sfdp_quad_enable quad_enable;		/**< Method to enable QSPI. */
+	bool sr1_volatile;									/**< Flag to use volatile write enable for status register 1. */
 };
 
 /**
  * Version number of the device info context.
  */
-#define	SPI_FLASH_DEVICE_INFO_VERSION	0
+#define	SPI_FLASH_DEVICE_INFO_VERSION	1
 
 /**
  * Context for saving and restoring a SPI flash device interface.
@@ -63,7 +71,18 @@ struct spi_flash_device_info {
 	uint8_t read_dummy;					/**< Number of dummy bytes for SPI reads. */
 	uint8_t read_mode;					/**< Number of mode bytes for SPI reads. */
 	uint16_t read_flags;				/**< Transfer flags for SPI reads. */
+	uint8_t reset_opcode;				/**< Opcode for soft resetting the device. */
+	uint8_t enter_pwrdown;				/**< Opcode for entering deep powerdown. */
+	uint8_t release_pwrdown;			/**< Opcode for releasing deep powerdown. */
+	uint8_t switch_4byte;				/**< Method for switching to 4-byte addressing. */
+	uint8_t quad_enable;				/**< Method to enable QSPI. */
+	uint8_t flags;						/**< Misc behavior flags. */
 } __attribute__((__packed__));
+
+/* Flags in the device info structure. */
+#define	SPI_FLASH_DEVICE_INFO_BUSY_FLAG			(1U << 0)
+#define	SPI_FLASH_DEVICE_INFO_RESET_3BYTE		(1U << 1)
+#define	SPI_FLASH_DEVICE_INFO_SR1_VOLATILE		(1U << 2)
 
 
 int spi_flash_initialize_device (struct spi_flash *flash, struct flash_master *spi, bool fast_read,
@@ -133,6 +152,9 @@ enum {
 	SPI_FLASH_INCOMPATIBLE_SPI_MASTER = SPI_FLASH_ERROR (0x09),	/**< The SPI master is not compatible with the flash device. */
 	SPI_FLASH_NO_DEVICE = SPI_FLASH_ERROR (0x0a),				/**< There is no flash device responding on the SPI bus. */
 	SPI_FLASH_CONFIG_FAILURE = SPI_FLASH_ERROR (0x0b),			/**< Configuration did not get set properly. */
+	SPI_FLASH_NO_4BYTE_CMDS = SPI_FLASH_ERROR (0x0c),			/**< The device does not support required 4-byte commands. */
+	SPI_FLASH_RESET_NOT_SUPPORTED = SPI_FLASH_ERROR (0x0d),		/**< Soft reset is not supported by the device. */
+	SPI_FLASH_PWRDOWN_NOT_SUPPORTED = SPI_FLASH_ERROR (0x0e),	/**< Deep powerdown is not supported by the device. */
 };
 
 

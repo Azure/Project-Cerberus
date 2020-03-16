@@ -24,19 +24,27 @@ enum {
 	FLASH_CMD_4BYTE_PP = 0x12,			/**< Page program with 4 byte address */
 	FLASH_CMD_4BYTE_READ = 0x13,		/**< Normal read with 4 byte address */
 	FLASH_CMD_RDSR3 = 0x15,				/**< Read status register 3 (configuration register) */
-	FLASH_CMD_4K_ERASE = 0x20,				/**< Sector erase 4kB */
+	FLASH_CMD_4K_ERASE = 0x20,			/**< Sector erase 4kB */
 	FLASH_CMD_4BYTE_4K_ERASE = 0x21,	/**< Sector erase 4kB with 4 byte address */
+	FLASH_CMD_WRSR2 = 0x31,				/**< Write status register 2 */
+	FLASH_CMD_RDSR2 = 0x35,				/**< Read status register 2 */
 	FLASH_CMD_DUAL_READ = 0x3b,			/**< Dual output read */
 	FLASH_CMD_4BYTE_DUAL_READ = 0x3c,	/**< Dual output read with 4 byte address */
+	FLASH_CMD_ALT_WRSR2 = 0x3e,			/**< Alternate Write status register 2 */
+	FLASH_CMD_ALT_RDSR2 = 0x3f,			/**< Alternate Read status register 2 */
+	FLASH_CMD_VOLATILE_WREN = 0x50,		/**< Volatile write enabl efor status register 1 */
 	FLASH_CMD_SFDP = 0x5a,				/**< Read SFDP registers */
 	FLASH_CMD_RSTEN = 0x66,				/**< Reset enable */
 	FLASH_CMD_QUAD_READ = 0x6b,			/**< Quad output read */
 	FLASH_CMD_4BYTE_QUAD_READ = 0x6c,	/**< Quad output read with 4 byte address */
+	FLASH_CMD_RDSR_FLAG = 0x70,			/**< Read flag status register */
 	FLASH_CMD_RST = 0x99,				/**< Reset device */
 	FLASH_CMD_RDID = 0x9f,				/**< Read identification */
-	FLASH_CMD_RDP = 0xab,				/**< Release from deep power down. */
+	FLASH_CMD_RDP = 0xab,				/**< Release from deep power down */
+	FLASH_CMD_WR_NV_CFG = 0xb1,			/**< Write non-volatile configuration register */
+	FLASH_CMD_RD_NV_CFG = 0xb5,			/**< Read non-volatile configuration register */
 	FLASH_CMD_EN4B = 0xb7,				/**< Enter 4-byte mode */
-	FLASH_CMD_DP = 0xb9,				/**< Deep power down the device. */
+	FLASH_CMD_DP = 0xb9,				/**< Deep power down the device */
 	FLASH_CMD_DIO_READ = 0xbb,			/**< Dual I/O read */
 	FLASH_CMD_4BYTE_DIO_READ = 0xbc,	/**< Dual I/O read with 4 byte address */
 	FLASH_CMD_CE = 0xc7,				/**< Chip erase */
@@ -45,6 +53,7 @@ enum {
 	FLASH_CMD_EX4B = 0xe9,				/**< Exit 4-byte mode */
 	FLASH_CMD_QIO_READ = 0xeb,			/**< Quad I/O read */
 	FLASH_CMD_4BYTE_QIO_READ = 0xec,	/**< Quad I/O read with 4 byte address */
+	FLASH_CMD_ALT_RST = 0xf0,			/**< Alternate reset command supported by some devices. */
 };
 
 /**
@@ -57,11 +66,34 @@ enum {
 	FLASH_ID_WINBOND = 0xef			/**< Winbond manufacturer ID. */
 };
 
+/**
+ * SPI flash device series IDs.
+ */
+enum {
+	FLASH_ID_MX25L = 0x2000,		/**< Macronix MX25L flash device IDs. */
+	FLASH_ID_W25Q = 0x4000,			/**< Winbond W25Q flash device IDs. */
+	FLASH_ID_W25Q_DTR = 0x7000,		/**< Winbond W25Q-DTR flash device IDs. */
+	FLASH_ID_MT25Q = 0xba00,		/**< Micros MT25Q flash device IDs. */
+};
+
+/**
+ * Extract the device series ID from the device ID.
+ */
+#define	FLASH_ID_DEVICE_SERIES(x)		(x & 0xff00)
+
+/**
+ * Extract the device capacity ID from the device ID.
+ */
+#define	FLASH_ID_DEVICE_CAPACITY(x)		(x & 0xff)
+
 
 /* SPI flash status register bits */
-#define	FLASH_STATUS_WIP	(1U << 0)
-#define	FLASH_STATUS_WEL	(1U << 1)
-#define	FLASH_STATUS_SRWD	(1U << 7)
+#define	FLASH_STATUS_WIP		(1U << 0)
+#define	FLASH_STATUS_WEL		(1U << 1)
+#define	FLASH_STATUS_SRWD		(1U << 7)
+
+/* SPI flash flag status register bits */
+#define	FLASH_FLAG_STATUS_READY	(1U << 7)
 
 /* SPI flash pages */
 #define	FLASH_PAGE_SIZE			256
