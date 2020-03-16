@@ -27,7 +27,7 @@ enum {
 	HOST_LOGGING_ROLLBACK_STARTED,				/**< Host flash rollback has been triggered. */
 	HOST_LOGGING_ROLLBACK_COMPLETED,			/**< Host flash rollback completed successfully. */
 	HOST_LOGGING_PENDING_ROLLBACK_FAILED,		/**< A rollback attempt using the pending PFM failed. */
-	HOST_LOGGING_PREPARE_UPDATE_FAILED,			/**< Failed to prepare host flash for a firmware update. */
+	HOST_LOGGING_PREPARE_UPDATE,				/**< Prepare host flash for a firmware update. */
 	HOST_LOGGING_WRITE_UPDATE_FAILED,			/**< Failed to write firmware update data to host flash. */
 	HOST_LOGGING_NOTIFICATION_ERROR,			/**< Unknown task action specified. */
 	HOST_LOGGING_ENTER_RESET,					/**< Detected host reset. */
