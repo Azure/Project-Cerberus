@@ -157,8 +157,8 @@ static void host_flash_initialization_test_initialize_flash (CuTest *test)
 	int status;
 	uint32_t header[] = {
 		0x50444653,
-		0xff010100,
-		0x09010000,
+		0xff010106,
+		0x10010600,
 		0xff000030
 	};
 	uint32_t params[] = {
@@ -170,7 +170,14 @@ static void host_flash_initialization_test_initialize_flash (CuTest *test)
 		0xff00ffff,
 		0xff00ffff,
 		0xd810200c,
-		0xff00ff00
+		0xff00ff00,
+		0x00a60236,
+		0xb314ea82,
+		0x337663e9,
+		0x757a757a,
+		0x5cd5a2f7,
+		0xff2df719,
+		0x80f830e9
 	};
 	uint8_t macronix[] = {0xc2, 0x20, 0x19};
 	const size_t id_length = sizeof (macronix);
@@ -196,17 +203,19 @@ static void host_flash_initialization_test_initialize_flash (CuTest *test)
 	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, macronix, id_length,
 		FLASH_EXP_READ_REG (0x9f, id_length));
 
-	/* Detect device WIP state. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-
 	/* Use SFDP to discover device properties. */
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, macronix, id_length,
+		FLASH_EXP_READ_REG (0x9f, id_length));
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, (uint8_t*) header, sizeof (header),
 		FLASH_EXP_READ_CMD (0x5a, 0x000000, 1, -1, sizeof (header)));
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, (uint8_t*) params, sizeof (params),
 		FLASH_EXP_READ_CMD (0x5a, 0x000030, 1, -1, sizeof (params)));
 	status |= mock_expect (&flash_mock0.mock, flash_mock0.base.capabilities, &flash_mock0,
 		FLASH_CAP_3BYTE_ADDR | FLASH_CAP_4BYTE_ADDR);
+
+	/* Detect device WIP state. */
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
 
 	/* Clear block protect bits. */
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &read_status, 1,
@@ -221,20 +230,22 @@ static void host_flash_initialization_test_initialize_flash (CuTest *test)
 		FLASH_EXP_READ_STATUS_REG);
 
 	/* Get Device ID. */
-	status = flash_master_mock_expect_rx_xfer (&flash_mock1, 0, macronix, id_length,
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, macronix, id_length,
 		FLASH_EXP_READ_REG (0x9f, id_length));
 
-	/* Detect device WIP state. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-
 	/* Use SFDP to discover device properties. */
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, macronix, id_length,
+		FLASH_EXP_READ_REG (0x9f, id_length));
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, (uint8_t*) header, sizeof (header),
 		FLASH_EXP_READ_CMD (0x5a, 0x000000, 1, -1, sizeof (header)));
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, (uint8_t*) params, sizeof (params),
 		FLASH_EXP_READ_CMD (0x5a, 0x000030, 1, -1, sizeof (params)));
 	status |= mock_expect (&flash_mock1.mock, flash_mock1.base.capabilities, &flash_mock1,
 		FLASH_CAP_3BYTE_ADDR | FLASH_CAP_4BYTE_ADDR);
+
+	/* Detect device WIP state. */
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
 
 	/* Clear block protect bits. */
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &read_status, 1,
@@ -299,8 +310,8 @@ static void host_flash_initialization_test_initialize_flash_fast_read (CuTest *t
 	int status;
 	uint32_t header[] = {
 		0x50444653,
-		0xff010100,
-		0x09010000,
+		0xff010106,
+		0x10010600,
 		0xff000030
 	};
 	uint32_t params[] = {
@@ -312,7 +323,14 @@ static void host_flash_initialization_test_initialize_flash_fast_read (CuTest *t
 		0xff00ffff,
 		0xff00ffff,
 		0xd810200c,
-		0xff00ff00
+		0xff00ff00,
+		0x00a60236,
+		0xb314ea82,
+		0x337663e9,
+		0x757a757a,
+		0x5cd5a2f7,
+		0xff2df719,
+		0x80f830e9
 	};
 	uint8_t macronix[] = {0xc2, 0x20, 0x19};
 	const size_t id_length = sizeof (macronix);
@@ -338,17 +356,19 @@ static void host_flash_initialization_test_initialize_flash_fast_read (CuTest *t
 	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, macronix, id_length,
 		FLASH_EXP_READ_REG (0x9f, id_length));
 
-	/* Detect device WIP state. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-
 	/* Use SFDP to discover device properties. */
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, macronix, id_length,
+		FLASH_EXP_READ_REG (0x9f, id_length));
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, (uint8_t*) header, sizeof (header),
 		FLASH_EXP_READ_CMD (0x5a, 0x000000, 1, -1, sizeof (header)));
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, (uint8_t*) params, sizeof (params),
 		FLASH_EXP_READ_CMD (0x5a, 0x000030, 1, -1, sizeof (params)));
 	status |= mock_expect (&flash_mock0.mock, flash_mock0.base.capabilities, &flash_mock0,
 		FLASH_CAP_3BYTE_ADDR | FLASH_CAP_4BYTE_ADDR);
+
+	/* Detect device WIP state. */
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
 
 	/* Clear block protect bits. */
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &read_status, 1,
@@ -363,20 +383,22 @@ static void host_flash_initialization_test_initialize_flash_fast_read (CuTest *t
 		FLASH_EXP_READ_STATUS_REG);
 
 	/* Get Device ID. */
-	status = flash_master_mock_expect_rx_xfer (&flash_mock1, 0, macronix, id_length,
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, macronix, id_length,
 		FLASH_EXP_READ_REG (0x9f, id_length));
 
-	/* Detect device WIP state. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-
 	/* Use SFDP to discover device properties. */
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, macronix, id_length,
+		FLASH_EXP_READ_REG (0x9f, id_length));
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, (uint8_t*) header, sizeof (header),
 		FLASH_EXP_READ_CMD (0x5a, 0x000000, 1, -1, sizeof (header)));
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, (uint8_t*) params, sizeof (params),
 		FLASH_EXP_READ_CMD (0x5a, 0x000030, 1, -1, sizeof (params)));
 	status |= mock_expect (&flash_mock1.mock, flash_mock1.base.capabilities, &flash_mock1,
 		FLASH_CAP_3BYTE_ADDR | FLASH_CAP_4BYTE_ADDR);
+
+	/* Detect device WIP state. */
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
 
 	/* Clear block protect bits. */
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &read_status, 1,
@@ -441,8 +463,8 @@ static void host_flash_initialization_test_initialize_flash_drive_strength (CuTe
 	int status;
 	uint32_t header[] = {
 		0x50444653,
-		0xff010100,
-		0x09010000,
+		0xff010106,
+		0x10010600,
 		0xff000030
 	};
 	uint32_t params[] = {
@@ -454,7 +476,14 @@ static void host_flash_initialization_test_initialize_flash_drive_strength (CuTe
 		0xff00ffff,
 		0xff00ffff,
 		0xd810200c,
-		0xff00ff00
+		0xff00ff00,
+		0x00a60236,
+		0xb314ea82,
+		0x337663e9,
+		0x757a757a,
+		0x5cd5a2f7,
+		0xff2df719,
+		0x80f830e9
 	};
 	uint8_t winbond[] = {0xef, 0x40, 0x19};
 	const size_t id_length = sizeof (winbond);
@@ -482,6 +511,16 @@ static void host_flash_initialization_test_initialize_flash_drive_strength (CuTe
 	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, winbond, id_length,
 		FLASH_EXP_READ_REG (0x9f, id_length));
 
+	/* Use SFDP to discover device properties. */
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, winbond, id_length,
+		FLASH_EXP_READ_REG (0x9f, id_length));
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, (uint8_t*) header, sizeof (header),
+		FLASH_EXP_READ_CMD (0x5a, 0x000000, 1, -1, sizeof (header)));
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, (uint8_t*) params, sizeof (params),
+		FLASH_EXP_READ_CMD (0x5a, 0x000030, 1, -1, sizeof (params)));
+	status |= mock_expect (&flash_mock0.mock, flash_mock0.base.capabilities, &flash_mock0,
+		FLASH_CAP_3BYTE_ADDR | FLASH_CAP_4BYTE_ADDR);
+
 	/* Detect device WIP state. */
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
@@ -501,14 +540,6 @@ static void host_flash_initialization_test_initialize_flash_drive_strength (CuTe
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &configured, sizeof (configured),
 		FLASH_EXP_READ_REG (0x15, sizeof (configured)));
 
-	/* Use SFDP to discover device properties. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, (uint8_t*) header, sizeof (header),
-		FLASH_EXP_READ_CMD (0x5a, 0x000000, 1, -1, sizeof (header)));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, (uint8_t*) params, sizeof (params),
-		FLASH_EXP_READ_CMD (0x5a, 0x000030, 1, -1, sizeof (params)));
-	status |= mock_expect (&flash_mock0.mock, flash_mock0.base.capabilities, &flash_mock0,
-		FLASH_CAP_3BYTE_ADDR | FLASH_CAP_4BYTE_ADDR);
-
 	/* Clear block protect bits. */
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &read_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
@@ -522,8 +553,18 @@ static void host_flash_initialization_test_initialize_flash_drive_strength (CuTe
 		FLASH_EXP_READ_STATUS_REG);
 
 	/* Get Device ID. */
-	status = flash_master_mock_expect_rx_xfer (&flash_mock1, 0, winbond, id_length,
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, winbond, id_length,
 		FLASH_EXP_READ_REG (0x9f, id_length));
+
+	/* Use SFDP to discover device properties. */
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, winbond, id_length,
+		FLASH_EXP_READ_REG (0x9f, id_length));
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, (uint8_t*) header, sizeof (header),
+		FLASH_EXP_READ_CMD (0x5a, 0x000000, 1, -1, sizeof (header)));
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, (uint8_t*) params, sizeof (params),
+		FLASH_EXP_READ_CMD (0x5a, 0x000030, 1, -1, sizeof (params)));
+	status |= mock_expect (&flash_mock1.mock, flash_mock1.base.capabilities, &flash_mock1,
+		FLASH_CAP_3BYTE_ADDR | FLASH_CAP_4BYTE_ADDR);
 
 	/* Detect device WIP state. */
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &WIP_STATUS, 1,
@@ -543,14 +584,6 @@ static void host_flash_initialization_test_initialize_flash_drive_strength (CuTe
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &configured, sizeof (configured),
 		FLASH_EXP_READ_REG (0x15, sizeof (configured)));
-
-	/* Use SFDP to discover device properties. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, (uint8_t*) header, sizeof (header),
-		FLASH_EXP_READ_CMD (0x5a, 0x000000, 1, -1, sizeof (header)));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, (uint8_t*) params, sizeof (params),
-		FLASH_EXP_READ_CMD (0x5a, 0x000030, 1, -1, sizeof (params)));
-	status |= mock_expect (&flash_mock1.mock, flash_mock1.base.capabilities, &flash_mock1,
-		FLASH_CAP_3BYTE_ADDR | FLASH_CAP_4BYTE_ADDR);
 
 	/* Clear block protect bits. */
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &read_status, 1,
@@ -615,8 +648,8 @@ static void host_flash_initialization_test_initialize_flash_twice (CuTest *test)
 	int status;
 	uint32_t header[] = {
 		0x50444653,
-		0xff010100,
-		0x09010000,
+		0xff010106,
+		0x10010600,
 		0xff000030
 	};
 	uint32_t params[] = {
@@ -628,7 +661,14 @@ static void host_flash_initialization_test_initialize_flash_twice (CuTest *test)
 		0xff00ffff,
 		0xff00ffff,
 		0xd810200c,
-		0xff00ff00
+		0xff00ff00,
+		0x00a60236,
+		0xb314ea82,
+		0x337663e9,
+		0x757a757a,
+		0x5cd5a2f7,
+		0xff2df719,
+		0x80f830e9
 	};
 	uint8_t macronix[] = {0xc2, 0x20, 0x19};
 	const size_t id_length = sizeof (macronix);
@@ -651,17 +691,19 @@ static void host_flash_initialization_test_initialize_flash_twice (CuTest *test)
 	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, macronix, id_length,
 		FLASH_EXP_READ_REG (0x9f, id_length));
 
-	/* Detect device WIP state. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-
 	/* Use SFDP to discover device properties. */
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, macronix, id_length,
+		FLASH_EXP_READ_REG (0x9f, id_length));
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, (uint8_t*) header, sizeof (header),
 		FLASH_EXP_READ_CMD (0x5a, 0x000000, 1, -1, sizeof (header)));
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, (uint8_t*) params, sizeof (params),
 		FLASH_EXP_READ_CMD (0x5a, 0x000030, 1, -1, sizeof (params)));
 	status |= mock_expect (&flash_mock0.mock, flash_mock0.base.capabilities, &flash_mock0,
 		FLASH_CAP_3BYTE_ADDR | FLASH_CAP_4BYTE_ADDR);
+
+	/* Detect device WIP state. */
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
 
 	/* Clear block protect bits. */
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &read_status, 1,
@@ -676,20 +718,22 @@ static void host_flash_initialization_test_initialize_flash_twice (CuTest *test)
 		FLASH_EXP_READ_STATUS_REG);
 
 	/* Get Device ID. */
-	status = flash_master_mock_expect_rx_xfer (&flash_mock1, 0, macronix, id_length,
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, macronix, id_length,
 		FLASH_EXP_READ_REG (0x9f, id_length));
 
-	/* Detect device WIP state. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-
 	/* Use SFDP to discover device properties. */
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, macronix, id_length,
+		FLASH_EXP_READ_REG (0x9f, id_length));
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, (uint8_t*) header, sizeof (header),
 		FLASH_EXP_READ_CMD (0x5a, 0x000000, 1, -1, sizeof (header)));
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, (uint8_t*) params, sizeof (params),
 		FLASH_EXP_READ_CMD (0x5a, 0x000030, 1, -1, sizeof (params)));
 	status |= mock_expect (&flash_mock1.mock, flash_mock1.base.capabilities, &flash_mock1,
 		FLASH_CAP_3BYTE_ADDR | FLASH_CAP_4BYTE_ADDR);
+
+	/* Detect device WIP state. */
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
 
 	/* Clear block protect bits. */
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &read_status, 1,
@@ -737,8 +781,8 @@ static void host_flash_initialization_test_initialize_flash_single_flash (CuTest
 	int status;
 	uint32_t header[] = {
 		0x50444653,
-		0xff010100,
-		0x09010000,
+		0xff010106,
+		0x10010600,
 		0xff000030
 	};
 	uint32_t params[] = {
@@ -750,7 +794,14 @@ static void host_flash_initialization_test_initialize_flash_single_flash (CuTest
 		0xff00ffff,
 		0xff00ffff,
 		0xd810200c,
-		0xff00ff00
+		0xff00ff00,
+		0x00a60236,
+		0xb314ea82,
+		0x337663e9,
+		0x757a757a,
+		0x5cd5a2f7,
+		0xff2df719,
+		0x80f830e9
 	};
 	uint8_t macronix[] = {0xc2, 0x20, 0x19};
 	const size_t id_length = sizeof (macronix);
@@ -773,17 +824,19 @@ static void host_flash_initialization_test_initialize_flash_single_flash (CuTest
 	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, macronix, id_length,
 		FLASH_EXP_READ_REG (0x9f, id_length));
 
-	/* Detect device WIP state. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-
 	/* Use SFDP to discover device properties. */
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, macronix, id_length,
+		FLASH_EXP_READ_REG (0x9f, id_length));
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) header, sizeof (header),
 		FLASH_EXP_READ_CMD (0x5a, 0x000000, 1, -1, sizeof (header)));
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) params, sizeof (params),
 		FLASH_EXP_READ_CMD (0x5a, 0x000030, 1, -1, sizeof (params)));
 	status |= mock_expect (&flash_mock.mock, flash_mock.base.capabilities, &flash_mock,
 		FLASH_CAP_3BYTE_ADDR | FLASH_CAP_4BYTE_ADDR);
+
+	/* Detect device WIP state. */
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
 
 	/* Clear block protect bits. */
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &read_status, 1,
@@ -843,8 +896,8 @@ static void host_flash_initialization_test_initialize_flash_cs0_error (CuTest *t
 	int status;
 	uint32_t header[] = {
 		0x50444653,
-		0xff010100,
-		0x09010000,
+		0xff010106,
+		0x10010600,
 		0xff000030
 	};
 	uint32_t params[] = {
@@ -856,7 +909,14 @@ static void host_flash_initialization_test_initialize_flash_cs0_error (CuTest *t
 		0xff00ffff,
 		0xff00ffff,
 		0xd810200c,
-		0xff00ff00
+		0xff00ff00,
+		0x00a60236,
+		0xb314ea82,
+		0x337663e9,
+		0x757a757a,
+		0x5cd5a2f7,
+		0xff2df719,
+		0x80f830e9
 	};
 	uint8_t macronix[] = {0xc2, 0x20, 0x19};
 	const size_t id_length = sizeof (macronix);
@@ -892,17 +952,19 @@ static void host_flash_initialization_test_initialize_flash_cs0_error (CuTest *t
 	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, macronix, id_length,
 		FLASH_EXP_READ_REG (0x9f, id_length));
 
-	/* Detect device WIP state. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-
 	/* Use SFDP to discover device properties. */
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, macronix, id_length,
+		FLASH_EXP_READ_REG (0x9f, id_length));
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, (uint8_t*) header, sizeof (header),
 		FLASH_EXP_READ_CMD (0x5a, 0x000000, 1, -1, sizeof (header)));
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, (uint8_t*) params, sizeof (params),
 		FLASH_EXP_READ_CMD (0x5a, 0x000030, 1, -1, sizeof (params)));
 	status |= mock_expect (&flash_mock0.mock, flash_mock0.base.capabilities, &flash_mock0,
 		FLASH_CAP_3BYTE_ADDR | FLASH_CAP_4BYTE_ADDR);
+
+	/* Detect device WIP state. */
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
 
 	/* Clear block protect bits. */
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &read_status, 1,
@@ -920,17 +982,19 @@ static void host_flash_initialization_test_initialize_flash_cs0_error (CuTest *t
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, macronix, id_length,
 		FLASH_EXP_READ_REG (0x9f, id_length));
 
-	/* Detect device WIP state. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-
 	/* Use SFDP to discover device properties. */
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, macronix, id_length,
+		FLASH_EXP_READ_REG (0x9f, id_length));
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, (uint8_t*) header, sizeof (header),
 		FLASH_EXP_READ_CMD (0x5a, 0x000000, 1, -1, sizeof (header)));
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, (uint8_t*) params, sizeof (params),
 		FLASH_EXP_READ_CMD (0x5a, 0x000030, 1, -1, sizeof (params)));
 	status |= mock_expect (&flash_mock1.mock, flash_mock1.base.capabilities, &flash_mock1,
 		FLASH_CAP_3BYTE_ADDR | FLASH_CAP_4BYTE_ADDR);
+
+	/* Detect device WIP state. */
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
 
 	/* Clear block protect bits. */
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &read_status, 1,
@@ -971,8 +1035,8 @@ static void host_flash_initialization_test_initialize_flash_cs1_error (CuTest *t
 	int status;
 	uint32_t header[] = {
 		0x50444653,
-		0xff010100,
-		0x09010000,
+		0xff010106,
+		0x10010600,
 		0xff000030
 	};
 	uint32_t params[] = {
@@ -984,7 +1048,14 @@ static void host_flash_initialization_test_initialize_flash_cs1_error (CuTest *t
 		0xff00ffff,
 		0xff00ffff,
 		0xd810200c,
-		0xff00ff00
+		0xff00ff00,
+		0x00a60236,
+		0xb314ea82,
+		0x337663e9,
+		0x757a757a,
+		0x5cd5a2f7,
+		0xff2df719,
+		0x80f830e9
 	};
 	uint8_t macronix[] = {0xc2, 0x20, 0x19};
 	const size_t id_length = sizeof (macronix);
@@ -1007,17 +1078,19 @@ static void host_flash_initialization_test_initialize_flash_cs1_error (CuTest *t
 	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, macronix, id_length,
 		FLASH_EXP_READ_REG (0x9f, id_length));
 
-	/* Detect device WIP state. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-
 	/* Use SFDP to discover device properties. */
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, macronix, id_length,
+		FLASH_EXP_READ_REG (0x9f, id_length));
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, (uint8_t*) header, sizeof (header),
 		FLASH_EXP_READ_CMD (0x5a, 0x000000, 1, -1, sizeof (header)));
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, (uint8_t*) params, sizeof (params),
 		FLASH_EXP_READ_CMD (0x5a, 0x000030, 1, -1, sizeof (params)));
 	status |= mock_expect (&flash_mock0.mock, flash_mock0.base.capabilities, &flash_mock0,
 		FLASH_CAP_3BYTE_ADDR | FLASH_CAP_4BYTE_ADDR);
+
+	/* Detect device WIP state. */
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
 
 	/* Clear block protect bits. */
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &read_status, 1,
@@ -1050,17 +1123,19 @@ static void host_flash_initialization_test_initialize_flash_cs1_error (CuTest *t
 	status = flash_master_mock_expect_rx_xfer (&flash_mock1, 0, macronix, id_length,
 		FLASH_EXP_READ_REG (0x9f, id_length));
 
-	/* Detect device WIP state. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-
 	/* Use SFDP to discover device properties. */
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, macronix, id_length,
+		FLASH_EXP_READ_REG (0x9f, id_length));
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, (uint8_t*) header, sizeof (header),
 		FLASH_EXP_READ_CMD (0x5a, 0x000000, 1, -1, sizeof (header)));
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, (uint8_t*) params, sizeof (params),
 		FLASH_EXP_READ_CMD (0x5a, 0x000030, 1, -1, sizeof (params)));
 	status |= mock_expect (&flash_mock1.mock, flash_mock1.base.capabilities, &flash_mock1,
 		FLASH_CAP_3BYTE_ADDR | FLASH_CAP_4BYTE_ADDR);
+
+	/* Detect device WIP state. */
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
 
 	/* Clear block protect bits. */
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &read_status, 1,
