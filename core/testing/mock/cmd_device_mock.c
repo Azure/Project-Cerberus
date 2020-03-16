@@ -28,10 +28,26 @@ static int cmd_device_mock_reset (struct cmd_device *device)
 	MOCK_RETURN_NO_ARGS (&mock->mock, cmd_device_mock_reset, device);
 }
 
+static int cmd_device_mock_get_reset_counter (struct cmd_device *device, uint8_t type, uint8_t port,
+	uint16_t *counter)
+{
+	struct cmd_device_mock *mock = (struct cmd_device_mock*) device;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, cmd_device_mock_get_reset_counter, device, MOCK_ARG_CALL (type),
+		MOCK_ARG_CALL (port), MOCK_ARG_CALL (counter));
+}
+
 static int cmd_device_mock_func_arg_count (void *func)
 {
 	if (func == cmd_device_mock_get_uuid) {
 		return 2;
+	}
+	else if (func == cmd_device_mock_get_reset_counter) {
+		return 3;
 	}
 	else {
 		return 0;
@@ -42,6 +58,9 @@ static const char* cmd_device_mock_func_name_map (void *func)
 {
 	if (func == cmd_device_mock_get_uuid) {
 		return "get_uuid";
+	}
+	else if (func == cmd_device_mock_get_reset_counter) {
+		return "get_reset_counter";
 	}
 	else {
 		return "unknown";
@@ -57,6 +76,18 @@ static const char* cmd_device_mock_arg_name_map (void *func, int arg)
 
 			case 1:
 				return "buf_len";
+		}
+	}
+	else if (func == cmd_device_mock_get_reset_counter) {
+		switch (arg) {
+			case 0:
+				return "type";
+
+			case 1:
+				return "port";
+
+			case 2:
+				return "counter";
 		}
 	}
 
@@ -89,6 +120,7 @@ int cmd_device_mock_init (struct cmd_device_mock *mock)
 
 	mock->base.get_uuid = cmd_device_mock_get_uuid;
 	mock->base.reset = cmd_device_mock_reset;
+	mock->base.get_reset_counter = cmd_device_mock_get_reset_counter;
 
 	mock->mock.func_arg_count = cmd_device_mock_func_arg_count;
 	mock->mock.func_name_map = cmd_device_mock_func_name_map;

@@ -162,6 +162,9 @@ int cmd_interface_system_process_request (struct cmd_interface *intf,
 			return cerberus_protocol_get_device_capabilities (interface->device_manager,
 				request, device_num);
 
+		case CERBERUS_PROTOCOL_RESET_COUNTER:
+			return cerberus_protocol_reset_counter (interface->cmd_device, request);
+
 		case CERBERUS_PROTOCOL_UNSEAL_MESSAGE:
 			return cerberus_protocol_unseal_message (interface->background, request, direction, 0);
 

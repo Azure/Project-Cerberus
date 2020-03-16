@@ -14849,6 +14849,238 @@ static void cmd_interface_system_test_process_get_device_id_invalid_len (CuTest 
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
+static void cmd_interface_system_test_process_reset_counter (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+	struct cmd_interface_request request;
+	struct cerberus_protocol_header header = {0};
+	CERBERUS_PROTOCOL_CMD (rq,
+		struct cerberus_protocol_reset_counter_request_packet*, &request);
+	uint16_t counter = 4;
+	int status;
+
+	TEST_START;
+
+	memset (&request, 0, sizeof (request));
+	header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	header.command = CERBERUS_PROTOCOL_RESET_COUNTER;
+
+	rq->type = CERBERUS_PROTOCOL_CERBERUS_RESET;
+	memcpy (request.data, &header, sizeof (header));
+	request.length = CERBERUS_PROTOCOL_CMD_LEN (
+		struct cerberus_protocol_reset_counter_request_packet);
+	request.source_eid = MCTP_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM);
+
+	status = mock_expect (&cmd.cmd_device.mock, cmd.cmd_device.base.get_reset_counter,
+		&cmd.cmd_device, 0, MOCK_ARG (rq->type), MOCK_ARG_ANY, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&cmd.cmd_device.mock, 2, &counter, sizeof (uint16_t), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	request.new_request = true;
+	request.crypto_timeout = true;
+	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_CMD_LEN (
+		struct cerberus_protocol_reset_counter_response_packet), request.length);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, request.data[0]);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, *((uint16_t*) &request.data[1]));
+	CuAssertIntEquals (test, 0, request.data[3]);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_RESET_COUNTER,
+		request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN - 1]);
+	CuAssertIntEquals (test, counter, request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN]);
+	CuAssertIntEquals (test, false, request.new_request);
+	CuAssertIntEquals (test, false, request.crypto_timeout);
+
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_reset_counter_port0 (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+	struct cmd_interface_request request;
+	struct cerberus_protocol_header header = {0};
+	CERBERUS_PROTOCOL_CMD (rq,
+		struct cerberus_protocol_reset_counter_request_packet*, &request);
+	uint16_t counter = 4;
+	int status;
+
+	TEST_START;
+
+	memset (&request, 0, sizeof (request));
+	header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	header.command = CERBERUS_PROTOCOL_RESET_COUNTER;
+
+	rq->type = CERBERUS_PROTOCOL_COMPONENT_RESET;
+	rq->port = 0;
+	memcpy (request.data, &header, sizeof (header));
+	request.length = CERBERUS_PROTOCOL_CMD_LEN (
+		struct cerberus_protocol_reset_counter_request_packet);
+	request.source_eid = MCTP_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM);
+
+	status = mock_expect (&cmd.cmd_device.mock, cmd.cmd_device.base.get_reset_counter,
+		&cmd.cmd_device, 0, MOCK_ARG (rq->type), MOCK_ARG (rq->port), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&cmd.cmd_device.mock, 2, &counter, sizeof (uint16_t), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	request.new_request = true;
+	request.crypto_timeout = true;
+	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_CMD_LEN (
+		struct cerberus_protocol_reset_counter_response_packet), request.length);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, request.data[0]);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, *((uint16_t*) &request.data[1]));
+	CuAssertIntEquals (test, 0, request.data[3]);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_RESET_COUNTER,
+		request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN - 1]);
+	CuAssertIntEquals (test, counter, request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN]);
+	CuAssertIntEquals (test, false, request.new_request);
+	CuAssertIntEquals (test, false, request.crypto_timeout);
+
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_reset_counter_port1 (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+	struct cmd_interface_request request;
+	struct cerberus_protocol_header header = {0};
+	CERBERUS_PROTOCOL_CMD (rq,
+		struct cerberus_protocol_reset_counter_request_packet*, &request);
+	uint16_t counter = 4;
+	int status;
+
+	TEST_START;
+
+	memset (&request, 0, sizeof (request));
+	header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	header.command = CERBERUS_PROTOCOL_RESET_COUNTER;
+
+	rq->type = CERBERUS_PROTOCOL_COMPONENT_RESET;
+	rq->port = 1;
+	memcpy (request.data, &header, sizeof (header));
+	request.length = CERBERUS_PROTOCOL_CMD_LEN (
+		struct cerberus_protocol_reset_counter_request_packet);
+	request.source_eid = MCTP_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM);
+
+	status = mock_expect (&cmd.cmd_device.mock, cmd.cmd_device.base.get_reset_counter,
+		&cmd.cmd_device, 0, MOCK_ARG (rq->type), MOCK_ARG (rq->port), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&cmd.cmd_device.mock, 2, &counter, sizeof (uint16_t), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	request.new_request = true;
+	request.crypto_timeout = true;
+	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_CMD_LEN (
+		struct cerberus_protocol_reset_counter_response_packet), request.length);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, request.data[0]);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, *((uint16_t*) &request.data[1]));
+	CuAssertIntEquals (test, 0, request.data[3]);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_RESET_COUNTER,
+		request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN - 1]);
+	CuAssertIntEquals (test, counter, request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN]);
+	CuAssertIntEquals (test, false, request.new_request);
+	CuAssertIntEquals (test, false, request.crypto_timeout);
+
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_reset_counter_invalid_len (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+	struct cmd_interface_request request;
+	struct cerberus_protocol_header header = {0};
+	CERBERUS_PROTOCOL_CMD (rq,
+		struct cerberus_protocol_reset_counter_request_packet*, &request);
+	int status;
+
+	TEST_START;
+
+	memset (&request, 0, sizeof (request));
+	header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	header.command = CERBERUS_PROTOCOL_RESET_COUNTER;
+
+	rq->type = CERBERUS_PROTOCOL_CERBERUS_RESET;
+	rq->port = 0;
+	memcpy (request.data, &header, sizeof (header));
+	request.length = CERBERUS_PROTOCOL_CMD_LEN (
+		struct cerberus_protocol_reset_counter_request_packet) + 1;
+	request.source_eid = MCTP_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM);
+
+	request.new_request = true;
+	request.crypto_timeout = true;
+	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
+	CuAssertIntEquals (test, CMD_HANDLER_BAD_LENGTH, status);
+	CuAssertIntEquals (test, false, request.new_request);
+	CuAssertIntEquals (test, false, request.crypto_timeout);
+
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_reset_counter_invalid_counter (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+	struct cmd_interface_request request;
+	struct cerberus_protocol_header header = {0};
+	CERBERUS_PROTOCOL_CMD (rq,
+		struct cerberus_protocol_reset_counter_request_packet*, &request);
+	int status;
+
+	TEST_START;
+
+	memset (&request, 0, sizeof (request));
+	header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	header.command = CERBERUS_PROTOCOL_RESET_COUNTER;
+
+	rq->type = 2;
+	rq->port = 0;
+	memcpy (request.data, &header, sizeof (header));
+	request.length = CERBERUS_PROTOCOL_CMD_LEN (
+		struct cerberus_protocol_reset_counter_request_packet);
+	request.source_eid = MCTP_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM);
+
+	status = mock_expect (&cmd.cmd_device.mock, cmd.cmd_device.base.get_reset_counter,
+		&cmd.cmd_device, CMD_DEVICE_INVALID_COUNTER, MOCK_ARG (rq->type), MOCK_ARG (rq->port),
+		MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	request.new_request = true;
+	request.crypto_timeout = true;
+	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
+	CuAssertIntEquals (test, CMD_DEVICE_INVALID_COUNTER, status);
+	CuAssertIntEquals (test, false, request.new_request);
+	CuAssertIntEquals (test, false, request.crypto_timeout);
+
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+
 CuSuite* get_cmd_interface_system_suite ()
 {
 	CuSuite *suite = CuSuiteNew ();
@@ -15237,6 +15469,11 @@ CuSuite* get_cmd_interface_system_suite ()
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_device_info_fail);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_device_id);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_device_id_invalid_len);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_reset_counter);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_reset_counter_port0);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_reset_counter_port1);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_reset_counter_invalid_len);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_reset_counter_invalid_counter);
 
 	/* Tear down after the tests in this suite have run. */
 	SUITE_ADD_TEST (suite, cmd_interface_system_testing_suite_tear_down);

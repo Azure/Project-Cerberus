@@ -90,6 +90,7 @@ enum {
 	ROT_MODULE_CONFIG_CMD_TASK = 0x004e,				/**< Command configuration task context. */
 	ROT_MODULE_CMD_DEVICE = 0x004f,						/**< Command handler for device-specific workflows. */
 	ROT_MODULE_HOST_PROCESSOR_OBSERVER = 0x0050,		/**< Observers for host processor management. */
+	ROT_MODULE_COUNTER_MANAGER = 0x0051,				/**< Counter operation management. */
 };
 
 
