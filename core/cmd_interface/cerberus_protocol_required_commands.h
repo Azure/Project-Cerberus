@@ -12,6 +12,14 @@
 #include "cmd_device.h"
 
 
+/**
+ * Valid reset counter types.
+ */
+enum {
+	CERBERUS_PROTOCOL_CERBERUS_RESET = 0,					/**< Cerberus reset counter type */
+	CERBERUS_PROTOCOL_COMPONENT_RESET						/**< Component reset counter type */
+};
+
 #pragma pack(push, 1)
 /**
  * Device capabilities packet format
@@ -116,6 +124,21 @@ struct cerberus_protocol_get_device_id_response_packet {
 	uint16_t subsystem_vid;									/**< Subsystem vendor ID */
 	uint16_t subsystem_id;									/**< Subsystem ID */
 };
+
+/**
+ * Cerberus protocol reset counter request packet format
+ */
+struct cerberus_protocol_reset_counter_request_packet {
+	uint8_t type;
+	uint8_t port;
+};
+
+/**
+ * Cerberus protocol reset counter response packet format
+ */
+struct cerberus_protocol_reset_counter_response_packet {
+	uint16_t counter;
+};
 #pragma pack(pop)
 
 
@@ -144,6 +167,9 @@ int cerberus_protocol_get_device_capabilities (struct device_manager *device_mgr
 int cerberus_protocol_get_device_info (struct cmd_device *device,
 	struct cmd_interface_request *request);
 int cerberus_protocol_get_device_id (struct cmd_interface_device_id *id, 
+	struct cmd_interface_request *request);
+
+int cerberus_protocol_reset_counter (struct cmd_device *device,
 	struct cmd_interface_request *request);
 
 

@@ -34,6 +34,19 @@ struct cmd_device {
 	 * return.
 	 */
 	int (*reset) (struct cmd_device *device);
+
+	/**
+	 * Retrieve the reset counter.
+	 *
+	 * @param device The device command handler.
+	 * @param type Reset counter type.
+	 * @param port The port identifier.
+	 * @param counter The output buffer to store the reset counter data.
+	 *
+	 * @return  0 if the reset counter was successfully retrieved or an error code.
+	 */
+	int (*get_reset_counter) (struct cmd_device *device, uint8_t type, uint8_t port,
+		uint16_t *counter);
 };
 
 
@@ -48,6 +61,7 @@ enum {
 	CMD_DEVICE_NO_MEMORY = CMD_DEVICE_ERROR (0x01),					/**< Memory allocation failed. */
 	CMD_DEVICE_UUID_BUFFER_TOO_SMALL = CMD_DEVICE_ERROR (0x02),		/**< A buffer for the uuid output data was too small. */
 	CMD_DEVICE_RESET_FAILED = CMD_DEVICE_ERROR (0x03),				/**< Failed to trigger a device reset. */
+	CMD_DEVICE_INVALID_COUNTER = CMD_DEVICE_ERROR (0x04),			/**< Invalid counter type. */
 };
 
 
