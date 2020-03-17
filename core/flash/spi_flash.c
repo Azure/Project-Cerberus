@@ -865,6 +865,9 @@ int spi_flash_clear_block_protect (struct spi_flash *flash)
 				goto exit;
 			}
 			break;
+
+		default:
+			break;
 	}
 
 	FLASH_XFER_INIT_READ_REG (xfer, FLASH_CMD_RDSR, reg, cmd_len, 0);
@@ -1177,6 +1180,9 @@ int spi_flash_enable_quad_spi (struct spi_flash *flash, uint8_t enable)
 			cmd_len = 1;
 			cmd = FLASH_CMD_ALT_RDSR2;
 			break;
+
+		default:
+			break;
 	}
 
 	FLASH_XFER_INIT_READ_REG (xfer, cmd, reg, cmd_len, 0);
@@ -1234,6 +1240,9 @@ int spi_flash_enable_quad_spi (struct spi_flash *flash, uint8_t enable)
 			cmd = FLASH_CMD_ALT_WRSR2;
 			volatile_wren = false;
 			break;
+
+		default:
+			break;
 	}
 
 	status = spi_flash_write_register (flash, cmd, reg, cmd_len, volatile_wren);
@@ -1286,6 +1295,9 @@ int spi_flash_is_quad_spi_enabled (struct spi_flash *flash)
 			cmd = FLASH_CMD_ALT_RDSR2;
 			cmd_len = 1;
 			break;
+
+		default:
+			break;
 	}
 
 	FLASH_XFER_INIT_READ_REG (xfer, cmd, reg, cmd_len, 0);
@@ -1301,7 +1313,7 @@ int spi_flash_is_quad_spi_enabled (struct spi_flash *flash)
 
 		case SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_35:
 			reg[1] = reg[0];
-			/* no break */
+			/* fall through */
 
 		case SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2:
 		case SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_NO_CLR:
@@ -1314,6 +1326,9 @@ int spi_flash_is_quad_spi_enabled (struct spi_flash *flash)
 
 		case SPI_FLASH_SFDP_QUAD_QE_BIT7_SR2:
 			status = !!(reg[0] & QSPI_ENABLE_BIT7);
+			break;
+
+		default:
 			break;
 	}
 

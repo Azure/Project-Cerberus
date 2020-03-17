@@ -2946,8 +2946,6 @@ static void spi_flash_test_reset_device_not_supported (CuTest *test)
 	spi_flash_testing_discover_params (test, &flash, &mock, TEST_ID, header, params,
 		sizeof (params), 0x000030, FULL_CAPABILITIES);
 
-	CuAssertIntEquals (test, 0, status);
-
 	status = spi_flash_reset_device (&flash);
 	CuAssertIntEquals (test, SPI_FLASH_RESET_NOT_SUPPORTED, status);
 
