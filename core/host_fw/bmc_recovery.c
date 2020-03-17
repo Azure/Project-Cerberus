@@ -115,7 +115,8 @@ static int bmc_recovery_on_host_cs1 (struct bmc_recovery *recovery, struct hash_
 			else {
 				if ((recovery->num_wdt < recovery->rec_ctrl.max_wdt) ||
 					(recovery->rec_ctrl.max_wdt == 0)) {
-					status = recovery->host->flash_rollback (recovery->host, hash, rsa, false, false);
+					status = recovery->host->flash_rollback (recovery->host, hash, rsa, false,
+						false);
 					if (status == 0) {
 						recovery->state = BMC_RECOVERY_STATE_ROLLBACK_DONE;
 					}
@@ -146,7 +147,7 @@ static int bmc_recovery_on_host_cs1 (struct bmc_recovery *recovery, struct hash_
 					}
 				}
 			}
-			
+
 			if (status != 0) {
 				return status;
 			}
@@ -159,7 +160,7 @@ static int bmc_recovery_on_host_cs1 (struct bmc_recovery *recovery, struct hash_
 			}
 
 			break;
-		}		
+		}
 	}
 
 	return status;
