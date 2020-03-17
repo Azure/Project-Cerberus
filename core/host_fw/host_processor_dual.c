@@ -31,6 +31,15 @@ static int host_processor_dual_initial_rot_flash_access (struct host_processor_d
 	do {
 		retries++;
 		status = host->flash->set_flash_for_rot_access (host->flash, host->control);
+		if ((status == SPI_FLASH_UNSUPPORTED_DEVICE) ||
+			(status == SPI_FLASH_INCOMPATIBLE_SPI_MASTER) || (status == SPI_FLASH_NO_DEVICE) ||
+			(status == SPI_FLASH_NO_4BYTE_CMDS) || (status == SPI_FLASH_SFDP_LARGE_DEVICE) ||
+			(status == SPI_FLASH_SFDP_4BYTE_INCOMPATIBLE) ||
+			(status == SPI_FLASH_SFDP_QUAD_ENABLE_UNKNOWN)) {
+			host_state_manager_set_unsupported_flash (host->state, true);
+			return status;
+		}
+
 		if (status != log_status) {
 			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_HOST_FW,
 				HOST_LOGGING_ROT_FLASH_ACCESS_ERROR, host->base.port, status);
