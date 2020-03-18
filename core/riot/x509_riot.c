@@ -358,7 +358,7 @@ static int x509_riot_create_ca_signed_certificate (struct x509_engine *engine,
 	DERBuilderContext *ca_ctx;
 	RIOT_ECC_SIGNATURE tbs_sig;
 	RIOT_X509_TBS_DATA x509_tbs_data;
-	char *issuer_name = NULL;
+	char *subject = NULL;
 	int status;
 	uint8_t pub_key_dec[RIOT_X509_MAX_KEY_LEN];
 	size_t pub_key_dec_len;
@@ -404,12 +404,12 @@ static int x509_riot_create_ca_signed_certificate (struct x509_engine *engine,
 	x509_tbs_data.ValidFrom = VALID_FROM;
 	x509_tbs_data.ValidTo = VALID_TO;
 
-	status = DERDECGetIssuerName (&issuer_name, ca_ctx->Buffer, DERGetEncodedLength(ca_ctx));
+	status = DERDECGetSubjectName (&subject, ca_ctx->Buffer, DERGetEncodedLength(ca_ctx));
 	if (status != RIOT_SUCCESS) {
 		status = X509_ENGINE_CA_SIGNED_FAILED;
 		goto err_free_key_der;
 	}
-	x509_tbs_data.IssuerCommon = issuer_name;
+	x509_tbs_data.IssuerCommon = subject;
 
 	x509_ctx = x509_riot_new_cert ();
 	if (x509_ctx ==  NULL) {
@@ -438,7 +438,7 @@ static int x509_riot_create_ca_signed_certificate (struct x509_engine *engine,
 
 	cert->context = x509_ctx;
 
-	platform_free (issuer_name);
+	platform_free (subject);
 	platform_free (pub_key_der);
 	riot_engine->ecc->release_key_pair (riot_engine->ecc, &auth_priv_key, &auth_pub_key);
 
@@ -447,7 +447,7 @@ static int x509_riot_create_ca_signed_certificate (struct x509_engine *engine,
 err_free_cert:
 	x509_riot_free_cert (x509_ctx);
 err_free_name:
-	platform_free (issuer_name);
+	platform_free (subject);
 err_free_key_der:
 	platform_free (pub_key_der);
 err_free_key:
