@@ -99,16 +99,16 @@ DERDECGetPubKeyInfo(
 );
 
 //
-// Decodes an ASN.1 DER encoded certificate and returns the certificate issuer name. The function
+// Decodes an ASN.1 DER encoded certificate and returns the certificate subject name. The function
 // allocates memory for the name and it's the responsibility of the caller to free that memory.
-// @param name The certificate issuer name
+// @param name The certificate subject name
 // @param der The DER encoded certificate
 // @param length The length of the certificate
-// @return - RIOT_SUCCESS if the certificate issuer name is successfully parsed from the certificate
+// @return - RIOT_SUCCESS if the certificate subject name is successfully parsed from the certificate
 //         - RIOT_FAILURE otherwise
 //
 RIOT_STATUS
-DERDECGetIssuerName(
+DERDECGetSubjectName(
 	char **name,
 	const uint8_t *der,
 	size_t length

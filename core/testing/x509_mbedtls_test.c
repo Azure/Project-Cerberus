@@ -1647,6 +1647,49 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ecc_ca_private_key (C
 	x509_mbedtls_release (&engine);
 }
 
+static void x509_mbedtls_test_create_ca_signed_certificate_intermediate_ca_ecc_ca_private_key (
+	CuTest *test)
+{
+	struct x509_engine_mbedtls engine;
+	struct x509_certificate ca_cert;
+	struct x509_certificate cert;
+	int status;
+	uint8_t *der = NULL;
+	size_t length;
+
+	TEST_START;
+
+	status = x509_mbedtls_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTCA_ECC_CA_DER,
+		X509_CERTCA_ECC_CA_DER_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, ECC_PRIVKEY2_DER,
+		ECC_PRIVKEY2_DER_LEN, X509_CA2_SERIAL_NUM, X509_CA2_SERIAL_NUM_LEN, X509_CA3_SUBJECT_NAME,
+		X509_CERT_CA, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN, &ca_cert, NULL);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, cert.context);
+
+	status = engine.base.get_certificate_der (&engine.base, &cert, &der, &length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, der);
+
+	x509_testing_start_cert_verification (test, ECC_CA2_ICA, CERTCA, UTF8STRING, ECDSA_WITH_NULL);
+	x509_testing_verify_cert_length (test, der, length);
+	x509_testing_verify_cert (test, der);
+	x509_testing_verify_sig_algorithm (test, der);
+	x509_testing_verify_signature_ecc (test, der);
+	x509_testing_end_cert_verification;
+
+	platform_free (der);
+	engine.base.release_certificate (&engine.base, &cert);
+	engine.base.release_certificate (&engine.base, &ca_cert);
+
+	x509_mbedtls_release (&engine);
+}
+
 static void x509_mbedtls_test_create_ca_signed_certificate_ecc_end_entity_private_key (CuTest *test)
 {
 	struct x509_engine_mbedtls engine;
@@ -5257,6 +5300,8 @@ CuSuite* get_x509_mbedtls_suite ()
 	SUITE_ADD_TEST (suite, x509_mbedtls_test_load_certificate_null);
 	SUITE_ADD_TEST (suite, x509_mbedtls_test_load_certificate_bad);
 	SUITE_ADD_TEST (suite, x509_mbedtls_test_create_ca_signed_certificate_ecc_ca_private_key);
+	SUITE_ADD_TEST (suite,
+		x509_mbedtls_test_create_ca_signed_certificate_intermediate_ca_ecc_ca_private_key);
 	SUITE_ADD_TEST (suite,
 		x509_mbedtls_test_create_ca_signed_certificate_ecc_end_entity_private_key);
 	SUITE_ADD_TEST (suite, x509_mbedtls_test_create_ca_signed_certificate_rsa_ca_private_key);

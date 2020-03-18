@@ -246,7 +246,7 @@ static int read_sequence(size_t *len, const uint8_t *der_buf, size_t der_len, si
 	return process_asn1_type(len, position, der_buf, der_len, 0x30);
 }
 
-static int read_cert_issuer_name(size_t *len, size_t *position, const uint8_t *der, size_t der_len)
+static int read_cert_subject_name(size_t *len, size_t *position, const uint8_t *der, size_t der_len)
 {
 	CHK(read_sequence(NULL, der, der_len, position));
 	CHK(read_sequence(NULL, der, der_len, position));
@@ -260,6 +260,16 @@ static int read_cert_issuer_name(size_t *len, size_t *position, const uint8_t *d
 	CHK(read_oid(len, der, der_len, position));
 	(*position) += (*len);
 	CHK(read_utf8String(len, der, der_len, position));
+	(*position) += (*len);
+	CHK(read_sequence(len, der, der_len, position));
+	(*position) += (*len);
+	CHK(read_sequence(NULL, der, der_len, position));
+	CHK(read_set(der, der_len, position));
+	CHK(read_sequence(NULL, der, der_len, position));
+	CHK(read_oid(len, der, der_len, position));
+	(*position) += (*len);
+	CHK(read_utf8String(len, der, der_len, position));
+
 	return 0;
 Error:
 	return -1;
@@ -373,7 +383,7 @@ Error:
 	return RIOT_FAILURE;
 }
 
-RIOT_STATUS DERDECGetIssuerName(char **name, const uint8_t *der, const size_t length)
+RIOT_STATUS DERDECGetSubjectName(char **name, const uint8_t *der, const size_t length)
 {
 	size_t position = 0;
 	size_t len;
@@ -387,7 +397,7 @@ RIOT_STATUS DERDECGetIssuerName(char **name, const uint8_t *der, const size_t le
 
 	ASRT(length <= X509_MAX_SIZE);
 
-	status = read_cert_issuer_name(&len, &position, der, length);
+	status = read_cert_subject_name(&len, &position, der, length);
 	if ((status != 0) || ((position + len) > length)) {
 		goto Error;
 	}
@@ -412,7 +422,7 @@ RIOT_STATUS DERDECVerifyCert(const uint8_t *der, const size_t length)
 	ASRT(der != NULL);
 	ASRT(length <= X509_MAX_SIZE);
 
-	status = read_cert_issuer_name(&len, &position, der, length);
+	status = read_cert_subject_name(&len, &position, der, length);
 	if (status != 0 || ((position + len) > length)) {
 		goto Error;
 	}
