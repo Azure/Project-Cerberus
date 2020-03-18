@@ -222,6 +222,8 @@ extern const char *X509_CA2_SUBJECT_NAME;
 extern const uint8_t X509_CA2_SERIAL_NUM[];
 extern const size_t X509_CA2_SERIAL_NUM_LEN;
 
+extern const char *X509_CA3_SUBJECT_NAME;
+
 /* Certificate Signing Request */
 extern const uint8_t X509_CSR_ECC_CA_DER[];
 extern const size_t X509_CSR_ECC_CA_DER_LEN;
@@ -273,6 +275,11 @@ extern const size_t X509_CERTCA_RSA_CA_DER_LEN;
  * ECC certificate signed by a self-signed ECC CA. */
 extern const uint8_t X509_CERTCA_ECC_CA2_DER[];
 extern const size_t X509_CERTCA_ECC_CA2_DER_LEN;
+
+/* CA-signed certificate
+ * ECC certificate signed by an intermediate ECC CA. */
+extern const uint8_t X509_CERTCA_ECC_CA2_ICA_DER[];
+extern const size_t X509_CERTCA_ECC_CA2_ICA_DER_LEN;
 
 /* CA-signed certificate with path length constraint of 15 */
 extern const uint8_t X509_CERTCA_ECC_CA_PL15_DER[];
