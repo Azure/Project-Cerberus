@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include "common/common_math.h"
 #include "cmd_interface/cerberus_protocol.h"
 #include "cmd_interface/cerberus_protocol_master_commands.h"
 #include "cmd_interface/cmd_interface.h"
@@ -101,6 +102,9 @@ int mctp_interface_process_packet (struct mctp_interface *interface, struct cmd_
 {
 	struct cerberus_protocol_header *header;
 	uint32_t error_data;
+	uint32_t msg1 = 0;
+	uint32_t msg2 = 0;
+	uint8_t i_byte;
 	uint8_t *payload;
 	uint8_t error_code;
 	uint8_t source_addr;
@@ -113,6 +117,7 @@ int mctp_interface_process_packet (struct mctp_interface *interface, struct cmd_
 	uint8_t tag_owner;
 	uint8_t response_addr;
 	uint8_t cmd_set = 0;
+	size_t msg_len;
 	size_t n_packets;
 	size_t payload_len;
 	bool som;
@@ -146,6 +151,21 @@ int mctp_interface_process_packet (struct mctp_interface *interface, struct cmd_
 				response_addr, rx_packet->dest_addr, cmd_set);
 		}
 		else {
+			msg_len = min (rx_packet->pkt_size, sizeof (struct mctp_protocol_transport_header));
+			msg2 = rx_packet->pkt_size << 24; 
+			
+			for (i_byte = 0; i_byte < msg_len; ++i_byte) {
+				if (i_byte < 4) {
+					msg1 |= (rx_packet->data[i_byte] << (i_byte * 8));
+				}
+				else {
+					msg2 |= (rx_packet->data[i_byte] << ((i_byte - 4) * 8));
+				}
+			}
+
+			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MCTP,
+				MCTP_LOGGING_PKT_DROPPED, msg1, msg2);
+
 			mctp_interface_reset_message_processing (interface);
 			return status;
 		}
