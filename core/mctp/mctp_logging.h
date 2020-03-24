@@ -14,6 +14,7 @@ enum {
 	MCTP_LOGGING_PROTOCOL_ERROR,			/**< Error while processing input in MCTP protocol layer. */
 	MCTP_LOGGING_ERR_MSG,					/**< Cerberus protocol error message recevied. */
 	MCTP_LOGGING_CONTROL_FAIL,				/**< Failure while processing MCTP control message. */
+	MCTP_LOGGING_PKT_DROPPED,				/**< MCTP packet dropped. */
 };
 
 
