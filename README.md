@@ -77,7 +77,7 @@ The source tree is structured as follows:
 | core              | Platform agnostic Cerberus code and unit tests. |
 | external          | Required external components.                   |
 | projects          | Platform specific implementations.              |
-| testing           | Primatives to support unit tests.               |
+| testing           | Primitives to support unit tests.               |
 | cmake             | CMake toolchain and core dependency scripts.    |
 | .repo             | Configuration and state used by the repo tool.  |
 
