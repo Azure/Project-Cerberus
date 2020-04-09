@@ -9,12 +9,13 @@
 #include <stdbool.h>
 #include "status/rot_status.h"
 #include "platform.h"
+#include "mctp/mctp_protocol.h"
 
 
 /**
- * The maximum size for a single packet.
+ * The maximum size for a single packet send or received through a command channel.
  */
-#define	CMD_MAX_PACKET_SIZE					256
+#define	CMD_MAX_PACKET_SIZE					MCTP_PROTOCOL_MAX_PACKET_LEN
 
 /**
  * Valid states for a packet.
@@ -33,7 +34,7 @@ struct cmd_packet {
 	uint8_t data[CMD_MAX_PACKET_SIZE];		/**< Buffer for packet data. */
 	size_t pkt_size;						/**< Total size of the packet data. */
 	uint8_t dest_addr;						/**< The destination address for the packet.  This is
-	 	 	 	 	 	 	 	 	 	 	 	 assumed to be a 7-bit address compatible with I2C. */
+	 	 	 	 	 	 	 	 	 	 	 	assumed to be a 7-bit address compatible with I2C. */
 	uint8_t state;							/**< The packet state. */
 	platform_clock pkt_timeout;				/**< Time at which processing for the packet must be completed. */
 	bool timeout_valid;						/**< Flag indicating if a packet timeout has been set. */

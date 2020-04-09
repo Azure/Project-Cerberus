@@ -16,12 +16,12 @@
 /**
  * The maximum key length supported by the RSA API.
  */
-//#define	RSA_MAX_KEY_LENGTH		(4096 / 8)
+// #define	RSA_MAX_KEY_LENGTH		(4096 / 8)
 
 /**
  * The maximum elliptic curve size supported by the ECC API.
  */
-#define	ECC_MAX_KEY_LENGTH		521
+// #define	ECC_MAX_KEY_LENGTH		521
 
 
 /********************
@@ -29,20 +29,26 @@
  ********************/
 
 /**
- * The maximum size for an outbound MCTP packet.
+ * The maximum supported payload size for an MCTP packet.
  */
-//#define MCTP_PROTOCOL_MAX_PACKET_LEN					255
+// #define MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT				247
 
 /**
- * The maximum total size for an MCTP message.
+ * The maximum supported body size for an MCTP message.
  */
-//#define MCTP_PROTOCOL_MAX_MESSAGE_LEN					4224
+// #define MCTP_PROTOCOL_MAX_MESSAGE_BODY					4096
 
 /**
- * The maximum number of packets in a single message:
- * ceil (MCTP_PROTOCOL_MAX_MESSAGE_LEN / MCTP_PROTOCOL_MAX_PACKET_LEN)
+ * The maximum time allowed after receiving a completed request before the response must start
+ * transmission.  The timout is in milliseconds.
  */
-//#define MCTP_PROTOCOL_MAX_NUM_PACKETS_PER_MSG			17
+// #define MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS			100
+
+/**
+ * The maximum time allowed after receiving a completed cryptographic request before the response
+ * must start transmission.  This timeout is in milliseconds.
+ */
+// #define MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS				1000
 
 
 #endif /* PLATFORM_CONFIG_H_ */

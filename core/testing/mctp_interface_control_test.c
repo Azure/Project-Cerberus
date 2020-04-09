@@ -27,12 +27,11 @@ static const char *SUITE = "mctp_interface_control";
 static void setup_mctp_interface_control_mock_test (CuTest *test, struct mctp_interface *interface,
 	struct device_manager *device_mgr, struct cmd_interface_mock *cmd_interface)
 {
-	struct device_manager_capabilities capabilities = {0};
+	struct device_manager_full_capabilities capabilities;
 	int status;
 
-	capabilities.hierarchy_role = DEVICE_MANAGER_PA_ROT_MODE;
-
-	status = device_manager_init (device_mgr, 3);
+	status = device_manager_init (device_mgr, 3, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_entry (device_mgr, 0, DEVICE_MANAGER_SELF,
@@ -46,6 +45,9 @@ static void setup_mctp_interface_control_mock_test (CuTest *test, struct mctp_in
 	status = device_manager_update_device_entry (device_mgr, 2, DEVICE_MANAGER_DOWNSTREAM, 0xAA,
 		0x30);
 	CuAssertIntEquals (test, 0, status);
+
+	device_manager_get_device_capabilities (device_mgr, 0, &capabilities);
+	capabilities.request.hierarchy_role = DEVICE_MANAGER_PA_ROT_MODE;
 
 	status = device_manager_update_device_capabilities (device_mgr, 0, &capabilities);
 	CuAssertIntEquals (test, 0, status);
@@ -321,7 +323,6 @@ static void mctp_interface_control_test_process_get_vendor_def_msg_support_vid_e
 	struct mctp_control_get_vendor_def_msg_support_response_packet *response =
 		(struct mctp_control_get_vendor_def_msg_support_response_packet*)
 		&request.data[MCTP_PROTOCOL_MIN_CONTROL_MSG_LEN];
-	struct device_manager_capabilities capabilities = {0};
 	int status;
 
 	TEST_START;
@@ -339,9 +340,8 @@ static void mctp_interface_control_test_process_get_vendor_def_msg_support_vid_e
 	request.source_eid = MCTP_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
 
-	capabilities.hierarchy_role = DEVICE_MANAGER_PA_ROT_MODE;
-
-	status = device_manager_init (&device_manager, 3);
+	status = device_manager_init (&device_manager, 3, DEVICE_MANAGER_PA_ROT_MODE,
+		DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_entry (&device_manager, 0, DEVICE_MANAGER_SELF,
@@ -354,9 +354,6 @@ static void mctp_interface_control_test_process_get_vendor_def_msg_support_vid_e
 
 	status = device_manager_update_device_entry (&device_manager, 2, DEVICE_MANAGER_DOWNSTREAM,
 		0xAA, 0x30);
-	CuAssertIntEquals (test, 0, status);
-
-	status = device_manager_update_device_capabilities (&device_manager, 0, &capabilities);
 	CuAssertIntEquals (test, 0, status);
 
 	status = cmd_interface_mock_init (&cmd_interface);
@@ -519,7 +516,7 @@ static void mctp_interface_control_test_process_set_eid_request (CuTest *test)
 	struct mctp_interface interface;
 	struct cmd_interface_mock cmd_interface;
 	struct device_manager device_manager;
-	struct device_manager_capabilities capabilities = {0};
+	struct device_manager_full_capabilities capabilities;
 	struct cmd_interface_request request;
 	struct mctp_protocol_control_header *header =
 		(struct mctp_protocol_control_header*) &request.data[0];
@@ -531,8 +528,6 @@ static void mctp_interface_control_test_process_set_eid_request (CuTest *test)
 	int status;
 
 	TEST_START;
-
-	capabilities.hierarchy_role = DEVICE_MANAGER_AC_ROT_MODE;
 
 	memset (&request, 0, sizeof (request));
 	memset (header, 0, sizeof (struct mctp_protocol_control_header));
@@ -550,6 +545,9 @@ static void mctp_interface_control_test_process_set_eid_request (CuTest *test)
 	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
 
 	setup_mctp_interface_control_mock_test (test, &interface, &device_manager, &cmd_interface);
+
+	device_manager_get_device_capabilities (&device_manager, 0, &capabilities);
+	capabilities.request.hierarchy_role = DEVICE_MANAGER_AC_ROT_MODE;
 
 	status = device_manager_update_device_capabilities (&device_manager, 0, &capabilities);
 	CuAssertIntEquals (test, 0, status);
@@ -1053,7 +1051,7 @@ static void mctp_interface_control_test_process_set_eid_response_invalid_role (C
 	struct mctp_interface interface;
 	struct cmd_interface_mock cmd_interface;
 	struct device_manager device_manager;
-	struct device_manager_capabilities capabilities = {0};
+	struct device_manager_full_capabilities capabilities;
 	struct cmd_interface_request request;
 	struct mctp_protocol_control_header *header =
 		(struct mctp_protocol_control_header*) &request.data[0];
@@ -1063,8 +1061,6 @@ static void mctp_interface_control_test_process_set_eid_response_invalid_role (C
 	int status;
 
 	TEST_START;
-
-	capabilities.hierarchy_role = DEVICE_MANAGER_AC_ROT_MODE;
 
 	memset (&request, 0, sizeof (request));
 	memset (header, 0, sizeof (struct mctp_protocol_control_header));
@@ -1085,6 +1081,9 @@ static void mctp_interface_control_test_process_set_eid_response_invalid_role (C
 	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
 
 	setup_mctp_interface_control_mock_test (test, &interface, &device_manager, &cmd_interface);
+
+	device_manager_get_device_capabilities (&device_manager, 0, &capabilities);
+	capabilities.request.hierarchy_role = DEVICE_MANAGER_AC_ROT_MODE;
 
 	status = device_manager_update_device_capabilities (&device_manager, 0, &capabilities);
 	CuAssertIntEquals (test, 0, status);
@@ -1191,7 +1190,7 @@ static void mctp_interface_control_test_issue_request_null (CuTest *test)
 	struct mctp_interface interface;
 	struct cmd_interface_mock cmd_interface;
 	struct device_manager device_manager;
-	uint8_t buf[MCTP_PROTOCOL_MAX_PAYLOAD_PER_MSG];
+	uint8_t buf[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
 	uint8_t eid;
 	int status;
 
@@ -1215,7 +1214,7 @@ static void mctp_interface_control_test_issue_request_buf_too_small (CuTest *tes
 	struct mctp_interface interface;
 	struct cmd_interface_mock cmd_interface;
 	struct device_manager device_manager;
-	uint8_t buf[MCTP_PROTOCOL_MAX_PAYLOAD_PER_MSG];
+	uint8_t buf[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
 	uint8_t eid;
 	int status;
 
@@ -1235,7 +1234,7 @@ static void mctp_interface_control_test_issue_request_unknown_command (CuTest *t
 	struct mctp_interface interface;
 	struct cmd_interface_mock cmd_interface;
 	struct device_manager device_manager;
-	uint8_t buf[MCTP_PROTOCOL_MAX_PAYLOAD_PER_MSG];
+	uint8_t buf[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
 	uint8_t eid;
 	int status;
 
@@ -1254,7 +1253,7 @@ static void mctp_interface_control_test_issue_set_eid (CuTest *test)
 	struct mctp_interface interface;
 	struct cmd_interface_mock cmd_interface;
 	struct device_manager device_manager;
-	uint8_t buf[MCTP_PROTOCOL_MAX_PAYLOAD_PER_MSG];
+	uint8_t buf[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
 	struct mctp_protocol_control_header *header = (struct mctp_protocol_control_header*) buf;
 	struct mctp_control_set_eid_request_packet *request =
 		(struct mctp_control_set_eid_request_packet*) &buf[MCTP_PROTOCOL_MIN_CONTROL_MSG_LEN];
@@ -1288,16 +1287,17 @@ static void mctp_interface_control_test_issue_set_eid_invalid_role (CuTest *test
 	struct mctp_interface interface;
 	struct cmd_interface_mock cmd_interface;
 	struct device_manager device_manager;
-	uint8_t buf[MCTP_PROTOCOL_MAX_PAYLOAD_PER_MSG];
-	struct device_manager_capabilities capabilities = {0};
+	uint8_t buf[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	struct device_manager_full_capabilities capabilities;
 	uint8_t eid = 0xBB;
 	int status;
 
 	TEST_START;
 
-	capabilities.hierarchy_role = DEVICE_MANAGER_AC_ROT_MODE;
-
 	setup_mctp_interface_control_mock_test (test, &interface, &device_manager, &cmd_interface);
+
+	device_manager_get_device_capabilities (&device_manager, 0, &capabilities);
+	capabilities.request.hierarchy_role = DEVICE_MANAGER_AC_ROT_MODE;
 
 	status = device_manager_update_device_capabilities (&device_manager, 0, &capabilities);
 	CuAssertIntEquals (test, 0, status);
@@ -1314,7 +1314,7 @@ static void mctp_interface_control_test_issue_set_eid_buf_too_small (CuTest *tes
 	struct mctp_interface interface;
 	struct cmd_interface_mock cmd_interface;
 	struct device_manager device_manager;
-	uint8_t buf[MCTP_PROTOCOL_MAX_PAYLOAD_PER_MSG];
+	uint8_t buf[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
 	uint8_t eid = 0xBB;
 	int status;
 
@@ -1334,7 +1334,7 @@ static void mctp_interface_control_test_issue_set_eid_invalid_eid (CuTest *test)
 	struct mctp_interface interface;
 	struct cmd_interface_mock cmd_interface;
 	struct device_manager device_manager;
-	uint8_t buf[MCTP_PROTOCOL_MAX_PAYLOAD_PER_MSG];
+	uint8_t buf[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
 	uint8_t eid = 0x00;
 	int status;
 
@@ -1354,6 +1354,7 @@ static void mctp_interface_control_test_issue_set_eid_invalid_eid (CuTest *test)
 
 	complete_mctp_interface_control_mock_test (test, &interface, &device_manager, &cmd_interface);
 }
+
 
 CuSuite* get_mctp_interface_control_suite ()
 {

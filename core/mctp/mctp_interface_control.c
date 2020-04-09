@@ -16,27 +16,27 @@
  * Construct get certificate digest request.
  *
  * @param intf The interface that will construct the request.
- * @param eid EID to set 
+ * @param eid EID to set
  * @param buf The buffer containing the generated request data.
  * @param buf_len Maximum size of buffer.
  *
  * @return Length of the generated request data if the request was successfully constructed or
  * an error code.
  */
-static int mctp_interface_control_issue_set_eid (struct mctp_interface *intf, uint8_t *eid, 
+static int mctp_interface_control_issue_set_eid (struct mctp_interface *intf, uint8_t *eid,
 	uint8_t *buf, size_t buf_len)
 {
-	struct mctp_control_set_eid_request_packet *request = 
+	struct mctp_control_set_eid_request_packet *request =
 		(struct mctp_control_set_eid_request_packet*) buf;
-	struct device_manager_capabilities capabilities;
+	struct device_manager_full_capabilities capabilities;
 	int status;
 
 	status = device_manager_get_device_capabilities (intf->device_manager, 0, &capabilities);
 	if (status != 0) {
 		return status;
 	}
-	
-	if (capabilities.hierarchy_role != DEVICE_MANAGER_PA_ROT_MODE) {
+
+	if (capabilities.request.hierarchy_role != DEVICE_MANAGER_PA_ROT_MODE) {
 		return CMD_HANDLER_INVALID_DEVICE_MODE;
 	}
 
@@ -63,20 +63,20 @@ static int mctp_interface_control_issue_set_eid (struct mctp_interface *intf, ui
  *
  * @return 0 if request processing completed successfully or an error code.
  */
-static int mctp_interface_control_set_eid (struct mctp_interface *intf, 
+static int mctp_interface_control_set_eid (struct mctp_interface *intf,
 	struct cmd_interface_request *request)
 {
-	struct mctp_control_set_eid_request_packet *rq = (struct mctp_control_set_eid_request_packet*) 
+	struct mctp_control_set_eid_request_packet *rq = (struct mctp_control_set_eid_request_packet*)
 		&request->data[MCTP_PROTOCOL_MIN_CONTROL_MSG_LEN];
-	struct mctp_control_set_eid_response_packet *response = 
-		(struct mctp_control_set_eid_response_packet*) 
-		&request->data[MCTP_PROTOCOL_MIN_CONTROL_MSG_LEN];
-	struct device_manager_capabilities capabilities;
+	struct mctp_control_set_eid_response_packet *response =
+		(struct mctp_control_set_eid_response_packet*)
+			&request->data[MCTP_PROTOCOL_MIN_CONTROL_MSG_LEN];
+	struct device_manager_full_capabilities capabilities;
 	int status;
 
 	status = device_manager_get_device_capabilities (intf->device_manager, 0, &capabilities);
 	if (status != 0) {
-		request->length = MCTP_PROTOCOL_MIN_CONTROL_MSG_LEN + 
+		request->length = MCTP_PROTOCOL_MIN_CONTROL_MSG_LEN +
 			sizeof (struct mctp_control_set_eid_response_packet);
 		response->completion_code = MCTP_PROTOCOL_ERROR;
 
@@ -85,17 +85,17 @@ static int mctp_interface_control_set_eid (struct mctp_interface *intf,
 
 		return 0;
 	}
-	
-	if (request->length != (MCTP_PROTOCOL_MIN_CONTROL_MSG_LEN + 
+
+	if (request->length != (MCTP_PROTOCOL_MIN_CONTROL_MSG_LEN +
 		sizeof (struct mctp_control_set_eid_request_packet))) {
 		response->completion_code = MCTP_PROTOCOL_ERROR_INVALID_LEN;
 	}
-	else if ((rq->reserved != 0) || (rq->operation > MCTP_CONTROL_SET_EID_OPERATION_FORCE_ID) || 
+	else if ((rq->reserved != 0) || (rq->operation > MCTP_CONTROL_SET_EID_OPERATION_FORCE_ID) ||
 			 (rq->eid == 0) || (rq->eid == 0xFF)) {
-		response->completion_code = MCTP_PROTOCOL_ERROR_INVALID_DATA;	
+		response->completion_code = MCTP_PROTOCOL_ERROR_INVALID_DATA;
 	}
 	else {
-		if (capabilities.hierarchy_role == DEVICE_MANAGER_PA_ROT_MODE) {
+		if (capabilities.request.hierarchy_role == DEVICE_MANAGER_PA_ROT_MODE) {
 			response->eid_assignment_status = MCTP_CONTROL_SET_EID_ASSIGNMENT_STATUS_REJECTED;
 		}
 		else {
@@ -122,7 +122,7 @@ static int mctp_interface_control_set_eid (struct mctp_interface *intf,
 		}
 	}
 
-	request->length = MCTP_PROTOCOL_MIN_CONTROL_MSG_LEN + 
+	request->length = MCTP_PROTOCOL_MIN_CONTROL_MSG_LEN +
 		sizeof (struct mctp_control_set_eid_response_packet);
 
 	return 0;
@@ -137,23 +137,23 @@ static int mctp_interface_control_set_eid (struct mctp_interface *intf,
  *
  * @return 0 if request processing completed successfully or an error code.
  */
-static int mctp_interface_control_process_set_eid_response (struct mctp_interface *intf, 
+static int mctp_interface_control_process_set_eid_response (struct mctp_interface *intf,
 	struct cmd_interface_request *request, uint8_t source_addr)
 {
-	struct mctp_control_set_eid_response_packet *response = 
+	struct mctp_control_set_eid_response_packet *response =
 		(struct mctp_control_set_eid_response_packet*)
-		&request->data[MCTP_PROTOCOL_MIN_CONTROL_MSG_LEN];
-	struct device_manager_capabilities capabilities;
+			&request->data[MCTP_PROTOCOL_MIN_CONTROL_MSG_LEN];
+	struct device_manager_full_capabilities capabilities;
 	int device_num;
 	int device_addr;
 	int status;
 
-	if ((request->length != (MCTP_PROTOCOL_MIN_CONTROL_MSG_LEN + 
-		sizeof (struct mctp_control_set_eid_response_packet))) || 
-	    (response->completion_code != MCTP_PROTOCOL_SUCCESS) || (response->reserved1 != 0) || 
-		(response->eid_assignment_status != MCTP_CONTROL_SET_EID_ASSIGNMENT_STATUS_ACCEPTED) || 
-		(response->reserved2 != 0) || 
-		(response->eid_allocation_status != MCTP_CONTROL_SET_EID_ALLOCATION_STATUS_NO_EID_POOL) || 
+	if ((request->length != (MCTP_PROTOCOL_MIN_CONTROL_MSG_LEN +
+		sizeof (struct mctp_control_set_eid_response_packet))) ||
+	    (response->completion_code != MCTP_PROTOCOL_SUCCESS) || (response->reserved1 != 0) ||
+		(response->eid_assignment_status != MCTP_CONTROL_SET_EID_ASSIGNMENT_STATUS_ACCEPTED) ||
+		(response->reserved2 != 0) ||
+		(response->eid_allocation_status != MCTP_CONTROL_SET_EID_ALLOCATION_STATUS_NO_EID_POOL) ||
 		(response->eid_pool_size != 0)) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MCTP,
 			MCTP_LOGGING_CONTROL_FAIL, request->length,
@@ -164,8 +164,8 @@ static int mctp_interface_control_process_set_eid_response (struct mctp_interfac
 		if (status != 0) {
 			return status;
 		}
-		if (capabilities.hierarchy_role == DEVICE_MANAGER_PA_ROT_MODE) {
-			device_num = device_manager_get_device_num (intf->device_manager, 
+		if (capabilities.request.hierarchy_role == DEVICE_MANAGER_PA_ROT_MODE) {
+			device_num = device_manager_get_device_num (intf->device_manager,
 				response->eid_setting);
 			if (ROT_IS_ERROR (device_num)) {
 				return device_num;
@@ -202,22 +202,22 @@ static int mctp_interface_control_process_set_eid_response (struct mctp_interfac
  *
  * @return 0 if request processing completed successfully or an error code.
  */
-static int mctp_interface_control_get_vendor_def_msg_support (struct mctp_interface *intf, 
+static int mctp_interface_control_get_vendor_def_msg_support (struct mctp_interface *intf,
 	struct cmd_interface_request *request)
 {
-	struct mctp_control_get_vendor_def_msg_support_request_packet *rq = 
-		(struct mctp_control_get_vendor_def_msg_support_request_packet*) 
-		&request->data[MCTP_PROTOCOL_MIN_CONTROL_MSG_LEN];
-	struct mctp_control_get_vendor_def_msg_support_response_packet *response = 
-		(struct mctp_control_get_vendor_def_msg_support_response_packet*) 
-		&request->data[MCTP_PROTOCOL_MIN_CONTROL_MSG_LEN];
+	struct mctp_control_get_vendor_def_msg_support_request_packet *rq =
+		(struct mctp_control_get_vendor_def_msg_support_request_packet*)
+			&request->data[MCTP_PROTOCOL_MIN_CONTROL_MSG_LEN];
+	struct mctp_control_get_vendor_def_msg_support_response_packet *response =
+		(struct mctp_control_get_vendor_def_msg_support_response_packet*)
+			&request->data[MCTP_PROTOCOL_MIN_CONTROL_MSG_LEN];
 
-	if (request->length != (MCTP_PROTOCOL_MIN_CONTROL_MSG_LEN + 
+	if (request->length != (MCTP_PROTOCOL_MIN_CONTROL_MSG_LEN +
 		sizeof (struct mctp_control_get_vendor_def_msg_support_request_packet))) {
 		response->completion_code = MCTP_PROTOCOL_ERROR_INVALID_LEN;
 	}
 	else if (rq->vid_set_selector != CERBERUS_VID_SET) {
-		response->completion_code = MCTP_PROTOCOL_ERROR_INVALID_DATA;	
+		response->completion_code = MCTP_PROTOCOL_ERROR_INVALID_DATA;
 	}
 	else {
 		response->completion_code = MCTP_PROTOCOL_SUCCESS;
@@ -227,7 +227,7 @@ static int mctp_interface_control_get_vendor_def_msg_support (struct mctp_interf
 		response->protocol_version = platform_htons (intf->protocol_version);
 	}
 
-	request->length = MCTP_PROTOCOL_MIN_CONTROL_MSG_LEN + 
+	request->length = MCTP_PROTOCOL_MIN_CONTROL_MSG_LEN +
 		sizeof (struct mctp_control_get_vendor_def_msg_support_response_packet);
 
 	return 0;
@@ -243,11 +243,11 @@ static int mctp_interface_control_get_vendor_def_msg_support (struct mctp_interf
  *
  * @return 0 if the request was successfully processed or an error code.
  */
-int mctp_interface_control_process_request (struct mctp_interface *intf, 
+int mctp_interface_control_process_request (struct mctp_interface *intf,
 	struct cmd_interface_request *request, uint8_t source_addr)
 {
 	struct mctp_protocol_control_header *header;
-	
+
 	if ((intf == NULL ) || (request == NULL)) {
 		return CMD_HANDLER_INVALID_ARGUMENT;
 	}
@@ -261,7 +261,7 @@ int mctp_interface_control_process_request (struct mctp_interface *intf,
 		return CMD_HANDLER_PAYLOAD_TOO_SHORT;
 	}
 
-	if ((header->msg_type != (MCTP_PROTOCOL_MSG_TYPE_CONTROL_MSG)) || 
+	if ((header->msg_type != (MCTP_PROTOCOL_MSG_TYPE_CONTROL_MSG)) ||
 		(header->integrity_check != 0) || (header->d_bit != 0) || (header->rsvd != 0)) {
 		return CMD_HANDLER_UNSUPPORTED_MSG;
 	}
@@ -303,13 +303,13 @@ int mctp_interface_control_process_request (struct mctp_interface *intf,
  * @return Length of the generated packet if the request was successfully constructed or an
  * error code.
  */
-int mctp_interface_control_issue_request (struct mctp_interface *intf, uint8_t command_id, 
+int mctp_interface_control_issue_request (struct mctp_interface *intf, uint8_t command_id,
 	void *request_params, uint8_t *buf, int buf_len)
 {
 	struct mctp_protocol_control_header *header = (struct mctp_protocol_control_header*) buf;
 	int status;
 
-	if ((intf == NULL) || (request_params == NULL) || (buf == NULL) || 
+	if ((intf == NULL) || (request_params == NULL) || (buf == NULL) ||
 		(buf_len < MCTP_PROTOCOL_MIN_CONTROL_MSG_LEN)) {
 		return CMD_HANDLER_INVALID_ARGUMENT;
 	}
@@ -323,7 +323,7 @@ int mctp_interface_control_issue_request (struct mctp_interface *intf, uint8_t c
 	switch (command_id) {
 		case MCTP_PROTOCOL_SET_EID:
 			status = mctp_interface_control_issue_set_eid (intf, request_params,
-				&buf[MCTP_PROTOCOL_MIN_CONTROL_MSG_LEN], 
+				&buf[MCTP_PROTOCOL_MIN_CONTROL_MSG_LEN],
 				buf_len - MCTP_PROTOCOL_MIN_CONTROL_MSG_LEN);
 			break;
 

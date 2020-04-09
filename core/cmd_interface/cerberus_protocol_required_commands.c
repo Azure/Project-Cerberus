@@ -25,13 +25,13 @@
 int cerberus_protocol_get_fw_version (struct cmd_interface_fw_version *fw_version,
 	struct cmd_interface_request *request)
 {
-	CERBERUS_PROTOCOL_CMD (rq,
-		struct cerberus_protocol_get_fw_version_request_packet*, request);
-	CERBERUS_PROTOCOL_CMD (rsp,
-		struct cerberus_protocol_get_fw_version_response_packet*, request);
+	struct cerberus_protocol_get_fw_version *rq =
+		(struct cerberus_protocol_get_fw_version*) request->data;
+	struct cerberus_protocol_get_fw_version_response *rsp =
+		(struct cerberus_protocol_get_fw_version_response*) request->data;
 	uint8_t area;
 
-	if (request->length != (CERBERUS_PROTOCOL_MIN_MSG_LEN + 1)) {
+	if (request->length != sizeof (struct cerberus_protocol_get_fw_version)) {
 		return CMD_HANDLER_BAD_LENGTH;
 	}
 
@@ -40,13 +40,13 @@ int cerberus_protocol_get_fw_version (struct cmd_interface_fw_version *fw_versio
 	}
 
 	area = rq->area;
-	memset (&rsp->version, 0, CERBERUS_PROTOCOL_FW_VERSION_LEN);
+	memset (&rsp->version, 0, sizeof (rsp->version));
 
 	if (fw_version->id[area] != NULL) {
-		strncpy (rsp->version, fw_version->id[area], CERBERUS_PROTOCOL_FW_VERSION_LEN);
+		strncpy (rsp->version, fw_version->id[area], sizeof (rsp->version));
 	}
 
-	request->length = CERBERUS_PROTOCOL_FW_VERSION_LEN + CERBERUS_PROTOCOL_MIN_MSG_LEN;
+	request->length = sizeof (struct cerberus_protocol_get_fw_version_response);
 	return 0;
 }
 
@@ -61,33 +61,29 @@ int cerberus_protocol_get_fw_version (struct cmd_interface_fw_version *fw_versio
 int cerberus_protocol_get_certificate_digest (struct attestation_slave *attestation,
 	struct cmd_interface_request *request)
 {
-	CERBERUS_PROTOCOL_CMD (rq,
-		struct cerberus_protocol_get_certificate_digest_request_packet*, request);
-	CERBERUS_PROTOCOL_CMD (rsp,
-		struct cerberus_protocol_get_certificate_digest_response_header*, request);
+	struct cerberus_protocol_get_certificate_digest *rq =
+		(struct cerberus_protocol_get_certificate_digest*) request->data;
+	struct cerberus_protocol_get_certificate_digest_response *rsp =
+		(struct cerberus_protocol_get_certificate_digest_response*) request->data;
 	uint8_t num_cert = 0;
 	int status = 0;
 
 	request->crypto_timeout = true;
 
-	if (request->length != CERBERUS_PROTOCOL_CMD_LEN (
-		struct cerberus_protocol_get_certificate_digest_request_packet)) {
+	if (request->length != sizeof (struct cerberus_protocol_get_certificate_digest)) {
 		return CMD_HANDLER_BAD_LENGTH;
 	}
 
-	if (rq->key_alg != ATTESTATION_ECDHE_KEY_EXCHANGE) {
+	if (rq->digest.key_alg != ATTESTATION_ECDHE_KEY_EXCHANGE) {
 		return CMD_HANDLER_UNSUPPORTED_INDEX;
 	}
 
-	status = attestation->get_digests (attestation, request->data + CERBERUS_PROTOCOL_CMD_LEN (
-		struct cerberus_protocol_get_certificate_digest_response_header),
-		MCTP_PROTOCOL_MAX_PAYLOAD_PER_MSG - CERBERUS_PROTOCOL_CMD_LEN (
-		struct cerberus_protocol_get_certificate_digest_response_header), &num_cert);
+	status = attestation->get_digests (attestation, cerberus_protocol_certificate_digests (rsp),
+		CERBERUS_PROTOCOL_MAX_CERT_DIGESTS (request), &num_cert);
 	if (!ROT_IS_ERROR (status)) {
 		rsp->capabilities = 1;
 		rsp->num_digests = num_cert;
-		request->length = CERBERUS_PROTOCOL_CMD_LEN (
-			struct cerberus_protocol_get_certificate_digest_response_header) + status;
+		request->length = cerberus_protocol_get_certificate_digest_response_length (status);
 		status = 0;
 	}
 
@@ -105,26 +101,25 @@ int cerberus_protocol_get_certificate_digest (struct attestation_slave *attestat
 int cerberus_protocol_get_certificate (struct attestation_slave *attestation,
 	struct cmd_interface_request *request)
 {
-	CERBERUS_PROTOCOL_CMD (rq, struct cerberus_protocol_get_certificate_request_packet*, request);
-	CERBERUS_PROTOCOL_CMD (hdr, struct cerberus_protocol_get_certificate_response_header*, request);
+	struct cerberus_protocol_get_certificate *rq =
+		(struct cerberus_protocol_get_certificate*) request->data;
+	struct cerberus_protocol_get_certificate_response *rsp =
+		(struct cerberus_protocol_get_certificate_response*) request->data;
 	struct der_cert cert;
 	uint8_t slot_num;
 	uint8_t cert_num;
-	const uint16_t max_length = MCTP_PROTOCOL_MAX_PAYLOAD_PER_MSG - CERBERUS_PROTOCOL_CMD_LEN (
-		struct cerberus_protocol_get_certificate_response_header);
 	uint16_t offset;
 	uint16_t length;
 	int status;
 
-	if (request->length != CERBERUS_PROTOCOL_CMD_LEN (
-		struct cerberus_protocol_get_certificate_request_packet)) {
+	if (request->length != sizeof (struct cerberus_protocol_get_certificate)) {
 		return CMD_HANDLER_BAD_LENGTH;
 	}
 
-	slot_num = rq->slot_num;
-	cert_num = rq->cert_num;
-	length = rq->length;
-	offset = rq->offset;
+	slot_num = rq->certificate.slot_num;
+	cert_num = rq->certificate.cert_num;
+	length = rq->certificate.length;
+	offset = rq->certificate.offset;
 
 	if (slot_num >= NUM_ATTESTATION_SLOT_NUM) {
 		return CMD_HANDLER_UNSUPPORTED_INDEX;
@@ -136,23 +131,20 @@ int cerberus_protocol_get_certificate (struct attestation_slave *attestation,
 	}
 
 	if (offset >= cert.length) {
-		return CMD_HANDLER_INVALID_ARGUMENT;
+		return CMD_HANDLER_OUT_OF_RANGE;
 	}
 
-	if ((length == 0) || (length > max_length)) {
-		length = max_length;
+	if ((length == 0) || (length > CERBERUS_PROTOCOL_MAX_CERT_DATA (request))) {
+		length = CERBERUS_PROTOCOL_MAX_CERT_DATA (request);
 	}
 
 	length = min (length, cert.length - offset);
 
-	hdr->slot_num = slot_num;
-	hdr->cert_num = cert_num;
+	rsp->slot_num = slot_num;
+	rsp->cert_num = cert_num;
+	memcpy (cerberus_protocol_certificate (rsp), &cert.cert[offset], length);
 
-	memcpy (request->data + CERBERUS_PROTOCOL_CMD_LEN (
-		struct cerberus_protocol_get_certificate_response_header), &cert.cert[offset], length);
-
-	request->length = CERBERUS_PROTOCOL_CMD_LEN (
-		struct cerberus_protocol_get_certificate_response_header) + length;
+	request->length = cerberus_protocol_get_certificate_response_length (length);
 	return 0;
 }
 
@@ -167,17 +159,17 @@ int cerberus_protocol_get_certificate (struct attestation_slave *attestation,
 int cerberus_protocol_get_challenge_response (struct attestation_slave *attestation,
 	struct cmd_interface_request *request)
 {
+	struct cerberus_protocol_challenge *rq = (struct cerberus_protocol_challenge*) request->data;
 	int status;
 
 	request->crypto_timeout = true;
 
-	if (request->length !=
-		(CERBERUS_PROTOCOL_MIN_MSG_LEN + sizeof (struct attestation_challenge))) {
+	if (request->length != sizeof (struct cerberus_protocol_challenge)) {
 		return CMD_HANDLER_BAD_LENGTH;
 	}
 
-	status = attestation->challenge_response (attestation, &request->data[CERBERUS_PROTOCOL_MIN_MSG_LEN],
-		MCTP_PROTOCOL_MAX_PAYLOAD_PER_MSG - CERBERUS_PROTOCOL_MIN_MSG_LEN);
+	status = attestation->challenge_response (attestation, (uint8_t*) &rq->challenge,
+		request->max_response - CERBERUS_PROTOCOL_MIN_MSG_LEN);
 	if (!ROT_IS_ERROR (status)) {
 		request->length = CERBERUS_PROTOCOL_MIN_MSG_LEN + status;
 		status = 0;
@@ -197,11 +189,13 @@ int cerberus_protocol_get_challenge_response (struct attestation_slave *attestat
 int cerberus_protocol_export_csr (struct riot_key_manager *riot,
 	struct cmd_interface_request *request)
 {
-	CERBERUS_PROTOCOL_CMD (rq, struct cerberus_protocol_export_csr_request_packet*, request);
+	struct cerberus_protocol_export_csr *rq = (struct cerberus_protocol_export_csr*) request->data;
+	struct cerberus_protocol_export_csr_response *rsp =
+		(struct cerberus_protocol_export_csr_response*) request->data;
 	const struct riot_keys *keys;
+	int status = 0;
 
-	if (request->length != CERBERUS_PROTOCOL_CMD_LEN (
-		struct cerberus_protocol_export_csr_request_packet)) {
+	if (request->length != sizeof (struct cerberus_protocol_export_csr)) {
 		return CMD_HANDLER_BAD_LENGTH;
 	}
 
@@ -214,12 +208,21 @@ int cerberus_protocol_export_csr (struct riot_key_manager *riot,
 		return CMD_HANDLER_PROCESS_FAILED;
 	}
 
-	memcpy (&request->data[CERBERUS_PROTOCOL_MIN_MSG_LEN], keys->devid_csr, keys->devid_csr_length);
+	if (keys->devid_csr_length > CERBERUS_PROTOCOL_LOCAL_MAX_CSR_DATA) {
+		status = CMD_HANDLER_BUF_TOO_SMALL;
+		goto exit;
+	}
+	else if (keys->devid_csr_length > CERBERUS_PROTOCOL_MAX_CSR_DATA (request)) {
+		status = CMD_HANDLER_RESPONSE_TOO_SMALL;
+		goto exit;
+	}
 
-	request->length = CERBERUS_PROTOCOL_MIN_MSG_LEN + keys->devid_csr_length;
+	memcpy (&rsp->csr, keys->devid_csr, keys->devid_csr_length);
+	request->length = cerberus_protocol_export_csr_response_length (keys->devid_csr_length);
 
+exit:
 	riot_key_manager_release_riot_keys (riot, keys);
-	return 0;
+	return status;
 }
 
 /**
@@ -234,15 +237,15 @@ int cerberus_protocol_export_csr (struct riot_key_manager *riot,
 int cerberus_protocol_import_ca_signed_cert (struct riot_key_manager *riot,
 	struct cmd_background *background, struct cmd_interface_request *request)
 {
-	CERBERUS_PROTOCOL_CMD (rq, struct cerberus_protocol_import_certificate_request_packet*,
-		request);
+	struct cerberus_protocol_import_certificate *rq =
+		(struct cerberus_protocol_import_certificate*) request->data;
 	int min_length =
-		CERBERUS_PROTOCOL_CMD_LEN (struct cerberus_protocol_import_certificate_request_packet) - 1;
+		sizeof (struct cerberus_protocol_import_certificate) - sizeof (rq->certificate);
 	int status;
 
 	request->crypto_timeout = true;
 
-	if (request->length < min_length) {
+	if (request->length < sizeof (struct cerberus_protocol_import_certificate)) {
 		return CMD_HANDLER_BAD_LENGTH;
 	}
 
@@ -293,17 +296,16 @@ int cerberus_protocol_import_ca_signed_cert (struct riot_key_manager *riot,
 int cerberus_protocol_get_signed_cert_state (struct cmd_background *background,
 	struct cmd_interface_request *request)
 {
-	CERBERUS_PROTOCOL_CMD (rsp, struct cerberus_protocol_get_certificate_state_response_packet*,
-		request);
+	struct cerberus_protocol_get_certificate_state_response *rsp =
+		(struct cerberus_protocol_get_certificate_state_response*) request->data;
 
-	if (request->length != CERBERUS_PROTOCOL_MIN_MSG_LEN) {
+	if (request->length != sizeof (struct cerberus_protocol_get_certificate_state)) {
 		return CMD_HANDLER_BAD_LENGTH;
 	}
 
 	rsp->cert_state = background->get_riot_cert_chain_state (background);
 
-	request->length = CERBERUS_PROTOCOL_CMD_LEN (
-		struct cerberus_protocol_get_certificate_state_response_packet);
+	request->length = sizeof (struct cerberus_protocol_get_certificate_state_response);
 	return 0;
 }
 
@@ -326,10 +328,9 @@ int cerberus_protocol_issue_get_device_capabilities (struct device_manager *devi
 		return CMD_HANDLER_BUF_TOO_SMALL;
 	}
 
-	status = device_manager_get_device_capabilities (device_mgr, 0,
+	status = device_manager_get_device_capabilities_request (device_mgr,
 		(struct device_manager_capabilities*) buf);
-
-	if ROT_IS_ERROR (status) {
+	if (status != 0) {
 		return status;
 	}
 
@@ -348,15 +349,18 @@ int cerberus_protocol_issue_get_device_capabilities (struct device_manager *devi
 int cerberus_protocol_get_device_capabilities (struct device_manager *device_mgr,
 	struct cmd_interface_request *request, uint8_t device_num)
 {
-	CERBERUS_PROTOCOL_CMD (rsp, struct cerberus_protocol_device_capabilities_response*,	request);
+	struct cerberus_protocol_device_capabilities *rq =
+		(struct cerberus_protocol_device_capabilities*) request->data;
+	struct cerberus_protocol_device_capabilities_response *rsp =
+		(struct cerberus_protocol_device_capabilities_response*) request->data;
 	int status;
 
-	if (request->length != CERBERUS_PROTOCOL_CMD_LEN (
-		struct cerberus_protocol_device_capabilities)) {
+	if (request->length != sizeof (struct cerberus_protocol_device_capabilities)) {
 		return CMD_HANDLER_BAD_LENGTH;
 	}
 
-	status = device_manager_update_device_capabilities (device_mgr, device_num, &rsp->capabilities);
+	status = device_manager_update_device_capabilities_request (device_mgr, device_num,
+		&rq->capabilities);
 	if (status != 0) {
 		return status;
 	}
@@ -366,11 +370,7 @@ int cerberus_protocol_get_device_capabilities (struct device_manager *device_mgr
 		return status;
 	}
 
-	rsp->max_timeout = MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
-	rsp->max_sig = MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
-
-	request->length = CERBERUS_PROTOCOL_CMD_LEN (
-		struct cerberus_protocol_device_capabilities_response);
+	request->length = sizeof (struct cerberus_protocol_device_capabilities_response);
 	return 0;
 }
 
@@ -385,23 +385,23 @@ int cerberus_protocol_get_device_capabilities (struct device_manager *device_mgr
 int cerberus_protocol_get_device_info (struct cmd_device *device,
 	struct cmd_interface_request *request)
 {
-	CERBERUS_PROTOCOL_CMD (rq,
-		struct cerberus_protocol_get_device_info_request_packet*, request);
+	struct cerberus_protocol_get_device_info *rq =
+		(struct cerberus_protocol_get_device_info*) request->data;
+	struct cerberus_protocol_get_device_info_response *rsp =
+		(struct cerberus_protocol_get_device_info_response*) request->data;
 	int status;
 
-	if (request->length != CERBERUS_PROTOCOL_CMD_LEN (
-		struct cerberus_protocol_get_device_info_request_packet)) {
+	if (request->length != sizeof (struct cerberus_protocol_get_device_info)) {
 		return CMD_HANDLER_BAD_LENGTH;
 	}
 
-	if (rq->info != 0) {
+	if (rq->info_index != 0) {
 		return CMD_HANDLER_UNSUPPORTED_INDEX;
 	}
 
-	status = device->get_uuid (device, &request->data[CERBERUS_PROTOCOL_MIN_MSG_LEN],
-		CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG);
+	status = device->get_uuid (device, &rsp->info, CERBERUS_PROTOCOL_MAX_DEV_INFO_DATA (request));
 	if (!ROT_IS_ERROR (status)) {
-		request->length = CERBERUS_PROTOCOL_MIN_MSG_LEN + status;
+		request->length = cerberus_protocol_get_device_info_response_length (status);
 		status = 0;
 	}
 
@@ -419,10 +419,10 @@ int cerberus_protocol_get_device_info (struct cmd_device *device,
 int cerberus_protocol_get_device_id (struct cmd_interface_device_id *id,
 	struct cmd_interface_request *request)
 {
-	CERBERUS_PROTOCOL_CMD (rsp,
-		struct cerberus_protocol_get_device_id_response_packet*, request);
+	struct cerberus_protocol_get_device_id_response *rsp =
+		(struct cerberus_protocol_get_device_id_response*) request->data;
 
-	if (request->length != CERBERUS_PROTOCOL_MIN_MSG_LEN) {
+	if (request->length != sizeof (struct cerberus_protocol_get_device_id)) {
 		return CMD_HANDLER_BAD_LENGTH;
 	}
 
@@ -431,14 +431,13 @@ int cerberus_protocol_get_device_id (struct cmd_interface_device_id *id,
 	rsp->subsystem_vid = id->subsystem_vid;
 	rsp->subsystem_id = id->subsystem_id;
 
-	request->length = CERBERUS_PROTOCOL_CMD_LEN (
-		struct cerberus_protocol_get_device_id_response_packet);
+	request->length = sizeof (struct cerberus_protocol_get_device_id_response);
 	return 0;
 }
 
 /**
  * Process reset counter packet
- * 
+ *
  * @param device The device command handler to query the counter data
  * @param request Reset counter request to process
  *
@@ -447,20 +446,21 @@ int cerberus_protocol_get_device_id (struct cmd_interface_device_id *id,
 int cerberus_protocol_reset_counter (struct cmd_device *device,
 	struct cmd_interface_request *request)
 {
-	CERBERUS_PROTOCOL_CMD (rq, struct cerberus_protocol_reset_counter_request_packet*, request);
-	CERBERUS_PROTOCOL_CMD (rsp, struct cerberus_protocol_reset_counter_response_packet*, request);
+	struct cerberus_protocol_reset_counter *rq =
+		(struct cerberus_protocol_reset_counter*) request->data;
+	struct cerberus_protocol_reset_counter_response *rsp =
+		(struct cerberus_protocol_reset_counter_response*) request->data;
 	int status;
 
-	if (request->length != CERBERUS_PROTOCOL_CMD_LEN (
-		struct cerberus_protocol_reset_counter_request_packet)) {
+	if (request->length != sizeof (struct cerberus_protocol_reset_counter)) {
 		return CMD_HANDLER_BAD_LENGTH;
 	}
 
 	status = device->get_reset_counter (device, rq->type, rq->port, &rsp->counter);
-	if (status == 0) {
-		request->length = CERBERUS_PROTOCOL_CMD_LEN (
-			struct cerberus_protocol_reset_counter_response_packet);
+	if (status != 0) {
+		return status;
 	}
 
-	return status;
+	request->length = sizeof (struct cerberus_protocol_reset_counter_response);
+	return 0;
 }

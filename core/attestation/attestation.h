@@ -39,10 +39,10 @@ struct attestation_chain_digest {
 	uint8_t num_cert;							/**< Number of certificates in digest chain. */
 };
 
-/**
- * Challenge nonce
- */
 #pragma pack(push, 1)
+/**
+ * Challenge nonce.  This follows the format in the Cerberus protocol.
+ */
 struct attestation_challenge {
 	uint8_t slot_num;							/**< The slot number of the chain to use. */
 	uint8_t reserved;							/**< Reserved field */
@@ -50,15 +50,14 @@ struct attestation_challenge {
 };
 
 /**
- * Challenge response
+ * Challenge attestation response.  This follows the format in the Cerberus protocol.
  */
 struct attestation_response {
 	uint8_t slot_num;							/**< The slot number of the chain to use. */
 	uint8_t slot_mask;							/**< The certificate slot mask. */
 	uint8_t min_protocol_version;				/**< Minimum protocol version supported by device. */
 	uint8_t max_protocol_version;				/**< Maximum protocol version supported by device. */
-	uint8_t reserved1;							/**< Reserved field */
-	uint8_t reserved2;							/**< Reserved field */
+	uint16_t reserved;							/**< Reserved field. */
 	uint8_t nonce[ATTESTATION_NONCE_LEN];		/**< Nonce buffer. */
 	uint8_t num_digests;						/**< Number of firmware digests. */
 	uint8_t digests_size;						/**< Length of firmware digest in bytes. */

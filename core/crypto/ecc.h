@@ -6,7 +6,14 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include "platform_config.h"
 #include "status/rot_status.h"
+
+
+/* Confiugrable ECC parameters.  Defaults can be overridden in platform_config.h. */
+#ifndef ECC_MAX_KEY_LENGTH
+#define	ECC_MAX_KEY_LENGTH		521
+#endif
 
 
 /**

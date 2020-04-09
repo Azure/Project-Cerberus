@@ -11,6 +11,7 @@
 #include "cerberus_protocol_required_commands.h"
 #include "cerberus_protocol_master_commands.h"
 #include "cerberus_protocol_optional_commands.h"
+#include "cerberus_protocol_debug_commands.h"
 #include "cmd_interface_system.h"
 
 
@@ -45,11 +46,11 @@ int cmd_interface_system_process_request (struct cmd_interface *intf,
 
 		case CERBERUS_PROTOCOL_GET_DIGEST:
 			if (direction == DEVICE_MANAGER_UPSTREAM) {
-				return cerberus_protocol_get_certificate_digest (interface->slave_attestation, 
+				return cerberus_protocol_get_certificate_digest (interface->slave_attestation,
 					request);
 			}
 			else if (direction == DEVICE_MANAGER_DOWNSTREAM) {
-				return cerberus_protocol_process_certificate_digest (interface->master_attestation, 
+				return cerberus_protocol_process_certificate_digest (interface->master_attestation,
 					request);
 			}
 
@@ -60,7 +61,7 @@ int cmd_interface_system_process_request (struct cmd_interface *intf,
 				return cerberus_protocol_get_certificate (interface->slave_attestation, request);
 			}
 			if (direction == DEVICE_MANAGER_DOWNSTREAM) {
-				return cerberus_protocol_process_certificate (interface->master_attestation, 
+				return cerberus_protocol_process_certificate (interface->master_attestation,
 					request);
 			}
 
@@ -68,11 +69,11 @@ int cmd_interface_system_process_request (struct cmd_interface *intf,
 
 		case CERBERUS_PROTOCOL_ATTESTATION_CHALLENGE:
 			if (direction == DEVICE_MANAGER_UPSTREAM) {
-				return cerberus_protocol_get_challenge_response (interface->slave_attestation, 
+				return cerberus_protocol_get_challenge_response (interface->slave_attestation,
 					request);
 			}
 			if (direction == DEVICE_MANAGER_DOWNSTREAM) {
-				return cerberus_protocol_process_challenge_response (interface->master_attestation, 
+				return cerberus_protocol_process_challenge_response (interface->master_attestation,
 					request);
 			}
 
@@ -98,42 +99,36 @@ int cmd_interface_system_process_request (struct cmd_interface *intf,
 		case CERBERUS_PROTOCOL_INIT_PFM_UPDATE:
 			return cerberus_protocol_pfm_update_init (interface->pfm_0, interface->pfm_1, request);
 
-		case CERBERUS_PROTOCOL_UPDATE_PFM:
+		case CERBERUS_PROTOCOL_PFM_UPDATE:
 			return cerberus_protocol_pfm_update (interface->pfm_0, interface->pfm_1, request);
 
 		case CERBERUS_PROTOCOL_COMPLETE_PFM_UPDATE:
 			return cerberus_protocol_pfm_update_complete (interface->pfm_0, interface->pfm_1,
-				request, true);
+				request);
 
 		case CERBERUS_PROTOCOL_GET_CFM_ID:
 			return cerberus_protocol_get_cfm_id (interface->cfm_manager, request);
 
 		case CERBERUS_PROTOCOL_INIT_CFM_UPDATE:
-			return cerberus_protocol_manifest_update_init (interface->cfm, request, 0,
-				CMD_HANDLER_UNSUPPORTED_COMMAND);
+			return cerberus_protocol_cfm_update_init (interface->cfm, request);
 
-		case CERBERUS_PROTOCOL_UPDATE_CFM:
-			return cerberus_protocol_manifest_update (interface->cfm, request, 0,
-				CMD_HANDLER_UNSUPPORTED_COMMAND);
+		case CERBERUS_PROTOCOL_CFM_UPDATE:
+			return cerberus_protocol_cfm_update (interface->cfm, request);
 
 		case CERBERUS_PROTOCOL_COMPLETE_CFM_UPDATE:
-			return cerberus_protocol_manifest_update_complete (interface->cfm, request, 0,
-				CMD_HANDLER_UNSUPPORTED_COMMAND, true);
+			return cerberus_protocol_cfm_update_complete (interface->cfm, request);
 
 		case CERBERUS_PROTOCOL_GET_PCD_ID:
 			return cerberus_protocol_get_pcd_id (interface->pcd_manager, request);
 
 		case CERBERUS_PROTOCOL_INIT_PCD_UPDATE:
-			return cerberus_protocol_manifest_update_init (interface->pcd, request, 0,
-				CMD_HANDLER_UNSUPPORTED_COMMAND);
+			return cerberus_protocol_pcd_update_init (interface->pcd, request);
 
-		case CERBERUS_PROTOCOL_UPDATE_PCD:
-			return cerberus_protocol_manifest_update (interface->pcd, request, 0,
-				CMD_HANDLER_UNSUPPORTED_COMMAND);
+		case CERBERUS_PROTOCOL_PCD_UPDATE:
+			return cerberus_protocol_pcd_update (interface->pcd, request);
 
 		case CERBERUS_PROTOCOL_COMPLETE_PCD_UPDATE:
-			return cerberus_protocol_manifest_update_complete (interface->pcd, request, 0,
-				CMD_HANDLER_UNSUPPORTED_COMMAND, false);
+			return cerberus_protocol_pcd_update_complete (interface->pcd, request);
 
 		case CERBERUS_PROTOCOL_GET_CFM_SUPPORTED_COMPONENT_IDS:
 			return cerberus_protocol_get_cfm_component_ids (interface->cfm_manager, request);
@@ -141,7 +136,7 @@ int cmd_interface_system_process_request (struct cmd_interface *intf,
 		case CERBERUS_PROTOCOL_INIT_FW_UPDATE:
 			return cerberus_protocol_fw_update_init (interface->control, request);
 
-		case CERBERUS_PROTOCOL_UPDATE_FW:
+		case CERBERUS_PROTOCOL_FW_UPDATE:
 			return cerberus_protocol_fw_update (interface->control, request);
 
 		case CERBERUS_PROTOCOL_COMPLETE_FW_UPDATE:
@@ -166,11 +161,10 @@ int cmd_interface_system_process_request (struct cmd_interface *intf,
 			return cerberus_protocol_reset_counter (interface->cmd_device, request);
 
 		case CERBERUS_PROTOCOL_UNSEAL_MESSAGE:
-			return cerberus_protocol_unseal_message (interface->background, request, direction, 0);
+			return cerberus_protocol_unseal_message (interface->background, request, 0);
 
 		case CERBERUS_PROTOCOL_UNSEAL_MESSAGE_RESULT:
-			return cerberus_protocol_unseal_message_result (interface->background, request,
-				direction);
+			return cerberus_protocol_unseal_message_result (interface->background, request);
 
 		case CERBERUS_PROTOCOL_EXPORT_CSR:
 			return cerberus_protocol_export_csr (interface->riot, request);
@@ -198,7 +192,7 @@ int cmd_interface_system_process_request (struct cmd_interface *intf,
 				interface->recovery_cmd_1, request);
 
 		case CERBERUS_PROTOCOL_GET_RECOVERY_IMAGE_VERSION:
-			return cerberus_protocol_get_recovery_image_version (interface->recovery_manager_0,
+			return cerberus_protocol_get_recovery_image_id (interface->recovery_manager_0,
 				interface->recovery_manager_1, request);
 
 		case CERBERUS_PROTOCOL_GET_HOST_STATE:
@@ -267,8 +261,8 @@ int cmd_interface_system_issue_request (struct cmd_interface *intf, uint8_t comm
 			break;
 
 		case CERBERUS_PROTOCOL_ATTESTATION_CHALLENGE:
-			status = cerberus_protocol_issue_challenge (interface->master_attestation, 
-				request_params, &buf[CERBERUS_PROTOCOL_MIN_MSG_LEN], 
+			status = cerberus_protocol_issue_challenge (interface->master_attestation,
+				request_params, &buf[CERBERUS_PROTOCOL_MIN_MSG_LEN],
 				buf_len - CERBERUS_PROTOCOL_MIN_MSG_LEN);
 			break;
 
@@ -333,20 +327,20 @@ int cmd_interface_system_init (struct cmd_interface_system *intf,
 	struct manifest_cmd_interface *pcd, struct pfm_manager *pfm_manager_0,
 	struct pfm_manager *pfm_manager_1, struct cfm_manager *cfm_manager,
 	struct pcd_manager *pcd_manager, struct attestation_master *master_attestation,
-	struct attestation_slave *slave_attestation, struct device_manager *device_manager, 
-	struct pcr_store *store, struct hash_engine *hash, struct cmd_background *background, 
+	struct attestation_slave *slave_attestation, struct device_manager *device_manager,
+	struct pcr_store *store, struct hash_engine *hash, struct cmd_background *background,
 	struct host_processor *host_0, struct host_processor *host_1,
 	struct cmd_interface_fw_version *fw_version, struct riot_key_manager *riot,
 	struct cmd_authorization *auth, struct host_control *host_ctrl_0,
 	struct host_control *host_ctrl_1, struct recovery_image_cmd_interface *recovery_cmd_0,
 	struct recovery_image_cmd_interface *recovery_cmd_1,
 	struct recovery_image_manager *recovery_manager_0,
-	struct recovery_image_manager *recovery_manager_1, struct cmd_device *cmd_device, 
+	struct recovery_image_manager *recovery_manager_1, struct cmd_device *cmd_device,
 	uint16_t vendor_id, uint16_t device_id, uint16_t subsystem_vid, uint16_t subsystem_id)
 {
 	if ((intf == NULL) || (control == NULL) || (store == NULL) || (background == NULL) ||
-		(riot == NULL) || (auth == NULL) || (master_attestation == NULL) || 
-		(slave_attestation == NULL) || (hash == NULL) || (device_manager == NULL) || 
+		(riot == NULL) || (auth == NULL) || (master_attestation == NULL) ||
+		(slave_attestation == NULL) || (hash == NULL) || (device_manager == NULL) ||
 		(fw_version == NULL) || (cmd_device == NULL)) {
 		return CMD_HANDLER_INVALID_ARGUMENT;
 	}
