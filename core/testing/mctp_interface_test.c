@@ -32,15 +32,14 @@ static void setup_mctp_interface_with_interface_mock_test (CuTest *test,
 	struct cmd_interface_mock *cmd_interface, struct device_manager *device_mgr,
 	struct mctp_interface *interface)
 {
-	struct device_manager_capabilities capabilities = {0};
+	struct device_manager_full_capabilities capabilities;
 	int status;
-
-	capabilities.hierarchy_role = DEVICE_MANAGER_PA_ROT_MODE;
 
 	status = cmd_interface_mock_init (cmd_interface);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_init (device_mgr, 2);
+	status = device_manager_init (device_mgr, 2, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_entry (device_mgr, 0, DEVICE_MANAGER_SELF,
@@ -50,6 +49,9 @@ static void setup_mctp_interface_with_interface_mock_test (CuTest *test,
 	status = device_manager_update_device_entry (device_mgr, 1, DEVICE_MANAGER_UPSTREAM,
 		MCTP_PROTOCOL_BMC_EID, 0);
 	CuAssertIntEquals (test, 0, status);
+
+	device_manager_get_device_capabilities (device_mgr, 0, &capabilities);
+	capabilities.request.hierarchy_role = DEVICE_MANAGER_PA_ROT_MODE;
 
 	status = device_manager_update_device_capabilities (device_mgr, 0, &capabilities);
 	CuAssertIntEquals (test, 0, status);
@@ -98,7 +100,8 @@ static void mctp_interface_test_init (CuTest *test)
 	status = cmd_interface_mock_init (&cmd_interface);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_init (&device_mgr, 1);
+	status = device_manager_init (&device_mgr, 1, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mctp_interface_init (&interface, &cmd_interface.base, &device_mgr,
@@ -122,7 +125,8 @@ static void mctp_interface_test_init_null (CuTest *test)
 	status = cmd_interface_mock_init (&cmd_interface);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_init (&device_mgr, 1);
+	status = device_manager_init (&device_mgr, 1, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mctp_interface_init (NULL, &cmd_interface.base, &device_mgr,
@@ -218,9 +222,9 @@ static void mctp_interface_test_process_packet_invalid_req (CuTest *test)
 	struct cmd_interface_mock cmd_interface;
 	struct device_manager device_mgr;
 	struct cmd_packet rx;
-	struct mctp_protocol_transport_header* header =
+	struct mctp_protocol_transport_header *header =
 		(struct mctp_protocol_transport_header*) rx.data;
-	struct cerberus_protocol_header* cerberus_header;
+	struct cerberus_protocol_header *cerberus_header;
 	size_t num_packets;
 	int status;
 
@@ -283,9 +287,9 @@ static void mctp_interface_test_process_packet_unsupported_message (CuTest *test
 	struct cmd_interface_mock cmd_interface;
 	struct device_manager device_mgr;
 	struct cmd_packet rx;
-	struct mctp_protocol_transport_header* header =
+	struct mctp_protocol_transport_header *header =
 		(struct mctp_protocol_transport_header*) rx.data;
-	struct cerberus_protocol_header* cerberus_header;
+	struct cerberus_protocol_header *cerberus_header;
 	size_t num_packets;
 	int status;
 
@@ -348,9 +352,9 @@ static void mctp_interface_test_process_packet_invalid_crc (CuTest *test)
 	struct cmd_interface_mock cmd_interface;
 	struct device_manager device_mgr;
 	struct cmd_packet rx;
-	struct mctp_protocol_transport_header* header =
+	struct mctp_protocol_transport_header *header =
 		(struct mctp_protocol_transport_header*) rx.data;
-	struct cerberus_protocol_header* cerberus_header;
+	struct cerberus_protocol_header *cerberus_header;
 	size_t num_packets;
 	int status;
 
@@ -437,7 +441,7 @@ static void mctp_interface_test_process_packet_not_intended_target (CuTest *test
 {
 	struct mctp_interface interface;
  	struct cmd_packet rx;
-	struct mctp_protocol_transport_header* header =
+	struct mctp_protocol_transport_header *header =
 		(struct mctp_protocol_transport_header*) rx.data;
 	struct cmd_packet *packets;
 	size_t num_packets;
@@ -487,7 +491,7 @@ static void mctp_interface_test_process_packet_interpret_fail_not_intended_targe
 {
 	struct mctp_interface interface;
  	struct cmd_packet rx;
-	struct mctp_protocol_transport_header* header =
+	struct mctp_protocol_transport_header *header =
 		(struct mctp_protocol_transport_header*) rx.data;
 	struct cmd_packet *packets;
 	size_t num_packets;
@@ -539,9 +543,9 @@ static void mctp_interface_test_process_packet_out_of_order (CuTest *test)
 	struct cmd_interface_mock cmd_interface;
 	struct device_manager device_mgr;
  	struct cmd_packet rx[3];
-	struct mctp_protocol_transport_header* header =
+	struct mctp_protocol_transport_header *header =
 		(struct mctp_protocol_transport_header*) rx[0].data;
-	struct cerberus_protocol_header* cerberus_header;
+	struct cerberus_protocol_header *cerberus_header;
 	size_t num_packets;
 	int status;
 
@@ -649,9 +653,9 @@ static void mctp_interface_test_process_packet_no_som (CuTest *test)
 	struct cmd_interface_mock cmd_interface;
 	struct device_manager device_mgr;
 	struct cmd_packet rx;
-	struct mctp_protocol_transport_header* header =
+	struct mctp_protocol_transport_header *header =
 		(struct mctp_protocol_transport_header*) rx.data;
-	struct cerberus_protocol_header* cerberus_header;
+	struct cerberus_protocol_header *cerberus_header;
 	size_t num_packets;
 	int status;
 
@@ -715,9 +719,9 @@ static void mctp_interface_test_process_packet_invalid_msg_tag (CuTest *test)
 	struct device_manager device_mgr;
 	size_t num_packets;
  	struct cmd_packet rx;
-	struct mctp_protocol_transport_header* header =
+	struct mctp_protocol_transport_header *header =
 		(struct mctp_protocol_transport_header*) rx.data;
-	struct cerberus_protocol_header* cerberus_header;
+	struct cerberus_protocol_header *cerberus_header;
 	int status;
 
 	TEST_START;
@@ -791,7 +795,7 @@ static void mctp_interface_test_process_packet_invalid_dest_eid (CuTest *test)
 	struct cmd_interface_mock cmd_interface;
 	struct device_manager device_mgr;
 	struct cmd_packet rx;
-	struct mctp_protocol_transport_header* header =
+	struct mctp_protocol_transport_header *header =
 		(struct mctp_protocol_transport_header*) rx.data;
 	size_t num_packets;
 	int status;
@@ -852,7 +856,7 @@ static void mctp_interface_test_process_packet_invalid_src_eid (CuTest *test)
 	struct cmd_interface_mock cmd_interface;
 	struct device_manager device_mgr;
 	struct cmd_packet rx;
-	struct mctp_protocol_transport_header* header =
+	struct mctp_protocol_transport_header *header =
 		(struct mctp_protocol_transport_header*) rx.data;
 	size_t num_packets;
 	int status;
@@ -911,9 +915,9 @@ static void mctp_interface_test_process_packet_invalid_packet_seq (CuTest *test)
 	struct device_manager device_mgr;
 	size_t num_packets;
  	struct cmd_packet rx;
-	struct mctp_protocol_transport_header* header =
+	struct mctp_protocol_transport_header *header =
 		(struct mctp_protocol_transport_header*) rx.data;
-	struct cerberus_protocol_header* cerberus_header;
+	struct cerberus_protocol_header *cerberus_header;
 	int status;
 
 	TEST_START;
@@ -982,9 +986,9 @@ static void mctp_interface_test_process_packet_invalid_msg_size (CuTest *test)
 	struct cmd_interface_mock cmd_interface;
 	struct device_manager device_mgr;
 	struct cmd_packet rx;
-	struct mctp_protocol_transport_header* header =
+	struct mctp_protocol_transport_header *header =
 		(struct mctp_protocol_transport_header*) rx.data;
-	struct cerberus_protocol_header* cerberus_header;
+	struct cerberus_protocol_header *cerberus_header;
 	size_t num_packets;
 	int status;
 
@@ -1054,9 +1058,9 @@ static void mctp_interface_test_process_packet_msg_overflow (CuTest *test)
 {
 	struct mctp_interface interface;
 	struct cmd_packet rx;
-	struct mctp_protocol_transport_header* header =
+	struct mctp_protocol_transport_header *header =
 		(struct mctp_protocol_transport_header*) rx.data;
-	struct cerberus_protocol_header* cerberus_header;
+	struct cerberus_protocol_header *cerberus_header;
 	struct cmd_packet *packets;
 	struct cmd_interface_mock cmd_interface;
 	struct device_manager device_mgr;
@@ -1190,11 +1194,11 @@ static void mctp_interface_test_process_packet_msg_overflow (CuTest *test)
 	status = mctp_interface_process_packet (&interface, &rx, &packets, &num_packets);
 	CuAssertIntEquals (test, 0, status);
 
-	header->byte_count = 154;
+	header->byte_count = 158;
 	header->packet_seq = 1;
 	header->eom = 1;
-	rx.data[156] = checksum_crc8 (0xBA, rx.data, 156);
-	rx.pkt_size = 157;
+	rx.data[160] = checksum_crc8 (0xBA, rx.data, 160);
+	rx.pkt_size = 161;
 
 	status = mctp_interface_process_packet (&interface, &rx, &packets, &num_packets);
 	cerberus_header = (struct cerberus_protocol_header*) &packets[0].data[7];
@@ -1213,7 +1217,7 @@ static void mctp_interface_test_process_packet_msg_overflow (CuTest *test)
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_ERROR, cerberus_header->command);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_ERROR_MSG_OVERFLOW, packets[0].data[12]);
 	CuAssertIntEquals (test, 0x55, packets[0].dest_addr);
-	CuAssertIntEquals (test, 4093, *((uint32_t*) &packets[0].data[13]));
+	CuAssertIntEquals (test, 4097, *((uint32_t*) &packets[0].data[13]));
 
 	platform_free (packets);
 
@@ -1225,9 +1229,9 @@ static void mctp_interface_test_process_packet_cmd_interface_fail (CuTest *test)
 {
 	struct mctp_interface interface;
  	struct cmd_packet rx;
-	struct mctp_protocol_transport_header* header =
+	struct mctp_protocol_transport_header *header =
 		(struct mctp_protocol_transport_header*) rx.data;
-	struct cerberus_protocol_header* cerberus_header;
+	struct cerberus_protocol_header *cerberus_header;
 	struct cmd_packet *packets;
 	struct cmd_interface_mock cmd_interface;
 	struct device_manager device_mgr;
@@ -1276,6 +1280,7 @@ static void mctp_interface_test_process_packet_cmd_interface_fail (CuTest *test)
 	request.new_request = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
+	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
 
 	status = mock_expect (&cmd_interface.mock, cmd_interface.base.process_request, &cmd_interface,
 		CMD_HANDLER_PROCESS_FAILED,
@@ -1311,9 +1316,9 @@ static void mctp_interface_test_process_packet_cmd_interface_fail_cmd_set_1 (CuT
 {
 	struct mctp_interface interface;
  	struct cmd_packet rx;
-	struct mctp_protocol_transport_header* header =
+	struct mctp_protocol_transport_header *header =
 		(struct mctp_protocol_transport_header*) rx.data;
-	struct cerberus_protocol_header* cerberus_header;
+	struct cerberus_protocol_header *cerberus_header;
 	struct cmd_packet *packets;
 	struct cmd_interface_mock cmd_interface;
 	struct device_manager device_mgr;
@@ -1362,6 +1367,7 @@ static void mctp_interface_test_process_packet_cmd_interface_fail_cmd_set_1 (CuT
 	request.new_request = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
+	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
 
 	status = mock_expect (&cmd_interface.mock, cmd_interface.base.process_request, &cmd_interface,
 		CMD_HANDLER_PROCESS_FAILED,
@@ -1397,7 +1403,7 @@ static void mctp_interface_test_process_packet_error_packet (CuTest *test)
 {
 	struct mctp_interface interface;
  	struct cmd_packet rx;
-	struct mctp_protocol_transport_header* header =
+	struct mctp_protocol_transport_header *header =
 		(struct mctp_protocol_transport_header*) rx.data;
 	struct cmd_packet *packets;
 	struct cmd_interface_mock cmd_interface;
@@ -1442,6 +1448,7 @@ static void mctp_interface_test_process_packet_error_packet (CuTest *test)
 	request.new_request = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
+	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
 
 	status = mock_expect (&cmd_interface.mock, cmd_interface.base.process_request, &cmd_interface,
 		CMD_ERROR_MESSAGE_ESCAPE_SEQ,
@@ -1460,9 +1467,9 @@ static void mctp_interface_test_process_packet_no_response (CuTest *test)
 {
 	struct mctp_interface interface;
  	struct cmd_packet rx;
-	struct mctp_protocol_transport_header* header =
+	struct mctp_protocol_transport_header *header =
 		(struct mctp_protocol_transport_header*) rx.data;
-	struct cerberus_protocol_header* cerberus_header;
+	struct cerberus_protocol_header *cerberus_header;
 	struct cmd_packet *packets;
 	size_t num_packets;
 	struct cmd_interface_mock cmd_interface;
@@ -1518,6 +1525,7 @@ static void mctp_interface_test_process_packet_no_response (CuTest *test)
 	request.new_request = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
+	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
 
 	memset (&response, 0, sizeof (response));
 
@@ -1555,9 +1563,9 @@ static void mctp_interface_test_process_packet_no_response_cmd_set_1 (CuTest *te
 {
 	struct mctp_interface interface;
  	struct cmd_packet rx;
-	struct mctp_protocol_transport_header* header =
+	struct mctp_protocol_transport_header *header =
 		(struct mctp_protocol_transport_header*) rx.data;
-	struct cerberus_protocol_header* cerberus_header;
+	struct cerberus_protocol_header *cerberus_header;
 	struct cmd_packet *packets;
 	size_t num_packets;
 	struct cmd_interface_mock cmd_interface;
@@ -1593,7 +1601,7 @@ static void mctp_interface_test_process_packet_no_response_cmd_set_1 (CuTest *te
 	cerberus_header = (struct cerberus_protocol_header*) &rx.data[7];
 	cerberus_header->msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	cerberus_header->rq = 1;
-	
+
 	rx.data[11] = 0x01;
 	rx.data[12] = 0x02;
 	rx.data[13] = 0x03;
@@ -1613,6 +1621,7 @@ static void mctp_interface_test_process_packet_no_response_cmd_set_1 (CuTest *te
 	request.new_request = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
+	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
 
 	memset (&response, 0, sizeof (response));
 
@@ -1655,7 +1664,7 @@ static void mctp_interface_test_process_packet_unsupported_type (CuTest *test)
 	struct device_manager device_mgr;
 	size_t num_packets;
 	int status;
-	struct mctp_protocol_transport_header* header =
+	struct mctp_protocol_transport_header *header =
 		(struct mctp_protocol_transport_header*) rx.data;
 
 	TEST_START;
@@ -1707,12 +1716,12 @@ static void mctp_interface_test_process_packet_mctp_control_msg (CuTest *test)
 	struct cmd_packet *packets;
 	struct cmd_interface_mock cmd_interface;
 	struct device_manager device_mgr;
-	struct mctp_protocol_transport_header* header =
+	struct mctp_protocol_transport_header *header =
 		(struct mctp_protocol_transport_header*) rx.data;
-	struct mctp_protocol_control_header *ctrl_header =
-		(struct mctp_protocol_control_header*) &rx.data[MCTP_PROTOCOL_MIN_PACKET_LEN - 1];
+	struct mctp_protocol_control_header *ctrl_header = (struct mctp_protocol_control_header*)
+		&rx.data[sizeof (struct mctp_protocol_transport_header)];
 	struct mctp_control_set_eid_request_packet *rq = (struct mctp_control_set_eid_request_packet*)
-		&rx.data[MCTP_PROTOCOL_MIN_PACKET_LEN - 1 + MCTP_PROTOCOL_MIN_CONTROL_MSG_LEN];
+		&rx.data[sizeof (struct mctp_protocol_transport_header) + MCTP_PROTOCOL_MIN_CONTROL_MSG_LEN];
 	struct mctp_control_set_eid_response_packet *response;
 	size_t num_packets;
 	int status;
@@ -1759,10 +1768,11 @@ static void mctp_interface_test_process_packet_mctp_control_msg (CuTest *test)
 		sizeof (struct mctp_control_set_eid_response_packet), packets[0].pkt_size);
 
 	header = (struct mctp_protocol_transport_header*) packets[0].data;
-	ctrl_header =
-		(struct mctp_protocol_control_header*) &packets[0].data[MCTP_PROTOCOL_MIN_PACKET_LEN - 1];
+	ctrl_header = (struct mctp_protocol_control_header*)
+		&packets[0].data[sizeof (struct mctp_protocol_transport_header)];
 	response = (struct mctp_control_set_eid_response_packet*)
-		&packets[0].data[MCTP_PROTOCOL_MIN_PACKET_LEN - 1 + MCTP_PROTOCOL_MIN_CONTROL_MSG_LEN];
+		&packets[0].data[sizeof (struct mctp_protocol_transport_header) +
+			MCTP_PROTOCOL_MIN_CONTROL_MSG_LEN];
 
 	CuAssertIntEquals (test, 0x0F, header->cmd_code);
 	CuAssertIntEquals (test, sizeof (struct mctp_protocol_transport_header) +
@@ -1796,10 +1806,10 @@ static void mctp_interface_test_process_packet_mctp_control_msg_fail (CuTest *te
 	struct cmd_packet *packets;
 	struct cmd_interface_mock cmd_interface;
 	struct device_manager device_mgr;
-	struct mctp_protocol_transport_header* header =
+	struct mctp_protocol_transport_header *header =
 		(struct mctp_protocol_transport_header*) rx.data;
-	struct mctp_protocol_control_header *ctrl_header =
-		(struct mctp_protocol_control_header*) &rx.data[MCTP_PROTOCOL_MIN_PACKET_LEN - 1];
+	struct mctp_protocol_control_header *ctrl_header = (struct mctp_protocol_control_header*)
+		&rx.data[sizeof (struct mctp_protocol_transport_header)];
 	size_t num_packets;
 	int status;
 
@@ -1844,7 +1854,7 @@ static void mctp_interface_test_process_packet_one_packet_request (CuTest *test)
 	struct cmd_packet *packets;
 	struct cmd_interface_mock cmd_interface;
 	struct device_manager device_mgr;
-	struct mctp_protocol_transport_header* header =
+	struct mctp_protocol_transport_header *header =
 		(struct mctp_protocol_transport_header*) rx.data;
 	struct cmd_interface_request request;
 	struct cmd_interface_request response;
@@ -1891,6 +1901,7 @@ static void mctp_interface_test_process_packet_one_packet_request (CuTest *test)
 	request.new_request = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
+	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
 
 	response.data[0] = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	response.data[1] = 0x12;
@@ -1942,7 +1953,7 @@ static void mctp_interface_test_process_packet_one_packet_response (CuTest *test
 	struct cmd_packet *packets;
 	struct cmd_interface_mock cmd_interface;
 	struct device_manager device_mgr;
-	struct mctp_protocol_transport_header* header =
+	struct mctp_protocol_transport_header *header =
 		(struct mctp_protocol_transport_header*) rx.data;
 	struct cmd_interface_request request;
 	struct cmd_interface_request response;
@@ -1989,6 +2000,7 @@ static void mctp_interface_test_process_packet_one_packet_response (CuTest *test
 	request.new_request = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
+	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
 
 	response.data[0] = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	response.data[1] = 0x12;
@@ -2037,7 +2049,7 @@ static void mctp_interface_test_process_packet_two_packet_response (CuTest *test
 {
 	struct mctp_interface interface;
  	struct cmd_packet rx;
-	struct mctp_protocol_transport_header* header =
+	struct mctp_protocol_transport_header *header =
 		(struct mctp_protocol_transport_header*) rx.data;
 	struct cmd_packet *packets;
 	struct cmd_interface_mock cmd_interface;
@@ -2046,6 +2058,11 @@ static void mctp_interface_test_process_packet_two_packet_response (CuTest *test
 	struct cmd_interface_request response;
 	size_t num_packets;
 	int status;
+	int first_pkt = MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT;
+	int second_pkt = 48;
+	int second_pkt_total = second_pkt + MCTP_PROTOCOL_PACKET_OVERHEAD;
+	int response_size = first_pkt + second_pkt;
+	int i;
 
 	TEST_START;
 
@@ -2087,17 +2104,14 @@ static void mctp_interface_test_process_packet_two_packet_response (CuTest *test
 	request.new_request = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
+	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
 
-	memset (response.data, 0, sizeof (response.data));
+	memset (&response.data, 0, sizeof (response.data));
 	response.data[0] = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
-	response.data[10] = 0x0B;
-	response.data[20] = 0x0C;
-	response.data[242] = 0x0D;
-	response.data[243] = 0xAA;
-	response.data[253] = 0xBB;
-	response.data[297] = 0xCC;
-	response.data[298] = 0xDD;
-	response.length = 300;
+	for (i = 1; i < response_size; i++) {
+		response.data[i] = i;
+	}
+	response.length = response_size;
 	response.source_eid = 0x0A;
 	response.target_eid = 0x0B;
 	response.new_request = false;
@@ -2112,13 +2126,14 @@ static void mctp_interface_test_process_packet_two_packet_response (CuTest *test
 	status = mctp_interface_process_packet (&interface, &rx, &packets, &num_packets);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 2, num_packets);
+
 	CuAssertIntEquals (test, 0, packets[0].state);
-	CuAssertIntEquals (test, 255, packets[0].pkt_size);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MAX_PACKET_LEN, packets[0].pkt_size);
 
 	header = (struct mctp_protocol_transport_header*) packets[0].data;
 
 	CuAssertIntEquals (test, 0x0F, header->cmd_code);
-	CuAssertIntEquals (test, 252, header->byte_count);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MAX_PACKET_LEN - 3, header->byte_count);
 	CuAssertIntEquals (test, 0xBB, header->source_addr);
 	CuAssertIntEquals (test, 0x0A, header->destination_eid);
 	CuAssertIntEquals (test, 0x0B, header->source_eid);
@@ -2128,19 +2143,21 @@ static void mctp_interface_test_process_packet_two_packet_response (CuTest *test
 	CuAssertIntEquals (test, 0, header->msg_tag);
 	CuAssertIntEquals (test, 0, header->packet_seq);
 
-	status = testing_validate_array (response.data, &packets[0].data[7],
-		response.length - MCTP_PROTOCOL_MAX_PAYLOAD_PER_PKT);
+	status = testing_validate_array (response.data, &packets[0].data[7], first_pkt);
+	CuAssertIntEquals (test, 0, status);
 
-	CuAssertIntEquals (test, checksum_crc8 (0xAA, packets[0].data, 254), packets[0].data[254]);
+	CuAssertIntEquals (test,
+		checksum_crc8 (0xAA, packets[0].data, MCTP_PROTOCOL_MAX_PACKET_LEN - 1),
+		packets[0].data[MCTP_PROTOCOL_MAX_PACKET_LEN - 1]);
 	CuAssertIntEquals (test, 0x55, packets[0].dest_addr);
 
 	CuAssertIntEquals (test, 0, packets[1].state);
-	CuAssertIntEquals (test, 61, packets[1].pkt_size);
+	CuAssertIntEquals (test, second_pkt_total, packets[1].pkt_size);
 
 	header = (struct mctp_protocol_transport_header*) packets[1].data;
 
 	CuAssertIntEquals (test, 0x0F, header->cmd_code);
-	CuAssertIntEquals (test, 58, header->byte_count);
+	CuAssertIntEquals (test, second_pkt_total - 3, header->byte_count);
 	CuAssertIntEquals (test, 0xBB, header->source_addr);
 	CuAssertIntEquals (test, 0x0A, header->destination_eid);
 	CuAssertIntEquals (test, 0x0B, header->source_eid);
@@ -2150,9 +2167,11 @@ static void mctp_interface_test_process_packet_two_packet_response (CuTest *test
 	CuAssertIntEquals (test, 0, header->msg_tag);
 	CuAssertIntEquals (test, 1, header->packet_seq);
 
-	status = testing_validate_array (&response.data[247], &packets[1].data[7], 53);
+	status = testing_validate_array (&response.data[first_pkt], &packets[1].data[7], second_pkt);
+	CuAssertIntEquals (test, 0, status);
 
-	CuAssertIntEquals (test, checksum_crc8 (0xAA, packets[1].data, 60), packets[1].data[60]);
+	CuAssertIntEquals (test, checksum_crc8 (0xAA, packets[1].data, second_pkt_total - 1),
+		packets[1].data[second_pkt_total - 1]);
 	CuAssertIntEquals (test, 0x55, packets[1].dest_addr);
 
 	platform_free (packets);
@@ -2168,7 +2187,7 @@ static void mctp_interface_test_process_packet_channel_id_reset_next_som (CuTest
 	struct cmd_packet *packets;
 	struct cmd_interface_mock cmd_interface;
 	struct device_manager device_mgr;
-	struct mctp_protocol_transport_header* header =
+	struct mctp_protocol_transport_header *header =
 		(struct mctp_protocol_transport_header*) rx.data;
 	struct cmd_interface_request request;
 	struct cmd_interface_request response;
@@ -2218,6 +2237,7 @@ static void mctp_interface_test_process_packet_channel_id_reset_next_som (CuTest
 	request.new_request = false;
 	request.crypto_timeout = false;
 	request.channel_id = 1;
+	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
 
 	memset (&response, 0, sizeof (response));
 
@@ -2249,7 +2269,7 @@ static void mctp_interface_test_process_packet_normal_timeout (CuTest *test)
 {
 	struct mctp_interface interface;
 	struct cmd_packet rx;
-	struct mctp_protocol_transport_header* header =
+	struct mctp_protocol_transport_header *header =
 		(struct mctp_protocol_transport_header*) rx.data;
 	struct cmd_packet *packets;
 	struct cmd_interface_mock cmd_interface;
@@ -2301,6 +2321,7 @@ static void mctp_interface_test_process_packet_normal_timeout (CuTest *test)
 	request.new_request = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
+	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
 
 	response.data[0] = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	response.data[1] = 0x12;
@@ -2353,7 +2374,7 @@ static void mctp_interface_test_process_packet_crypto_timeout (CuTest *test)
 {
 	struct mctp_interface interface;
 	struct cmd_packet rx;
-	struct mctp_protocol_transport_header* header =
+	struct mctp_protocol_transport_header *header =
 		(struct mctp_protocol_transport_header*) rx.data;
 	struct cmd_packet *packets;
 	struct cmd_interface_mock cmd_interface;
@@ -2405,6 +2426,7 @@ static void mctp_interface_test_process_packet_crypto_timeout (CuTest *test)
 	request.new_request = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
+	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
 
 	response.data[0] = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	response.data[1] = 0x12;
@@ -2457,15 +2479,15 @@ static void mctp_interface_test_process_packet_max_message (CuTest *test)
 {
 	struct mctp_interface interface;
 	struct cmd_packet rx;
-	struct mctp_protocol_transport_header* header =
+	struct mctp_protocol_transport_header *header =
 		(struct mctp_protocol_transport_header*) rx.data;
-	struct cerberus_protocol_header* cerberus_header;
+	struct cerberus_protocol_header *cerberus_header;
 	struct cmd_packet *packets;
 	struct cmd_interface_mock cmd_interface;
 	struct device_manager device_mgr;
 	struct cmd_interface_request request;
 	struct cmd_interface_request response;
-	uint8_t msg_data[CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG];
+	uint8_t msg_data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
 	size_t num_packets;
 	int status;
 	int i;
@@ -2634,12 +2656,12 @@ static void mctp_interface_test_process_packet_max_message (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	i += 232;
-	header->byte_count = 144;
+	header->byte_count = 157;
 	header->packet_seq = 1;
 	header->eom = 1;
-	memcpy (&rx.data[7], &msg_data[i], 139);
-	rx.data[146] = checksum_crc8 (0xBA, rx.data, 146);
-	rx.pkt_size = 147;
+	memcpy (&rx.data[7], &msg_data[i], 152);
+	rx.data[159] = checksum_crc8 (0xBA, rx.data, 159);
+	rx.pkt_size = 160;
 
 	request.length = sizeof (msg_data);
 	memcpy (request.data, msg_data, request.length);
@@ -2648,6 +2670,7 @@ static void mctp_interface_test_process_packet_max_message (CuTest *test)
 	request.new_request = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
+	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
 
 	memset (&response, 0, sizeof (response));
 
@@ -2685,7 +2708,7 @@ static void mctp_interface_test_process_packet_no_eom (CuTest *test)
 {
 	struct mctp_interface interface;
  	struct cmd_packet rx;
-	struct mctp_protocol_transport_header* header =
+	struct mctp_protocol_transport_header *header =
 		(struct mctp_protocol_transport_header*) rx.data;
 	struct cmd_packet *packets = &rx;
 	size_t num_packets = 1;
@@ -2736,9 +2759,9 @@ static void mctp_interface_test_process_packet_reset_message_processing (CuTest 
 	struct cmd_interface_mock cmd_interface;
 	struct device_manager device_mgr;
  	struct cmd_packet rx[2];
-	struct mctp_protocol_transport_header* header =
+	struct mctp_protocol_transport_header *header =
 		(struct mctp_protocol_transport_header*) rx[0].data;
-	struct cerberus_protocol_header* cerberus_header;
+	struct cerberus_protocol_header *cerberus_header;
 	size_t num_packets;
 	int status;
 
@@ -2824,6 +2847,471 @@ static void mctp_interface_test_process_packet_reset_message_processing (CuTest 
 		&interface);
 }
 
+static void mctp_interface_test_process_packet_response_length_limited (CuTest *test)
+{
+	struct mctp_interface interface;
+ 	struct cmd_packet rx;
+	struct mctp_protocol_transport_header *header =
+		(struct mctp_protocol_transport_header*) rx.data;
+	struct cerberus_protocol_header *cerberus_header;
+	struct cmd_packet *packets;
+	size_t num_packets;
+	struct cmd_interface_mock cmd_interface;
+	struct device_manager device_mgr;
+	struct device_manager_full_capabilities remote;
+	int status;
+	struct cmd_interface_request request;
+	struct cmd_interface_request response;
+
+	TEST_START;
+
+	request.source_eid = 0x0A;
+	request.target_eid = 0x0B;
+	request.length = 6;
+	request.new_request = true;
+	request.channel_id = 0;
+	memset (request.data, 0, sizeof (request.data));
+
+	memset (&rx, 0, sizeof (rx));
+
+	header->cmd_code = SMBUS_CMD_CODE_MCTP;
+	header->byte_count = 15;
+	header->source_addr = 0xAB;
+	header->rsvd = 0;
+	header->header_version = 1;
+	header->destination_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	header->source_eid = MCTP_PROTOCOL_BMC_EID;
+	header->som = 1;
+	header->eom = 1;
+	header->tag_owner = 1;
+	header->msg_tag = 0x00;
+	header->packet_seq = 0;
+
+	rx.data[7] = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	rx.data[8] = 0x00;
+	rx.data[9] = 0x00;
+	rx.data[10] = 0x00;
+	rx.data[11] = 0x01;
+	rx.data[12] = 0x02;
+	rx.data[13] = 0x03;
+	rx.data[14] = 0x04;
+	rx.data[15] = 0x05;
+	rx.data[16] = 0x06;
+	rx.data[17] = checksum_crc8 (0xBA, rx.data, 17);
+	rx.pkt_size = 18;
+	rx.dest_addr = 0x5D;
+
+	setup_mctp_interface_with_interface_mock_test (test, &cmd_interface, &device_mgr, &interface);
+
+	memset (&remote, 0, sizeof (remote));
+	remote.request.max_message_size = MCTP_PROTOCOL_MAX_MESSAGE_BODY - 128;
+	remote.request.max_packet_size = MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT;
+	remote.request.security_mode = DEVICE_MANAGER_SECURITY_AUTHENTICATION;
+	remote.request.bus_role = DEVICE_MANAGER_SLAVE_BUS_ROLE;
+	remote.request.hierarchy_role = DEVICE_MANAGER_AC_ROT_MODE;
+	remote.max_timeout = MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
+	remote.max_sig = MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
+
+	status = device_manager_update_device_capabilities (&device_mgr, 1, &remote);
+	CuAssertIntEquals (test, 0, status);
+
+	request.length = 10;
+	memcpy (request.data, &rx.data[7], request.length);
+	request.source_eid = 0x0A;
+	request.target_eid = 0x0B;
+	request.new_request = false;
+	request.crypto_timeout = false;
+	request.channel_id = 0;
+	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY - 128;
+
+	memset (&response, 0, sizeof (response));
+
+	status = mock_expect (&cmd_interface.mock, cmd_interface.base.process_request, &cmd_interface,
+		0, MOCK_ARG_VALIDATOR (cmd_interface_mock_validate_request, &request, sizeof (request)));
+	status |= mock_expect_output (&cmd_interface.mock, 0, &response, sizeof (response), -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = mctp_interface_process_packet (&interface, &rx, &packets, &num_packets);
+	cerberus_header = (struct cerberus_protocol_header*) &packets[0].data[7];
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, num_packets);
+	CuAssertIntEquals (test, 0, packets[0].state);
+	CuAssertIntEquals (test, 18, packets[0].pkt_size);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, cerberus_header->msg_type);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, cerberus_header->pci_vendor_id);
+	CuAssertIntEquals (test, 0, cerberus_header->crypt);
+	CuAssertIntEquals (test, 0, cerberus_header->d_bit);
+	CuAssertIntEquals (test, 0, cerberus_header->integrity_check);
+	CuAssertIntEquals (test, 0, cerberus_header->seq_num);
+	CuAssertIntEquals (test, 0, cerberus_header->rq);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_ERROR, cerberus_header->command);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_NO_ERROR, packets[0].data[12]);
+	CuAssertIntEquals (test, 0x55, packets[0].dest_addr);
+
+	platform_free (packets);
+
+	complete_mctp_interface_with_interface_mock_test (test, &cmd_interface, &device_mgr,
+		&interface);
+}
+
+static void mctp_interface_test_process_packet_response_too_large (CuTest *test)
+{
+	struct mctp_interface interface;
+	struct cmd_packet rx;
+	struct cmd_packet *packets;
+	struct cmd_interface_mock cmd_interface;
+	struct device_manager device_mgr;
+	struct mctp_protocol_transport_header *header =
+		(struct mctp_protocol_transport_header*) rx.data;
+	struct cerberus_protocol_header *cerberus_header;
+	struct cmd_interface_request request;
+	struct cmd_interface_request response;
+	size_t num_packets;
+	int status;
+
+	TEST_START;
+
+	memset (&rx, 0, sizeof (rx));
+
+	header->cmd_code = SMBUS_CMD_CODE_MCTP;
+	header->byte_count = 15;
+	header->source_addr = 0xAB;
+	header->rsvd = 0;
+	header->header_version = 1;
+	header->destination_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	header->source_eid = MCTP_PROTOCOL_BMC_EID;
+	header->som = 1;
+	header->eom = 1;
+	header->tag_owner = 0;
+	header->msg_tag = 0x00;
+	header->packet_seq = 0;
+
+	rx.data[7] = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	rx.data[8] = 0x00;
+	rx.data[9] = 0x00;
+	rx.data[10] = 0x00;
+	rx.data[11] = 0x01;
+	rx.data[12] = 0x02;
+	rx.data[13] = 0x03;
+	rx.data[14] = 0x04;
+	rx.data[15] = 0x05;
+	rx.data[16] = 0x06;
+	rx.data[17] = checksum_crc8 (0xBA, rx.data, 17);
+	rx.pkt_size = 18;
+	rx.dest_addr = 0x5D;
+
+	setup_mctp_interface_with_interface_mock_test (test, &cmd_interface, &device_mgr, &interface);
+
+	request.length = 10;
+	memcpy (request.data, &rx.data[7], request.length);
+	request.source_eid = 0x0A;
+	request.target_eid = 0x0B;
+	request.new_request = false;
+	request.crypto_timeout = false;
+	request.channel_id = 0;
+	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
+
+	response.data[0] = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	response.data[1] = 0x12;
+	response.length = MCTP_PROTOCOL_MAX_MESSAGE_BODY + 1;
+	response.source_eid = 0x0A;
+	response.target_eid = 0x0B;
+	response.new_request = false;
+	response.crypto_timeout = false;
+
+	status = mock_expect (&cmd_interface.mock, cmd_interface.base.process_request, &cmd_interface,
+		0, MOCK_ARG_VALIDATOR (cmd_interface_mock_validate_request, &request, sizeof (request)));
+	status |= mock_expect_output (&cmd_interface.mock, 0, &response, sizeof (response), -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = mctp_interface_process_packet (&interface, &rx, &packets, &num_packets);
+	cerberus_header = (struct cerberus_protocol_header*) &packets[0].data[7];
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, num_packets);
+	CuAssertIntEquals (test, 0, packets[0].state);
+	CuAssertIntEquals (test, 18, packets[0].pkt_size);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, cerberus_header->msg_type);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, cerberus_header->pci_vendor_id);
+	CuAssertIntEquals (test, 0, cerberus_header->crypt);
+	CuAssertIntEquals (test, 0, cerberus_header->d_bit);
+	CuAssertIntEquals (test, 0, cerberus_header->integrity_check);
+	CuAssertIntEquals (test, 0, cerberus_header->seq_num);
+	CuAssertIntEquals (test, 0, cerberus_header->rq);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_ERROR, cerberus_header->command);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_ERROR_UNSPECIFIED, packets[0].data[12]);
+	CuAssertIntEquals (test, 0x55, packets[0].dest_addr);
+	CuAssertIntEquals (test, 0x7F001605, *((uint32_t*) &packets[0].data[13]));
+	CuAssertIntEquals (test, 0, status);
+
+	platform_free (packets);
+
+	complete_mctp_interface_with_interface_mock_test (test, &cmd_interface, &device_mgr,
+		&interface);
+}
+
+static void mctp_interface_test_process_packet_response_too_large_length_limited (CuTest *test)
+{
+	struct mctp_interface interface;
+	struct cmd_packet rx;
+	struct cmd_packet *packets;
+	struct cmd_interface_mock cmd_interface;
+	struct device_manager device_mgr;
+	struct device_manager_full_capabilities remote;
+	struct mctp_protocol_transport_header *header =
+		(struct mctp_protocol_transport_header*) rx.data;
+	struct cerberus_protocol_header *cerberus_header;
+	struct cmd_interface_request request;
+	struct cmd_interface_request response;
+	size_t num_packets;
+	int status;
+
+	TEST_START;
+
+	memset (&rx, 0, sizeof (rx));
+
+	header->cmd_code = SMBUS_CMD_CODE_MCTP;
+	header->byte_count = 15;
+	header->source_addr = 0xAB;
+	header->rsvd = 0;
+	header->header_version = 1;
+	header->destination_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	header->source_eid = MCTP_PROTOCOL_BMC_EID;
+	header->som = 1;
+	header->eom = 1;
+	header->tag_owner = 0;
+	header->msg_tag = 0x00;
+	header->packet_seq = 0;
+
+	rx.data[7] = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	rx.data[8] = 0x00;
+	rx.data[9] = 0x00;
+	rx.data[10] = 0x00;
+	rx.data[11] = 0x01;
+	rx.data[12] = 0x02;
+	rx.data[13] = 0x03;
+	rx.data[14] = 0x04;
+	rx.data[15] = 0x05;
+	rx.data[16] = 0x06;
+	rx.data[17] = checksum_crc8 (0xBA, rx.data, 17);
+	rx.pkt_size = 18;
+	rx.dest_addr = 0x5D;
+
+	setup_mctp_interface_with_interface_mock_test (test, &cmd_interface, &device_mgr, &interface);
+
+	memset (&remote, 0, sizeof (remote));
+	remote.request.max_message_size = MCTP_PROTOCOL_MAX_MESSAGE_BODY - 128;
+	remote.request.max_packet_size = MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT;
+	remote.request.security_mode = DEVICE_MANAGER_SECURITY_AUTHENTICATION;
+	remote.request.bus_role = DEVICE_MANAGER_SLAVE_BUS_ROLE;
+	remote.request.hierarchy_role = DEVICE_MANAGER_AC_ROT_MODE;
+	remote.max_timeout = MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
+	remote.max_sig = MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
+
+	status = device_manager_update_device_capabilities (&device_mgr, 1, &remote);
+	CuAssertIntEquals (test, 0, status);
+
+	request.length = 10;
+	memcpy (request.data, &rx.data[7], request.length);
+	request.source_eid = 0x0A;
+	request.target_eid = 0x0B;
+	request.new_request = false;
+	request.crypto_timeout = false;
+	request.channel_id = 0;
+	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY - 128;
+
+	response.data[0] = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	response.data[1] = 0x12;
+	response.length = remote.request.max_message_size + 1;
+	response.source_eid = 0x0A;
+	response.target_eid = 0x0B;
+	response.new_request = false;
+	response.crypto_timeout = false;
+
+	status = mock_expect (&cmd_interface.mock, cmd_interface.base.process_request, &cmd_interface,
+		0, MOCK_ARG_VALIDATOR (cmd_interface_mock_validate_request, &request, sizeof (request)));
+	status |= mock_expect_output (&cmd_interface.mock, 0, &response, sizeof (response), -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = mctp_interface_process_packet (&interface, &rx, &packets, &num_packets);
+	cerberus_header = (struct cerberus_protocol_header*) &packets[0].data[7];
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, num_packets);
+	CuAssertIntEquals (test, 0, packets[0].state);
+	CuAssertIntEquals (test, 18, packets[0].pkt_size);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, cerberus_header->msg_type);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, cerberus_header->pci_vendor_id);
+	CuAssertIntEquals (test, 0, cerberus_header->crypt);
+	CuAssertIntEquals (test, 0, cerberus_header->d_bit);
+	CuAssertIntEquals (test, 0, cerberus_header->integrity_check);
+	CuAssertIntEquals (test, 0, cerberus_header->seq_num);
+	CuAssertIntEquals (test, 0, cerberus_header->rq);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_ERROR, cerberus_header->command);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_ERROR_UNSPECIFIED, packets[0].data[12]);
+	CuAssertIntEquals (test, 0x55, packets[0].dest_addr);
+	CuAssertIntEquals (test, 0x7F001605, *((uint32_t*) &packets[0].data[13]));
+	CuAssertIntEquals (test, 0, status);
+
+	platform_free (packets);
+
+	complete_mctp_interface_with_interface_mock_test (test, &cmd_interface, &device_mgr,
+		&interface);
+}
+
+static void mctp_interface_test_process_packet_two_packet_response_length_limited (CuTest *test)
+{
+	struct mctp_interface interface;
+ 	struct cmd_packet rx;
+	struct mctp_protocol_transport_header *header =
+		(struct mctp_protocol_transport_header*) rx.data;
+	struct cmd_packet *packets;
+	struct cmd_interface_mock cmd_interface;
+	struct device_manager device_mgr;
+	struct device_manager_full_capabilities remote;
+	struct cmd_interface_request request;
+	struct cmd_interface_request response;
+	size_t num_packets;
+	int status;
+	int first_pkt = 48;	// This is not a valid max packet size, but ensures test portability.
+	int first_pkt_total = first_pkt + MCTP_PROTOCOL_PACKET_OVERHEAD;
+	int second_pkt = 10;
+	int second_pkt_total = second_pkt + MCTP_PROTOCOL_PACKET_OVERHEAD;
+	int response_size = first_pkt + second_pkt;
+	int i;
+
+	TEST_START;
+
+	memset (&rx, 0, sizeof (rx));
+
+	header->cmd_code = SMBUS_CMD_CODE_MCTP;
+	header->byte_count = 15;
+	header->source_addr = 0xAB;
+	header->rsvd = 0;
+	header->header_version = 1;
+	header->destination_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	header->source_eid = MCTP_PROTOCOL_BMC_EID;
+	header->som = 1;
+	header->eom = 1;
+	header->tag_owner = 0;
+	header->msg_tag = 0x00;
+	header->packet_seq = 0;
+
+	rx.data[7] = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	rx.data[8] = 0x00;
+	rx.data[9] = 0x00;
+	rx.data[10] = 0x00;
+	rx.data[11] = 0x01;
+	rx.data[12] = 0x02;
+	rx.data[13] = 0x03;
+	rx.data[14] = 0x04;
+	rx.data[15] = 0x05;
+	rx.data[16] = 0x06;
+	rx.data[17] = checksum_crc8 (0xBA, rx.data, 17);
+	rx.pkt_size = 18;
+	rx.dest_addr = 0x5D;
+
+	setup_mctp_interface_with_interface_mock_test (test, &cmd_interface, &device_mgr, &interface);
+
+	memset (&remote, 0, sizeof (remote));
+	remote.request.max_message_size = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
+	remote.request.max_packet_size = first_pkt;
+	remote.request.security_mode = DEVICE_MANAGER_SECURITY_AUTHENTICATION;
+	remote.request.bus_role = DEVICE_MANAGER_SLAVE_BUS_ROLE;
+	remote.request.hierarchy_role = DEVICE_MANAGER_AC_ROT_MODE;
+	remote.max_timeout = MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
+	remote.max_sig = MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
+
+	status = device_manager_update_device_capabilities (&device_mgr, 1, &remote);
+	CuAssertIntEquals (test, 0, status);
+
+	request.length = 10;
+	memcpy (request.data, &rx.data[7], request.length);
+	request.source_eid = 0x0A;
+	request.target_eid = 0x0B;
+	request.new_request = false;
+	request.crypto_timeout = false;
+	request.channel_id = 0;
+	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
+
+	memset (response.data, 0, sizeof (response.data));
+	response.data[0] = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	for (i = 1; i < response_size; i++) {
+		response.data[i] = i;
+	}
+	response.length = response_size;
+	response.source_eid = 0x0A;
+	response.target_eid = 0x0B;
+	response.new_request = false;
+	response.crypto_timeout = false;
+
+	status = mock_expect (&cmd_interface.mock, cmd_interface.base.process_request, &cmd_interface,
+		0, MOCK_ARG_VALIDATOR (cmd_interface_mock_validate_request, &request, sizeof (request)));
+	status |= mock_expect_output (&cmd_interface.mock, 0, &response, sizeof (response), -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = mctp_interface_process_packet (&interface, &rx, &packets, &num_packets);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 2, num_packets);
+
+	CuAssertIntEquals (test, 0, packets[0].state);
+	CuAssertIntEquals (test, first_pkt_total, packets[0].pkt_size);
+
+	header = (struct mctp_protocol_transport_header*) packets[0].data;
+
+	CuAssertIntEquals (test, 0x0F, header->cmd_code);
+	CuAssertIntEquals (test, first_pkt_total - 3, header->byte_count);
+	CuAssertIntEquals (test, 0xBB, header->source_addr);
+	CuAssertIntEquals (test, 0x0A, header->destination_eid);
+	CuAssertIntEquals (test, 0x0B, header->source_eid);
+	CuAssertIntEquals (test, 1, header->som);
+	CuAssertIntEquals (test, 0, header->eom);
+	CuAssertIntEquals (test, 0, header->tag_owner);
+	CuAssertIntEquals (test, 0, header->msg_tag);
+	CuAssertIntEquals (test, 0, header->packet_seq);
+
+	status = testing_validate_array (response.data, &packets[0].data[7], first_pkt);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test,
+		checksum_crc8 (0xAA, packets[0].data, first_pkt_total - 1),
+		packets[0].data[first_pkt_total - 1]);
+	CuAssertIntEquals (test, 0x55, packets[0].dest_addr);
+
+	CuAssertIntEquals (test, 0, packets[1].state);
+	CuAssertIntEquals (test, second_pkt_total, packets[1].pkt_size);
+
+	header = (struct mctp_protocol_transport_header*) packets[1].data;
+
+	CuAssertIntEquals (test, 0x0F, header->cmd_code);
+	CuAssertIntEquals (test, second_pkt_total - 3, header->byte_count);
+	CuAssertIntEquals (test, 0xBB, header->source_addr);
+	CuAssertIntEquals (test, 0x0A, header->destination_eid);
+	CuAssertIntEquals (test, 0x0B, header->source_eid);
+	CuAssertIntEquals (test, 0, header->som);
+	CuAssertIntEquals (test, 1, header->eom);
+	CuAssertIntEquals (test, 0, header->tag_owner);
+	CuAssertIntEquals (test, 0, header->msg_tag);
+	CuAssertIntEquals (test, 1, header->packet_seq);
+
+	status = testing_validate_array (&response.data[first_pkt], &packets[1].data[7], second_pkt);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, checksum_crc8 (0xAA, packets[1].data, second_pkt_total - 1),
+		packets[1].data[second_pkt_total - 1]);
+	CuAssertIntEquals (test, 0x55, packets[1].dest_addr);
+
+	platform_free (packets);
+
+	complete_mctp_interface_with_interface_mock_test (test, &cmd_interface, &device_mgr,
+		&interface);
+}
+
 static void mctp_interface_test_issue_request (CuTest *test)
 {
 	struct mctp_interface interface;
@@ -2831,8 +3319,8 @@ static void mctp_interface_test_issue_request (CuTest *test)
 	struct device_manager device_mgr;
 	uint8_t params;
 	uint8_t request[5] = {MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, 1, 2, 3, 4};
- 	uint8_t buf[MCTP_PROTOCOL_MAX_MESSAGE_LEN];
-	struct mctp_protocol_transport_header* header = (struct mctp_protocol_transport_header*) buf;
+ 	uint8_t buf[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	struct mctp_protocol_transport_header *header = (struct mctp_protocol_transport_header*) buf;
 	int status;
 
 	TEST_START;
@@ -2841,7 +3329,7 @@ static void mctp_interface_test_issue_request (CuTest *test)
 
 	status = mock_expect (&cmd_interface.mock, cmd_interface.base.issue_request, &cmd_interface,
 		sizeof (request), MOCK_ARG (CERBERUS_PROTOCOL_GET_CERTIFICATE), MOCK_ARG (&params),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (MCTP_PROTOCOL_MAX_PAYLOAD_PER_PKT));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (MCTP_PROTOCOL_MAX_MESSAGE_BODY));
 	status |= mock_expect_output (&cmd_interface.mock, 2, request, sizeof (request), -1);
 	CuAssertIntEquals (test, 0, status);
 
@@ -2870,19 +3358,78 @@ static void mctp_interface_test_issue_request (CuTest *test)
 		&interface);
 }
 
+static void mctp_interface_test_issue_request_limited_message_length (CuTest *test)
+{
+	struct mctp_interface interface;
+	struct cmd_interface_mock cmd_interface;
+	struct device_manager device_mgr;
+	struct device_manager_full_capabilities remote;
+	uint8_t params;
+	uint8_t request[5] = {MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, 1, 2, 3, 4};
+ 	uint8_t buf[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	struct mctp_protocol_transport_header *header = (struct mctp_protocol_transport_header*) buf;
+	int status;
+
+	TEST_START;
+
+	setup_mctp_interface_with_interface_mock_test (test, &cmd_interface, &device_mgr, &interface);
+
+	memset (&remote, 0, sizeof (remote));
+	remote.request.max_message_size = MCTP_PROTOCOL_MAX_MESSAGE_BODY - 128;
+	remote.request.max_packet_size = MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT;
+	remote.request.security_mode = DEVICE_MANAGER_SECURITY_AUTHENTICATION;
+	remote.request.bus_role = DEVICE_MANAGER_SLAVE_BUS_ROLE;
+	remote.request.hierarchy_role = DEVICE_MANAGER_AC_ROT_MODE;
+	remote.max_timeout = MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
+	remote.max_sig = MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
+
+	status = device_manager_update_device_capabilities (&device_mgr, 1, &remote);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd_interface.mock, cmd_interface.base.issue_request, &cmd_interface,
+		sizeof (request), MOCK_ARG (CERBERUS_PROTOCOL_GET_CERTIFICATE), MOCK_ARG (&params),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (MCTP_PROTOCOL_MAX_MESSAGE_BODY - 128));
+	status |= mock_expect_output (&cmd_interface.mock, 2, request, sizeof (request), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mctp_interface_issue_request (&interface, 0x77, 0x0A, 0x5D, 0x0B,
+		CERBERUS_PROTOCOL_GET_CERTIFICATE, &params, buf, sizeof (buf),
+		MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF);
+	CuAssertIntEquals (test, 13, status);
+	CuAssertIntEquals (test, 0x0F, header->cmd_code);
+	CuAssertIntEquals (test, 10, header->byte_count);
+	CuAssertIntEquals (test, 0xBB, header->source_addr);
+	CuAssertIntEquals (test, 0x0A, header->destination_eid);
+	CuAssertIntEquals (test, 0x0B, header->source_eid);
+	CuAssertIntEquals (test, 1, header->som);
+	CuAssertIntEquals (test, 1, header->eom);
+	CuAssertIntEquals (test, 0, header->msg_tag);
+	CuAssertIntEquals (test, 0, header->packet_seq);
+	CuAssertIntEquals (test, 1, header->tag_owner);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, buf[7]);
+	CuAssertIntEquals (test, 1, buf[8]);
+	CuAssertIntEquals (test, 2, buf[9]);
+	CuAssertIntEquals (test, 3, buf[10]);
+	CuAssertIntEquals (test, 4, buf[11]);
+	CuAssertIntEquals (test, checksum_crc8 (0xEE, buf, 12), buf[12]);
+
+	complete_mctp_interface_with_interface_mock_test (test, &cmd_interface, &device_mgr,
+		&interface);
+}
+
 static void mctp_interface_test_issue_request_mctp_ctrl_msg (CuTest *test)
 {
 	struct mctp_interface interface;
 	struct cmd_interface_mock cmd_interface;
 	struct device_manager device_mgr;
 	uint8_t params = 0xAA;
- 	uint8_t buf[MCTP_PROTOCOL_MAX_MESSAGE_LEN];
-	struct mctp_protocol_transport_header* header = (struct mctp_protocol_transport_header*) buf;
-	struct mctp_protocol_control_header* ctrl_header = (struct mctp_protocol_control_header*)
-		&buf[MCTP_PROTOCOL_MIN_PACKET_LEN - 1];
-	struct mctp_control_set_eid_request_packet* request =
+ 	uint8_t buf[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	struct mctp_protocol_transport_header *header = (struct mctp_protocol_transport_header*) buf;
+	struct mctp_protocol_control_header *ctrl_header = (struct mctp_protocol_control_header*)
+		&buf[sizeof (struct mctp_protocol_transport_header)];
+	struct mctp_control_set_eid_request_packet *request =
 		(struct mctp_control_set_eid_request_packet*)
-		&buf[MCTP_PROTOCOL_MIN_PACKET_LEN - 1 + MCTP_PROTOCOL_MIN_CONTROL_MSG_LEN];
+		&buf[sizeof (struct mctp_protocol_transport_header) + MCTP_PROTOCOL_MIN_CONTROL_MSG_LEN];
 	int status;
 
 	TEST_START;
@@ -2923,7 +3470,7 @@ static void mctp_interface_test_issue_request_null (CuTest *test)
 	struct cmd_interface_mock cmd_interface;
 	struct device_manager device_mgr;
 	struct cerberus_protocol_cert_req_params params = {0};
- 	uint8_t buf[MCTP_PROTOCOL_MAX_MESSAGE_LEN];
+ 	uint8_t buf[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
 	int status;
 
 	TEST_START;
@@ -2947,7 +3494,7 @@ static void mctp_interface_test_issue_request_fail (CuTest *test)
 	struct mctp_interface interface;
 	struct cmd_interface_mock cmd_interface;
 	struct device_manager device_mgr;
- 	uint8_t buf[MCTP_PROTOCOL_MAX_MESSAGE_LEN];
+ 	uint8_t buf[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
 	int status;
 
 	TEST_START;
@@ -2956,7 +3503,7 @@ static void mctp_interface_test_issue_request_fail (CuTest *test)
 
 	status = mock_expect (&cmd_interface.mock, cmd_interface.base.issue_request, &cmd_interface,
 		CMD_HANDLER_NO_MEMORY, MOCK_ARG (CERBERUS_PROTOCOL_GET_CERTIFICATE), MOCK_ARG_ANY,
-		MOCK_ARG_NOT_NULL, MOCK_ARG (MCTP_PROTOCOL_MAX_PAYLOAD_PER_PKT));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (MCTP_PROTOCOL_MAX_MESSAGE_BODY));
 	CuAssertIntEquals (test, 0, status);
 
 	status = mctp_interface_issue_request (&interface, 0x77, 0xFF, 0x5D, 0x0B,
@@ -2973,7 +3520,7 @@ static void mctp_interface_test_issue_request_mctp_ctrl_msg_fail (CuTest *test)
 	struct mctp_interface interface;
 	struct cmd_interface_mock cmd_interface;
 	struct device_manager device_mgr;
- 	uint8_t buf[MCTP_PROTOCOL_MAX_MESSAGE_LEN];
+ 	uint8_t buf[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
 	uint8_t params;
 	int status;
 
@@ -2994,7 +3541,7 @@ static void mctp_interface_test_issue_request_unsupported_msg_type (CuTest *test
 	struct mctp_interface interface;
 	struct cmd_interface_mock cmd_interface;
 	struct device_manager device_mgr;
- 	uint8_t buf[MCTP_PROTOCOL_MAX_MESSAGE_LEN];
+ 	uint8_t buf[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
 	int status;
 
 	TEST_START;
@@ -3015,7 +3562,7 @@ static void mctp_interface_test_issue_request_construct_packet_fail (CuTest *tes
 	struct cmd_interface_mock cmd_interface;
 	struct device_manager device_mgr;
 	uint8_t cert_digest_request[5] = {MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, 1, 2, 3, 4};
- 	uint8_t buf[MCTP_PROTOCOL_MAX_MESSAGE_LEN];
+ 	uint8_t buf[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
 	int status;
 
 	TEST_START;
@@ -3023,8 +3570,8 @@ static void mctp_interface_test_issue_request_construct_packet_fail (CuTest *tes
 	setup_mctp_interface_with_interface_mock_test (test, &cmd_interface, &device_mgr, &interface);
 
 	status = mock_expect (&cmd_interface.mock, cmd_interface.base.issue_request, &cmd_interface,
-		MCTP_PROTOCOL_MAX_PAYLOAD_PER_PKT + 1, MOCK_ARG (CERBERUS_PROTOCOL_GET_CERTIFICATE),
-		MOCK_ARG_ANY, MOCK_ARG_NOT_NULL, MOCK_ARG (MCTP_PROTOCOL_MAX_PAYLOAD_PER_PKT));
+		MCTP_PROTOCOL_MAX_MESSAGE_BODY + 1, MOCK_ARG (CERBERUS_PROTOCOL_GET_CERTIFICATE),
+		MOCK_ARG_ANY, MOCK_ARG_NOT_NULL, MOCK_ARG (MCTP_PROTOCOL_MAX_MESSAGE_BODY));
 	status |= mock_expect_output (&cmd_interface.mock, 2, cert_digest_request, 5, -1);
 
 	CuAssertIntEquals (test, 0, status);
@@ -3037,6 +3584,7 @@ static void mctp_interface_test_issue_request_construct_packet_fail (CuTest *tes
 	complete_mctp_interface_with_interface_mock_test (test, &cmd_interface, &device_mgr,
 		&interface);
 }
+
 
 CuSuite* get_mctp_interface_suite ()
 {
@@ -3079,7 +3627,12 @@ CuSuite* get_mctp_interface_suite ()
 	SUITE_ADD_TEST (suite, mctp_interface_test_process_packet_max_message);
 	SUITE_ADD_TEST (suite, mctp_interface_test_process_packet_no_eom);
 	SUITE_ADD_TEST (suite, mctp_interface_test_process_packet_reset_message_processing);
+	SUITE_ADD_TEST (suite, mctp_interface_test_process_packet_response_length_limited);
+	SUITE_ADD_TEST (suite, mctp_interface_test_process_packet_response_too_large);
+	SUITE_ADD_TEST (suite, mctp_interface_test_process_packet_response_too_large_length_limited);
+	SUITE_ADD_TEST (suite, mctp_interface_test_process_packet_two_packet_response_length_limited);
 	SUITE_ADD_TEST (suite, mctp_interface_test_issue_request);
+	SUITE_ADD_TEST (suite, mctp_interface_test_issue_request_limited_message_length);
 	SUITE_ADD_TEST (suite, mctp_interface_test_issue_request_mctp_ctrl_msg);
 	SUITE_ADD_TEST (suite, mctp_interface_test_issue_request_null);
 	SUITE_ADD_TEST (suite, mctp_interface_test_issue_request_fail);

@@ -397,8 +397,7 @@ int pcr_store_get_tcg_log (struct pcr_store *store, struct hash_engine *hash, ui
 			memcpy (&contents[contents_offset], ((uint8_t*) &log_entry) + entry_offset,
 				entry_length);
 
-			contents_offset += sizeof (struct pcr_store_tcg_log_entry) - entry_offset;
-
+			contents_offset += entry_length;
 			if (contents_offset >= length) {
 				pcr_unlock (&store->banks[i_bank]);
 				return contents_offset;

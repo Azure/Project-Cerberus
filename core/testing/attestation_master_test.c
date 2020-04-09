@@ -50,16 +50,17 @@ static struct riot_keys keys = {
  * @param keystore The keystore to initialize
  * @param manager Device manager to initialize
  */
-static void setup_attestation_master_mock_test (CuTest *test, 
-	struct attestation_master *attestation, struct hash_engine_mock *hash, 
-	struct ecc_engine_mock *ecc, struct rsa_engine_mock *rsa, struct x509_engine_mock *x509, 
-	struct rng_engine_mock *rng, uint8_t encryption_algorithm, struct riot_key_manager *riot, 
+static void setup_attestation_master_mock_test (CuTest *test,
+	struct attestation_master *attestation, struct hash_engine_mock *hash,
+	struct ecc_engine_mock *ecc, struct rsa_engine_mock *rsa, struct x509_engine_mock *x509,
+	struct rng_engine_mock *rng, uint8_t encryption_algorithm, struct riot_key_manager *riot,
 	struct keystore_mock *keystore, struct device_manager *manager)
 {
 	uint8_t *dev_id_der = NULL;
 	int status;
 
-	status = device_manager_init (manager, 1);
+	status = device_manager_init (manager, 1, DEVICE_MANAGER_PA_ROT_MODE,
+		DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_entry (manager, 0, DEVICE_MANAGER_UPSTREAM, 0xAA, 0xBB);
@@ -95,7 +96,7 @@ static void setup_attestation_master_mock_test (CuTest *test,
 	status = riot_key_manager_init_static (riot, &keystore->base, &keys, &x509->base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_master_init (attestation, riot, &hash->base, &ecc->base, &rsa->base, 
+	status = attestation_master_init (attestation, riot, &hash->base, &ecc->base, &rsa->base,
 		&x509->base, &rng->base, manager, encryption_algorithm);
 	CuAssertIntEquals (test, 0, status);
 }
@@ -114,10 +115,10 @@ static void setup_attestation_master_mock_test (CuTest *test,
  * @param manager Device manager to release
  * @param riot RIoT key manager to release
  */
-static void complete_attestation_master_mock_test (CuTest *test, 
-	struct attestation_master *attestation, struct hash_engine_mock *hash, 
-	struct ecc_engine_mock *ecc, struct rsa_engine_mock *rsa, struct x509_engine_mock *x509, 
-	struct rng_engine_mock *rng, struct keystore_mock *keystore, struct device_manager *manager, 
+static void complete_attestation_master_mock_test (CuTest *test,
+	struct attestation_master *attestation, struct hash_engine_mock *hash,
+	struct ecc_engine_mock *ecc, struct rsa_engine_mock *rsa, struct x509_engine_mock *x509,
+	struct rng_engine_mock *rng, struct keystore_mock *keystore, struct device_manager *manager,
 	struct riot_key_manager *riot)
 {
 	int status;
@@ -312,7 +313,8 @@ static void attestation_master_test_init (CuTest *test)
 
 	TEST_START;
 
-	status = device_manager_init (&manager, 1);
+	status = device_manager_init (&manager, 1, DEVICE_MANAGER_PA_ROT_MODE,
+		DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_entry (&manager, 0, DEVICE_MANAGER_UPSTREAM, 0xAA, 0xBB);
@@ -348,7 +350,7 @@ static void attestation_master_test_init (CuTest *test)
 	status = riot_key_manager_init_static (&riot, &keystore.base, &keys, &x509.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_master_init (&attestation, &riot, &hash.base, &ecc.base, &rsa.base, 
+	status = attestation_master_init (&attestation, &riot, &hash.base, &ecc.base, &rsa.base,
 		&x509.base, &rng.base, &manager, ATTESTATION_ECDHE_KEY_EXCHANGE);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, attestation.issue_challenge);
@@ -356,7 +358,7 @@ static void attestation_master_test_init (CuTest *test)
 	CuAssertPtrNotNull (test, attestation.store_certificate);
 	CuAssertPtrNotNull (test, attestation.process_challenge_response);
 
-	complete_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng, 
+	complete_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
 		&keystore, &manager, &riot);
 }
 
@@ -376,7 +378,8 @@ static void attestation_master_test_init_null (CuTest *test)
 
 	TEST_START;
 
-	status = device_manager_init (&manager, 1);
+	status = device_manager_init (&manager, 1, DEVICE_MANAGER_PA_ROT_MODE,
+		DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_entry (&manager, 0, DEVICE_MANAGER_UPSTREAM, 0xAA, 0xBB);
@@ -416,7 +419,7 @@ static void attestation_master_test_init_null (CuTest *test)
 		&rng.base, &manager, ATTESTATION_ECDHE_KEY_EXCHANGE);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
-	status = attestation_master_init (&attestation, NULL, &hash.base, &ecc.base, &rsa.base, 
+	status = attestation_master_init (&attestation, NULL, &hash.base, &ecc.base, &rsa.base,
 		&x509.base, &rng.base, &manager, ATTESTATION_ECDHE_KEY_EXCHANGE);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
@@ -436,11 +439,11 @@ static void attestation_master_test_init_null (CuTest *test)
 		&rng.base, &manager, ATTESTATION_ECDHE_KEY_EXCHANGE);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
-	status = attestation_master_init (&attestation, &riot, &hash.base, &ecc.base, &rsa.base, 
+	status = attestation_master_init (&attestation, &riot, &hash.base, &ecc.base, &rsa.base,
 		&x509.base, NULL, &manager, ATTESTATION_ECDHE_KEY_EXCHANGE);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
-	status = attestation_master_init (&attestation, &riot, &hash.base, &ecc.base, &rsa.base, 
+	status = attestation_master_init (&attestation, &riot, &hash.base, &ecc.base, &rsa.base,
 		&x509.base, &rng.base, NULL, ATTESTATION_ECDHE_KEY_EXCHANGE);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
@@ -482,7 +485,8 @@ static void attestation_master_test_init_invalid_encryption_algo (CuTest *test)
 
 	TEST_START;
 
-	status = device_manager_init (&manager, 1);
+	status = device_manager_init (&manager, 1, DEVICE_MANAGER_PA_ROT_MODE,
+		DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_entry (&manager, 0, DEVICE_MANAGER_UPSTREAM, 0xAA, 0xBB);
@@ -518,7 +522,7 @@ static void attestation_master_test_init_invalid_encryption_algo (CuTest *test)
 	status = riot_key_manager_init_static (&riot, &keystore.base, &keys, &x509.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_master_init (&attestation, &riot, &hash.base, &ecc.base, &rsa.base, 
+	status = attestation_master_init (&attestation, &riot, &hash.base, &ecc.base, &rsa.base,
 		&x509.base, &rng.base, &manager, NUM_ATTESTATION_KEY_EXCHANGE_ALGORITHMS);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
@@ -3107,7 +3111,7 @@ CuSuite* get_attestation_master_suite ()
 	SUITE_ADD_TEST (suite, attestation_master_test_store_certificate_invalid_slot_num);
 	SUITE_ADD_TEST (suite, attestation_master_test_store_certificate_null);
 	SUITE_ADD_TEST (suite, attestation_master_test_process_challenge_response_full_chain_ecc);
-	SUITE_ADD_TEST (suite, 
+	SUITE_ADD_TEST (suite,
 		attestation_master_test_process_challenge_response_root_and_device_chain);
 	SUITE_ADD_TEST (suite, attestation_master_test_process_challenge_response_device_chain);
 	SUITE_ADD_TEST (suite, attestation_master_test_process_challenge_response_full_chain_rsa);
@@ -3119,13 +3123,13 @@ CuSuite* get_attestation_master_suite ()
 	SUITE_ADD_TEST (suite,
 		attestation_master_test_process_challenge_response_invalid_max_protocol_version);
 	SUITE_ADD_TEST (suite, attestation_master_test_process_challenge_response_start_hash_failure);
-	SUITE_ADD_TEST (suite, 
+	SUITE_ADD_TEST (suite,
 		attestation_master_test_process_challenge_response_hash_challenge_failure);
-	SUITE_ADD_TEST (suite, 
+	SUITE_ADD_TEST (suite,
 		attestation_master_test_process_challenge_response_hash_response_failure);
 	SUITE_ADD_TEST (suite, attestation_master_test_process_challenge_response_finish_hash_failure);
 	SUITE_ADD_TEST (suite, attestation_master_test_process_challenge_response_only_leaf);
-	SUITE_ADD_TEST (suite, 
+	SUITE_ADD_TEST (suite,
 		attestation_master_test_process_challenge_response_init_cert_store_failure);
 	SUITE_ADD_TEST (suite, attestation_master_test_process_challenge_response_add_root_ca_failure);
 	SUITE_ADD_TEST (suite, attestation_master_test_process_challenge_response_add_int_ca_failure);
@@ -3134,11 +3138,11 @@ CuSuite* get_attestation_master_suite ()
 	SUITE_ADD_TEST (suite, attestation_master_test_process_challenge_response_add_int_cert_failure);
 	SUITE_ADD_TEST (suite, attestation_master_test_process_challenge_response_load_cert_failure);
 	SUITE_ADD_TEST (suite, attestation_master_test_process_challenge_response_authenticate_failure);
-	SUITE_ADD_TEST (suite, 
+	SUITE_ADD_TEST (suite,
 		attestation_master_test_process_challenge_response_get_public_key_failure);
-	SUITE_ADD_TEST (suite, 
+	SUITE_ADD_TEST (suite,
 		attestation_master_test_process_challenge_response_ecc_public_key_failure);
-	SUITE_ADD_TEST (suite, 
+	SUITE_ADD_TEST (suite,
 		attestation_master_test_process_challenge_response_rsa_public_key_failure);
 	SUITE_ADD_TEST (suite, attestation_master_test_process_challenge_response_ecc_verify_failure);
 	SUITE_ADD_TEST (suite, attestation_master_test_process_challenge_response_rsa_verify_failure);

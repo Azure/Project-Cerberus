@@ -23,8 +23,9 @@
 struct cmd_interface_request {
 	/** The raw request data buffer.  This contains the request to process and will be updated with
 	 * any response data. */
-	uint8_t data[MCTP_PROTOCOL_MAX_PAYLOAD_PER_MSG];
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
 	size_t length;					/**< Length of the request/response data. */
+	size_t max_response;			/**< Maximum length allowed for a response. */
 	uint8_t source_eid;				/**< Endpoint ID that generated the request. */
 	uint8_t target_eid;				/**< Endpoint ID that should process the request. */
 	bool new_request;				/**< Flag indicating if the data buffer contains a new request
@@ -90,7 +91,7 @@ struct cmd_interface {
 
 
 /* Internal functions for use by derived types. */
-int cmd_interface_process_request (struct cmd_interface *intf, 
+int cmd_interface_process_request (struct cmd_interface *intf,
 	struct cmd_interface_request *request, uint8_t *command_id, uint8_t *command_set);
 
 
@@ -118,6 +119,7 @@ enum {
 	CMD_HANDLER_UNSUPPORTED_MSG = CMD_HANDLER_ERROR (0x0D),			/**< Message type not supported. */
 	CMD_HANDLER_UNSUPPORTED_CHANNEL = CMD_HANDLER_ERROR (0x0E),		/**< The command is received on a channel not supported by the device. */
 	CMD_HANDLER_UNSUPPORTED_OPERATION = CMD_HANDLER_ERROR (0x0F),	/**< The requested operation is not supported. */
+	CMD_HANDLER_RESPONSE_TOO_SMALL = CMD_HANDLER_ERROR (0x10),		/**< The maximum allowed response is too small for the output. */
 };
 
 

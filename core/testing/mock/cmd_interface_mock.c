@@ -185,6 +185,12 @@ int cmd_interface_mock_validate_request (const char *arg_info, void *expected, v
 		fail |= 1;
 	}
 
+	if (req_expected->max_response != req_actual->max_response) {
+		platform_printf ("%sUnexpected max response length: expected=0x%lx, actual=0x%lx" NEWLINE,
+			arg_info, req_expected->max_response, req_actual->max_response);
+		fail |= 1;
+	}
+
 	if (req_expected->channel_id != req_actual->channel_id) {
 		platform_printf ("%sUnexpected request channel: expected=0x%x, actual=0x%x" NEWLINE,
 			arg_info, req_expected->channel_id, req_actual->channel_id);

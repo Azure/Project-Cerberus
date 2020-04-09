@@ -78,8 +78,8 @@ static void cmd_channel_test_receive_and_process_single_packet_response (CuTest 
 	struct cmd_packet tx_packet;
 	struct cmd_interface_request request;
 	struct cmd_interface_request response;
-	struct mctp_protocol_transport_header* header = (struct mctp_protocol_transport_header*)
-		rx_packet.data;
+	struct mctp_protocol_transport_header *header =
+		(struct mctp_protocol_transport_header*) rx_packet.data;
 	int status;
 
 	TEST_START;
@@ -148,7 +148,8 @@ static void cmd_channel_test_receive_and_process_single_packet_response (CuTest 
 	status = cmd_interface_mock_init (&cmd);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_init (&device_mgr, 1);
+	status = device_manager_init (&device_mgr, 1, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mctp_interface_init (&mctp, &cmd.base, &device_mgr, MCTP_PROTOCOL_PA_ROT_CTRL_EID,
@@ -162,6 +163,7 @@ static void cmd_channel_test_receive_and_process_single_packet_response (CuTest 
 	request.new_request = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
+	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
 
 	response.data[0] = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	response.data[1] = 0;
@@ -212,8 +214,8 @@ static void cmd_channel_test_receive_and_process_multi_packet_response (CuTest *
 	struct cmd_packet tx_packet[2];
 	struct cmd_interface_request request;
 	struct cmd_interface_request response;
-	struct mctp_protocol_transport_header* header = (struct mctp_protocol_transport_header*)
-		rx_packet.data;
+	struct mctp_protocol_transport_header *header =
+		(struct mctp_protocol_transport_header*) rx_packet.data;
 	const int msg_size = 300;
 	uint8_t payload[msg_size];
 	int status;
@@ -311,7 +313,8 @@ static void cmd_channel_test_receive_and_process_multi_packet_response (CuTest *
 	status = cmd_interface_mock_init (&cmd);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_init (&device_mgr, 1);
+	status = device_manager_init (&device_mgr, 1, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mctp_interface_init (&mctp, &cmd.base, &device_mgr, MCTP_PROTOCOL_PA_ROT_CTRL_EID,
@@ -325,6 +328,7 @@ static void cmd_channel_test_receive_and_process_multi_packet_response (CuTest *
 	request.new_request = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
+	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
 
 	response.length = msg_size + 4;
 	response.data[0] = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
@@ -378,8 +382,8 @@ static void cmd_channel_test_receive_and_process_multi_packet_message (CuTest *t
 	struct cmd_packet tx_packet;
 	struct cmd_interface_request request;
 	struct cmd_interface_request response;
-	struct mctp_protocol_transport_header* header = (struct mctp_protocol_transport_header*)
-		rx_packet[0].data;
+	struct mctp_protocol_transport_header *header =
+		(struct mctp_protocol_transport_header*) rx_packet[0].data;
 	const int msg_size = 300;
 	uint16_t pci_vid = 0x1414;
 	uint8_t payload[msg_size];
@@ -479,7 +483,8 @@ static void cmd_channel_test_receive_and_process_multi_packet_message (CuTest *t
 	status = cmd_interface_mock_init (&cmd);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_init (&device_mgr, 1);
+	status = device_manager_init (&device_mgr, 1, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mctp_interface_init (&mctp, &cmd.base, &device_mgr, MCTP_PROTOCOL_PA_ROT_CTRL_EID,
@@ -497,6 +502,7 @@ static void cmd_channel_test_receive_and_process_multi_packet_message (CuTest *t
 	request.new_request = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
+	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
 
 	memset (&response, 0, sizeof (response));
 
@@ -595,7 +601,8 @@ static void cmd_channel_test_receive_and_process_request_processing_timeout (CuT
 	status = cmd_interface_mock_init (&cmd);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_init (&device_mgr, 1);
+	status = device_manager_init (&device_mgr, 1, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mctp_interface_init (&mctp, &cmd.base, &device_mgr, MCTP_PROTOCOL_PA_ROT_CTRL_EID,
@@ -609,6 +616,7 @@ static void cmd_channel_test_receive_and_process_request_processing_timeout (CuT
 	request.new_request = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
+	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
 
 	response.data[0] = 0x0B;
 	response.data[1] = 0x0A;
@@ -727,7 +735,8 @@ static void cmd_channel_test_receive_and_process_request_processing_timeout_not_
 	status = cmd_interface_mock_init (&cmd);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_init (&device_mgr, 1);
+	status = device_manager_init (&device_mgr, 1, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mctp_interface_init (&mctp, &cmd.base, &device_mgr, MCTP_PROTOCOL_PA_ROT_CTRL_EID,
@@ -741,6 +750,7 @@ static void cmd_channel_test_receive_and_process_request_processing_timeout_not_
 	request.new_request = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
+	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
 
 	response.data[0] = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	response.data[1] = 0;
@@ -795,7 +805,7 @@ static void cmd_channel_test_receive_and_process_set_receive_timeout (CuTest *te
 	struct cmd_packet tx_packet;
 	struct cmd_interface_request request;
 	struct cmd_interface_request response;
-	struct mctp_protocol_transport_header* header =
+	struct mctp_protocol_transport_header *header =
 		(struct mctp_protocol_transport_header*) rx_packet.data;
 
 	TEST_START;
@@ -864,7 +874,8 @@ static void cmd_channel_test_receive_and_process_set_receive_timeout (CuTest *te
 	status = cmd_interface_mock_init (&cmd);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_init (&device_mgr, 1);
+	status = device_manager_init (&device_mgr, 1, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mctp_interface_init (&mctp, &cmd.base, &device_mgr, MCTP_PROTOCOL_PA_ROT_CTRL_EID,
@@ -878,6 +889,7 @@ static void cmd_channel_test_receive_and_process_set_receive_timeout (CuTest *te
 	request.new_request = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
+	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
 
 	response.data[0] = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	response.data[1] = 0;
@@ -1029,7 +1041,8 @@ static void cmd_channel_test_receive_and_process_null (CuTest *test)
 	status = cmd_interface_mock_init (&cmd);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_init (&device_mgr, 1);
+	status = device_manager_init (&device_mgr, 1, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mctp_interface_init (&mctp, &cmd.base, &device_mgr, MCTP_PROTOCOL_PA_ROT_CTRL_EID,
@@ -1047,6 +1060,7 @@ static void cmd_channel_test_receive_and_process_null (CuTest *test)
 	request.new_request = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
+	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
 
 	memset (&response, 0, sizeof (response));
 
@@ -1213,7 +1227,8 @@ static void cmd_channel_test_receive_and_process_send_failure (CuTest *test)
 	status = cmd_interface_mock_init (&cmd);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_init (&device_mgr, 1);
+	status = device_manager_init (&device_mgr, 1, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mctp_interface_init (&mctp, &cmd.base, &device_mgr, MCTP_PROTOCOL_PA_ROT_CTRL_EID,
@@ -1227,6 +1242,7 @@ static void cmd_channel_test_receive_and_process_send_failure (CuTest *test)
 	request.new_request = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
+	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
 
 	response.length = msg_size + 4;
 	response.data[0] = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
@@ -1389,7 +1405,8 @@ static void cmd_channel_test_receive_and_process_mctp_fatal_error (CuTest *test)
 	status = cmd_interface_mock_init (&cmd);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_init (&device_mgr, 1);
+	status = device_manager_init (&device_mgr, 1, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mctp_interface_init (&mctp, &cmd.base, &device_mgr, MCTP_PROTOCOL_PA_ROT_CTRL_EID,
@@ -1560,7 +1577,8 @@ static void cmd_channel_test_receive_and_process_receive_failure (CuTest *test)
 	status = cmd_interface_mock_init (&cmd);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_init (&device_mgr, 1);
+	status = device_manager_init (&device_mgr, 1, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mctp_interface_init (&mctp, &cmd.base, &device_mgr, MCTP_PROTOCOL_PA_ROT_CTRL_EID,
@@ -1578,6 +1596,7 @@ static void cmd_channel_test_receive_and_process_receive_failure (CuTest *test)
 	request.new_request = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
+	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
 
 	memset (&response, 0, sizeof (response));
 
@@ -1748,7 +1767,8 @@ static void cmd_channel_test_receive_and_process_receive_timeout (CuTest *test)
 	status = cmd_interface_mock_init (&cmd);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_init (&device_mgr, 1);
+	status = device_manager_init (&device_mgr, 1, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mctp_interface_init (&mctp, &cmd.base, &device_mgr, MCTP_PROTOCOL_PA_ROT_CTRL_EID,
@@ -1766,6 +1786,7 @@ static void cmd_channel_test_receive_and_process_receive_timeout (CuTest *test)
 	request.new_request = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
+	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
 
 	memset (&response, 0, sizeof (response));
 
@@ -1966,7 +1987,8 @@ static void cmd_channel_test_receive_and_process_overflow_packet (CuTest *test)
 	status = cmd_interface_mock_init (&cmd);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_init (&device_mgr, 1);
+	status = device_manager_init (&device_mgr, 1, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mctp_interface_init (&mctp, &cmd.base, &device_mgr, MCTP_PROTOCOL_PA_ROT_CTRL_EID,
@@ -2189,7 +2211,8 @@ static void cmd_channel_test_receive_and_process_multiple_overflow_packet (CuTes
 	status = cmd_interface_mock_init (&cmd);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_init (&device_mgr, 1);
+	status = device_manager_init (&device_mgr, 1, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mctp_interface_init (&mctp, &cmd.base, &device_mgr, MCTP_PROTOCOL_PA_ROT_CTRL_EID,

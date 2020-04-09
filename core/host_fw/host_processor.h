@@ -34,15 +34,6 @@ enum host_processor_reset_actions {
 };
 
 /**
- * Reset state indications for the host processor.
- */
-enum host_processor_reset_state {
-	HOST_PROCESSOR_OUT_OF_RESET = 0,					/**< The host processor is running. */                               //!< HOST_PROCESSOR_OUT_OF_RESET
-	HOST_PROCESSOR_HELD_IN_RESET,						/**< The host is being held in reset by Cerberus. */                   //!< HOST_PROCESSOR_HELD_IN_RESET
-	HOST_PROCESSOR_NOT_HELD_IN_RESET,					/**< The host is not being held in reset, but is not yet running. *///!< HOST_PROCESSOR_NOT_HELD_IN_RESET
-};
-
-/**
  * Defines the core interface for protecting the firmware of a single host processor.
  */
 struct host_processor {
