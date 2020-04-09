@@ -18,7 +18,7 @@ static int cmd_interface_slave_process_request (struct cmd_interface *intf,
 	struct cmd_interface_slave *interface = (struct cmd_interface_slave*) intf;
 	uint8_t command_id;
 	uint8_t command_set;
-	uint8_t device_num;
+	int device_num;
 	int status;
 
 	status = cmd_interface_process_request (&interface->base, request, &command_id, &command_set);
@@ -67,6 +67,9 @@ static int cmd_interface_slave_process_request (struct cmd_interface *intf,
 		case CERBERUS_PROTOCOL_GET_DEVICE_ID:
 			return cerberus_protocol_get_device_id (&interface->device_id, request);
 
+		case CERBERUS_PROTOCOL_RESET_COUNTER:
+			return cerberus_protocol_reset_counter (interface->cmd_device, request);
+
 		default:
 			return CMD_HANDLER_UNKNOWN_COMMAND;
 	}
@@ -96,12 +99,12 @@ int cmd_interface_slave_issue_request (struct cmd_interface *intf, uint8_t comma
  * @return Initialization status, 0 if success or an error code.
  */
 int cmd_interface_slave_init (struct cmd_interface_slave *intf,
-	struct attestation_slave *slave_attestation, struct device_manager *device_manager, 
-	struct cmd_background *background, struct cmd_interface_fw_version *fw_version, 
-	struct riot_key_manager *riot, struct cmd_device *cmd_device, uint16_t vendor_id, 
+	struct attestation_slave *slave_attestation, struct device_manager *device_manager,
+	struct cmd_background *background, struct cmd_interface_fw_version *fw_version,
+	struct riot_key_manager *riot, struct cmd_device *cmd_device, uint16_t vendor_id,
 	uint16_t device_id, uint16_t subsystem_vid, uint16_t subsystem_id)
 {
-	if ((intf == NULL) || (background == NULL) || (riot == NULL) || (slave_attestation == NULL) || 
+	if ((intf == NULL) || (background == NULL) || (riot == NULL) || (slave_attestation == NULL) ||
 		(device_manager == NULL) || (fw_version == NULL) || (cmd_device == NULL)) {
 		return CMD_HANDLER_INVALID_ARGUMENT;
 	}

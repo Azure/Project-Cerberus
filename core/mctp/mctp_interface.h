@@ -34,9 +34,11 @@ int mctp_interface_init (struct mctp_interface *interface, struct cmd_interface 
 void mctp_interface_deinit (struct mctp_interface *interface);
 
 int mctp_interface_set_channel_id (struct mctp_interface *interface, int channel_id);
+
 int mctp_interface_process_packet (struct mctp_interface *interface, struct cmd_packet *rx_packet,
 	struct cmd_packet **tx_packets, size_t *num_packets);
 void mctp_interface_reset_message_processing (struct mctp_interface *interface);
+
 int mctp_interface_issue_request (struct mctp_interface *interface, uint8_t dest_addr,
 	uint8_t dest_eid, uint8_t src_addr, uint8_t src_eid, uint8_t command_id, void *request_params,
 	uint8_t *buf, int buf_len, uint8_t msg_type);

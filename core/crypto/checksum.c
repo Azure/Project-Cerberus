@@ -7,21 +7,20 @@
 
 /**
  * Compute CRC8 value of data buffer
- * Implementation based on: http://www.sunshine2k.de/articles/coding/crc/understanding_crc.html
  *
  * @param smbus_addr SMBUS address to prepend to buffer before computation
- * @param data Data buffer to compute CRC of
+ * @param data Data buffer to use for CRC calculation
  * @param len Length of data buffer
  *
  * @return CRC8 value
  */
-uint8_t checksum_crc8 (uint8_t smbus_addr, uint8_t *data, uint8_t len)
+uint8_t checksum_crc8 (uint8_t smbus_addr, const uint8_t *data, uint8_t len)
 {
 	uint8_t i;
 	uint8_t j;
 	uint8_t crc = 0;
 
-	if ((data == NULL) || (len == 0)){
+	if ((data == NULL) || (len == 0)) {
 		return 0;
 	}
 

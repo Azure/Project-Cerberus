@@ -7,7 +7,7 @@
 #include <stdint.h>
 
 
-uint8_t checksum_crc8 (uint8_t smbus_addr, uint8_t *data, uint8_t len);
+uint8_t checksum_crc8 (uint8_t smbus_addr, const uint8_t *data, uint8_t len);
 
 
 #endif //CHECKSUM_H_

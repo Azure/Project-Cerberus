@@ -16,6 +16,8 @@
 #define	RSA_KEY_LENGTH_3K		(3072 / 8)
 #define	RSA_KEY_LENGTH_2K		(2048 / 8)
 
+
+/* Confiugrable RSA parameters.  Defaults can be overridden in platform_config.h. */
 #ifndef RSA_MAX_KEY_LENGTH
 #define	RSA_MAX_KEY_LENGTH		RSA_KEY_LENGTH_4K
 #endif

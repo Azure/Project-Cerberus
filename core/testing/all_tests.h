@@ -20,6 +20,10 @@
 //#define	TESTING_RUN_MANIFEST_FLASH_SUITE
 //#define	TESTING_RUN_PFM_FLASH_SUITE
 //#define	TESTING_RUN_CFM_FLASH_SUITE
+//#define	TESTING_RUN_CERBERUS_PROTOCOL_REQUIRED_COMMANDS_SUITE
+//#define	TESTING_RUN_CERBERUS_PROTOCOL_MASTER_COMMANDS_SUITE
+//#define	TESTING_RUN_CERBERUS_PROTOCOL_OPTIONAL_COMMANDS_SUITE
+//#define	TESTING_RUN_CERBERUS_PROTOCOL_DEBUG_COMMANDS_SUITE
 //#define	TESTING_RUN_CMD_INTERFACE_SYSTEM_SUITE
 //#define	TESTING_RUN_CMD_INTERFACE_SLAVE_SUITE
 //#define	TESTING_RUN_CMD_INTERFACE_DUAL_CMD_SET_SUITE
@@ -115,6 +119,10 @@ CuSuite* get_host_fw_util_suite (void);
 CuSuite* get_manifest_flash_suite (void);
 CuSuite* get_pfm_flash_suite (void);
 CuSuite* get_cfm_flash_suite (void);
+CuSuite* get_cerberus_protocol_required_commands_suite (void);
+CuSuite* get_cerberus_protocol_master_commands_suite (void);
+CuSuite* get_cerberus_protocol_optional_commands_suite (void);
+CuSuite* get_cerberus_protocol_debug_commands_suite (void);
 CuSuite* get_cmd_interface_system_suite (void);
 CuSuite* get_cmd_interface_slave_suite (void);
 CuSuite* get_cmd_interface_dual_cmd_set_suite (void);
@@ -240,6 +248,18 @@ void add_all_tests (CuSuite *suite)
 #endif
 #ifdef TESTING_RUN_CFM_FLASH_SUITE
 	CuSuiteAddSuite (suite, get_cfm_flash_suite ());
+#endif
+#ifdef TESTING_RUN_CERBERUS_PROTOCOL_REQUIRED_COMMANDS_SUITE
+	CuSuiteAddSuite (suite, get_cerberus_protocol_required_commands_suite ());
+#endif
+#ifdef TESTING_RUN_CERBERUS_PROTOCOL_MASTER_COMMANDS_SUITE
+	CuSuiteAddSuite (suite, get_cerberus_protocol_master_commands_suite ());
+#endif
+#ifdef TESTING_RUN_CERBERUS_PROTOCOL_OPTIONAL_COMMANDS_SUITE
+	CuSuiteAddSuite (suite, get_cerberus_protocol_optional_commands_suite ());
+#endif
+#ifdef TESTING_RUN_CERBERUS_PROTOCOL_DEBUG_COMMANDS_SUITE
+	CuSuiteAddSuite (suite, get_cerberus_protocol_debug_commands_suite ());
 #endif
 #ifdef TESTING_RUN_CMD_INTERFACE_SYSTEM_SUITE
 	CuSuiteAddSuite (suite, get_cmd_interface_system_suite ());
