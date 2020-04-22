@@ -12,10 +12,13 @@
 #include "cmd_interface/attestation_cmd_interface.h"
 #include "logging/debug_log.h"
 #include "recovery/recovery_image_header.h"
+#include "attestation/aux_attestation.h"
 #include "mock/pfm_mock.h"
 #include "mock/recovery_image_mock.h"
 #include "cerberus_protocol_optional_commands_testing.h"
 #include "recovery_image_header_testing.h"
+#include "aux_attestation_testing.h"
+#include "ecc_testing.h"
 
 
 static const char *SUITE = "cerberus_protocol_optional_commands";
@@ -3688,54 +3691,89 @@ void cerberus_protocol_optional_commands_testing_process_log_read_invalid_len (C
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 }
 
-void cerberus_protocol_optional_commands_testing_process_request_unseal (CuTest *test,
-	struct cmd_interface *cmd, struct cmd_background_mock *background, int pcr)
+void cerberus_protocol_optional_commands_testing_process_request_unseal_rsa (CuTest *test,
+	struct cmd_interface *cmd, struct cmd_background_mock *background)
 {
-	uint16_t seed_len = 2;
-	uint16_t cipher_len = 2;
 	struct cmd_interface_request request;
-	struct cerberus_protocol_header header = {0};
+	struct cerberus_protocol_message_unseal *req =
+		(struct cerberus_protocol_message_unseal*) request.data;
+	struct cerberus_protocol_unseal_pmrs sealing;
 	int status;
 
-	memset (&request, 0, sizeof (request));
-	header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
-	header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
-	header.command = CERBERUS_PROTOCOL_UNSEAL_MESSAGE;
+	memset (sealing.pmr[0], 0, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[1], 1, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[2], 2, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[3], 3, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[4], 4, sizeof (sealing.pmr[0]));
 
-	memcpy (request.data, &header, sizeof (header));
-	memcpy (&request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN], &seed_len, sizeof (seed_len));
-	request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN + sizeof (seed_len)] = 0xAA;
-	request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN + sizeof (seed_len) + 1] = 0xBB;
-	memcpy (&request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN + sizeof (seed_len) + 2], &cipher_len,
-		sizeof (cipher_len));
-	request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN + sizeof (seed_len) + 2 + sizeof (cipher_len)] =
-		0xCC;
-	request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN + sizeof (seed_len) + 3 + sizeof (cipher_len)] =
-		0xDD;
-	memset (
-		&request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN + sizeof (seed_len) + 4 + sizeof (cipher_len)],
-		0x55, SHA256_HASH_LENGTH);
-	memset (
-		&request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN + sizeof (seed_len) + 4 + sizeof (cipher_len) +
-		SHA256_HASH_LENGTH], 0xAA, 64);
-	request.length = CERBERUS_PROTOCOL_MIN_MSG_LEN + 104;
+	memset (&request, 0, sizeof (request));
+	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req->header.command = CERBERUS_PROTOCOL_UNSEAL_MESSAGE;
+
+	req->hmac_type = CERBERUS_PROTOCOL_UNSEAL_HMAC_SHA256;
+	req->seed_type = CERBERUS_PROTOCOL_UNSEAL_SEED_RSA;
+	req->seed_length = KEY_SEED_ENCRYPT_OAEP_LEN;
+	memcpy (&req->seed, KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN);
+	cerberus_protocol_unseal_ciphertext_length (req) = CIPHER_TEXT_LEN;
+	memcpy (cerberus_protocol_unseal_ciphertext (req), CIPHER_TEXT, CIPHER_TEXT_LEN);
+	cerberus_protocol_unseal_hmac_length (req) = PAYLOAD_HMAC_LEN;
+	memcpy (cerberus_protocol_unseal_hmac (req), PAYLOAD_HMAC, PAYLOAD_HMAC_LEN);
+	memcpy ((uint8_t*) cerberus_protocol_get_unseal_pmr_sealing (req), &sealing, sizeof (sealing));
+	request.length = (sizeof (struct cerberus_protocol_message_unseal) - 1) +
+		KEY_SEED_ENCRYPT_OAEP_LEN + 2 + CIPHER_TEXT_LEN + 2 + PAYLOAD_HMAC_LEN + sizeof (sealing);
 	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
 	request.source_eid = MCTP_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&background->mock, background->base.unseal_start, background, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP (
-			&request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN + sizeof (seed_len)], seed_len),
-		MOCK_ARG (seed_len), MOCK_ARG_PTR_CONTAINS_TMP (
-			&request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN + sizeof (seed_len) + 4 +
-				sizeof (cipher_len)],
-			SHA256_HASH_LENGTH),
-		MOCK_ARG_PTR_CONTAINS_TMP (&request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN +
-			sizeof (seed_len) + 2 + sizeof (cipher_len)], cipher_len),
-		MOCK_ARG (cipher_len), MOCK_ARG_PTR_CONTAINS_TMP (
-			&request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN + sizeof (seed_len) + 4 +
-			sizeof (cipher_len) + SHA256_HASH_LENGTH], 64),
-		MOCK_ARG (pcr));
+		MOCK_ARG_PTR_CONTAINS_TMP (request.data, request.length), MOCK_ARG (request.length));
+	CuAssertIntEquals (test, 0, status);
+
+	request.crypto_timeout = false;
+	status = cmd->process_request (cmd, &request);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, request.length);
+	CuAssertIntEquals (test, true, request.crypto_timeout);
+}
+
+void cerberus_protocol_optional_commands_testing_process_request_unseal_ecc (CuTest *test,
+	struct cmd_interface *cmd, struct cmd_background_mock *background)
+{
+	struct cmd_interface_request request;
+	struct cerberus_protocol_message_unseal *req =
+		(struct cerberus_protocol_message_unseal*) request.data;
+	struct cerberus_protocol_unseal_pmrs sealing;
+	int status;
+
+	memset (sealing.pmr[0], 0, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[1], 1, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[2], 2, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[3], 3, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[4], 4, sizeof (sealing.pmr[0]));
+
+	memset (&request, 0, sizeof (request));
+	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req->header.command = CERBERUS_PROTOCOL_UNSEAL_MESSAGE;
+
+	req->hmac_type = CERBERUS_PROTOCOL_UNSEAL_HMAC_SHA256;
+	req->seed_type = CERBERUS_PROTOCOL_UNSEAL_SEED_ECDH;
+	req->seed_length = ECC_PUBKEY_DER_LEN;
+	memcpy (&req->seed, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
+	cerberus_protocol_unseal_ciphertext_length (req) = CIPHER_TEXT_LEN;
+	memcpy (cerberus_protocol_unseal_ciphertext (req), CIPHER_TEXT, CIPHER_TEXT_LEN);
+	cerberus_protocol_unseal_hmac_length (req) = PAYLOAD_HMAC_LEN;
+	memcpy (cerberus_protocol_unseal_hmac (req), PAYLOAD_HMAC, PAYLOAD_HMAC_LEN);
+	memcpy ((uint8_t*) cerberus_protocol_get_unseal_pmr_sealing (req), &sealing, sizeof (sealing));
+	request.length = (sizeof (struct cerberus_protocol_message_unseal) - 1) +
+		ECC_PUBKEY_DER_LEN + 2 + CIPHER_TEXT_LEN + 2 + PAYLOAD_HMAC_LEN + sizeof (sealing);
+	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+
+	status = mock_expect (&background->mock, background->base.unseal_start, background, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (request.data, request.length), MOCK_ARG (request.length));
 	CuAssertIntEquals (test, 0, status);
 
 	request.crypto_timeout = false;
@@ -3746,50 +3784,43 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal (CuTest 
 }
 
 void cerberus_protocol_optional_commands_testing_process_request_unseal_fail (CuTest *test,
-	struct cmd_interface *cmd, struct cmd_background_mock *background, int pcr)
+	struct cmd_interface *cmd, struct cmd_background_mock *background)
 {
-	uint16_t seed_len = 2;
-	uint16_t cipher_len = 2;
 	struct cmd_interface_request request;
-	struct cerberus_protocol_header header = {0};
+	struct cerberus_protocol_message_unseal *req =
+		(struct cerberus_protocol_message_unseal*) request.data;
+	struct cerberus_protocol_unseal_pmrs sealing;
 	int status;
 
-	memset (&request, 0, sizeof (request));
-	header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
-	header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
-	header.command = CERBERUS_PROTOCOL_UNSEAL_MESSAGE;
+	memset (sealing.pmr[0], 0, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[1], 1, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[2], 2, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[3], 3, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[4], 4, sizeof (sealing.pmr[0]));
 
-	memcpy (request.data, &header, sizeof (header));
-	memcpy (&request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN], &seed_len, sizeof (seed_len));
-	request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN + sizeof (seed_len)] = 0xAA;
-	request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN + sizeof (seed_len) + 1] = 0xBB;
-	memcpy (&request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN + sizeof (seed_len) + 2], &cipher_len,
-		sizeof (cipher_len));
-	request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN + sizeof (seed_len) + 2 + sizeof (cipher_len)] =
-		0xCC;
-	request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN + sizeof (seed_len) + 3 + sizeof (cipher_len)] =
-		0xDD;
-	memset (
-		&request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN + sizeof (seed_len) + 4 + sizeof (cipher_len)],
-		0x55, SHA256_HASH_LENGTH);
-	memset (
-		&request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN + sizeof (seed_len) + 4 + sizeof (cipher_len) +
-		SHA256_HASH_LENGTH], 0xAA, 64);
-	request.length = CERBERUS_PROTOCOL_MIN_MSG_LEN + 104;
+	memset (&request, 0, sizeof (request));
+	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req->header.command = CERBERUS_PROTOCOL_UNSEAL_MESSAGE;
+
+	req->hmac_type = CERBERUS_PROTOCOL_UNSEAL_HMAC_SHA256;
+	req->seed_type = CERBERUS_PROTOCOL_UNSEAL_SEED_RSA;
+	req->seed_length = KEY_SEED_ENCRYPT_OAEP_LEN;
+	memcpy (&req->seed, KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN);
+	cerberus_protocol_unseal_ciphertext_length (req) = CIPHER_TEXT_LEN;
+	memcpy (cerberus_protocol_unseal_ciphertext (req), CIPHER_TEXT, CIPHER_TEXT_LEN);
+	cerberus_protocol_unseal_hmac_length (req) = PAYLOAD_HMAC_LEN;
+	memcpy (cerberus_protocol_unseal_hmac (req), PAYLOAD_HMAC, PAYLOAD_HMAC_LEN);
+	memcpy ((uint8_t*) cerberus_protocol_get_unseal_pmr_sealing (req), &sealing, sizeof (sealing));
+	request.length = (sizeof (struct cerberus_protocol_message_unseal) - 1) +
+		KEY_SEED_ENCRYPT_OAEP_LEN + 2 + CIPHER_TEXT_LEN + 2 + PAYLOAD_HMAC_LEN + sizeof (sealing);
 	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
 	request.source_eid = MCTP_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&background->mock, background->base.unseal_start, background,
-		CMD_BACKGROUND_UNSEAL_FAILED, MOCK_ARG_PTR_CONTAINS_TMP (
-		&request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN + sizeof (seed_len)], seed_len),
-		MOCK_ARG (seed_len), MOCK_ARG_PTR_CONTAINS_TMP (
-		&request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN + sizeof (seed_len) + 4 + sizeof (cipher_len)],
-		SHA256_HASH_LENGTH), MOCK_ARG_PTR_CONTAINS_TMP (
-		&request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN + sizeof (seed_len) + 2 + sizeof (cipher_len)],
-		cipher_len), MOCK_ARG (cipher_len), MOCK_ARG_PTR_CONTAINS_TMP (
-		&request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN + sizeof (seed_len) + 4 + sizeof (cipher_len) +
-		SHA256_HASH_LENGTH], 64), MOCK_ARG (pcr));
+		CMD_BACKGROUND_UNSEAL_FAILED, MOCK_ARG_PTR_CONTAINS_TMP (request.data, request.length),
+		MOCK_ARG (request.length));
 	CuAssertIntEquals (test, 0, status);
 
 	request.crypto_timeout = false;
@@ -3798,117 +3829,473 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_fail (Cu
 	CuAssertIntEquals (test, true, request.crypto_timeout);
 }
 
-void cerberus_protocol_optional_commands_testing_process_request_unseal_no_seed_len (CuTest *test,
+void cerberus_protocol_optional_commands_testing_process_request_unseal_invalid_hmac (CuTest *test,
 	struct cmd_interface *cmd)
 {
-	uint16_t seed_len = 0;
-	uint16_t cipher_len = 2;
 	struct cmd_interface_request request;
-	struct cerberus_protocol_header header = {0};
+	struct cerberus_protocol_message_unseal *req =
+		(struct cerberus_protocol_message_unseal*) request.data;
+	struct cerberus_protocol_unseal_pmrs sealing;
 	int status;
 
-	memset (&request, 0, sizeof (request));
-	header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
-	header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
-	header.command = CERBERUS_PROTOCOL_UNSEAL_MESSAGE;
+	memset (sealing.pmr[0], 0, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[1], 1, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[2], 2, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[3], 3, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[4], 4, sizeof (sealing.pmr[0]));
 
-	memcpy (request.data, &header, sizeof (header));
-	memcpy (&request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN], &seed_len, sizeof (seed_len));
-	memcpy (&request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN + sizeof (seed_len)], &cipher_len,
-		sizeof (cipher_len));
-	request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN + sizeof (seed_len) + sizeof (cipher_len)] =
-		0xCC;
-	request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN + sizeof (seed_len) + 1 + sizeof (cipher_len)] =
-		0xDD;
-	memset (
-		&request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN + sizeof (seed_len) + 2 + sizeof (cipher_len)],
-		0x55, SHA256_HASH_LENGTH);
-	memset (
-		&request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN + sizeof (seed_len) + 2 + sizeof (cipher_len) +
-		SHA256_HASH_LENGTH], 0xAA, 64);
-	request.length = CERBERUS_PROTOCOL_MIN_MSG_LEN + 102;
+	memset (&request, 0, sizeof (request));
+	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req->header.command = CERBERUS_PROTOCOL_UNSEAL_MESSAGE;
+
+	req->hmac_type = 1;
+	req->seed_type = CERBERUS_PROTOCOL_UNSEAL_SEED_RSA;
+	req->seed_length = KEY_SEED_ENCRYPT_OAEP_LEN;
+	memcpy (&req->seed, KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN);
+	cerberus_protocol_unseal_ciphertext_length (req) = CIPHER_TEXT_LEN;
+	memcpy (cerberus_protocol_unseal_ciphertext (req), CIPHER_TEXT, CIPHER_TEXT_LEN);
+	cerberus_protocol_unseal_hmac_length (req) = PAYLOAD_HMAC_LEN;
+	memcpy (cerberus_protocol_unseal_hmac (req), PAYLOAD_HMAC, PAYLOAD_HMAC_LEN);
+	memcpy ((uint8_t*) cerberus_protocol_get_unseal_pmr_sealing (req), &sealing, sizeof (sealing));
+	request.length = (sizeof (struct cerberus_protocol_message_unseal) - 1) +
+		KEY_SEED_ENCRYPT_OAEP_LEN + 2 + CIPHER_TEXT_LEN + 2 + PAYLOAD_HMAC_LEN + sizeof (sealing);
 	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
 	request.source_eid = MCTP_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = false;
 	status = cmd->process_request (cmd, &request);
-	CuAssertIntEquals (test, CMD_HANDLER_BAD_LENGTH, status);
+	CuAssertIntEquals (test, CMD_HANDLER_OUT_OF_RANGE, status);
 	CuAssertIntEquals (test, true, request.crypto_timeout);
 }
 
-void cerberus_protocol_optional_commands_testing_process_request_unseal_no_cipher_len (CuTest *test,
+void cerberus_protocol_optional_commands_testing_process_request_unseal_invalid_seed (CuTest *test,
 	struct cmd_interface *cmd)
 {
-	uint16_t seed_len = 2;
-	uint16_t cipher_len = 0;
 	struct cmd_interface_request request;
-	struct cerberus_protocol_header header = {0};
+	struct cerberus_protocol_message_unseal *req =
+		(struct cerberus_protocol_message_unseal*) request.data;
+	struct cerberus_protocol_unseal_pmrs sealing;
 	int status;
 
-	memset (&request, 0, sizeof (request));
-	header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
-	header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
-	header.command = CERBERUS_PROTOCOL_UNSEAL_MESSAGE;
+	memset (sealing.pmr[0], 0, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[1], 1, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[2], 2, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[3], 3, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[4], 4, sizeof (sealing.pmr[0]));
 
-	memcpy (request.data, &header, sizeof (header));
-	memcpy (&request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN], &seed_len, sizeof (seed_len));
-	request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN + sizeof (seed_len)] = 0xAA;
-	request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN + sizeof (seed_len) + 1] = 0xBB;
-	memcpy (&request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN + sizeof (seed_len) + 2], &cipher_len,
-		sizeof (cipher_len));
-	memset (
-		&request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN + sizeof (seed_len) + 2 + sizeof (cipher_len)],
-		0x55, SHA256_HASH_LENGTH);
-	memset (
-		&request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN + sizeof (seed_len) + 2 + sizeof (cipher_len) +
-		SHA256_HASH_LENGTH], 0xAA, 64);
-	request.length = CERBERUS_PROTOCOL_MIN_MSG_LEN + 102;
+	memset (&request, 0, sizeof (request));
+	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req->header.command = CERBERUS_PROTOCOL_UNSEAL_MESSAGE;
+
+	req->hmac_type = CERBERUS_PROTOCOL_UNSEAL_HMAC_SHA256;
+	req->seed_type = 2;
+	req->seed_length = KEY_SEED_ENCRYPT_OAEP_LEN;
+	memcpy (&req->seed, KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN);
+	cerberus_protocol_unseal_ciphertext_length (req) = CIPHER_TEXT_LEN;
+	memcpy (cerberus_protocol_unseal_ciphertext (req), CIPHER_TEXT, CIPHER_TEXT_LEN);
+	cerberus_protocol_unseal_hmac_length (req) = PAYLOAD_HMAC_LEN;
+	memcpy (cerberus_protocol_unseal_hmac (req), PAYLOAD_HMAC, PAYLOAD_HMAC_LEN);
+	memcpy ((uint8_t*) cerberus_protocol_get_unseal_pmr_sealing (req), &sealing, sizeof (sealing));
+	request.length = (sizeof (struct cerberus_protocol_message_unseal) - 1) +
+		KEY_SEED_ENCRYPT_OAEP_LEN + 2 + CIPHER_TEXT_LEN + 2 + PAYLOAD_HMAC_LEN + sizeof (sealing);
 	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
 	request.source_eid = MCTP_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = false;
 	status = cmd->process_request (cmd, &request);
-	CuAssertIntEquals (test, CMD_HANDLER_BAD_LENGTH, status);
+	CuAssertIntEquals (test, CMD_HANDLER_OUT_OF_RANGE, status);
 	CuAssertIntEquals (test, true, request.crypto_timeout);
 }
 
-void cerberus_protocol_optional_commands_testing_process_request_unseal_incomplete_payload (
+void cerberus_protocol_optional_commands_testing_process_request_unseal_rsa_invalid_padding (
 	CuTest *test, struct cmd_interface *cmd)
 {
-	uint16_t seed_len = 2;
-	uint16_t cipher_len = 2;
 	struct cmd_interface_request request;
-	struct cerberus_protocol_header header = {0};
+	struct cerberus_protocol_message_unseal *req =
+		(struct cerberus_protocol_message_unseal*) request.data;
+	struct cerberus_protocol_unseal_pmrs sealing;
 	int status;
 
-	memset (&request, 0, sizeof (request));
-	header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
-	header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
-	header.command = CERBERUS_PROTOCOL_UNSEAL_MESSAGE;
+	memset (sealing.pmr[0], 0, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[1], 1, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[2], 2, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[3], 3, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[4], 4, sizeof (sealing.pmr[0]));
 
-	memcpy (request.data, &header, sizeof (header));
-	memcpy (&request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN], &seed_len, sizeof (seed_len));
-	request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN + sizeof (seed_len)] = 0xAA;
-	request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN + sizeof (seed_len) + 1] = 0xBB;
-	memcpy (&request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN + sizeof (seed_len) + 2], &cipher_len,
-		sizeof (cipher_len));
-	request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN + sizeof (seed_len) + 2 + sizeof (cipher_len)] =
-		0xCC;
-	request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN + sizeof (seed_len) + 3 + sizeof (cipher_len)] =
-		0xDD;
-	memset (
-		&request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN + sizeof (seed_len) + 4 + sizeof (cipher_len)],
-		0x55, SHA256_HASH_LENGTH);
-	memset (
-		&request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN + sizeof (seed_len) + 4 + sizeof (cipher_len) +
-		SHA256_HASH_LENGTH], 0xAA, 64);
-	request.length = CERBERUS_PROTOCOL_MIN_MSG_LEN;
+	memset (&request, 0, sizeof (request));
+	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req->header.command = CERBERUS_PROTOCOL_UNSEAL_MESSAGE;
+
+	req->hmac_type = CERBERUS_PROTOCOL_UNSEAL_HMAC_SHA256;
+	req->seed_type = CERBERUS_PROTOCOL_UNSEAL_SEED_RSA;
+	req->seed_params.rsa.padding = 3;
+	req->seed_length = KEY_SEED_ENCRYPT_OAEP_LEN;
+	memcpy (&req->seed, KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN);
+	cerberus_protocol_unseal_ciphertext_length (req) = CIPHER_TEXT_LEN;
+	memcpy (cerberus_protocol_unseal_ciphertext (req), CIPHER_TEXT, CIPHER_TEXT_LEN);
+	cerberus_protocol_unseal_hmac_length (req) = PAYLOAD_HMAC_LEN;
+	memcpy (cerberus_protocol_unseal_hmac (req), PAYLOAD_HMAC, PAYLOAD_HMAC_LEN);
+	memcpy ((uint8_t*) cerberus_protocol_get_unseal_pmr_sealing (req), &sealing, sizeof (sealing));
+	request.length = (sizeof (struct cerberus_protocol_message_unseal) - 1) +
+		KEY_SEED_ENCRYPT_OAEP_LEN + 2 + CIPHER_TEXT_LEN + 2 + PAYLOAD_HMAC_LEN + sizeof (sealing);
 	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
 	request.source_eid = MCTP_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
 
+	request.crypto_timeout = false;
+	status = cmd->process_request (cmd, &request);
+	CuAssertIntEquals (test, CMD_HANDLER_OUT_OF_RANGE, status);
+	CuAssertIntEquals (test, true, request.crypto_timeout);
+}
+
+void cerberus_protocol_optional_commands_testing_process_request_unseal_no_seed (CuTest *test,
+	struct cmd_interface *cmd)
+{
+	struct cmd_interface_request request;
+	struct cerberus_protocol_message_unseal *req =
+		(struct cerberus_protocol_message_unseal*) request.data;
+	struct cerberus_protocol_unseal_pmrs sealing;
+	int status;
+
+	memset (sealing.pmr[0], 0, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[1], 1, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[2], 2, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[3], 3, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[4], 4, sizeof (sealing.pmr[0]));
+
+	memset (&request, 0, sizeof (request));
+	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req->header.command = CERBERUS_PROTOCOL_UNSEAL_MESSAGE;
+
+	req->hmac_type = CERBERUS_PROTOCOL_UNSEAL_HMAC_SHA256;
+	req->seed_type = CERBERUS_PROTOCOL_UNSEAL_SEED_RSA;
+	req->seed_length = 0;
+	cerberus_protocol_unseal_ciphertext_length (req) = CIPHER_TEXT_LEN;
+	memcpy (cerberus_protocol_unseal_ciphertext (req), CIPHER_TEXT, CIPHER_TEXT_LEN);
+	cerberus_protocol_unseal_hmac_length (req) = PAYLOAD_HMAC_LEN;
+	memcpy (cerberus_protocol_unseal_hmac (req), PAYLOAD_HMAC, PAYLOAD_HMAC_LEN);
+	memcpy ((uint8_t*) cerberus_protocol_get_unseal_pmr_sealing (req), &sealing, sizeof (sealing));
+	request.length = (sizeof (struct cerberus_protocol_message_unseal) - 1) + 2 + CIPHER_TEXT_LEN +
+		2 + PAYLOAD_HMAC_LEN + sizeof (sealing);
+	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+
+	request.crypto_timeout = false;
+	status = cmd->process_request (cmd, &request);
+	CuAssertIntEquals (test, CMD_HANDLER_BAD_LENGTH, status);
+	CuAssertIntEquals (test, true, request.crypto_timeout);
+}
+
+void cerberus_protocol_optional_commands_testing_process_request_unseal_incomplete_seed (
+	CuTest *test, struct cmd_interface *cmd)
+{
+	struct cmd_interface_request request;
+	struct cerberus_protocol_message_unseal *req =
+		(struct cerberus_protocol_message_unseal*) request.data;
+	struct cerberus_protocol_unseal_pmrs sealing;
+	int status;
+
+	memset (sealing.pmr[0], 0, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[1], 1, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[2], 2, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[3], 3, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[4], 4, sizeof (sealing.pmr[0]));
+
+	memset (&request, 0, sizeof (request));
+	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req->header.command = CERBERUS_PROTOCOL_UNSEAL_MESSAGE;
+
+	req->hmac_type = CERBERUS_PROTOCOL_UNSEAL_HMAC_SHA256;
+	req->seed_type = CERBERUS_PROTOCOL_UNSEAL_SEED_RSA;
+	req->seed_length = KEY_SEED_ENCRYPT_OAEP_LEN;
+	memcpy (&req->seed, KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN);
+	cerberus_protocol_unseal_ciphertext_length (req) = CIPHER_TEXT_LEN;
+	memcpy (cerberus_protocol_unseal_ciphertext (req), CIPHER_TEXT, CIPHER_TEXT_LEN);
+	cerberus_protocol_unseal_hmac_length (req) = PAYLOAD_HMAC_LEN;
+	memcpy (cerberus_protocol_unseal_hmac (req), PAYLOAD_HMAC, PAYLOAD_HMAC_LEN);
+	memcpy ((uint8_t*) cerberus_protocol_get_unseal_pmr_sealing (req), &sealing, sizeof (sealing));
+	request.length = (sizeof (struct cerberus_protocol_message_unseal) - 1) +
+		KEY_SEED_ENCRYPT_OAEP_LEN - 1;
+	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+
+	request.crypto_timeout = false;
+	status = cmd->process_request (cmd, &request);
+	CuAssertIntEquals (test, CMD_HANDLER_BAD_LENGTH, status);
+	CuAssertIntEquals (test, true, request.crypto_timeout);
+}
+
+void cerberus_protocol_optional_commands_testing_process_request_unseal_no_ciphertext (CuTest *test,
+	struct cmd_interface *cmd)
+{
+	struct cmd_interface_request request;
+	struct cerberus_protocol_message_unseal *req =
+		(struct cerberus_protocol_message_unseal*) request.data;
+	struct cerberus_protocol_unseal_pmrs sealing;
+	int status;
+
+	memset (sealing.pmr[0], 0, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[1], 1, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[2], 2, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[3], 3, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[4], 4, sizeof (sealing.pmr[0]));
+
+	memset (&request, 0, sizeof (request));
+	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req->header.command = CERBERUS_PROTOCOL_UNSEAL_MESSAGE;
+
+	req->hmac_type = CERBERUS_PROTOCOL_UNSEAL_HMAC_SHA256;
+	req->seed_type = CERBERUS_PROTOCOL_UNSEAL_SEED_RSA;
+	req->seed_length = KEY_SEED_ENCRYPT_OAEP_LEN;
+	memcpy (&req->seed, KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN);
+	cerberus_protocol_unseal_ciphertext_length (req) = 0;
+	cerberus_protocol_unseal_hmac_length (req) = PAYLOAD_HMAC_LEN;
+	memcpy (cerberus_protocol_unseal_hmac (req), PAYLOAD_HMAC, PAYLOAD_HMAC_LEN);
+	memcpy ((uint8_t*) cerberus_protocol_get_unseal_pmr_sealing (req), &sealing, sizeof (sealing));
+	request.length = (sizeof (struct cerberus_protocol_message_unseal) - 1) +
+		KEY_SEED_ENCRYPT_OAEP_LEN + 2 + 2 + PAYLOAD_HMAC_LEN + sizeof (sealing);
+	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+
+	request.crypto_timeout = false;
+	status = cmd->process_request (cmd, &request);
+	CuAssertIntEquals (test, CMD_HANDLER_BAD_LENGTH, status);
+	CuAssertIntEquals (test, true, request.crypto_timeout);
+}
+
+void cerberus_protocol_optional_commands_testing_process_request_unseal_incomplete_ciphertext (
+	CuTest *test, struct cmd_interface *cmd)
+{
+	struct cmd_interface_request request;
+	struct cerberus_protocol_message_unseal *req =
+		(struct cerberus_protocol_message_unseal*) request.data;
+	struct cerberus_protocol_unseal_pmrs sealing;
+	int status;
+
+	memset (sealing.pmr[0], 0, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[1], 1, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[2], 2, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[3], 3, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[4], 4, sizeof (sealing.pmr[0]));
+
+	memset (&request, 0, sizeof (request));
+	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req->header.command = CERBERUS_PROTOCOL_UNSEAL_MESSAGE;
+
+	req->hmac_type = CERBERUS_PROTOCOL_UNSEAL_HMAC_SHA256;
+	req->seed_type = CERBERUS_PROTOCOL_UNSEAL_SEED_RSA;
+	req->seed_length = KEY_SEED_ENCRYPT_OAEP_LEN;
+	memcpy (&req->seed, KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN);
+	cerberus_protocol_unseal_ciphertext_length (req) = CIPHER_TEXT_LEN;
+	memcpy (cerberus_protocol_unseal_ciphertext (req), CIPHER_TEXT, CIPHER_TEXT_LEN);
+	cerberus_protocol_unseal_hmac_length (req) = PAYLOAD_HMAC_LEN;
+	memcpy (cerberus_protocol_unseal_hmac (req), PAYLOAD_HMAC, PAYLOAD_HMAC_LEN);
+	memcpy ((uint8_t*) cerberus_protocol_get_unseal_pmr_sealing (req), &sealing, sizeof (sealing));
+	request.length = (sizeof (struct cerberus_protocol_message_unseal) - 1) +
+		KEY_SEED_ENCRYPT_OAEP_LEN + 2 + CIPHER_TEXT_LEN - 1;
+	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+
+	request.crypto_timeout = false;
+	status = cmd->process_request (cmd, &request);
+	CuAssertIntEquals (test, CMD_HANDLER_BAD_LENGTH, status);
+	CuAssertIntEquals (test, true, request.crypto_timeout);
+}
+
+void cerberus_protocol_optional_commands_testing_process_request_unseal_no_hmac (CuTest *test,
+	struct cmd_interface *cmd)
+{
+	struct cmd_interface_request request;
+	struct cerberus_protocol_message_unseal *req =
+		(struct cerberus_protocol_message_unseal*) request.data;
+	struct cerberus_protocol_unseal_pmrs sealing;
+	int status;
+
+	memset (sealing.pmr[0], 0, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[1], 1, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[2], 2, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[3], 3, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[4], 4, sizeof (sealing.pmr[0]));
+
+	memset (&request, 0, sizeof (request));
+	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req->header.command = CERBERUS_PROTOCOL_UNSEAL_MESSAGE;
+
+	req->hmac_type = CERBERUS_PROTOCOL_UNSEAL_HMAC_SHA256;
+	req->seed_type = CERBERUS_PROTOCOL_UNSEAL_SEED_RSA;
+	req->seed_length = KEY_SEED_ENCRYPT_OAEP_LEN;
+	memcpy (&req->seed, KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN);
+	cerberus_protocol_unseal_ciphertext_length (req) = CIPHER_TEXT_LEN;
+	memcpy (cerberus_protocol_unseal_ciphertext (req), CIPHER_TEXT, CIPHER_TEXT_LEN);
+	cerberus_protocol_unseal_hmac_length (req) = 0;
+	memcpy ((uint8_t*) cerberus_protocol_get_unseal_pmr_sealing (req), &sealing, sizeof (sealing));
+	request.length = (sizeof (struct cerberus_protocol_message_unseal) - 1) +
+		KEY_SEED_ENCRYPT_OAEP_LEN + 2 + CIPHER_TEXT_LEN + 2 + sizeof (sealing);
+	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+
+	request.crypto_timeout = false;
+	status = cmd->process_request (cmd, &request);
+	CuAssertIntEquals (test, CMD_HANDLER_BAD_LENGTH, status);
+	CuAssertIntEquals (test, true, request.crypto_timeout);
+}
+
+void cerberus_protocol_optional_commands_testing_process_request_unseal_bad_hmac_length (
+	CuTest *test, struct cmd_interface *cmd)
+{
+	struct cmd_interface_request request;
+	struct cerberus_protocol_message_unseal *req =
+		(struct cerberus_protocol_message_unseal*) request.data;
+	struct cerberus_protocol_unseal_pmrs sealing;
+	int status;
+
+	memset (sealing.pmr[0], 0, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[1], 1, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[2], 2, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[3], 3, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[4], 4, sizeof (sealing.pmr[0]));
+
+	memset (&request, 0, sizeof (request));
+	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req->header.command = CERBERUS_PROTOCOL_UNSEAL_MESSAGE;
+
+	req->hmac_type = CERBERUS_PROTOCOL_UNSEAL_HMAC_SHA256;
+	req->seed_type = CERBERUS_PROTOCOL_UNSEAL_SEED_RSA;
+	req->seed_length = KEY_SEED_ENCRYPT_OAEP_LEN;
+	memcpy (&req->seed, KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN);
+	cerberus_protocol_unseal_ciphertext_length (req) = CIPHER_TEXT_LEN;
+	memcpy (cerberus_protocol_unseal_ciphertext (req), CIPHER_TEXT, CIPHER_TEXT_LEN);
+	cerberus_protocol_unseal_hmac_length (req) = PAYLOAD_HMAC_LEN + 1;
+	request.length = (sizeof (struct cerberus_protocol_message_unseal) - 1) +
+		KEY_SEED_ENCRYPT_OAEP_LEN + 2 + CIPHER_TEXT_LEN + 2 + PAYLOAD_HMAC_LEN + 1 +
+		sizeof (sealing);
+	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+
+	request.crypto_timeout = false;
+	status = cmd->process_request (cmd, &request);
+	CuAssertIntEquals (test, CMD_HANDLER_BAD_LENGTH, status);
+	CuAssertIntEquals (test, true, request.crypto_timeout);
+
+	cerberus_protocol_unseal_hmac_length (req) = PAYLOAD_HMAC_LEN - 1;
+	memcpy ((uint8_t*) cerberus_protocol_get_unseal_pmr_sealing (req), &sealing, sizeof (sealing));
+	request.length = (sizeof (struct cerberus_protocol_message_unseal) - 1) +
+		KEY_SEED_ENCRYPT_OAEP_LEN + 2 + CIPHER_TEXT_LEN + 2 + (PAYLOAD_HMAC_LEN - 1) +
+		sizeof (sealing);
+	request.crypto_timeout = false;
+	status = cmd->process_request (cmd, &request);
+	CuAssertIntEquals (test, CMD_HANDLER_BAD_LENGTH, status);
+	CuAssertIntEquals (test, true, request.crypto_timeout);
+}
+
+void cerberus_protocol_optional_commands_testing_process_request_unseal_incomplete_hmac (
+	CuTest *test, struct cmd_interface *cmd)
+{
+	struct cmd_interface_request request;
+	struct cerberus_protocol_message_unseal *req =
+		(struct cerberus_protocol_message_unseal*) request.data;
+	struct cerberus_protocol_unseal_pmrs sealing;
+	int status;
+
+	memset (sealing.pmr[0], 0, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[1], 1, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[2], 2, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[3], 3, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[4], 4, sizeof (sealing.pmr[0]));
+
+	memset (&request, 0, sizeof (request));
+	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req->header.command = CERBERUS_PROTOCOL_UNSEAL_MESSAGE;
+
+	req->hmac_type = CERBERUS_PROTOCOL_UNSEAL_HMAC_SHA256;
+	req->seed_type = CERBERUS_PROTOCOL_UNSEAL_SEED_RSA;
+	req->seed_length = KEY_SEED_ENCRYPT_OAEP_LEN;
+	memcpy (&req->seed, KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN);
+	cerberus_protocol_unseal_ciphertext_length (req) = CIPHER_TEXT_LEN;
+	memcpy (cerberus_protocol_unseal_ciphertext (req), CIPHER_TEXT, CIPHER_TEXT_LEN);
+	cerberus_protocol_unseal_hmac_length (req) = PAYLOAD_HMAC_LEN;
+	memcpy (cerberus_protocol_unseal_hmac (req), PAYLOAD_HMAC, PAYLOAD_HMAC_LEN);
+	memcpy ((uint8_t*) cerberus_protocol_get_unseal_pmr_sealing (req), &sealing, sizeof (sealing));
+	request.length = (sizeof (struct cerberus_protocol_message_unseal) - 1) +
+		KEY_SEED_ENCRYPT_OAEP_LEN + 2 + CIPHER_TEXT_LEN + 2 + PAYLOAD_HMAC_LEN - 1;
+	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+
+	request.crypto_timeout = false;
+	status = cmd->process_request (cmd, &request);
+	CuAssertIntEquals (test, CMD_HANDLER_BAD_LENGTH, status);
+	CuAssertIntEquals (test, true, request.crypto_timeout);
+}
+
+void cerberus_protocol_optional_commands_testing_process_request_unseal_invalid_len (CuTest *test,
+	struct cmd_interface *cmd)
+{
+	struct cmd_interface_request request;
+	struct cerberus_protocol_message_unseal *req =
+		(struct cerberus_protocol_message_unseal*) request.data;
+	struct cerberus_protocol_unseal_pmrs sealing;
+	int status;
+
+	memset (sealing.pmr[0], 0, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[1], 1, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[2], 2, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[3], 3, sizeof (sealing.pmr[0]));
+	memset (sealing.pmr[4], 4, sizeof (sealing.pmr[0]));
+
+	memset (&request, 0, sizeof (request));
+	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req->header.command = CERBERUS_PROTOCOL_UNSEAL_MESSAGE;
+
+	req->hmac_type = CERBERUS_PROTOCOL_UNSEAL_HMAC_SHA256;
+	req->seed_type = CERBERUS_PROTOCOL_UNSEAL_SEED_RSA;
+	req->seed_length = KEY_SEED_ENCRYPT_OAEP_LEN;
+	memcpy (&req->seed, KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN);
+	cerberus_protocol_unseal_ciphertext_length (req) = CIPHER_TEXT_LEN;
+	memcpy (cerberus_protocol_unseal_ciphertext (req), CIPHER_TEXT, CIPHER_TEXT_LEN);
+	cerberus_protocol_unseal_hmac_length (req) = PAYLOAD_HMAC_LEN;
+	memcpy (cerberus_protocol_unseal_hmac (req), PAYLOAD_HMAC, PAYLOAD_HMAC_LEN);
+	memcpy ((uint8_t*) cerberus_protocol_get_unseal_pmr_sealing (req), &sealing, sizeof (sealing));
+	request.length = sizeof (struct cerberus_protocol_message_unseal) - 1;
+	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+
+	request.crypto_timeout = false;
+	status = cmd->process_request (cmd, &request);
+	CuAssertIntEquals (test, CMD_HANDLER_BAD_LENGTH, status);
+	CuAssertIntEquals (test, true, request.crypto_timeout);
+
+	request.length = (sizeof (struct cerberus_protocol_message_unseal) - 1) +
+		KEY_SEED_ENCRYPT_OAEP_LEN + 2 + CIPHER_TEXT_LEN + 2 + PAYLOAD_HMAC_LEN + sizeof (sealing) -
+		1;
+	request.crypto_timeout = false;
+	status = cmd->process_request (cmd, &request);
+	CuAssertIntEquals (test, CMD_HANDLER_BAD_LENGTH, status);
+	CuAssertIntEquals (test, true, request.crypto_timeout);
+
+	request.length = (sizeof (struct cerberus_protocol_message_unseal) - 1) +
+		KEY_SEED_ENCRYPT_OAEP_LEN + 2 + CIPHER_TEXT_LEN + 2 + PAYLOAD_HMAC_LEN + sizeof (sealing) +
+		1;
 	request.crypto_timeout = false;
 	status = cmd->process_request (cmd, &request);
 	CuAssertIntEquals (test, CMD_HANDLER_BAD_LENGTH, status);
@@ -4052,6 +4439,7 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_result_b
 	size_t max_buf_len = MCTP_PROTOCOL_MAX_MESSAGE_BODY -
 		sizeof (struct cerberus_protocol_message_unseal_result_completed_response) + 1;
 	uint32_t attestation_status = ATTESTATION_CMD_STATUS_RUNNING;
+	uint16_t key_len = 0;
 	int status;
 
 	memset (&request, 0, sizeof (request));
@@ -4067,6 +4455,7 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_result_b
 	status = mock_expect (&background->mock, background->base.unseal_result, background,
 		0, MOCK_ARG_NOT_NULL, MOCK_ARG_PTR_CONTAINS_TMP (&max_buf_len, sizeof (max_buf_len)),
 		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&background->mock, 1, &key_len, sizeof (key_len), -1);
 	status |= mock_expect_output (&background->mock, 2, &attestation_status,
 		sizeof (attestation_status), -1);
 
@@ -7219,7 +7608,7 @@ static void cerberus_protocol_optional_commands_test_message_unseal_format (CuTe
 {
 	uint8_t raw_buffer_req[] = {
 		0x7e,0x14,0x13,0x03,0x89,
-		0x01,
+		0x01,0x02,
 		0x48,0x00,
 		0x30,0x46,0x02,0x21,0x00,0x86,0x1d,0x0e,0x39,0x20,0xdc,0xae,0x77,0xcc,0xb0,0x33,
 		0x38,0xb7,0xd8,0x47,0xb9,0x7a,0x6b,0x65,0x3b,0xe2,0x72,0x52,0x8f,0x77,0x82,0x00,
@@ -7253,7 +7642,7 @@ static void cerberus_protocol_optional_commands_test_message_unseal_format (CuTe
 		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
 	};
 	struct cerberus_protocol_message_unseal *req;
-	struct cerberus_protocol_unseal_pmrs *pmrs;
+	const struct cerberus_protocol_unseal_pmrs *pmrs;
 
 	TEST_START;
 
@@ -7270,20 +7659,24 @@ static void cerberus_protocol_optional_commands_test_message_unseal_format (CuTe
 	CuAssertIntEquals (test, 0x00, req->reserved);
 	CuAssertIntEquals (test, 0x00, req->hmac_type);
 	CuAssertIntEquals (test, 0x01, req->seed_type);
+	CuAssertIntEquals (test, 0x00, req->seed_params.rsa.reserved);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_UNSEAL_RSA_OAEP_SHA256,
+		req->seed_params.rsa.padding);
+	CuAssertIntEquals (test, 0x02, req->seed_params.ecdh.reserved);
 	CuAssertIntEquals (test, 0x0048, req->seed_length);
-	CuAssertPtrEquals (test, &raw_buffer_req[8], &req->seed);
+	CuAssertPtrEquals (test, &raw_buffer_req[9], &req->seed);
 	CuAssertIntEquals (test, 0x0010, cerberus_protocol_unseal_ciphertext_length (req));
-	CuAssertPtrEquals (test, &raw_buffer_req[82], cerberus_protocol_unseal_ciphertext (req));
+	CuAssertPtrEquals (test, &raw_buffer_req[83], cerberus_protocol_unseal_ciphertext (req));
 	CuAssertIntEquals (test, 0x0020, cerberus_protocol_unseal_hmac_length (req));
-	CuAssertPtrEquals (test, &raw_buffer_req[100], cerberus_protocol_unseal_hmac (req));
+	CuAssertPtrEquals (test, &raw_buffer_req[101], cerberus_protocol_unseal_hmac (req));
 
 	pmrs = cerberus_protocol_get_unseal_pmr_sealing (req);
-	CuAssertPtrEquals (test, &raw_buffer_req[132], pmrs);
-	CuAssertPtrEquals (test, &raw_buffer_req[132], pmrs->pmr[0]);
-	CuAssertPtrEquals (test, &raw_buffer_req[196], pmrs->pmr[1]);
-	CuAssertPtrEquals (test, &raw_buffer_req[260], pmrs->pmr[2]);
-	CuAssertPtrEquals (test, &raw_buffer_req[324], pmrs->pmr[3]);
-	CuAssertPtrEquals (test, &raw_buffer_req[388], pmrs->pmr[4]);
+	CuAssertPtrEquals (test, &raw_buffer_req[133], (uint8_t*) pmrs);
+	CuAssertPtrEquals (test, &raw_buffer_req[133], (uint8_t*) pmrs->pmr[0]);
+	CuAssertPtrEquals (test, &raw_buffer_req[197], (uint8_t*) pmrs->pmr[1]);
+	CuAssertPtrEquals (test, &raw_buffer_req[261], (uint8_t*) pmrs->pmr[2]);
+	CuAssertPtrEquals (test, &raw_buffer_req[325], (uint8_t*) pmrs->pmr[3]);
+	CuAssertPtrEquals (test, &raw_buffer_req[389], (uint8_t*) pmrs->pmr[4]);
 
 	raw_buffer_req[5] = 0x21;
 	CuAssertIntEquals (test, 0x01, req->reserved);
@@ -7294,6 +7687,24 @@ static void cerberus_protocol_optional_commands_test_message_unseal_format (CuTe
 	CuAssertIntEquals (test, 0x01, req->reserved);
 	CuAssertIntEquals (test, 0x02, req->hmac_type);
 	CuAssertIntEquals (test, 0x01, req->seed_type);
+
+	raw_buffer_req[6] = 0x01;
+	CuAssertIntEquals (test, 0x00, req->seed_params.rsa.reserved);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_UNSEAL_RSA_OAEP_SHA1,
+		req->seed_params.rsa.padding);
+	CuAssertIntEquals (test, 0x01, req->seed_params.ecdh.reserved);
+
+	raw_buffer_req[6] = 0x11;
+	CuAssertIntEquals (test, 0x02, req->seed_params.rsa.reserved);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_UNSEAL_RSA_OAEP_SHA1,
+		req->seed_params.rsa.padding);
+	CuAssertIntEquals (test, 0x11, req->seed_params.ecdh.reserved);
+
+	raw_buffer_req[6] = 0x10;
+	CuAssertIntEquals (test, 0x02, req->seed_params.rsa.reserved);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_UNSEAL_RSA_PKCS15,
+		req->seed_params.rsa.padding);
+	CuAssertIntEquals (test, 0x10, req->seed_params.ecdh.reserved);
 }
 
 static void cerberus_protocol_optional_commands_test_message_unseal_result_format (CuTest *test)

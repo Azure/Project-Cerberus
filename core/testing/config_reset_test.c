@@ -12,6 +12,7 @@
 #include "mock/keystore_mock.h"
 #include "engines/x509_testing_engine.h"
 #include "engines/rsa_testing_engine.h"
+#include "engines/ecc_testing_engine.h"
 #include "riot_core_testing.h"
 #include "mock/recovery_image_manager_mock.h"
 
@@ -25,6 +26,7 @@ static const char *SUITE = "config_reset";
 struct config_reset_testing_keys {
 	X509_TESTING_ENGINE x509;				/**< X.509 engine for RIoT certificates. */
 	RSA_TESTING_ENGINE rsa;					/**< RSA engine for auxiliary attestation. */
+	ECC_TESTING_ENGINE ecc;					/**< ECC engine for auxiliary attestation. */
 	struct keystore_mock riot_keystore;		/**< Keystore for RIoT keys. */
 	struct riot_key_manager riot;			/**< RIoT keys. */
 	struct keystore_mock aux_keystore;		/**< Keystore for attestation keys. */
@@ -63,6 +65,9 @@ static void config_reset_testing_init_attestation_keys (CuTest *test,
 	status = RSA_TESTING_ENGINE_INIT (&keys->rsa);
 	CuAssertIntEquals (test, 0, status);
 
+	status = ECC_TESTING_ENGINE_INIT (&keys->ecc);
+	CuAssertIntEquals (test, 0, status);
+
 	status = keystore_mock_init (&keys->riot_keystore);
 	CuAssertIntEquals (test, 0, status);
 
@@ -80,7 +85,8 @@ static void config_reset_testing_init_attestation_keys (CuTest *test,
 		&keys->x509.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = aux_attestation_init (&keys->aux, &keys->aux_keystore.base, &keys->rsa.base);
+	status = aux_attestation_init (&keys->aux, &keys->aux_keystore.base, &keys->rsa.base,
+		&keys->riot, &keys->ecc.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_validate (&keys->riot_keystore.mock);
@@ -112,6 +118,7 @@ static void config_reset_testing_release_attestation_keys (CuTest *test,
 
 	X509_TESTING_ENGINE_RELEASE (&keys->x509);
 	RSA_TESTING_ENGINE_RELEASE (&keys->rsa);
+	ECC_TESTING_ENGINE_RELEASE (&keys->ecc);
 }
 
 

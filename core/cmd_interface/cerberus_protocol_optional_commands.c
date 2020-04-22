@@ -681,60 +681,56 @@ int cerberus_protocol_get_host_reset_status (struct host_control *host_0_ctrl,
  *
  * @param background Command background instance to utilize
  * @param request Unseal request to process
- * @param platform_pcr PCR to utilize for platform measurement
  *
  * @return 0 if processing completed successfully or an error code.
  */
 int cerberus_protocol_unseal_message (struct cmd_background *background,
-	struct cmd_interface_request *request, uint8_t platform_pcr)
+	struct cmd_interface_request *request)
 {
-	uint16_t seed_len;
-	uint16_t cipher_len;
-	uint16_t seed_offset;
-	uint16_t cipher_offset;
-	uint16_t hmac_offset;
-	uint16_t sealing_offset;
+	struct cerberus_protocol_message_unseal *rq =
+		(struct cerberus_protocol_message_unseal*) request->data;
+	uint8_t *end = request->data + request->length;
+	int status;
 
 	request->crypto_timeout = true;
 
-	if ((CERBERUS_PROTOCOL_MIN_MSG_LEN + sizeof (seed_len)) > request->length) {
+	if (request->length < sizeof (struct cerberus_protocol_message_unseal)) {
 		return CMD_HANDLER_BAD_LENGTH;
 	}
 
-	memcpy (&seed_len, &request->data[CERBERUS_PROTOCOL_MIN_MSG_LEN], sizeof (seed_len));
-	if (seed_len == 0) {
+	if ((rq->hmac_type != CERBERUS_PROTOCOL_UNSEAL_HMAC_SHA256) ||
+		(rq->seed_type > CERBERUS_PROTOCOL_UNSEAL_SEED_ECDH)) {
+		return CMD_HANDLER_OUT_OF_RANGE;
+	}
+
+	if ((rq->seed_type == CERBERUS_PROTOCOL_UNSEAL_SEED_RSA) &&
+		(rq->seed_params.rsa.padding > CERBERUS_PROTOCOL_UNSEAL_RSA_OAEP_SHA256)) {
+		return CMD_HANDLER_OUT_OF_RANGE;
+	}
+
+	if ((rq->seed_length == 0) || (cerberus_protocol_unseal_ciphertext_length_ptr (rq) >= end)) {
 		return CMD_HANDLER_BAD_LENGTH;
 	}
 
-	if ((CERBERUS_PROTOCOL_MIN_MSG_LEN + sizeof (seed_len) + seed_len + sizeof (cipher_len)) >
-		request->length) {
+	if ((cerberus_protocol_unseal_ciphertext_length (rq) == 0) ||
+		(cerberus_protocol_unseal_hmac_length_ptr (rq) >= end)) {
 		return CMD_HANDLER_BAD_LENGTH;
 	}
 
-	seed_offset = CERBERUS_PROTOCOL_MIN_MSG_LEN + sizeof (seed_len);
-
-	memcpy (&cipher_len, &request->data[seed_offset + seed_len], sizeof (cipher_len));
-	if (cipher_len == 0) {
+	if ((cerberus_protocol_unseal_hmac_length (rq) != SHA256_HASH_LENGTH) ||
+		((uint8_t*) cerberus_protocol_get_unseal_pmr_sealing (rq) >= end)) {
 		return CMD_HANDLER_BAD_LENGTH;
 	}
 
-	cipher_offset = seed_offset + seed_len + sizeof (cipher_len);
-	hmac_offset = cipher_offset + cipher_len;
-	sealing_offset = hmac_offset + SHA256_HASH_LENGTH;
-
-	if ((sealing_offset + 64) != request->length) {
+	if (((uint8_t*) cerberus_protocol_get_unseal_pmr_sealing (rq) +
+		sizeof (struct cerberus_protocol_unseal_pmrs)) != end) {
 		return CMD_HANDLER_BAD_LENGTH;
 	}
+
+	status = background->unseal_start (background, request->data, request->length);
 
 	request->length = 0;
-	if (background != NULL) {
-		return background->unseal_start (background, &request->data[seed_offset], seed_len,
-			&request->data[hmac_offset], &request->data[cipher_offset], cipher_len,
-			&request->data[sealing_offset], platform_pcr);
-	}
-	else {
-		return CMD_HANDLER_UNSUPPORTED_COMMAND;
-	}
+	return status;
 }
 
 /**

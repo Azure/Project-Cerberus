@@ -64,10 +64,29 @@ enum {
 	CERBERUS_PROTOCOL_UNSEAL_HMAC_SHA256 = 0				/**< Unseal HMAC using SHA-256 */
 };
 
+/**
+ * Identifier for the unsealing seed type.
+ */
 enum {
 	CERBERUS_PROTOCOL_UNSEAL_SEED_RSA = 0,					/**< Unseal seed is RSA encrypted */
-	CERBERUS_PROTOCOL_UNSEAL_SEED_ECC						/**< Unseal seed uses ECDH */
+	CERBERUS_PROTOCOL_UNSEAL_SEED_ECDH						/**< Unseal seed uses ECDH */
 };
+
+/**
+ * Identifier for unsealing RSA parameters.
+ */
+enum {
+	CERBERUS_PROTOCOL_UNSEAL_RSA_PKCS15 = 0,				/**< Seed is encrypted with PKCS 1.5 padding */
+	CERBERUS_PROTOCOL_UNSEAL_RSA_OAEP_SHA1,					/**< Seed is encrypted with OAEP-SHA1 padding */
+	CERBERUS_PROTOCOL_UNSEAL_RSA_OAEP_SHA256,				/**< Seed is encrypted with OAEP-SHA256 padding */
+};
+
+/**
+ * Maximum number of PMRs that can be used for unsealing.
+ *
+ *
+ */
+#define	CERBERUS_PROTOCOL_MAX_PMR			5
 
 
 #pragma pack(push, 1)
@@ -494,6 +513,15 @@ struct cerberus_protocol_message_unseal {
 	uint8_t seed_type:2;									/**< Type of seed used for unsealing */
 	uint8_t hmac_type:3;									/**< Type of HMAC used for unsealing */
 	uint8_t reserved:3;										/**< Unused */
+	union {
+		struct {
+			uint8_t padding:3;								/**< RSA encryption padding scheme */
+			uint8_t reserved:5;								/**< Unused */
+		} rsa;
+		struct {
+			uint8_t reserved;								/**< Unused. */
+		} ecdh;
+	} seed_params;											/**< Additional parameters for the seed */
 	uint16_t seed_length;									/**< Length of the unsealing seed */
 	uint8_t seed;											/**< First byte of the unsealing seed */
 };
@@ -502,7 +530,7 @@ struct cerberus_protocol_message_unseal {
  * PMRs used for unsealing a message.
  */
 struct cerberus_protocol_unseal_pmrs {
-	uint8_t pmr[5][64];										/**< PMRs used for sealing */
+	uint8_t pmr[CERBERUS_PROTOCOL_MAX_PMR][64];				/**< PMRs used for sealing */
 };
 
 /**
@@ -546,7 +574,7 @@ struct cerberus_protocol_unseal_pmrs {
  * struct cerberus_protocol_unseal_pmrs.
  */
 #define	cerberus_protocol_get_unseal_pmr_sealing(req) \
-	(struct cerberus_protocol_unseal_pmrs*) (cerberus_protocol_unseal_hmac (req) + cerberus_protocol_unseal_hmac_length (req))
+	((const struct cerberus_protocol_unseal_pmrs*) (cerberus_protocol_unseal_hmac (req) + cerberus_protocol_unseal_hmac_length (req)))
 
 /**
  * Cerberus protocol message unseal result request format
@@ -625,7 +653,7 @@ int cerberus_protocol_get_host_reset_status (struct host_control *host_0_ctrl,
 	struct host_control *host_1_ctrl, struct cmd_interface_request *request);
 
 int cerberus_protocol_unseal_message (struct cmd_background *background,
-	struct cmd_interface_request *request, uint8_t platform_pcr);
+	struct cmd_interface_request *request);
 int cerberus_protocol_unseal_message_result (struct cmd_background *background,
 	struct cmd_interface_request *request);
 

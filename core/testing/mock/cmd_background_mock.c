@@ -7,9 +7,8 @@
 #include "cmd_background_mock.h"
 
 
-static int cmd_background_mock_unseal_start (struct cmd_background *cmd, const uint8_t *seed,
-	size_t seed_length, const uint8_t *hmac, const uint8_t *ciphertext, size_t cipher_length,
-	const uint8_t *sealing, uint8_t platform_pcr)
+static int cmd_background_mock_unseal_start (struct cmd_background *cmd,
+	const uint8_t *unseal_request, size_t length)
 {
 	struct cmd_background_mock *mock = (struct cmd_background_mock*) cmd;
 
@@ -17,9 +16,8 @@ static int cmd_background_mock_unseal_start (struct cmd_background *cmd, const u
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, cmd_background_mock_unseal_start, cmd, MOCK_ARG_CALL (seed),
-		MOCK_ARG_CALL (seed_length), MOCK_ARG_CALL (hmac),  MOCK_ARG_CALL (ciphertext),
-		MOCK_ARG_CALL (cipher_length), MOCK_ARG_CALL (sealing), MOCK_ARG_CALL (platform_pcr));
+	MOCK_RETURN (&mock->mock, cmd_background_mock_unseal_start, cmd, MOCK_ARG_CALL (unseal_request),
+		MOCK_ARG_CALL (length));
 }
 
 static int cmd_background_mock_unseal_result (struct cmd_background *cmd, uint8_t *key,
@@ -114,11 +112,11 @@ static int cmd_background_mock_get_riot_cert_chain_state (struct cmd_background 
 
 static int cmd_background_mock_func_arg_count (void *func)
 {
-	if (func == cmd_background_mock_unseal_start) {
-		return 7;
-	}
-	else if (func == cmd_background_mock_unseal_result) {
+	if (func == cmd_background_mock_unseal_result) {
 		return 3;
+	}
+	else if (func == cmd_background_mock_unseal_start) {
+		return 2;
 	}
 	else {
 		return 0;
@@ -164,25 +162,10 @@ static const char* cmd_background_mock_arg_name_map (void *func, int arg)
 	if (func == cmd_background_mock_unseal_start) {
 		switch (arg) {
 			case 0:
-				return "seed";
+				return "unseal_request";
 
 			case 1:
-				return "seed_length";
-
-			case 2:
-				return "hmac";
-
-			case 3:
-				return "ciphertext";
-
-			case 4:
-				return "cipher_length";
-
-			case 5:
-				return "sealing";
-
-			case 6:
-				return "platform_pcr";
+				return "length";
 		}
 	}
 	else if (func == cmd_background_mock_unseal_result) {

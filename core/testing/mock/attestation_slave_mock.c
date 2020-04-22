@@ -46,9 +46,11 @@ static int attestation_slave_mock_challenge_response (struct attestation_slave *
 }
 
 static int attestation_slave_mock_aux_attestation_unseal (struct attestation_slave *attestation,
-	struct hash_engine *hash, const uint8_t *seed, size_t seed_length, const uint8_t *hmac,
-	const uint8_t *ciphertext, size_t cipher_length, const uint8_t *sealing, uint8_t *key,
-	size_t key_length, uint8_t platform_pcr)
+	struct hash_engine *hash, enum aux_attestation_key_length key_type, const uint8_t *seed,
+	size_t seed_length, enum aux_attestation_seed_type seed_type,
+	enum aux_attestation_seed_padding seed_padding, const uint8_t *hmac, enum hmac_hash hmac_type,
+	const uint8_t *ciphertext, size_t cipher_length, const uint8_t sealing[][64], size_t pcr_count,
+	uint8_t *key, size_t key_length)
 {
 	struct attestation_slave_mock *mock = (struct attestation_slave_mock*) attestation;
 
@@ -57,10 +59,11 @@ static int attestation_slave_mock_aux_attestation_unseal (struct attestation_sla
 	}
 
 	MOCK_RETURN (&mock->mock, attestation_slave_mock_aux_attestation_unseal, attestation,
-		MOCK_ARG_CALL (hash), MOCK_ARG_CALL (seed), MOCK_ARG_CALL (seed_length),
-		MOCK_ARG_CALL (hmac), MOCK_ARG_CALL (ciphertext), MOCK_ARG_CALL (cipher_length),
-		MOCK_ARG_CALL (sealing), MOCK_ARG_CALL (key), MOCK_ARG_CALL (key_length),
-		MOCK_ARG_CALL (platform_pcr));
+		MOCK_ARG_CALL (hash), MOCK_ARG_CALL (key_type), MOCK_ARG_CALL (seed),
+		MOCK_ARG_CALL (seed_length), MOCK_ARG_CALL (seed_type), MOCK_ARG_CALL (seed_padding),
+		MOCK_ARG_CALL (hmac), MOCK_ARG_CALL (hmac_type), MOCK_ARG_CALL (ciphertext),
+		MOCK_ARG_CALL (cipher_length), MOCK_ARG_CALL (sealing), MOCK_ARG_CALL (pcr_count),
+		MOCK_ARG_CALL (key), MOCK_ARG_CALL (key_length));
 }
 
 static int attestation_slave_mock_aux_decrypt (struct attestation_slave *attestation,
@@ -82,7 +85,7 @@ static int attestation_slave_mock_aux_decrypt (struct attestation_slave *attesta
 static int attestation_slave_mock_func_arg_count (void *func)
 {
 	if (func == attestation_slave_mock_aux_attestation_unseal) {
-		return 10;
+		return 14;
 	}
 	else if (func == attestation_slave_mock_aux_decrypt) {
 		return 7;
@@ -171,31 +174,43 @@ static const char* attestation_slave_mock_arg_name_map (void *func, int arg)
 				return "hash";
 
 			case 1:
-				return "seed";
+				return "key_type";
 
 			case 2:
-				return "seed_length";
+				return "seed";
 
 			case 3:
-				return "hmac";
+				return "seed_length";
 
 			case 4:
-				return "ciphertext";
+				return "seed_type";
 
 			case 5:
-				return "cipher_length";
+				return "seed_padding";
 
 			case 6:
-				return "sealing";
+				return "hmac";
 
 			case 7:
-				return "key";
+				return "hmac_type";
 
 			case 8:
-				return "key_length";
+				return "ciphertext";
 
 			case 9:
-				return "platform_pcr";
+				return "cipher_length";
+
+			case 10:
+				return "sealing";
+
+			case 11:
+				return "pcr_count";
+
+			case 12:
+				return "key";
+
+			case 13:
+				return "key_length";
 
 			default:
 				return "unknown";

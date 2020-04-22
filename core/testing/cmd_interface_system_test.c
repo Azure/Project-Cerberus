@@ -3854,7 +3854,7 @@ static void cmd_interface_system_test_process_get_capabilities_invalid_len (CuTe
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
-static void cmd_interface_system_test_process_request_unseal (CuTest *test)
+static void cmd_interface_system_test_process_request_unseal_rsa (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
 
@@ -3862,8 +3862,21 @@ static void cmd_interface_system_test_process_request_unseal (CuTest *test)
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, DEVICE_MANAGER_UPSTREAM);
-	cerberus_protocol_optional_commands_testing_process_request_unseal (test, &cmd.handler.base,
-		&cmd.background, 0);
+	cerberus_protocol_optional_commands_testing_process_request_unseal_rsa (test, &cmd.handler.base,
+		&cmd.background);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_request_unseal_ecc (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM);
+	cerberus_protocol_optional_commands_testing_process_request_unseal_rsa (test, &cmd.handler.base,
+		&cmd.background);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -3876,11 +3889,11 @@ static void cmd_interface_system_test_process_request_unseal_fail (CuTest *test)
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, DEVICE_MANAGER_UPSTREAM);
 	cerberus_protocol_optional_commands_testing_process_request_unseal_fail (test,
-		&cmd.handler.base, &cmd.background, 0);
+		&cmd.handler.base, &cmd.background);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
-static void cmd_interface_system_test_process_request_unseal_no_seed_len (CuTest *test)
+static void cmd_interface_system_test_process_request_unseal_invalid_hmac (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
 
@@ -3888,12 +3901,12 @@ static void cmd_interface_system_test_process_request_unseal_no_seed_len (CuTest
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, DEVICE_MANAGER_UPSTREAM);
-	cerberus_protocol_optional_commands_testing_process_request_unseal_no_seed_len (test,
+	cerberus_protocol_optional_commands_testing_process_request_unseal_invalid_hmac (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
-static void cmd_interface_system_test_process_request_unseal_no_cipher_len (CuTest *test)
+static void cmd_interface_system_test_process_request_unseal_invalid_seed (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
 
@@ -3901,12 +3914,12 @@ static void cmd_interface_system_test_process_request_unseal_no_cipher_len (CuTe
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, DEVICE_MANAGER_UPSTREAM);
-	cerberus_protocol_optional_commands_testing_process_request_unseal_no_cipher_len (test,
+	cerberus_protocol_optional_commands_testing_process_request_unseal_invalid_seed (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
-static void cmd_interface_system_test_process_request_unseal_incomplete_payload (CuTest *test)
+static void cmd_interface_system_test_process_request_unseal_rsa_invalid_padding (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
 
@@ -3914,7 +3927,111 @@ static void cmd_interface_system_test_process_request_unseal_incomplete_payload 
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, DEVICE_MANAGER_UPSTREAM);
-	cerberus_protocol_optional_commands_testing_process_request_unseal_incomplete_payload (test,
+	cerberus_protocol_optional_commands_testing_process_request_unseal_rsa_invalid_padding (test,
+		&cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_request_unseal_no_seed (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM);
+	cerberus_protocol_optional_commands_testing_process_request_unseal_no_seed (test,
+		&cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_request_unseal_incomplete_seed (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM);
+	cerberus_protocol_optional_commands_testing_process_request_unseal_incomplete_seed (test,
+		&cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_request_unseal_no_ciphertext (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM);
+	cerberus_protocol_optional_commands_testing_process_request_unseal_no_ciphertext (test,
+		&cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_request_unseal_incomplete_ciphertext (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM);
+	cerberus_protocol_optional_commands_testing_process_request_unseal_incomplete_ciphertext (test,
+		&cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_request_unseal_no_hmac (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM);
+	cerberus_protocol_optional_commands_testing_process_request_unseal_no_hmac (test,
+		&cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_request_unseal_bad_hmac_length (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM);
+	cerberus_protocol_optional_commands_testing_process_request_unseal_bad_hmac_length (test,
+		&cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_request_unseal_incomplete_hmac (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM);
+	cerberus_protocol_optional_commands_testing_process_request_unseal_incomplete_hmac (test,
+		&cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_request_unseal_invalid_len (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM);
+	cerberus_protocol_optional_commands_testing_process_request_unseal_invalid_len (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
@@ -6012,11 +6129,20 @@ CuSuite* get_cmd_interface_system_suite ()
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_capabilities);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_capabilities_invalid_device);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_capabilities_invalid_len);
-	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_request_unseal);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_request_unseal_rsa);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_request_unseal_ecc);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_request_unseal_fail);
-	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_request_unseal_no_seed_len);
-	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_request_unseal_no_cipher_len);
-	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_request_unseal_incomplete_payload);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_request_unseal_invalid_hmac);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_request_unseal_invalid_seed);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_request_unseal_rsa_invalid_padding);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_request_unseal_no_seed);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_request_unseal_incomplete_seed);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_request_unseal_no_ciphertext);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_request_unseal_incomplete_ciphertext);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_request_unseal_no_hmac);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_request_unseal_bad_hmac_length);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_request_unseal_incomplete_hmac);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_request_unseal_invalid_len);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_request_unseal_result);
 	SUITE_ADD_TEST (suite,
 		cmd_interface_system_test_process_request_unseal_result_limited_response);
@@ -6043,7 +6169,6 @@ CuSuite* get_cmd_interface_system_suite ()
 		cmd_interface_system_test_process_get_host_reset_status_reset_check_error);
 	SUITE_ADD_TEST (suite,
 		cmd_interface_system_test_process_get_host_reset_status_hold_check_error);
-	SUITE_ADD_TEST (suite, cmd_interface_system_test_issue_request_null);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_pcd_id);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_pcd_id_no_id_type);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_pcd_id_no_pcd);
@@ -6171,6 +6296,7 @@ CuSuite* get_cmd_interface_system_suite ()
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_reset_counter_invalid_len);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_reset_counter_invalid_counter);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_supports_all_required_commands);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_issue_request_null);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_issue_request_invalid_request);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_issue_get_device_capabilities);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_issue_get_device_capabilities_buf_too_small);

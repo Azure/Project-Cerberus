@@ -395,11 +395,11 @@ exit:
 
 /**
  * Get the RIoT Core device keys.  Updates to the RIoT keys will be blocked until the caller
- * indicates they are finished using them by calling {@link riot_key_manager_release_riot_keys}.
+ * indicates they are finished using them by calling riot_key_manager_release_riot_keys().
  *
  * @param riot The RIoT key manager to query.
  *
- * @return The RIoT keys or null.  If not null, {@link riot_key_manager_release_riot_keys} must be
+ * @return The RIoT keys or null.  If not null, riot_key_manager_release_riot_keys() must be
  * called after the keys are used.
  */
 const struct riot_keys* riot_key_manager_get_riot_keys (struct riot_key_manager *riot)
