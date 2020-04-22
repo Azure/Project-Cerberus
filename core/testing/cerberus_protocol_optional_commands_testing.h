@@ -201,16 +201,34 @@ void cerberus_protocol_optional_commands_testing_process_log_read_invalid_type (
 void cerberus_protocol_optional_commands_testing_process_log_read_invalid_len (CuTest *test,
 	struct cmd_interface *cmd);
 
-void cerberus_protocol_optional_commands_testing_process_request_unseal (CuTest *test,
-	struct cmd_interface *cmd, struct cmd_background_mock *background, int pcr);
+void cerberus_protocol_optional_commands_testing_process_request_unseal_rsa (CuTest *test,
+	struct cmd_interface *cmd, struct cmd_background_mock *background);
+void cerberus_protocol_optional_commands_testing_process_request_unseal_ecc (CuTest *test,
+	struct cmd_interface *cmd, struct cmd_background_mock *background);
 void cerberus_protocol_optional_commands_testing_process_request_unseal_fail (CuTest *test,
-	struct cmd_interface *cmd, struct cmd_background_mock *background, int pcr);
-void cerberus_protocol_optional_commands_testing_process_request_unseal_no_seed_len (CuTest *test,
+	struct cmd_interface *cmd, struct cmd_background_mock *background);
+void cerberus_protocol_optional_commands_testing_process_request_unseal_invalid_hmac (CuTest *test,
 	struct cmd_interface *cmd);
-void cerberus_protocol_optional_commands_testing_process_request_unseal_no_cipher_len (CuTest *test,
+void cerberus_protocol_optional_commands_testing_process_request_unseal_invalid_seed (CuTest *test,
 	struct cmd_interface *cmd);
-void cerberus_protocol_optional_commands_testing_process_request_unseal_incomplete_payload (
+void cerberus_protocol_optional_commands_testing_process_request_unseal_rsa_invalid_padding (
 	CuTest *test, struct cmd_interface *cmd);
+void cerberus_protocol_optional_commands_testing_process_request_unseal_no_seed (CuTest *test,
+	struct cmd_interface *cmd);
+void cerberus_protocol_optional_commands_testing_process_request_unseal_incomplete_seed (
+	CuTest *test, struct cmd_interface *cmd);
+void cerberus_protocol_optional_commands_testing_process_request_unseal_no_ciphertext (CuTest *test,
+	struct cmd_interface *cmd);
+void cerberus_protocol_optional_commands_testing_process_request_unseal_incomplete_ciphertext (
+	CuTest *test, struct cmd_interface *cmd);
+void cerberus_protocol_optional_commands_testing_process_request_unseal_no_hmac (CuTest *test,
+	struct cmd_interface *cmd);
+void cerberus_protocol_optional_commands_testing_process_request_unseal_bad_hmac_length (
+	CuTest *test, struct cmd_interface *cmd);
+void cerberus_protocol_optional_commands_testing_process_request_unseal_incomplete_hmac (
+	CuTest *test, struct cmd_interface *cmd);
+void cerberus_protocol_optional_commands_testing_process_request_unseal_invalid_len (CuTest *test,
+	struct cmd_interface *cmd);
 
 void cerberus_protocol_optional_commands_testing_process_request_unseal_result (CuTest *test,
 	struct cmd_interface *cmd, struct cmd_background_mock *background);

@@ -158,7 +158,7 @@ static int ecc_mock_compute_shared_secret (struct ecc_engine *engine,
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, ecc_mock_verify, engine, MOCK_ARG_CALL (priv_key),
+	MOCK_RETURN (&mock->mock, ecc_mock_compute_shared_secret, engine, MOCK_ARG_CALL (priv_key),
 		MOCK_ARG_CALL (pub_key), MOCK_ARG_CALL (secret), MOCK_ARG_CALL (length));
 }
 

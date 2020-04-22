@@ -226,46 +226,27 @@ cleanup:
 }
 
 static int attestation_aux_attestation_unseal (struct attestation_slave *attestation,
-	struct hash_engine *hash, const uint8_t *seed, size_t seed_length, const uint8_t *hmac,
-	const uint8_t *ciphertext, size_t cipher_length, const uint8_t *sealing, uint8_t *key,
-	size_t key_length, uint8_t platform_pcr)
+	struct hash_engine *hash, enum aux_attestation_key_length key_type, const uint8_t *seed,
+	size_t seed_length, enum aux_attestation_seed_type seed_type,
+	enum aux_attestation_seed_padding seed_padding, const uint8_t *hmac, enum hmac_hash hmac_type,
+	const uint8_t *ciphertext, size_t cipher_length, const uint8_t sealing[][64], size_t pcr_count,
+	uint8_t *key, size_t key_length)
 {
-	uint8_t measurement[PCR_DIGEST_LENGTH];
-	uint8_t *encryption_key = NULL;
-	size_t encryption_key_len = 0;
-	int status;
-
-	if ((attestation == NULL) || (key == NULL) || (key_length == 0) || (hash == NULL)) {
+	if (attestation == NULL) {
 		return ATTESTATION_INVALID_ARGUMENT;
 	}
 
-	status = pcr_store_compute (attestation->pcr_store, hash, platform_pcr, measurement);
-	if (ROT_IS_ERROR (status)) {
-		return status;
-	}
-
-	status = aux_attestation_unseal (attestation->aux, hash, seed, seed_length, hmac,
-		ciphertext, cipher_length, sealing, measurement, &encryption_key, &encryption_key_len);
-	if (status != 0) {
-		return status;
-	}
-
-	if (encryption_key_len > key_length) {
-		platform_free (encryption_key);
-		return ATTESTATION_BUF_TOO_SMALL;
-	}
-
-	memcpy (key, encryption_key, encryption_key_len);
-
-	platform_free (encryption_key);
-
-	return encryption_key_len;
+	return aux_attestation_unseal (attestation->aux, hash, attestation->pcr_store, key_type, seed,
+		seed_length, seed_type, seed_padding, hmac, hmac_type, ciphertext, cipher_length, sealing,
+		pcr_count, key, key_length);
 }
 
-static int attestation_aux_attestation_unseal_unsupported (
-	struct attestation_slave *attestation, struct hash_engine *hash, const uint8_t *seed,
-	size_t seed_length, const uint8_t *hmac, const uint8_t *ciphertext, size_t cipher_length,
-	const uint8_t *sealing, uint8_t *key, size_t key_length, uint8_t platform_pcr)
+static int attestation_aux_attestation_unseal_unsupported (struct attestation_slave *attestation,
+	struct hash_engine *hash, enum aux_attestation_key_length key_type, const uint8_t *seed,
+	size_t seed_length, enum aux_attestation_seed_type seed_type,
+	enum aux_attestation_seed_padding seed_padding, const uint8_t *hmac, enum hmac_hash hmac_type,
+	const uint8_t *ciphertext, size_t cipher_length, const uint8_t sealing[][64], size_t pcr_count,
+	uint8_t *key, size_t key_length)
 {
 	return ATTESTATION_UNSUPPORTED_OPERATION;
 }

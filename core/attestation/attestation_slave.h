@@ -59,23 +59,31 @@ struct attestation_slave {
 	 * Unseal an encryption key for auxiliary attestation flows.
 	 *
 	 * @param attestation The slave attestation manager interface to utilize.
-	 * @param hash Hashing engine to utilize.
-	 * @param seed The request seed encrypted with the attestation public key.
-	 * @param seed_length The length of the request seed.
-	 * @param hmac The HMAC for the attestation request. This is an HMAC-SHA256 value.
+	 * @param hash The hash engine to use for unsealing.
+	 * @param key_type The length of the encryption and signing keys that will be generated.
+	 * @param seed The obfuscated seed to use for key derivation.
+	 * @param seed_length The length of the obfuscated seed.
+	 * @param seed_type The method to use for determining the KDF seed.
+	 * @param seed_padding The type of padding used to encrypt the seed.  For ECDH seeds, this value
+	 * does not matter and can be anything.
+	 * @param hmac HMAC of the ciphertext and sealing data using the signing key.
+	 * @param hmac_type The type of HMAC used.
 	 * @param ciphertext The encrypted attestation data.
 	 * @param cipher_length Length of the encrypted data.
-	 * @param sealing A 64-byte sealing value for the attestation data.
+	 * @param sealing A list of 64-byte sealing values for the attestation data.
+	 * @param pcr_count The number of PCRs used for sealing.
 	 * @param key Output for the unsealed encryption key that will decrypt the attestation data.
-	 * @param key_length Length of the key buffer.
-	 * @param platform_pcr PCR to utilize for platform measurement.
+	 * @param key_length Length of the encryption key buffer.  This must be large enough to support
+	 * the requested key length.
 	 *
-	 * @return Encryption key length if the unsealing was successful or an error code.
+	 * @return 0 if the unsealing was successful or an error code.
 	 */
 	int (*aux_attestation_unseal) (struct attestation_slave *attestation, struct hash_engine *hash,
-		const uint8_t *seed, size_t seed_length, const uint8_t *hmac, const uint8_t *ciphertext,
-		size_t cipher_length, const uint8_t *sealing, uint8_t *key, size_t key_length,
-		uint8_t platform_pcr);
+		enum aux_attestation_key_length key_type, const uint8_t *seed, size_t seed_length,
+		enum aux_attestation_seed_type seed_type, enum aux_attestation_seed_padding seed_padding,
+		const uint8_t *hmac, enum hmac_hash hmac_type, const uint8_t *ciphertext,
+		size_t cipher_length, const uint8_t sealing[][64], size_t pcr_count, uint8_t *key,
+		size_t key_length);
 
 	/**
 	 * Decrypt a payload using the the auxiliary attestation key.

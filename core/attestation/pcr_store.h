@@ -53,10 +53,10 @@ struct pcr_store_tcg_log_entry {
 int pcr_store_init (struct pcr_store *store, uint8_t *num_pcr_measurements, size_t num_pcr);
 void pcr_store_release (struct pcr_store *store);
 
-int pcr_store_check_measurement_type(struct pcr_store *store, uint16_t measurement_type);
+int pcr_store_check_measurement_type (struct pcr_store *store, uint16_t measurement_type);
 int pcr_store_get_num_banks (struct pcr_store *store);
 
-int pcr_store_update_digest (struct pcr_store *store, uint16_t measurement_type, 
+int pcr_store_update_digest (struct pcr_store *store, uint16_t measurement_type,
 	const uint8_t *digest, size_t digest_len);
 int pcr_store_update_buffer (struct pcr_store *store, struct hash_engine *hash,
 	uint16_t measurement_type, const uint8_t *buf, size_t buf_len);
@@ -67,7 +67,7 @@ int pcr_store_get_measurement (struct pcr_store *store, uint16_t measurement_typ
 	struct pcr_measurement *measurement);
 int pcr_store_invalidate_measurement (struct pcr_store *store, uint16_t measurement_type);
 
-int pcr_store_get_tcg_log (struct pcr_store *store, struct hash_engine *hash, uint32_t offset, 
+int pcr_store_get_tcg_log (struct pcr_store *store, struct hash_engine *hash, uint32_t offset,
 	uint8_t *contents, size_t length);
 int pcr_store_get_tcg_log_size (struct pcr_store *store);
 

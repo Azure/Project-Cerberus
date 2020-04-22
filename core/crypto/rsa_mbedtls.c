@@ -301,6 +301,17 @@ static int rsa_mbedtls_decrypt (struct rsa_engine *engine, const struct rsa_priv
 		return RSA_ENGINE_UNSUPPORTED_HASH_TYPE;
 	}
 
+#ifndef MBEDTLS_SHA1_C
+	if (pad_hash == HASH_TYPE_SHA1) {
+		return RSA_ENGINE_UNSUPPORTED_HASH_TYPE;
+	}
+#endif
+#ifndef MBEDTLS_SHA256_C
+	if (pad_hash == HASH_TYPE_SHA256) {
+		return RSA_ENGINE_UNSUPPORTED_HASH_TYPE;
+	}
+#endif
+
 	if (pad_hash == HASH_TYPE_SHA256) {
 		mbedtls_rsa_set_padding (rsa_mbedtls_get_rsa_key (key), MBEDTLS_RSA_PKCS_V21,
 			MBEDTLS_MD_SHA256);

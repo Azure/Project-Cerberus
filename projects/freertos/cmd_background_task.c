@@ -7,6 +7,7 @@
 #include <limits.h>
 #include "cmd_interface/attestation_cmd_interface.h"
 #include "cmd_interface/cmd_logging.h"
+#include "cmd_interface/cerberus_protocol_optional_commands.h"
 #include "flash/flash_common.h"
 #include "logging/logging_flash.h"
 #include "cmd_background_task.h"
@@ -19,10 +20,6 @@
 #define	CMD_BACKGROUND_DEBUG_LOG_CLEAR	(1U << 3)
 #define	CMD_BACKGROUND_DEBUG_LOG_FILL	(1U << 4)
 #define	CMD_BACKGROUND_AUTH_RIOT		(1U << 5)
-
-#define CMD_BACKGROUND_PCR_NUM_SHIFT	(29)
-#define	CMD_BACKGROUND_PCR_NUM_MASK		(7U << CMD_BACKGROUND_PCR_NUM_SHIFT)
-
 
 
 /**
@@ -47,7 +44,6 @@ void cmd_background_task_set_status (struct cmd_background_task *task, int *op_s
 static void cmd_background_task_handler (struct cmd_background_task *task)
 {
 	uint32_t notification;
-	uint8_t pcr_num;
 	int *op_status;
 	int status;
 
@@ -58,26 +54,33 @@ static void cmd_background_task_handler (struct cmd_background_task *task)
 		xTaskNotifyWait (pdFALSE, ULONG_MAX, &notification, portMAX_DELAY);
 
 		if (notification & CMD_BACKGROUND_RUN_UNSEAL) {
+			struct cerberus_protocol_message_unseal *unseal =
+				(struct cerberus_protocol_message_unseal*) task->attestation.unseal_request;
+
 			op_status = &task->attestation.attestation_status;
-			pcr_num = (notification & CMD_BACKGROUND_PCR_NUM_MASK) >> 
-				CMD_BACKGROUND_PCR_NUM_SHIFT;
 
 			status = task->attestation.attestation->aux_attestation_unseal (
-				task->attestation.attestation, task->attestation.hash, task->attestation.seed, 
-				task->attestation.seed_length, task->attestation.hmac, 
-				task->attestation.ciphertext, task->attestation.cipher_length, 
-				task->attestation.sealing, task->attestation.key_buf, 
-				sizeof (task->attestation.key_buf), pcr_num);
+				task->attestation.attestation, task->attestation.hash, AUX_ATTESTATION_KEY_256BIT,
+				&unseal->seed, unseal->seed_length,
+				(enum aux_attestation_seed_type) unseal->seed_type,
+				(enum aux_attestation_seed_padding) unseal->seed_params.rsa.padding,
+				cerberus_protocol_unseal_hmac (unseal), HMAC_SHA256,
+				cerberus_protocol_unseal_ciphertext (unseal),
+				cerberus_protocol_unseal_ciphertext_length (unseal),
+				cerberus_protocol_get_unseal_pmr_sealing (unseal)->pmr, CERBERUS_PROTOCOL_MAX_PMR,
+				task->attestation.key, sizeof (task->attestation.key));
 			if (ROT_IS_ERROR (status)) {
-				debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, 
+				debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR,
 					DEBUG_LOG_COMPONENT_CMD_INTERFACE, CMD_LOGGING_UNSEAL_FAIL, status, 0);
 
 				status = CMD_BACKGROUND_STATUS (ATTESTATION_CMD_STATUS_FAILURE, status);
 			}
 			else {
-				task->attestation.key_len = status;
 				status = ATTESTATION_CMD_STATUS_SUCCESS;
 			}
+
+			platform_free (task->attestation.unseal_request);
+			task->attestation.unseal_request = NULL;
 		}
 		else if (notification & CMD_BACKGROUND_RUN_BYPASS) {
 			cmd_background_task_set_status (task, &task->config.config_status,
@@ -170,15 +173,13 @@ static void cmd_background_task_handler (struct cmd_background_task *task)
 	} while (1);
 }
 
-static int cmd_background_task_unseal_start (struct cmd_background *cmd, const uint8_t *seed,
-	size_t seed_length, const uint8_t *hmac, const uint8_t *ciphertext, size_t cipher_length,
-	const uint8_t *sealing, uint8_t platform_pcr)
+static int cmd_background_task_unseal_start (struct cmd_background *cmd,
+	const uint8_t *unseal_request, size_t length)
 {
 	struct cmd_background_task *task = (struct cmd_background_task*) cmd;
 	int status = 0;
 
-	if ((task == NULL) || (seed == NULL) || (hmac == NULL) || (ciphertext == NULL) ||
-		(sealing == NULL)) {
+	if ((task == NULL) || (unseal_request == NULL) || (length == 0)) {
 		return CMD_BACKGROUND_INVALID_ARGUMENT;
 	}
 
@@ -186,39 +187,41 @@ static int cmd_background_task_unseal_start (struct cmd_background *cmd, const u
 		return CMD_BACKGROUND_UNSUPPORTED_REQUEST;
 	}
 
-	if ((seed_length > sizeof (task->attestation.seed)) ||
-		(cipher_length > sizeof (task->attestation.ciphertext))) {
-		return CMD_BACKGROUND_INPUT_TOO_BIG;
-	}
-
 	if (task->task) {
 		xSemaphoreTake (task->lock, portMAX_DELAY);
 		if (!task->running) {
-			task->attestation.attestation_status = ATTESTATION_CMD_STATUS_RUNNING;
-			task->running = 1;
+			if (task->attestation.unseal_request != NULL) {
+				platform_free (task->attestation.unseal_request);
+			}
 
-			memcpy (task->attestation.seed, seed, seed_length);
-			memcpy (task->attestation.hmac, hmac, sizeof (task->attestation.hmac));
-			memcpy (task->attestation.ciphertext, ciphertext, cipher_length);
-			memcpy (task->attestation.sealing, sealing, sizeof (task->attestation.sealing));
+			task->attestation.unseal_request = platform_malloc (length);
+			if (task->attestation.unseal_request != NULL) {
+				task->attestation.attestation_status = ATTESTATION_CMD_STATUS_RUNNING;
+				task->running = 1;
 
-			task->attestation.seed_length = seed_length;
-			task->attestation.cipher_length = cipher_length;
+				memcpy (task->attestation.unseal_request, unseal_request, length);
 
-			xSemaphoreGive (task->lock);
-			xTaskNotify (task->task,
-				(CMD_BACKGROUND_RUN_UNSEAL | (platform_pcr << CMD_BACKGROUND_PCR_NUM_SHIFT)),
-				eSetBits);
+				xSemaphoreGive (task->lock);
+				xTaskNotify (task->task, CMD_BACKGROUND_RUN_UNSEAL, eSetBits);
+			}
+			else {
+				status = CMD_BACKGROUND_NO_MEMORY;
+				task->attestation.attestation_status =
+					CMD_BACKGROUND_STATUS (ATTESTATION_CMD_STATUS_FAILURE, status);
+				xSemaphoreGive (task->lock);
+			}
 		}
 		else {
-			task->attestation.attestation_status = ATTESTATION_CMD_STATUS_REQUEST_BLOCKED;
 			status = CMD_BACKGROUND_TASK_BUSY;
+			task->attestation.attestation_status =
+				CMD_BACKGROUND_STATUS (ATTESTATION_CMD_STATUS_REQUEST_BLOCKED, status);
 			xSemaphoreGive (task->lock);
 		}
 	}
 	else {
-		task->attestation.attestation_status = ATTESTATION_CMD_STATUS_TASK_NOT_RUNNING;
 		status = CMD_BACKGROUND_NO_TASK;
+		task->attestation.attestation_status =
+			CMD_BACKGROUND_STATUS (ATTESTATION_CMD_STATUS_TASK_NOT_RUNNING, status);
 	}
 
 	return status;
@@ -242,14 +245,18 @@ static int cmd_background_task_unseal_result (struct cmd_background *cmd, uint8_
 	*unseal_status = task->attestation.attestation_status;
 
 	if (task->attestation.attestation_status == ATTESTATION_CMD_STATUS_SUCCESS) {
-		if (*key_length < task->attestation.key_len) {
+		if (*key_length < sizeof (task->attestation.key)) {
 			xSemaphoreGive (task->lock);
 			return CMD_BACKGROUND_BUF_TOO_SMALL;
 		}
 		else {
-			memcpy (key, task->attestation.key_buf, task->attestation.key_len);
-			*key_length = task->attestation.key_len;
+			memcpy (key, task->attestation.key, sizeof (task->attestation.key));
+			*key_length = sizeof (task->attestation.key);
+			task->attestation.attestation_status = ATTESTATION_CMD_STATUS_NONE_STARTED;
 		}
+	}
+	else {
+		*key_length = 0;
 	}
 
 	xSemaphoreGive (task->lock);
@@ -279,14 +286,16 @@ static int cmd_background_task_reset_bypass (struct cmd_background *cmd)
 			xTaskNotify (task->task, CMD_BACKGROUND_RUN_BYPASS, eSetBits);
 		}
 		else {
-			task->config.config_status = CONFIG_RESET_STATUS_REQUEST_BLOCKED;
 			status = CMD_BACKGROUND_TASK_BUSY;
+			task->config.config_status =
+				CMD_BACKGROUND_STATUS (CONFIG_RESET_STATUS_REQUEST_BLOCKED, status);
 			xSemaphoreGive (task->lock);
 		}
 	}
 	else {
-		task->config.config_status = CONFIG_RESET_STATUS_TASK_NOT_RUNNING;
 		status = CMD_BACKGROUND_NO_TASK;
+		task->config.config_status =
+			CMD_BACKGROUND_STATUS (CONFIG_RESET_STATUS_TASK_NOT_RUNNING, status);
 	}
 
 	return status;
@@ -314,14 +323,16 @@ static int cmd_background_task_restore_defaults (struct cmd_background *cmd)
 			xTaskNotify (task->task, CMD_BACKGROUND_RUN_DEFAULTS, eSetBits);
 		}
 		else {
-			task->config.config_status = CONFIG_RESET_STATUS_REQUEST_BLOCKED;
 			status = CMD_BACKGROUND_TASK_BUSY;
+			task->config.config_status =
+				CMD_BACKGROUND_STATUS (CONFIG_RESET_STATUS_REQUEST_BLOCKED, status);
 			xSemaphoreGive (task->lock);
 		}
 	}
 	else {
-		task->config.config_status = CONFIG_RESET_STATUS_TASK_NOT_RUNNING;
 		status = CMD_BACKGROUND_NO_TASK;
+		task->config.config_status =
+			CMD_BACKGROUND_STATUS (CONFIG_RESET_STATUS_TASK_NOT_RUNNING, status);
 	}
 
 	return status;
@@ -412,8 +423,8 @@ int cmd_background_task_authenticate_riot_certs (struct cmd_background *cmd)
 		}
 		else {
 			status = CMD_BACKGROUND_TASK_BUSY;
-			task->config.config_status = CMD_BACKGROUND_STATUS (RIOT_CERT_STATE_CHAIN_INVALID,
-				status);
+			task->config.config_status =
+				CMD_BACKGROUND_STATUS (RIOT_CERT_STATE_CHAIN_INVALID, status);
 			xSemaphoreGive (task->lock);
 		}
 	}
@@ -452,8 +463,8 @@ int cmd_background_task_get_riot_cert_chain_state (struct cmd_background *cmd)
  *
  * @return 0 if the task was successfully initialized or an error code.
  */
-int cmd_background_task_init (struct cmd_background_task *task, 
-	struct attestation_slave *attestation, struct hash_engine *hash, struct config_reset *reset, 
+int cmd_background_task_init (struct cmd_background_task *task,
+	struct attestation_slave *attestation, struct hash_engine *hash, struct config_reset *reset,
 	struct riot_key_manager *riot)
 {
 	if (task == NULL) {
