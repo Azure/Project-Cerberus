@@ -20,14 +20,8 @@ struct cmd_background_attestation {
 	struct attestation_slave *attestation;			/**< Attestation manager to utilize for attestation operations. */
 	struct hash_engine *hash;						/**< Hash engine to be used in attestation operations. */
 	int attestation_status;							/**< The attestation operation status. */
-	uint8_t seed[512];								/**< The request seed encrypted with the attestation public key. */
-	size_t seed_length;								/**< The length of the request seed. */
-	uint8_t hmac[SHA256_HASH_LENGTH];				/**< The HMAC for the attestation request. This is an HMAC-SHA256 value. */
-	uint8_t ciphertext[255]; 						/**< The encrypted attestation data. */
-	size_t cipher_length;							/**< Length of the encrypted data. */
-	uint8_t sealing[64];							/**< A 64-byte sealing value for the attestation data. */
-	uint8_t key_buf[255];							/**< Buffer to hold unsealed encryption key. */
-	size_t key_len;									/**< Unsealed encryption key length. */
+	uint8_t *unseal_request;						/**< The current unseal request. */
+	uint8_t key[AUX_ATTESTATION_KEY_256BIT];		/**< Buffer for the unsealed key. */
 };
 
 /**
@@ -60,8 +54,8 @@ struct cmd_background_task {
 };
 
 
-int cmd_background_task_init (struct cmd_background_task *task, 
-	struct attestation_slave *attestation, struct hash_engine *hash, struct config_reset *reset, 
+int cmd_background_task_init (struct cmd_background_task *task,
+	struct attestation_slave *attestation, struct hash_engine *hash, struct config_reset *reset,
 	struct riot_key_manager *riot);
 int cmd_background_task_start (struct cmd_background_task *task);
 

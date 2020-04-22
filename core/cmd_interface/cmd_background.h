@@ -35,26 +35,21 @@ struct cmd_background {
 	 * Process an attestation payload to unseal the device encryption key.
 	 *
 	 * @param cmd The background context for executing the operation.
-	 * @param seed The request seed encrypted with the attestation public key.
-	 * @param seed_length The length of the request seed.
-	 * @param hmac The HMAC for the attestation request. This is an HMAC-SHA256 value.
-	 * @param ciphertext The encrypted attestation data.
-	 * @param cipher_length Length of the encrypted data.
-	 * @param sealing A 64-byte sealing value for the attestation data.
-	 * @param platform_pcr PCR to utilize as platform measurement.
+	 * @param unseal_request Buffer containing the complete unseal request to execute.  The request
+	 * should be validated for correctness before passing it here.
+	 * @param length Length of the unseal request.
 	 *
 	 * @return 0 if the action was successfully scheduled or an error code.
 	 */
-	int (*unseal_start) (struct cmd_background *cmd, const uint8_t *seed, size_t seed_length,
-		const uint8_t *hmac, const uint8_t *ciphertext, size_t cipher_length,
-		const uint8_t *sealing, uint8_t platform_pcr);
+	int (*unseal_start) (struct cmd_background *cmd, const uint8_t *unseal_request, size_t length);
 
 	/**
 	 * Get the result of the last unseal operation requested.
 	 *
 	 * @param cmd The background context for executing the operation.
 	 * @param key Output for the unsealed encryption key that will decrypt the attestation data.
-	 * @param key_length Length of the key buffer as input, then key length as output.
+	 * @param key_length Length of the key buffer as input, then key length as output.  This will be
+	 * 0 if the unseal operation has not successfully completed.
 	 * @param unseal_status Output buffer with the unsealing status.  The lower 8 bits will be the
 	 * status as per {@link enum attestation_cmd_status}.  The rest of the bits will be the return
 	 * code from the operation.

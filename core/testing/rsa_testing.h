@@ -95,6 +95,23 @@ extern const uint8_t RSA_SIGNATURE3_BAD[];
 #define	RSA_ENCRYPT_LEN		(2048 / 8)
 
 
+#if (RSA_MAX_KEY_LENGTH >= RSA_KEY_LENGTH_3K)
+extern const struct rsa_public_key RSA3K_PUBLIC_KEY;
+#endif
+
+extern const char RSA3K_PUBKEY_PEM[];
+extern const size_t RSA3K_PUBKEY_PEM_LEN;
+
+extern const uint8_t RSA3K_PUBKEY_DER[];
+extern const size_t RSA3K_PUBKEY_DER_LEN;
+
+extern const char RSA3K_PRIVKEY_PEM[];
+extern const size_t RSA3K_PRIVKEY_PEM_LEN;
+
+extern const uint8_t RSA3K_PRIVKEY_DER[];
+extern const size_t RSA3K_PRIVKEY_DER_LEN;
+
+
 #if (RSA_MAX_KEY_LENGTH >= RSA_KEY_LENGTH_4K)
 extern const struct rsa_public_key RSA4K_PUBLIC_KEY;
 #endif
