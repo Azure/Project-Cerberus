@@ -3499,6 +3499,19 @@ static void cmd_interface_system_test_process_get_certificate_digest_unsupported
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
+static void cmd_interface_system_test_process_get_certificate_digest_unsupported_slot (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM);
+	cerberus_protocol_required_commands_testing_process_get_certificate_digest_unsupported_slot (
+		test, &cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
 static void cmd_interface_system_test_process_get_certificate_digest_fail (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
@@ -6096,6 +6109,8 @@ CuSuite* get_cmd_interface_system_suite ()
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_certificate_digest_invalid_len);
 	SUITE_ADD_TEST (suite,
 		cmd_interface_system_test_process_get_certificate_digest_unsupported_algo);
+	SUITE_ADD_TEST (suite,
+		cmd_interface_system_test_process_get_certificate_digest_unsupported_slot);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_certificate_digest_fail);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_process_certificate_digest);
 	SUITE_ADD_TEST (suite,

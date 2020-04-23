@@ -88,7 +88,7 @@ int cerberus_protocol_issue_get_certificate_digest (struct attestation_master *a
 		return CMD_HANDLER_BUF_TOO_SMALL;
 	}
 
-	rq->reserved = 0;
+	rq->slot_num = 0;
 	rq->key_alg = attestation->encryption_algorithm;
 
 	return (sizeof (struct cerberus_protocol_digest_info));
