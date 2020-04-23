@@ -428,6 +428,32 @@ void cerberus_protocol_required_commands_testing_process_get_certificate_digest_
 	CuAssertIntEquals (test, true, request.crypto_timeout);
 }
 
+void cerberus_protocol_required_commands_testing_process_get_certificate_digest_unsupported_slot (
+	CuTest *test, struct cmd_interface *cmd)
+{
+	struct cmd_interface_request request;
+	struct cerberus_protocol_get_certificate_digest *req =
+		(struct cerberus_protocol_get_certificate_digest*) request.data;
+	int status;
+
+	memset (&request, 0, sizeof (request));
+	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req->header.command = CERBERUS_PROTOCOL_GET_DIGEST;
+
+	req->digest.slot_num = 1;
+	req->digest.key_alg = 1;
+	request.length = sizeof (struct cerberus_protocol_get_certificate_digest);
+	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+
+	request.crypto_timeout = false;
+	status = cmd->process_request (cmd, &request);
+	CuAssertIntEquals (test, CMD_HANDLER_UNSUPPORTED_INDEX, status);
+	CuAssertIntEquals (test, true, request.crypto_timeout);
+}
+
 void cerberus_protocol_required_commands_testing_process_get_certificate_digest_fail (CuTest *test,
 	struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation)
 {
@@ -2700,7 +2726,7 @@ static void cerberus_protocol_required_commands_test_get_digest_format (CuTest *
 	CuAssertIntEquals (test, 0x03, req->header.seq_num);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_DIGEST, req->header.command);
 
-	CuAssertIntEquals (test, 0x01, req->digest.reserved);
+	CuAssertIntEquals (test, 0x01, req->digest.slot_num);
 	CuAssertIntEquals (test, 0x02, req->digest.key_alg);
 
 	resp = (struct cerberus_protocol_get_certificate_digest_response*) raw_buffer_resp;

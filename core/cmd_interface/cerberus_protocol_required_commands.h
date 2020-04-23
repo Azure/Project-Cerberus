@@ -43,7 +43,7 @@ struct cerberus_protocol_device_capabilities_response {
  * Certificate digest requset descriptor
  */
 struct cerberus_protocol_digest_info {
-	uint8_t reserved;										/**< Reserved */
+	uint8_t slot_num;										/**< Slot number of target chain */
 	uint8_t key_alg;										/**< Key exchange algorithm */
 };
 
