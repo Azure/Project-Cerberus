@@ -304,7 +304,7 @@ void cerberus_protocol_master_commands_testing_process_process_certificate (CuTe
 	CuAssertIntEquals (test, 0, req->header.seq_num);
 	CuAssertIntEquals (test, 0, req->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_DIGEST, req->header.command);
-	CuAssertIntEquals (test, 0, req->digest.reserved);
+	CuAssertIntEquals (test, 0, req->digest.slot_num);
 	CuAssertIntEquals (test, ATTESTATION_ECDHE_KEY_EXCHANGE, req->digest.key_alg);
 	CuAssertIntEquals (test, true, request.new_request);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
@@ -543,7 +543,7 @@ void cerberus_protocol_master_commands_testing_issue_get_certificate_digest (CuT
 	CuAssertIntEquals (test, 0, req->header.seq_num);
 	CuAssertIntEquals (test, 0, req->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_DIGEST, req->header.command);
-	CuAssertIntEquals (test, 0, req->digest.reserved);
+	CuAssertIntEquals (test, 0, req->digest.slot_num);
 	CuAssertIntEquals (test, ATTESTATION_ECDHE_KEY_EXCHANGE, req->digest.key_alg);
 }
 

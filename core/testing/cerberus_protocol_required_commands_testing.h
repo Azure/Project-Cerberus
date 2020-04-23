@@ -44,6 +44,8 @@ void cerberus_protocol_required_commands_testing_process_get_certificate_digest_
 	CuTest *test, struct cmd_interface *cmd);
 void cerberus_protocol_required_commands_testing_process_get_certificate_digest_unsupported_algo (
 	CuTest *test, struct cmd_interface *cmd);
+void cerberus_protocol_required_commands_testing_process_get_certificate_digest_unsupported_slot (
+	CuTest *test, struct cmd_interface *cmd);
 void cerberus_protocol_required_commands_testing_process_get_certificate_digest_fail (CuTest *test,
 	struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation);
 

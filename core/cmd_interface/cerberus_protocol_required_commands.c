@@ -74,7 +74,7 @@ int cerberus_protocol_get_certificate_digest (struct attestation_slave *attestat
 		return CMD_HANDLER_BAD_LENGTH;
 	}
 
-	if (rq->digest.key_alg != ATTESTATION_ECDHE_KEY_EXCHANGE) {
+	if ((rq->digest.slot_num != 0) || (rq->digest.key_alg != ATTESTATION_ECDHE_KEY_EXCHANGE)) {
 		return CMD_HANDLER_UNSUPPORTED_INDEX;
 	}
 
