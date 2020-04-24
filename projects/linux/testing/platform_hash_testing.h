@@ -10,7 +10,7 @@
 
 #ifdef HASH_TESTING_USE_OPENSSL
 /* Configure the hash testing to use the OpenSSL. */
-#include "hash_openssl.h"
+#include "crypto/hash_openssl.h"
 #define	HASH_TESTING_ENGINE_NAME	openssl
 #endif
 
