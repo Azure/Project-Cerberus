@@ -10,7 +10,7 @@
 
 #ifdef X509_TESTING_USE_OPENSSL
 /* Configure the X.509 testing to use the OpenSSL. */
-#include "x509_openssl.h"
+#include "crypto/x509_openssl.h"
 #define	X509_TESTING_ENGINE_NAME	openssl
 #endif
 

@@ -10,7 +10,7 @@
 
 #ifdef ECC_TESTING_USE_OPENSSL
 /* Configure the ECC testing to use the OpenSSL. */
-#include "ecc_openssl.h"
+#include "crypto/ecc_openssl.h"
 #define	ECC_TESTING_ENGINE_NAME	openssl
 #endif
 
