@@ -10,7 +10,7 @@
 
 #ifdef RNG_TESTING_USE_OPENSSL
 /* Configure the RNG testing to use the OpenSSL. */
-#include "rng_openssl.h"
+#include "crypto/rng_openssl.h"
 #define	RNG_TESTING_ENGINE_NAME	openssl
 #endif
 

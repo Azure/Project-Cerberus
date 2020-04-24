@@ -10,7 +10,7 @@
 
 #ifdef BASE64_TESTING_USE_OPENSSL
 /* Configure the base64 testing to use the OpenSSL. */
-#include "base64_openssl.h"
+#include "crypto/base64_openssl.h"
 #define	BASE64_TESTING_ENGINE_NAME	openssl
 #endif
 
