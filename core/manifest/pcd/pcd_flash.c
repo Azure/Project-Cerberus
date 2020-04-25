@@ -30,7 +30,7 @@ static int pcd_flash_get_port_info (struct pcd *pcd, uint8_t port_id, struct pcd
 
 	flash_device = &pcd_flash->base_flash.flash->base;
 
-	status = flash_device->read (flash_device, pcd_flash->base_flash.addr, (uint8_t*) &header, 
+	status = flash_device->read (flash_device, pcd_flash->base_flash.addr, (uint8_t*) &header,
 		sizeof (header));
 	if (status != 0) {
 		return status;
@@ -40,13 +40,13 @@ static int pcd_flash_get_port_info (struct pcd *pcd, uint8_t port_id, struct pcd
 		return MANIFEST_BAD_MAGIC_NUMBER;
 	}
 
-	status = flash_device->read (flash_device, pcd_flash->base_flash.addr + 
+	status = flash_device->read (flash_device, pcd_flash->base_flash.addr +
 		sizeof (struct manifest_header), (uint8_t*) &pcd_header, sizeof (struct pcd_header));
 	if (status != 0) {
 		return status;
 	}
 
-	next_addr = pcd_flash->base_flash.addr + sizeof (struct manifest_header) + 
+	next_addr = pcd_flash->base_flash.addr + sizeof (struct manifest_header) +
 		pcd_header.header_len;
 	status = flash_device->read (flash_device, next_addr, (uint8_t*) &rot_header,
 		sizeof (struct pcd_rot_header));
@@ -90,7 +90,7 @@ static int pcd_flash_get_rot_info (struct pcd *pcd, struct pcd_rot_info *info)
 
 	flash_device = &pcd_flash->base_flash.flash->base;
 
-	status = flash_device->read (flash_device, pcd_flash->base_flash.addr, (uint8_t*) &header, 
+	status = flash_device->read (flash_device, pcd_flash->base_flash.addr, (uint8_t*) &header,
 		sizeof (header));
 	if (status != 0) {
 		return status;
@@ -100,13 +100,13 @@ static int pcd_flash_get_rot_info (struct pcd *pcd, struct pcd_rot_info *info)
 		return MANIFEST_BAD_MAGIC_NUMBER;
 	}
 
-	status = flash_device->read (flash_device, pcd_flash->base_flash.addr + 
+	status = flash_device->read (flash_device, pcd_flash->base_flash.addr +
 		sizeof (struct manifest_header), (uint8_t*) &pcd_header, sizeof (struct pcd_header));
 	if (status != 0) {
 		return status;
 	}
 
-	next_addr = pcd_flash->base_flash.addr + sizeof (struct manifest_header) + 
+	next_addr = pcd_flash->base_flash.addr + sizeof (struct manifest_header) +
 		pcd_header.header_len;
 	status = flash_device->read (flash_device, next_addr, (uint8_t*) &rot_header,
 		sizeof (struct pcd_rot_header));
@@ -121,7 +121,7 @@ static int pcd_flash_get_rot_info (struct pcd *pcd, struct pcd_rot_info *info)
 	return 0;
 }
 
-static int pcd_flash_get_devices_info (struct pcd *pcd, struct device_manager_info **devices, 
+static int pcd_flash_get_devices_info (struct pcd *pcd, struct device_manager_info **devices,
 	size_t *num_devices)
 {
 	struct pcd_flash *pcd_flash = (struct pcd_flash*) pcd;
@@ -148,7 +148,7 @@ static int pcd_flash_get_devices_info (struct pcd *pcd, struct device_manager_in
 
 	flash_device = &pcd_flash->base_flash.flash->base;
 
-	status = flash_device->read (flash_device, pcd_flash->base_flash.addr, (uint8_t*) &header, 
+	status = flash_device->read (flash_device, pcd_flash->base_flash.addr, (uint8_t*) &header,
 		sizeof (header));
 	if (status != 0) {
 		return status;
@@ -158,13 +158,13 @@ static int pcd_flash_get_devices_info (struct pcd *pcd, struct device_manager_in
 		return MANIFEST_BAD_MAGIC_NUMBER;
 	}
 
-	status = flash_device->read (flash_device, pcd_flash->base_flash.addr + 
+	status = flash_device->read (flash_device, pcd_flash->base_flash.addr +
 		sizeof (struct manifest_header), (uint8_t*) &pcd_header, sizeof (struct pcd_header));
 	if (status != 0) {
 		return status;
 	}
 
-	next_addr = pcd_flash->base_flash.addr + sizeof (struct manifest_header) + 
+	next_addr = pcd_flash->base_flash.addr + sizeof (struct manifest_header) +
 		pcd_header.header_len;
 	status = flash_device->read (flash_device, next_addr, (uint8_t*) &rot_header,
 		sizeof (struct pcd_rot_header));
@@ -179,7 +179,7 @@ static int pcd_flash_get_devices_info (struct pcd *pcd, struct device_manager_in
 		return status;
 	}
 
-	*devices = platform_calloc (components_header.num_components, 
+	*devices = platform_calloc (components_header.num_components,
 		sizeof (struct device_manager_info));
 
 	if (*devices == NULL) {
@@ -209,7 +209,7 @@ static int pcd_flash_get_devices_info (struct pcd *pcd, struct device_manager_in
 	return 0;
 }
 
-static int pcd_flash_get_platform_id (struct pcd *pcd, char **id)
+static int pcd_flash_get_platform_id (struct manifest *pcd, char **id)
 {
 	struct pcd_flash *pcd_flash = (struct pcd_flash*) pcd;
 	struct manifest_header header;
@@ -232,7 +232,7 @@ static int pcd_flash_get_platform_id (struct pcd *pcd, char **id)
 
 	flash_device = &pcd_flash->base_flash.flash->base;
 
-	status = flash_device->read (flash_device, pcd_flash->base_flash.addr, (uint8_t*) &header, 
+	status = flash_device->read (flash_device, pcd_flash->base_flash.addr, (uint8_t*) &header,
 		sizeof (header));
 	if (status != 0) {
 		return status;
@@ -242,13 +242,13 @@ static int pcd_flash_get_platform_id (struct pcd *pcd, char **id)
 		return MANIFEST_BAD_MAGIC_NUMBER;
 	}
 
-	status = flash_device->read (flash_device, pcd_flash->base_flash.addr + 
+	status = flash_device->read (flash_device, pcd_flash->base_flash.addr +
 		sizeof (struct manifest_header), (uint8_t*) &pcd_header, sizeof (struct pcd_header));
 	if (status != 0) {
 		return status;
 	}
 
-	next_addr = pcd_flash->base_flash.addr + sizeof (struct manifest_header) + 
+	next_addr = pcd_flash->base_flash.addr + sizeof (struct manifest_header) +
 		pcd_header.header_len;
 	status = flash_device->read (flash_device, next_addr, (uint8_t*) &rot_header,
 		sizeof (struct pcd_rot_header));
@@ -329,11 +329,11 @@ static int pcd_flash_verify (struct manifest *pcd, struct hash_engine *hash,
 	pcd_addr = pcd_flash->base_flash.addr + sizeof (struct manifest_header);
 
 	flash_device = &pcd_flash->base_flash.flash->base;
-	status = flash_device->read (flash_device, pcd_addr, (uint8_t*) &pcd_header, 
+	status = flash_device->read (flash_device, pcd_addr, (uint8_t*) &pcd_header,
 		sizeof (struct pcd_header));
 	if (status != 0) {
 		return status;
-	}	
+	}
 
 	if (pcd_len != pcd_header.length) {
 		return PCD_INVALID_SEG_LEN;
@@ -342,7 +342,7 @@ static int pcd_flash_verify (struct manifest *pcd, struct hash_engine *hash,
 	pcd_len -= pcd_header.header_len;
 	pcd_addr += pcd_header.header_len;
 
-	status = flash_device->read (flash_device, pcd_addr, (uint8_t*) &pcd_rot_header, 
+	status = flash_device->read (flash_device, pcd_addr, (uint8_t*) &pcd_rot_header,
 		sizeof (struct pcd_rot_header));
 	if (status != 0) {
 		return status;
@@ -356,7 +356,7 @@ static int pcd_flash_verify (struct manifest *pcd, struct hash_engine *hash,
 	pcd_addr += pcd_rot_header.header_len;
 
 	for (index = 0; index < pcd_rot_header.num_ports; ++index) {
-		status = flash_device->read (flash_device, pcd_addr, (uint8_t*) &pcd_port_header, 
+		status = flash_device->read (flash_device, pcd_addr, (uint8_t*) &pcd_port_header,
 			sizeof (struct pcd_port_header));
 		if (status != 0) {
 			return status;
@@ -369,10 +369,10 @@ static int pcd_flash_verify (struct manifest *pcd, struct hash_engine *hash,
 	if (pcd_rot_len != 0) {
 		return PCD_INVALID_SEG_LEN;
 	}
-	
+
 	pcd_len -= pcd_rot_header.length;
-	
-	status = flash_device->read (flash_device, pcd_addr, (uint8_t*) &pcd_components_header, 
+
+	status = flash_device->read (flash_device, pcd_addr, (uint8_t*) &pcd_components_header,
 		sizeof (struct pcd_components_header));
 	if (status != 0) {
 		return status;
@@ -386,7 +386,7 @@ static int pcd_flash_verify (struct manifest *pcd, struct hash_engine *hash,
 	pcd_components_len = pcd_components_header.length - pcd_components_header.header_len;
 
 	for (index = 0; index < pcd_components_header.num_components; ++index) {
-		status = flash_device->read (flash_device, pcd_addr, (uint8_t*) &pcd_component_header, 
+		status = flash_device->read (flash_device, pcd_addr, (uint8_t*) &pcd_component_header,
 			sizeof (struct pcd_component_header));
 		if (status != 0) {
 			return status;
@@ -398,9 +398,9 @@ static int pcd_flash_verify (struct manifest *pcd, struct hash_engine *hash,
 		}
 
 		pcd_addr += pcd_component_header.header_len;
-		
+
 		for (index2 = 0; index2 < pcd_component_header.num_muxes; ++index2) {
-			status = flash_device->read (flash_device, pcd_addr, (uint8_t*) &pcd_mux_header, 
+			status = flash_device->read (flash_device, pcd_addr, (uint8_t*) &pcd_mux_header,
 				sizeof (struct pcd_mux_header));
 			if (status != 0) {
 				return status;
@@ -423,7 +423,7 @@ static int pcd_flash_verify (struct manifest *pcd, struct hash_engine *hash,
 
 	pcd_len -= pcd_components_header.length;
 
-	status = flash_device->read (flash_device, pcd_addr, (uint8_t*) &pcd_platform_header, 
+	status = flash_device->read (flash_device, pcd_addr, (uint8_t*) &pcd_platform_header,
 		sizeof (struct pcd_platform_header));
 	if (status != 0) {
 		return status;
@@ -433,7 +433,7 @@ static int pcd_flash_verify (struct manifest *pcd, struct hash_engine *hash,
 		return PCD_INVALID_SEG_LEN;
 	}
 
-	if (pcd_platform_header.length != 
+	if (pcd_platform_header.length !=
 	   (pcd_platform_header.header_len + pcd_platform_header.id_len)) {
 		return PCD_INVALID_SEG_HDR_LEN;
 	}
@@ -487,7 +487,7 @@ static int pcd_flash_get_signature (struct manifest *pcd, uint8_t *signature, si
 int pcd_flash_init (struct pcd_flash *pcd, struct spi_flash *flash, uint32_t base_addr)
 {
 	int status;
-	
+
 	if ((pcd == NULL) || (flash == NULL)) {
 		return PCD_INVALID_ARGUMENT;
 	}
@@ -499,11 +499,11 @@ int pcd_flash_init (struct pcd_flash *pcd, struct spi_flash *flash, uint32_t bas
 		return status;
 	}
 
-	pcd->base.get_platform_id = pcd_flash_get_platform_id;
 	pcd->base.get_devices_info = pcd_flash_get_devices_info;
 	pcd->base.get_rot_info = pcd_flash_get_rot_info;
 	pcd->base.get_port_info = pcd_flash_get_port_info;
 
+	pcd->base.base.get_platform_id = pcd_flash_get_platform_id;
 	pcd->base.base.verify = pcd_flash_verify;
 	pcd->base.base.get_id = pcd_flash_get_id;
 	pcd->base.base.get_hash = pcd_flash_get_hash;

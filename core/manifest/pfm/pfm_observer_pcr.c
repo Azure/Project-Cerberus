@@ -21,12 +21,15 @@ static void pfm_observer_pcr_on_pfm_activated (struct pfm_observer *observer, st
  * @param observer The observer to initialize.
  * @param hash The hash engine to use for generating PCR measurements.
  * @param store The PCR store to update as the PFM changes.
- * @param measurement_type The identifier for the measurement in the PCR.
+ * @param manifest_measurement The identifier for the manifest measurement in the PCR.
+ * @param manifest_id_measurement The identifier for the manifest ID measurement in the PCR.
+ * @param platform_id_measurement The identifier for the manifest platform ID measurement in the PCR.
  *
  * @return 0 if the observer was successfully initialized or an error code.
  */
 int pfm_observer_pcr_init (struct pfm_observer_pcr *observer, struct hash_engine *hash,
-	struct pcr_store *store, uint16_t measurement_type)
+	struct pcr_store *store, uint16_t manifest_measurement, uint16_t manifest_id_measurement,
+	uint16_t platform_id_measurement)
 {
 	int status;
 
@@ -36,7 +39,8 @@ int pfm_observer_pcr_init (struct pfm_observer_pcr *observer, struct hash_engine
 
 	memset (observer, 0, sizeof (struct pfm_observer_pcr));
 
-	status = manifest_pcr_init (&observer->pcr, hash, store, measurement_type);
+	status = manifest_pcr_init (&observer->pcr, hash, store, manifest_measurement,
+		manifest_id_measurement, platform_id_measurement, PFM_OBSERVER_MEASUREMENTS_NOT_UNIQUE);
 	if (status != 0) {
 		return status;
 	}

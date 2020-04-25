@@ -41,6 +41,17 @@ struct manifest {
 	int (*get_id) (struct manifest *manifest, uint32_t *id);
 
 	/**
+	 * Get the string identifier of the platform for the manifest.
+	 *
+	 * @param manifest The manifest to query.
+	 * @param id Output for the platform identifier.  This will be dynamically allocated and must be
+	 * freed by the caller.  This will be null on error.
+	 *
+	 * @return 0 if the ID was retrieved successfully or an error code.
+	 */
+	int (*get_platform_id) (struct manifest *manifest, char **id);
+
+	/**
 	 * Get the SHA-256 hash of the manifest data, not including the signature.
 	 *
 	 * @param manifest The manifest to query.

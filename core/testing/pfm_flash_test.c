@@ -96,7 +96,6 @@ const uint8_t PFM_HASH[] = {
  */
 const uint32_t PFM_HASH_LEN = sizeof (PFM_HASH);
 
-
 /* Test PFM components. */
 
 /**
@@ -230,7 +229,7 @@ static void pfm_flash_test_init (CuTest *test)
 	CuAssertPtrNotNull (test, pfm.base.base.get_id);
 	CuAssertPtrNotNull (test, pfm.base.base.get_hash);
 	CuAssertPtrNotNull (test, pfm.base.base.get_signature);
-	CuAssertPtrNotNull (test, pfm.base.get_platform_id);
+	CuAssertPtrNotNull (test, pfm.base.base.get_platform_id);
 	CuAssertPtrNotNull (test, pfm.base.get_supported_versions);
 	CuAssertPtrNotNull (test, pfm.base.free_fw_versions);
 	CuAssertPtrNotNull (test, pfm.base.get_read_write_regions);
@@ -7890,7 +7889,7 @@ static void pfm_flash_test_get_platform_id (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm.base.get_platform_id (&pfm.base, &id);
+	status = pfm.base.base.get_platform_id (&pfm.base.base, &id);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, id);
 	CuAssertStrEquals (test, PFM_PLATFORM_ID, id);
@@ -7928,11 +7927,11 @@ static void pfm_flash_test_get_platform_id_null (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	id = (char*) &status;
-	status = pfm.base.get_platform_id (NULL, &id);
+	status = pfm.base.base.get_platform_id (NULL, &id);
 	CuAssertIntEquals (test, PFM_INVALID_ARGUMENT, status);
 	CuAssertPtrEquals (test, NULL, id);
 
-	status = pfm.base.get_platform_id (&pfm.base, NULL);
+	status = pfm.base.base.get_platform_id (&pfm.base.base, NULL);
 	CuAssertIntEquals (test, PFM_INVALID_ARGUMENT, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -7971,7 +7970,7 @@ static void pfm_flash_test_get_platform_id_header_read_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	id = (char*) &status;
-	status = pfm.base.get_platform_id (&pfm.base, &id);
+	status = pfm.base.base.get_platform_id (&pfm.base.base, &id);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 	CuAssertPtrEquals (test, NULL, id);
 
@@ -8016,7 +8015,7 @@ static void pfm_flash_test_get_platform_id_allowable_header_read_error (CuTest *
 	CuAssertIntEquals (test, 0, status);
 
 	id = (char*) &status;
-	status = pfm.base.get_platform_id (&pfm.base, &id);
+	status = pfm.base.base.get_platform_id (&pfm.base.base, &id);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 	CuAssertPtrEquals (test, NULL, id);
 
@@ -8067,7 +8066,7 @@ static void pfm_flash_test_get_platform_id_manifest_header_read_error (CuTest *t
 	CuAssertIntEquals (test, 0, status);
 
 	id = (char*) &status;
-	status = pfm.base.get_platform_id (&pfm.base, &id);
+	status = pfm.base.base.get_platform_id (&pfm.base.base, &id);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 	CuAssertPtrEquals (test, NULL, id);
 
@@ -8124,7 +8123,7 @@ static void pfm_flash_test_get_platform_id_platform_header_read_error (CuTest *t
 	CuAssertIntEquals (test, 0, status);
 
 	id = (char*) &status;
-	status = pfm.base.get_platform_id (&pfm.base, &id);
+	status = pfm.base.base.get_platform_id (&pfm.base.base, &id);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 	CuAssertPtrEquals (test, NULL, id);
 
@@ -8188,7 +8187,7 @@ static void pfm_flash_test_get_platform_id_identifier_read_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	id = (char*) &status;
-	status = pfm.base.get_platform_id (&pfm.base, &id);
+	status = pfm.base.base.get_platform_id (&pfm.base.base, &id);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 	CuAssertPtrEquals (test, NULL, id);
 
@@ -8234,7 +8233,7 @@ static void pfm_flash_test_get_platform_id_bad_magic_num (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	id = (char*) &status;
-	status = pfm.base.get_platform_id (&pfm.base, &id);
+	status = pfm.base.base.get_platform_id (&pfm.base.base, &id);
 	CuAssertIntEquals (test, MANIFEST_BAD_MAGIC_NUMBER, status);
 	CuAssertPtrEquals (test, NULL, id);
 

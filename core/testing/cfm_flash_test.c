@@ -184,6 +184,7 @@ static void cfm_flash_test_init (CuTest *test)
 
 	CuAssertPtrNotNull (test, cfm.base.base.verify);
 	CuAssertPtrNotNull (test, cfm.base.base.get_id);
+	CuAssertPtrNotNull (test, cfm.base.base.get_platform_id);
 	CuAssertPtrNotNull (test, cfm.base.base.get_hash);
 	CuAssertPtrNotNull (test, cfm.base.base.get_signature);
 	CuAssertPtrNotNull (test, cfm.base.get_supported_component_ids);
@@ -1934,6 +1935,76 @@ static void cfm_flash_test_get_component_bad_magic_number (CuTest *test)
 	spi_flash_release (&flash);
 }
 
+static void cfm_flash_test_get_platform_id (CuTest *test)
+{
+	struct flash_master_mock flash_mock;
+	struct spi_flash flash;
+	struct cfm_flash cfm;
+	int status;
+	char *id;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &flash_mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_flash_init (&cfm, &flash, 0x10000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm.base.base.get_platform_id (&cfm.base.base, &id);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertStrEquals (test, "", id);
+
+	platform_free (id);
+
+	status = flash_master_mock_validate_and_release (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	cfm_flash_release (&cfm);
+	spi_flash_release (&flash);
+}
+
+static void cfm_flash_test_get_platform_id_null (CuTest *test)
+{
+	struct flash_master_mock flash_mock;
+	struct spi_flash flash;
+	struct cfm_flash cfm;
+	int status;
+	char *id;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &flash_mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_flash_init (&cfm, &flash, 0x10000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm.base.base.get_platform_id (NULL, &id);
+	CuAssertIntEquals (test, CFM_INVALID_ARGUMENT, status);
+
+	status = cfm.base.base.get_platform_id (&cfm.base.base, NULL);
+	CuAssertIntEquals (test, CFM_INVALID_ARGUMENT, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	cfm_flash_release (&cfm);
+	spi_flash_release (&flash);
+}
+
 
 CuSuite* get_cfm_flash_suite ()
 {
@@ -1978,6 +2049,8 @@ CuSuite* get_cfm_flash_suite ()
 	SUITE_ADD_TEST (suite, cfm_flash_test_get_component_img_header_read_error);
 	SUITE_ADD_TEST (suite, cfm_flash_test_get_component_img_digest_read_error);
 	SUITE_ADD_TEST (suite, cfm_flash_test_get_component_bad_magic_number);
+	SUITE_ADD_TEST (suite, cfm_flash_test_get_platform_id);
+	SUITE_ADD_TEST (suite, cfm_flash_test_get_platform_id_null);
 
 	return suite;
 }

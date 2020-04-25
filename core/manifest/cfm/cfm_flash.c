@@ -35,6 +35,30 @@ static int cfm_flash_get_id (struct manifest *cfm, uint32_t *id)
 	return manifest_flash_get_id (&cfm_flash->base_flash, id);
 }
 
+static int cfm_flash_get_platform_id (struct manifest *cfm, char **id)
+{
+	char *curr_id = NULL;
+	struct cfm_flash *cfm_flash = (struct cfm_flash*) cfm;
+
+	if ((cfm_flash == NULL) || (id == NULL)) {
+		return CFM_INVALID_ARGUMENT;
+	}
+
+	curr_id = platform_malloc (2);
+	if (curr_id == NULL) {
+		return CFM_NO_MEMORY;
+	}
+
+	/* This is a just place holder as CFM currently do not include platform ID.  It should be
+	 * updated to return actual platform_id once CFM header is updated to include platform ID.
+	 */
+	strcpy (curr_id, "");
+
+	*id = curr_id;
+
+	return 0;
+}
+
 static int cfm_flash_get_hash (struct manifest *cfm, struct hash_engine *hash, uint8_t *hash_out,
 	size_t hash_length)
 {
@@ -391,6 +415,7 @@ int cfm_flash_init (struct cfm_flash *cfm, struct spi_flash *flash, uint32_t bas
 
 	cfm->base.base.verify = cfm_flash_verify;
 	cfm->base.base.get_id = cfm_flash_get_id;
+	cfm->base.base.get_platform_id = cfm_flash_get_platform_id;
 	cfm->base.base.get_hash = cfm_flash_get_hash;
 	cfm->base.base.get_signature = cfm_flash_get_signature;
 
