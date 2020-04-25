@@ -500,7 +500,7 @@ static void recovery_image_test_verify (CuTest *test)
 
 	status |= mock_expect (&manager.mock, manager.base.get_active_pfm, &manager, (intptr_t) &pfm);
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&pfm.mock, 0, &platform_id, sizeof (void *), -1);
 
 	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0, MOCK_ARG (&pfm));
@@ -577,7 +577,7 @@ static void recovery_image_test_verify_with_multiple_recovery_sections (CuTest *
 
 	status |= mock_expect (&manager.mock, manager.base.get_active_pfm, &manager, (intptr_t) &pfm);
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&pfm.mock, 0, &platform_id, sizeof (void *), -1);
 
 	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0, MOCK_ARG (&pfm));
@@ -674,7 +674,7 @@ static void recovery_image_test_verify_second_recovery_section_header_too_long (
 
 	status |= mock_expect (&manager.mock, manager.base.get_active_pfm, &manager, (intptr_t) &pfm);
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&pfm.mock, 0, &platform_id, sizeof (void *), -1);
 
 	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0, MOCK_ARG (&pfm));
@@ -760,7 +760,7 @@ static void recovery_image_test_verify_image_length_too_long (CuTest *test)
 
 	status |= mock_expect (&manager.mock, manager.base.get_active_pfm, &manager, (intptr_t) &pfm);
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&pfm.mock, 0, &platform_id, sizeof (void *), -1);
 
 	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0, MOCK_ARG (&pfm));
@@ -841,7 +841,7 @@ static void recovery_image_test_verify_image_length_too_short (CuTest *test)
 
 	status |= mock_expect (&manager.mock, manager.base.get_active_pfm, &manager, (intptr_t) &pfm);
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&pfm.mock, 0, &platform_id, sizeof (void *), -1);
 
 	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0, MOCK_ARG (&pfm));
@@ -920,7 +920,7 @@ static void recovery_image_test_verify_section_image_length_too_long (CuTest *te
 
 	status |= mock_expect (&manager.mock, manager.base.get_active_pfm, &manager, (intptr_t) &pfm);
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&pfm.mock, 0, &platform_id, sizeof (void *), -1);
 
 	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0, MOCK_ARG (&pfm));
@@ -999,7 +999,7 @@ static void recovery_image_test_verify_section_image_length_too_short (CuTest *t
 
 	status |= mock_expect (&manager.mock, manager.base.get_active_pfm, &manager, (intptr_t) &pfm);
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&pfm.mock, 0, &platform_id, sizeof (void *), -1);
 
 	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0, MOCK_ARG (&pfm));
@@ -1408,7 +1408,7 @@ static void recovery_image_test_verify_with_hash_out (CuTest *test)
 
 	status |= mock_expect (&manager.mock, manager.base.get_active_pfm, &manager, (intptr_t) &pfm);
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&pfm.mock, 0, &platform_id, sizeof (void *), -1);
 
 	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0, MOCK_ARG (&pfm));
@@ -1649,7 +1649,7 @@ static void recovery_image_test_verify_platform_id_mismatch (CuTest *test)
 
 	status |= mock_expect (&manager.mock, manager.base.get_active_pfm, &manager, (intptr_t) &pfm);
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&pfm.mock, 0, &platform_id, sizeof (void *), -1);
 
 	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0, MOCK_ARG (&pfm));
@@ -1713,7 +1713,7 @@ static void recovery_image_test_verify_recovery_section_header_length_too_short 
 
 	status |= mock_expect (&manager.mock, manager.base.get_active_pfm, &manager, (intptr_t) &pfm);
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&pfm.mock, 0, &platform_id, sizeof (void *), -1);
 
 	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0, MOCK_ARG (&pfm));
@@ -1784,7 +1784,7 @@ static void recovery_image_test_verify_recovery_section_header_length_too_long (
 
 	status |= mock_expect (&manager.mock, manager.base.get_active_pfm, &manager, (intptr_t) &pfm);
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&pfm.mock, 0, &platform_id, sizeof (void *), -1);
 
 	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0, MOCK_ARG (&pfm));
@@ -1859,7 +1859,7 @@ static void recovery_image_test_verify_no_recovery_section_image (CuTest *test)
 
 	status |= mock_expect (&manager.mock, manager.base.get_active_pfm, &manager, (intptr_t) &pfm);
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&pfm.mock, 0, &platform_id, sizeof (void *), -1);
 
 	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0, MOCK_ARG (&pfm));
@@ -2078,7 +2078,7 @@ static void recovery_image_test_verify_section_address_overlap (CuTest *test)
 
 	status |= mock_expect (&manager.mock, manager.base.get_active_pfm, &manager, (intptr_t) &pfm);
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&pfm.mock, 0, &platform_id, sizeof (void *), -1);
 
 	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0, MOCK_ARG (&pfm));
@@ -2262,7 +2262,7 @@ static void recovery_image_test_get_hash_after_verify (CuTest *test)
 
 	status |= mock_expect (&manager.mock, manager.base.get_active_pfm, &manager, (intptr_t) &pfm);
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&pfm.mock, 0, &platform_id, sizeof (void *), -1);
 
 	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0, MOCK_ARG (&pfm));
@@ -2347,7 +2347,7 @@ static void recovery_image_test_get_hash_after_verify_error (CuTest *test)
 
 	status |= mock_expect (&manager.mock, manager.base.get_active_pfm, &manager, (intptr_t) &pfm);
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&pfm.mock, 0, &platform_id, sizeof (void *), -1);
 
 	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0, MOCK_ARG (&pfm));
@@ -2567,7 +2567,7 @@ static void recovery_image_test_get_hash_after_verify_sig_read_error (CuTest *te
 
 	status |= mock_expect (&manager.mock, manager.base.get_active_pfm, &manager, (intptr_t) &pfm);
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&pfm.mock, 0, &platform_id, sizeof (void *), -1);
 
 	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0, MOCK_ARG (&pfm));

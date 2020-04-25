@@ -56,7 +56,7 @@ static int pfm_mock_get_signature (struct manifest *pfm, uint8_t *signature, siz
 		MOCK_ARG_CALL (length));
 }
 
-static int pfm_mock_get_platform_id (struct pfm *pfm, char **id)
+static int pfm_mock_get_platform_id (struct manifest *pfm, char **id)
 {
 	struct pfm_mock *mock = (struct pfm_mock*) pfm;
 
@@ -324,8 +324,8 @@ int pfm_mock_init (struct pfm_mock *mock)
 	mock->base.base.get_id = pfm_mock_get_id;
 	mock->base.base.get_hash = pfm_mock_get_hash;
 	mock->base.base.get_signature = pfm_mock_get_signature;
+	mock->base.base.get_platform_id = pfm_mock_get_platform_id;
 
-	mock->base.get_platform_id = pfm_mock_get_platform_id;
 	mock->base.get_supported_versions = pfm_mock_get_supported_versions;
 	mock->base.free_fw_versions = pfm_mock_free_fw_versions;
 	mock->base.get_read_write_regions = pfm_mock_get_read_write_regions;

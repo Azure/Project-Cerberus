@@ -31,6 +31,8 @@ enum {
 	MANIFEST_LOGGING_PCD_ACTIVATED_EVENT_FAIL,		/**< Failed PCD activation notification. */
 	MANIFEST_LOGGING_PCD_RECORD_INVALID,			/**< Invalid call to force PCD measurements. */
 	MANIFEST_LOGGING_EMPTY_PFM,						/**< An empty PFM caused manifests to be cleared. */
+	MANIFEST_LOGGING_GET_ID_FAIL,					/**< Failed to get manifest ID for measurement. */
+	MANIFEST_LOGGING_GET_PLATFORM_ID_FAIL,			/**< Failed to get manifest platform ID for measurement. */
 };
 
 

@@ -32,7 +32,7 @@ static int recovery_image_check_platform_id (struct pfm_manager *pfm,
 		return 0;
 	}
 
-	status = manifest->get_platform_id (manifest, &pfm_id);
+	status = manifest->base.get_platform_id (&manifest->base, &pfm_id);
 	if (status != 0) {
 		goto err_free_pfm;
 	}

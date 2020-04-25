@@ -19,7 +19,8 @@ struct pcd_observer_pcr {
 
 
 int pcd_observer_pcr_init (struct pcd_observer_pcr *observer, struct hash_engine *hash,
-	struct pcr_store *store, uint16_t measurement_type);
+	struct pcr_store *store, uint16_t manifest_measurement, uint16_t manifest_id_measurement,
+	uint16_t platform_id_measurement);
 void pcd_observer_pcr_release (struct pcd_observer_pcr *observer);
 
 void pcd_observer_pcr_record_measurement (struct pcd_observer_pcr *observer,
