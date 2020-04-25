@@ -150,9 +150,9 @@ static int pfm_manager_flash_check_pending_platform_id (struct manifest_manager_
 		active_pfm = (struct pfm_flash*) active->manifest;
 		pending_pfm = (struct pfm_flash*) pending->manifest;
 
-		status = active_pfm->base.get_platform_id (&active_pfm->base, &active_id);
+		status = active_pfm->base.base.get_platform_id (&active_pfm->base.base, &active_id);
 		if (status == 0) {
-			status = pending_pfm->base.get_platform_id (&pending_pfm->base, &pending_id);
+			status = pending_pfm->base.base.get_platform_id (&pending_pfm->base.base, &pending_id);
 		}
 
 		if (status == 0) {

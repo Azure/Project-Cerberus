@@ -43,11 +43,11 @@ static void pcd_flash_test_init (CuTest *test)
 	status = pcd_flash_init (&pcd, &flash, 0x10000);
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertPtrNotNull (test, pcd.base.get_platform_id);
 	CuAssertPtrNotNull (test, pcd.base.get_devices_info);
 	CuAssertPtrNotNull (test, pcd.base.get_rot_info);
 	CuAssertPtrNotNull (test, pcd.base.get_port_info);
 	CuAssertPtrNotNull (test, pcd.base.base.verify);
+	CuAssertPtrNotNull (test, pcd.base.base.get_platform_id);
 	CuAssertPtrNotNull (test, pcd.base.base.get_id);
 	CuAssertPtrNotNull (test, pcd.base.base.get_hash);
 	CuAssertPtrNotNull (test, pcd.base.base.get_signature);
@@ -186,7 +186,7 @@ static void pcd_flash_test_verify (CuTest *test)
 
 	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA,
 		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
@@ -203,87 +203,87 @@ static void pcd_flash_test_verify (CuTest *test)
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA,
 		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 
 	pcd_offset = PCD_HEADER_SIZE;
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_header)));
 
 	pcd_offset += sizeof (struct pcd_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_rot_header)));
 
 	pcd_offset += sizeof (struct pcd_rot_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_port_header)));
 
 	pcd_offset += sizeof (struct pcd_port_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_port_header)));
 
 	pcd_offset += sizeof (struct pcd_port_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_components_header)));
 
 	pcd_offset += sizeof (struct pcd_components_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_component_header)));
 
 	pcd_offset += sizeof (struct pcd_component_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_component_header)));
 
 	pcd_offset += sizeof (struct pcd_component_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_mux_header)));
 
 	pcd_offset += sizeof (struct pcd_mux_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_mux_header)));
 
 	pcd_offset += sizeof (struct pcd_mux_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_platform_header)));
 	CuAssertIntEquals (test, 0, status);
 
@@ -387,7 +387,7 @@ static void pcd_flash_test_verify_read_manifest_header_fail (CuTest *test)
 
 	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA,
 		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
@@ -404,7 +404,7 @@ static void pcd_flash_test_verify_read_manifest_header_fail (CuTest *test)
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, FLASH_NO_MEMORY, pcd_bad_data, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, FLASH_NO_MEMORY, pcd_bad_data,
 		sizeof (pcd_bad_data), FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 	CuAssertIntEquals (test, 0, status);
 
@@ -454,7 +454,7 @@ static void pcd_flash_test_verify_read_header_fail (CuTest *test)
 
 	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA,
 		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
@@ -471,7 +471,7 @@ static void pcd_flash_test_verify_read_header_fail (CuTest *test)
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA,
 		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, FLASH_NO_MEMORY, &WIP_STATUS, 1,
@@ -525,7 +525,7 @@ static void pcd_flash_test_verify_read_rot_header_fail (CuTest *test)
 
 	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA,
 		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
@@ -542,15 +542,15 @@ static void pcd_flash_test_verify_read_rot_header_fail (CuTest *test)
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA,
 		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 
 	pcd_offset = PCD_HEADER_SIZE;
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_header)));
 
 	pcd_offset += sizeof (struct pcd_header);
@@ -606,7 +606,7 @@ static void pcd_flash_test_verify_read_port_header_fail (CuTest *test)
 
 	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA,
 		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
@@ -623,23 +623,23 @@ static void pcd_flash_test_verify_read_port_header_fail (CuTest *test)
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA,
 		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 
 	pcd_offset = PCD_HEADER_SIZE;
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_header)));
 
 	pcd_offset += sizeof (struct pcd_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_rot_header)));
 
 	pcd_offset += sizeof (struct pcd_rot_header);
@@ -695,7 +695,7 @@ static void pcd_flash_test_verify_read_components_header_fail (CuTest *test)
 
 	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA,
 		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
@@ -712,39 +712,39 @@ static void pcd_flash_test_verify_read_components_header_fail (CuTest *test)
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA,
 		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 
 	pcd_offset = PCD_HEADER_SIZE;
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_header)));
 
 	pcd_offset += sizeof (struct pcd_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_rot_header)));
 
 	pcd_offset += sizeof (struct pcd_rot_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_port_header)));
 
 	pcd_offset += sizeof (struct pcd_port_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_port_header)));
 
 	pcd_offset += sizeof (struct pcd_port_header);
@@ -800,7 +800,7 @@ static void pcd_flash_test_verify_read_component_header_fail (CuTest *test)
 
 	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA,
 		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
@@ -817,47 +817,47 @@ static void pcd_flash_test_verify_read_component_header_fail (CuTest *test)
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA,
 		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 
 	pcd_offset = PCD_HEADER_SIZE;
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_header)));
 
 	pcd_offset += sizeof (struct pcd_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_rot_header)));
 
 	pcd_offset += sizeof (struct pcd_rot_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_port_header)));
 
 	pcd_offset += sizeof (struct pcd_port_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_port_header)));
 
 	pcd_offset += sizeof (struct pcd_port_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_components_header)));
 
 	pcd_offset += sizeof (struct pcd_components_header);
@@ -913,7 +913,7 @@ static void pcd_flash_test_verify_read_mux_header_fail (CuTest *test)
 
 	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA,
 		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
@@ -930,63 +930,63 @@ static void pcd_flash_test_verify_read_mux_header_fail (CuTest *test)
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA,
 		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 
 	pcd_offset = PCD_HEADER_SIZE;
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_header)));
 
 	pcd_offset += sizeof (struct pcd_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_rot_header)));
 
 	pcd_offset += sizeof (struct pcd_rot_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_port_header)));
 
 	pcd_offset += sizeof (struct pcd_port_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_port_header)));
 
 	pcd_offset += sizeof (struct pcd_port_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_components_header)));
 
 	pcd_offset += sizeof (struct pcd_components_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_component_header)));
 
 	pcd_offset += sizeof (struct pcd_component_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_component_header)));
 
 	pcd_offset += sizeof (struct pcd_component_header);
@@ -1042,7 +1042,7 @@ static void pcd_flash_test_verify_read_platform_header_fail (CuTest *test)
 
 	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA,
 		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
@@ -1059,79 +1059,79 @@ static void pcd_flash_test_verify_read_platform_header_fail (CuTest *test)
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA,
 		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 
 	pcd_offset = PCD_HEADER_SIZE;
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_header)));
 
 	pcd_offset += sizeof (struct pcd_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_rot_header)));
 
 	pcd_offset += sizeof (struct pcd_rot_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_port_header)));
 
 	pcd_offset += sizeof (struct pcd_port_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_port_header)));
 
 	pcd_offset += sizeof (struct pcd_port_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_components_header)));
 
 	pcd_offset += sizeof (struct pcd_components_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_component_header)));
 
 	pcd_offset += sizeof (struct pcd_component_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_component_header)));
 
 	pcd_offset += sizeof (struct pcd_component_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_mux_header)));
 
 	pcd_offset += sizeof (struct pcd_mux_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_mux_header)));
 
 	pcd_offset += sizeof (struct pcd_mux_header);
@@ -1167,7 +1167,7 @@ static void pcd_flash_test_verify_pcd_header_different (CuTest *test)
 	int status;
 
 	TEST_START;
-	
+
 	memcpy (&pcd_header, PCD_DATA + PCD_HEADER_SIZE, sizeof (struct pcd_header));
 	pcd_header.length += 1;
 
@@ -1191,7 +1191,7 @@ static void pcd_flash_test_verify_pcd_header_different (CuTest *test)
 
 	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA,
 		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
@@ -1208,87 +1208,87 @@ static void pcd_flash_test_verify_pcd_header_different (CuTest *test)
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA,
 		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 
 	pcd_offset = PCD_HEADER_SIZE;
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_header)));
 
 	pcd_offset += sizeof (struct pcd_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_rot_header)));
 
 	pcd_offset += sizeof (struct pcd_rot_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_port_header)));
 
 	pcd_offset += sizeof (struct pcd_port_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_port_header)));
 
 	pcd_offset += sizeof (struct pcd_port_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_components_header)));
 
 	pcd_offset += sizeof (struct pcd_components_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_component_header)));
 
 	pcd_offset += sizeof (struct pcd_component_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_component_header)));
 
 	pcd_offset += sizeof (struct pcd_component_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_mux_header)));
 
 	pcd_offset += sizeof (struct pcd_mux_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_mux_header)));
 
 	pcd_offset += sizeof (struct pcd_mux_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_platform_header)));
 
 	CuAssertIntEquals (test, 0, status);
@@ -1344,7 +1344,7 @@ static void pcd_flash_test_verify_pcd_header_header_different (CuTest *test)
 
 	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA,
 		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
@@ -1361,87 +1361,87 @@ static void pcd_flash_test_verify_pcd_header_header_different (CuTest *test)
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA,
 		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 
 	pcd_offset = PCD_HEADER_SIZE;
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_header)));
 
 	pcd_offset += sizeof (struct pcd_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_rot_header)));
 
 	pcd_offset += sizeof (struct pcd_rot_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_port_header)));
 
 	pcd_offset += sizeof (struct pcd_port_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_port_header)));
 
 	pcd_offset += sizeof (struct pcd_port_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_components_header)));
 
 	pcd_offset += sizeof (struct pcd_components_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_component_header)));
 
 	pcd_offset += sizeof (struct pcd_component_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_component_header)));
 
 	pcd_offset += sizeof (struct pcd_component_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_mux_header)));
 
 	pcd_offset += sizeof (struct pcd_mux_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_mux_header)));
 
 	pcd_offset += sizeof (struct pcd_mux_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_platform_header)));
 
 	CuAssertIntEquals (test, 0, status);
@@ -1474,7 +1474,7 @@ static void pcd_flash_test_verify_pcd_rot_too_big (CuTest *test)
 
 	TEST_START;
 
-	memcpy (&pcd_rot_header, PCD_DATA + PCD_HEADER_SIZE + sizeof (struct pcd_header), 
+	memcpy (&pcd_rot_header, PCD_DATA + PCD_HEADER_SIZE + sizeof (struct pcd_header),
 		sizeof (struct pcd_rot_header));
 	pcd_rot_header.length = PCD_DATA_LEN;
 
@@ -1498,7 +1498,7 @@ static void pcd_flash_test_verify_pcd_rot_too_big (CuTest *test)
 
 	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA,
 		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
@@ -1515,23 +1515,23 @@ static void pcd_flash_test_verify_pcd_rot_too_big (CuTest *test)
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA,
 		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 
 	pcd_offset = PCD_HEADER_SIZE;
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_header)));
 
 	pcd_offset += sizeof (struct pcd_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) &pcd_rot_header, 
-		sizeof (struct pcd_rot_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) &pcd_rot_header,
+		sizeof (struct pcd_rot_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_rot_header)));
 	CuAssertIntEquals (test, 0, status);
 
@@ -1563,7 +1563,7 @@ static void pcd_flash_test_verify_pcd_rot_too_big2 (CuTest *test)
 
 	TEST_START;
 
-	memcpy (&pcd_rot_header, PCD_DATA + PCD_HEADER_SIZE + sizeof (struct pcd_header), 
+	memcpy (&pcd_rot_header, PCD_DATA + PCD_HEADER_SIZE + sizeof (struct pcd_header),
 		sizeof (struct pcd_rot_header));
 	pcd_rot_header.length += 1;
 
@@ -1587,7 +1587,7 @@ static void pcd_flash_test_verify_pcd_rot_too_big2 (CuTest *test)
 
 	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA,
 		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
@@ -1604,39 +1604,39 @@ static void pcd_flash_test_verify_pcd_rot_too_big2 (CuTest *test)
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA,
 		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 
 	pcd_offset = PCD_HEADER_SIZE;
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_header)));
 
 	pcd_offset += sizeof (struct pcd_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) &pcd_rot_header, 
-		sizeof (struct pcd_rot_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) &pcd_rot_header,
+		sizeof (struct pcd_rot_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_rot_header)));
 
 	pcd_offset += sizeof (struct pcd_rot_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_port_header)));
 
 	pcd_offset += sizeof (struct pcd_port_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_port_header)));
 	CuAssertIntEquals (test, 0, status);
 
@@ -1668,7 +1668,7 @@ static void pcd_flash_test_verify_pcd_rot_header_different (CuTest *test)
 
 	TEST_START;
 
-	memcpy (&pcd_rot_header, PCD_DATA + PCD_HEADER_SIZE + sizeof (struct pcd_header), 
+	memcpy (&pcd_rot_header, PCD_DATA + PCD_HEADER_SIZE + sizeof (struct pcd_header),
 		sizeof (struct pcd_rot_header));
 	pcd_rot_header.header_len += 1;
 
@@ -1692,7 +1692,7 @@ static void pcd_flash_test_verify_pcd_rot_header_different (CuTest *test)
 
 	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA,
 		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
@@ -1709,87 +1709,87 @@ static void pcd_flash_test_verify_pcd_rot_header_different (CuTest *test)
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA,
 		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 
 	pcd_offset = PCD_HEADER_SIZE;
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_header)));
 
 	pcd_offset += sizeof (struct pcd_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_rot_header)));
 
 	pcd_offset += sizeof (struct pcd_rot_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_port_header)));
 
 	pcd_offset += sizeof (struct pcd_port_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_port_header)));
 
 	pcd_offset += sizeof (struct pcd_port_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_components_header)));
 
 	pcd_offset += sizeof (struct pcd_components_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_component_header)));
 
 	pcd_offset += sizeof (struct pcd_component_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_component_header)));
 
 	pcd_offset += sizeof (struct pcd_component_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_mux_header)));
 
 	pcd_offset += sizeof (struct pcd_mux_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_mux_header)));
 
 	pcd_offset += sizeof (struct pcd_mux_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_platform_header)));
 
 	CuAssertIntEquals (test, 0, status);
@@ -1822,8 +1822,8 @@ static void pcd_flash_test_verify_pcd_port_header_different (CuTest *test)
 
 	TEST_START;
 
-	memcpy (&pcd_port_header, 
-		PCD_DATA + PCD_HEADER_SIZE + sizeof (struct pcd_header) + sizeof (struct pcd_rot_header), 
+	memcpy (&pcd_port_header,
+		PCD_DATA + PCD_HEADER_SIZE + sizeof (struct pcd_header) + sizeof (struct pcd_rot_header),
 		sizeof (struct pcd_port_header));
 	pcd_port_header.length += 1;
 
@@ -1847,7 +1847,7 @@ static void pcd_flash_test_verify_pcd_port_header_different (CuTest *test)
 
 	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA,
 		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
@@ -1864,87 +1864,87 @@ static void pcd_flash_test_verify_pcd_port_header_different (CuTest *test)
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA,
 		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 
 	pcd_offset = PCD_HEADER_SIZE;
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_header)));
 
 	pcd_offset += sizeof (struct pcd_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_rot_header)));
 
 	pcd_offset += sizeof (struct pcd_rot_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_port_header)));
 
 	pcd_offset += sizeof (struct pcd_port_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_port_header)));
 
 	pcd_offset += sizeof (struct pcd_port_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_components_header)));
 
 	pcd_offset += sizeof (struct pcd_components_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_component_header)));
 
 	pcd_offset += sizeof (struct pcd_component_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_component_header)));
 
 	pcd_offset += sizeof (struct pcd_component_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_mux_header)));
 
 	pcd_offset += sizeof (struct pcd_mux_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_mux_header)));
 
 	pcd_offset += sizeof (struct pcd_mux_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_platform_header)));
 
 	CuAssertIntEquals (test, 0, status);
@@ -1978,7 +1978,7 @@ static void pcd_flash_test_verify_pcd_components_too_big (CuTest *test)
 	TEST_START;
 
 	memcpy (&pcd_components_header, PCD_DATA + PCD_HEADER_SIZE + sizeof (struct pcd_header) + \
-		sizeof (struct pcd_rot_header) + 2 * sizeof (struct pcd_port_header), 
+		sizeof (struct pcd_rot_header) + 2 * sizeof (struct pcd_port_header),
 		sizeof (struct pcd_components_header));
 	pcd_components_header.length = PCD_DATA_LEN;
 
@@ -2002,7 +2002,7 @@ static void pcd_flash_test_verify_pcd_components_too_big (CuTest *test)
 
 	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA,
 		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
@@ -2019,47 +2019,47 @@ static void pcd_flash_test_verify_pcd_components_too_big (CuTest *test)
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA,
 		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 
 	pcd_offset = PCD_HEADER_SIZE;
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_header)));
 
 	pcd_offset += sizeof (struct pcd_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_rot_header)));
 
 	pcd_offset += sizeof (struct pcd_rot_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_port_header)));
 
 	pcd_offset += sizeof (struct pcd_port_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_port_header)));
 
 	pcd_offset += sizeof (struct pcd_port_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) &pcd_components_header, 
-		sizeof (struct pcd_components_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) &pcd_components_header,
+		sizeof (struct pcd_components_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset,
 		0, -1, sizeof (struct pcd_components_header)));
 	CuAssertIntEquals (test, 0, status);
 
@@ -2092,7 +2092,7 @@ static void pcd_flash_test_verify_pcd_components_too_big2 (CuTest *test)
 	TEST_START;
 
 	memcpy (&pcd_components_header, PCD_DATA + PCD_HEADER_SIZE + sizeof (struct pcd_header) + \
-		sizeof (struct pcd_rot_header) + 2 * sizeof (struct pcd_port_header), 
+		sizeof (struct pcd_rot_header) + 2 * sizeof (struct pcd_port_header),
 		sizeof (struct pcd_components_header));
 	pcd_components_header.length += 1;
 
@@ -2116,7 +2116,7 @@ static void pcd_flash_test_verify_pcd_components_too_big2 (CuTest *test)
 
 	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA,
 		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
@@ -2133,39 +2133,39 @@ static void pcd_flash_test_verify_pcd_components_too_big2 (CuTest *test)
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA,
 		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 
 	pcd_offset = PCD_HEADER_SIZE;
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_header)));
 
 	pcd_offset += sizeof (struct pcd_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_rot_header)));
 
 	pcd_offset += sizeof (struct pcd_rot_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_port_header)));
 
 	pcd_offset += sizeof (struct pcd_port_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_port_header)));
 
 	pcd_offset += sizeof (struct pcd_port_header);
@@ -2173,39 +2173,39 @@ static void pcd_flash_test_verify_pcd_components_too_big2 (CuTest *test)
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) &pcd_components_header,
-		sizeof (struct pcd_components_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 
+		sizeof (struct pcd_components_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset,
 		0, -1, sizeof (struct pcd_components_header)));
 
 	pcd_offset += sizeof (struct pcd_components_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_component_header)));
 
 	pcd_offset += sizeof (struct pcd_component_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_component_header)));
 
 	pcd_offset += sizeof (struct pcd_component_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_mux_header)));
 
 	pcd_offset += sizeof (struct pcd_mux_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_mux_header)));
 	CuAssertIntEquals (test, 0, status);
 
@@ -2238,7 +2238,7 @@ static void pcd_flash_test_verify_pcd_components_header_different (CuTest *test)
 	TEST_START;
 
 	memcpy (&pcd_components_header, PCD_DATA + PCD_HEADER_SIZE + sizeof (struct pcd_header) + \
-		sizeof (struct pcd_rot_header) + 2 * sizeof (struct pcd_port_header), 
+		sizeof (struct pcd_rot_header) + 2 * sizeof (struct pcd_port_header),
 		sizeof (struct pcd_components_header));
 	pcd_components_header.header_len += 1;
 
@@ -2262,7 +2262,7 @@ static void pcd_flash_test_verify_pcd_components_header_different (CuTest *test)
 
 	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA,
 		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
@@ -2279,87 +2279,87 @@ static void pcd_flash_test_verify_pcd_components_header_different (CuTest *test)
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA,
 		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 
 	pcd_offset = PCD_HEADER_SIZE;
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_header)));
 
 	pcd_offset += sizeof (struct pcd_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_rot_header)));
 
 	pcd_offset += sizeof (struct pcd_rot_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_port_header)));
 
 	pcd_offset += sizeof (struct pcd_port_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_port_header)));
 
 	pcd_offset += sizeof (struct pcd_port_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_components_header)));
 
 	pcd_offset += sizeof (struct pcd_components_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_component_header)));
 
 	pcd_offset += sizeof (struct pcd_component_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_component_header)));
 
 	pcd_offset += sizeof (struct pcd_component_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_mux_header)));
 
 	pcd_offset += sizeof (struct pcd_mux_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_mux_header)));
 
 	pcd_offset += sizeof (struct pcd_mux_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_platform_header)));
 
 	CuAssertIntEquals (test, 0, status);
@@ -2417,7 +2417,7 @@ static void pcd_flash_test_verify_pcd_component_too_big (CuTest *test)
 
 	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA,
 		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
@@ -2434,55 +2434,55 @@ static void pcd_flash_test_verify_pcd_component_too_big (CuTest *test)
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA,
 		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 
 	pcd_offset = PCD_HEADER_SIZE;
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_header)));
 
 	pcd_offset += sizeof (struct pcd_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_rot_header)));
 
 	pcd_offset += sizeof (struct pcd_rot_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_port_header)));
 
 	pcd_offset += sizeof (struct pcd_port_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_port_header)));
 
 	pcd_offset += sizeof (struct pcd_port_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_components_header)));
 
 	pcd_offset += sizeof (struct pcd_components_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) &pcd_component_header, 
-		sizeof (struct pcd_component_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) &pcd_component_header,
+		sizeof (struct pcd_component_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_component_header)));
 	CuAssertIntEquals (test, 0, status);
 
@@ -2539,7 +2539,7 @@ static void pcd_flash_test_verify_pcd_component_too_big2 (CuTest *test)
 
 	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA,
 		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
@@ -2556,55 +2556,55 @@ static void pcd_flash_test_verify_pcd_component_too_big2 (CuTest *test)
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA,
 		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 
 	pcd_offset = PCD_HEADER_SIZE;
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_header)));
 
 	pcd_offset += sizeof (struct pcd_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_rot_header)));
 
 	pcd_offset += sizeof (struct pcd_rot_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_port_header)));
 
 	pcd_offset += sizeof (struct pcd_port_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_port_header)));
 
 	pcd_offset += sizeof (struct pcd_port_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_components_header)));
 
 	pcd_offset += sizeof (struct pcd_components_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) &pcd_component_header, 
-		sizeof (struct pcd_component_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) &pcd_component_header,
+		sizeof (struct pcd_component_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_component_header)));
 	CuAssertIntEquals (test, 0, status);
 
@@ -2661,7 +2661,7 @@ static void pcd_flash_test_verify_pcd_component_header_different (CuTest *test)
 
 	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA,
 		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
@@ -2678,87 +2678,87 @@ static void pcd_flash_test_verify_pcd_component_header_different (CuTest *test)
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA,
 		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 
 	pcd_offset = PCD_HEADER_SIZE;
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_header)));
 
 	pcd_offset += sizeof (struct pcd_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_rot_header)));
 
 	pcd_offset += sizeof (struct pcd_rot_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_port_header)));
 
 	pcd_offset += sizeof (struct pcd_port_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_port_header)));
 
 	pcd_offset += sizeof (struct pcd_port_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_components_header)));
 
 	pcd_offset += sizeof (struct pcd_components_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_component_header)));
 
 	pcd_offset += sizeof (struct pcd_component_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_component_header)));
 
 	pcd_offset += sizeof (struct pcd_component_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_mux_header)));
 
 	pcd_offset += sizeof (struct pcd_mux_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_mux_header)));
 
 	pcd_offset += sizeof (struct pcd_mux_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_platform_header)));
 
 	CuAssertIntEquals (test, 0, status);
@@ -2793,7 +2793,7 @@ static void pcd_flash_test_verify_pcd_mux_header_different (CuTest *test)
 
 	memcpy (&pcd_mux_header, PCD_DATA + PCD_HEADER_SIZE + sizeof (struct pcd_header) + \
 		sizeof (struct pcd_rot_header) + 2 * sizeof (struct pcd_port_header) + \
-		sizeof (struct pcd_components_header) + 2 * sizeof (struct pcd_component_header), 
+		sizeof (struct pcd_components_header) + 2 * sizeof (struct pcd_component_header),
 		sizeof (struct pcd_mux_header));
 	pcd_mux_header.length += 1;
 
@@ -2817,7 +2817,7 @@ static void pcd_flash_test_verify_pcd_mux_header_different (CuTest *test)
 
 	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA,
 		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
@@ -2834,87 +2834,87 @@ static void pcd_flash_test_verify_pcd_mux_header_different (CuTest *test)
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA,
 		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 
 	pcd_offset = PCD_HEADER_SIZE;
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_header)));
 
 	pcd_offset += sizeof (struct pcd_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_rot_header)));
 
 	pcd_offset += sizeof (struct pcd_rot_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_port_header)));
 
 	pcd_offset += sizeof (struct pcd_port_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_port_header)));
 
 	pcd_offset += sizeof (struct pcd_port_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_components_header)));
 
 	pcd_offset += sizeof (struct pcd_components_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_component_header)));
 
 	pcd_offset += sizeof (struct pcd_component_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_component_header)));
 
 	pcd_offset += sizeof (struct pcd_component_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_mux_header)));
 
 	pcd_offset += sizeof (struct pcd_mux_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_mux_header)));
 
 	pcd_offset += sizeof (struct pcd_mux_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_platform_header)));
 
 	CuAssertIntEquals (test, 0, status);
@@ -2973,7 +2973,7 @@ static void pcd_flash_test_verify_pcd_platform_too_big (CuTest *test)
 
 	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA,
 		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
@@ -2990,87 +2990,87 @@ static void pcd_flash_test_verify_pcd_platform_too_big (CuTest *test)
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA,
 		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 
 	pcd_offset = PCD_HEADER_SIZE;
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_header)));
 
 	pcd_offset += sizeof (struct pcd_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_rot_header)));
 
 	pcd_offset += sizeof (struct pcd_rot_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_port_header)));
 
 	pcd_offset += sizeof (struct pcd_port_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_port_header)));
 
 	pcd_offset += sizeof (struct pcd_port_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_components_header)));
 
 	pcd_offset += sizeof (struct pcd_components_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_component_header)));
 
 	pcd_offset += sizeof (struct pcd_component_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_component_header)));
 
 	pcd_offset += sizeof (struct pcd_component_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_mux_header)));
 
 	pcd_offset += sizeof (struct pcd_mux_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_mux_header)));
 
 	pcd_offset += sizeof (struct pcd_mux_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) &pcd_platform_header, 
-		sizeof (struct pcd_platform_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) &pcd_platform_header,
+		sizeof (struct pcd_platform_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_platform_header)));
 	CuAssertIntEquals (test, 0, status);
 
@@ -3128,7 +3128,7 @@ static void pcd_flash_test_verify_invalid_pcd_platform_header_header_len (CuTest
 
 	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA,
 		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
@@ -3145,87 +3145,87 @@ static void pcd_flash_test_verify_invalid_pcd_platform_header_header_len (CuTest
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA,
 		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 
 	pcd_offset = PCD_HEADER_SIZE;
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_header)));
 
 	pcd_offset += sizeof (struct pcd_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_rot_header)));
 
 	pcd_offset += sizeof (struct pcd_rot_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_port_header)));
 
 	pcd_offset += sizeof (struct pcd_port_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_port_header)));
 
 	pcd_offset += sizeof (struct pcd_port_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_components_header)));
 
 	pcd_offset += sizeof (struct pcd_components_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_component_header)));
 
 	pcd_offset += sizeof (struct pcd_component_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_component_header)));
 
 	pcd_offset += sizeof (struct pcd_component_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_mux_header)));
 
 	pcd_offset += sizeof (struct pcd_mux_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_mux_header)));
 
 	pcd_offset += sizeof (struct pcd_mux_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) &pcd_platform_header, 
-		sizeof (struct pcd_platform_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) &pcd_platform_header,
+		sizeof (struct pcd_platform_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_platform_header)));
 	CuAssertIntEquals (test, 0, status);
 
@@ -3284,7 +3284,7 @@ static void pcd_flash_test_verify_pcd_platform_header_different (CuTest *test)
 
 	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA,
 		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
@@ -3301,87 +3301,87 @@ static void pcd_flash_test_verify_pcd_platform_header_different (CuTest *test)
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA,
 		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 
 	pcd_offset = PCD_HEADER_SIZE;
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_header)));
 
 	pcd_offset += sizeof (struct pcd_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_rot_header)));
 
 	pcd_offset += sizeof (struct pcd_rot_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_port_header)));
 
 	pcd_offset += sizeof (struct pcd_port_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_port_header)));
 
 	pcd_offset += sizeof (struct pcd_port_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_components_header)));
 
 	pcd_offset += sizeof (struct pcd_components_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_component_header)));
 
 	pcd_offset += sizeof (struct pcd_component_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_component_header)));
 
 	pcd_offset += sizeof (struct pcd_component_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_mux_header)));
 
 	pcd_offset += sizeof (struct pcd_mux_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_mux_header)));
 
 	pcd_offset += sizeof (struct pcd_mux_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_platform_header)));
 
 	CuAssertIntEquals (test, 0, status);
@@ -3527,7 +3527,7 @@ static void pcd_flash_test_get_id (CuTest *test)
 
 	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA,
 		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 	CuAssertIntEquals (test, 0, status);
 
@@ -3706,7 +3706,7 @@ static void pcd_flash_test_get_hash_after_verify (CuTest *test)
 
 	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA,
 		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
@@ -3724,87 +3724,87 @@ static void pcd_flash_test_get_hash_after_verify (CuTest *test)
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA,
 		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 
 	pcd_offset = PCD_HEADER_SIZE;
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_header)));
 
 	pcd_offset += sizeof (struct pcd_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_rot_header)));
 
 	pcd_offset += sizeof (struct pcd_rot_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_port_header)));
 
 	pcd_offset += sizeof (struct pcd_port_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_port_header)));
 
 	pcd_offset += sizeof (struct pcd_port_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_components_header)));
 
 	pcd_offset += sizeof (struct pcd_components_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_component_header)));
 
 	pcd_offset += sizeof (struct pcd_component_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_component_header)));
 
 	pcd_offset += sizeof (struct pcd_component_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_mux_header)));
 
 	pcd_offset += sizeof (struct pcd_mux_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_mux_header)));
 
 	pcd_offset += sizeof (struct pcd_mux_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_platform_header)));
 
 	status = pcd.base.base.verify (&pcd.base.base, &hash.base, &verification.base, NULL, 0);
@@ -4074,7 +4074,7 @@ static void pcd_flash_test_get_platform_id (CuTest *test)
 	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA, PCD_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE)); 
+		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
@@ -4092,7 +4092,7 @@ static void pcd_flash_test_get_platform_id (CuTest *test)
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + PCD_COMPONENTS_OFFSET,
 		PCD_DATA_LEN - PCD_COMPONENTS_OFFSET,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_COMPONENTS_OFFSET, 0, -1, 
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_COMPONENTS_OFFSET, 0, -1,
 		sizeof (struct pcd_components_header)));
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
@@ -4105,12 +4105,12 @@ static void pcd_flash_test_get_platform_id (CuTest *test)
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + PCD_PLATFORM_ID_OFFSET,
-		PCD_DATA_LEN - (PCD_PLATFORM_ID_OFFSET), 
+		PCD_DATA_LEN - (PCD_PLATFORM_ID_OFFSET),
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_PLATFORM_ID_OFFSET, 0, -1, PCD_PLATFORM_ID_LEN));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcd.base.get_platform_id (&pcd.base, &id);
+	status = pcd.base.base.get_platform_id (&pcd.base.base, &id);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, id);
 	CuAssertStrEquals (test, PCD_PLATFORM_ID, id);
@@ -4148,11 +4148,11 @@ static void pcd_flash_test_get_platform_id_null (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	id = (char*) &status;
-	status = pcd.base.get_platform_id (NULL, &id);
+	status = pcd.base.base.get_platform_id (NULL, &id);
 	CuAssertIntEquals (test, PCD_INVALID_ARGUMENT, status);
 	CuAssertPtrEquals (test, NULL, id);
 
-	status = pcd.base.get_platform_id (&pcd.base, NULL);
+	status = pcd.base.base.get_platform_id (&pcd.base.base, NULL);
 	CuAssertIntEquals (test, PCD_INVALID_ARGUMENT, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -4189,7 +4189,7 @@ static void pcd_flash_test_get_platform_id_header_read_error (CuTest *test)
 		FLASH_EXP_READ_STATUS_REG);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcd.base.get_platform_id (&pcd.base, &id);
+	status = pcd.base.base.get_platform_id (&pcd.base.base, &id);
 	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -4234,7 +4234,7 @@ static void pcd_flash_test_get_platform_id_bad_magic_num (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	id = (char*) &status;
-	status = pcd.base.get_platform_id (&pcd.base, &id);
+	status = pcd.base.base.get_platform_id (&pcd.base.base, &id);
 	CuAssertIntEquals (test, MANIFEST_BAD_MAGIC_NUMBER, status);
 	CuAssertPtrEquals (test, NULL, id);
 
@@ -4278,7 +4278,7 @@ static void pcd_flash_test_get_platform_id_pcd_header_read_error (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcd.base.get_platform_id (&pcd.base, &id);
+	status = pcd.base.base.get_platform_id (&pcd.base.base, &id);
 	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -4327,7 +4327,7 @@ static void pcd_flash_test_get_platform_id_rot_header_read_error (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcd.base.get_platform_id (&pcd.base, &id);
+	status = pcd.base.base.get_platform_id (&pcd.base.base, &id);
 	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -4382,7 +4382,7 @@ static void pcd_flash_test_get_platform_id_components_header_read_error (CuTest 
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcd.base.get_platform_id (&pcd.base, &id);
+	status = pcd.base.base.get_platform_id (&pcd.base.base, &id);
 	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -4436,14 +4436,14 @@ static void pcd_flash_test_get_platform_id_platform_header_read_error (CuTest *t
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + PCD_COMPONENTS_OFFSET,
 		PCD_DATA_LEN - PCD_COMPONENTS_OFFSET,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_COMPONENTS_OFFSET, 0, -1, 
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_COMPONENTS_OFFSET, 0, -1,
 		sizeof (struct pcd_components_header)));
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, FLASH_NO_MEMORY, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcd.base.get_platform_id (&pcd.base, &id);
+	status = pcd.base.base.get_platform_id (&pcd.base.base, &id);
 	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -4497,7 +4497,7 @@ static void pcd_flash_test_get_platform_id_identifier_read_error (CuTest *test)
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + PCD_COMPONENTS_OFFSET,
 		PCD_DATA_LEN - PCD_COMPONENTS_OFFSET,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_COMPONENTS_OFFSET, 0, -1, 
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_COMPONENTS_OFFSET, 0, -1,
 		sizeof (struct pcd_components_header)));
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
@@ -4512,9 +4512,9 @@ static void pcd_flash_test_get_platform_id_identifier_read_error (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcd.base.get_platform_id (&pcd.base, &id);
+	status = pcd.base.base.get_platform_id (&pcd.base.base, &id);
 	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
-	
+
 	status = flash_master_mock_validate_and_release (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
@@ -4555,19 +4555,19 @@ static void pcd_flash_test_get_devices_info (CuTest *test)
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + PCD_HEADER_OFFSET,
-		sizeof (struct pcd_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_HEADER_OFFSET, 0, -1, 
+		sizeof (struct pcd_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_HEADER_OFFSET, 0, -1,
 		sizeof (struct pcd_header)));
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + PCD_ROT_OFFSET,
-		sizeof (struct pcd_rot_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_ROT_OFFSET, 0, -1, 
+		sizeof (struct pcd_rot_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_ROT_OFFSET, 0, -1,
 		sizeof (struct pcd_rot_header)));
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + PCD_COMPONENTS_OFFSET,
-		sizeof (struct pcd_components_header), FLASH_EXP_READ_CMD (0x03, 
+		sizeof (struct pcd_components_header), FLASH_EXP_READ_CMD (0x03,
 		0x10000 + PCD_COMPONENTS_OFFSET, 0, -1, sizeof (struct pcd_components_header)));
 
 	pcd_offset = PCD_COMPONENTS_OFFSET + sizeof (struct pcd_components_header);
@@ -4575,15 +4575,15 @@ static void pcd_flash_test_get_devices_info (CuTest *test)
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
-		sizeof (struct pcd_component_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+		sizeof (struct pcd_component_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_component_header)));
 
 	pcd_offset += sizeof (struct pcd_component_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		sizeof (struct pcd_component_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		sizeof (struct pcd_component_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_component_header)));
 
 	status = pcd.base.get_devices_info (&pcd.base, &devices_info, &num_devices);
@@ -4669,7 +4669,7 @@ static void pcd_flash_test_get_devices_info_header_read_error (CuTest *test)
 
 	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, FLASH_NO_MEMORY, PCD_DATA, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, FLASH_NO_MEMORY, PCD_DATA,
 		PCD_DATA_LEN, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 
 	status = pcd.base.get_devices_info (&pcd.base, &devices_info, &num_devices);
@@ -4762,7 +4762,7 @@ static void pcd_flash_test_get_devices_info_pcd_header_read_error (CuTest *test)
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, FLASH_NO_MEMORY, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, FLASH_NO_MEMORY,
 		PCD_DATA + PCD_HEADER_SIZE, PCD_DATA_LEN - PCD_HEADER_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_HEADER_SIZE, 0, -1, sizeof (struct pcd_header)));
 
@@ -4809,13 +4809,13 @@ static void pcd_flash_test_get_devices_info_rot_header_read_error (CuTest *test)
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + PCD_HEADER_SIZE, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + PCD_HEADER_SIZE,
 		PCD_DATA_LEN - PCD_HEADER_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_HEADER_SIZE, 0, -1, sizeof (struct pcd_header)));
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, FLASH_NO_MEMORY, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, FLASH_NO_MEMORY,
 		PCD_DATA + PCD_ROT_OFFSET, PCD_DATA_LEN - PCD_ROT_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_ROT_OFFSET, 0, -1, sizeof (struct pcd_rot_header)));
 
@@ -4862,21 +4862,21 @@ static void pcd_flash_test_get_devices_info_components_header_read_error (CuTest
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + PCD_HEADER_SIZE, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + PCD_HEADER_SIZE,
 		PCD_DATA_LEN - PCD_HEADER_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_HEADER_SIZE, 0, -1, sizeof (struct pcd_header)));
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0,	PCD_DATA + PCD_ROT_OFFSET, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0,	PCD_DATA + PCD_ROT_OFFSET,
 		PCD_DATA_LEN - PCD_ROT_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_ROT_OFFSET, 0, -1, sizeof (struct pcd_rot_header)));
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, FLASH_NO_MEMORY, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, FLASH_NO_MEMORY,
 		PCD_DATA + PCD_COMPONENTS_OFFSET, PCD_DATA_LEN - PCD_COMPONENTS_OFFSET,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_COMPONENTS_OFFSET, 0, -1, 
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_COMPONENTS_OFFSET, 0, -1,
 		sizeof (struct pcd_components_header)));
 
 	status = pcd.base.get_devices_info (&pcd.base, &devices_info, &num_devices);
@@ -4924,19 +4924,19 @@ static void pcd_flash_test_get_devices_info_component_header_read_error (CuTest 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + PCD_HEADER_OFFSET,
-		sizeof (struct pcd_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_HEADER_OFFSET, 0, -1, 
+		sizeof (struct pcd_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_HEADER_OFFSET, 0, -1,
 		sizeof (struct pcd_header)));
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + PCD_ROT_OFFSET,
-		sizeof (struct pcd_rot_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_ROT_OFFSET, 0, -1, 
+		sizeof (struct pcd_rot_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_ROT_OFFSET, 0, -1,
 		sizeof (struct pcd_rot_header)));
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + PCD_COMPONENTS_OFFSET,
-		sizeof (struct pcd_components_header), FLASH_EXP_READ_CMD (0x03, 
+		sizeof (struct pcd_components_header), FLASH_EXP_READ_CMD (0x03,
 		0x10000 + PCD_COMPONENTS_OFFSET, 0, -1, sizeof (struct pcd_components_header)));
 
 	pcd_offset = PCD_COMPONENTS_OFFSET + sizeof (struct pcd_components_header);
@@ -4944,7 +4944,7 @@ static void pcd_flash_test_get_devices_info_component_header_read_error (CuTest 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, FLASH_NO_MEMORY, PCD_DATA + pcd_offset,
-		sizeof (struct pcd_component_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+		sizeof (struct pcd_component_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_component_header)));
 
 	status = pcd.base.get_devices_info (&pcd.base, &devices_info, &num_devices);
@@ -4989,13 +4989,13 @@ static void pcd_flash_test_get_rot_info (CuTest *test)
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + PCD_HEADER_OFFSET,
-		sizeof (struct pcd_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_HEADER_OFFSET, 0, -1, 
+		sizeof (struct pcd_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_HEADER_OFFSET, 0, -1,
 		sizeof (struct pcd_header)));
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + PCD_ROT_OFFSET,
-		sizeof (struct pcd_rot_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_ROT_OFFSET, 0, -1, 
+		sizeof (struct pcd_rot_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_ROT_OFFSET, 0, -1,
 		sizeof (struct pcd_rot_header)));
 
 	status = pcd.base.get_rot_info (&pcd.base, &info);
@@ -5070,7 +5070,7 @@ static void pcd_flash_test_get_rot_info_header_read_error (CuTest *test)
 
 	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, FLASH_NO_MEMORY, PCD_DATA, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, FLASH_NO_MEMORY, PCD_DATA,
 		PCD_DATA_LEN, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 
 	status = pcd.base.get_rot_info (&pcd.base, &info);
@@ -5157,7 +5157,7 @@ static void pcd_flash_test_get_rot_info_pcd_header_read_error (CuTest *test)
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, FLASH_NO_MEMORY, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, FLASH_NO_MEMORY,
 		PCD_DATA + PCD_HEADER_SIZE, PCD_DATA_LEN - PCD_HEADER_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_HEADER_SIZE, 0, -1, sizeof (struct pcd_header)));
 
@@ -5201,13 +5201,13 @@ static void pcd_flash_test_get_rot_info_rot_header_read_error (CuTest *test)
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + PCD_HEADER_SIZE, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + PCD_HEADER_SIZE,
 		PCD_DATA_LEN - PCD_HEADER_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_HEADER_SIZE, 0, -1, sizeof (struct pcd_header)));
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, FLASH_NO_MEMORY, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, FLASH_NO_MEMORY,
 		PCD_DATA + PCD_ROT_OFFSET, PCD_DATA_LEN - PCD_ROT_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_ROT_OFFSET, 0, -1, sizeof (struct pcd_rot_header)));
 
@@ -5253,13 +5253,13 @@ static void pcd_flash_test_get_port_info (CuTest *test)
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + PCD_HEADER_OFFSET,
-		sizeof (struct pcd_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_HEADER_OFFSET, 0, -1, 
+		sizeof (struct pcd_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_HEADER_OFFSET, 0, -1,
 		sizeof (struct pcd_header)));
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + PCD_ROT_OFFSET,
-		sizeof (struct pcd_rot_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_ROT_OFFSET, 0, -1, 
+		sizeof (struct pcd_rot_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_ROT_OFFSET, 0, -1,
 		sizeof (struct pcd_rot_header)));
 
 	pcd_offset = PCD_ROT_OFFSET + sizeof (struct pcd_rot_header);
@@ -5267,15 +5267,15 @@ static void pcd_flash_test_get_port_info (CuTest *test)
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
-		sizeof (struct pcd_port_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+		sizeof (struct pcd_port_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_port_header)));
 
 	pcd_offset += sizeof (struct pcd_port_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		sizeof (struct pcd_port_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		sizeof (struct pcd_port_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_port_header)));
 
 	status = pcd.base.get_port_info (&pcd.base, 0, &info);
@@ -5290,13 +5290,13 @@ static void pcd_flash_test_get_port_info (CuTest *test)
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + PCD_HEADER_OFFSET,
-		sizeof (struct pcd_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_HEADER_OFFSET, 0, -1, 
+		sizeof (struct pcd_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_HEADER_OFFSET, 0, -1,
 		sizeof (struct pcd_header)));
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + PCD_ROT_OFFSET,
-		sizeof (struct pcd_rot_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_ROT_OFFSET, 0, -1, 
+		sizeof (struct pcd_rot_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_ROT_OFFSET, 0, -1,
 		sizeof (struct pcd_rot_header)));
 
 	pcd_offset = PCD_ROT_OFFSET + sizeof (struct pcd_rot_header);
@@ -5304,7 +5304,7 @@ static void pcd_flash_test_get_port_info (CuTest *test)
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
-		sizeof (struct pcd_port_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+		sizeof (struct pcd_port_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_port_header)));
 
 	status = pcd.base.get_port_info (&pcd.base, 1, &info);
@@ -5378,7 +5378,7 @@ static void pcd_flash_test_get_port_info_header_read_error (CuTest *test)
 
 	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, FLASH_NO_MEMORY, PCD_DATA, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, FLASH_NO_MEMORY, PCD_DATA,
 		PCD_DATA_LEN, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
 
 	status = pcd.base.get_port_info (&pcd.base, 0, &info);
@@ -5465,7 +5465,7 @@ static void pcd_flash_test_get_port_info_pcd_header_read_error (CuTest *test)
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, FLASH_NO_MEMORY, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, FLASH_NO_MEMORY,
 		PCD_DATA + PCD_HEADER_SIZE, PCD_DATA_LEN - PCD_HEADER_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_HEADER_SIZE, 0, -1, sizeof (struct pcd_header)));
 
@@ -5509,13 +5509,13 @@ static void pcd_flash_test_get_port_info_rot_header_read_error (CuTest *test)
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + PCD_HEADER_SIZE, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + PCD_HEADER_SIZE,
 		PCD_DATA_LEN - PCD_HEADER_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_HEADER_SIZE, 0, -1, sizeof (struct pcd_header)));
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, FLASH_NO_MEMORY, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, FLASH_NO_MEMORY,
 		PCD_DATA + PCD_ROT_OFFSET, PCD_DATA_LEN - PCD_ROT_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_ROT_OFFSET, 0, -1, sizeof (struct pcd_rot_header)));
 
@@ -5561,13 +5561,13 @@ static void pcd_flash_test_get_port_info_port_header_read_error (CuTest *test)
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + PCD_HEADER_OFFSET,
-		sizeof (struct pcd_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_HEADER_OFFSET, 0, -1, 
+		sizeof (struct pcd_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_HEADER_OFFSET, 0, -1,
 		sizeof (struct pcd_header)));
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + PCD_ROT_OFFSET,
-		sizeof (struct pcd_rot_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_ROT_OFFSET, 0, -1, 
+		sizeof (struct pcd_rot_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_ROT_OFFSET, 0, -1,
 		sizeof (struct pcd_rot_header)));
 
 	pcd_offset = PCD_ROT_OFFSET + sizeof (struct pcd_rot_header);
@@ -5575,7 +5575,7 @@ static void pcd_flash_test_get_port_info_port_header_read_error (CuTest *test)
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, FLASH_NO_MEMORY, PCD_DATA + pcd_offset,
-		sizeof (struct pcd_port_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+		sizeof (struct pcd_port_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_port_header)));
 
 	status = pcd.base.get_port_info (&pcd.base, 0, &info);
@@ -5619,13 +5619,13 @@ static void pcd_flash_test_get_port_info_port_id_invalid (CuTest *test)
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + PCD_HEADER_OFFSET,
-		sizeof (struct pcd_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_HEADER_OFFSET, 0, -1, 
+		sizeof (struct pcd_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_HEADER_OFFSET, 0, -1,
 		sizeof (struct pcd_header)));
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + PCD_ROT_OFFSET,
-		sizeof (struct pcd_rot_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_ROT_OFFSET, 0, -1, 
+		sizeof (struct pcd_rot_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_ROT_OFFSET, 0, -1,
 		sizeof (struct pcd_rot_header)));
 
 	pcd_offset = PCD_ROT_OFFSET + sizeof (struct pcd_rot_header);
@@ -5633,15 +5633,15 @@ static void pcd_flash_test_get_port_info_port_id_invalid (CuTest *test)
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
-		sizeof (struct pcd_port_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+		sizeof (struct pcd_port_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_port_header)));
 
 	pcd_offset += sizeof (struct pcd_port_header);
 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset, 
-		sizeof (struct pcd_port_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, 
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PCD_DATA + pcd_offset,
+		sizeof (struct pcd_port_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
 		sizeof (struct pcd_port_header)));
 
 	status = pcd.base.get_port_info (&pcd.base, 2, &info);
@@ -5653,6 +5653,7 @@ static void pcd_flash_test_get_port_info_port_id_invalid (CuTest *test)
 	pcd_flash_release (&pcd);
 	spi_flash_release (&flash);
 }
+
 
 CuSuite* get_pcd_flash_suite ()
 {

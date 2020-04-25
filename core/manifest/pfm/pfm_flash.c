@@ -105,7 +105,7 @@ static int pfm_flash_get_signature (struct manifest *pfm, uint8_t *signature, si
 	return manifest_flash_get_signature (&pfm_flash->base_flash, signature, length);
 }
 
-static int pfm_flash_get_platform_id (struct pfm *pfm, char **id)
+static int pfm_flash_get_platform_id (struct manifest *pfm, char **id)
 {
 	struct pfm_flash *pfm_flash = (struct pfm_flash*) pfm;
 	struct manifest_header header;
@@ -641,8 +641,8 @@ int pfm_flash_init (struct pfm_flash *pfm, struct spi_flash *flash, uint32_t bas
 	pfm->base.base.get_id = pfm_flash_get_id;
 	pfm->base.base.get_hash = pfm_flash_get_hash;
 	pfm->base.base.get_signature = pfm_flash_get_signature;
+	pfm->base.base.get_platform_id = pfm_flash_get_platform_id;
 
-	pfm->base.get_platform_id = pfm_flash_get_platform_id;
 	pfm->base.get_supported_versions = pfm_flash_get_supported_versions;
 	pfm->base.free_fw_versions = pfm_flash_free_fw_versions;
 	pfm->base.get_read_write_regions = pfm_flash_get_read_write_regions;

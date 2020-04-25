@@ -139,9 +139,9 @@ static int pcd_manager_flash_check_pending_platform_id (struct manifest_manager_
 		active_pcd = (struct pcd_flash*) active->manifest;
 		pending_pcd = (struct pcd_flash*) pending->manifest;
 
-		status = active_pcd->base.get_platform_id (&active_pcd->base, &active_id);
+		status = active_pcd->base.base.get_platform_id (&active_pcd->base.base, &active_id);
 		if (status == 0) {
-			status = pending_pcd->base.get_platform_id (&pending_pcd->base, &pending_id);
+			status = pending_pcd->base.base.get_platform_id (&pending_pcd->base.base, &pending_id);
 		}
 
 		if (status == 0) {
