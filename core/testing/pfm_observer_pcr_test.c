@@ -246,7 +246,7 @@ static void pfm_observer_pcr_test_on_pfm_activated (CuTest *test)
 	status |= mock_expect_output (&pfm.mock, 0, &id, sizeof (id), -1);
 
 	status = mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 0, &platform_id, strlen (platform_id), -1);
+	status |= mock_expect_output (&pfm.mock, 0, &platform_id, sizeof (platform_id), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -602,7 +602,7 @@ static void pfm_observer_pcr_test_record_measurement (CuTest *test)
 	status |= mock_expect_output (&pfm.mock, 0, &id, sizeof (id), -1);
 
 	status = mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 0, &platform_id, strlen (platform_id), -1);
+	status |= mock_expect_output (&pfm.mock, 0, &platform_id, sizeof (platform_id), -1);
 
 	CuAssertIntEquals (test, 0, status);
 

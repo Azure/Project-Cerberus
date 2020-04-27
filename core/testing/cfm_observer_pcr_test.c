@@ -579,7 +579,7 @@ static void cfm_observer_pcr_test_record_measurement (CuTest *test)
 	status |= mock_expect_output (&cfm.mock, 0, &id, sizeof (uint32_t), -1);
 
 	status |= mock_expect (&cfm.mock, cfm.base.base.get_platform_id, &cfm, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&cfm.mock, 0, &platform_id, strlen (platform_id), -1);
+	status |= mock_expect_output (&cfm.mock, 0, &platform_id, sizeof (platform_id), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
