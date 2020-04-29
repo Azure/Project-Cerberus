@@ -385,6 +385,64 @@ static void pcr_store_test_update_buffer_update_fail (CuTest *test)
 	complete_pcr_store_mock_test (test, &store, &hash);
 }
 
+static void pcr_store_test_update_event_type (CuTest *test)
+{
+	struct pcr_store store;
+	struct hash_engine_mock hash;
+	int status;
+
+	TEST_START;
+
+	setup_pcr_store_mock_test (test, &store, &hash, 6, 6);
+
+	status = pcr_store_update_event_type (&store, PCR_MEASUREMENT (1, 1), 0x0A);
+	CuAssertIntEquals (test, 0, status);
+
+	complete_pcr_store_mock_test (test, &store, &hash);
+}
+
+static void pcr_store_test_update_event_type_invalid_arg (CuTest *test)
+{
+	int status;
+
+	TEST_START;
+
+	status = pcr_store_update_event_type (NULL, 5, 0x0A);
+	CuAssertIntEquals (test, PCR_INVALID_ARGUMENT, status);
+}
+
+static void pcr_store_test_update_event_type_invalid_pcr (CuTest *test)
+{
+	struct pcr_store store;
+	struct hash_engine_mock hash;
+	int status;
+
+	TEST_START;
+
+	setup_pcr_store_mock_test (test, &store, &hash, 6, 6);
+
+	status = pcr_store_update_event_type (&store, (((uint16_t)4 << 8) | 1), 0x0A);
+	CuAssertIntEquals (test, PCR_INVALID_PCR, status);
+
+	complete_pcr_store_mock_test (test, &store, &hash);
+}
+
+static void pcr_store_test_update_event_type_update_fail (CuTest *test)
+{
+	struct pcr_store store;
+	struct hash_engine_mock hash;
+	int status;
+
+	TEST_START;
+
+	setup_pcr_store_mock_test (test, &store, &hash, 6, 6);
+
+	status = pcr_store_update_event_type (&store, (((uint16_t)1 << 8) | 10), 0x0A);
+	CuAssertIntEquals (test, PCR_INVALID_INDEX, status);
+
+	complete_pcr_store_mock_test (test, &store, &hash);
+}
+
 static void pcr_store_test_compute (CuTest *test)
 {
 	struct pcr_store store;
@@ -752,6 +810,7 @@ static void pcr_store_test_get_tcg_log (CuTest *test)
 		exp_buf[i_measurement].entry.digest_algorithm_id = 0x0B;
 		exp_buf[i_measurement].entry.digest_count = 1;
 		exp_buf[i_measurement].entry.measurement_size = 32;
+		exp_buf[i_measurement].entry.event_type = 0x0A + i_measurement;
 
 		memcpy (exp_buf[i_measurement].entry.digest, digests[i_measurement],
 			sizeof (exp_buf[i_measurement].entry.digest));
@@ -759,12 +818,10 @@ static void pcr_store_test_get_tcg_log (CuTest *test)
 			sizeof (exp_buf[i_measurement].entry.measurement));
 
 		if (i_measurement >= 3) {
-			exp_buf[i_measurement].entry.measurement_index = i_measurement - 3;
 			exp_buf[i_measurement].entry.measurement_type =
 				PCR_MEASUREMENT (1, (i_measurement - 3));
 		}
 		else {
-			exp_buf[i_measurement].entry.measurement_index = i_measurement;
 			exp_buf[i_measurement].entry.measurement_type = PCR_MEASUREMENT (0, i_measurement);
 		}
 	}
@@ -834,11 +891,15 @@ static void pcr_store_test_get_tcg_log (CuTest *test)
 	for (i_measurement = 0; i_measurement < 3; ++i_measurement) {
 		pcr_store_update_digest (&store, PCR_MEASUREMENT (0, i_measurement), digests[i_measurement],
 			PCR_DIGEST_LENGTH);
+		pcr_store_update_event_type (&store, PCR_MEASUREMENT (0, i_measurement), 
+			0x0A + i_measurement);
 	}
 
 	for (i_measurement = 0; i_measurement < 3; ++i_measurement) {
 		pcr_store_update_digest (&store, PCR_MEASUREMENT (1, i_measurement),
 			digests[3 + i_measurement], PCR_DIGEST_LENGTH);
+		pcr_store_update_event_type (&store, PCR_MEASUREMENT (1, i_measurement), 
+			0x0A + i_measurement + 3);
 	}
 
 	status = pcr_store_get_tcg_log (&store, &hash.base, 0, (uint8_t*) buf, sizeof (buf));
@@ -895,6 +956,7 @@ static void pcr_store_test_get_tcg_log_invalid_entry (CuTest *test)
 		exp_buf[i_measurement].entry.digest_algorithm_id = 0x0B;
 		exp_buf[i_measurement].entry.digest_count = 1;
 		exp_buf[i_measurement].entry.measurement_size = 32;
+		exp_buf[i_measurement].entry.event_type = 0x0A + i_measurement;
 
 		memcpy (exp_buf[i_measurement].entry.digest, digests[i_measurement],
 			sizeof (exp_buf[i_measurement].entry.digest));
@@ -902,12 +964,10 @@ static void pcr_store_test_get_tcg_log_invalid_entry (CuTest *test)
 			sizeof (exp_buf[i_measurement].entry.measurement));
 
 		if (i_measurement >= 3) {
-			exp_buf[i_measurement].entry.measurement_index = i_measurement - 3;
 			exp_buf[i_measurement].entry.measurement_type =
 				PCR_MEASUREMENT (1, (i_measurement - 3));
 		}
 		else {
-			exp_buf[i_measurement].entry.measurement_index = i_measurement;
 			exp_buf[i_measurement].entry.measurement_type = PCR_MEASUREMENT (0, i_measurement);
 		}
 	}
@@ -977,12 +1037,18 @@ static void pcr_store_test_get_tcg_log_invalid_entry (CuTest *test)
 	for (i_measurement = 0; i_measurement < 3; ++i_measurement) {
 		pcr_store_update_digest (&store, PCR_MEASUREMENT (0, i_measurement), digests[i_measurement],
 			PCR_DIGEST_LENGTH);
+		pcr_store_update_event_type (&store, PCR_MEASUREMENT (0, i_measurement), 
+			0x0A + i_measurement);
 	}
 
 	for (i_measurement = 0; i_measurement < 2; ++i_measurement) {
 		pcr_store_update_digest (&store, PCR_MEASUREMENT (1, i_measurement),
 			digests[3 + i_measurement], PCR_DIGEST_LENGTH);
+		pcr_store_update_event_type (&store, PCR_MEASUREMENT (1, i_measurement), 
+			0x0A + i_measurement + 3);
 	}
+
+	pcr_store_update_event_type (&store, PCR_MEASUREMENT (1, 2), 0x0A + 5);
 
 	status = pcr_store_get_tcg_log (&store, &hash.base, 0, (uint8_t*) buf, sizeof (buf));
 	CuAssertIntEquals (test, 6 * sizeof (struct pcr_store_tcg_log_entry), status);
@@ -1044,7 +1110,7 @@ static void pcr_store_test_get_tcg_log_explicit (CuTest *test)
 		memcpy (exp_buf[i_measurement].entry.measurement, digests[5 - i_measurement],
 			sizeof (exp_buf[i_measurement].entry.measurement));
 
-		exp_buf[i_measurement].entry.measurement_index = i_measurement;
+		exp_buf[i_measurement].entry.event_type = 0x0A + i_measurement;
 		exp_buf[i_measurement].entry.measurement_type = PCR_MEASUREMENT (0, i_measurement);
 	}
 
@@ -1083,6 +1149,8 @@ static void pcr_store_test_get_tcg_log_explicit (CuTest *test)
 	for (i_measurement = 0; i_measurement < 3; ++i_measurement) {
 		pcr_store_update_digest (&store, PCR_MEASUREMENT (0, i_measurement), digests[i_measurement],
 			PCR_DIGEST_LENGTH);
+		pcr_store_update_event_type (&store, PCR_MEASUREMENT (0, i_measurement), 
+			0x0A + i_measurement);
 	}
 
 	pcr_store_update_digest (&store, PCR_MEASUREMENT (1, 0), digests[3], PCR_DIGEST_LENGTH);
@@ -1141,6 +1209,7 @@ static void pcr_store_test_get_tcg_log_non_zero_offset (CuTest *test)
 		exp_buf[i_measurement].entry.digest_algorithm_id = 0x0B;
 		exp_buf[i_measurement].entry.digest_count = 1;
 		exp_buf[i_measurement].entry.measurement_size = 32;
+		exp_buf[i_measurement].entry.event_type = 0x0A + i_measurement;
 
 		memcpy (exp_buf[i_measurement].entry.digest, digests[i_measurement],
 			sizeof (exp_buf[i_measurement].entry.digest));
@@ -1148,12 +1217,10 @@ static void pcr_store_test_get_tcg_log_non_zero_offset (CuTest *test)
 			sizeof (exp_buf[i_measurement].entry.measurement));
 
 		if (i_measurement >= 3) {
-			exp_buf[i_measurement].entry.measurement_index = i_measurement - 3;
 			exp_buf[i_measurement].entry.measurement_type =
 				PCR_MEASUREMENT (1, (i_measurement - 3));
 		}
 		else {
-			exp_buf[i_measurement].entry.measurement_index = i_measurement;
 			exp_buf[i_measurement].entry.measurement_type = PCR_MEASUREMENT (0, i_measurement);
 		}
 	}
@@ -1223,11 +1290,15 @@ static void pcr_store_test_get_tcg_log_non_zero_offset (CuTest *test)
 	for (i_measurement = 0; i_measurement < 3; ++i_measurement) {
 		pcr_store_update_digest (&store, PCR_MEASUREMENT (0, i_measurement), digests[i_measurement],
 			PCR_DIGEST_LENGTH);
+		pcr_store_update_event_type (&store, PCR_MEASUREMENT (0, i_measurement), 
+			0x0A + i_measurement);
 	}
 
 	for (i_measurement = 0; i_measurement < 3; ++i_measurement) {
 		pcr_store_update_digest (&store, PCR_MEASUREMENT (1, i_measurement),
 			digests[3 + i_measurement], PCR_DIGEST_LENGTH);
+		pcr_store_update_event_type (&store, PCR_MEASUREMENT (1, i_measurement), 
+			0x0A + i_measurement + 3);
 	}
 
 	status = pcr_store_get_tcg_log (&store, &hash.base, 3 * sizeof (struct pcr_store_tcg_log_entry),
@@ -1285,6 +1356,7 @@ static void pcr_store_test_get_tcg_log_partial_measurement (CuTest *test)
 		exp_buf[i_measurement].entry.digest_algorithm_id = 0x0B;
 		exp_buf[i_measurement].entry.digest_count = 1;
 		exp_buf[i_measurement].entry.measurement_size = 32;
+		exp_buf[i_measurement].entry.event_type = 0x0A + i_measurement;
 
 		memcpy (exp_buf[i_measurement].entry.digest, digests[i_measurement],
 			sizeof (exp_buf[i_measurement].entry.digest));
@@ -1292,12 +1364,10 @@ static void pcr_store_test_get_tcg_log_partial_measurement (CuTest *test)
 			sizeof (exp_buf[i_measurement].entry.measurement));
 
 		if (i_measurement >= 3) {
-			exp_buf[i_measurement].entry.measurement_index = i_measurement - 3;
 			exp_buf[i_measurement].entry.measurement_type =
 				PCR_MEASUREMENT (1, (i_measurement - 3));
 		}
 		else {
-			exp_buf[i_measurement].entry.measurement_index = i_measurement;
 			exp_buf[i_measurement].entry.measurement_type = PCR_MEASUREMENT (0, i_measurement);
 		}
 	}
@@ -1367,11 +1437,15 @@ static void pcr_store_test_get_tcg_log_partial_measurement (CuTest *test)
 	for (i_measurement = 0; i_measurement < 3; ++i_measurement) {
 		pcr_store_update_digest (&store, PCR_MEASUREMENT (0, i_measurement), digests[i_measurement],
 			PCR_DIGEST_LENGTH);
+		pcr_store_update_event_type (&store, PCR_MEASUREMENT (0, i_measurement), 
+			0x0A + i_measurement);
 	}
 
 	for (i_measurement = 0; i_measurement < 3; ++i_measurement) {
 		pcr_store_update_digest (&store, PCR_MEASUREMENT (1, i_measurement),
 			digests[3 + i_measurement], PCR_DIGEST_LENGTH);
+		pcr_store_update_event_type (&store, PCR_MEASUREMENT (1, i_measurement), 
+			0x0A + i_measurement + 3);
 	}
 
 	status = pcr_store_get_tcg_log (&store, &hash.base,
@@ -1430,6 +1504,7 @@ static void pcr_store_test_get_tcg_log_small_buffer (CuTest *test)
 		exp_buf[i_measurement].entry.digest_algorithm_id = 0x0B;
 		exp_buf[i_measurement].entry.digest_count = 1;
 		exp_buf[i_measurement].entry.measurement_size = 32;
+		exp_buf[i_measurement].entry.event_type = 0x0A + i_measurement;
 
 		memcpy (exp_buf[i_measurement].entry.digest, digests[i_measurement],
 			sizeof (exp_buf[i_measurement].entry.digest));
@@ -1437,12 +1512,10 @@ static void pcr_store_test_get_tcg_log_small_buffer (CuTest *test)
 			sizeof (exp_buf[i_measurement].entry.measurement));
 
 		if (i_measurement >= 3) {
-			exp_buf[i_measurement].entry.measurement_index = i_measurement - 3;
 			exp_buf[i_measurement].entry.measurement_type =
 				PCR_MEASUREMENT (1, (i_measurement - 3));
 		}
 		else {
-			exp_buf[i_measurement].entry.measurement_index = i_measurement;
 			exp_buf[i_measurement].entry.measurement_type = PCR_MEASUREMENT (0, i_measurement);
 		}
 	}
@@ -1482,11 +1555,15 @@ static void pcr_store_test_get_tcg_log_small_buffer (CuTest *test)
 	for (i_measurement = 0; i_measurement < 3; ++i_measurement) {
 		pcr_store_update_digest (&store, PCR_MEASUREMENT (0, i_measurement), digests[i_measurement],
 			PCR_DIGEST_LENGTH);
+		pcr_store_update_event_type (&store, PCR_MEASUREMENT (0, i_measurement), 
+			0x0A + i_measurement);
 	}
 
 	for (i_measurement = 0; i_measurement < 3; ++i_measurement) {
 		pcr_store_update_digest (&store, PCR_MEASUREMENT (1, i_measurement),
 			digests[3 + i_measurement], PCR_DIGEST_LENGTH);
+		pcr_store_update_event_type (&store, PCR_MEASUREMENT (1, i_measurement), 
+			0x0A + i_measurement + 3);
 	}
 
 	status = pcr_store_get_tcg_log (&store, &hash.base, 0, (uint8_t*) buf,
@@ -1544,6 +1621,7 @@ static void pcr_store_test_get_tcg_log_small_buffer_not_entry_aligned (CuTest *t
 		exp_buf[i_measurement].entry.digest_algorithm_id = 0x0B;
 		exp_buf[i_measurement].entry.digest_count = 1;
 		exp_buf[i_measurement].entry.measurement_size = 32;
+		exp_buf[i_measurement].entry.event_type = 0x0A + i_measurement;
 
 		memcpy (exp_buf[i_measurement].entry.digest, digests[i_measurement],
 			sizeof (exp_buf[i_measurement].entry.digest));
@@ -1551,12 +1629,10 @@ static void pcr_store_test_get_tcg_log_small_buffer_not_entry_aligned (CuTest *t
 			sizeof (exp_buf[i_measurement].entry.measurement));
 
 		if (i_measurement >= 3) {
-			exp_buf[i_measurement].entry.measurement_index = i_measurement - 3;
 			exp_buf[i_measurement].entry.measurement_type =
 				PCR_MEASUREMENT (1, (i_measurement - 3));
 		}
 		else {
-			exp_buf[i_measurement].entry.measurement_index = i_measurement;
 			exp_buf[i_measurement].entry.measurement_type = PCR_MEASUREMENT (0, i_measurement);
 		}
 	}
@@ -1596,11 +1672,15 @@ static void pcr_store_test_get_tcg_log_small_buffer_not_entry_aligned (CuTest *t
 	for (i_measurement = 0; i_measurement < 3; ++i_measurement) {
 		pcr_store_update_digest (&store, PCR_MEASUREMENT (0, i_measurement), digests[i_measurement],
 			PCR_DIGEST_LENGTH);
+		pcr_store_update_event_type (&store, PCR_MEASUREMENT (0, i_measurement), 
+			0x0A + i_measurement);
 	}
 
 	for (i_measurement = 0; i_measurement < 3; ++i_measurement) {
 		pcr_store_update_digest (&store, PCR_MEASUREMENT (1, i_measurement),
 			digests[3 + i_measurement], PCR_DIGEST_LENGTH);
+		pcr_store_update_event_type (&store, PCR_MEASUREMENT (1, i_measurement), 
+			0x0A + i_measurement + 3);
 	}
 
 	status = pcr_store_get_tcg_log (&store, &hash.base, 0, (uint8_t*) buf,
@@ -1658,6 +1738,7 @@ static void pcr_store_test_get_tcg_log_small_buffer_nonzero_offset (CuTest *test
 		exp_buf[i_measurement].entry.digest_algorithm_id = 0x0B;
 		exp_buf[i_measurement].entry.digest_count = 1;
 		exp_buf[i_measurement].entry.measurement_size = 32;
+		exp_buf[i_measurement].entry.event_type = 0x0A + i_measurement;
 
 		memcpy (exp_buf[i_measurement].entry.digest, digests[i_measurement],
 			sizeof (exp_buf[i_measurement].entry.digest));
@@ -1665,12 +1746,10 @@ static void pcr_store_test_get_tcg_log_small_buffer_nonzero_offset (CuTest *test
 			sizeof (exp_buf[i_measurement].entry.measurement));
 
 		if (i_measurement >= 3) {
-			exp_buf[i_measurement].entry.measurement_index = i_measurement - 3;
 			exp_buf[i_measurement].entry.measurement_type =
 				PCR_MEASUREMENT (1, (i_measurement - 3));
 		}
 		else {
-			exp_buf[i_measurement].entry.measurement_index = i_measurement;
 			exp_buf[i_measurement].entry.measurement_type = PCR_MEASUREMENT (0, i_measurement);
 		}
 	}
@@ -1740,11 +1819,15 @@ static void pcr_store_test_get_tcg_log_small_buffer_nonzero_offset (CuTest *test
 	for (i_measurement = 0; i_measurement < 3; ++i_measurement) {
 		pcr_store_update_digest (&store, PCR_MEASUREMENT (0, i_measurement), digests[i_measurement],
 			PCR_DIGEST_LENGTH);
+		pcr_store_update_event_type (&store, PCR_MEASUREMENT (0, i_measurement), 
+			0x0A + i_measurement);
 	}
 
 	for (i_measurement = 0; i_measurement < 3; ++i_measurement) {
 		pcr_store_update_digest (&store, PCR_MEASUREMENT (1, i_measurement),
 			digests[3 + i_measurement], PCR_DIGEST_LENGTH);
+		pcr_store_update_event_type (&store, PCR_MEASUREMENT (1, i_measurement), 
+			0x0A + i_measurement + 3);
 	}
 
 	status = pcr_store_get_tcg_log (&store, &hash.base, sizeof (struct pcr_store_tcg_log_entry),
@@ -1802,6 +1885,7 @@ static void pcr_store_test_get_tcg_log_invalid_offset (CuTest *test)
 		exp_buf[i_measurement].entry.digest_algorithm_id = 0x0B;
 		exp_buf[i_measurement].entry.digest_count = 1;
 		exp_buf[i_measurement].entry.measurement_size = 32;
+		exp_buf[i_measurement].entry.event_type = 0x0A + i_measurement;
 
 		memcpy (exp_buf[i_measurement].entry.digest, digests[i_measurement],
 			sizeof (exp_buf[i_measurement].entry.digest));
@@ -1809,12 +1893,10 @@ static void pcr_store_test_get_tcg_log_invalid_offset (CuTest *test)
 			sizeof (exp_buf[i_measurement].entry.measurement));
 
 		if (i_measurement >= 3) {
-			exp_buf[i_measurement].entry.measurement_index = i_measurement - 3;
 			exp_buf[i_measurement].entry.measurement_type =
 				PCR_MEASUREMENT (1, (i_measurement - 3));
 		}
 		else {
-			exp_buf[i_measurement].entry.measurement_index = i_measurement;
 			exp_buf[i_measurement].entry.measurement_type = PCR_MEASUREMENT (0, i_measurement);
 		}
 	}
@@ -1884,11 +1966,15 @@ static void pcr_store_test_get_tcg_log_invalid_offset (CuTest *test)
 	for (i_measurement = 0; i_measurement < 3; ++i_measurement) {
 		pcr_store_update_digest (&store, PCR_MEASUREMENT (0, i_measurement), digests[i_measurement],
 			PCR_DIGEST_LENGTH);
+		pcr_store_update_event_type (&store, PCR_MEASUREMENT (0, i_measurement), 
+			0x0A + i_measurement);
 	}
 
 	for (i_measurement = 0; i_measurement < 3; ++i_measurement) {
 		pcr_store_update_digest (&store, PCR_MEASUREMENT (1, i_measurement),
 			digests[3 + i_measurement], PCR_DIGEST_LENGTH);
+		pcr_store_update_event_type (&store, PCR_MEASUREMENT (1, i_measurement), 
+			0x0A + i_measurement + 3);
 	}
 
 	status = pcr_store_get_tcg_log (&store, &hash.base, 6 * sizeof (struct pcr_store_tcg_log_entry),
@@ -2086,6 +2172,10 @@ CuSuite* get_pcr_store_suite ()
 	SUITE_ADD_TEST (suite, pcr_store_test_update_buffer_invalid_arg);
 	SUITE_ADD_TEST (suite, pcr_store_test_update_buffer_invalid_pcr);
 	SUITE_ADD_TEST (suite, pcr_store_test_update_buffer_update_fail);
+	SUITE_ADD_TEST (suite, pcr_store_test_update_event_type);
+	SUITE_ADD_TEST (suite, pcr_store_test_update_event_type_invalid_arg);
+	SUITE_ADD_TEST (suite, pcr_store_test_update_event_type_invalid_pcr);
+	SUITE_ADD_TEST (suite, pcr_store_test_update_event_type_update_fail);
 	SUITE_ADD_TEST (suite, pcr_store_test_compute);
 	SUITE_ADD_TEST (suite, pcr_store_test_compute_explicit);
 	SUITE_ADD_TEST (suite, pcr_store_test_compute_invalid_arg);

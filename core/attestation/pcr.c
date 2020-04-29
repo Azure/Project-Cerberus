@@ -148,6 +148,34 @@ int pcr_update_buffer (struct pcr_bank *pcr, struct hash_engine *hash, uint8_t m
 }
 
 /**
+ * Update event type for a measurement in the PCR bank
+ *
+ * @param pcr PCR bank to update measurement in
+ * @param measurement_index The index of measurement being updated
+ * @param event_type Event type to associate with measurment
+ *
+ * @return Completion status, 0 if success or an error code
+ */
+int pcr_update_event_type (struct pcr_bank *pcr, uint8_t measurement_index, uint32_t event_type)
+{
+	if (pcr == NULL) {
+		return PCR_INVALID_ARGUMENT;
+	}
+
+	if (measurement_index >= pcr->num_measurements) {
+		return PCR_INVALID_INDEX;
+	}
+
+	platform_mutex_lock (&pcr->lock);
+
+	pcr->measurement_list[measurement_index].event_type = event_type;
+
+	platform_mutex_unlock (&pcr->lock);
+
+	return 0;
+}
+
+/**
  * Compute aggregate of all measurements that have added to PCR bank
  *
  * @param pcr The PCR bank to compute aggregate measurement of

@@ -3262,7 +3262,7 @@ void cerberus_protocol_optional_commands_testing_process_log_read_tcg (CuTest *t
 		exp_buf[i_measurement].entry.digest_algorithm_id = 0x0B;
 		exp_buf[i_measurement].entry.digest_count = 1;
 		exp_buf[i_measurement].entry.measurement_size = 32;
-		exp_buf[i_measurement].entry.measurement_index = i_measurement;
+		exp_buf[i_measurement].entry.event_type = 0xA + i_measurement;
 		exp_buf[i_measurement].entry.measurement_type = PCR_MEASUREMENT (0, i_measurement);
 
 		memcpy (exp_buf[i_measurement].entry.digest, digests[i_measurement],
@@ -3340,6 +3340,8 @@ void cerberus_protocol_optional_commands_testing_process_log_read_tcg (CuTest *t
 	for (i_measurement = 0; i_measurement < 6; ++i_measurement) {
 		pcr_store_update_digest (store, PCR_MEASUREMENT (0, i_measurement),
 			digests[i_measurement], PCR_DIGEST_LENGTH);
+		pcr_store_update_event_type (store, PCR_MEASUREMENT (0, i_measurement), 
+			0x0A + i_measurement);
 	}
 
 	request.new_request = true;
@@ -3424,7 +3426,7 @@ void cerberus_protocol_optional_commands_testing_process_log_read_tcg_limited_re
 		exp_buf[i_measurement].entry.digest_algorithm_id = 0x0B;
 		exp_buf[i_measurement].entry.digest_count = 1;
 		exp_buf[i_measurement].entry.measurement_size = 32;
-		exp_buf[i_measurement].entry.measurement_index = i_measurement;
+		exp_buf[i_measurement].entry.event_type = 0xA + i_measurement;
 		exp_buf[i_measurement].entry.measurement_type = PCR_MEASUREMENT (0, i_measurement);
 
 		memcpy (exp_buf[i_measurement].entry.digest, digests[i_measurement],
@@ -3502,6 +3504,8 @@ void cerberus_protocol_optional_commands_testing_process_log_read_tcg_limited_re
 	for (i_measurement = 0; i_measurement < 6; ++i_measurement) {
 		pcr_store_update_digest (store, PCR_MEASUREMENT (0, i_measurement),
 			digests[i_measurement], PCR_DIGEST_LENGTH);
+		pcr_store_update_event_type (store, PCR_MEASUREMENT (0, i_measurement), 
+			0x0A + i_measurement);
 	}
 
 	request.new_request = true;

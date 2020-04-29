@@ -84,7 +84,7 @@ static void attestation_slave_testing_init_dependencies (CuTest *test,
 	status = rng_mock_init (&attestation->rng);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_store_init (&attestation->store, num_pcr_measurements,
+	status = pcr_store_init (&attestation->store, num_pcr_measurements, 
 		sizeof (num_pcr_measurements));
 	CuAssertIntEquals (test, 0, status);
 
@@ -1047,7 +1047,7 @@ static void attestation_slave_test_get_alias_certificate_fail (CuTest *test)
 	status = rng_mock_init (&attestation.rng);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_store_init (&attestation.store, num_pcr_measurements,
+	status = pcr_store_init (&attestation.store, num_pcr_measurements, 
 		sizeof (num_pcr_measurements));
 	CuAssertIntEquals (test, 0, status);
 

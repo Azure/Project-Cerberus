@@ -184,7 +184,8 @@ static void recovery_image_observer_pcr_test_on_recovery_image_activated_hash_er
 	status = recovery_image_mock_init (&image);
 	CuAssertIntEquals (test, 0, status);
 
-	status = recovery_image_observer_pcr_init (&observer, &hash.base, &store, PCR_MEASUREMENT (0, 0));
+	status = recovery_image_observer_pcr_init (&observer, &hash.base, &store, 
+		PCR_MEASUREMENT (0, 0));
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);

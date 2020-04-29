@@ -28,8 +28,8 @@ struct pcr_store {
  * Format for an entry in the TCG log.
  */
 struct pcr_store_tcg_log_entry_info {
-	uint32_t measurement_index;					/**< Measurement index extended to. */
-	uint32_t measurement_type;					/**< Type of event. */
+	uint32_t event_type;						/**< TCG event type */
+	uint32_t measurement_type;					/**< PCR and measurement index */
 	uint32_t digest_count;						/**< Number of digests. */
 	uint16_t digest_algorithm_id;				/**< ID of hashing algorithm. */
 	uint8_t digest[SHA256_HASH_LENGTH];			/**< Value extended to measurement. */
@@ -60,6 +60,8 @@ int pcr_store_update_digest (struct pcr_store *store, uint16_t measurement_type,
 	const uint8_t *digest, size_t digest_len);
 int pcr_store_update_buffer (struct pcr_store *store, struct hash_engine *hash,
 	uint16_t measurement_type, const uint8_t *buf, size_t buf_len);
+int pcr_store_update_event_type (struct pcr_store *store, uint16_t measurement_type,
+	uint32_t event_type);
 
 int pcr_store_compute (struct pcr_store *store, struct hash_engine *hash, uint8_t pcr_num,
 	uint8_t *measurement);
