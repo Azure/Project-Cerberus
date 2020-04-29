@@ -439,6 +439,72 @@ static void pcr_test_update_buffer_update_digest_fail (CuTest *test)
 	complete_pcr_mock_test (test, &pcr, &hash);
 }
 
+static void pcr_test_update_event_type (CuTest *test)
+{
+	struct pcr_bank pcr;
+	struct hash_engine_mock hash;
+	int status;
+
+	TEST_START;
+
+	setup_pcr_mock_test (test, &pcr, &hash, 5);
+
+	status = pcr_update_event_type (&pcr, 2, 0x0A);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0x0A, pcr.measurement_list[2].event_type);
+
+	complete_pcr_mock_test (test, &pcr, &hash);
+}
+
+static void pcr_test_update_event_type_explicit (CuTest *test)
+{
+	struct pcr_bank pcr;
+	struct hash_engine_mock hash;
+	int status;
+
+	TEST_START;
+
+	setup_pcr_mock_test (test, &pcr, &hash, 0);
+
+	status = pcr_update_event_type (&pcr, 0, 0x0A);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0x0A, pcr.measurement_list[0].event_type);
+
+	complete_pcr_mock_test (test, &pcr, &hash);
+}
+
+static void pcr_test_update_event_type_invalid_arg (CuTest *test)
+{
+	struct pcr_bank pcr;
+	struct hash_engine_mock hash;
+	int status;
+
+	TEST_START;
+
+	setup_pcr_mock_test (test, &pcr, &hash, 5);
+
+	status = pcr_update_event_type (NULL, 2, 0x0A);
+	CuAssertIntEquals (test, PCR_INVALID_ARGUMENT, status);
+
+	complete_pcr_mock_test (test, &pcr, &hash);
+}
+
+static void pcr_test_update_event_type_invalid_index (CuTest *test)
+{
+	struct pcr_bank pcr;
+	struct hash_engine_mock hash;
+	int status;
+
+	TEST_START;
+
+	setup_pcr_mock_test (test, &pcr, &hash, 1);
+
+	status = pcr_update_event_type (&pcr, 2, 0x0A);
+	CuAssertIntEquals (test, PCR_INVALID_INDEX, status);
+
+	complete_pcr_mock_test (test, &pcr, &hash);
+}
+
 static void pcr_test_compute (CuTest *test)
 {
 	struct pcr_bank pcr;
@@ -1325,6 +1391,10 @@ CuSuite* get_pcr_suite ()
 	SUITE_ADD_TEST (suite, pcr_test_update_buffer_invalid_arg);
 	SUITE_ADD_TEST (suite, pcr_test_update_buffer_hash_fail);
 	SUITE_ADD_TEST (suite, pcr_test_update_buffer_update_digest_fail);
+	SUITE_ADD_TEST (suite, pcr_test_update_event_type);
+	SUITE_ADD_TEST (suite, pcr_test_update_event_type_explicit);
+	SUITE_ADD_TEST (suite, pcr_test_update_event_type_invalid_arg);
+	SUITE_ADD_TEST (suite, pcr_test_update_event_type_invalid_index);
 	SUITE_ADD_TEST (suite, pcr_test_compute);
 	SUITE_ADD_TEST (suite, pcr_test_compute_explicit);
 	SUITE_ADD_TEST (suite, pcr_test_compute_no_lock);

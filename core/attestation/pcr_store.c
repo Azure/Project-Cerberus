@@ -164,6 +164,32 @@ int pcr_store_update_buffer (struct pcr_store *store, struct hash_engine *hash,
 }
 
 /**
+ * Update event type in PCR bank's list of measurements
+ *
+ * @param store PCR store containing PCR to be updated
+ * @param measurement_type The type of measurement being added
+ * @param event_type TCG event type to associate measurement with
+ *
+ * @return 0 if successful or an error code
+ */
+int pcr_store_update_event_type (struct pcr_store *store, uint16_t measurement_type,
+	uint32_t event_type)
+{
+	uint8_t pcr_bank = (uint8_t) (measurement_type >> 8);
+	uint8_t measurement_index = (uint8_t) measurement_type;
+
+	if (store == NULL) {
+		return PCR_INVALID_ARGUMENT;
+	}
+
+	if (pcr_bank >= store->num_pcr_banks) {
+		return PCR_INVALID_PCR;
+	}
+
+	return pcr_update_event_type (&store->banks[pcr_bank], measurement_index, event_type);
+}
+
+/**
  * Compute aggregate of all measurements that have added to PCR bank
  *
  * @param store PCR store containing PCR to be utilized
@@ -382,7 +408,7 @@ int pcr_store_get_tcg_log (struct pcr_store *store, struct hash_engine *hash, ui
 
 			log_entry.entry.digest_algorithm_id = 0x0B;
 			log_entry.entry.digest_count = 1;
-			log_entry.entry.measurement_index = i_measurement;
+			log_entry.entry.event_type = measurements[i_measurement].event_type;
 			log_entry.entry.measurement_type = PCR_MEASUREMENT (i_bank, i_measurement);
 			log_entry.entry.measurement_size = sizeof (measurements[i_measurement].digest);
 

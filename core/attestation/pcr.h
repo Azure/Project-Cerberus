@@ -20,6 +20,7 @@
 struct pcr_measurement {
 	uint8_t digest[PCR_DIGEST_LENGTH];						/**< Digest buffer */
 	uint8_t measurement[PCR_DIGEST_LENGTH];					/**< Aggregated measurement buffer */
+	uint32_t event_type;									/**< TCG event type */
 };
 
 /**
@@ -42,6 +43,7 @@ int pcr_update_digest (struct pcr_bank *pcr, uint8_t measurement_index, const ui
 	size_t digest_len);
 int pcr_update_buffer (struct pcr_bank *pcr, struct hash_engine *hash, uint8_t measurement_index,
 	const uint8_t *buf, size_t buf_len);
+int pcr_update_event_type (struct pcr_bank *pcr, uint8_t measurement_index, uint32_t event_type);
 
 int pcr_compute (struct pcr_bank *pcr, struct hash_engine *hash, uint8_t *measurement, bool lock);
 int pcr_get_measurement (struct pcr_bank *pcr, uint8_t measurement_index,
