@@ -10,6 +10,7 @@
 #include "cerberus_protocol.h"
 #include "cmd_interface.h"
 #include "cmd_background.h"
+#include "cmd_logging.h"
 #include "device_manager.h"
 #include "cerberus_protocol_required_commands.h"
 
@@ -74,16 +75,28 @@ int cerberus_protocol_get_certificate_digest (struct attestation_slave *attestat
 		return CMD_HANDLER_BAD_LENGTH;
 	}
 
-	if ((rq->digest.slot_num != 0) || (rq->digest.key_alg != ATTESTATION_ECDHE_KEY_EXCHANGE)) {
+	if (rq->digest.slot_num > ATTESTATION_MAX_SLOT_NUM) {
+		return CMD_HANDLER_OUT_OF_RANGE;
+	}
+
+	if (rq->digest.key_alg != ATTESTATION_ECDHE_KEY_EXCHANGE) {
 		return CMD_HANDLER_UNSUPPORTED_INDEX;
 	}
 
-	status = attestation->get_digests (attestation, cerberus_protocol_certificate_digests (rsp),
-		CERBERUS_PROTOCOL_MAX_CERT_DIGESTS (request), &num_cert);
+	status = attestation->get_digests (attestation, rq->digest.slot_num,
+		cerberus_protocol_certificate_digests (rsp), CERBERUS_PROTOCOL_MAX_CERT_DIGESTS (request),
+		&num_cert);
 	if (!ROT_IS_ERROR (status)) {
 		rsp->capabilities = 1;
 		rsp->num_digests = num_cert;
 		request->length = cerberus_protocol_get_certificate_digest_response_length (status);
+		status = 0;
+	}
+	else if ((status == ATTESTATION_INVALID_SLOT_NUM) ||
+		(status == ATTESTATION_CERT_NOT_AVAILABLE)) {
+		rsp->capabilities = 1;
+		rsp->num_digests = 0;
+		request->length = cerberus_protocol_get_certificate_digest_response_length (0);
 		status = 0;
 	}
 
@@ -121,28 +134,38 @@ int cerberus_protocol_get_certificate (struct attestation_slave *attestation,
 	length = rq->certificate.length;
 	offset = rq->certificate.offset;
 
-	if (slot_num >= NUM_ATTESTATION_SLOT_NUM) {
-		return CMD_HANDLER_UNSUPPORTED_INDEX;
-	}
-
-	status = attestation->get_certificate (attestation, slot_num, cert_num, &cert);
-	if (status != 0) {
-		return status;
-	}
-
-	if (offset >= cert.length) {
+	if (slot_num > ATTESTATION_MAX_SLOT_NUM) {
 		return CMD_HANDLER_OUT_OF_RANGE;
 	}
 
-	if ((length == 0) || (length > CERBERUS_PROTOCOL_MAX_CERT_DATA (request))) {
-		length = CERBERUS_PROTOCOL_MAX_CERT_DATA (request);
+	status = attestation->get_certificate (attestation, slot_num, cert_num, &cert);
+	if ((status != 0) && (status != ATTESTATION_INVALID_SLOT_NUM) &&
+		(status != ATTESTATION_INVALID_CERT_NUM) && (status != ATTESTATION_CERT_NOT_AVAILABLE)) {
+		return status;
 	}
 
-	length = min (length, cert.length - offset);
+	if (status == 0) {
+		if (offset < cert.length) {
+			if ((length == 0) || (length > CERBERUS_PROTOCOL_MAX_CERT_DATA (request))) {
+				length = CERBERUS_PROTOCOL_MAX_CERT_DATA (request);
+			}
+
+			length = min (length, cert.length - offset);
+			memcpy (cerberus_protocol_certificate (rsp), &cert.cert[offset], length);
+		}
+		else {
+			length = 0;
+		}
+	}
+	else {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CMD_INTERFACE,
+			CMD_LOGGING_NO_CERT, (slot_num << 8) | cert_num, status);
+
+		length = 0;
+	}
 
 	rsp->slot_num = slot_num;
 	rsp->cert_num = cert_num;
-	memcpy (cerberus_protocol_certificate (rsp), &cert.cert[offset], length);
 
 	request->length = cerberus_protocol_get_certificate_response_length (length);
 	return 0;

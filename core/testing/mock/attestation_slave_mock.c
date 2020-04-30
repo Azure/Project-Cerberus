@@ -7,7 +7,7 @@
 
 
 static int attestation_slave_mock_get_digests (struct attestation_slave *attestation,
-	uint8_t *buf, int buf_len, uint8_t *num_cert)
+	uint8_t slot_num, uint8_t *buf, int buf_len, uint8_t *num_cert)
 {
 	struct attestation_slave_mock *mock = (struct attestation_slave_mock*) attestation;
 
@@ -15,8 +15,9 @@ static int attestation_slave_mock_get_digests (struct attestation_slave *attesta
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, attestation_slave_mock_get_digests, attestation, MOCK_ARG_CALL (buf),
-		MOCK_ARG_CALL (buf_len), MOCK_ARG_CALL (num_cert));
+	MOCK_RETURN (&mock->mock, attestation_slave_mock_get_digests, attestation,
+		MOCK_ARG_CALL (slot_num), MOCK_ARG_CALL (buf), MOCK_ARG_CALL (buf_len),
+		MOCK_ARG_CALL (num_cert));
 }
 
 static int attestation_slave_mock_get_certificate (struct attestation_slave *attestation,
@@ -90,8 +91,10 @@ static int attestation_slave_mock_func_arg_count (void *func)
 	else if (func == attestation_slave_mock_aux_decrypt) {
 		return 7;
 	}
-	else if ((func == attestation_slave_mock_get_digests) ||
-		(func == attestation_slave_mock_get_certificate)) {
+	else if (func == attestation_slave_mock_get_digests) {
+		return 4;
+	}
+	else if (func == attestation_slave_mock_get_certificate) {
 		return 3;
 	}
 	else if (func == attestation_slave_mock_challenge_response) {
@@ -129,12 +132,15 @@ static const char* attestation_slave_mock_arg_name_map (void *func, int arg)
 	if (func == attestation_slave_mock_get_digests) {
 		switch (arg) {
 			case 0:
-				return "buf";
+				return "slot_num";
 
 			case 1:
-				return "buf_len";
+				return "buf";
 
 			case 2:
+				return "buf_len";
+
+			case 3:
 				return "num_cert";
 
 			default:
