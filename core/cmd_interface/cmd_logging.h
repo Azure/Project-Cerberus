@@ -30,6 +30,7 @@ enum {
 	CMD_LOGGING_DEBUG_LOG_CLEAR_FAIL,		/**< Failed to clear debug log. */
 	CMD_LOGGING_COMMAND_TIMEOUT,			/**< Command response was not sent due to processing timeout. */
 	CMD_LOGGING_DEBUG_LOG_CLEARED,			/**< The debug log has been cleared. */
+	CMD_LOGGING_NO_CERT,					/**< No certificate was avaialble for a request. */
 };
 
 

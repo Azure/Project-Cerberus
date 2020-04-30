@@ -2916,6 +2916,8 @@ void cerberus_protocol_optional_commands_testing_process_get_log_info (CuTest *t
 	request.source_eid = MCTP_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
 
+	debug_log = &debug->base;
+
 	status = mock_expect (&debug->mock, debug->base.get_size, debug, debug_size);
 	CuAssertIntEquals (test, 0, status);
 
@@ -2939,6 +2941,8 @@ void cerberus_protocol_optional_commands_testing_process_get_log_info (CuTest *t
 	CuAssertIntEquals (test, 0, resp->tamper_log_length);
 	CuAssertIntEquals (test, false, request.new_request);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
+
+	debug_log = NULL;
 }
 
 void cerberus_protocol_optional_commands_testing_process_get_log_info_invalid_len (CuTest *test,
@@ -2986,6 +2990,8 @@ void cerberus_protocol_optional_commands_testing_process_get_log_info_fail_debug
 	request.source_eid = MCTP_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
 
+	debug_log = &debug->base;
+
 	status = mock_expect (&debug->mock, debug->base.get_size, debug, LOGGING_GET_SIZE_FAILED);
 	CuAssertIntEquals (test, 0, status);
 
@@ -3009,6 +3015,8 @@ void cerberus_protocol_optional_commands_testing_process_get_log_info_fail_debug
 	CuAssertIntEquals (test, 0, resp->tamper_log_length);
 	CuAssertIntEquals (test, false, request.new_request);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
+
+	debug_log = NULL;
 }
 
 void cerberus_protocol_optional_commands_testing_process_log_read_debug (CuTest *test,
@@ -3051,6 +3059,8 @@ void cerberus_protocol_optional_commands_testing_process_log_read_debug (CuTest 
 		contents->entry.arg2 = 5;
 	}
 
+	debug_log = &debug->base;
+
 	status = mock_expect (&debug->mock, debug->base.read_contents, debug, max, MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (max));
 	status |= mock_expect_output (&debug->mock, 1, entry, sizeof (entry), 2);
@@ -3105,6 +3115,8 @@ void cerberus_protocol_optional_commands_testing_process_log_read_debug (CuTest 
 
 	status = testing_validate_array (&entry[offset], cerberus_protocol_log_data (resp), remain);
 	CuAssertIntEquals (test, 0, status);
+
+	debug_log = NULL;
 }
 
 void cerberus_protocol_optional_commands_testing_process_log_read_debug_limited_response (
@@ -3147,6 +3159,8 @@ void cerberus_protocol_optional_commands_testing_process_log_read_debug_limited_
 		contents->entry.arg2 = 5;
 	}
 
+	debug_log = &debug->base;
+
 	status = mock_expect (&debug->mock, debug->base.read_contents, debug, max, MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (max));
 	status |= mock_expect_output (&debug->mock, 1, entry, sizeof (entry), 2);
@@ -3201,6 +3215,8 @@ void cerberus_protocol_optional_commands_testing_process_log_read_debug_limited_
 
 	status = testing_validate_array (&entry[offset], cerberus_protocol_log_data (resp), remain);
 	CuAssertIntEquals (test, 0, status);
+
+	debug_log = NULL;
 }
 
 void cerberus_protocol_optional_commands_testing_process_log_read_tcg (CuTest *test,
@@ -3340,7 +3356,7 @@ void cerberus_protocol_optional_commands_testing_process_log_read_tcg (CuTest *t
 	for (i_measurement = 0; i_measurement < 6; ++i_measurement) {
 		pcr_store_update_digest (store, PCR_MEASUREMENT (0, i_measurement),
 			digests[i_measurement], PCR_DIGEST_LENGTH);
-		pcr_store_update_event_type (store, PCR_MEASUREMENT (0, i_measurement), 
+		pcr_store_update_event_type (store, PCR_MEASUREMENT (0, i_measurement),
 			0x0A + i_measurement);
 	}
 
@@ -3504,7 +3520,7 @@ void cerberus_protocol_optional_commands_testing_process_log_read_tcg_limited_re
 	for (i_measurement = 0; i_measurement < 6; ++i_measurement) {
 		pcr_store_update_digest (store, PCR_MEASUREMENT (0, i_measurement),
 			digests[i_measurement], PCR_DIGEST_LENGTH);
-		pcr_store_update_event_type (store, PCR_MEASUREMENT (0, i_measurement), 
+		pcr_store_update_event_type (store, PCR_MEASUREMENT (0, i_measurement),
 			0x0A + i_measurement);
 	}
 
@@ -3550,6 +3566,8 @@ void cerberus_protocol_optional_commands_testing_process_log_read_debug_fail (Cu
 	request.source_eid = MCTP_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
 
+	debug_log = &debug->base;
+
 	status = mock_expect (&debug->mock, debug->base.read_contents, debug,
 		LOGGING_READ_CONTENTS_FAILED, MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG (max));
 
@@ -3559,6 +3577,8 @@ void cerberus_protocol_optional_commands_testing_process_log_read_debug_fail (Cu
 	status = cmd->process_request (cmd, &request);
 	CuAssertIntEquals (test, LOGGING_READ_CONTENTS_FAILED, status);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
+
+	debug_log = NULL;
 }
 
 void cerberus_protocol_optional_commands_testing_process_log_read_tcg_fail (CuTest *test,
@@ -3616,6 +3636,8 @@ void cerberus_protocol_optional_commands_testing_process_log_read_invalid_offset
 	request.source_eid = MCTP_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
 
+	debug_log = &debug->base;
+
 	status = mock_expect (&debug->mock, debug->base.read_contents, debug, 0, MOCK_ARG (500),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (max));
 	CuAssertIntEquals (test, 0, status);
@@ -3635,6 +3657,8 @@ void cerberus_protocol_optional_commands_testing_process_log_read_invalid_offset
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_READ_LOG, resp->header.command);
 	CuAssertIntEquals (test, false, request.new_request);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
+
+	debug_log = NULL;
 }
 
 void cerberus_protocol_optional_commands_testing_process_log_read_invalid_type (CuTest *test,
