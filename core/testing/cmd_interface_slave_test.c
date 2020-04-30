@@ -663,6 +663,18 @@ static void cmd_interface_slave_test_process_get_certificate_digest (CuTest *tes
 	complete_cmd_interface_slave_mock_test (test, &cmd);
 }
 
+static void cmd_interface_slave_test_process_get_certificate_digest_aux_slot (CuTest *test)
+{
+	struct cmd_interface_slave_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_slave_mock_test (test, &cmd);
+	cerberus_protocol_required_commands_testing_process_get_certificate_digest_aux_slot (test,
+		&cmd.handler.base, &cmd.slave_attestation);
+	complete_cmd_interface_slave_mock_test (test, &cmd);
+}
+
 static void cmd_interface_slave_test_process_get_certificate_digest_limited_response (CuTest *test)
 {
 	struct cmd_interface_slave_testing cmd;
@@ -671,6 +683,30 @@ static void cmd_interface_slave_test_process_get_certificate_digest_limited_resp
 
 	setup_cmd_interface_slave_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_certificate_digest_limited_response (
+		test, &cmd.handler.base, &cmd.slave_attestation);
+	complete_cmd_interface_slave_mock_test (test, &cmd);
+}
+
+static void cmd_interface_slave_test_process_get_certificate_digest_unsupported_slot (CuTest *test)
+{
+	struct cmd_interface_slave_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_slave_mock_test (test, &cmd);
+	cerberus_protocol_required_commands_testing_process_get_certificate_digest_unsupported_slot (
+		test, &cmd.handler.base, &cmd.slave_attestation);
+	complete_cmd_interface_slave_mock_test (test, &cmd);
+}
+
+static void cmd_interface_slave_test_process_get_certificate_digest_unavailable_cert (CuTest *test)
+{
+	struct cmd_interface_slave_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_slave_mock_test (test, &cmd);
+	cerberus_protocol_required_commands_testing_process_get_certificate_digest_unavailable_cert (
 		test, &cmd.handler.base, &cmd.slave_attestation);
 	complete_cmd_interface_slave_mock_test (test, &cmd);
 }
@@ -699,14 +735,14 @@ static void cmd_interface_slave_test_process_get_certificate_digest_unsupported_
 	complete_cmd_interface_slave_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_certificate_digest_unsupported_slot (CuTest *test)
+static void cmd_interface_slave_test_process_get_certificate_digest_invalid_slot (CuTest *test)
 {
 	struct cmd_interface_slave_testing cmd;
 
 	TEST_START;
 
 	setup_cmd_interface_slave_mock_test (test, &cmd);
-	cerberus_protocol_required_commands_testing_process_get_certificate_digest_unsupported_slot (
+	cerberus_protocol_required_commands_testing_process_get_certificate_digest_invalid_slot (
 		test, &cmd.handler.base);
 	complete_cmd_interface_slave_mock_test (test, &cmd);
 }
@@ -743,6 +779,18 @@ static void cmd_interface_slave_test_process_get_certificate_length_0 (CuTest *t
 
 	setup_cmd_interface_slave_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_certificate_length_0 (test,
+		&cmd.handler.base, &cmd.slave_attestation);
+	complete_cmd_interface_slave_mock_test (test, &cmd);
+}
+
+static void cmd_interface_slave_test_process_get_certificate_aux_slot (CuTest *test)
+{
+	struct cmd_interface_slave_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_slave_mock_test (test, &cmd);
+	cerberus_protocol_required_commands_testing_process_get_certificate_aux_slot (test,
 		&cmd.handler.base, &cmd.slave_attestation);
 	complete_cmd_interface_slave_mock_test (test, &cmd);
 }
@@ -796,6 +844,42 @@ static void cmd_interface_slave_test_process_get_certificate_length_too_big (CuT
 	complete_cmd_interface_slave_mock_test (test, &cmd);
 }
 
+static void cmd_interface_slave_test_process_get_certificate_unsupported_slot (CuTest *test)
+{
+	struct cmd_interface_slave_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_slave_mock_test (test, &cmd);
+	cerberus_protocol_required_commands_testing_process_get_certificate_unsupported_slot (test,
+		&cmd.handler.base, &cmd.slave_attestation);
+	complete_cmd_interface_slave_mock_test (test, &cmd);
+}
+
+static void cmd_interface_slave_test_process_get_certificate_unsupported_cert (CuTest *test)
+{
+	struct cmd_interface_slave_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_slave_mock_test (test, &cmd);
+	cerberus_protocol_required_commands_testing_process_get_certificate_unsupported_cert (test,
+		&cmd.handler.base, &cmd.slave_attestation);
+	complete_cmd_interface_slave_mock_test (test, &cmd);
+}
+
+static void cmd_interface_slave_test_process_get_certificate_unavailable_cert (CuTest *test)
+{
+	struct cmd_interface_slave_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_slave_mock_test (test, &cmd);
+	cerberus_protocol_required_commands_testing_process_get_certificate_unavailable_cert (test,
+		&cmd.handler.base, &cmd.slave_attestation);
+	complete_cmd_interface_slave_mock_test (test, &cmd);
+}
+
 static void cmd_interface_slave_test_process_get_certificate_invalid_len (CuTest *test)
 {
 	struct cmd_interface_slave_testing cmd;
@@ -808,14 +892,14 @@ static void cmd_interface_slave_test_process_get_certificate_invalid_len (CuTest
 	complete_cmd_interface_slave_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_certificate_unsupported_slot_num (CuTest *test)
+static void cmd_interface_slave_test_process_get_certificate_invalid_slot_num (CuTest *test)
 {
 	struct cmd_interface_slave_testing cmd;
 
 	TEST_START;
 
 	setup_cmd_interface_slave_mock_test (test, &cmd);
-	cerberus_protocol_required_commands_testing_process_get_certificate_unsupported_slot_num (test,
+	cerberus_protocol_required_commands_testing_process_get_certificate_invalid_slot_num (test,
 		&cmd.handler.base);
 	complete_cmd_interface_slave_mock_test (test, &cmd);
 }
@@ -1330,23 +1414,32 @@ CuSuite* get_cmd_interface_slave_suite ()
 	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_get_fw_version_riot);
 	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_get_fw_version_bad_count);
 	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_get_certificate_digest);
+	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_get_certificate_digest_aux_slot);
+	SUITE_ADD_TEST (suite,
+		cmd_interface_slave_test_process_get_certificate_digest_unsupported_slot);
+	SUITE_ADD_TEST (suite,
+		cmd_interface_slave_test_process_get_certificate_digest_unavailable_cert);
 	SUITE_ADD_TEST (suite,
 		cmd_interface_slave_test_process_get_certificate_digest_limited_response);
 	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_get_certificate_digest_invalid_len);
 	SUITE_ADD_TEST (suite,
 		cmd_interface_slave_test_process_get_certificate_digest_unsupported_algo);
 	SUITE_ADD_TEST (suite,
-		cmd_interface_slave_test_process_get_certificate_digest_unsupported_slot);
+		cmd_interface_slave_test_process_get_certificate_digest_invalid_slot);
 	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_get_certificate_digest_fail);
 	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_get_certificate);
 	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_get_certificate_length_0);
+	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_get_certificate_aux_slot);
 	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_get_certificate_limited_response);
 	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_get_certificate_invalid_offset);
 	SUITE_ADD_TEST (suite,
 		cmd_interface_slave_test_process_get_certificate_valid_offset_and_length_beyond_cert_len);
 	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_get_certificate_length_too_big);
+	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_get_certificate_unsupported_slot);
+	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_get_certificate_unsupported_cert);
+	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_get_certificate_unavailable_cert);
 	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_get_certificate_invalid_len);
-	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_get_certificate_unsupported_slot_num);
+	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_get_certificate_invalid_slot_num);
 	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_get_certificate_fail);
 	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_get_challenge_response);
 	SUITE_ADD_TEST (suite,

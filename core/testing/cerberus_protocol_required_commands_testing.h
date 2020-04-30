@@ -38,13 +38,19 @@ void cerberus_protocol_required_commands_testing_process_get_fw_version_bad_coun
 
 void cerberus_protocol_required_commands_testing_process_get_certificate_digest (CuTest *test,
 	struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation);
+void cerberus_protocol_required_commands_testing_process_get_certificate_digest_aux_slot (
+	CuTest *test, struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation);
 void cerberus_protocol_required_commands_testing_process_get_certificate_digest_limited_response (
+	CuTest *test, struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation);
+void cerberus_protocol_required_commands_testing_process_get_certificate_digest_unsupported_slot (
+	CuTest *test, struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation);
+void cerberus_protocol_required_commands_testing_process_get_certificate_digest_unavailable_cert (
 	CuTest *test, struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation);
 void cerberus_protocol_required_commands_testing_process_get_certificate_digest_invalid_len (
 	CuTest *test, struct cmd_interface *cmd);
 void cerberus_protocol_required_commands_testing_process_get_certificate_digest_unsupported_algo (
 	CuTest *test, struct cmd_interface *cmd);
-void cerberus_protocol_required_commands_testing_process_get_certificate_digest_unsupported_slot (
+void cerberus_protocol_required_commands_testing_process_get_certificate_digest_invalid_slot (
 	CuTest *test, struct cmd_interface *cmd);
 void cerberus_protocol_required_commands_testing_process_get_certificate_digest_fail (CuTest *test,
 	struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation);
@@ -52,6 +58,8 @@ void cerberus_protocol_required_commands_testing_process_get_certificate_digest_
 void cerberus_protocol_required_commands_testing_process_get_certificate (CuTest *test,
 	struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation);
 void cerberus_protocol_required_commands_testing_process_get_certificate_length_0 (CuTest *test,
+	struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation);
+void cerberus_protocol_required_commands_testing_process_get_certificate_aux_slot (CuTest *test,
 	struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation);
 void cerberus_protocol_required_commands_testing_process_get_certificate_limited_response (
 	CuTest *test, struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation);
@@ -61,9 +69,15 @@ void cerberus_protocol_required_commands_testing_process_get_certificate_valid_o
 	CuTest *test, struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation);
 void cerberus_protocol_required_commands_testing_process_get_certificate_length_too_big (
 	CuTest *test, struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation);
+void cerberus_protocol_required_commands_testing_process_get_certificate_unsupported_slot (
+	CuTest *test, struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation);
+void cerberus_protocol_required_commands_testing_process_get_certificate_unsupported_cert (
+	CuTest *test, struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation);
+void cerberus_protocol_required_commands_testing_process_get_certificate_unavailable_cert (
+	CuTest *test, struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation);
 void cerberus_protocol_required_commands_testing_process_get_certificate_invalid_len (CuTest *test,
 	struct cmd_interface *cmd);
-void cerberus_protocol_required_commands_testing_process_get_certificate_unsupported_slot_num (
+void cerberus_protocol_required_commands_testing_process_get_certificate_invalid_slot_num (
 	CuTest *test, struct cmd_interface *cmd);
 void cerberus_protocol_required_commands_testing_process_get_certificate_fail (
 	CuTest *test, struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation);

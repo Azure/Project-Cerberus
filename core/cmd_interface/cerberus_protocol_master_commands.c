@@ -899,6 +899,7 @@ int cerberus_protocol_process_certificate_digest (struct attestation_master *att
 		return CMD_HANDLER_BAD_LENGTH;
 	}
 
+	/* TOOD: Ensure the flow for getting certs and digests supports v3 protocol behavior. */
 	digests.num_cert = rsp->num_digests;
 	digests.digest = &request->data[sizeof (*rsp)];
 	digests.digest_len = SHA256_HASH_LENGTH;

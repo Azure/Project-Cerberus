@@ -6,6 +6,7 @@
 
 #include <stdint.h>
 #include "status/rot_status.h"
+#include "platform.h"
 #include "crypto/ecc.h"
 #include "crypto/hash.h"
 #include "crypto/rng.h"
@@ -22,21 +23,22 @@ struct attestation_slave {
 	 * manager.
 	 *
 	 * @param attestation The slave attestation manager interface to utilize.
+	 * @param slot_num The slot number for the certificate chain to query.
 	 * @param buf Output buffer to be filled with the certificate digests.
 	 * @param buf_len Maximum length of buffer as input.
 	 * @param num_cert Number of certificates in output buffer
 	 *
 	 * @return Output length if the digests was successfully computed or an error code.
 	 */
-	int (*get_digests) (struct attestation_slave *attestation, uint8_t *buf, int buf_len,
-		uint8_t *num_cert);
+	int (*get_digests) (struct attestation_slave *attestation, uint8_t slot_num, uint8_t *buf,
+		int buf_len, uint8_t *num_cert);
 
 	/**
 	 * Get certificate from the attestation manager certificate chain.
 	 *
 	 * @param attestation The slave attestation manager interface to utilize.
-	 * @param slot_num The slot number for the certificate chain to utilize.
-	 * @param cert_num The certificate number of the chain to retrieve.
+	 * @param slot_num The slot number for the certificate chain to retrieve.
+	 * @param cert_num The certificate number in the chain to retrieve.
 	 * @param cert Certificate buffer to fill. Caller must not free certificate buffers.
 	 *
 	 * @return 0 if the certificate was successfully retrieved or an error code.
@@ -110,6 +112,7 @@ struct attestation_slave {
 	struct riot_key_manager *riot;			/**< The manager for RIoT keys. */
 	struct pcr_store *pcr_store;			/**< Storage for device measurements. */
 	struct aux_attestation *aux;			/**< Auxiliary attestation service handler. */
+	platform_mutex lock;					/**< Synchronization for shared handlers. */
 };
 
 
