@@ -13,7 +13,7 @@
 
 
 /**
- * The maximum size for a single packet send or received through a command channel.
+ * The maximum size for a single packet sent or received through a command channel.
  */
 #define	CMD_MAX_PACKET_SIZE					MCTP_PROTOCOL_MAX_PACKET_LEN
 

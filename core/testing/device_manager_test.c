@@ -2086,17 +2086,30 @@ static void device_manager_test_get_reponse_timeout_remote_device_no_capabilitie
 static void device_manager_test_get_reponse_timeout_remote_device_unknown_device (CuTest *test)
 {
 	struct device_manager manager;
+	struct device_manager_full_capabilities local;
 	int status;
 	size_t timeout;
 
 	TEST_START;
 
+	memset (&local, 0, sizeof (local));
+	local.request.max_message_size = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
+	local.request.max_packet_size = MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT;
+	local.request.security_mode = DEVICE_MANAGER_SECURITY_AUTHENTICATION;
+	local.request.bus_role = DEVICE_MANAGER_SLAVE_BUS_ROLE;
+	local.request.hierarchy_role = DEVICE_MANAGER_AC_ROT_MODE;
+	local.max_timeout = (MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS + 10) / 10;
+	local.max_sig = MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
+
 	status = device_manager_init (&manager, 2, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
+	status = device_manager_update_device_capabilities (&manager, 0, &local);
+	CuAssertIntEquals (test, 0, status);
+
 	timeout = device_manager_get_reponse_timeout (&manager, 2);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS, timeout);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS + 10, timeout);
 
 	device_manager_release (&manager);
 }
@@ -2212,10 +2225,20 @@ static void device_manager_test_get_reponse_timeout_by_eid_remote_device_unknown
 	CuTest *test)
 {
 	struct device_manager manager;
+	struct device_manager_full_capabilities local;
 	int status;
 	size_t timeout;
 
 	TEST_START;
+
+	memset (&local, 0, sizeof (local));
+	local.request.max_message_size = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
+	local.request.max_packet_size = MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT;
+	local.request.security_mode = DEVICE_MANAGER_SECURITY_AUTHENTICATION;
+	local.request.bus_role = DEVICE_MANAGER_SLAVE_BUS_ROLE;
+	local.request.hierarchy_role = DEVICE_MANAGER_AC_ROT_MODE;
+	local.max_timeout = (MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS + 10) / 10;
+	local.max_sig = MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
 
 	status = device_manager_init (&manager, 2, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE);
@@ -2228,8 +2251,11 @@ static void device_manager_test_get_reponse_timeout_by_eid_remote_device_unknown
 		0xDD);
 	CuAssertIntEquals (test, 0, status);
 
+	status = device_manager_update_device_capabilities (&manager, 0, &local);
+	CuAssertIntEquals (test, 0, status);
+
 	timeout = device_manager_get_reponse_timeout_by_eid (&manager, 0xEE);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS, timeout);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS + 10, timeout);
 
 	device_manager_release (&manager);
 }
@@ -2329,17 +2355,30 @@ static void device_manager_test_get_crypto_timeout_remote_device_no_capabilities
 static void device_manager_test_get_crypto_timeout_remote_device_unknown_device (CuTest *test)
 {
 	struct device_manager manager;
+	struct device_manager_full_capabilities local;
 	int status;
 	size_t timeout;
 
 	TEST_START;
 
+	memset (&local, 0, sizeof (local));
+	local.request.max_message_size = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
+	local.request.max_packet_size = MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT;
+	local.request.security_mode = DEVICE_MANAGER_SECURITY_AUTHENTICATION;
+	local.request.bus_role = DEVICE_MANAGER_SLAVE_BUS_ROLE;
+	local.request.hierarchy_role = DEVICE_MANAGER_AC_ROT_MODE;
+	local.max_timeout = MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
+	local.max_sig = (MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS + 100) / 100;
+
 	status = device_manager_init (&manager, 2, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
+	status = device_manager_update_device_capabilities (&manager, 0, &local);
+	CuAssertIntEquals (test, 0, status);
+
 	timeout = device_manager_get_crypto_timeout (&manager, 2);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS, timeout);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS + 100, timeout);
 
 	device_manager_release (&manager);
 }
@@ -2455,10 +2494,20 @@ static void device_manager_test_get_crypto_timeout_by_eid_remote_device_unknown_
 	CuTest *test)
 {
 	struct device_manager manager;
+	struct device_manager_full_capabilities local;
 	int status;
 	size_t timeout;
 
 	TEST_START;
+
+	memset (&local, 0, sizeof (local));
+	local.request.max_message_size = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
+	local.request.max_packet_size = MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT;
+	local.request.security_mode = DEVICE_MANAGER_SECURITY_AUTHENTICATION;
+	local.request.bus_role = DEVICE_MANAGER_SLAVE_BUS_ROLE;
+	local.request.hierarchy_role = DEVICE_MANAGER_AC_ROT_MODE;
+	local.max_timeout = MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
+	local.max_sig = (MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS + 100) / 100;
 
 	status = device_manager_init (&manager, 2, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE);
@@ -2471,8 +2520,11 @@ static void device_manager_test_get_crypto_timeout_by_eid_remote_device_unknown_
 		0xDD);
 	CuAssertIntEquals (test, 0, status);
 
+	status = device_manager_update_device_capabilities (&manager, 0, &local);
+	CuAssertIntEquals (test, 0, status);
+
 	timeout = device_manager_get_crypto_timeout_by_eid (&manager, 0xEE);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS, timeout);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS + 100, timeout);
 
 	device_manager_release (&manager);
 }

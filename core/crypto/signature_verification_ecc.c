@@ -16,7 +16,7 @@ static int signature_verification_ecc_verify_signature (struct signature_verific
 		return SIG_VERIFICATION_INVALID_ARGUMENT;
 	}
 
-	return ecc->ecc->verify (ecc->ecc,  &ecc->key, digest, length, signature, sig_length);
+	return ecc->ecc->verify (ecc->ecc, &ecc->key, digest, length, signature, sig_length);
 }
 
 /**
