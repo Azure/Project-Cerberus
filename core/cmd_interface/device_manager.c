@@ -501,7 +501,7 @@ uint32_t device_manager_get_reponse_timeout (struct device_manager *mgr, int dev
 
 	if ((device_num >= mgr->num_devices) ||
 		(mgr->entries[device_num].info.capabilities.max_timeout == 0)) {
-		return MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS;
+		return mgr->entries[0].info.capabilities.max_timeout * 10;
 	}
 
 	return mgr->entries[device_num].info.capabilities.max_timeout * 10;
@@ -543,7 +543,7 @@ uint32_t device_manager_get_crypto_timeout (struct device_manager *mgr, int devi
 
 	if ((device_num >= mgr->num_devices) ||
 		(mgr->entries[device_num].info.capabilities.max_sig == 0)) {
-		return MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS;
+		return mgr->entries[0].info.capabilities.max_sig * 100;
 	}
 
 	return mgr->entries[device_num].info.capabilities.max_sig * 100;
