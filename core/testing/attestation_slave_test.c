@@ -1952,10 +1952,6 @@ static void attestation_slave_test_get_int_ca_certificate_aux_slot_no_aux (CuTes
 	status = attestation.slave.get_certificate (&attestation.slave, 1, 1, &cert);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_SLOT_NUM, status);
 
-	status = testing_validate_array (X509_CERTCA_ECC_CA_NOPL_DER, cert.cert,
-		X509_CERTCA_ECC_CA_NOPL_DER_LEN);
-	CuAssertIntEquals (test, 0, status);
-
 	complete_attestation_slave_mock_test (test, &attestation);
 }
 
