@@ -676,5 +676,8 @@ int cerberus_protocol_activate_recovery_image (struct recovery_image_cmd_interfa
 int cerberus_protocol_get_recovery_image_id (struct recovery_image_manager *manager_0,
 	struct recovery_image_manager *manager_1, struct cmd_interface_request *request);
 
+int cerberus_protocol_get_attestation_data (struct pcr_store *store,
+	struct cmd_interface_request *request);
+
 
 #endif // CERBERUS_PROTOCOL_OPTIONAL_COMMANDS_H_

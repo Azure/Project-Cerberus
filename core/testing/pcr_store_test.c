@@ -891,14 +891,14 @@ static void pcr_store_test_get_tcg_log (CuTest *test)
 	for (i_measurement = 0; i_measurement < 3; ++i_measurement) {
 		pcr_store_update_digest (&store, PCR_MEASUREMENT (0, i_measurement), digests[i_measurement],
 			PCR_DIGEST_LENGTH);
-		pcr_store_update_event_type (&store, PCR_MEASUREMENT (0, i_measurement), 
+		pcr_store_update_event_type (&store, PCR_MEASUREMENT (0, i_measurement),
 			0x0A + i_measurement);
 	}
 
 	for (i_measurement = 0; i_measurement < 3; ++i_measurement) {
 		pcr_store_update_digest (&store, PCR_MEASUREMENT (1, i_measurement),
 			digests[3 + i_measurement], PCR_DIGEST_LENGTH);
-		pcr_store_update_event_type (&store, PCR_MEASUREMENT (1, i_measurement), 
+		pcr_store_update_event_type (&store, PCR_MEASUREMENT (1, i_measurement),
 			0x0A + i_measurement + 3);
 	}
 
@@ -1037,14 +1037,14 @@ static void pcr_store_test_get_tcg_log_invalid_entry (CuTest *test)
 	for (i_measurement = 0; i_measurement < 3; ++i_measurement) {
 		pcr_store_update_digest (&store, PCR_MEASUREMENT (0, i_measurement), digests[i_measurement],
 			PCR_DIGEST_LENGTH);
-		pcr_store_update_event_type (&store, PCR_MEASUREMENT (0, i_measurement), 
+		pcr_store_update_event_type (&store, PCR_MEASUREMENT (0, i_measurement),
 			0x0A + i_measurement);
 	}
 
 	for (i_measurement = 0; i_measurement < 2; ++i_measurement) {
 		pcr_store_update_digest (&store, PCR_MEASUREMENT (1, i_measurement),
 			digests[3 + i_measurement], PCR_DIGEST_LENGTH);
-		pcr_store_update_event_type (&store, PCR_MEASUREMENT (1, i_measurement), 
+		pcr_store_update_event_type (&store, PCR_MEASUREMENT (1, i_measurement),
 			0x0A + i_measurement + 3);
 	}
 
@@ -1149,7 +1149,7 @@ static void pcr_store_test_get_tcg_log_explicit (CuTest *test)
 	for (i_measurement = 0; i_measurement < 3; ++i_measurement) {
 		pcr_store_update_digest (&store, PCR_MEASUREMENT (0, i_measurement), digests[i_measurement],
 			PCR_DIGEST_LENGTH);
-		pcr_store_update_event_type (&store, PCR_MEASUREMENT (0, i_measurement), 
+		pcr_store_update_event_type (&store, PCR_MEASUREMENT (0, i_measurement),
 			0x0A + i_measurement);
 	}
 
@@ -1290,14 +1290,14 @@ static void pcr_store_test_get_tcg_log_non_zero_offset (CuTest *test)
 	for (i_measurement = 0; i_measurement < 3; ++i_measurement) {
 		pcr_store_update_digest (&store, PCR_MEASUREMENT (0, i_measurement), digests[i_measurement],
 			PCR_DIGEST_LENGTH);
-		pcr_store_update_event_type (&store, PCR_MEASUREMENT (0, i_measurement), 
+		pcr_store_update_event_type (&store, PCR_MEASUREMENT (0, i_measurement),
 			0x0A + i_measurement);
 	}
 
 	for (i_measurement = 0; i_measurement < 3; ++i_measurement) {
 		pcr_store_update_digest (&store, PCR_MEASUREMENT (1, i_measurement),
 			digests[3 + i_measurement], PCR_DIGEST_LENGTH);
-		pcr_store_update_event_type (&store, PCR_MEASUREMENT (1, i_measurement), 
+		pcr_store_update_event_type (&store, PCR_MEASUREMENT (1, i_measurement),
 			0x0A + i_measurement + 3);
 	}
 
@@ -1437,14 +1437,14 @@ static void pcr_store_test_get_tcg_log_partial_measurement (CuTest *test)
 	for (i_measurement = 0; i_measurement < 3; ++i_measurement) {
 		pcr_store_update_digest (&store, PCR_MEASUREMENT (0, i_measurement), digests[i_measurement],
 			PCR_DIGEST_LENGTH);
-		pcr_store_update_event_type (&store, PCR_MEASUREMENT (0, i_measurement), 
+		pcr_store_update_event_type (&store, PCR_MEASUREMENT (0, i_measurement),
 			0x0A + i_measurement);
 	}
 
 	for (i_measurement = 0; i_measurement < 3; ++i_measurement) {
 		pcr_store_update_digest (&store, PCR_MEASUREMENT (1, i_measurement),
 			digests[3 + i_measurement], PCR_DIGEST_LENGTH);
-		pcr_store_update_event_type (&store, PCR_MEASUREMENT (1, i_measurement), 
+		pcr_store_update_event_type (&store, PCR_MEASUREMENT (1, i_measurement),
 			0x0A + i_measurement + 3);
 	}
 
@@ -1555,14 +1555,14 @@ static void pcr_store_test_get_tcg_log_small_buffer (CuTest *test)
 	for (i_measurement = 0; i_measurement < 3; ++i_measurement) {
 		pcr_store_update_digest (&store, PCR_MEASUREMENT (0, i_measurement), digests[i_measurement],
 			PCR_DIGEST_LENGTH);
-		pcr_store_update_event_type (&store, PCR_MEASUREMENT (0, i_measurement), 
+		pcr_store_update_event_type (&store, PCR_MEASUREMENT (0, i_measurement),
 			0x0A + i_measurement);
 	}
 
 	for (i_measurement = 0; i_measurement < 3; ++i_measurement) {
 		pcr_store_update_digest (&store, PCR_MEASUREMENT (1, i_measurement),
 			digests[3 + i_measurement], PCR_DIGEST_LENGTH);
-		pcr_store_update_event_type (&store, PCR_MEASUREMENT (1, i_measurement), 
+		pcr_store_update_event_type (&store, PCR_MEASUREMENT (1, i_measurement),
 			0x0A + i_measurement + 3);
 	}
 
@@ -1672,14 +1672,14 @@ static void pcr_store_test_get_tcg_log_small_buffer_not_entry_aligned (CuTest *t
 	for (i_measurement = 0; i_measurement < 3; ++i_measurement) {
 		pcr_store_update_digest (&store, PCR_MEASUREMENT (0, i_measurement), digests[i_measurement],
 			PCR_DIGEST_LENGTH);
-		pcr_store_update_event_type (&store, PCR_MEASUREMENT (0, i_measurement), 
+		pcr_store_update_event_type (&store, PCR_MEASUREMENT (0, i_measurement),
 			0x0A + i_measurement);
 	}
 
 	for (i_measurement = 0; i_measurement < 3; ++i_measurement) {
 		pcr_store_update_digest (&store, PCR_MEASUREMENT (1, i_measurement),
 			digests[3 + i_measurement], PCR_DIGEST_LENGTH);
-		pcr_store_update_event_type (&store, PCR_MEASUREMENT (1, i_measurement), 
+		pcr_store_update_event_type (&store, PCR_MEASUREMENT (1, i_measurement),
 			0x0A + i_measurement + 3);
 	}
 
@@ -1819,14 +1819,14 @@ static void pcr_store_test_get_tcg_log_small_buffer_nonzero_offset (CuTest *test
 	for (i_measurement = 0; i_measurement < 3; ++i_measurement) {
 		pcr_store_update_digest (&store, PCR_MEASUREMENT (0, i_measurement), digests[i_measurement],
 			PCR_DIGEST_LENGTH);
-		pcr_store_update_event_type (&store, PCR_MEASUREMENT (0, i_measurement), 
+		pcr_store_update_event_type (&store, PCR_MEASUREMENT (0, i_measurement),
 			0x0A + i_measurement);
 	}
 
 	for (i_measurement = 0; i_measurement < 3; ++i_measurement) {
 		pcr_store_update_digest (&store, PCR_MEASUREMENT (1, i_measurement),
 			digests[3 + i_measurement], PCR_DIGEST_LENGTH);
-		pcr_store_update_event_type (&store, PCR_MEASUREMENT (1, i_measurement), 
+		pcr_store_update_event_type (&store, PCR_MEASUREMENT (1, i_measurement),
 			0x0A + i_measurement + 3);
 	}
 
@@ -1966,14 +1966,14 @@ static void pcr_store_test_get_tcg_log_invalid_offset (CuTest *test)
 	for (i_measurement = 0; i_measurement < 3; ++i_measurement) {
 		pcr_store_update_digest (&store, PCR_MEASUREMENT (0, i_measurement), digests[i_measurement],
 			PCR_DIGEST_LENGTH);
-		pcr_store_update_event_type (&store, PCR_MEASUREMENT (0, i_measurement), 
+		pcr_store_update_event_type (&store, PCR_MEASUREMENT (0, i_measurement),
 			0x0A + i_measurement);
 	}
 
 	for (i_measurement = 0; i_measurement < 3; ++i_measurement) {
 		pcr_store_update_digest (&store, PCR_MEASUREMENT (1, i_measurement),
 			digests[3 + i_measurement], PCR_DIGEST_LENGTH);
-		pcr_store_update_event_type (&store, PCR_MEASUREMENT (1, i_measurement), 
+		pcr_store_update_event_type (&store, PCR_MEASUREMENT (1, i_measurement),
 			0x0A + i_measurement + 3);
 	}
 
@@ -2149,6 +2149,215 @@ static void pcr_store_test_invalidate_measurement_bad_index (CuTest *test)
 	complete_pcr_store_mock_test (test, &store, &hash);
 }
 
+static void pcr_store_test_set_measurement_data (CuTest *test)
+{
+	struct pcr_store store;
+	struct hash_engine_mock hash;
+	struct pcr_measured_data measurement_data;
+	uint8_t data = 0x11;
+	uint8_t data_mem[] = {
+		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
+		0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f
+	};
+	uint8_t buffer[50];
+	size_t length = sizeof (buffer);
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_1BYTE;
+	measurement_data.data.value_1byte = data;
+
+	setup_pcr_store_mock_test (test, &store, &hash, 5, 5);
+
+	status = pcr_store_set_measurement_data (&store, PCR_MEASUREMENT (0, 2), &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement_data (&store.banks[0], 2, 0, buffer, length);
+	CuAssertIntEquals (test, 1, status);
+
+	status = testing_validate_array (&data, buffer, 1);
+	CuAssertIntEquals (test, 0, status);
+
+	measurement_data.type = PCR_DATA_TYPE_MEMORY;
+	measurement_data.data.memory.buffer = data_mem;
+	measurement_data.data.memory.length = sizeof (data_mem);
+
+	status = pcr_store_set_measurement_data (&store, PCR_MEASUREMENT (1, 4), &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement_data (&store.banks[1], 4, 0, buffer, length);
+	CuAssertIntEquals (test, sizeof (data_mem), status);
+
+	status = testing_validate_array (data_mem, buffer, sizeof (data_mem));
+	CuAssertIntEquals (test, 0, status);
+
+	complete_pcr_store_mock_test (test, &store, &hash);
+}
+
+static void pcr_store_test_set_measurement_data_null (CuTest *test)
+{
+	struct pcr_store store;
+	struct hash_engine_mock hash;
+	struct pcr_measured_data measurement_data;
+	uint8_t data = 0x11;
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_1BYTE;
+	measurement_data.data.value_1byte = data;
+
+	setup_pcr_store_mock_test (test, &store, &hash, 5, 5);
+
+	status = pcr_store_set_measurement_data (NULL, PCR_MEASUREMENT (0, 2), &measurement_data);
+	CuAssertIntEquals (test, PCR_INVALID_ARGUMENT, status);
+
+	complete_pcr_store_mock_test (test, &store, &hash);
+}
+
+static void pcr_store_test_set_measurement_data_invalid_pcr (CuTest *test)
+{
+	struct pcr_store store;
+	struct hash_engine_mock hash;
+	struct pcr_measured_data measurement_data;
+	uint8_t data = 0x11;
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_1BYTE;
+	measurement_data.data.value_1byte = data;
+
+	setup_pcr_store_mock_test (test, &store, &hash, 5, 5);
+
+	status = pcr_store_set_measurement_data (&store, PCR_MEASUREMENT (2, 0), &measurement_data);
+	CuAssertIntEquals (test, PCR_INVALID_PCR, status);
+
+	complete_pcr_store_mock_test (test, &store, &hash);
+}
+
+static void pcr_store_test_set_measurement_data_fail (CuTest *test)
+{
+	struct pcr_store store;
+	struct hash_engine_mock hash;
+	struct pcr_measured_data measurement_data;
+	uint8_t data = 0x11;
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = NUM_PCR_DATA_TYPE;
+	measurement_data.data.value_1byte = data;
+
+	setup_pcr_store_mock_test (test, &store, &hash, 5, 5);
+
+	status = pcr_store_set_measurement_data (&store, PCR_MEASUREMENT (0, 2), &measurement_data);
+	CuAssertIntEquals (test, PCR_INVALID_DATA_TYPE, status);
+
+	complete_pcr_store_mock_test (test, &store, &hash);
+}
+
+static void pcr_store_test_get_measurement_data (CuTest *test)
+{
+	struct pcr_store store;
+	struct hash_engine_mock hash;
+	struct pcr_measured_data measurement_data;
+	uint16_t data = 0x1122;
+	uint8_t data_mem[] = {
+		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
+		0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f
+	};
+	uint8_t buffer[50];
+	size_t length = sizeof (buffer);
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_2BYTE;
+	measurement_data.data.value_2byte = data;
+
+	setup_pcr_store_mock_test (test, &store, &hash, 5, 5);
+
+	status = pcr_store_set_measurement_data (&store, PCR_MEASUREMENT (0, 2), &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_get_measurement_data (&store, PCR_MEASUREMENT (0, 2), 0, buffer, length);
+	CuAssertIntEquals (test, 2, status);
+
+	status = testing_validate_array ((uint8_t*) &data, buffer, 2);
+	CuAssertIntEquals (test, 0, status);
+
+	measurement_data.type = PCR_DATA_TYPE_MEMORY;
+	measurement_data.data.memory.buffer = data_mem;
+	measurement_data.data.memory.length = sizeof (data_mem);
+
+	status = pcr_store_set_measurement_data (&store, PCR_MEASUREMENT (1, 3), &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_get_measurement_data (&store, PCR_MEASUREMENT (1, 3), 0, buffer, length);
+	CuAssertIntEquals (test, sizeof (data_mem), status);
+
+	status = testing_validate_array (data_mem, buffer, sizeof (data_mem));
+	CuAssertIntEquals (test, 0, status);
+
+	complete_pcr_store_mock_test (test, &store, &hash);
+}
+
+static void pcr_store_test_get_measurement_data_null (CuTest *test)
+{
+	struct pcr_store store;
+	struct hash_engine_mock hash;
+	uint8_t buffer[4];
+	size_t length = sizeof (buffer);
+	int status;
+
+	TEST_START;
+
+	setup_pcr_store_mock_test (test, &store, &hash, 5, 5);
+
+	status = pcr_store_get_measurement_data (NULL, PCR_MEASUREMENT (0, 2), 0, buffer, length);
+	CuAssertIntEquals (test, PCR_INVALID_ARGUMENT, status);
+
+	complete_pcr_store_mock_test (test, &store, &hash);
+}
+
+static void pcr_store_test_get_measurement_data_no_data (CuTest *test)
+{
+	struct pcr_store store;
+	struct hash_engine_mock hash;
+	uint8_t buffer[4];
+	size_t length = sizeof (buffer);
+	int status;
+
+	TEST_START;
+
+	setup_pcr_store_mock_test (test, &store, &hash, 5, 5);
+
+	status = pcr_store_get_measurement_data (&store, PCR_MEASUREMENT (0, 2), 0, buffer, length);
+	CuAssertIntEquals (test, 0, status);
+
+	complete_pcr_store_mock_test (test, &store, &hash);
+}
+
+static void pcr_store_test_get_measurement_data_invalid_pcr (CuTest *test)
+{
+	struct pcr_store store;
+	struct hash_engine_mock hash;
+	uint8_t buffer[4];
+	size_t length = sizeof (buffer);
+	int status;
+
+	TEST_START;
+
+	setup_pcr_store_mock_test (test, &store, &hash, 5, 5);
+
+	status = pcr_store_get_measurement_data (&store, PCR_MEASUREMENT (2, 0), 0, buffer, length);
+	CuAssertIntEquals (test, PCR_INVALID_PCR, status);
+
+	complete_pcr_store_mock_test (test, &store, &hash);
+}
+
 
 CuSuite* get_pcr_store_suite ()
 {
@@ -2206,6 +2415,14 @@ CuSuite* get_pcr_store_suite ()
 	SUITE_ADD_TEST (suite, pcr_store_test_invalidate_measurement_null);
 	SUITE_ADD_TEST (suite, pcr_store_test_invalidate_measurement_invalid_pcr);
 	SUITE_ADD_TEST (suite, pcr_store_test_invalidate_measurement_bad_index);
+	SUITE_ADD_TEST (suite, pcr_store_test_set_measurement_data);
+	SUITE_ADD_TEST (suite, pcr_store_test_set_measurement_data_null);
+	SUITE_ADD_TEST (suite, pcr_store_test_set_measurement_data_invalid_pcr);
+	SUITE_ADD_TEST (suite, pcr_store_test_set_measurement_data_fail);
+	SUITE_ADD_TEST (suite, pcr_store_test_get_measurement_data);
+	SUITE_ADD_TEST (suite, pcr_store_test_get_measurement_data_null);
+	SUITE_ADD_TEST (suite, pcr_store_test_get_measurement_data_no_data);
+	SUITE_ADD_TEST (suite, pcr_store_test_get_measurement_data_invalid_pcr);
 
 	return suite;
 }

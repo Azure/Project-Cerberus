@@ -4,7 +4,6 @@
 #ifndef RNG_MBEDTLS_H_
 #define RNG_MBEDTLS_H_
 
-
 #include <stdint.h>
 #include "crypto/rng.h"
 #include "mbedtls/ctr_drbg.h"

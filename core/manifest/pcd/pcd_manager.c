@@ -130,3 +130,69 @@ void pcd_manager_on_pcd_activated (struct pcd_manager *manager)
 	pcd_manager_notify_observers (manager, manager->get_active_pcd (manager),
 		offsetof (struct pcd_observer, on_pcd_activated));
 }
+
+/**
+ * Get the data used for PCD ID measurement.  The PCD instance must be released with the
+ * manager.
+ *
+ * @param manager The PCD manager to query.
+ * @param offset The offset to read data from
+ * @param buffer The output buffer to be filled with measured data
+ * @param length Maximum length of the buffer.
+ *
+ * @return Length of the measured data if successfully retrieved or an error code.
+ */
+int pcd_manager_get_id_measured_data (struct pcd_manager *manager, size_t offset, uint8_t *buffer,
+	size_t length)
+{
+	int status;
+	struct pcd *active;
+
+	if (manager == NULL) {
+		return MANIFEST_MANAGER_INVALID_ARGUMENT;
+	}
+
+	active = manager->get_active_pcd (manager);
+	if (active == NULL) {
+		return 0;
+	}
+
+	status = manifest_manager_get_id_measured_data (&active->base, offset, buffer, length);
+
+	manager->free_pcd (manager, active);
+
+	return status;
+}
+
+/**
+ * Get the data used for PCD Platform ID measurement.  The PCD instance must be released with the
+ * manager.
+ *
+ * @param manager The PCD manager to query.
+ * @param buffer The output buffer to be filled with measured data
+ * @param length Maximum length of the buffer.
+ *
+ * @return Length of the measured data if successfully retrieved or an error code.
+ */
+int pcd_manager_get_platform_id_measured_data (struct pcd_manager *manager, size_t offset,
+	uint8_t *buffer, size_t length)
+{
+	int status;
+	struct pcd *active;
+
+	if (manager == NULL) {
+		return MANIFEST_MANAGER_INVALID_ARGUMENT;
+	}
+
+	active = manager->get_active_pcd (manager);
+	if (active == NULL) {
+		return 0;
+	}
+
+	status = manifest_manager_get_platform_id_measured_data (&active->base, offset, buffer,
+		length);
+
+	manager->free_pcd (manager, active);
+
+	return status;
+}

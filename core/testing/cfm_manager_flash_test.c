@@ -128,7 +128,7 @@ static void cfm_manager_flash_testing_init_system_state (CuTest *test,
  *
  * @param flash_mock The mock for the CFM flash storage.
  * @param verification The mock for CFM verification.
- * @param pfm The CFM data to read.
+ * @param cfm The CFM data to read.
  * @param length The length of the CFM data.
  * @param hash The CFM hash.
  * @param signature The CFM signature.

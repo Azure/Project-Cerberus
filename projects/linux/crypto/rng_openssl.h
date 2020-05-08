@@ -4,7 +4,6 @@
 #ifndef RNG_OPENSSL_H_
 #define RNG_OPENSSL_H_
 
-
 #include <stdint.h>
 #include "crypto/rng.h"
 

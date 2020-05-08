@@ -6,6 +6,7 @@
 #include "common/common_math.h"
 #include "pcr_store.h"
 #include "pcr.h"
+#include "pcr_data.h"
 
 
 /**
@@ -237,6 +238,61 @@ int pcr_store_get_measurement (struct pcr_store *store, uint16_t measurement_typ
 	}
 
 	return pcr_get_measurement (&store->banks[pcr_bank], measurement_index, measurement);
+}
+
+/**
+ * Set measurement data for a specific measurement that is part of the PCR store
+ *
+ * @param store PCR store containing measurement for which measurement data is to be set
+ * @param measurement_type Measurement type which indicates PCR bank and measurement index
+ * @param measurement_data The buffer containing the measurement data
+ *
+ * @return Completion status, 0 if success or an error code
+ */
+int pcr_store_set_measurement_data (struct pcr_store *store, uint16_t measurement_type,
+	struct pcr_measured_data *measured_data)
+{
+	uint8_t pcr_bank = (uint8_t) (measurement_type >> 8);
+	uint8_t measurement_index = (uint8_t) measurement_type;
+
+	if (store == NULL) {
+		return PCR_INVALID_ARGUMENT;
+	}
+
+	if (pcr_bank >= store->num_pcr_banks) {
+		return PCR_INVALID_PCR;
+	}
+
+	return pcr_set_measurement_data (&store->banks[pcr_bank], measurement_index, measured_data);
+}
+
+/**
+ * Get measurement data of a specific measurement that is part of the PCR store
+ *
+ * @param store PCR store containing measurement for which measurement data needs to be set
+ * @param measurement_type Measurement type which indicates PCR bank and measurement index
+ * @param offset The offset index to read from
+ * @param buffer Output buffer to be filled with the measurement data
+ * @param length Length of the buffer.
+ *
+ * @return length of the measuremenet data if successfully retrieved or an error code
+ */
+int pcr_store_get_measurement_data (struct pcr_store *store, uint16_t measurement_type,
+	size_t offset, uint8_t *buffer, size_t length)
+{
+	uint8_t pcr_bank = (uint8_t) (measurement_type >> 8);
+	uint8_t measurement_index = (uint8_t) measurement_type;
+
+	if (store == NULL) {
+		return PCR_INVALID_ARGUMENT;
+	}
+
+	if (pcr_bank >= store->num_pcr_banks) {
+		return PCR_INVALID_PCR;
+	}
+
+	return pcr_get_measurement_data (&store->banks[pcr_bank], measurement_index, offset, buffer,
+		length);
 }
 
 /**

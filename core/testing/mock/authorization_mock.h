@@ -23,5 +23,4 @@ void authorization_mock_release (struct authorization_mock *mock);
 int authorization_mock_validate_and_release (struct authorization_mock *mock);
 
 
-
 #endif /* AUTHORIZATION_MOCK_H_ */

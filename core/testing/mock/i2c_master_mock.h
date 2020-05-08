@@ -27,4 +27,5 @@ int i2c_master_mock_expect_rx_xfer (struct i2c_master_mock *mock, intptr_t retur
 	size_t reg_addr_len, uint8_t *data, size_t len);
 int i2c_master_mock_validate_and_release (struct i2c_master_mock *mock);
 
+
 #endif /* I2C_MASTER_MOCK_H_ */

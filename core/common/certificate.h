@@ -6,6 +6,7 @@
 
 #include <stdint.h>
 
+
 /**
  * Certificate Container
  */
@@ -13,5 +14,6 @@ struct der_cert {
 	const uint8_t *cert;			/**< The DER formatted certificate. */
 	size_t length;					/**< The length of the certificate DER. */
 };
+
 
 #endif // CERTIFICATE_H_

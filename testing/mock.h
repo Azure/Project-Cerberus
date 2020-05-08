@@ -300,5 +300,4 @@ intptr_t mock_return_from_call (struct mock *mock, struct mock_call *call);
 	return (cast) (MOCK_VOID_RETURN_NO_ARGS (mock, func, inst))
 
 
-
 #endif /* MOCK_H_ */

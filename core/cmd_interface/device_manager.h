@@ -219,4 +219,5 @@ enum {
 	DEVICE_MGR_INVALID_CERT_NUM = DEVICE_MGR_ERROR (0x03),	/**< Invalid certificate number. */
 };
 
+
 #endif // DEVICE_MANAGER_

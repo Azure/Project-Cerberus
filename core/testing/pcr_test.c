@@ -8,9 +8,16 @@
 #include "platform.h"
 #include "testing.h"
 #include "attestation/pcr.h"
+#include "attestation/pcr_data.h"
 #include "attestation/pcr_store.h"
+#include "flash/flash.h"
 #include "mock/hash_mock.h"
 #include "mock/logging_mock.h"
+#include "mock/flash_mock.h"
+#include "mock/cfm_manager_mock.h"
+#include "mock/cfm_mock.h"
+#include "manifest/cfm/cfm_manager.h"
+#include "manifest/manifest.h"
 
 
 static const char *SUITE = "pcr";
@@ -552,7 +559,7 @@ static void pcr_test_compute (CuTest *test)
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
 		MOCK_ARG_PTR_CONTAINS (digest1, sizeof (digest1)), MOCK_ARG (sizeof (digest1)));
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
-		MOCK_ARG_PTR_CONTAINS (invalid_measurement, sizeof (invalid_measurement)), 
+		MOCK_ARG_PTR_CONTAINS (invalid_measurement, sizeof (invalid_measurement)),
 		MOCK_ARG (sizeof (invalid_measurement)));
 	status |= mock_expect (&hash.mock, hash.base.finish, &hash, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (PCR_DIGEST_LENGTH));
@@ -658,7 +665,7 @@ static void pcr_test_compute_no_lock (CuTest *test)
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
 		MOCK_ARG_PTR_CONTAINS (digest1, sizeof (digest1)), MOCK_ARG (sizeof (digest1)));
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
-		MOCK_ARG_PTR_CONTAINS (invalid_measurement, sizeof (invalid_measurement)), 
+		MOCK_ARG_PTR_CONTAINS (invalid_measurement, sizeof (invalid_measurement)),
 		MOCK_ARG (sizeof (invalid_measurement)));
 	status |= mock_expect (&hash.mock, hash.base.finish, &hash, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (PCR_DIGEST_LENGTH));
@@ -739,7 +746,7 @@ static void pcr_test_compute_no_out (CuTest *test)
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
 		MOCK_ARG_PTR_CONTAINS (digest1, sizeof (digest1)), MOCK_ARG (sizeof (digest1)));
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
-		MOCK_ARG_PTR_CONTAINS (invalid_measurement, sizeof (invalid_measurement)), 
+		MOCK_ARG_PTR_CONTAINS (invalid_measurement, sizeof (invalid_measurement)),
 		MOCK_ARG (sizeof (invalid_measurement)));
 	status |= mock_expect (&hash.mock, hash.base.finish, &hash, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (PCR_DIGEST_LENGTH));
@@ -1367,6 +1374,1307 @@ static void pcr_test_invalidate_measurement_index_bad_index (CuTest *test)
 	complete_pcr_mock_test (test, &pcr, &hash);
 }
 
+static void pcr_test_set_measurement_data (CuTest *test)
+{
+	struct pcr_bank pcr;
+	struct hash_engine_mock hash;
+	struct pcr_measured_data measurement_data;
+	uint8_t data = 0x11;
+	uint8_t data_mem[] = {
+		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
+		0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f
+	};
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_1BYTE;
+	measurement_data.data.value_1byte = data;
+
+	setup_pcr_mock_test (test, &pcr, &hash, 5);
+
+	status = pcr_set_measurement_data (&pcr, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (
+		&data, (uint8_t*) &pcr.measurement_list[2].measured_data->data.value_1byte, 1);
+	CuAssertIntEquals (test, 0, status);
+
+	measurement_data.type = PCR_DATA_TYPE_MEMORY;
+	measurement_data.data.memory.buffer = data_mem;
+	measurement_data.data.memory.length = sizeof (data_mem);
+
+	status = pcr_set_measurement_data (&pcr, 4, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (
+		(uint8_t*) &data_mem, (uint8_t*) pcr.measurement_list[4].measured_data->data.memory.buffer,
+		pcr.measurement_list[4].measured_data->data.memory.length);
+	CuAssertIntEquals (test, 0, status);
+
+	complete_pcr_mock_test (test, &pcr, &hash);
+}
+
+static void pcr_test_set_measurement_data_null (CuTest *test)
+{
+	struct pcr_bank pcr;
+	struct hash_engine_mock hash;
+	struct pcr_measured_data measurement_data;
+	uint8_t data = 0x11;
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_1BYTE;
+	measurement_data.data.value_1byte = data;
+
+	setup_pcr_mock_test (test, &pcr, &hash, 5);
+
+	status = pcr_set_measurement_data (NULL, 2, &measurement_data);
+	CuAssertIntEquals (test, PCR_INVALID_ARGUMENT, status);
+
+	status = pcr_set_measurement_data (&pcr, 2, NULL);
+	CuAssertIntEquals (test, PCR_INVALID_ARGUMENT, status);
+
+	memset (&measurement_data, 0, sizeof (measurement_data));
+
+	measurement_data.type = PCR_DATA_TYPE_MEMORY;
+	status = pcr_set_measurement_data (&pcr, 2, &measurement_data);
+	CuAssertIntEquals (test, PCR_MEASURED_DATA_INVALID_MEMORY, status);
+
+	measurement_data.type = PCR_DATA_TYPE_FLASH;
+	status = pcr_set_measurement_data (&pcr, 2, &measurement_data);
+	CuAssertIntEquals (test, PCR_MEASURED_DATA_INVALID_FLASH_DEVICE, status);
+
+	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
+	status = pcr_set_measurement_data (&pcr, 2, &measurement_data);
+	CuAssertIntEquals (test, PCR_MEASURED_DATA_INVALID_CALLBACK, status);
+
+	complete_pcr_mock_test (test, &pcr, &hash);
+}
+
+static void pcr_test_set_measurement_data_bad_measurement_index (CuTest *test)
+{
+	struct pcr_bank pcr;
+	struct hash_engine_mock hash;
+	struct pcr_measured_data measurement_data;
+	uint8_t data = 0x11;
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_1BYTE;
+	measurement_data.data.value_1byte = data;
+
+	setup_pcr_mock_test (test, &pcr, &hash, 5);
+
+	status = pcr_set_measurement_data (&pcr, 6, &measurement_data);
+	CuAssertIntEquals (test, PCR_INVALID_INDEX, status);
+
+	complete_pcr_mock_test (test, &pcr, &hash);
+}
+
+static void pcr_test_set_measurement_data_bad_measurement_data_type (CuTest *test)
+{
+	struct pcr_bank pcr;
+	struct hash_engine_mock hash;
+	struct pcr_measured_data measurement_data;
+	uint8_t data = 0x11;
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = NUM_PCR_DATA_TYPE;
+	measurement_data.data.value_1byte = data;
+
+	setup_pcr_mock_test (test, &pcr, &hash, 5);
+
+	status = pcr_set_measurement_data (&pcr, 2, &measurement_data);
+	CuAssertIntEquals (test, PCR_INVALID_DATA_TYPE, status);
+
+	complete_pcr_mock_test (test, &pcr, &hash);
+}
+
+static void pcr_test_get_measurement_data_1byte (CuTest *test)
+{
+	struct pcr_bank pcr;
+	struct hash_engine_mock hash;
+	struct pcr_measured_data measurement_data;
+	uint8_t data = 0x11;
+	uint8_t buffer[4];
+	size_t length = sizeof (buffer);
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_1BYTE;
+	measurement_data.data.value_1byte = data;
+
+	setup_pcr_mock_test (test, &pcr, &hash, 5);
+
+	status = pcr_set_measurement_data (&pcr, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement_data (&pcr, 2, 0, buffer, length);
+	CuAssertIntEquals (test, 1, status);
+
+	status = testing_validate_array (&data, buffer, 1);
+	CuAssertIntEquals (test, 0, status);
+
+	complete_pcr_mock_test (test, &pcr, &hash);
+}
+
+static void pcr_test_get_measurement_data_1byte_zero_length (CuTest *test)
+{
+	struct pcr_bank pcr;
+	struct hash_engine_mock hash;
+	struct pcr_measured_data measurement_data;
+	uint8_t data = 0x11;
+	uint8_t buffer[1];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_1BYTE;
+	measurement_data.data.value_1byte = data;
+
+	setup_pcr_mock_test (test, &pcr, &hash, 5);
+
+	status = pcr_set_measurement_data (&pcr, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement_data (&pcr, 2, 0, buffer, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	complete_pcr_mock_test (test, &pcr, &hash);
+}
+
+static void pcr_test_get_measurement_data_1byte_invalid_offset (CuTest *test)
+{
+	struct pcr_bank pcr;
+	struct hash_engine_mock hash;
+	struct pcr_measured_data measurement_data;
+	uint8_t data = 0x11;
+	uint8_t buffer[4];
+	size_t length = sizeof (buffer);
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_1BYTE;
+	measurement_data.data.value_1byte = data;
+
+	setup_pcr_mock_test (test, &pcr, &hash, 5);
+
+	status = pcr_set_measurement_data (&pcr, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement_data (&pcr, 2, 1, buffer, length);
+	CuAssertIntEquals (test, 0, status);
+
+	complete_pcr_mock_test (test, &pcr, &hash);
+}
+
+static void pcr_test_get_measurement_data_2byte (CuTest *test)
+{
+	struct pcr_bank pcr;
+	struct hash_engine_mock hash;
+	struct pcr_measured_data measurement_data;
+	uint16_t data = 0x1122;
+	uint8_t buffer[2];
+	size_t length = sizeof (buffer);
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_2BYTE;
+	measurement_data.data.value_2byte = data;
+
+	setup_pcr_mock_test (test, &pcr, &hash, 5);
+
+	status = pcr_set_measurement_data (&pcr, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement_data (&pcr, 2, 0, buffer, length);
+	CuAssertIntEquals (test, 2, status);
+
+	status = testing_validate_array ((uint8_t*) &data, buffer, 2);
+	CuAssertIntEquals (test, 0, status);
+
+	complete_pcr_mock_test (test, &pcr, &hash);
+}
+
+static void pcr_test_get_measurement_data_2byte_with_offset (CuTest *test)
+{
+	struct pcr_bank pcr;
+	struct hash_engine_mock hash;
+	struct pcr_measured_data measurement_data;
+	uint16_t data = 0x1122;
+	uint8_t buffer[2];
+	size_t length = sizeof (buffer);
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_2BYTE;
+	measurement_data.data.value_2byte = data;
+
+	setup_pcr_mock_test (test, &pcr, &hash, 5);
+
+	status = pcr_set_measurement_data (&pcr, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement_data (&pcr, 2, 1, buffer, length);
+	CuAssertIntEquals (test, 1, status);
+
+	status = testing_validate_array (((uint8_t*) &data + 1), buffer, 1);
+	CuAssertIntEquals (test, 0, status);
+
+	complete_pcr_mock_test (test, &pcr, &hash);
+}
+
+static void pcr_test_get_measurement_data_2byte_small_buffer (CuTest *test)
+{
+	struct pcr_bank pcr;
+	struct hash_engine_mock hash;
+	struct pcr_measured_data measurement_data;
+	uint16_t data = 0x1122;
+	uint8_t buffer[1];
+	size_t length = sizeof (buffer);
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_2BYTE;
+	measurement_data.data.value_2byte = data;
+
+	setup_pcr_mock_test (test, &pcr, &hash, 5);
+
+	status = pcr_set_measurement_data (&pcr, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement_data (&pcr, 2, 0, buffer, length);
+	CuAssertIntEquals (test, 1, status);
+
+	status = testing_validate_array (((uint8_t*) &data + 0), buffer, 1);
+	CuAssertIntEquals (test, 0, status);
+
+	complete_pcr_mock_test (test, &pcr, &hash);
+}
+
+static void pcr_test_get_measurement_data_2byte_small_buffer_offset (CuTest *test)
+{
+	struct pcr_bank pcr;
+	struct hash_engine_mock hash;
+	struct pcr_measured_data measurement_data;
+	uint32_t data = 0x11223344;
+	uint8_t buffer[2];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_4BYTE;
+	measurement_data.data.value_4byte = data;
+
+	setup_pcr_mock_test (test, &pcr, &hash, 5);
+
+	status = pcr_set_measurement_data (&pcr, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement_data (&pcr, 2, 1, buffer, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	complete_pcr_mock_test (test, &pcr, &hash);
+}
+
+static void pcr_test_get_measurement_data_2byte_invalid_offset (CuTest *test)
+{
+	struct pcr_bank pcr;
+	struct hash_engine_mock hash;
+	struct pcr_measured_data measurement_data;
+	uint16_t data = 0x1122;
+	uint8_t buffer[2];
+	size_t length = sizeof (buffer);
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_2BYTE;
+	measurement_data.data.value_2byte = data;
+
+	setup_pcr_mock_test (test, &pcr, &hash, 5);
+
+	status = pcr_set_measurement_data (&pcr, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement_data (&pcr, 2, 2, buffer, length);
+	CuAssertIntEquals (test, 0, status);
+
+	complete_pcr_mock_test (test, &pcr, &hash);
+}
+
+static void pcr_test_get_measurement_data_4byte (CuTest *test)
+{
+	struct pcr_bank pcr;
+	struct hash_engine_mock hash;
+	struct pcr_measured_data measurement_data;
+	uint32_t data = 0x11223344;
+	uint8_t buffer[4];
+	size_t length = sizeof (buffer);
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_4BYTE;
+	measurement_data.data.value_4byte = data;
+
+	setup_pcr_mock_test (test, &pcr, &hash, 5);
+
+	status = pcr_set_measurement_data (&pcr, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement_data (&pcr, 2, 0, buffer, length);
+	CuAssertIntEquals (test, 4, status);
+
+	status = testing_validate_array ((uint8_t*) &data, buffer, 4);
+	CuAssertIntEquals (test, 0, status);
+
+	complete_pcr_mock_test (test, &pcr, &hash);
+}
+
+static void pcr_test_get_measurement_data_4byte_offset (CuTest *test)
+{
+	struct pcr_bank pcr;
+	struct hash_engine_mock hash;
+	struct pcr_measured_data measurement_data;
+	uint32_t data = 0x11223344;
+	uint8_t buffer[4];
+	size_t length = sizeof (buffer);
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_4BYTE;
+	measurement_data.data.value_4byte = data;
+
+	setup_pcr_mock_test (test, &pcr, &hash, 5);
+
+	status = pcr_set_measurement_data (&pcr, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement_data (&pcr, 2, 2, buffer, length);
+	CuAssertIntEquals (test, 2, status);
+
+	status = testing_validate_array (((uint8_t*) &data + 2), buffer, 2);
+	CuAssertIntEquals (test, 0, status);
+
+	complete_pcr_mock_test (test, &pcr, &hash);
+}
+
+static void pcr_test_get_measurement_data_4byte_small_buffer (CuTest *test)
+{
+	struct pcr_bank pcr;
+	struct hash_engine_mock hash;
+	struct pcr_measured_data measurement_data;
+	uint32_t data = 0x11223344;
+	uint8_t buffer[2];
+	size_t length = sizeof (buffer);
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_4BYTE;
+	measurement_data.data.value_4byte = data;
+
+	setup_pcr_mock_test (test, &pcr, &hash, 5);
+
+	status = pcr_set_measurement_data (&pcr, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement_data (&pcr, 2, 0, buffer, length);
+	CuAssertIntEquals (test, 2, status);
+
+	status = testing_validate_array ((uint8_t*) &data, buffer, 2);
+	CuAssertIntEquals (test, 0, status);
+
+	complete_pcr_mock_test (test, &pcr, &hash);
+}
+
+static void pcr_test_get_measurement_data_4byte_small_buffer_offset (CuTest *test)
+{
+	struct pcr_bank pcr;
+	struct hash_engine_mock hash;
+	struct pcr_measured_data measurement_data;
+	uint32_t data = 0x11223344;
+	uint8_t buffer[2];
+	size_t length = sizeof (buffer);
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_4BYTE;
+	measurement_data.data.value_4byte = data;
+
+	setup_pcr_mock_test (test, &pcr, &hash, 5);
+
+	status = pcr_set_measurement_data (&pcr, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement_data (&pcr, 2, 1, buffer, length);
+	CuAssertIntEquals (test, 2, status);
+
+	status = testing_validate_array (((uint8_t*) &data + 1), buffer, 2);
+	CuAssertIntEquals (test, 0, status);
+
+	complete_pcr_mock_test (test, &pcr, &hash);
+}
+
+static void pcr_test_get_measurement_data_4byte_invalid_offset (CuTest *test)
+{
+	struct pcr_bank pcr;
+	struct hash_engine_mock hash;
+	struct pcr_measured_data measurement_data;
+	uint32_t data = 0x11223344;
+	uint8_t buffer[2];
+	size_t length = sizeof (buffer);
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_4BYTE;
+	measurement_data.data.value_4byte = data;
+
+	setup_pcr_mock_test (test, &pcr, &hash, 5);
+
+	status = pcr_set_measurement_data (&pcr, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement_data (&pcr, 2, 4, buffer, length);
+	CuAssertIntEquals (test, 0, status);
+
+	complete_pcr_mock_test (test, &pcr, &hash);
+}
+
+static void pcr_test_get_measurement_data_8byte (CuTest *test)
+{
+	struct pcr_bank pcr;
+	struct hash_engine_mock hash;
+	struct pcr_measured_data measurement_data;
+	uint64_t data = 0x1122334455667788;
+	uint8_t buffer[8];
+	size_t length = sizeof (buffer);
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_8BYTE;
+	measurement_data.data.value_8byte = data;
+
+	setup_pcr_mock_test (test, &pcr, &hash, 5);
+
+	status = pcr_set_measurement_data (&pcr, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement_data (&pcr, 2, 0, buffer, length);
+	CuAssertIntEquals (test, 8, status);
+
+	status = testing_validate_array ((uint8_t*) &data, buffer, 8);
+	CuAssertIntEquals (test, 0, status);
+
+	complete_pcr_mock_test (test, &pcr, &hash);
+}
+
+static void pcr_test_get_measurement_data_8byte_offset (CuTest *test)
+{
+	struct pcr_bank pcr;
+	struct hash_engine_mock hash;
+	struct pcr_measured_data measurement_data;
+	uint64_t data = 0x1122334455667788;
+	uint8_t buffer[8];
+	size_t length = sizeof (buffer);
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_8BYTE;
+	measurement_data.data.value_8byte = data;
+
+	setup_pcr_mock_test (test, &pcr, &hash, 5);
+
+	status = pcr_set_measurement_data (&pcr, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement_data (&pcr, 2, 2, buffer, length);
+	CuAssertIntEquals (test, 6, status);
+
+	status = testing_validate_array ((uint8_t*) &data + 2, buffer, 6);
+	CuAssertIntEquals (test, 0, status);
+
+	complete_pcr_mock_test (test, &pcr, &hash);
+}
+
+static void pcr_test_get_measurement_data_8byte_small_buffer (CuTest *test)
+{
+	struct pcr_bank pcr;
+	struct hash_engine_mock hash;
+	struct pcr_measured_data measurement_data;
+	uint64_t data = 0x1122334455667788;
+	uint8_t buffer[5];
+	size_t length = sizeof (buffer);
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_8BYTE;
+	measurement_data.data.value_8byte = data;
+
+	setup_pcr_mock_test (test, &pcr, &hash, 5);
+
+	status = pcr_set_measurement_data (&pcr, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement_data (&pcr, 2, 0, buffer, length);
+	CuAssertIntEquals (test, length, status);
+
+	status = testing_validate_array ((uint8_t*) &data, buffer, length);
+	CuAssertIntEquals (test, 0, status);
+
+	complete_pcr_mock_test (test, &pcr, &hash);
+}
+
+static void pcr_test_get_measurement_data_8byte_small_buffer_offset (CuTest *test)
+{
+	struct pcr_bank pcr;
+	struct hash_engine_mock hash;
+	struct pcr_measured_data measurement_data;
+	uint64_t data = 0x1122334455667788;
+	uint8_t buffer[5];
+	size_t length = sizeof (buffer);
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_8BYTE;
+	measurement_data.data.value_8byte = data;
+
+	setup_pcr_mock_test (test, &pcr, &hash, 5);
+
+	status = pcr_set_measurement_data (&pcr, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement_data (&pcr, 2, 0, buffer, length);
+	CuAssertIntEquals (test, length, status);
+
+	status = testing_validate_array ((uint8_t*) &data, buffer, length);
+	CuAssertIntEquals (test, 0, status);
+
+	complete_pcr_mock_test (test, &pcr, &hash);
+}
+
+static void pcr_test_get_measurement_data_8byte_invalid_offset (CuTest *test)
+{
+	struct pcr_bank pcr;
+	struct hash_engine_mock hash;
+	struct pcr_measured_data measurement_data;
+	uint64_t data = 0x1122334455667788;
+	uint8_t buffer[8];
+	size_t length = sizeof (buffer);
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_8BYTE;
+	measurement_data.data.value_8byte = data;
+
+	setup_pcr_mock_test (test, &pcr, &hash, 5);
+
+	status = pcr_set_measurement_data (&pcr, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement_data (&pcr, 2, 8, buffer, length);
+	CuAssertIntEquals (test, 0, status);
+
+	complete_pcr_mock_test (test, &pcr, &hash);
+}
+
+static void pcr_test_get_measurement_data_memory (CuTest *test)
+{
+	struct pcr_bank pcr;
+	struct hash_engine_mock hash;
+	struct pcr_measured_data measurement_data;
+	uint8_t data[] = {
+		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
+		0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f
+	};
+	uint8_t buffer[50];
+	size_t length = sizeof (buffer);
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_MEMORY;
+	measurement_data.data.memory.buffer = data;
+	measurement_data.data.memory.length = sizeof (data);
+
+	setup_pcr_mock_test (test, &pcr, &hash, 5);
+
+	status = pcr_set_measurement_data (&pcr, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement_data (&pcr, 2, 0, buffer, length);
+	CuAssertIntEquals (test, sizeof (data), status);
+
+	status = testing_validate_array ((uint8_t*) &data, buffer, sizeof(data));
+	CuAssertIntEquals (test, 0, status);
+
+	complete_pcr_mock_test (test, &pcr, &hash);
+}
+
+static void pcr_test_get_measurement_data_memory_offset (CuTest *test)
+{
+	struct pcr_bank pcr;
+	struct hash_engine_mock hash;
+	struct pcr_measured_data measurement_data;
+	uint8_t data[] = {
+		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
+		0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f
+	};
+	uint8_t buffer[50];
+	size_t length = sizeof (buffer);
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_MEMORY;
+	measurement_data.data.memory.buffer = data;
+	measurement_data.data.memory.length = sizeof (data);
+
+	setup_pcr_mock_test (test, &pcr, &hash, 5);
+
+	status = pcr_set_measurement_data (&pcr, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement_data (&pcr, 2, 10, buffer, length);
+	CuAssertIntEquals (test, (sizeof (data) - 10), status);
+
+	status = testing_validate_array ((uint8_t*) &data + 10, buffer, (sizeof (data) - 10));
+	CuAssertIntEquals (test, 0, status);
+
+	complete_pcr_mock_test (test, &pcr, &hash);
+}
+
+static void pcr_test_get_measurement_data_memory_small_buffer (CuTest *test)
+{
+	struct pcr_bank pcr;
+	struct hash_engine_mock hash;
+	struct pcr_measured_data measurement_data;
+	uint8_t data[] = {
+		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
+		0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f
+	};
+	uint8_t buffer[20];
+	size_t length = sizeof (buffer);
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_MEMORY;
+	measurement_data.data.memory.buffer = data;
+	measurement_data.data.memory.length = sizeof (data);
+
+	setup_pcr_mock_test (test, &pcr, &hash, 5);
+
+	status = pcr_set_measurement_data (&pcr, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement_data (&pcr, 2, 0, buffer, length);
+	CuAssertIntEquals (test, length, status);
+
+	status = testing_validate_array ((uint8_t*) &data, buffer, length);
+	CuAssertIntEquals (test, 0, status);
+
+	complete_pcr_mock_test (test, &pcr, &hash);
+}
+
+static void pcr_test_get_measurement_data_memory_small_buffer_offset (CuTest *test)
+{
+	struct pcr_bank pcr;
+	struct hash_engine_mock hash;
+	struct pcr_measured_data measurement_data;
+	uint8_t data[] = {
+		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
+		0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f
+	};
+	uint8_t buffer[20];
+	size_t length = sizeof (buffer);
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_MEMORY;
+	measurement_data.data.memory.buffer = data;
+	measurement_data.data.memory.length = sizeof (data);
+
+	setup_pcr_mock_test (test, &pcr, &hash, 5);
+
+	status = pcr_set_measurement_data (&pcr, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement_data (&pcr, 2, 12, buffer, length);
+	CuAssertIntEquals (test, length, status);
+
+	status = testing_validate_array ((uint8_t*) &data + 12, buffer, length);
+	CuAssertIntEquals (test, 0, status);
+
+	complete_pcr_mock_test (test, &pcr, &hash);
+}
+
+static void pcr_test_get_measurement_data_memory_invalid_offset (CuTest *test)
+{
+	struct pcr_bank pcr;
+	struct hash_engine_mock hash;
+	struct pcr_measured_data measurement_data;
+	uint8_t data[] = {
+		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
+		0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f
+	};
+	uint8_t buffer[50];
+	size_t length = sizeof (buffer);
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_MEMORY;
+	measurement_data.data.memory.buffer = data;
+	measurement_data.data.memory.length = sizeof (data);
+
+	setup_pcr_mock_test (test, &pcr, &hash, 5);
+
+	status = pcr_set_measurement_data (&pcr, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement_data (&pcr, 2, sizeof (data), buffer, length);
+	CuAssertIntEquals (test, 0, status);
+
+	complete_pcr_mock_test (test, &pcr, &hash);
+}
+
+static void pcr_test_get_measurement_data_flash (CuTest *test)
+{
+	struct pcr_bank pcr;
+	struct hash_engine_mock hash;
+	struct flash_mock flash;
+	struct pcr_measured_data measurement_data;
+	uint8_t data[] = {
+		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
+		0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f
+	};
+	uint8_t buffer[32];
+	size_t length = sizeof (buffer);
+	int status;
+
+	TEST_START;
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	setup_pcr_mock_test (test, &pcr, &hash, 5);
+
+	measurement_data.type = PCR_DATA_TYPE_FLASH;
+	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.addr = 0x11223344;
+	measurement_data.data.flash.length = sizeof (data);
+
+	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11223344),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data)));
+	status |= mock_expect_output (&flash.mock, 1, data, sizeof (data), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_set_measurement_data (&pcr, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement_data (&pcr, 2, 0, buffer, length);
+	CuAssertIntEquals (test, sizeof (data), status);
+
+	status = testing_validate_array ((uint8_t*) &data, buffer, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	complete_pcr_mock_test (test, &pcr, &hash);
+}
+
+static void pcr_test_get_measurement_data_flash_offset (CuTest *test)
+{
+	struct pcr_bank pcr;
+	struct hash_engine_mock hash;
+	struct flash_mock flash;
+	struct pcr_measured_data measurement_data;
+	uint8_t data[] = {
+		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
+		0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f
+	};
+	uint8_t buffer[50];
+	size_t length = sizeof (buffer);
+	size_t offset = 15;
+	int status;
+
+	TEST_START;
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	setup_pcr_mock_test (test, &pcr, &hash, 5);
+
+	measurement_data.type = PCR_DATA_TYPE_FLASH;
+	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.addr = 0x11223344;
+	measurement_data.data.flash.length = sizeof (data);
+
+	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11223344 + offset),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data) - offset));
+	status |= mock_expect_output (&flash.mock, 1, data + offset, sizeof (data) - offset, 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_set_measurement_data (&pcr, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement_data (&pcr, 2, offset, buffer, length);
+	CuAssertIntEquals (test, sizeof (data) - offset, status);
+
+	status = testing_validate_array ((uint8_t*) &data + offset, buffer, sizeof (data) - offset);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	complete_pcr_mock_test (test, &pcr, &hash);
+}
+
+static void pcr_test_get_measurement_data_flash_small_buffer (CuTest *test)
+{
+	struct pcr_bank pcr;
+	struct hash_engine_mock hash;
+	struct flash_mock flash;
+	struct pcr_measured_data measurement_data;
+	uint8_t data[] = {
+		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
+		0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f
+	};
+	uint8_t buffer[22];
+	size_t length = sizeof (buffer);
+	int status;
+
+	TEST_START;
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	setup_pcr_mock_test (test, &pcr, &hash, 5);
+
+	measurement_data.type = PCR_DATA_TYPE_FLASH;
+	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.addr = 0x11223344;
+	measurement_data.data.flash.length = sizeof (data);
+
+	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11223344),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (length));
+	status |= mock_expect_output (&flash.mock, 1, data, length, 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_set_measurement_data (&pcr, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement_data (&pcr, 2, 0, buffer, length);
+	CuAssertIntEquals (test, length, status);
+
+	status = testing_validate_array ((uint8_t*) &data, buffer, length);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	complete_pcr_mock_test (test, &pcr, &hash);
+}
+
+static void pcr_test_get_measurement_data_flash_small_buffer_offset (CuTest *test)
+{
+	struct pcr_bank pcr;
+	struct hash_engine_mock hash;
+	struct flash_mock flash;
+	struct pcr_measured_data measurement_data;
+	uint8_t data[] = {
+		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
+		0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f
+	};
+	uint8_t buffer[22];
+	size_t length = sizeof (buffer);
+	size_t offset = 5;
+	int status;
+
+	TEST_START;
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	setup_pcr_mock_test (test, &pcr, &hash, 5);
+
+	measurement_data.type = PCR_DATA_TYPE_FLASH;
+	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.addr = 0x11223344;
+	measurement_data.data.flash.length = sizeof (data);
+
+	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11223344 + offset),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (length));
+	status |= mock_expect_output (&flash.mock, 1, data + offset, length, 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_set_measurement_data (&pcr, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement_data (&pcr, 2, offset, buffer, length);
+	CuAssertIntEquals (test, length, status);
+
+	status = testing_validate_array ((uint8_t*) &data + offset, buffer, length);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	complete_pcr_mock_test (test, &pcr, &hash);
+}
+
+static void pcr_test_get_measurement_data_flash_invalid_offset (CuTest *test)
+{
+	struct pcr_bank pcr;
+	struct hash_engine_mock hash;
+	struct flash_mock flash;
+	struct pcr_measured_data measurement_data;
+	uint8_t buffer[50];
+	size_t length = sizeof (buffer);
+	size_t offset = 32;
+	int status;
+
+	TEST_START;
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	setup_pcr_mock_test (test, &pcr, &hash, 5);
+
+	measurement_data.type = PCR_DATA_TYPE_FLASH;
+	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.addr = 0x11223344;
+	measurement_data.data.flash.length = 32;
+
+	status = pcr_set_measurement_data (&pcr, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement_data (&pcr, 2, offset, buffer, length);
+	CuAssertIntEquals (test, 0, status);
+
+	complete_pcr_mock_test (test, &pcr, &hash);
+}
+
+static void pcr_test_get_measurement_data_flash_read_fail (CuTest *test)
+{
+	struct pcr_bank pcr;
+	struct hash_engine_mock hash;
+	struct flash_mock flash;
+	struct pcr_measured_data measurement_data;
+	uint8_t buffer[50];
+	size_t length = sizeof (buffer);
+	int status;
+
+	TEST_START;
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	setup_pcr_mock_test (test, &pcr, &hash, 5);
+
+	measurement_data.type = PCR_DATA_TYPE_FLASH;
+	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.addr = 0x11223344;
+	measurement_data.data.flash.length = 32;
+
+	status = mock_expect (&flash.mock, flash.base.read, &flash, FLASH_READ_FAILED,
+		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (32));
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_set_measurement_data (&pcr, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement_data (&pcr, 2, 0, buffer, length);
+	CuAssertIntEquals (test, FLASH_READ_FAILED, status);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	complete_pcr_mock_test (test, &pcr, &hash);
+}
+
+static void pcr_test_get_measurement_data_callback (CuTest *test)
+{
+	struct pcr_bank pcr;
+	struct hash_engine_mock hash;
+	struct flash_mock flash;
+	struct cfm_mock cfm;
+	struct cfm_manager_mock manager;
+	struct pcr_measured_data measurement_data;
+	uint32_t data = 0x1234;
+	uint8_t buffer[5];
+	size_t length = sizeof (buffer);
+	int status;
+
+	TEST_START;
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_mock_init (&cfm);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_mock_init (&manager);
+	CuAssertIntEquals (test, 0, status);
+
+	setup_pcr_mock_test (test, &pcr, &hash, 5);
+
+	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
+	measurement_data.data.callback.get_data = (get_measured_data) cfm_manager_get_id_measured_data;
+	measurement_data.data.callback.context = &manager.base;
+
+	status = mock_expect (&manager.mock, manager.base.get_active_cfm, &manager,
+		(intptr_t) &cfm.base);
+	status |= mock_expect (&manager.mock, manager.base.free_cfm, &manager,
+		0, MOCK_ARG (&cfm.base));
+
+	status |= mock_expect (&cfm.mock, cfm.base.base.get_id, &cfm, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&cfm.mock, 0, &data, sizeof (data), -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_set_measurement_data (&pcr, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement_data (&pcr, 2, 0, buffer, length);
+	CuAssertIntEquals (test, sizeof (data), status);
+
+	status = testing_validate_array ((uint8_t*) &data, buffer, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_mock_validate_and_release (&cfm);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_mock_validate_and_release (&manager);
+	CuAssertIntEquals (test, 0, status);
+
+	complete_pcr_mock_test (test, &pcr, &hash);
+}
+
+static void pcr_test_get_measurement_data_callback_offset (CuTest *test)
+{
+	struct pcr_bank pcr;
+	struct hash_engine_mock hash;
+	struct flash_mock flash;
+	struct cfm_mock cfm;
+	struct cfm_manager_mock manager;
+	struct pcr_measured_data measurement_data;
+	uint32_t data = 0x1234;
+	uint8_t *data_addr = (uint8_t*) &data;
+	uint8_t buffer[4224];
+	size_t length = sizeof (buffer);
+	int status;
+
+	TEST_START;
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_mock_init (&cfm);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_mock_init (&manager);
+	CuAssertIntEquals (test, 0, status);
+
+	setup_pcr_mock_test (test, &pcr, &hash, 5);
+
+	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
+	measurement_data.data.callback.get_data = (get_measured_data) cfm_manager_get_id_measured_data;
+	measurement_data.data.callback.context = &manager.base;
+
+	status = mock_expect (&manager.mock, manager.base.get_active_cfm, &manager,
+		(intptr_t) &cfm.base);
+	status |= mock_expect (&manager.mock, manager.base.free_cfm, &manager,
+		0, MOCK_ARG (&cfm.base));
+
+	status |= mock_expect (&cfm.mock, cfm.base.base.get_id, &cfm, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&cfm.mock, 0, (uint8_t*) &data + 2, sizeof (data), -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_set_measurement_data (&pcr, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement_data (&pcr, 2, 2, buffer, length);
+	CuAssertIntEquals (test, sizeof (data) - 2, status);
+
+	status = testing_validate_array (data_addr + 2, buffer, sizeof (data) - 2);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_mock_validate_and_release (&cfm);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_mock_validate_and_release (&manager);
+	CuAssertIntEquals (test, 0, status);
+
+	complete_pcr_mock_test (test, &pcr, &hash);
+}
+
+static void pcr_test_get_measurement_data_callback_fail (CuTest *test)
+{
+	struct pcr_bank pcr;
+	struct hash_engine_mock hash;
+	struct flash_mock flash;
+	struct cfm_mock cfm;
+	struct cfm_manager_mock manager;
+	struct pcr_measured_data measurement_data;
+	uint8_t buffer[5];
+	size_t length = sizeof (buffer);
+	int status;
+
+	TEST_START;
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_mock_init (&cfm);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_mock_init (&manager);
+	CuAssertIntEquals (test, 0, status);
+
+	setup_pcr_mock_test (test, &pcr, &hash, 5);
+
+	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
+	measurement_data.data.callback.get_data = (get_measured_data) cfm_manager_get_id_measured_data;
+	measurement_data.data.callback.context = &manager.base;
+
+	status = mock_expect (&manager.mock, manager.base.get_active_cfm, &manager,
+		(intptr_t) &cfm.base);
+	status |= mock_expect (&manager.mock, manager.base.free_cfm, &manager,
+		0, MOCK_ARG (&cfm.base));
+
+	status |= mock_expect (&cfm.mock, cfm.base.base.get_id, &cfm, MANIFEST_GET_ID_FAILED,
+		MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_set_measurement_data (&pcr, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement_data (&pcr, 2, 0, buffer, length);
+	CuAssertIntEquals (test, MANIFEST_GET_ID_FAILED, status);
+
+	status = cfm_mock_validate_and_release (&cfm);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_mock_validate_and_release (&manager);
+	CuAssertIntEquals (test, 0, status);
+
+	complete_pcr_mock_test (test, &pcr, &hash);
+}
+
+static void pcr_test_get_measurement_data_null (CuTest *test)
+{
+	struct pcr_bank pcr;
+	struct hash_engine_mock hash;
+	uint8_t buffer[5];
+	size_t length = sizeof (buffer);
+	int status;
+
+	TEST_START;
+
+	setup_pcr_mock_test (test, &pcr, &hash, 5);
+
+	status = pcr_get_measurement_data (NULL, 2, 0, buffer, length);
+	CuAssertIntEquals (test, PCR_INVALID_ARGUMENT, status);
+
+	status = pcr_get_measurement_data (&pcr, 2, 0, NULL, length);
+	CuAssertIntEquals (test, PCR_INVALID_ARGUMENT, status);
+
+	complete_pcr_mock_test (test, &pcr, &hash);
+}
+
+static void pcr_test_get_measurement_data_bad_measurement_index (CuTest *test)
+{
+	struct pcr_bank pcr;
+	struct hash_engine_mock hash;
+	uint8_t buffer[1];
+	size_t length = sizeof (buffer);
+	int status;
+
+	TEST_START;
+
+	setup_pcr_mock_test (test, &pcr, &hash, 5);
+
+	status = pcr_get_measurement_data (&pcr, 6, 0, buffer, length);
+	CuAssertIntEquals (test, PCR_INVALID_INDEX, status);
+
+	complete_pcr_mock_test (test, &pcr, &hash);
+}
+
+static void pcr_test_get_measurement_data_no_data (CuTest *test)
+{
+	struct pcr_bank pcr;
+	struct hash_engine_mock hash;
+	uint8_t buffer[1];
+	size_t length = sizeof (buffer);
+	int status;
+
+	TEST_START;
+
+	setup_pcr_mock_test (test, &pcr, &hash, 5);
+
+	status = pcr_get_measurement_data (&pcr, 2, 0, buffer, length);
+	CuAssertIntEquals (test, 0, status);
+
+	complete_pcr_mock_test (test, &pcr, &hash);
+}
+
+static void pcr_test_get_measurement_data_bad_measurement_data_type (CuTest *test)
+{
+	struct pcr_bank pcr;
+	struct hash_engine_mock hash;
+	struct pcr_measured_data measurement_data;
+	uint8_t data = 0x11;
+	uint8_t buffer[4];
+	size_t length = sizeof (buffer);
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_1BYTE;
+	measurement_data.data.value_1byte = data;
+
+	setup_pcr_mock_test (test, &pcr, &hash, 5);
+
+	status = pcr_set_measurement_data (&pcr, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr.measurement_list[2].measured_data->type = NUM_PCR_DATA_TYPE;
+
+	status = pcr_get_measurement_data (&pcr, 2, 0, buffer, length);
+	CuAssertIntEquals (test, PCR_INVALID_DATA_TYPE, status);
+
+	complete_pcr_mock_test (test, &pcr, &hash);
+}
+
 
 CuSuite* get_pcr_suite ()
 {
@@ -1423,6 +2731,46 @@ CuSuite* get_pcr_suite ()
 	SUITE_ADD_TEST (suite, pcr_test_invalidate_measurement_index_explicit);
 	SUITE_ADD_TEST (suite, pcr_test_invalidate_measurement_index_null);
 	SUITE_ADD_TEST (suite, pcr_test_invalidate_measurement_index_bad_index);
+	SUITE_ADD_TEST (suite, pcr_test_set_measurement_data);
+	SUITE_ADD_TEST (suite, pcr_test_set_measurement_data_null);
+	SUITE_ADD_TEST (suite, pcr_test_set_measurement_data_bad_measurement_index);
+	SUITE_ADD_TEST (suite, pcr_test_set_measurement_data_bad_measurement_data_type);
+	SUITE_ADD_TEST (suite, pcr_test_get_measurement_data_1byte);
+	SUITE_ADD_TEST (suite, pcr_test_get_measurement_data_1byte_zero_length);
+	SUITE_ADD_TEST (suite, pcr_test_get_measurement_data_1byte_invalid_offset);
+	SUITE_ADD_TEST (suite, pcr_test_get_measurement_data_2byte);
+	SUITE_ADD_TEST (suite, pcr_test_get_measurement_data_2byte_with_offset);
+	SUITE_ADD_TEST (suite, pcr_test_get_measurement_data_2byte_small_buffer);
+	SUITE_ADD_TEST (suite, pcr_test_get_measurement_data_2byte_small_buffer_offset);
+	SUITE_ADD_TEST (suite, pcr_test_get_measurement_data_2byte_invalid_offset);
+	SUITE_ADD_TEST (suite, pcr_test_get_measurement_data_4byte);
+	SUITE_ADD_TEST (suite, pcr_test_get_measurement_data_4byte_offset);
+	SUITE_ADD_TEST (suite, pcr_test_get_measurement_data_4byte_small_buffer);
+	SUITE_ADD_TEST (suite, pcr_test_get_measurement_data_4byte_small_buffer_offset);
+	SUITE_ADD_TEST (suite, pcr_test_get_measurement_data_4byte_invalid_offset);
+	SUITE_ADD_TEST (suite, pcr_test_get_measurement_data_8byte);
+	SUITE_ADD_TEST (suite, pcr_test_get_measurement_data_8byte_offset);
+	SUITE_ADD_TEST (suite, pcr_test_get_measurement_data_8byte_small_buffer);
+	SUITE_ADD_TEST (suite, pcr_test_get_measurement_data_8byte_small_buffer_offset);
+	SUITE_ADD_TEST (suite, pcr_test_get_measurement_data_8byte_invalid_offset);
+	SUITE_ADD_TEST (suite, pcr_test_get_measurement_data_memory);
+	SUITE_ADD_TEST (suite, pcr_test_get_measurement_data_memory_offset);
+	SUITE_ADD_TEST (suite, pcr_test_get_measurement_data_memory_small_buffer);
+	SUITE_ADD_TEST (suite, pcr_test_get_measurement_data_memory_small_buffer_offset);
+	SUITE_ADD_TEST (suite, pcr_test_get_measurement_data_memory_invalid_offset);
+	SUITE_ADD_TEST (suite, pcr_test_get_measurement_data_flash);
+	SUITE_ADD_TEST (suite, pcr_test_get_measurement_data_flash_offset);
+	SUITE_ADD_TEST (suite, pcr_test_get_measurement_data_flash_small_buffer);
+	SUITE_ADD_TEST (suite, pcr_test_get_measurement_data_flash_small_buffer_offset);
+	SUITE_ADD_TEST (suite, pcr_test_get_measurement_data_flash_invalid_offset);
+	SUITE_ADD_TEST (suite, pcr_test_get_measurement_data_flash_read_fail);
+	SUITE_ADD_TEST (suite, pcr_test_get_measurement_data_callback);
+	SUITE_ADD_TEST (suite, pcr_test_get_measurement_data_callback_offset);
+	SUITE_ADD_TEST (suite, pcr_test_get_measurement_data_callback_fail);
+	SUITE_ADD_TEST (suite, pcr_test_get_measurement_data_null);
+	SUITE_ADD_TEST (suite, pcr_test_get_measurement_data_bad_measurement_index);
+	SUITE_ADD_TEST (suite, pcr_test_get_measurement_data_no_data);
+	SUITE_ADD_TEST (suite, pcr_test_get_measurement_data_bad_measurement_data_type);
 
 	return suite;
 }

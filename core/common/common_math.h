@@ -4,6 +4,9 @@
 #ifndef COMMON_MATH_H_
 #define COMMON_MATH_H_
 
-#define min(a,b) (((a) < (b)) ? (a) : (b))
+
+/* Macro for determining minimum of two numbers. */
+#define min(a, b) (((a) < (b)) ? (a) : (b))
+
 
 #endif //COMMON_MATH_H_
