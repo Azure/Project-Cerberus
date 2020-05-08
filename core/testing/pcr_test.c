@@ -14,10 +14,6 @@
 #include "mock/hash_mock.h"
 #include "mock/logging_mock.h"
 #include "mock/flash_mock.h"
-#include "mock/cfm_manager_mock.h"
-#include "mock/cfm_mock.h"
-#include "manifest/cfm/cfm_manager.h"
-#include "manifest/manifest.h"
 
 
 static const char *SUITE = "pcr";
@@ -60,6 +56,35 @@ static void complete_pcr_mock_test (CuTest *test, struct pcr_bank *pcr,
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_release (pcr);
+}
+
+/**
+ * Callback function to test callback based PCR measurement data.
+ *
+ * @param context The data to return from the callback.  It is assumed to be 4 bytes of data.
+ * @param offset The offset for the requested data.
+ * @param buffer Output buffer the data.
+ * @param length Size of the output buffer.
+ *
+ * @return The number of bytes returned.
+ */
+static int pcr_test_measurement_data_callback (void *context, size_t offset, uint8_t *buffer,
+	size_t length)
+{
+	int bytes = (4 - offset);
+
+	if (context == NULL) {
+		return PCR_NO_MEMORY;
+	}
+
+	if (bytes <= 0) {
+		return 0;
+	}
+
+	bytes = (bytes <= length) ? bytes : length;
+	memcpy (buffer, &((uint8_t*) context)[offset], bytes);
+
+	return bytes;
 }
 
 /*******************
@@ -2423,41 +2448,19 @@ static void pcr_test_get_measurement_data_callback (CuTest *test)
 {
 	struct pcr_bank pcr;
 	struct hash_engine_mock hash;
-	struct flash_mock flash;
-	struct cfm_mock cfm;
-	struct cfm_manager_mock manager;
 	struct pcr_measured_data measurement_data;
-	uint32_t data = 0x1234;
+	uint32_t data = 0x12345678;
 	uint8_t buffer[5];
 	size_t length = sizeof (buffer);
 	int status;
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm_mock_init (&cfm);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm_manager_mock_init (&manager);
-	CuAssertIntEquals (test, 0, status);
-
 	setup_pcr_mock_test (test, &pcr, &hash, 5);
 
 	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
-	measurement_data.data.callback.get_data = (get_measured_data) cfm_manager_get_id_measured_data;
-	measurement_data.data.callback.context = &manager.base;
-
-	status = mock_expect (&manager.mock, manager.base.get_active_cfm, &manager,
-		(intptr_t) &cfm.base);
-	status |= mock_expect (&manager.mock, manager.base.free_cfm, &manager,
-		0, MOCK_ARG (&cfm.base));
-
-	status |= mock_expect (&cfm.mock, cfm.base.base.get_id, &cfm, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&cfm.mock, 0, &data, sizeof (data), -1);
-
-	CuAssertIntEquals (test, 0, status);
+	measurement_data.data.callback.get_data = pcr_test_measurement_data_callback;
+	measurement_data.data.callback.context = &data;
 
 	status = pcr_set_measurement_data (&pcr, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
@@ -2468,12 +2471,6 @@ static void pcr_test_get_measurement_data_callback (CuTest *test)
 	status = testing_validate_array ((uint8_t*) &data, buffer, sizeof (data));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm_mock_validate_and_release (&cfm);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm_manager_mock_validate_and_release (&manager);
-	CuAssertIntEquals (test, 0, status);
-
 	complete_pcr_mock_test (test, &pcr, &hash);
 }
 
@@ -2481,42 +2478,20 @@ static void pcr_test_get_measurement_data_callback_offset (CuTest *test)
 {
 	struct pcr_bank pcr;
 	struct hash_engine_mock hash;
-	struct flash_mock flash;
-	struct cfm_mock cfm;
-	struct cfm_manager_mock manager;
 	struct pcr_measured_data measurement_data;
-	uint32_t data = 0x1234;
+	uint32_t data = 0x12345678;
 	uint8_t *data_addr = (uint8_t*) &data;
-	uint8_t buffer[4224];
+	uint8_t buffer[5];
 	size_t length = sizeof (buffer);
 	int status;
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm_mock_init (&cfm);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm_manager_mock_init (&manager);
-	CuAssertIntEquals (test, 0, status);
-
 	setup_pcr_mock_test (test, &pcr, &hash, 5);
 
 	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
-	measurement_data.data.callback.get_data = (get_measured_data) cfm_manager_get_id_measured_data;
-	measurement_data.data.callback.context = &manager.base;
-
-	status = mock_expect (&manager.mock, manager.base.get_active_cfm, &manager,
-		(intptr_t) &cfm.base);
-	status |= mock_expect (&manager.mock, manager.base.free_cfm, &manager,
-		0, MOCK_ARG (&cfm.base));
-
-	status |= mock_expect (&cfm.mock, cfm.base.base.get_id, &cfm, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&cfm.mock, 0, (uint8_t*) &data + 2, sizeof (data), -1);
-
-	CuAssertIntEquals (test, 0, status);
+	measurement_data.data.callback.get_data = pcr_test_measurement_data_callback;
+	measurement_data.data.callback.context = &data;
 
 	status = pcr_set_measurement_data (&pcr, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
@@ -2527,12 +2502,6 @@ static void pcr_test_get_measurement_data_callback_offset (CuTest *test)
 	status = testing_validate_array (data_addr + 2, buffer, sizeof (data) - 2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm_mock_validate_and_release (&cfm);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm_manager_mock_validate_and_release (&manager);
-	CuAssertIntEquals (test, 0, status);
-
 	complete_pcr_mock_test (test, &pcr, &hash);
 }
 
@@ -2540,9 +2509,6 @@ static void pcr_test_get_measurement_data_callback_fail (CuTest *test)
 {
 	struct pcr_bank pcr;
 	struct hash_engine_mock hash;
-	struct flash_mock flash;
-	struct cfm_mock cfm;
-	struct cfm_manager_mock manager;
 	struct pcr_measured_data measurement_data;
 	uint8_t buffer[5];
 	size_t length = sizeof (buffer);
@@ -2550,42 +2516,17 @@ static void pcr_test_get_measurement_data_callback_fail (CuTest *test)
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm_mock_init (&cfm);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm_manager_mock_init (&manager);
-	CuAssertIntEquals (test, 0, status);
-
 	setup_pcr_mock_test (test, &pcr, &hash, 5);
 
 	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
-	measurement_data.data.callback.get_data = (get_measured_data) cfm_manager_get_id_measured_data;
-	measurement_data.data.callback.context = &manager.base;
-
-	status = mock_expect (&manager.mock, manager.base.get_active_cfm, &manager,
-		(intptr_t) &cfm.base);
-	status |= mock_expect (&manager.mock, manager.base.free_cfm, &manager,
-		0, MOCK_ARG (&cfm.base));
-
-	status |= mock_expect (&cfm.mock, cfm.base.base.get_id, &cfm, MANIFEST_GET_ID_FAILED,
-		MOCK_ARG_NOT_NULL);
-
-	CuAssertIntEquals (test, 0, status);
+	measurement_data.data.callback.get_data = pcr_test_measurement_data_callback;
+	measurement_data.data.callback.context = NULL;
 
 	status = pcr_set_measurement_data (&pcr, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_get_measurement_data (&pcr, 2, 0, buffer, length);
-	CuAssertIntEquals (test, MANIFEST_GET_ID_FAILED, status);
-
-	status = cfm_mock_validate_and_release (&cfm);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm_manager_mock_validate_and_release (&manager);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, PCR_NO_MEMORY, status);
 
 	complete_pcr_mock_test (test, &pcr, &hash);
 }
