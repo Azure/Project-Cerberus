@@ -4,7 +4,6 @@
 #ifndef CMD_INTERFACE_SYSTEM_TESTING_H_
 #define CMD_INTERFACE_SYSTEM_TESTING_H_
 
-
 #include "cmd_interface/cerberus_protocol.h"
 
 

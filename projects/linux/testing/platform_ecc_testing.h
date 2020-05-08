@@ -15,5 +15,4 @@
 #endif
 
 
-
 #endif /* PLATFORM_ECC_TESTING_H_ */

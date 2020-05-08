@@ -19,6 +19,7 @@
 #include "mock/cmd_authorization_mock.h"
 #include "mock/recovery_image_cmd_interface_mock.h"
 #include "mock/recovery_image_manager_mock.h"
+#include "mock/flash_mock.h"
 
 
 void cerberus_protocol_optional_commands_testing_process_fw_update_init (CuTest *test,
@@ -383,6 +384,17 @@ void cerberus_protocol_optional_commands_testing_process_get_recovery_image_vers
 	CuTest *test, struct cmd_interface *cmd);
 void cerberus_protocol_optional_commands_testing_process_get_recovery_image_version_bad_port_index (
 	CuTest *test, struct cmd_interface *cmd);
+
+void cerberus_protocol_optional_commands_testing_process_get_attestation_data (CuTest *test,
+	struct cmd_interface *cmd, struct pcr_store *store);
+void cerberus_protocol_optional_commands_testing_process_get_attestation_data_with_offset (
+	CuTest *test, struct cmd_interface *cmd, struct pcr_store *store);
+void cerberus_protocol_optional_commands_testing_process_get_attestation_data_invalid_len (
+	CuTest *test, struct cmd_interface *cmd);
+void cerberus_protocol_optional_commands_testing_process_get_attestation_data_fail (CuTest *test,
+	struct cmd_interface *cmd, struct pcr_store *store, struct flash_mock *flash);
+void cerberus_protocol_optional_commands_testing_process_get_attestation_data_no_data (
+	CuTest *test, struct cmd_interface *cmd, struct pcr_store *store);
 
 
 #endif /* CERBERUS_PROTOCOL_OPTIONAL_COMMANDS_TESTING_H_ */

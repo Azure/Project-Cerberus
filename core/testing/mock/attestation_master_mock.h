@@ -23,4 +23,5 @@ void attestation_master_mock_release (struct attestation_master_mock *mock);
 
 int attestation_master_mock_validate_and_release (struct attestation_master_mock *mock);
 
+
 #endif /* ATTESTATION_MASTER_MOCK_H_ */

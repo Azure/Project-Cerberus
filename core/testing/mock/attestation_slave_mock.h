@@ -23,4 +23,5 @@ void attestation_slave_mock_release (struct attestation_slave_mock *mock);
 
 int attestation_slave_mock_validate_and_release (struct attestation_slave_mock *mock);
 
+
 #endif /* ATTESTATION_SLAVE_MOCK_H_ */

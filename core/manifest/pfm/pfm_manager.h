@@ -61,5 +61,10 @@ void pfm_manager_release (struct pfm_manager *manager);
 void pfm_manager_on_pfm_verified (struct pfm_manager *manager);
 void pfm_manager_on_pfm_activated (struct pfm_manager *manager);
 
+int pfm_manager_get_id_measured_data (struct pfm_manager *manager, size_t offset, uint8_t *buffer,
+	size_t length);
+int pfm_manager_get_platform_id_measured_data (struct pfm_manager *manager, size_t offset,
+	uint8_t *buffer, size_t length);
+
 
 #endif /* PFM_MANAGER_H_ */

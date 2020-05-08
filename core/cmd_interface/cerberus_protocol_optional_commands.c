@@ -1006,3 +1006,36 @@ exit:
 
 	return status;
 }
+
+/**
+ * Process get attestation data packet
+ *
+ * @param pcr_store PCR store instance to utilize
+ * @param request Log read request to process
+ *
+ * @return 0 if request completed successfully or an error code.
+ */
+int cerberus_protocol_get_attestation_data (struct pcr_store *pcr_store,
+	struct cmd_interface_request *request)
+{
+	struct cerberus_protocol_get_attestation_data *rq =
+		(struct cerberus_protocol_get_attestation_data*) request->data;
+	struct cerberus_protocol_get_attestation_data_response *resp =
+		(struct cerberus_protocol_get_attestation_data_response*) request->data;
+	int status;
+
+	if (request->length != sizeof (struct cerberus_protocol_get_attestation_data)) {
+		return CMD_HANDLER_BAD_LENGTH;
+	}
+
+	status = pcr_store_get_measurement_data (pcr_store, PCR_MEASUREMENT (rq->pmr, rq->entry),
+		rq->offset, cerberus_protocol_attestation_data (resp),
+		CERBERUS_PROTOCOL_MAX_ATTESTATION_DATA (request));
+	if (ROT_IS_ERROR (status)) {
+		return status;
+	}
+
+	request->length = cerberus_protocol_get_attestation_data_response_length (status);
+
+	return 0;
+}

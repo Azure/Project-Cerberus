@@ -49,5 +49,10 @@ void pcd_manager_release (struct pcd_manager *manager);
 void pcd_manager_on_pcd_verified (struct pcd_manager *manager);
 void pcd_manager_on_pcd_activated (struct pcd_manager *manager);
 
+int pcd_manager_get_id_measured_data (struct pcd_manager *manager, size_t offset, uint8_t *buffer,
+	size_t length);
+int pcd_manager_get_platform_id_measured_data (struct pcd_manager *manager, size_t offset,
+	uint8_t *buffer, size_t length);
+
 
 #endif /* PCD_MANAGER_H_ */

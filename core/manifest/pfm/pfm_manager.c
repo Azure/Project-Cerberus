@@ -136,3 +136,70 @@ void pfm_manager_on_pfm_activated (struct pfm_manager *manager)
 	pfm_manager_notify_observers (manager, manager->get_active_pfm (manager),
 		offsetof (struct pfm_observer, on_pfm_activated));
 }
+
+/**
+ * Get the data used for PFM ID measurement.  The PFM instance must be released with the
+ * manager.
+ *
+ * @param manager The PFM manager to query.
+ * @param offset The offset to read data from
+ * @param buffer The output buffer to be filled with measured data
+ * @param length Maximum length of the buffer.
+ *
+ * @return Length of the measured data if successfully retrieved or an error code.
+ */
+int pfm_manager_get_id_measured_data (struct pfm_manager *manager, size_t offset, uint8_t *buffer,
+	size_t length)
+{
+	int status;
+	struct pfm *active;
+
+	if (manager == NULL) {
+		return MANIFEST_MANAGER_INVALID_ARGUMENT;
+	}
+
+	active = manager->get_active_pfm (manager);
+	if (active == NULL) {
+		return 0;
+	}
+
+	status = manifest_manager_get_id_measured_data (&active->base, offset, buffer, length);
+
+	manager->free_pfm (manager, active);
+
+	return status;
+}
+
+/**
+ * Get the data used for PFM Platform ID measurement.  The PFM instance must be released with the
+ * manager.
+ *
+ * @param manager The PFM manager to query.
+ * @param offset The offset to read data from
+ * @param buffer The output buffer to be filled with measured data
+ * @param length Maximum length of the buffer.
+ *
+ * @return Length of the measured data if successfully retrieved or an error code.
+ */
+int pfm_manager_get_platform_id_measured_data (struct pfm_manager *manager, size_t offset,
+	uint8_t *buffer, size_t length)
+{
+	int status;
+	struct pfm *active;
+
+	if (manager == NULL) {
+		return MANIFEST_MANAGER_INVALID_ARGUMENT;
+	}
+
+	active = manager->get_active_pfm (manager);
+	if (active == NULL) {
+		return 0;
+	}
+
+	status = manifest_manager_get_platform_id_measured_data (&active->base, offset, buffer,
+		length);
+
+	manager->free_pfm (manager, active);
+
+	return status;
+}

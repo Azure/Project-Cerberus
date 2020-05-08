@@ -7,6 +7,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "status/rot_status.h"
+#include "manifest.h"
 
 
 /**
@@ -72,6 +73,11 @@ struct manifest_manager {
 void manifest_manager_set_port (struct manifest_manager *manager, int port);
 int manifest_manager_get_port (struct manifest_manager *manager);
 
+int manifest_manager_get_id_measured_data (struct manifest *active, size_t offset,
+	uint8_t *buffer, size_t length);
+int manifest_manager_get_platform_id_measured_data (struct manifest *active, size_t offset,
+	uint8_t *buffer, size_t length);
+
 
 #define	MANIFEST_MANAGER_ERROR(code)		ROT_ERROR (ROT_MODULE_MANIFEST_MANAGER, code)
 
@@ -81,27 +87,27 @@ int manifest_manager_get_port (struct manifest_manager *manager);
  * Note: Commented error codes have been deprecated.
  */
 enum {
-	MANIFEST_MANAGER_INVALID_ARGUMENT = MANIFEST_MANAGER_ERROR (0x00),		/**< Input parameter is null or not valid. */
-	MANIFEST_MANAGER_NO_MEMORY = MANIFEST_MANAGER_ERROR (0x01),				/**< Memory allocation failed. */
-	MANIFEST_MANAGER_ACTIVATE_FAILED = MANIFEST_MANAGER_ERROR (0x02),		/**< Pending manifest was not activated. */
-	MANIFEST_MANAGER_CLEAR_FAILED = MANIFEST_MANAGER_ERROR (0x03),			/**< The pending region was not cleared. */
-	MANIFEST_MANAGER_WRITE_FAILED = MANIFEST_MANAGER_ERROR (0x04),			/**< Data was not written to the pending region. */
-	MANIFEST_MANAGER_VERIFY_FAILED = MANIFEST_MANAGER_ERROR (0x05),			/**< An error unrelated to verification occurred. */
-	MANIFEST_MANAGER_INVALID_ID = MANIFEST_MANAGER_ERROR (0x06),			/**< The manifest ID is not valid. */
-	MANIFEST_MANAGER_NONE_PENDING = MANIFEST_MANAGER_ERROR (0x07),			/**< There is no manifest pending for the operation. */
-	MANIFEST_MANAGER_PENDING_IN_USE = MANIFEST_MANAGER_ERROR (0x08),		/**< The pending manifest is actively being used. */
-	MANIFEST_MANAGER_NOT_CLEARED = MANIFEST_MANAGER_ERROR (0x09),			/**< Pending region was not cleared before write. */
-//	MANIFEST_MANAGER_OUT_OF_SPACE = MANIFEST_MANAGER_ERROR (0x0a),			/**< Not enough room in the pending region for data. */
-//	MANIFEST_MANAGER_INCOMPLETE_WRITE = MANIFEST_MANAGER_ERROR (0x0b),		/**< Not all data was written. */
-	MANIFEST_MANAGER_HAS_PENDING = MANIFEST_MANAGER_ERROR (0x0c),			/**< A pending manifest is already present. */
-	MANIFEST_MANAGER_NO_TASK = MANIFEST_MANAGER_ERROR (0x0d),				/**< No manager command task is running. */
-	MANIFEST_MANAGER_TASK_BUSY = MANIFEST_MANAGER_ERROR (0x0e),				/**< The command task is busy performing an operation. */
-	MANIFEST_MANAGER_UNSUPPORTED_OP = MANIFEST_MANAGER_ERROR (0x0f),		/**< The requested operation is not supported by the manager. */
-	MANIFEST_MANAGER_INCOMPATIBLE = MANIFEST_MANAGER_ERROR (0x10),			/**< The pending manifest is incompatible with the system. */
-	MANIFEST_MANAGER_INCOMPLETE_UPDATE = MANIFEST_MANAGER_ERROR (0x11),		/**< The staging flash has not been programmed with all the expected data. */
-	MANIFEST_MANAGER_NO_ACTIVE_MANIFEST = MANIFEST_MANAGER_ERROR (0x12),	/**< No active manifest found. */
-	MANIFEST_MANAGER_ACTIVE_IN_USE = MANIFEST_MANAGER_ERROR (0x13),			/**< The active manifest is currently being used. */
-	MANIFEST_MANAGER_CLEAR_ALL_FAILED = MANIFEST_MANAGER_ERROR (0x14),		/**< Failed to clear the manifest data. */
+	MANIFEST_MANAGER_INVALID_ARGUMENT = MANIFEST_MANAGER_ERROR (0x00),					/**< Input parameter is null or not valid. */
+	MANIFEST_MANAGER_NO_MEMORY = MANIFEST_MANAGER_ERROR (0x01),							/**< Memory allocation failed. */
+	MANIFEST_MANAGER_ACTIVATE_FAILED = MANIFEST_MANAGER_ERROR (0x02),					/**< Pending manifest was not activated. */
+	MANIFEST_MANAGER_CLEAR_FAILED = MANIFEST_MANAGER_ERROR (0x03),						/**< The pending region was not cleared. */
+	MANIFEST_MANAGER_WRITE_FAILED = MANIFEST_MANAGER_ERROR (0x04),						/**< Data was not written to the pending region. */
+	MANIFEST_MANAGER_VERIFY_FAILED = MANIFEST_MANAGER_ERROR (0x05),						/**< An error unrelated to verification occurred. */
+	MANIFEST_MANAGER_INVALID_ID = MANIFEST_MANAGER_ERROR (0x06),						/**< The manifest ID is not valid. */
+	MANIFEST_MANAGER_NONE_PENDING = MANIFEST_MANAGER_ERROR (0x07),						/**< There is no manifest pending for the operation. */
+	MANIFEST_MANAGER_PENDING_IN_USE = MANIFEST_MANAGER_ERROR (0x08),					/**< The pending manifest is actively being used. */
+	MANIFEST_MANAGER_NOT_CLEARED = MANIFEST_MANAGER_ERROR (0x09),						/**< Pending region was not cleared before write. */
+//	MANIFEST_MANAGER_OUT_OF_SPACE = MANIFEST_MANAGER_ERROR (0x0a),						/**< Not enough room in the pending region for data. */
+//	MANIFEST_MANAGER_INCOMPLETE_WRITE = MANIFEST_MANAGER_ERROR (0x0b),					/**< Not all data was written. */
+	MANIFEST_MANAGER_HAS_PENDING = MANIFEST_MANAGER_ERROR (0x0c),						/**< A pending manifest is already present. */
+	MANIFEST_MANAGER_NO_TASK = MANIFEST_MANAGER_ERROR (0x0d),							/**< No manager command task is running. */
+	MANIFEST_MANAGER_TASK_BUSY = MANIFEST_MANAGER_ERROR (0x0e),							/**< The command task is busy performing an operation. */
+	MANIFEST_MANAGER_UNSUPPORTED_OP = MANIFEST_MANAGER_ERROR (0x0f),					/**< The requested operation is not supported by the manager. */
+	MANIFEST_MANAGER_INCOMPATIBLE = MANIFEST_MANAGER_ERROR (0x10),						/**< The pending manifest is incompatible with the system. */
+	MANIFEST_MANAGER_INCOMPLETE_UPDATE = MANIFEST_MANAGER_ERROR (0x11),					/**< The staging flash has not been programmed with all the expected data. */
+	MANIFEST_MANAGER_NO_ACTIVE_MANIFEST = MANIFEST_MANAGER_ERROR (0x12),				/**< No active manifest found. */
+	MANIFEST_MANAGER_ACTIVE_IN_USE = MANIFEST_MANAGER_ERROR (0x13),						/**< The active manifest is currently being used. */
+	MANIFEST_MANAGER_CLEAR_ALL_FAILED = MANIFEST_MANAGER_ERROR (0x14),					/**< Failed to clear the manifest data. */
 };
 
 

@@ -5646,6 +5646,79 @@ static void cmd_interface_system_test_process_get_recovery_image_version_bad_por
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
+static void cmd_interface_system_test_process_get_attestation_data (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM);
+	cerberus_protocol_optional_commands_testing_process_get_attestation_data (test,
+		&cmd.handler.base, &cmd.store);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_attestation_data_with_offset (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+	uint8_t num_pcr_measurements[2] = {6, 6};
+	int status;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM);
+
+	pcr_store_release (&cmd.store);
+
+	status = pcr_store_init (&cmd.store, num_pcr_measurements, sizeof (num_pcr_measurements));
+	CuAssertIntEquals (test, 0, status);
+
+	cerberus_protocol_optional_commands_testing_process_get_attestation_data_with_offset (test,
+		&cmd.handler.base, &cmd.store);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_attestation_data_invalid_len (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM);
+	cerberus_protocol_optional_commands_testing_process_get_attestation_data_invalid_len (test,
+		&cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_attestation_data_fail (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM);
+	cerberus_protocol_optional_commands_testing_process_get_attestation_data_fail (test,
+		&cmd.handler.base, &cmd.store, &cmd.flash);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_attestation_data_no_data (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM);
+	cerberus_protocol_optional_commands_testing_process_get_attestation_data_no_data (test,
+		&cmd.handler.base, &cmd.store);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
 static void cmd_interface_system_test_process_get_device_info (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
@@ -6421,6 +6494,11 @@ CuSuite* get_cmd_interface_system_suite ()
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_issue_challenge);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_issue_challenge_fail);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_issue_challenge_null);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_attestation_data);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_attestation_data_with_offset);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_attestation_data_invalid_len);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_attestation_data_fail);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_attestation_data_no_data);
 
 	/* Tear down after the tests in this suite have run. */
 	SUITE_ADD_TEST (suite, cmd_interface_system_testing_suite_tear_down);

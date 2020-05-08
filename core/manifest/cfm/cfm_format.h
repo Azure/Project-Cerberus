@@ -19,7 +19,7 @@
  * }
  *
  *
- * Each component is defined with a descriptor that is a variable length structure with the 
+ * Each component is defined with a descriptor that is a variable length structure with the
  * following format:
  *
  * struct {
@@ -28,7 +28,7 @@
  * }
  *
  *
- * Each firmware is defined with a descriptor that is a variable length structure with the 
+ * Each firmware is defined with a descriptor that is a variable length structure with the
  * following format:
  *
  * struct {
@@ -37,8 +37,8 @@
  * 		uint8_t alignment[0..3]
  * 		<signed_imgs>[cfm_fw_header.imgs_count]
  * }
- * 
- * Each signed image is defined with a descriptor that is a variable length structure with the 
+ *
+ * Each signed image is defined with a descriptor that is a variable length structure with the
  * following format:
  *
  * struct {
@@ -100,5 +100,6 @@ enum cfm_failure_actions {
 
 #define CFM_FLAGS_FAILURE_ACTIONS_SHIFT	 	0
 #define CFM_FLAGS_FAILURE_ACTIONS_MASK		(3U << CFM_FLAGS_FAILURE_ACTIONS_SHIFT)
+
 
 #endif /* CFM_FORMAT_H_ */

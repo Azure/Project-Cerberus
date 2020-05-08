@@ -199,6 +199,11 @@ const size_t PFM_PLATFORM_ID_OFFSET = 0x250;
  */
 const char *PFM_PLATFORM_ID = "PFM Test1";
 
+/**
+ * Length of PFM platform ID
+ */
+ const size_t PFM_PLATFORM_ID_LEN = 9;
+
 
 /*******************
  * Test cases

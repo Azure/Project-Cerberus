@@ -4,7 +4,6 @@
 #ifndef ATTESTATION_H_
 #define ATTESTATION_H_
 
-
 #include <stdint.h>
 #include "status/rot_status.h"
 

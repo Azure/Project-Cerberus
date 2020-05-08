@@ -4,9 +4,9 @@
 #ifndef RNG_H_
 #define RNG_H_
 
-
 #include <stdint.h>
 #include "status/rot_status.h"
+
 
 /**
  * A platform-independent API for generating random numbers.
@@ -35,5 +35,6 @@ enum {
 	RNG_ENGINE_NO_MEMORY = RNG_ENGINE_ERROR (0x01),			/**< Memory allocation failed. */
 	RNG_ENGINE_RANDOM_FAILED = RNG_ENGINE_ERROR (0x02),		/**< Failed to generate random data. */
 };
+
 
 #endif /* RNG_H_ */

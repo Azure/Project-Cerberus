@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdbool.h>
+#include "flash/flash.h"
 #include "platform.h"
 #include "pcr.h"
 
@@ -256,6 +257,168 @@ exit:
 }
 
 /**
+ * Set the measured data for PCR bank
+ *
+ * @param pcr The PCR bank to set measurement data for
+ * @param measurement_index Index of measurement to set
+ * @param measurement_data buffer containing the measured data
+ *
+ * @return Completion status, 0 if success or an error code
+ */
+int pcr_set_measurement_data (struct pcr_bank *pcr, uint8_t measurement_index,
+	struct pcr_measured_data *measurement_data)
+{
+	if ((pcr == NULL) || (measurement_data == NULL)) {
+		return PCR_INVALID_ARGUMENT;
+	}
+
+	if (measurement_index >= pcr->num_measurements) {
+		return PCR_INVALID_INDEX;
+	}
+
+	switch (measurement_data->type) {
+		case PCR_DATA_TYPE_1BYTE:
+		case PCR_DATA_TYPE_2BYTE:
+		case PCR_DATA_TYPE_4BYTE:
+		case PCR_DATA_TYPE_8BYTE:
+			break;
+
+		case PCR_DATA_TYPE_MEMORY:
+			if (measurement_data->data.memory.buffer == NULL) {
+				return PCR_MEASURED_DATA_INVALID_MEMORY;
+			}
+			break;
+
+		case PCR_DATA_TYPE_FLASH:
+			if (measurement_data->data.flash.flash == NULL) {
+				return PCR_MEASURED_DATA_INVALID_FLASH_DEVICE;
+			}
+			break;
+
+		case PCR_DATA_TYPE_CALLBACK:
+			if (measurement_data->data.callback.get_data == NULL) {
+				return PCR_MEASURED_DATA_INVALID_CALLBACK;
+			}
+			break;
+
+		default:
+			return PCR_INVALID_DATA_TYPE;
+	}
+
+	pcr->measurement_list[measurement_index].measured_data = measurement_data;
+
+	return 0;
+}
+
+/**
+ * Retrieve the measured data from PCR bank
+ *
+ * @param pcr The PCR bank to get measurement data from
+ * @param measurement_index Index of measurement to set
+ * @param offset The offset index to read from
+ * @param buffer Output buffer containing the measured data
+ * @param length Maximum length of the buffer.
+ *
+ * @return length of the buffer if measured data was retrieved successfully or an error code
+ */
+int pcr_get_measurement_data (struct pcr_bank *pcr, uint8_t measurement_index, size_t offset,
+	 uint8_t *buffer, size_t length)
+{
+	struct pcr_measured_data *measured_data;
+	size_t bytes_read;
+
+	if ((pcr == NULL) || (buffer == NULL)) {
+		return PCR_INVALID_ARGUMENT;
+	}
+
+	if (measurement_index >= pcr->num_measurements) {
+		return PCR_INVALID_INDEX;
+	}
+
+	if (pcr->measurement_list[measurement_index].measured_data == NULL) {
+		return 0;
+	}
+
+	measured_data = pcr->measurement_list[measurement_index].measured_data;
+
+	switch (measured_data->type) {
+		case PCR_DATA_TYPE_1BYTE:
+			if ((offset > 0) || (length == 0)) {
+				return 0;
+			}
+
+			*buffer = measured_data->data.value_1byte;
+			return 1;
+
+		case PCR_DATA_TYPE_2BYTE:
+			if (offset > 1) {
+				return 0;
+			}
+
+			bytes_read = ((2 - offset) > length) ? length : (2 - offset);
+			memcpy (buffer, (uint8_t*) &measured_data->data.value_2byte + offset, bytes_read);
+
+			return bytes_read;
+
+		case PCR_DATA_TYPE_4BYTE:
+			if (offset > 3) {
+				return 0;
+			}
+
+			bytes_read = ((4 - offset) > length) ? length : (4 - offset);
+			memcpy (buffer, (uint8_t*) &measured_data->data.value_4byte + offset, bytes_read);
+
+			return bytes_read;
+
+		case PCR_DATA_TYPE_8BYTE:
+			if (offset > 7) {
+				return 0;
+			}
+
+			bytes_read = ((8 - offset) > length) ? length : (8 - offset);
+			memcpy (buffer, (uint8_t*) &measured_data->data.value_8byte + offset, bytes_read);
+
+			return bytes_read;
+
+		case PCR_DATA_TYPE_MEMORY:
+			if (offset > (measured_data->data.memory.length - 1)) {
+				return 0;
+			}
+
+			bytes_read = ((measured_data->data.memory.length - offset) > length) ?
+				length : (measured_data->data.memory.length - offset);
+
+			memcpy (buffer, &measured_data->data.memory.buffer[offset], bytes_read);
+			return bytes_read;
+
+		case PCR_DATA_TYPE_FLASH: {
+			struct flash *flash_device = measured_data->data.flash.flash;
+			size_t read_addr = measured_data->data.flash.addr + offset;
+			int status;
+
+			if (offset > (measured_data->data.flash.length - 1)) {
+				return 0;
+			}
+
+			bytes_read = ((measured_data->data.flash.length - offset) > length ? length :
+				(measured_data->data.flash.length - offset));
+
+			status = flash_device->read (flash_device, read_addr, buffer, bytes_read);
+
+			return (status == 0 ? bytes_read : status);
+		}
+
+		case PCR_DATA_TYPE_CALLBACK:
+			return measured_data->data.callback.get_data (measured_data->data.callback.context,
+				offset, buffer, length);
+
+		default:
+			return PCR_INVALID_DATA_TYPE;
+
+	}
+}
+
+/**
  * Retrieve measurement from PCR bank
  *
  * @param pcr The PCR bank to get measurement from
@@ -321,7 +484,7 @@ int pcr_get_num_measurements (struct pcr_bank *pcr)
 }
 
 /**
- * Invalidate a measurement in the PCR bank 
+ * Invalidate a measurement in the PCR bank
  *
  * @param pcr PCR bank to update
  * @param measurement_index The index of measurement being invalidated
@@ -340,7 +503,7 @@ int pcr_invalidate_measurement_index (struct pcr_bank *pcr, uint8_t measurement_
 
 	platform_mutex_lock (&pcr->lock);
 
-	memset (pcr->measurement_list[measurement_index].digest, 0, 
+	memset (pcr->measurement_list[measurement_index].digest, 0,
 		sizeof (pcr->measurement_list[measurement_index].digest));
 
 	platform_mutex_unlock (&pcr->lock);

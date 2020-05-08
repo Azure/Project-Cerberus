@@ -328,9 +328,8 @@ static void pfm_observer_pcr_test_on_pfm_activated_hash_error (CuTest *test)
 		SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
-	status |= mock_expect (&pfm.mock, pfm.base.base.get_hash, &pfm, MANIFEST_GET_HASH_FAILED,
+	status = mock_expect (&pfm.mock, pfm.base.base.get_hash, &pfm, MANIFEST_GET_HASH_FAILED,
 		MOCK_ARG (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
-
 	CuAssertIntEquals (test, 0, status);
 
 	observer.base.on_pfm_activated (&observer.base, &pfm.base);
@@ -403,7 +402,7 @@ static void pfm_observer_pcr_test_on_pfm_activated_get_id_error (CuTest *test)
 	status = testing_validate_array (invalid_measurement, id_measurement.digest, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
-	status |= mock_expect (&pfm.mock, pfm.base.base.get_hash, &pfm, 0, MOCK_ARG (&hash),
+	status = mock_expect (&pfm.mock, pfm.base.base.get_hash, &pfm, 0, MOCK_ARG (&hash),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
 	status |= mock_expect_output (&pfm.mock, 1, PFM_HASH, PFM_HASH_LEN, 2);
 
@@ -490,7 +489,7 @@ static void pfm_observer_pcr_test_on_pfm_activated_get_platform_id_error (CuTest
 		SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
-	status |= mock_expect (&pfm.mock, pfm.base.base.get_hash, &pfm, 0, MOCK_ARG (&hash),
+	status = mock_expect (&pfm.mock, pfm.base.base.get_hash, &pfm, 0, MOCK_ARG (&hash),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
 	status |= mock_expect_output (&pfm.mock, 1, PFM_HASH, PFM_HASH_LEN, 2);
 

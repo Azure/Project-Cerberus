@@ -4,7 +4,6 @@
 #ifndef ATTESTATION_MASTER_H_
 #define ATTESTATION_MASTER_H_
 
-
 #include <stdint.h>
 #include "status/rot_status.h"
 #include "crypto/ecc.h"
@@ -70,7 +69,7 @@ struct attestation_master {
 	 *
 	 * @return 0 if processing completed successfully or an error code.
 	 */
-	int (*process_challenge_response) (struct attestation_master *attestation, uint8_t *buf, 
+	int (*process_challenge_response) (struct attestation_master *attestation, uint8_t *buf,
 		int buf_len, uint8_t eid);
 
 	struct hash_engine *hash;					   		/**< The hashing engine for attestation authentication operations. */
@@ -86,9 +85,9 @@ struct attestation_master {
 };
 
 
-int attestation_master_init (struct attestation_master *attestation, 
-	struct riot_key_manager *riot, struct hash_engine *hash, struct ecc_engine *ecc, 
-	struct rsa_engine *rsa, struct x509_engine *x509, struct rng_engine *rng, 
+int attestation_master_init (struct attestation_master *attestation,
+	struct riot_key_manager *riot, struct hash_engine *hash, struct ecc_engine *ecc,
+	struct rsa_engine *rsa, struct x509_engine *x509, struct rng_engine *rng,
 	struct device_manager *device_manager, uint8_t encryption_algo);
 
 void attestation_master_release (struct attestation_master *attestation);

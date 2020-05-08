@@ -31,7 +31,7 @@
  * 		char platform_id[pcd_platform_header.id_len]
  * 		uint8_t signature[manifest_header.sig_length]
  * }
- * 
+ *
  * Each component is a variable length structure that has the following format:
  *
  * struct {
@@ -99,7 +99,7 @@ struct pcd_components_header {
 
 /**
  * The header information for a PCD component.
- */ 
+ */
 struct pcd_component_header {
 	uint16_t length;						/**< Total length of PCD component. */
 	uint16_t header_len;					/**< Length of PCD component header. */
@@ -137,5 +137,6 @@ struct pcd_platform_header {
 	uint8_t reserved1;						/**< Reserved. */
 	uint8_t reserved2;						/**< Reserved. */
 };
+
 
 #endif /* PCD_FORMAT_H_ */

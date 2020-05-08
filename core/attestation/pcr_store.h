@@ -4,11 +4,11 @@
 #ifndef PCR_STORE_H_
 #define PCR_STORE_H_
 
-
 #include <stdint.h>
 #include "crypto/hash.h"
 #include "logging/logging.h"
 #include "pcr.h"
+#include "pcr_data.h"
 
 
 #define	PCR_MEASUREMENT(bank, index)			((bank) << 8 | (index))
@@ -72,6 +72,11 @@ int pcr_store_invalidate_measurement (struct pcr_store *store, uint16_t measurem
 int pcr_store_get_tcg_log (struct pcr_store *store, struct hash_engine *hash, uint32_t offset,
 	uint8_t *contents, size_t length);
 int pcr_store_get_tcg_log_size (struct pcr_store *store);
+
+int pcr_store_set_measurement_data (struct pcr_store *store, uint16_t measurement_type,
+	struct pcr_measured_data *measurement);
+int pcr_store_get_measurement_data (struct pcr_store *store, uint16_t measurement_type,
+	size_t offset, uint8_t *buffer, size_t length);
 
 
 #endif //PCR_STORE_H_

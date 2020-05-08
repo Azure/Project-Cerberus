@@ -205,6 +205,9 @@ int cmd_interface_system_process_request (struct cmd_interface *intf,
 		case CERBERUS_PROTOCOL_GET_DEVICE_ID:
 			return cerberus_protocol_get_device_id (&interface->device_id, request);
 
+		case CERBERUS_PROTOCOL_GET_ATTESTATION_DATA:
+			return cerberus_protocol_get_attestation_data (interface->pcr_store, request);
+
 #ifdef ENABLE_DEBUG_COMMANDS
 		case CERBERUS_PROTOCOL_DEBUG_START_ATTESTATION:
 			return cerberus_protocol_start_attestation (request);

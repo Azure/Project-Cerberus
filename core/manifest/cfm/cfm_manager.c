@@ -131,3 +131,70 @@ void cfm_manager_on_cfm_activated (struct cfm_manager *manager)
 	cfm_manager_notify_observers (manager, manager->get_active_cfm (manager),
 		offsetof (struct cfm_observer, on_cfm_activated));
 }
+
+/**
+ * Get the data used for CFM ID measurement.  The CFM instance must be released with the
+ * manager.
+ *
+ * @param manager The CFM manager to query.
+ * @param offset The offset to read data from
+ * @param buffer The output buffer to be filled with measured data
+ * @param length Maximum length of the buffer. Updated with actual length
+ *
+ *@return length of the measured data if successfully retrieved or an error code.
+ */
+int cfm_manager_get_id_measured_data (struct cfm_manager *manager, size_t offset, uint8_t *buffer,
+	size_t length)
+{
+	int status;
+	struct cfm *active;
+
+	if (manager == NULL) {
+		return MANIFEST_MANAGER_INVALID_ARGUMENT;
+	}
+
+	active = manager->get_active_cfm (manager);
+	if (active == NULL) {
+		return 0;
+	}
+
+	status = manifest_manager_get_id_measured_data (&active->base, offset, buffer, length);
+
+	manager->free_cfm (manager, active);
+
+	return status;
+}
+
+/**
+ * Get the data used for CFM platform ID measurement.  The CFM instance must be released with the
+ * manager.
+ *
+ * @param manager The CFM manager to query.
+ * @param offset The offset to read data from
+ * @param buffer The output buffer to be filled with measured data
+ * @param length Maximum length of the buffer.
+ *
+ * @return Length of the measured data if successfully retrieved or an error code.
+ */
+int cfm_manager_get_platform_id_measured_data (struct cfm_manager *manager, size_t offset,
+	uint8_t *buffer, size_t length)
+{
+	int status;
+	struct cfm *active;
+
+	if (manager == NULL) {
+		return MANIFEST_MANAGER_INVALID_ARGUMENT;
+	}
+
+	active = manager->get_active_cfm (manager);
+	if (active == NULL) {
+		return 0;
+	}
+
+	status = manifest_manager_get_platform_id_measured_data (&active->base, offset, buffer,
+		length);
+
+	manager->free_cfm (manager, active);
+
+	return status;
+}

@@ -4,7 +4,6 @@
 #ifndef TPM_H_
 #define TPM_H_
 
-
 #include <stdbool.h>
 #include "status/rot_status.h"
 #include "flash/flash.h"
@@ -28,7 +27,7 @@ struct tpm {
 };
 
 /**
- * TPM header stored at the beginning of TPM NV storage. 
+ * TPM header stored at the beginning of TPM NV storage.
  */
 #pragma pack(push, 1)
 struct tpm_header {

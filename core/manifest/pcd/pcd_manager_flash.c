@@ -103,7 +103,7 @@ static int pcd_manager_flash_verify_pending_pcd (struct manifest_manager *manage
 	return status;
 }
 
-int pcd_manager_flash_clear_all_manifests (struct manifest_manager *manager)
+static int pcd_manager_flash_clear_all_manifests (struct manifest_manager *manager)
 {
 	struct pcd_manager_flash *pcd_mgr = (struct pcd_manager_flash*) manager;
 

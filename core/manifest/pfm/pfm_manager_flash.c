@@ -114,7 +114,7 @@ int pfm_manager_flash_verify_pending_pfm (struct manifest_manager *manager)
 	return status;
 }
 
-int pfm_manager_flash_clear_all_manifests (struct manifest_manager *manager)
+static int pfm_manager_flash_clear_all_manifests (struct manifest_manager *manager)
 {
 	struct pfm_manager_flash *pfm_mgr = (struct pfm_manager_flash*) manager;
 
