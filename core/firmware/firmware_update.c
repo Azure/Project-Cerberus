@@ -312,6 +312,9 @@ int firmware_update_restore_recovery_image (struct firmware_update *updater)
 
 	if (updater->flash->recovery_flash) {
 		if (updater->recovery_bad) {
+			debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CERBERUS_FW,
+				FIRMWARE_LOGGING_RECOVERY_RESTORE_START, 0, 0);
+
 			status = firmware_update_restore_image (updater, updater->flash->recovery_flash,
 				updater->flash->recovery_addr, updater->flash->active_flash,
 				updater->flash->active_addr);

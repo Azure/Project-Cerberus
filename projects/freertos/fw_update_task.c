@@ -28,12 +28,14 @@ static void fw_update_task_updater (struct fw_update_task *task)
 	if (task->running == 2) {
 		/* The system is running from the recovery image, so mark that image as good and restore the
 		 * active image to a functional state. */
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CERBERUS_FW,
+			FIRMWARE_LOGGING_ACTIVE_RESTORE_START, 0, 0);
+
 		firmware_update_set_recovery_good (task->updater, true);
 		status = firmware_update_restore_active_image (task->updater);
-		if (status != 0) {
-			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_CERBERUS_FW,
-				FIRMWARE_LOGGING_ACTIVE_RESTORE_FAIL, status, 0);
-		}
+
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_CERBERUS_FW,
+			FIRMWARE_LOGGING_ACTIVE_RESTORE_DONE, status, 0);
 	}
 	else {
 		/* Ensure the recovery image is in a good state. */

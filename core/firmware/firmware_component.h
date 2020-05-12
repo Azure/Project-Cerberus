@@ -61,12 +61,12 @@ uint32_t firmware_component_get_image_end (struct firmware_component *image);
  * Error codes that can be generated when accessing a firmware component.
  */
 enum {
-	FIRMWARE_COMPONENT_INVALID_ARGUMENT = FIRMWARE_COMPONENT_ERROR (0),			/**< Input parameter is null or not valid. */
-	FIRMWARE_COMPONENT_NO_MEMORY = FIRMWARE_COMPONENT_ERROR (1),				/**< Memory allocation failed. */
-	FIRMWARE_COMPONENT_BAD_HEADER = FIRMWARE_COMPONENT_ERROR (2),				/**< The component header is not valid. */
-	FIRMWARE_COMPONENT_SIG_BUFFER_TOO_SMALL = FIRMWARE_COMPONENT_ERROR (3),		/**< The buffer for the signature is not large enough. */
-	FIRMWARE_COMPONENT_HASH_BUFFER_TOO_SMALL = FIRMWARE_COMPONENT_ERROR (4),	/**< The buffer for the image hash is not large enough. */
-	FIRMWARE_COMPONENT_TOO_LARGE = FIRMWARE_COMPONENT_ERROR (5),				/**< There is not enough space available to load the image. */
+	FIRMWARE_COMPONENT_INVALID_ARGUMENT = FIRMWARE_COMPONENT_ERROR (0x00),		/**< Input parameter is null or not valid. */
+	FIRMWARE_COMPONENT_NO_MEMORY = FIRMWARE_COMPONENT_ERROR (0x01),				/**< Memory allocation failed. */
+	FIRMWARE_COMPONENT_BAD_HEADER = FIRMWARE_COMPONENT_ERROR (0x02),			/**< The component header is not valid. */
+	FIRMWARE_COMPONENT_SIG_BUFFER_TOO_SMALL = FIRMWARE_COMPONENT_ERROR (0x03),	/**< The buffer for the signature is not large enough. */
+	FIRMWARE_COMPONENT_HASH_BUFFER_TOO_SMALL = FIRMWARE_COMPONENT_ERROR (0x04),	/**< The buffer for the image hash is not large enough. */
+	FIRMWARE_COMPONENT_TOO_LARGE = FIRMWARE_COMPONENT_ERROR (0x05),				/**< There is not enough space available to load the image. */
 };
 
 

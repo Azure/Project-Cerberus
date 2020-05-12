@@ -18,7 +18,9 @@ enum {
 	FIRMWARE_LOGGING_ERASE_FAIL,				/**< Failed to erase firmware staging region. */
 	FIRMWARE_LOGGING_WRITE_FAIL,				/**< Failed to write firmware image data. */
 	FIRMWARE_LOGGING_RECOVERY_RESTORE_FAIL,		/**< Failed to restore a bad recovery image. */
-	FIRMWARE_LOGGING_ACTIVE_RESTORE_FAIL,		/**< Failed to restore a bad active image. */
+	FIRMWARE_LOGGING_ACTIVE_RESTORE_DONE,		/**< Done restoring a bad active image. */
+	FIRMWARE_LOGGING_ACTIVE_RESTORE_START,		/**< Start to restore a bad active image. */
+	FIRMWARE_LOGGING_RECOVERY_RESTORE_START,	/**< Start to restore a bad recovery image. */
 };
 
 
