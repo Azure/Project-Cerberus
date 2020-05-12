@@ -98,6 +98,7 @@ enum {
 	FIRMWARE_IMAGE_MANIFEST_REVOKED = FIRMWARE_IMAGE_ERROR (0x0a),		/**< The key manifest contained in the image has been revoked. */
 	FIRMWARE_IMAGE_NOT_AVAILABLE = FIRMWARE_IMAGE_ERROR (0x0b),			/**< A firmware component is not available in the image. */
 	FIRMWARE_IMAGE_INVALID_SIGNATURE = FIRMWARE_IMAGE_ERROR (0x0c),		/**< An image signature is malformed. */
+	FIRMWARE_IMAGE_FORCE_RECOVERY = FIRMWARE_IMAGE_ERROR (0x0d),		/**< Force loading the recovery firmware image. */
 };
 
 
