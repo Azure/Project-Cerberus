@@ -6,7 +6,7 @@ provides a mechanism to securely attest to the state of the device firmware.
 
 Details of Project Cerberus's goals and design can be found at https://github.com/opencomputeproject/Project_Olympus/tree/master/Project_Cerberus.
 
-## Getting the Sorce Code
+## Getting the Source Code
 
 The Cerberus source code relies on some external dependencies and allows for customization and extension to
 different devices.  To support these various dependencies, the repo tool is used for local source code
