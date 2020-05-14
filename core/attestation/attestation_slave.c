@@ -346,7 +346,7 @@ unlock:
 static int attestation_slave_aux_attestation_unseal (struct attestation_slave *attestation,
 	struct hash_engine *hash, enum aux_attestation_key_length key_type, const uint8_t *seed,
 	size_t seed_length, enum aux_attestation_seed_type seed_type,
-	enum aux_attestation_seed_padding seed_padding, const uint8_t *hmac, enum hmac_hash hmac_type,
+	enum aux_attestation_seed_param seed_param, const uint8_t *hmac, enum hmac_hash hmac_type,
 	const uint8_t *ciphertext, size_t cipher_length, const uint8_t sealing[][64], size_t pcr_count,
 	uint8_t *key, size_t key_length)
 {
@@ -355,14 +355,14 @@ static int attestation_slave_aux_attestation_unseal (struct attestation_slave *a
 	}
 
 	return aux_attestation_unseal (attestation->aux, hash, attestation->pcr_store, key_type, seed,
-		seed_length, seed_type, seed_padding, hmac, hmac_type, ciphertext, cipher_length, sealing,
+		seed_length, seed_type, seed_param, hmac, hmac_type, ciphertext, cipher_length, sealing,
 		pcr_count, key, key_length);
 }
 
 static int attestation_slave_aux_attestation_unseal_unsupported (
 	struct attestation_slave *attestation, struct hash_engine *hash,
 	enum aux_attestation_key_length key_type, const uint8_t *seed, size_t seed_length,
-	enum aux_attestation_seed_type seed_type, enum aux_attestation_seed_padding seed_padding,
+	enum aux_attestation_seed_type seed_type, enum aux_attestation_seed_param seed_param,
 	const uint8_t *hmac, enum hmac_hash hmac_type, const uint8_t *ciphertext, size_t cipher_length,
 	const uint8_t sealing[][64], size_t pcr_count, uint8_t *key, size_t key_length)
 {

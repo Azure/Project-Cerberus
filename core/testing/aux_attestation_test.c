@@ -102,6 +102,16 @@ const uint8_t KEY_SEED_ENCRYPT_OAEP_SHA256[] = {
 const size_t KEY_SEED_ENCRYPT_OAEP_SHA256_LEN = sizeof (KEY_SEED_ENCRYPT_OAEP_SHA256);
 
 /**
+ * SHA256 hash of the seed.
+ */
+const uint8_t KEY_SEED_HASH[] = {
+	0xd6,0x49,0xbf,0x62,0xb4,0xdb,0x01,0x6f,0x32,0x91,0xaa,0x9d,0x82,0x80,0x89,0x4e,
+	0x62,0xe7,0x8a,0x9b,0x63,0x70,0x94,0x90,0xb9,0x32,0x1f,0x28,0x26,0xe8,0x2a,0xd2
+};
+
+const size_t KEY_SEED_HASH_LEN = sizeof (KEY_SEED_HASH);
+
+/**
  * The value of i in the NIST SP800-108 KDF algorithm.
  */
 const uint8_t NIST_KEY_DERIVE_I[] = {
@@ -144,6 +154,16 @@ const uint8_t ENCRYPTION_KEY[] = {
 const size_t ENCRYPTION_KEY_LEN = sizeof (ENCRYPTION_KEY);
 
 /**
+ * The encryption key derived from the seed hash.  (Label=encryption key, Context=empty).
+ */
+const uint8_t ENCRYPTION_KEY_SEED_HASH[] = {
+	0x57,0x3e,0x7d,0x92,0xf1,0xe6,0xa6,0xb6,0x6e,0x4f,0x2d,0x22,0x82,0xb4,0xa6,0x4b,
+	0x84,0x2a,0x90,0xf7,0xff,0xd6,0xdc,0xc2,0x1e,0xa7,0xdb,0xe9,0x19,0xcd,0xb6,0xa5
+};
+
+const size_t ENCRYPTION_KEY_SEED_HASH_LEN = sizeof (ENCRYPTION_KEY_SEED_HASH);
+
+/**
  * The signing key derived from the seed.  (Label=signing key, Context=empty).
  */
 const uint8_t SIGNING_KEY[] = {
@@ -152,6 +172,16 @@ const uint8_t SIGNING_KEY[] = {
 };
 
 const size_t SIGNING_KEY_LEN = sizeof (SIGNING_KEY);
+
+/**
+ * The signing key derived from the seed hash.  (Label=signing key, Context=empty).
+ */
+const uint8_t SIGNING_KEY_SEED_HASH[] = {
+	0xfa,0xb7,0x48,0x07,0x43,0xfc,0x4b,0x8a,0x19,0xf4,0x97,0x10,0x1e,0x50,0xbf,0x91,
+	0xdf,0x9c,0xd7,0x8b,0xb1,0x0b,0xd0,0xd8,0x3c,0xdb,0xf0,0x22,0xcb,0x02,0x2b,0x67
+};
+
+const size_t SIGNING_KEY_SEED_HASH_LEN = sizeof (SIGNING_KEY_SEED_HASH);
 
 /**
  * Data provided as the cipher text, though not actually encrypted with the key.
@@ -185,6 +215,16 @@ const uint8_t PAYLOAD_HMAC[] = {
 };
 
 const size_t PAYLOAD_HMAC_LEN = sizeof (PAYLOAD_HMAC);
+
+/**
+ * HMAC (SIGNING_KEY_SEED_HASH, CIPHER_TEXT || SEALING_POLICY).
+ */
+const uint8_t PAYLOAD_HMAC_SEED_HASH[] = {
+	0x2a,0x61,0x19,0xf7,0x9d,0x67,0x14,0xbe,0x9e,0xd4,0xb0,0xd0,0x5a,0xb2,0xab,0xd9,
+	0x8a,0x3f,0x2e,0x4e,0xae,0x30,0x91,0x7b,0x74,0x78,0x95,0x85,0xdc,0xf2,0x52,0xf1
+};
+
+const size_t PAYLOAD_HMAC_SEED_HASH_LEN = sizeof (PAYLOAD_HMAC_SEED_HASH);
 
 /**
  * Sealing policy value using multiple PCRs
@@ -2173,7 +2213,7 @@ static void aux_attestation_test_unseal_rsa_oaep_sha1 (CuTest *test)
 
 	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA,
-		AUX_ATTESTATION_PADDING_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
+		AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
 		SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
 	CuAssertIntEquals (test, 0, status);
 
@@ -2271,7 +2311,7 @@ static void aux_attestation_test_unseal_rsa_oaep_sha256 (CuTest *test)
 
 	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		KEY_SEED_ENCRYPT_OAEP_SHA256, KEY_SEED_ENCRYPT_OAEP_SHA256_LEN, AUX_ATTESTATION_SEED_RSA,
-		AUX_ATTESTATION_PADDING_OAEP_SHA256, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT,
+		AUX_ATTESTATION_PARAM_OAEP_SHA256, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT,
 		CIPHER_TEXT_LEN, SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
 	CuAssertIntEquals (test, 0, status);
 
@@ -2302,15 +2342,15 @@ static void aux_attestation_test_unseal_rsa_pkcs15 (CuTest *test)
 
 	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA,
-		AUX_ATTESTATION_PADDING_PKCS15, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
+		AUX_ATTESTATION_PARAM_PKCS15, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
 		SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
-	CuAssertIntEquals (test, AUX_ATTESTATION_BAD_SEED_PADDING, status);
+	CuAssertIntEquals (test, AUX_ATTESTATION_BAD_SEED_PARAM, status);
 
 	aux_attestation_testing_validate_and_release (test, &aux);
 	pcr_store_release (&pcr);
 }
 
-static void aux_attestation_test_unseal_ecdh (CuTest *test)
+static void aux_attestation_test_unseal_ecdh_raw (CuTest *test)
 {
 	struct aux_attestation_testing aux;
 	struct pcr_store pcr;
@@ -2390,11 +2430,110 @@ static void aux_attestation_test_unseal_ecdh (CuTest *test)
 
 	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, AUX_ATTESTATION_SEED_ECDH,
-		AUX_ATTESTATION_PADDING_UNSPECIFIED, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT,
-		CIPHER_TEXT_LEN, SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
+		AUX_ATTESTATION_PARAM_ECDH_RAW, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
+		SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
 	CuAssertIntEquals (test, 0, status);
 
 	status = testing_validate_array (ENCRYPTION_KEY, attestation_key, ENCRYPTION_KEY_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	aux_attestation_testing_validate_and_release (test, &aux);
+	pcr_store_release (&pcr);
+}
+
+static void aux_attestation_test_unseal_ecdh_sha256 (CuTest *test)
+{
+	struct aux_attestation_testing aux;
+	struct pcr_store pcr;
+	uint8_t num_measurements[] = {0};
+	int status;
+	uint8_t attestation_key[32];
+
+	TEST_START;
+
+	aux_attestation_testing_init (test, &aux);
+
+	status = pcr_store_init (&pcr, num_measurements, sizeof (num_measurements));
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_update_digest (&pcr, PCR_MEASUREMENT (0, 0), PCR0_VALUE, PCR0_VALUE_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Derive seed */
+	status = mock_expect (&aux.ecc.mock, aux.ecc.base.init_public_key, &aux.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN), MOCK_ARG (ECC_PUBKEY_DER_LEN),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&aux.ecc.mock, 2, 0);
+
+	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.init_key_pair, &aux.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+	status |= mock_expect_save_arg (&aux.ecc.mock, 2, 1);
+
+	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.compute_shared_secret, &aux.ecc,
+		KEY_SEED_LEN, MOCK_ARG_SAVED_ARG (1), MOCK_ARG_SAVED_ARG (0), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (3072 / 8));
+	status |= mock_expect_output (&aux.ecc.mock, 2, KEY_SEED, KEY_SEED_LEN, 3);
+
+	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.release_key_pair, &aux.ecc, 0,
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG (NULL));
+	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.release_key_pair, &aux.ecc, 0,
+		MOCK_ARG (NULL), MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&aux.hash.mock, aux.hash.base.calculate_sha256, &aux.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (KEY_SEED, KEY_SEED_LEN), MOCK_ARG (KEY_SEED_LEN), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&aux.hash.mock, 2, KEY_SEED_HASH, KEY_SEED_HASH_LEN, 3);
+
+	/* Derive signing key */
+	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED_HASH, KEY_SEED_HASH_LEN);
+	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_I, NIST_KEY_DERIVE_I_LEN),
+		MOCK_ARG (NIST_KEY_DERIVE_I_LEN));
+	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) SIGNING_KEY_LABEL, SIGNING_KEY_LABEL_LEN),
+		MOCK_ARG (SIGNING_KEY_LABEL_LEN));
+	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_L, NIST_KEY_DERIVE_L_LEN),
+		MOCK_ARG (NIST_KEY_DERIVE_L_LEN));
+	status |= hash_mock_expect_hmac_finish (&aux.hash, KEY_SEED_HASH, KEY_SEED_HASH_LEN, NULL,
+		SHA256_HASH_LENGTH, SIGNING_KEY_SEED_HASH, SIGNING_KEY_SEED_HASH_LEN);
+
+	/* Validate cipher text and sealing policy */
+	status |= hash_mock_expect_hmac_init (&aux.hash, SIGNING_KEY_SEED_HASH,
+		SIGNING_KEY_SEED_HASH_LEN);
+	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (CIPHER_TEXT, CIPHER_TEXT_LEN), MOCK_ARG (CIPHER_TEXT_LEN));
+	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (SEALING_POLICY, SEALING_POLICY_LEN), MOCK_ARG (SEALING_POLICY_LEN));
+	status |= hash_mock_expect_hmac_finish (&aux.hash, SIGNING_KEY_SEED_HASH,
+		SIGNING_KEY_SEED_HASH_LEN, NULL, SHA256_HASH_LENGTH, PAYLOAD_HMAC_SEED_HASH,
+		PAYLOAD_HMAC_SEED_HASH_LEN);
+
+	/* Derive encryption key */
+	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED_HASH, KEY_SEED_HASH_LEN);
+	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_I, NIST_KEY_DERIVE_I_LEN),
+		MOCK_ARG (NIST_KEY_DERIVE_I_LEN));
+	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) ENCRYPTION_KEY_LABEL, ENCRYPTION_KEY_LABEL_LEN),
+		MOCK_ARG (ENCRYPTION_KEY_LABEL_LEN));
+	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_L, NIST_KEY_DERIVE_L_LEN),
+		MOCK_ARG (NIST_KEY_DERIVE_L_LEN));
+	status |= hash_mock_expect_hmac_finish (&aux.hash, KEY_SEED_HASH, KEY_SEED_HASH_LEN, NULL,
+		SHA256_HASH_LENGTH, ENCRYPTION_KEY_SEED_HASH, ENCRYPTION_KEY_SEED_HASH_LEN);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
+		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, AUX_ATTESTATION_SEED_ECDH,
+		AUX_ATTESTATION_PARAM_ECDH_SHA256, PAYLOAD_HMAC_SEED_HASH, HMAC_SHA256, CIPHER_TEXT,
+		CIPHER_TEXT_LEN, SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (ENCRYPTION_KEY_SEED_HASH, attestation_key,
+		ENCRYPTION_KEY_SEED_HASH_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	aux_attestation_testing_validate_and_release (test, &aux);
@@ -2478,7 +2617,7 @@ static void aux_attestation_test_unseal_pcr_mismatch (CuTest *test)
 
 	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA,
-		AUX_ATTESTATION_PADDING_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
+		AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
 		SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
 	CuAssertIntEquals (test, AUX_ATTESTATION_PCR_MISMATCH, status);
 
@@ -2563,7 +2702,7 @@ static void aux_attestation_test_unseal_unused_byte_nonzero (CuTest *test)
 
 	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA,
-		AUX_ATTESTATION_PADDING_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
+		AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
 		(const uint8_t(*)[64]) bad_sealing, 1, attestation_key, sizeof (attestation_key));
 	CuAssertIntEquals (test, AUX_ATTESTATION_PCR_MISMATCH, status);
 
@@ -2659,7 +2798,7 @@ static void aux_attestation_test_unseal_bypass_pcr_check (CuTest *test)
 
 	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA,
-		AUX_ATTESTATION_PADDING_OAEP_SHA1, PAYLOAD_BYPASS_HMAC, HMAC_SHA256, CIPHER_TEXT,
+		AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_BYPASS_HMAC, HMAC_SHA256, CIPHER_TEXT,
 		CIPHER_TEXT_LEN, SEALING_POLICY_BYPASS, 1, attestation_key, sizeof (attestation_key));
 	CuAssertIntEquals (test, 0, status);
 
@@ -2760,7 +2899,7 @@ static void aux_attestation_test_unseal_multiple_pcr (CuTest *test)
 
 	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA,
-		AUX_ATTESTATION_PADDING_OAEP_SHA1, PAYLOAD_MULTIPLE_HMAC, HMAC_SHA256, CIPHER_TEXT,
+		AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_MULTIPLE_HMAC, HMAC_SHA256, CIPHER_TEXT,
 		CIPHER_TEXT_LEN, SEALING_POLICY_MULTIPLE, 3, attestation_key, sizeof (attestation_key));
 	CuAssertIntEquals (test, 0, status);
 
@@ -2851,7 +2990,7 @@ static void aux_attestation_test_unseal_multiple_pcr_mismatch (CuTest *test)
 
 	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA,
-		AUX_ATTESTATION_PADDING_OAEP_SHA1, PAYLOAD_MULTIPLE_HMAC, HMAC_SHA256, CIPHER_TEXT,
+		AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_MULTIPLE_HMAC, HMAC_SHA256, CIPHER_TEXT,
 		CIPHER_TEXT_LEN, SEALING_POLICY_MULTIPLE, 3, attestation_key, sizeof (attestation_key));
 	CuAssertIntEquals (test, AUX_ATTESTATION_PCR_MISMATCH, status);
 
@@ -2938,7 +3077,7 @@ static void aux_attestation_test_unseal_multiple_pcr_unused_byte_nonzero (CuTest
 
 	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA,
-		AUX_ATTESTATION_PADDING_OAEP_SHA1, PAYLOAD_MULTIPLE_HMAC, HMAC_SHA256, CIPHER_TEXT,
+		AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_MULTIPLE_HMAC, HMAC_SHA256, CIPHER_TEXT,
 		CIPHER_TEXT_LEN, (const uint8_t(*)[64]) bad_sealing, 3, attestation_key,
 		sizeof (attestation_key));
 	CuAssertIntEquals (test, AUX_ATTESTATION_PCR_MISMATCH, status);
@@ -3037,7 +3176,7 @@ static void aux_attestation_test_unseal_multiple_pcr_bypass_single (CuTest *test
 
 	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA,
-		AUX_ATTESTATION_PADDING_OAEP_SHA1, PAYLOAD_SKIP_HMAC, HMAC_SHA256, CIPHER_TEXT,
+		AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_SKIP_HMAC, HMAC_SHA256, CIPHER_TEXT,
 		CIPHER_TEXT_LEN, SEALING_POLICY_SKIP, 3, attestation_key, sizeof (attestation_key));
 	CuAssertIntEquals (test, 0, status);
 
@@ -3138,7 +3277,7 @@ static void aux_attestation_test_unseal_multiple_pcr_bypass_multiple (CuTest *te
 
 	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA,
-		AUX_ATTESTATION_PADDING_OAEP_SHA1, PAYLOAD_BYPASS_MULTIPLE_HMAC, HMAC_SHA256, CIPHER_TEXT,
+		AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_BYPASS_MULTIPLE_HMAC, HMAC_SHA256, CIPHER_TEXT,
 		CIPHER_TEXT_LEN, SEALING_POLICY_BYPASS_MULTIPLE, 3, attestation_key,
 		sizeof (attestation_key));
 	CuAssertIntEquals (test, 0, status);
@@ -3239,7 +3378,7 @@ static void aux_attestation_test_unseal_unused_pcrs (CuTest *test)
 
 	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA,
-		AUX_ATTESTATION_PADDING_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
+		AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
 		SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
 	CuAssertIntEquals (test, 0, status);
 
@@ -3340,7 +3479,7 @@ static void aux_attestation_test_unseal_unsupported_pcrs_unused (CuTest *test)
 
 	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA,
-		AUX_ATTESTATION_PADDING_OAEP_SHA1, PAYLOAD_MULTIPLE_UNUSED_HMAC, HMAC_SHA256, CIPHER_TEXT,
+		AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_MULTIPLE_UNUSED_HMAC, HMAC_SHA256, CIPHER_TEXT,
 		CIPHER_TEXT_LEN, SEALING_POLICY_MULTIPLE_UNUSED, 5, attestation_key,
 		sizeof (attestation_key));
 	CuAssertIntEquals (test, 0, status);
@@ -3425,7 +3564,7 @@ static void aux_attestation_test_unseal_bad_hmac (CuTest *test)
 
 	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA,
-		AUX_ATTESTATION_PADDING_OAEP_SHA1, PAYLOAD_BYPASS_HMAC, HMAC_SHA256, CIPHER_TEXT,
+		AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_BYPASS_HMAC, HMAC_SHA256, CIPHER_TEXT,
 		CIPHER_TEXT_LEN, SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
 	CuAssertIntEquals (test, AUX_ATTESTATION_HMAC_MISMATCH, status);
 
@@ -3479,7 +3618,7 @@ static void aux_attestation_test_unseal_rsa_oaep_sha1_no_mock (CuTest *test)
 
 	status = aux_attestation_unseal (&aux.test, &hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA,
-		AUX_ATTESTATION_PADDING_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
+		AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
 		SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
 	CuAssertIntEquals (test, 0, status);
 
@@ -3539,7 +3678,7 @@ static void aux_attestation_test_unseal_rsa_oaep_sha256_no_mock (CuTest *test)
 
 	status = aux_attestation_unseal (&aux.test, &hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		KEY_SEED_ENCRYPT_OAEP_SHA256, KEY_SEED_ENCRYPT_OAEP_SHA256_LEN, AUX_ATTESTATION_SEED_RSA,
-		AUX_ATTESTATION_PADDING_OAEP_SHA256, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT,
+		AUX_ATTESTATION_PARAM_OAEP_SHA256, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT,
 		CIPHER_TEXT_LEN, SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
 	CuAssertIntEquals (test, 0, status);
 
@@ -3553,7 +3692,7 @@ static void aux_attestation_test_unseal_rsa_oaep_sha256_no_mock (CuTest *test)
 	pcr_store_release (&pcr);
 }
 
-static void aux_attestation_test_unseal_ecdh_no_mock (CuTest *test)
+static void aux_attestation_test_unseal_ecdh_raw_no_mock (CuTest *test)
 {
 	ECC_TESTING_ENGINE ecc;
 	HASH_TESTING_ENGINE hash;
@@ -3585,11 +3724,58 @@ static void aux_attestation_test_unseal_ecdh_no_mock (CuTest *test)
 
 	status = aux_attestation_unseal (&aux.test, &hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, AUX_ATTESTATION_SEED_ECDH,
-		AUX_ATTESTATION_PADDING_UNSPECIFIED, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT,
-		CIPHER_TEXT_LEN, SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
+		AUX_ATTESTATION_PARAM_ECDH_RAW, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
+		SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
 	CuAssertIntEquals (test, 0, status);
 
 	status = testing_validate_array (ENCRYPTION_KEY, attestation_key, ENCRYPTION_KEY_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	aux_attestation_testing_validate_and_release (test, &aux);
+
+	ECC_TESTING_ENGINE_RELEASE (&ecc);
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pcr_store_release (&pcr);
+}
+
+static void aux_attestation_test_unseal_ecdh_sha256_no_mock (CuTest *test)
+{
+	ECC_TESTING_ENGINE ecc;
+	HASH_TESTING_ENGINE hash;
+	struct aux_attestation_testing aux;
+	struct pcr_store pcr;
+	uint8_t num_measurements[] = {0};
+	int status;
+	uint8_t attestation_key[32];
+
+	TEST_START;
+
+	status = ECC_TESTING_ENGINE_INIT (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	aux_attestation_testing_init_dependencies (test, &aux);
+
+	status = aux_attestation_init (&aux.test, &aux.keystore.base, &aux.rsa.base, &aux.riot,
+		&ecc.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_init (&pcr, num_measurements, sizeof (num_measurements));
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_update_digest (&pcr, PCR_MEASUREMENT (0, 0), PCR0_VALUE, PCR0_VALUE_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = aux_attestation_unseal (&aux.test, &hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
+		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, AUX_ATTESTATION_SEED_ECDH,
+		AUX_ATTESTATION_PARAM_ECDH_SHA256, PAYLOAD_HMAC_SEED_HASH, HMAC_SHA256, CIPHER_TEXT,
+		CIPHER_TEXT_LEN, SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (ENCRYPTION_KEY_SEED_HASH, attestation_key,
+		ENCRYPTION_KEY_SEED_HASH_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	aux_attestation_testing_validate_and_release (test, &aux);
@@ -3644,7 +3830,7 @@ static void aux_attestation_test_unseal_rsa_no_ecc (CuTest *test)
 
 	status = aux_attestation_unseal (&aux.test, &hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA,
-		AUX_ATTESTATION_PADDING_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
+		AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
 		SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
 	CuAssertIntEquals (test, 0, status);
 
@@ -3689,8 +3875,8 @@ static void aux_attestation_test_unseal_ecdh_no_rsa (CuTest *test)
 
 	status = aux_attestation_unseal (&aux.test, &hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, AUX_ATTESTATION_SEED_ECDH,
-		AUX_ATTESTATION_PADDING_UNSPECIFIED, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT,
-		CIPHER_TEXT_LEN, SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
+		AUX_ATTESTATION_PARAM_ECDH_RAW, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
+		SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
 	CuAssertIntEquals (test, 0, status);
 
 	status = testing_validate_array (ENCRYPTION_KEY, attestation_key, ENCRYPTION_KEY_LEN);
@@ -3723,67 +3909,67 @@ static void aux_attestation_test_unseal_null (CuTest *test)
 
 	status = aux_attestation_unseal (NULL, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA,
-		AUX_ATTESTATION_PADDING_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
+		AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
 		SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
 	CuAssertIntEquals (test, AUX_ATTESTATION_INVALID_ARGUMENT, status);
 
 	status = aux_attestation_unseal (&aux.test, NULL, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA,
-		AUX_ATTESTATION_PADDING_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
+		AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
 		SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
 	CuAssertIntEquals (test, AUX_ATTESTATION_INVALID_ARGUMENT, status);
 
 	status = aux_attestation_unseal (&aux.test, &aux.hash.base, NULL, AUX_ATTESTATION_KEY_256BIT,
 		KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA,
-		AUX_ATTESTATION_PADDING_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
+		AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
 		SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
 	CuAssertIntEquals (test, AUX_ATTESTATION_INVALID_ARGUMENT, status);
 
 	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		NULL, KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA,
-		AUX_ATTESTATION_PADDING_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
+		AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
 		SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
 	CuAssertIntEquals (test, AUX_ATTESTATION_INVALID_ARGUMENT, status);
 
 	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		KEY_SEED_ENCRYPT_OAEP, 0, AUX_ATTESTATION_SEED_RSA,
-		AUX_ATTESTATION_PADDING_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
+		AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
 		SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
 	CuAssertIntEquals (test, AUX_ATTESTATION_INVALID_ARGUMENT, status);
 
 	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA,
-		AUX_ATTESTATION_PADDING_OAEP_SHA1, NULL, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
+		AUX_ATTESTATION_PARAM_OAEP_SHA1, NULL, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
 		SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
 	CuAssertIntEquals (test, AUX_ATTESTATION_INVALID_ARGUMENT, status);
 
 	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA,
-		AUX_ATTESTATION_PADDING_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, NULL, CIPHER_TEXT_LEN,
+		AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, NULL, CIPHER_TEXT_LEN,
 		SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
 	CuAssertIntEquals (test, AUX_ATTESTATION_INVALID_ARGUMENT, status);
 
 	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA,
-		AUX_ATTESTATION_PADDING_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, 0,
+		AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, 0,
 		SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
 	CuAssertIntEquals (test, AUX_ATTESTATION_INVALID_ARGUMENT, status);
 
 	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA,
-		AUX_ATTESTATION_PADDING_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
+		AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
 		NULL, 1, attestation_key, sizeof (attestation_key));
 	CuAssertIntEquals (test, AUX_ATTESTATION_INVALID_ARGUMENT, status);
 
 	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA,
-		AUX_ATTESTATION_PADDING_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
+		AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
 		SEALING_POLICY, 0, attestation_key, sizeof (attestation_key));
 	CuAssertIntEquals (test, AUX_ATTESTATION_INVALID_ARGUMENT, status);
 
 	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA,
-		AUX_ATTESTATION_PADDING_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
+		AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
 		SEALING_POLICY, 1, NULL, sizeof (attestation_key));
 	CuAssertIntEquals (test, AUX_ATTESTATION_INVALID_ARGUMENT, status);
 
@@ -3811,7 +3997,7 @@ static void aux_attestation_test_unseal_invalid_key_length (CuTest *test)
 
 	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr,
 		(enum aux_attestation_key_length) 48, KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN,
-		AUX_ATTESTATION_SEED_RSA, AUX_ATTESTATION_PADDING_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256,
+		AUX_ATTESTATION_SEED_RSA, AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256,
 		CIPHER_TEXT, CIPHER_TEXT_LEN, SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
 	CuAssertIntEquals (test, AUX_ATTESTATION_UNSUPPORTED_KEY_LENGTH, status);
 
@@ -3839,7 +4025,7 @@ static void aux_attestation_test_unseal_invalid_hmac_type (CuTest *test)
 
 	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA,
-		AUX_ATTESTATION_PADDING_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA1, CIPHER_TEXT, CIPHER_TEXT_LEN,
+		AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA1, CIPHER_TEXT, CIPHER_TEXT_LEN,
 		SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
 	CuAssertIntEquals (test, AUX_ATTESTATION_UNSUPPORTED_HMAC, status);
 
@@ -3867,13 +4053,13 @@ static void aux_attestation_test_unseal_buffer_too_small (CuTest *test)
 
 	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA,
-		AUX_ATTESTATION_PADDING_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
+		AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
 		SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
 	CuAssertIntEquals (test, AUX_ATTESTATION_BUFFER_TOO_SMALL, status);
 
 	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA,
-		AUX_ATTESTATION_PADDING_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
+		AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
 		SEALING_POLICY, 1, attestation_key, 0);
 	CuAssertIntEquals (test, AUX_ATTESTATION_BUFFER_TOO_SMALL, status);
 
@@ -3904,7 +4090,7 @@ static void aux_attestation_test_unseal_no_rsa_support (CuTest *test)
 
 	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA,
-		AUX_ATTESTATION_PADDING_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
+		AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
 		SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
 	CuAssertIntEquals (test, AUX_ATTESTATION_UNSUPPORTED_CRYPTO, status);
 
@@ -3935,8 +4121,8 @@ static void aux_attestation_test_unseal_no_ecc_support (CuTest *test)
 
 	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, AUX_ATTESTATION_SEED_ECDH,
-		AUX_ATTESTATION_PADDING_UNSPECIFIED, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT,
-		CIPHER_TEXT_LEN, SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
+		AUX_ATTESTATION_PARAM_ECDH_RAW, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
+		SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
 	CuAssertIntEquals (test, AUX_ATTESTATION_UNSUPPORTED_CRYPTO, status);
 
 	aux_attestation_testing_validate_and_release (test, &aux);
@@ -3963,7 +4149,7 @@ static void aux_attestation_test_unseal_unknown_seed (CuTest *test)
 
 	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN, (enum aux_attestation_seed_type) 2,
-		AUX_ATTESTATION_PADDING_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
+		AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
 		SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
 	CuAssertIntEquals (test, AUX_ATTESTATION_UNKNOWN_SEED, status);
 
@@ -3991,9 +4177,9 @@ static void aux_attestation_test_unseal_rsa_invalid_padding (CuTest *test)
 
 	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA,
-		(enum aux_attestation_seed_padding) 3, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT,
+		(enum aux_attestation_seed_param) 3, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT,
 		CIPHER_TEXT_LEN, SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
-	CuAssertIntEquals (test, AUX_ATTESTATION_BAD_SEED_PADDING, status);
+	CuAssertIntEquals (test, AUX_ATTESTATION_BAD_SEED_PARAM, status);
 
 	aux_attestation_testing_validate_and_release (test, &aux);
 	pcr_store_release (&pcr);
@@ -4026,7 +4212,7 @@ static void aux_attestation_test_unseal_rsa_load_error (CuTest *test)
 
 	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA,
-		AUX_ATTESTATION_PADDING_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
+		AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
 		SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
 	CuAssertIntEquals (test, KEYSTORE_LOAD_FAILED, status);
 
@@ -4074,7 +4260,7 @@ static void aux_attestation_test_unseal_rsa_init_key_error (CuTest *test)
 
 	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA,
-		AUX_ATTESTATION_PADDING_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
+		AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
 		SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
 	CuAssertIntEquals (test, RSA_ENGINE_KEY_PAIR_FAILED, status);
 
@@ -4131,9 +4317,37 @@ static void aux_attestation_test_unseal_rsa_decrypt_error (CuTest *test)
 
 	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA,
-		AUX_ATTESTATION_PADDING_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
+		AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
 		SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
 	CuAssertIntEquals (test, RSA_ENGINE_DECRYPT_FAILED, status);
+
+	aux_attestation_testing_validate_and_release (test, &aux);
+	pcr_store_release (&pcr);
+}
+
+static void aux_attestation_test_unseal_ecdh_invalid_padding (CuTest *test)
+{
+	struct aux_attestation_testing aux;
+	struct pcr_store pcr;
+	uint8_t num_measurements[] = {0};
+	int status;
+	uint8_t attestation_key[32];
+
+	TEST_START;
+
+	aux_attestation_testing_init (test, &aux);
+
+	status = pcr_store_init (&pcr, num_measurements, sizeof (num_measurements));
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_update_digest (&pcr, PCR_MEASUREMENT (0, 0), PCR0_VALUE, PCR0_VALUE_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
+		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, AUX_ATTESTATION_SEED_ECDH,
+		(enum aux_attestation_seed_param) 2, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT,
+		CIPHER_TEXT_LEN, SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
+	CuAssertIntEquals (test, AUX_ATTESTATION_BAD_SEED_PARAM, status);
 
 	aux_attestation_testing_validate_and_release (test, &aux);
 	pcr_store_release (&pcr);
@@ -4166,8 +4380,8 @@ static void aux_attestation_test_unseal_ecdh_public_key_error (CuTest *test)
 
 	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, AUX_ATTESTATION_SEED_ECDH,
-		AUX_ATTESTATION_PADDING_UNSPECIFIED, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT,
-		CIPHER_TEXT_LEN, SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
+		AUX_ATTESTATION_PARAM_ECDH_RAW, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
+		SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
 	CuAssertIntEquals (test, ECC_ENGINE_PUBLIC_KEY_FAILED, status);
 
 	aux_attestation_testing_validate_and_release (test, &aux);
@@ -4210,8 +4424,8 @@ static void aux_attestation_test_unseal_ecdh_private_key_error (CuTest *test)
 
 	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, AUX_ATTESTATION_SEED_ECDH,
-		AUX_ATTESTATION_PADDING_UNSPECIFIED, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT,
-		CIPHER_TEXT_LEN, SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
+		AUX_ATTESTATION_PARAM_ECDH_RAW, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
+		SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
 	CuAssertIntEquals (test, ECC_ENGINE_KEY_PAIR_FAILED, status);
 
 	aux_attestation_testing_validate_and_release (test, &aux);
@@ -4260,9 +4474,64 @@ static void aux_attestation_test_unseal_ecdh_shared_secret_error (CuTest *test)
 
 	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, AUX_ATTESTATION_SEED_ECDH,
-		AUX_ATTESTATION_PADDING_UNSPECIFIED, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT,
-		CIPHER_TEXT_LEN, SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
+		AUX_ATTESTATION_PARAM_ECDH_RAW, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
+		SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
 	CuAssertIntEquals (test, ECC_ENGINE_SHARED_SECRET_FAILED, status);
+
+	aux_attestation_testing_validate_and_release (test, &aux);
+	pcr_store_release (&pcr);
+}
+
+static void aux_attestation_test_unseal_ecdh_hash_error (CuTest *test)
+{
+	struct aux_attestation_testing aux;
+	struct pcr_store pcr;
+	uint8_t num_measurements[] = {0};
+	int status;
+	uint8_t attestation_key[32];
+
+	TEST_START;
+
+	aux_attestation_testing_init (test, &aux);
+
+	status = pcr_store_init (&pcr, num_measurements, sizeof (num_measurements));
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_update_digest (&pcr, PCR_MEASUREMENT (0, 0), PCR0_VALUE, PCR0_VALUE_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Derive seed */
+	status = mock_expect (&aux.ecc.mock, aux.ecc.base.init_public_key, &aux.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN), MOCK_ARG (ECC_PUBKEY_DER_LEN),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&aux.ecc.mock, 2, 0);
+
+	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.init_key_pair, &aux.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+	status |= mock_expect_save_arg (&aux.ecc.mock, 2, 1);
+
+	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.compute_shared_secret, &aux.ecc,
+		KEY_SEED_LEN, MOCK_ARG_SAVED_ARG (1), MOCK_ARG_SAVED_ARG (0), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (3072 / 8));
+	status |= mock_expect_output (&aux.ecc.mock, 2, KEY_SEED, KEY_SEED_LEN, 3);
+
+	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.release_key_pair, &aux.ecc, 0,
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG (NULL));
+	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.release_key_pair, &aux.ecc, 0,
+		MOCK_ARG (NULL), MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&aux.hash.mock, aux.hash.base.calculate_sha256, &aux.hash,
+		HASH_ENGINE_SHA256_FAILED, MOCK_ARG_PTR_CONTAINS (KEY_SEED, KEY_SEED_LEN),
+		MOCK_ARG (KEY_SEED_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
+		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, AUX_ATTESTATION_SEED_ECDH,
+		AUX_ATTESTATION_PARAM_ECDH_SHA256, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
+		SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
+	CuAssertIntEquals (test, HASH_ENGINE_SHA256_FAILED, status);
 
 	aux_attestation_testing_validate_and_release (test, &aux);
 	pcr_store_release (&pcr);
@@ -4322,7 +4591,7 @@ static void aux_attestation_test_unseal_signing_key_init_error (CuTest *test)
 
 	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA,
-		AUX_ATTESTATION_PADDING_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
+		AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
 		SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
 	CuAssertIntEquals (test, HASH_ENGINE_START_SHA256_FAILED, status);
 
@@ -4388,7 +4657,7 @@ static void aux_attestation_test_unseal_signing_key_hash_i_error (CuTest *test)
 
 	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA,
-		AUX_ATTESTATION_PADDING_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
+		AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
 		SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
 	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
 
@@ -4458,7 +4727,7 @@ static void aux_attestation_test_unseal_signing_key_hash_label_error (CuTest *te
 
 	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA,
-		AUX_ATTESTATION_PADDING_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
+		AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
 		SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
 	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
 
@@ -4530,7 +4799,7 @@ static void aux_attestation_test_unseal_signing_key_hash_L_error (CuTest *test)
 
 	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA,
-		AUX_ATTESTATION_PADDING_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
+		AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
 		SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
 	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
 
@@ -4604,7 +4873,7 @@ static void aux_attestation_test_unseal_signing_key_finish_error (CuTest *test)
 
 	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA,
-		AUX_ATTESTATION_PADDING_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
+		AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
 		SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
 	CuAssertIntEquals (test, HASH_ENGINE_FINISH_FAILED, status);
 
@@ -4680,7 +4949,7 @@ static void aux_attestation_test_unseal_validate_init_error (CuTest *test)
 
 	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA,
-		AUX_ATTESTATION_PADDING_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
+		AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
 		SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
 	CuAssertIntEquals (test, HASH_ENGINE_START_SHA256_FAILED, status);
 
@@ -4760,7 +5029,7 @@ static void aux_attestation_test_unseal_validate_hash_cipher_error (CuTest *test
 
 	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA,
-		AUX_ATTESTATION_PADDING_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
+		AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
 		SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
 	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
 
@@ -4842,7 +5111,7 @@ static void aux_attestation_test_unseal_validate_hash_policy_error (CuTest *test
 
 	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA,
-		AUX_ATTESTATION_PADDING_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
+		AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
 		SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
 	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
 
@@ -4925,7 +5194,7 @@ static void aux_attestation_test_unseal_validate_finish_error (CuTest *test)
 
 	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA,
-		AUX_ATTESTATION_PADDING_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
+		AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
 		SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
 	CuAssertIntEquals (test, HASH_ENGINE_FINISH_FAILED, status);
 
@@ -5008,7 +5277,7 @@ static void aux_attestation_test_unseal_unsupported_pcr (CuTest *test)
 
 	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA,
-		AUX_ATTESTATION_PADDING_OAEP_SHA1, PAYLOAD_MULTIPLE_HMAC, HMAC_SHA256, CIPHER_TEXT,
+		AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_MULTIPLE_HMAC, HMAC_SHA256, CIPHER_TEXT,
 		CIPHER_TEXT_LEN, SEALING_POLICY_MULTIPLE, 3, attestation_key, sizeof (attestation_key));
 	CuAssertIntEquals (test, PCR_INVALID_PCR, status);
 
@@ -5093,7 +5362,7 @@ static void aux_attestation_test_unseal_encryption_key_init_error (CuTest *test)
 
 	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA,
-		AUX_ATTESTATION_PADDING_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
+		AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
 		SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
 	CuAssertIntEquals (test, HASH_ENGINE_START_SHA256_FAILED, status);
 
@@ -5182,7 +5451,7 @@ static void aux_attestation_test_unseal_encryption_key_hash_i_error (CuTest *tes
 
 	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA,
-		AUX_ATTESTATION_PADDING_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
+		AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
 		SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
 	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
 
@@ -5275,7 +5544,7 @@ static void aux_attestation_test_unseal_encryption_key_hash_label_error (CuTest 
 
 	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA,
-		AUX_ATTESTATION_PADDING_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
+		AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
 		SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
 	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
 
@@ -5370,7 +5639,7 @@ static void aux_attestation_test_unseal_encryption_key_hash_L_error (CuTest *tes
 
 	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA,
-		AUX_ATTESTATION_PADDING_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
+		AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
 		SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
 	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
 
@@ -5467,7 +5736,7 @@ static void aux_attestation_test_unseal_encryption_key_finish_error (CuTest *tes
 
 	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
 		KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA,
-		AUX_ATTESTATION_PADDING_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
+		AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
 		SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
 	CuAssertIntEquals (test, HASH_ENGINE_FINISH_FAILED, status);
 
@@ -6048,7 +6317,8 @@ CuSuite* get_aux_attestation_suite ()
 	SUITE_ADD_TEST (suite, aux_attestation_test_unseal_rsa_oaep_sha1);
 	SUITE_ADD_TEST (suite, aux_attestation_test_unseal_rsa_oaep_sha256);
 	SUITE_ADD_TEST (suite, aux_attestation_test_unseal_rsa_pkcs15);
-	SUITE_ADD_TEST (suite, aux_attestation_test_unseal_ecdh);
+	SUITE_ADD_TEST (suite, aux_attestation_test_unseal_ecdh_raw);
+	SUITE_ADD_TEST (suite, aux_attestation_test_unseal_ecdh_sha256);
 	SUITE_ADD_TEST (suite, aux_attestation_test_unseal_pcr_mismatch);
 	SUITE_ADD_TEST (suite, aux_attestation_test_unseal_unused_byte_nonzero);
 	SUITE_ADD_TEST (suite, aux_attestation_test_unseal_bypass_pcr_check);
@@ -6062,7 +6332,8 @@ CuSuite* get_aux_attestation_suite ()
 	SUITE_ADD_TEST (suite, aux_attestation_test_unseal_bad_hmac);
 	SUITE_ADD_TEST (suite, aux_attestation_test_unseal_rsa_oaep_sha1_no_mock);
 	SUITE_ADD_TEST (suite, aux_attestation_test_unseal_rsa_oaep_sha256_no_mock);
-	SUITE_ADD_TEST (suite, aux_attestation_test_unseal_ecdh_no_mock);
+	SUITE_ADD_TEST (suite, aux_attestation_test_unseal_ecdh_raw_no_mock);
+	SUITE_ADD_TEST (suite, aux_attestation_test_unseal_ecdh_sha256_no_mock);
 	SUITE_ADD_TEST (suite, aux_attestation_test_unseal_rsa_no_ecc);
 	SUITE_ADD_TEST (suite, aux_attestation_test_unseal_ecdh_no_rsa);
 	SUITE_ADD_TEST (suite, aux_attestation_test_unseal_null);
@@ -6076,9 +6347,11 @@ CuSuite* get_aux_attestation_suite ()
 	SUITE_ADD_TEST (suite, aux_attestation_test_unseal_rsa_load_error);
 	SUITE_ADD_TEST (suite, aux_attestation_test_unseal_rsa_init_key_error);
 	SUITE_ADD_TEST (suite, aux_attestation_test_unseal_rsa_decrypt_error);
+	SUITE_ADD_TEST (suite, aux_attestation_test_unseal_ecdh_invalid_padding);
 	SUITE_ADD_TEST (suite, aux_attestation_test_unseal_ecdh_public_key_error);
 	SUITE_ADD_TEST (suite, aux_attestation_test_unseal_ecdh_private_key_error);
 	SUITE_ADD_TEST (suite, aux_attestation_test_unseal_ecdh_shared_secret_error);
+	SUITE_ADD_TEST (suite, aux_attestation_test_unseal_ecdh_hash_error);
 	SUITE_ADD_TEST (suite, aux_attestation_test_unseal_signing_key_init_error);
 	SUITE_ADD_TEST (suite, aux_attestation_test_unseal_signing_key_hash_i_error);
 	SUITE_ADD_TEST (suite, aux_attestation_test_unseal_signing_key_hash_label_error);

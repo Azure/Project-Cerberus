@@ -82,6 +82,14 @@ enum {
 };
 
 /**
+ * Identifier for unsealing ECDH parameters.
+ */
+enum {
+	CERBERUS_PROTOCOL_UNSEAL_ECDH_RAW = 0,					/**< Seed is the raw ECDH output */
+	CERBERUS_PROTOCOL_UNSEAL_ECDH_SHA256,					/**< Seed is the SHA256 hash of the ECDH output */
+};
+
+/**
  * Maximum number of PMRs that can be used for unsealing.
  *
  *
@@ -519,8 +527,10 @@ struct cerberus_protocol_message_unseal {
 			uint8_t reserved:5;								/**< Unused */
 		} rsa;
 		struct {
-			uint8_t reserved;								/**< Unused. */
+			uint8_t processing:1;							/**< Additional processing on ECDH seed */
+			uint8_t reserved:7;								/**< Unused. */
 		} ecdh;
+		uint8_t raw;										/**< Raw seed parameter value */
 	} seed_params;											/**< Additional parameters for the seed */
 	uint16_t seed_length;									/**< Length of the unsealing seed */
 	uint8_t seed;											/**< First byte of the unsealing seed */

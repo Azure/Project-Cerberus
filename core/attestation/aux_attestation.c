@@ -317,8 +317,7 @@ const struct der_cert* aux_attestation_get_certificate (struct aux_attestation *
  * @param seed The obfuscated seed to use for key derivation.
  * @param seed_length The length of the obfuscated seed.
  * @param seed_type The method to use for determining the KDF seed.
- * @param seed_padding The padding method used when encrypting the seed.  This parameter does not
- * matter for ECDH seeds and can be set to anything in those cases.
+ * @param seed_param Details about the method used to determine the KDF seed.
  * @param hmac HMAC of the ciphertext and sealing data using the signing key.
  * @param hmac_type The type of HMAC used.
  * @param ciphertext The encrypted attestation data.
@@ -334,7 +333,7 @@ const struct der_cert* aux_attestation_get_certificate (struct aux_attestation *
 int aux_attestation_unseal (struct aux_attestation *aux, struct hash_engine *hash,
 	struct pcr_store *pcr, enum aux_attestation_key_length key_type, const uint8_t *seed,
 	size_t seed_length, enum aux_attestation_seed_type seed_type,
-	enum aux_attestation_seed_padding seed_padding, const uint8_t *hmac, enum hmac_hash hmac_type,
+	enum aux_attestation_seed_param seed_param, const uint8_t *hmac, enum hmac_hash hmac_type,
 	const uint8_t *ciphertext, size_t cipher_length, const uint8_t sealing[][64], size_t pcr_count,
 	uint8_t *key, size_t key_length)
 {
@@ -381,17 +380,17 @@ int aux_attestation_unseal (struct aux_attestation *aux, struct hash_engine *has
 				return AUX_ATTESTATION_UNSUPPORTED_CRYPTO;
 			}
 
-			switch (seed_padding) {
-				case AUX_ATTESTATION_PADDING_OAEP_SHA1:
+			switch (seed_param) {
+				case AUX_ATTESTATION_PARAM_OAEP_SHA1:
 					padding = HASH_TYPE_SHA1;
 					break;
 
-				case AUX_ATTESTATION_PADDING_OAEP_SHA256:
+				case AUX_ATTESTATION_PARAM_OAEP_SHA256:
 					padding = HASH_TYPE_SHA256;
 					break;
 
 				default:
-					return AUX_ATTESTATION_BAD_SEED_PADDING;
+					return AUX_ATTESTATION_BAD_SEED_PARAM;
 			}
 
 			status = aux->keystore->load_key (aux->keystore, 0, &priv_der, &priv_length);
@@ -427,6 +426,11 @@ rsa_init_error:
 				return AUX_ATTESTATION_UNSUPPORTED_CRYPTO;
 			}
 
+			if ((seed_param != AUX_ATTESTATION_PARAM_ECDH_RAW) &&
+				(seed_param != AUX_ATTESTATION_PARAM_ECDH_SHA256)) {
+				return AUX_ATTESTATION_BAD_SEED_PARAM;
+			}
+
 			status = aux->ecc->init_public_key (aux->ecc, seed, seed_length, &pub);
 			if (status != 0) {
 				return status;
@@ -444,6 +448,15 @@ rsa_init_error:
 				sizeof (secret));
 			if (ROT_IS_ERROR (secret_length)) {
 				status = secret_length;
+			}
+
+			if (seed_param == AUX_ATTESTATION_PARAM_ECDH_SHA256) {
+				status = hash->calculate_sha256 (hash, secret, secret_length, payload_hmac,
+					sizeof (payload_hmac));
+				if (status == 0) {
+					memcpy (secret, payload_hmac, SHA256_HASH_LENGTH);
+					secret_length = SHA256_HASH_LENGTH;
+				}
 			}
 
 			aux->ecc->release_key_pair (aux->ecc, &priv, NULL);

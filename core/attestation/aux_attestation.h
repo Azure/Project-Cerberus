@@ -29,13 +29,14 @@ enum aux_attestation_seed_type {
 };
 
 /**
- * The padding types possible for the encrypted seed.
+ * The parameter options used to specify additional details about seed derivation.
  */
-enum aux_attestation_seed_padding {
-	AUX_ATTESTATION_PADDING_PKCS15 = CERBERUS_PROTOCOL_UNSEAL_RSA_PKCS15,			/**< Attestation seed is padded per PKCS#1 v1.5. */
-	AUX_ATTESTATION_PADDING_OAEP_SHA1 = CERBERUS_PROTOCOL_UNSEAL_RSA_OAEP_SHA1,		/**< Attestation seed is OAEP padded with SHA1. */
-	AUX_ATTESTATION_PADDING_OAEP_SHA256 = CERBERUS_PROTOCOL_UNSEAL_RSA_OAEP_SHA256,	/**< Attestation seed is OAEP padded with SHA256. */
-	AUX_ATTESTATION_PADDING_UNSPECIFIED = 0xff										/**< Seed uses an unspecified padding scheme. */
+enum aux_attestation_seed_param {
+	AUX_ATTESTATION_PARAM_PKCS15 = CERBERUS_PROTOCOL_UNSEAL_RSA_PKCS15,				/**< Attestation seed is padded per PKCS#1 v1.5. */
+	AUX_ATTESTATION_PARAM_OAEP_SHA1 = CERBERUS_PROTOCOL_UNSEAL_RSA_OAEP_SHA1,		/**< Attestation seed is OAEP padded with SHA1. */
+	AUX_ATTESTATION_PARAM_OAEP_SHA256 = CERBERUS_PROTOCOL_UNSEAL_RSA_OAEP_SHA256,	/**< Attestation seed is OAEP padded with SHA256. */
+	AUX_ATTESTATION_PARAM_ECDH_RAW = CERBERUS_PROTOCOL_UNSEAL_ECDH_RAW,				/**< Attestation seed is raw ECDH output. */
+	AUX_ATTESTATION_PARAM_ECDH_SHA256 = CERBERUS_PROTOCOL_UNSEAL_ECDH_SHA256,		/**< Attestation seed is SHA256 hash of ECDH output. */
 };
 
 /**
@@ -76,7 +77,7 @@ const struct der_cert* aux_attestation_get_certificate (struct aux_attestation *
 int aux_attestation_unseal (struct aux_attestation *aux, struct hash_engine *hash,
 	struct pcr_store *pcr, enum aux_attestation_key_length key_type, const uint8_t *seed,
 	size_t seed_length, enum aux_attestation_seed_type seed_type,
-	enum aux_attestation_seed_padding padding, const uint8_t *hmac, enum hmac_hash hmac_type,
+	enum aux_attestation_seed_param seed_param, const uint8_t *hmac, enum hmac_hash hmac_type,
 	const uint8_t *ciphertext, size_t cipher_length, const uint8_t sealing[][64], size_t pcr_count,
 	uint8_t *key, size_t key_length);
 
@@ -101,7 +102,7 @@ enum {
 	AUX_ATTESTATION_UNSUPPORTED_HMAC = AUX_ATTESTATION_ERROR (0x07),		/**< The HMAC algorithm is not supported. */
 	AUX_ATTESTATION_UNKNOWN_SEED = AUX_ATTESTATION_ERROR (0x08),			/**< Unknown seed algorithm. */
 	AUX_ATTESTATION_BUFFER_TOO_SMALL = AUX_ATTESTATION_ERROR (0x09),		/**< Output buffer too small. */
-	AUX_ATTESTATION_BAD_SEED_PADDING = AUX_ATTESTATION_ERROR (0x0a),		/**< Seed padding type is invalid or unsupported. */
+	AUX_ATTESTATION_BAD_SEED_PARAM = AUX_ATTESTATION_ERROR (0x0a),			/**< Seed parameter option is invalid or unsupported. */
 };
 
 

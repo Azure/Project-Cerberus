@@ -66,8 +66,7 @@ struct attestation_slave {
 	 * @param seed The obfuscated seed to use for key derivation.
 	 * @param seed_length The length of the obfuscated seed.
 	 * @param seed_type The method to use for determining the KDF seed.
-	 * @param seed_padding The type of padding used to encrypt the seed.  For ECDH seeds, this value
-	 * does not matter and can be anything.
+	 * @param seed_param Details about the method used to determine the KDF seed.
 	 * @param hmac HMAC of the ciphertext and sealing data using the signing key.
 	 * @param hmac_type The type of HMAC used.
 	 * @param ciphertext The encrypted attestation data.
@@ -82,7 +81,7 @@ struct attestation_slave {
 	 */
 	int (*aux_attestation_unseal) (struct attestation_slave *attestation, struct hash_engine *hash,
 		enum aux_attestation_key_length key_type, const uint8_t *seed, size_t seed_length,
-		enum aux_attestation_seed_type seed_type, enum aux_attestation_seed_padding seed_padding,
+		enum aux_attestation_seed_type seed_type, enum aux_attestation_seed_param seed_param,
 		const uint8_t *hmac, enum hmac_hash hmac_type, const uint8_t *ciphertext,
 		size_t cipher_length, const uint8_t sealing[][64], size_t pcr_count, uint8_t *key,
 		size_t key_length);
