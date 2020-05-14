@@ -56,14 +56,21 @@ static void cmd_background_task_handler (struct cmd_background_task *task)
 		if (notification & CMD_BACKGROUND_RUN_UNSEAL) {
 			struct cerberus_protocol_message_unseal *unseal =
 				(struct cerberus_protocol_message_unseal*) task->attestation.unseal_request;
+			enum aux_attestation_seed_param seed_param;
 
 			op_status = &task->attestation.attestation_status;
+
+			if (unseal->seed_type == CERBERUS_PROTOCOL_UNSEAL_SEED_ECDH) {
+				seed_param = (enum aux_attestation_seed_param) unseal->seed_params.ecdh.processing;
+			}
+			else {
+				seed_param = (enum aux_attestation_seed_param) unseal->seed_params.rsa.padding;
+			}
 
 			status = task->attestation.attestation->aux_attestation_unseal (
 				task->attestation.attestation, task->attestation.hash, AUX_ATTESTATION_KEY_256BIT,
 				&unseal->seed, unseal->seed_length,
-				(enum aux_attestation_seed_type) unseal->seed_type,
-				(enum aux_attestation_seed_padding) unseal->seed_params.rsa.padding,
+				(enum aux_attestation_seed_type) unseal->seed_type, seed_param,
 				cerberus_protocol_unseal_hmac (unseal), HMAC_SHA256,
 				cerberus_protocol_unseal_ciphertext (unseal),
 				cerberus_protocol_unseal_ciphertext_length (unseal),

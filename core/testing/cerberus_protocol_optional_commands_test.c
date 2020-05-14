@@ -7918,7 +7918,9 @@ static void cerberus_protocol_optional_commands_test_message_unseal_format (CuTe
 	CuAssertIntEquals (test, 0x00, req->seed_params.rsa.reserved);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_UNSEAL_RSA_OAEP_SHA256,
 		req->seed_params.rsa.padding);
-	CuAssertIntEquals (test, 0x02, req->seed_params.ecdh.reserved);
+	CuAssertIntEquals (test, 0x01, req->seed_params.ecdh.reserved);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_UNSEAL_ECDH_RAW, req->seed_params.ecdh.processing);
+	CuAssertIntEquals (test, 0x02, req->seed_params.raw);
 	CuAssertIntEquals (test, 0x0048, req->seed_length);
 	CuAssertPtrEquals (test, &raw_buffer_req[9], &req->seed);
 	CuAssertIntEquals (test, 0x0010, cerberus_protocol_unseal_ciphertext_length (req));
@@ -7948,19 +7950,27 @@ static void cerberus_protocol_optional_commands_test_message_unseal_format (CuTe
 	CuAssertIntEquals (test, 0x00, req->seed_params.rsa.reserved);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_UNSEAL_RSA_OAEP_SHA1,
 		req->seed_params.rsa.padding);
-	CuAssertIntEquals (test, 0x01, req->seed_params.ecdh.reserved);
+	CuAssertIntEquals (test, 0x00, req->seed_params.ecdh.reserved);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_UNSEAL_ECDH_SHA256,
+		req->seed_params.ecdh.processing);
+	CuAssertIntEquals (test, 0x01, req->seed_params.raw);
 
 	raw_buffer_req[6] = 0x11;
 	CuAssertIntEquals (test, 0x02, req->seed_params.rsa.reserved);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_UNSEAL_RSA_OAEP_SHA1,
 		req->seed_params.rsa.padding);
-	CuAssertIntEquals (test, 0x11, req->seed_params.ecdh.reserved);
+	CuAssertIntEquals (test, 0x08, req->seed_params.ecdh.reserved);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_UNSEAL_ECDH_SHA256,
+		req->seed_params.ecdh.processing);
+	CuAssertIntEquals (test, 0x11, req->seed_params.raw);
 
 	raw_buffer_req[6] = 0x10;
 	CuAssertIntEquals (test, 0x02, req->seed_params.rsa.reserved);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_UNSEAL_RSA_PKCS15,
 		req->seed_params.rsa.padding);
-	CuAssertIntEquals (test, 0x10, req->seed_params.ecdh.reserved);
+	CuAssertIntEquals (test, 0x08, req->seed_params.ecdh.reserved);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_UNSEAL_ECDH_RAW, req->seed_params.ecdh.processing);
+	CuAssertIntEquals (test, 0x10, req->seed_params.raw);
 }
 
 static void cerberus_protocol_optional_commands_test_message_unseal_result_format (CuTest *test)
