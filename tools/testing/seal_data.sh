@@ -9,7 +9,7 @@ if [ $# -lt 3 ]; then
 fi
 
 cert=$3
-key=`tempfile -d .`
+key=`mktemp -p .`
 openssl x509 -inform DER -outform PEM -noout -pubkey -in $cert -out $key
 if [ $? -ne 0 ]; then
 	rm -f $key
@@ -23,7 +23,7 @@ if [ "$1" = "1" ]; then
 		exit 1
 	fi
 
-	seed=`tempfile -d .`
+	seed=`mktemp -p .`
 	openssl pkeyutl -derive -inkey $4 -peerkey $key -out $seed
 	if [ $? -ne 0 ]; then
 		rm -f $key $seed
@@ -44,7 +44,7 @@ if [ "$1" = "1" ]; then
 		exit 1
 	fi
 else
-	seed=`tempfile -d .`
+	seed=`mktemp -p .`
 	head -c 32 /dev/random > $seed
 
 	if [ "$2" = "2" ]; then
@@ -68,7 +68,7 @@ echo "Seed: $seed_hex"
 label=`echo -n "signing key" | xxd -p`
 sign_nist="00000001${label}0000000100"
 
-sign_key=`tempfile -d .`
+sign_key=`mktemp -p .`
 echo -n $sign_nist | xxd -r -p | openssl dgst -sha256 -mac hmac -macopt hexkey:$seed_hex -out $sign_key -binary
 if [ $? -ne 0 ]; then
 	rm -f $seed $sign_key
@@ -104,7 +104,7 @@ head -c 64 /dev/zero >> $sealing
 
 sign=`cat $sign_key | xxd -p | tr -d '\n'`
 
-payload=`tempfile -d .`
+payload=`mktemp -p .`
 cat cipher.bin $sealing > $payload
 openssl dgst -sha256 -mac hmac -macopt hexkey:$sign -out hmac.bin -binary $payload
 if [ $? -ne 0 ]; then
