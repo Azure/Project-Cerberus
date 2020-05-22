@@ -122,7 +122,7 @@ void manifest_pcr_record_manifest_measurement (struct manifest_pcr *pcr, struct 
 	}
 
 	status = pcr_store_update_buffer (pcr->store, pcr->hash, pcr->manifest_platform_id_measurement,
-		(uint8_t*) platform_id, strlen (platform_id));
+		(uint8_t*) platform_id, strlen (platform_id) + 1);
 	if (status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
 			MANIFEST_LOGGING_RECORD_MEASUREMENT_FAIL, pcr->manifest_platform_id_measurement, status);
