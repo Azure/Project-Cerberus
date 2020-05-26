@@ -73,21 +73,24 @@ enum {
 	CERBERUS_PROTOCOL_UNSEAL_MESSAGE_RESULT,					/**< Get unsealing result*/
 	CERBERUS_PROTOCOL_GET_CFM_SUPPORTED_COMPONENT_IDS = 0x8D,	/**< Get CFM supported component IDs */
 	CERBERUS_PROTOCOL_GET_EXT_UPDATE_STATUS,					/**< Get extended update status */
+
+	/* Utilize the reserved command space for debugging.  Must be disabled in production. */
 	CERBERUS_PROTOCOL_DEBUG_START_ATTESTATION = 0xF0,			/**< Debug command to start attestation */
 	CERBERUS_PROTOCOL_DEBUG_GET_ATTESTATION_STATE,				/**< Debug command to get attestation status */
 	CERBERUS_PROTOCOL_DEBUG_FILL_LOG,							/**< Debug command to fill up debug log */
 	CERBERUS_PROTOCOL_DEBUG_GET_DEVICE_MANAGER_CERT,			/**< Debug command to retrieve device certificate */
 	CERBERUS_PROTOCOL_DEBUG_GET_DEVICE_MANAGER_CERT_DIGEST,		/**< Debug command to retrieve device certificate digest */
 	CERBERUS_PROTOCOL_DEBUG_GET_DEVICE_MANAGER_CHALLENGE,		/**< Debug command to retrieve device challenge */
+	CERBORUS_PROTOCOL_DEBUG_RESERVED = 0xFF,					/**< Not available to use as a debug command. */
 };
 
 /**
  * Cerberus error codes
  */
 enum {
-	CERBERUS_PROTOCOL_NO_ERROR,								/**< Success */
+	CERBERUS_PROTOCOL_NO_ERROR = 0x00,						/**< Success */
 	CERBERUS_PROTOCOL_ERROR_INVALID_REQ,					/**< Invalid request */
-	CERBERUS_PROTOCOL_ERROR_BUSY = 03,						/**< Device busy */
+	CERBERUS_PROTOCOL_ERROR_BUSY = 0x03,					/**< Device busy */
 	CERBERUS_PROTOCOL_ERROR_UNSPECIFIED,					/**< Unspecified error */
 	CERBERUS_PROTOCOL_ERROR_INVALID_CHECKSUM = 0xF0,		/**< Invalid checksum */
 	CERBERUS_PROTOCOL_ERROR_OUT_OF_ORDER_MSG,				/**< EOM before SOM */
