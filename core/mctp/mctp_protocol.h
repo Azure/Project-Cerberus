@@ -65,9 +65,11 @@
  */
 enum
 {
+	MCTP_PROTOCOL_IB_EXT_MGMT = 0x08,				/**< In-band external management EID */
+	MCTP_PROTOCOL_OOB_EXT_MGMT = 0x09,				/**< Out-of-band external management EID */
 	MCTP_PROTOCOL_BMC_EID = 0x0A,					/**< BMC EID */
-	MCTP_PROTOCOL_PA_ROT_CTRL_EID,					/**< Cerberus PA RoT control EID */
-	MCTP_PROTOCOL_TEST_DEVICE,						/**< Test device EID */
+	MCTP_PROTOCOL_PA_ROT_CTRL_EID = 0x0B,			/**< Cerberus PA RoT control EID */
+	MCTP_PROTOCOL_TEST_DEVICE = 0x0C,				/**< Test device EID */
 };
 
 /**
