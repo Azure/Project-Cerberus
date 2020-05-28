@@ -6,7 +6,13 @@
 
 #include <stdint.h>
 #include "mctp_interface.h"
+#include "platform_config.h"
 
+
+/* Configurable command response field.  Default can be overridden in platform_config.h. */
+#ifndef CERBERUS_VID_SET_RESPONSE
+#define CERBERUS_VID_SET_RESPONSE 							0xFF
+#endif
 
 #define CERBERUS_VID_SET									0
 

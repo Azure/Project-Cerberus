@@ -221,7 +221,7 @@ static int mctp_interface_control_get_vendor_def_msg_support (struct mctp_interf
 	}
 	else {
 		response->completion_code = MCTP_PROTOCOL_SUCCESS;
-		response->vid_set_selector = CERBERUS_VID_SET;
+		response->vid_set_selector = CERBERUS_VID_SET_RESPONSE;
 		response->vid_format = MCTP_PROTOCOL_VID_FORMAT_PCI;
 		response->vid = platform_htons (intf->pci_vendor_id);
 		response->protocol_version = platform_htons (intf->protocol_version);
