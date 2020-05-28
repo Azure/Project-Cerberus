@@ -383,7 +383,7 @@ int flash_master_mock_expect_blank_check_4byte_explicit (struct flash_master_moc
  * Add the expectations for value checking a region of flash.
  *
  * @param mock The mock to update with the expectations.
- * @param start The start of the region that will be blank checked.
+ * @param start The start of the region that will be checked.
  * @param length The length of the region.
  * @param value The static value contained in the flash.
  * @param addr4 Type of of 4-byte addressing to use:  0 = None, 1 = 4-byte, 2 = explicit 4-byte
@@ -1315,4 +1315,137 @@ int flash_master_mock_expect_write_4byte_explicit (struct flash_master_mock *fla
 	uint32_t address, const uint8_t *data, size_t length)
 {
 	return flash_master_mock_expect_write_ext (flash, address, data, length, false, 2);
+}
+
+/**
+ * Add the expectations for comparing two regions of flash.
+ *
+ * @param mock_src The mock to update with the expectations for sourcing data.
+ * @param mock_check The mock to update with the expectations for checking data.
+ * @param start The start of the region of the expected data.
+ * @param data The data in the sourced region.
+ * @param start_check The start of the region to check.
+ * @param data_check The data in the checked region.  If this is null, the source data will be used.
+ * @param length The length of the region.
+ * @param addr4 Type of of 4-byte addressing to use:  0 = None, 1 = 4-byte, 2 = explicit 4-byte
+ *
+ * @return 0 if the expectations were added successfully or non-zero if not.
+ */
+static int flash_master_mock_expect_verify_copy_ext (struct flash_master_mock *mock_src,
+	struct flash_master_mock *mock_check, uint32_t start, const uint8_t *data, uint32_t start_check,
+	const uint8_t *data_check, size_t length, uint8_t addr4)
+{
+	int status = 0;
+	size_t page_len;
+
+	if (data_check == NULL) {
+		data_check = data;
+	}
+
+	while (length > 0) {
+		page_len = (length > FLASH_VERIFICATION_BLOCK) ? FLASH_VERIFICATION_BLOCK : length;
+
+		status |= flash_master_mock_expect_rx_xfer (mock_src, 0, &WIP_STATUS, 1,
+			FLASH_EXP_READ_STATUS_REG);
+		if (!addr4) {
+			status |= flash_master_mock_expect_rx_xfer_ext (mock_src, 0, data, page_len, true,
+				FLASH_EXP_READ_CMD (0x03, start, 0, -1, page_len));
+		}
+		else {
+			status |= flash_master_mock_expect_rx_xfer_ext (mock_src, 0, data, page_len, true,
+				FLASH_EXP_READ_4B_CMD ((addr4 == 1) ? 0x03 : 0x13, start, 0, -1, page_len));
+		}
+
+		status |= flash_master_mock_expect_rx_xfer (mock_check, 0, &WIP_STATUS, 1,
+			FLASH_EXP_READ_STATUS_REG);
+		if (!addr4) {
+			status |= flash_master_mock_expect_rx_xfer_ext (mock_check, 0, data_check, page_len,
+				true, FLASH_EXP_READ_CMD (0x03, start_check, 0, -1, page_len));
+		}
+		else {
+			status |= flash_master_mock_expect_rx_xfer_ext (mock_check, 0, data_check, page_len,
+				true,
+				FLASH_EXP_READ_4B_CMD ((addr4 == 1) ? 0x03 : 0x13, start_check, 0, -1, page_len));
+		}
+
+		if (memcmp (data, data_check, page_len) == 0) {
+			length -= page_len;
+			start += page_len;
+			data += page_len;
+			start_check += page_len;
+			data_check += page_len;
+		}
+		else {
+			length = 0;
+		}
+	}
+
+	return status;
+}
+
+/**
+ * Set up expectations for comparing the data in two regions of flash.
+ *
+ * @param mock_src The mock for the flash that contains the expected data.
+ * @param mock_check The mock for the flash that will be checked.
+ * @param src_addr The start address of the expected data.
+ * @param check_addr The start address of the data to check.
+ * @param data The expected data.
+ * @param check_data Optionally, the data on the flash to check.  If null, the expected data will be
+ * used.
+ * @param length The length of the data.
+ *
+ * @return 0 if the expectations were added successfully or non-zero if not.
+ */
+int flash_master_mock_expect_verify_copy (struct flash_master_mock *mock_src,
+	struct flash_master_mock *mock_check, uint32_t src_addr, uint32_t check_addr,
+	const uint8_t *data, const uint8_t *check_data, size_t length)
+{
+	return flash_master_mock_expect_verify_copy_ext (mock_src, mock_check, src_addr, data,
+		check_addr, check_data, length, 0);
+}
+
+/**
+ * Set up expectations for comparing the data in two regions of flash using 4-byte addresses.
+ *
+ * @param mock_src The mock for the flash that contains the expected data.
+ * @param mock_check The mock for the flash that will be checked.
+ * @param src_addr The start address of the expected data.
+ * @param check_addr The start address of the data to check.
+ * @param data The expected data.
+ * @param check_data Optionally, the data on the flash to check.  If null, the expected data will be
+ * used.
+ * @param length The length of the data.
+ *
+ * @return 0 if the expectations were added successfully or non-zero if not.
+ */
+int flash_master_mock_expect_verify_copy_4byte (struct flash_master_mock *mock_src,
+	struct flash_master_mock *mock_check, uint32_t src_addr, uint32_t check_addr,
+	const uint8_t *data, const uint8_t *check_data, size_t length)
+{
+	return flash_master_mock_expect_verify_copy_ext (mock_src, mock_check, src_addr, data,
+		check_addr, check_data, length, 1);
+}
+
+/**
+ * Set up expectations for comparing the data in two regions of flash using explicit 4-byte address
+ * commands.
+ *
+ * @param mock_src The mock for the flash that contains the expected data.
+ * @param mock_check The mock for the flash that will be checked.
+ * @param src_addr The start address of the expected data.
+ * @param check_addr The start address of the data to check.
+ * @param data The expected data.
+ * @param check_data Optionally, the data on the flash to check.  If null, the expected data will be
+ * used.
+ * @param length The length of the data.
+ *
+ * @return 0 if the expectations were added successfully or non-zero if not.
+ */
+int flash_master_mock_expect_verify_copy_4byte_explicit (struct flash_master_mock *mock_src,
+	struct flash_master_mock *mock_check, uint32_t src_addr, uint32_t check_addr,
+	const uint8_t *data, const uint8_t *check_data, size_t length)
+{
+	return flash_master_mock_expect_verify_copy_ext (mock_src, mock_check, src_addr, data,
+		check_addr, check_data, length, 2);
 }
