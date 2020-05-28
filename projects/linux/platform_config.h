@@ -50,5 +50,10 @@
  */
 // #define MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS				1000
 
+/**
+ * The VID set value to utilize in a Get Vendor Defined Message Support response.
+ */
+// #define CERBERUS_VID_SET_RESPONSE						0xFF
+
 
 #endif /* PLATFORM_CONFIG_H_ */
