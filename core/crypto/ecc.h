@@ -15,6 +15,9 @@
 #define	ECC_MAX_KEY_LENGTH		521
 #endif
 
+/* Length of the public key portion of a maximum length ECC DER key. */
+#define ECC_MAX_PUBKEY_DER_LEN	(((ECC_MAX_KEY_LENGTH / 8) + 1) * 2 + 32)
+
 
 /**
  * An ECC private key.  A key instance is only usable by the engine that initialized it.

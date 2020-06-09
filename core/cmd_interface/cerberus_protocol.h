@@ -14,6 +14,11 @@
 #define CERBERUS_PROTOCOL_MSFT_PCI_VID						0x1414
 #define CERBERUS_PROTOCOL_PROTOCOL_VERSION					3
 
+/**
+ * AES IV and GCM tag lengths defined by protocol.
+ */
+#define CERBERUS_PROTOCOL_AES_GCM_TAG_LEN					16
+#define CERBERUS_PROTOCOL_AES_IV_LEN						12
 
 /**
  * The maximum length of the version string that can be reported by the protocol.
