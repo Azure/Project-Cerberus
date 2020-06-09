@@ -105,6 +105,7 @@
 //#define	TESTING_RUN_MCTP_INTERFACE_CONTROL_SUITE
 //#define	TESTING_RUN_HOST_PROCESSOR_OBSERVER_PCR_SUITE
 //#define	TESTING_RUN_COUNTER_MANAGER_REGISTERS_SUITE
+//#define   TESTING_RUN_SESSION_MANAGER_ECC_SUITE
 
 
 CuSuite* get_flash_common_suite (void);
@@ -210,6 +211,7 @@ CuSuite* get_pcd_flash_suite (void);
 CuSuite* get_mctp_interface_control_suite (void);
 CuSuite* get_host_processor_observer_pcr_suite (void);
 CuSuite* get_counter_manager_registers_suite (void);
+CuSuite* get_session_manager_ecc_suite (void);
 
 void add_all_tests (CuSuite *suite)
 {
@@ -509,6 +511,9 @@ void add_all_tests (CuSuite *suite)
 #endif
 #ifdef TESTING_RUN_COUNTER_MANAGER_REGISTERS_SUITE
 	CuSuiteAddSuite (suite, get_counter_manager_registers_suite ());
+#endif
+#ifdef TESTING_RUN_SESSION_MANAGER_ECC_SUITE
+	CuSuiteAddSuite (suite, get_session_manager_ecc_suite ());
 #endif
 
 	add_all_platform_tests (suite);

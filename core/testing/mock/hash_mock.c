@@ -277,6 +277,7 @@ int hash_mock_expect_hmac_init (struct hash_engine_mock *mock, const uint8_t *ke
 	for (i = 0; i < key_length; i++) {
 		hmac_key[i] ^= key[i];
 	}
+
 	status |= mock_expect (&mock->mock, mock->base.update, mock, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (hmac_key, sizeof (hmac_key)), MOCK_ARG (sizeof (hmac_key)));
 
