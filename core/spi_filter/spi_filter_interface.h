@@ -229,6 +229,83 @@ struct spi_filter_interface {
 	int (*set_addr_byte_mode) (struct spi_filter_interface *filter, spi_filter_address_mode mode);
 
 	/**
+	 * Get the SPI filter mode that indicates if the write enable command is required to switch
+	 * address modes
+	 *
+	 * @param filter The SPI filter instance to use
+	 * @param required Output boolean indicating if the write enable command is required to switch
+	 * address modes
+	 *
+	 * @return Completion status, 0 if success or an error code.
+	 */
+	int (*get_addr_byte_mode_write_enable_required) (struct spi_filter_interface *filter,
+		bool *required);
+
+	/**
+	 * Set the SPI filter mode that indicates if the write enable command is required to switch
+	 * address modes
+	 *
+	 * @param filter The SPI filter instance to use
+	 * @param require A boolean indicating whether or not the write enable command is required to
+	 * switch address modes
+	 *
+	 * @return Completion status, 0 if success or an error code.
+	 */
+	int (*require_addr_byte_mode_write_enable) (struct spi_filter_interface *filter, bool require);
+
+	/**
+	 * Get the SPI filter mode that indicates if the address mode can be changed
+	 *
+	 * @param filter The SPI filter instance to use
+	 * @param enabled Output boolean indicating if the address byte mode is fixed 
+	 *
+	 * @return Completion status, 0 if success or an error code.
+	 */
+	int (*get_fixed_addr_byte_mode) (struct spi_filter_interface *filter, bool *enabled);
+
+	/**
+	 * Set the SPI filter mode that indicates if the address byte mode is fixed 
+	 *
+	 * @param filter The SPI filter instance to use
+	 * @param enable A boolean indicating whether the address byte mode is fixed or not
+	 *
+	 * @return Completion status, 0 if success or an error code.
+	 */
+	int (*enable_fixed_addr_byte_mode) (struct spi_filter_interface *filter, bool enable);
+
+	/**
+	 * Get the SPI filter mode that indicates the address byte mode after reset
+	 *
+	 * @param filter The SPI filter instance to use
+	 * @param mode The reset address byte mode buffer to fill
+	 *
+	 * @return Completion status, 0 if success or an error code.
+	 */
+	int (*get_reset_addr_byte_mode) (struct spi_filter_interface *filter,
+		spi_filter_address_mode *mode);
+
+	/**
+	 * Set the SPI filter mode that indicates the address mode after reset
+	 *
+	 * @param filter The SPI filter instance to use
+	 * @param mode The reset address mode to set
+	 *
+	 * @return Completion status, 0 if success or an error code.
+	 */
+	int (*set_reset_addr_byte_mode) (struct spi_filter_interface *filter,
+		spi_filter_address_mode mode);
+
+	/**
+	 * Get the SPI filter write enable command status
+	 *
+	 * @param filter The SPI filter instance to use
+	 * @param detected A boolean indicating if the write enable command is detected
+	 *
+	 * @return Completion status, 0 if success or an error code.
+	 */
+	int (*get_write_enable_detected) (struct spi_filter_interface *filter, bool *detected);
+
+	/**
 	 * Get SPI filter active flash state
 	 *
 	 * @param filter The SPI filter instance to use

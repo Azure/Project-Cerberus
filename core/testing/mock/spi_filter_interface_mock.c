@@ -199,6 +199,97 @@ static int spi_filter_interface_mock_set_addr_byte_mode (struct spi_filter_inter
 		MOCK_ARG_CALL (mode));
 }
 
+static int spi_filter_interface_mock_get_addr_byte_mode_write_enable_required (
+	struct spi_filter_interface *filter, bool *required)
+{
+	struct spi_filter_interface_mock *mock = (struct spi_filter_interface_mock*) filter;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, spi_filter_interface_mock_get_addr_byte_mode_write_enable_required,
+		filter, MOCK_ARG_CALL (required));
+}
+
+static int spi_filter_interface_mock_require_addr_byte_mode_write_enable (
+	struct spi_filter_interface *filter, bool require)
+{
+	struct spi_filter_interface_mock *mock = (struct spi_filter_interface_mock*) filter;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, spi_filter_interface_mock_require_addr_byte_mode_write_enable,
+		filter, MOCK_ARG_CALL (require));
+}
+
+static int spi_filter_interface_mock_get_fixed_addr_byte_mode (struct spi_filter_interface *filter,
+	bool *enabled)
+{
+	struct spi_filter_interface_mock *mock = (struct spi_filter_interface_mock*) filter;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, spi_filter_interface_mock_get_fixed_addr_byte_mode, filter,
+		MOCK_ARG_CALL (enabled));
+}
+
+static int spi_filter_interface_mock_enable_fixed_addr_byte_mode (
+	struct spi_filter_interface *filter, bool enable)
+{
+	struct spi_filter_interface_mock *mock = (struct spi_filter_interface_mock*) filter;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, spi_filter_interface_mock_enable_fixed_addr_byte_mode, filter,
+		MOCK_ARG_CALL (enable));
+}
+
+static int spi_filter_interface_mock_get_reset_addr_byte_mode (struct spi_filter_interface *filter,
+	spi_filter_address_mode *mode)
+{
+	struct spi_filter_interface_mock *mock = (struct spi_filter_interface_mock*) filter;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, spi_filter_interface_mock_get_reset_addr_byte_mode, filter,
+		MOCK_ARG_CALL (mode));
+}
+
+static int spi_filter_interface_mock_set_reset_addr_byte_mode (struct spi_filter_interface *filter,
+	spi_filter_address_mode mode)
+{
+	struct spi_filter_interface_mock *mock = (struct spi_filter_interface_mock*) filter;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, spi_filter_interface_mock_set_reset_addr_byte_mode, filter,
+		MOCK_ARG_CALL (mode));
+}
+
+static int spi_filter_interface_mock_get_write_enable_detected (struct spi_filter_interface *filter,
+	bool *detected)
+{
+	struct spi_filter_interface_mock *mock = (struct spi_filter_interface_mock*) filter;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, spi_filter_interface_mock_get_write_enable_detected, filter,
+		MOCK_ARG_CALL (detected));
+}
+
 static int spi_filter_interface_mock_get_flash_dirty_state (struct spi_filter_interface *filter,
 	spi_filter_flash_state *state)
 {
@@ -308,6 +399,13 @@ static int spi_filter_interface_mock_func_arg_count (void *func)
 #endif
 		(func == spi_filter_interface_mock_get_addr_byte_mode) ||
 		(func == spi_filter_interface_mock_set_addr_byte_mode) ||
+		(func == spi_filter_interface_mock_get_addr_byte_mode_write_enable_required) ||
+		(func == spi_filter_interface_mock_require_addr_byte_mode_write_enable) ||
+		(func == spi_filter_interface_mock_get_fixed_addr_byte_mode) ||
+		(func == spi_filter_interface_mock_enable_fixed_addr_byte_mode) ||
+		(func == spi_filter_interface_mock_get_reset_addr_byte_mode) ||
+		(func == spi_filter_interface_mock_set_reset_addr_byte_mode) ||
+		(func == spi_filter_interface_mock_get_write_enable_detected) ||
 		(func == spi_filter_interface_mock_get_flash_dirty_state) ||
 		(func == spi_filter_interface_mock_get_bypass_mode) ||
 		(func == spi_filter_interface_mock_set_bypass_mode)) {
@@ -366,6 +464,27 @@ static const char* spi_filter_interface_mock_func_name_map (void *func)
 	}
 	else if (func == spi_filter_interface_mock_set_addr_byte_mode) {
 		return "set_addr_byte_mode";
+	}
+	else if (func == spi_filter_interface_mock_get_addr_byte_mode_write_enable_required) {
+		return "get_addr_byte_mode_write_enable_required";
+	}
+	else if (func == spi_filter_interface_mock_require_addr_byte_mode_write_enable) {
+		return "require_adr_byte_mode_write_enable";
+	}
+	else if (func == spi_filter_interface_mock_get_fixed_addr_byte_mode) {
+		return "get_fixed_addr_byte_mode";
+	}
+	else if (func == spi_filter_interface_mock_enable_fixed_addr_byte_mode) {
+		return "enable_fixed_addr_byte_mode";
+	}
+	else if (func == spi_filter_interface_mock_get_reset_addr_byte_mode) {
+		return "get_reset_addr_byte_mode";
+	}
+	else if (func == spi_filter_interface_mock_set_reset_addr_byte_mode) {
+		return "set_reset_addr_byte_mode";
+	}
+	else if (func == spi_filter_interface_mock_get_write_enable_detected) {
+		return "get_write_enable_detected";
 	}
 	else if (func == spi_filter_interface_mock_get_flash_dirty_state) {
 		return "get_flash_dirty_state";
@@ -481,6 +600,48 @@ static const char* spi_filter_interface_mock_arg_name_map (void *func, int arg)
 				return "mode";
 		}
 	}
+	else if (func == spi_filter_interface_mock_get_addr_byte_mode_write_enable_required) {
+		switch (arg) {
+			case 0:
+				return "required";
+		}
+	}
+	else if (func == spi_filter_interface_mock_require_addr_byte_mode_write_enable) {
+		switch (arg) {
+			case 0:
+				return "require";
+		}
+	}
+	else if (func == spi_filter_interface_mock_get_fixed_addr_byte_mode) {
+		switch (arg) {
+			case 0:
+				return "enabled";
+		}
+	}
+	else if (func == spi_filter_interface_mock_enable_fixed_addr_byte_mode) {
+		switch (arg) {
+			case 0:
+				return "enable";
+		}
+	}
+	else if (func == spi_filter_interface_mock_get_reset_addr_byte_mode) {
+		switch (arg) {
+			case 0:
+				return "mode";
+		}
+	}
+	else if (func == spi_filter_interface_mock_set_reset_addr_byte_mode) {
+		switch (arg) {
+			case 0:
+				return "mode";
+		}
+	}
+	else if (func == spi_filter_interface_mock_get_write_enable_detected) {
+		switch (arg) {
+			case 0:
+				return "detected";
+		}
+	}
 	else if (func == spi_filter_interface_mock_get_flash_dirty_state) {
 		switch (arg) {
 			case 0:
@@ -570,6 +731,15 @@ int spi_filter_interface_mock_init (struct spi_filter_interface_mock *mock)
 #endif
 	mock->base.get_addr_byte_mode = spi_filter_interface_mock_get_addr_byte_mode;
 	mock->base.set_addr_byte_mode = spi_filter_interface_mock_set_addr_byte_mode;
+	mock->base.get_addr_byte_mode_write_enable_required =
+		spi_filter_interface_mock_get_addr_byte_mode_write_enable_required;
+	mock->base.require_addr_byte_mode_write_enable =
+		spi_filter_interface_mock_require_addr_byte_mode_write_enable;
+	mock->base.get_fixed_addr_byte_mode = spi_filter_interface_mock_get_fixed_addr_byte_mode;
+	mock->base.enable_fixed_addr_byte_mode = spi_filter_interface_mock_enable_fixed_addr_byte_mode;
+	mock->base.get_reset_addr_byte_mode = spi_filter_interface_mock_get_reset_addr_byte_mode;
+	mock->base.set_reset_addr_byte_mode = spi_filter_interface_mock_set_reset_addr_byte_mode;
+	mock->base.get_write_enable_detected = spi_filter_interface_mock_get_write_enable_detected;
 	mock->base.get_flash_dirty_state = spi_filter_interface_mock_get_flash_dirty_state;
 	mock->base.clear_flash_dirty_state = spi_filter_interface_mock_clear_flash_dirty_state;
 	mock->base.get_bypass_mode = spi_filter_interface_mock_get_bypass_mode;
