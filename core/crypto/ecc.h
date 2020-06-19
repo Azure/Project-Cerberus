@@ -35,7 +35,7 @@ struct ecc_public_key {
 
 /**
  * A platform-independent API for generating and using ECC key pairs.  ECC engine instances are not
- * guaranteed to be thread-safe across different API calls.
+ * guaranteed to be thread-safe.
  */
 struct ecc_engine {
 	/**

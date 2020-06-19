@@ -108,7 +108,7 @@ static void rng_openssl_test_generate_random_buffer_twice (CuTest *test)
 static void rng_openssl_test_generate_random_buffer_null (CuTest *test)
 {
 	struct rng_engine_openssl engine;
-	uint8_t buffer [32];
+	uint8_t buffer[32];
 	int status;
 
 	TEST_START;

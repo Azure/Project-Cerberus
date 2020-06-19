@@ -114,7 +114,7 @@ struct x509_ca_certs {
 
 /**
  * A platform-independent API for handling certificates.  X509 engine instances are not guaranteed
- * to be thread-safe across different API calls.
+ * to be thread-safe.
  */
 struct x509_engine {
 #ifdef X509_ENABLE_CREATE_CERTIFICATES
