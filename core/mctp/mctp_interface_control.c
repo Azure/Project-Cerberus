@@ -91,7 +91,7 @@ static int mctp_interface_control_set_eid (struct mctp_interface *intf,
 		response->completion_code = MCTP_PROTOCOL_ERROR_INVALID_LEN;
 	}
 	else if ((rq->reserved != 0) || (rq->operation > MCTP_CONTROL_SET_EID_OPERATION_FORCE_ID) ||
-			 (rq->eid == 0) || (rq->eid == 0xFF)) {
+		(rq->eid == 0) || (rq->eid == 0xFF)) {
 		response->completion_code = MCTP_PROTOCOL_ERROR_INVALID_DATA;
 	}
 	else {

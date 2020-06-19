@@ -9,7 +9,8 @@
 
 
 /**
- * A platform-independent API for generating random numbers.
+ * A platform-independent API for generating random numbers.  Random number engine instances are not
+ * guaranteed to be thread-safe.
  */
 struct rng_engine {
 	/**

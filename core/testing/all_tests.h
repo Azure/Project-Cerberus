@@ -105,7 +105,13 @@
 //#define	TESTING_RUN_MCTP_INTERFACE_CONTROL_SUITE
 //#define	TESTING_RUN_HOST_PROCESSOR_OBSERVER_PCR_SUITE
 //#define	TESTING_RUN_COUNTER_MANAGER_REGISTERS_SUITE
-//#define   TESTING_RUN_SESSION_MANAGER_ECC_SUITE
+//#define	TESTING_RUN_SESSION_MANAGER_ECC_SUITE
+//#define	TESTING_RUN_BASE64_THREAD_SAFE_SUITE
+//#define	TESTING_RUN_ECC_THREAD_SAFE_SUITE
+//#define	TESTING_RUN_HASH_THREAD_SAFE_SUITE
+//#define	TESTING_RUN_RNG_THREAD_SAFE_SUITE
+//#define	TESTING_RUN_RSA_THREAD_SAFE_SUITE
+//#define	TESTING_RUN_X509_THREAD_SAFE_SUITE
 
 
 CuSuite* get_flash_common_suite (void);
@@ -212,6 +218,12 @@ CuSuite* get_mctp_interface_control_suite (void);
 CuSuite* get_host_processor_observer_pcr_suite (void);
 CuSuite* get_counter_manager_registers_suite (void);
 CuSuite* get_session_manager_ecc_suite (void);
+CuSuite* get_base64_thread_safe_suite (void);
+CuSuite* get_ecc_thread_safe_suite (void);
+CuSuite* get_hash_thread_safe_suite (void);
+CuSuite* get_rng_thread_safe_suite (void);
+CuSuite* get_rsa_thread_safe_suite (void);
+CuSuite* get_x509_thread_safe_suite (void);
 
 void add_all_tests (CuSuite *suite)
 {
@@ -514,6 +526,24 @@ void add_all_tests (CuSuite *suite)
 #endif
 #ifdef TESTING_RUN_SESSION_MANAGER_ECC_SUITE
 	CuSuiteAddSuite (suite, get_session_manager_ecc_suite ());
+#endif
+#ifdef TESTING_RUN_BASE64_THREAD_SAFE_SUITE
+	CuSuiteAddSuite (suite, get_base64_thread_safe_suite ());
+#endif
+#ifdef TESTING_RUN_ECC_THREAD_SAFE_SUITE
+	CuSuiteAddSuite (suite, get_ecc_thread_safe_suite ());
+#endif
+#ifdef TESTING_RUN_HASH_THREAD_SAFE_SUITE
+	CuSuiteAddSuite (suite, get_hash_thread_safe_suite ());
+#endif
+#ifdef TESTING_RUN_RNG_THREAD_SAFE_SUITE
+	CuSuiteAddSuite (suite, get_rng_thread_safe_suite ());
+#endif
+#ifdef TESTING_RUN_RSA_THREAD_SAFE_SUITE
+	CuSuiteAddSuite (suite, get_rsa_thread_safe_suite ());
+#endif
+#ifdef TESTING_RUN_X509_THREAD_SAFE_SUITE
+	CuSuiteAddSuite (suite, get_x509_thread_safe_suite ());
 #endif
 
 	add_all_platform_tests (suite);

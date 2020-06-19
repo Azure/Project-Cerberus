@@ -17,7 +17,8 @@
 
 
 /**
- * A platform-independent API for base64 encoding.
+ * A platform-independent API for base64 encoding.  Base64 engine instances are not guaranteed to be
+ * thread-safe.
  */
 struct base64_engine {
 	/**

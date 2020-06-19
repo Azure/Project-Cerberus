@@ -61,7 +61,7 @@ static void rng_mbedtls_test_release_no_init (CuTest *test)
 static void rng_mbedtls_test_generate_random_buffer (CuTest *test)
 {
 	struct rng_engine_mbedtls engine;
-	uint8_t buffer [32];
+	uint8_t buffer[32];
 	int status;
 
 	TEST_START;
@@ -108,7 +108,7 @@ static void rng_mbedtls_test_generate_random_buffer_twice (CuTest *test)
 static void rng_mbedtls_test_generate_random_buffer_null (CuTest *test)
 {
 	struct rng_engine_mbedtls engine;
-	uint8_t buffer [32];
+	uint8_t buffer[32];
 	int status;
 
 	TEST_START;
