@@ -13,46 +13,46 @@
  * SPI filter chip selects
  */
 typedef enum {
-	SPI_FILTER_CS_0 = 0,				/**< SPI filter CS 0*/
-	SPI_FILTER_CS_1,					/**< SPI filter CS 1*/
-	NUM_SPI_FILTER_CS					/**< Number of SPI filter CS controlled*/
+	SPI_FILTER_CS_0 = 0,				/**< SPI filter CS 0 */
+	SPI_FILTER_CS_1,					/**< SPI filter CS 1 */
+	NUM_SPI_FILTER_CS					/**< Number of SPI filter CS controlled */
 } spi_filter_cs;
 
 /**
  * SPI filter device selects
  */
 typedef enum {
-	SPI_FILTER_DEVICE_ACTIVE = 0,		/**< SPI filter active flash*/
-	SPI_FILTER_DEVICE_INACTIVE,			/**< SPI filter inactive flash*/
-	NUM_SPI_FILTER_DEVICE				/**< Number of SPI filter flash devices*/
+	SPI_FILTER_DEVICE_ACTIVE = 0,		/**< SPI filter active flash */
+	SPI_FILTER_DEVICE_INACTIVE,			/**< SPI filter inactive flash */
+	NUM_SPI_FILTER_DEVICE				/**< Number of SPI filter flash devices */
 } spi_filter_device;
 
 /**
  * SPI filter address modes
  */
 typedef enum {
-	SPI_FILTER_ADDRESS_MODE_3 = 0,		/**< 3 byte address mode*/
-	SPI_FILTER_ADDRESS_MODE_4,			/**< 4 byte address mode*/
-	NUM_SPI_FILTER_ADDRESS_MODE			/**< Number of SPI flash address modes*/
+	SPI_FILTER_ADDRESS_MODE_3 = 0,		/**< 3 byte address mode */
+	SPI_FILTER_ADDRESS_MODE_4,			/**< 4 byte address mode */
+	NUM_SPI_FILTER_ADDRESS_MODE			/**< Number of SPI flash address modes */
 } spi_filter_address_mode;
 
 /**
  * SPI filter flash states
  */
 typedef enum {
-	SPI_FILTER_FLASH_STATE_NORMAL = 0,	/**< No writes directed to inactive flash*/
-	SPI_FILTER_FLASH_STATE_DIRTY,		/**< Writes to inactive flash detected*/
-	NUM_SPI_FILTER_FLASH_STATE			/**< Number of inactive flash states*/
+	SPI_FILTER_FLASH_STATE_NORMAL = 0,	/**< No writes directed to inactive flash */
+	SPI_FILTER_FLASH_STATE_DIRTY,		/**< Writes to inactive flash detected */
+	NUM_SPI_FILTER_FLASH_STATE			/**< Number of inactive flash states */
 } spi_filter_flash_state;
 
 /**
  * SPI filter bypass modes
  */
 typedef enum {
-	SPI_FILTER_OPERATE = 0,				/**< Normal SPI filtering operation*/
-	SPI_FILTER_BYPASS_CS0,				/**< Disable SPI filtering, direct commands to CS0*/
-	SPI_FILTER_BYPASS_CS1,				/**< Disable SPI filtering, direct commands to CS1*/
-	NUM_SPI_FILTER_BYPASS				/**< Number of SPI filter bypass modes*/
+	SPI_FILTER_OPERATE = 0,				/**< Normal SPI filtering operation */
+	SPI_FILTER_BYPASS_CS0,				/**< Disable SPI filtering, direct commands to CS0 */
+	SPI_FILTER_BYPASS_CS1,				/**< Disable SPI filtering, direct commands to CS1 */
+	NUM_SPI_FILTER_BYPASS				/**< Number of SPI filter bypass modes */
 } spi_filter_bypass_mode;
 
 /**
@@ -209,7 +209,7 @@ struct spi_filter_interface {
 #endif
 
 	/**
-	 * Get SPI filter byte address mode
+	 * Get the current SPI filter byte address mode.
 	 *
 	 * @param filter The SPI filter instance to use
 	 * @param mode Address mode buffer to fill
@@ -219,7 +219,18 @@ struct spi_filter_interface {
 	int (*get_addr_byte_mode) (struct spi_filter_interface *filter, spi_filter_address_mode *mode);
 
 	/**
-	 * Set SPI filter byte address mode
+	 * Indicate if the SPI filter is configured to prevent address mode switching.
+	 *
+	 * @param filter The SPI filter instance to use
+	 * @param fixed Output boolean indicating if the address byte mode is fixed
+	 *
+	 * @return Completion status, 0 if success or an error code.
+	 */
+	int (*get_fixed_addr_byte_mode) (struct spi_filter_interface *filter, bool *fixed);
+
+	/**
+	 * Set the current SPI filter byte address mode.  The flash can switch between 3-byte and 4-byte
+	 * address modes and the filter will track the current address mode.
 	 *
 	 * @param filter The SPI filter instance to use
 	 * @param mode Address mode to set
@@ -227,6 +238,18 @@ struct spi_filter_interface {
 	 * @return Completion status, 0 if success or an error code.
 	 */
 	int (*set_addr_byte_mode) (struct spi_filter_interface *filter, spi_filter_address_mode mode);
+
+	/**
+	 * Set the current SPI filter byte address mode.  The flash cannot switch between 3-byte and
+	 * 4-byte address modes and the filter byte adddress mode will be fixed.
+	 *
+	 * @param filter The SPI filter instance to use
+	 * @param mode Address mode to set
+	 *
+	 * @return Completion status, 0 if success or an error code.
+	 */
+	int (*set_fixed_addr_byte_mode) (struct spi_filter_interface *filter,
+		spi_filter_address_mode mode);
 
 	/**
 	 * Get the SPI filter mode that indicates if the write enable command is required to switch
@@ -252,26 +275,6 @@ struct spi_filter_interface {
 	 * @return Completion status, 0 if success or an error code.
 	 */
 	int (*require_addr_byte_mode_write_enable) (struct spi_filter_interface *filter, bool require);
-
-	/**
-	 * Get the SPI filter mode that indicates if the address mode can be changed
-	 *
-	 * @param filter The SPI filter instance to use
-	 * @param enabled Output boolean indicating if the address byte mode is fixed 
-	 *
-	 * @return Completion status, 0 if success or an error code.
-	 */
-	int (*get_fixed_addr_byte_mode) (struct spi_filter_interface *filter, bool *enabled);
-
-	/**
-	 * Set the SPI filter mode that indicates if the address byte mode is fixed 
-	 *
-	 * @param filter The SPI filter instance to use
-	 * @param enable A boolean indicating whether the address byte mode is fixed or not
-	 *
-	 * @return Completion status, 0 if success or an error code.
-	 */
-	int (*enable_fixed_addr_byte_mode) (struct spi_filter_interface *filter, bool enable);
 
 	/**
 	 * Get the SPI filter mode that indicates the address byte mode after reset
@@ -384,7 +387,8 @@ struct spi_filter_interface {
 
 void spi_filter_log_configuration (struct spi_filter_interface *filter);
 void spi_filter_log_filter_config (int port, uint8_t mfg, bool enabled, spi_filter_cs ro,
-	spi_filter_address_mode mode, spi_filter_flash_state dirty, spi_filter_bypass_mode bypass,
+	spi_filter_address_mode mode, bool mode_fixed, spi_filter_address_mode mode_reset,
+	bool mode_write_en, spi_filter_flash_state dirty, spi_filter_bypass_mode bypass,
 	uint32_t *region_start, uint32_t *region_end, int regions, uint32_t device_size);
 
 
@@ -422,6 +426,13 @@ enum {
 	SPI_FILTER_GET_SIZE_FAILED = SPI_FILTER_ERROR (0x19),			/**< Failed to get the configured filter device size. */
 	SPI_FILTER_SET_SIZE_FAILED = SPI_FILTER_ERROR (0x1a),			/**< The filer device size was not configured. */
 	SPI_FILTER_UNSUPPORTED_OPERATION = SPI_FILTER_ERROR (0x1b),		/**< The requested operation is not supported by the filter. */
+	SPI_FILTER_GET_WREN_REQ_FAILED = SPI_FILTER_ERROR (0x1c),		/**< Failed to get the required write enable configuration. */
+	SPI_FILTER_SET_WREN_REQ_FAILED = SPI_FILTER_ERROR (0x1d),		/**< The write enable requirement was not configured. */
+	SPI_FILTER_GET_FIXED_ADDR_FAILED = SPI_FILTER_ERROR (0x1e),		/**< Failed to get the fixed address mode configuration. */
+	SPI_FILTER_SET_FIXED_ADDR_FAILED = SPI_FILTER_ERROR (0x1f),		/**< The fixed address mode setting was not configured. */
+	SPI_FILTER_GET_RESET_ADDR_FAILED = SPI_FILTER_ERROR (0x20),		/**< Failed to get the configured address mode on reset. */
+	SPI_FILTER_SET_RESET_ADDR_FAILED = SPI_FILTER_ERROR (0x21),		/**< The address mode on reset was not configured. */
+	SPI_FILTER_GET_WREN_DETECT_FAILED = SPI_FILTER_ERROR (0x22),	/**< Could not determine the detected write enable state. */
 };
 
 

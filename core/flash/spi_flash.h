@@ -106,6 +106,10 @@ int spi_flash_reset_device (struct spi_flash *flash);
 int spi_flash_clear_block_protect (struct spi_flash *flash);
 int spi_flash_deep_power_down (struct spi_flash *flash, uint8_t enable);
 
+int spi_flash_is_address_mode_fixed (struct spi_flash *flash);
+int spi_flash_address_mode_requires_write_enable (struct spi_flash *flash);
+int spi_flash_is_4byte_address_mode_on_reset (struct spi_flash *flash);
+
 int spi_flash_enable_4byte_address_mode (struct spi_flash *flash, uint8_t enable);
 int spi_flash_is_4byte_address_mode (struct spi_flash *flash);
 int spi_flash_detect_4byte_address_mode (struct spi_flash *flash);

@@ -17,11 +17,14 @@ void spi_filter_log_configuration (struct spi_filter_interface *filter)
 	bool enabled;
 	spi_filter_cs ro;
 	spi_filter_address_mode addr;
+	bool addr_fixed;
+	spi_filter_address_mode addr_reset = SPI_FILTER_ADDRESS_MODE_3;
+	bool write_en = false;
 	spi_filter_flash_state dirty;
 	spi_filter_bypass_mode bypass;
 	uint32_t region_start[3];
 	uint32_t region_end[3];
-	uint32_t device_size;
+	uint32_t device_size = 0;
 	int i;
 
 	if (filter) {
@@ -35,6 +38,9 @@ void spi_filter_log_configuration (struct spi_filter_interface *filter)
 		filter->get_filter_enabled (filter, &enabled);
 		filter->get_ro_cs (filter, &ro);
 		filter->get_addr_byte_mode (filter, &addr);
+		filter->get_fixed_addr_byte_mode (filter, &addr_fixed);
+		filter->get_reset_addr_byte_mode (filter, &addr_reset);
+		filter->get_addr_byte_mode_write_enable_required (filter, &write_en);
 		filter->get_flash_dirty_state (filter, &dirty);
 		filter->get_bypass_mode (filter, &bypass);
 
@@ -42,8 +48,8 @@ void spi_filter_log_configuration (struct spi_filter_interface *filter)
 			filter->get_filter_rw_region (filter, i + 1, &region_start[i], &region_end[i]);
 		}
 
-		spi_filter_log_filter_config (port, mfg, enabled, ro, addr, dirty, bypass, region_start,
-			region_end, 3, device_size);
+		spi_filter_log_filter_config (port, mfg, enabled, ro, addr, addr_fixed, addr_reset,
+			write_en, dirty, bypass, region_start, region_end, 3, device_size);
 	}
 }
 
@@ -55,6 +61,9 @@ void spi_filter_log_configuration (struct spi_filter_interface *filter)
  * @param enabled Flag indicating if the filter is enabled.
  * @param ro The flash chip select that is the RO flash.
  * @param mode The address mode of the filter.
+ * @param mode_fixed Indicator if the address mode is fixed.
+ * @param mode_reset The address mode of the filter on device reset.
+ * @param mode_write_en Indicator if address mode switching requires write enable.
  * @param dirty Indicating if RO flash has been written.
  * @param bypass Bypass state of the filter.
  * @param region_start List of starting addresses for R/W regions.
@@ -63,7 +72,8 @@ void spi_filter_log_configuration (struct spi_filter_interface *filter)
  * @param device_size The size of the flash device connected to the filter.
  */
 void spi_filter_log_filter_config (int port, uint8_t mfg, bool enabled, spi_filter_cs ro,
-	spi_filter_address_mode mode, spi_filter_flash_state dirty, spi_filter_bypass_mode bypass,
+	spi_filter_address_mode mode, bool mode_fixed, spi_filter_address_mode mode_reset,
+	bool mode_write_en, spi_filter_flash_state dirty, spi_filter_bypass_mode bypass,
 	uint32_t *region_start, uint32_t *region_end, int regions, uint32_t device_size)
 {
 	bool full_rw = false;
@@ -77,7 +87,8 @@ void spi_filter_log_filter_config (int port, uint8_t mfg, bool enabled, spi_filt
 
 	debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_SPI_FILTER,
 		SPI_FILTER_LOGGING_FILTER_CONFIG, port, (mfg | (enabled << 8) | (ro << 9) |
-			(mode << 10) | (dirty << 11) | (bypass << 12) | (full_rw << 14)));
+			(mode << 10) | (dirty << 11) | (bypass << 12) | (full_rw << 14) | (mode_fixed << 15) |
+			(mode_reset << 16) | (mode_write_en << 17)));
 
 	debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_SPI_FILTER,
 		SPI_FILTER_LOGGING_DEVICE_SIZE, port, device_size);
