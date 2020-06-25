@@ -241,6 +241,7 @@ enum {
 	HOST_FLASH_MGR_RW_REGIONS_FAILED = HOST_FLASH_MGR_ERROR (0x0f),		/**< Could not determine read-write flash regions. */
 	HOST_FLASH_MGR_CHECK_ACCESS_FAILED = HOST_FLASH_MGR_ERROR (0x10),	/**< Could not determine if the host has flash access. */
 	HOST_FLASH_MGR_MISMATCH_SIZES = HOST_FLASH_MGR_ERROR (0x11),		/**< The host flash devices are not the same size. */
+	HOST_FLASH_MGR_MISMATCH_ADDR_MODE = HOST_FLASH_MGR_ERROR (0x12),	/**< The host flash devices support different address mode behavior. */
 };
 
 

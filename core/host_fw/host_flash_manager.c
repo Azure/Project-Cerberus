@@ -304,17 +304,109 @@ static int host_flash_manager_get_flash_read_write_regions (struct host_flash_ma
 	return status;
 }
 
+/**
+ * Ensure both flash devices are operating in the same address mode.
+ *
+ * @param manager The manager for the flash devices to configure.
+ * @param mode Output indicating the current address mode of both devices.
+ *
+ * @return 0 if the address mode was configured successfully or an error code.
+ */
+static int host_flash_manager_flash_address_mode (struct host_flash_manager *manager,
+	spi_filter_address_mode *mode)
+{
+	int addr_4byte;
+	int status;
+
+	addr_4byte = spi_flash_is_4byte_address_mode (manager->flash_cs0);
+	if (addr_4byte != spi_flash_is_4byte_address_mode (manager->flash_cs1)) {
+		status = spi_flash_enable_4byte_address_mode (manager->flash_cs1, addr_4byte);
+		if (status != 0) {
+			if (status == SPI_FLASH_UNSUPPORTED_ADDR_MODE) {
+				status = HOST_FLASH_MGR_MISMATCH_ADDR_MODE;
+			}
+
+			return status;
+		}
+	}
+
+	*mode = (addr_4byte) ? SPI_FILTER_ADDRESS_MODE_4 : SPI_FILTER_ADDRESS_MODE_3;
+	return 0;
+}
+
+/**
+ * Detect the address mode properties of the flash devices.
+ *
+ * @param manager The manager for the flash to query.
+ * @param wen_required Output indicating if write enable is required to switch address modes.
+ * @param fixed_addr Output indicating if the device address mode is fixed.
+ * @param mode Output indicating the current address mode of the device.
+ * @param reset_mode Output indicating the default address mode on device reset.
+ *
+ * @return 0 if the address mode properties were successfully detected or an error code.
+ */
+static int host_flash_manager_detect_flash_address_mode_properties (
+	struct host_flash_manager *manager, bool *wen_required, bool *fixed_addr,
+	spi_filter_address_mode *mode, spi_filter_address_mode *reset_mode)
+{
+	int req_write_en[2];
+	int reset_addr[2];
+	int status;
+
+	req_write_en[0] = spi_flash_address_mode_requires_write_enable (manager->flash_cs0);
+	req_write_en[1] = spi_flash_address_mode_requires_write_enable (manager->flash_cs1);
+	if (req_write_en[0] != req_write_en[1]) {
+		return HOST_FLASH_MGR_MISMATCH_ADDR_MODE;
+	}
+
+	if (req_write_en[0] == SPI_FLASH_ADDR_MODE_FIXED) {
+		*wen_required = false;
+		*fixed_addr = true;
+	}
+	else {
+		*wen_required = req_write_en[0];
+		*fixed_addr = false;
+	}
+
+	status = host_flash_manager_flash_address_mode (manager, mode);
+	if (status != 0) {
+		return status;
+	}
+
+	reset_addr[0] = spi_flash_is_4byte_address_mode_on_reset (manager->flash_cs0);
+	if ((reset_addr[0] != 0) && (reset_addr[0] != 1)) {
+		return reset_addr[0];
+	}
+
+	reset_addr[1] = spi_flash_is_4byte_address_mode_on_reset (manager->flash_cs1);
+	if ((reset_addr[1] != 0) && (reset_addr[1] != 1)) {
+		return reset_addr[1];
+	}
+
+	if (reset_addr[0] != reset_addr[1]) {
+		return HOST_FLASH_MGR_MISMATCH_ADDR_MODE;
+	}
+
+	*reset_mode = (reset_addr[0] == 1) ? SPI_FILTER_ADDRESS_MODE_4 : SPI_FILTER_ADDRESS_MODE_3;
+	return 0;
+}
+
 static int host_flash_manager_config_spi_filter_flash_type (struct host_flash_manager *manager)
 {
 	uint8_t vendor[2];
 	uint16_t device[2];
 	uint32_t bytes[2];
+	bool req_write_en;
+	bool fixed;
+	spi_filter_address_mode mode;
+	spi_filter_address_mode reset_mode;
 	int status;
 
 	if (manager == NULL) {
 		return HOST_FLASH_MGR_INVALID_ARGUMENT;
 	}
 
+	/* Validate and configure the type of devices being used. */
 	status = spi_flash_get_device_id (manager->flash_cs0, &vendor[0], &device[0]);
 	if (status != 0) {
 		return status;
@@ -338,6 +430,7 @@ static int host_flash_manager_config_spi_filter_flash_type (struct host_flash_ma
 		return status;
 	}
 
+	/* Validate and configure the flash device capacity. */
 	spi_flash_get_device_size (manager->flash_cs0, &bytes[0]);
 	spi_flash_get_device_size (manager->flash_cs1, &bytes[1]);
 	if (bytes[0] != bytes[1]) {
@@ -345,6 +438,33 @@ static int host_flash_manager_config_spi_filter_flash_type (struct host_flash_ma
 	}
 
 	status = manager->filter->set_flash_size (manager->filter, bytes[0]);
+	if ((status != 0) && (status != SPI_FILTER_UNSUPPORTED_OPERATION)) {
+		return status;
+	}
+
+	/* Validate and configure the address byte mode of the devices. */
+	status = host_flash_manager_detect_flash_address_mode_properties (manager, &req_write_en,
+		&fixed, &mode, &reset_mode);
+	if (status != 0) {
+		return status;
+	}
+
+	if (!fixed) {
+		status = manager->filter->set_addr_byte_mode (manager->filter, mode);
+	}
+	else {
+		status = manager->filter->set_fixed_addr_byte_mode (manager->filter, mode);
+	}
+	if (status != 0) {
+		return status;
+	}
+
+	status = manager->filter->require_addr_byte_mode_write_enable (manager->filter, req_write_en);
+	if ((status != 0) && (status != SPI_FILTER_UNSUPPORTED_OPERATION)) {
+		return status;
+	}
+
+	status = manager->filter->set_reset_addr_byte_mode (manager->filter, reset_mode);
 	if (status == SPI_FILTER_UNSUPPORTED_OPERATION) {
 		status = 0;
 	}
@@ -481,11 +601,16 @@ static int host_flash_manager_initialize_flash_protection (struct host_flash_man
 
 	host_state_manager_save_inactive_dirty (manager->host_state, false);
 
-	/* Make sure the SPI filter address mode matches the mode of the physical devices. */
-	status = manager->filter->set_addr_byte_mode (manager->filter,
-		(addr_4byte == 1) ? SPI_FILTER_ADDRESS_MODE_4 : SPI_FILTER_ADDRESS_MODE_3);
-	if (status != 0) {
-		return status;
+	/* Make sure the SPI filter address mode matches the mode of the physical devices.
+	 *
+	 * If the device address mode is fixed, this was already configured during initial filter setup
+	 * and doesn't need to be done again. */
+	if (!spi_flash_is_address_mode_fixed (ro_flash)) {
+		status = manager->filter->set_addr_byte_mode (manager->filter,
+			(addr_4byte == 1) ? SPI_FILTER_ADDRESS_MODE_4 : SPI_FILTER_ADDRESS_MODE_3);
+		if (status != 0) {
+			return status;
+		}
 	}
 
 	/* Turn on the SPI filter. */

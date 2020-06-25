@@ -44,7 +44,6 @@ struct pcr_store_tcg_log_entry_info {
 struct pcr_store_tcg_log_entry {
 	struct logging_entry_header header;			/**< Standard logging header. */
 	struct pcr_store_tcg_log_entry_info entry;	/**< Information for the log entry. */
-
 };
 
 #pragma pack(pop)

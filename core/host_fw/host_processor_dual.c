@@ -61,7 +61,8 @@ static int host_processor_dual_initial_rot_flash_access (struct host_processor_d
 			(status == MFG_FILTER_HANDLER_UNSUPPORTED_DEVICE) ||
 			(status == HOST_FLASH_MGR_MISMATCH_VENDOR) ||
 			(status == HOST_FLASH_MGR_MISMATCH_DEVICE) ||
-			(status == HOST_FLASH_MGR_MISMATCH_SIZES)) {
+			(status == HOST_FLASH_MGR_MISMATCH_SIZES) ||
+			(status == HOST_FLASH_MGR_MISMATCH_ADDR_MODE)) {
 			host_state_manager_set_unsupported_flash (host->state, true);
 			return status;
 		}

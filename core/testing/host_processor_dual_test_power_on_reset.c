@@ -7304,6 +7304,40 @@ static void host_processor_dual_test_power_on_reset_flash_type_mismatched_sizes 
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
+static void host_processor_dual_test_power_on_reset_flash_type_mismatched_addr_modes (CuTest *test)
+{
+	struct host_processor_dual_testing host;
+	int status;
+
+	TEST_START;
+
+	host_processor_dual_testing_init (test, &host);
+
+	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.config_spi_filter_flash_type,
+		&host.flash_mgr, HOST_FLASH_MGR_MISMATCH_ADDR_MODE);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host.test.base.power_on_reset (&host.test.base, &host.hash.base, &host.rsa.base);
+	CuAssertIntEquals (test, HOST_FLASH_MGR_MISMATCH_ADDR_MODE, status);
+
+	status = host_state_manager_is_pfm_dirty (&host.host_state);
+	CuAssertIntEquals (test, true, status);
+
+	status = host_state_manager_is_bypass_mode (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	status = host_state_manager_is_flash_supported (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	host_processor_dual_testing_validate_and_release (test, &host);
+}
+
 static void host_processor_dual_test_power_on_reset_host_access_error (CuTest *test)
 {
 	struct host_processor_dual_testing host;
@@ -11293,6 +11327,8 @@ CuSuite* get_host_processor_dual_power_on_reset_suite ()
 	SUITE_ADD_TEST (suite, host_processor_dual_test_power_on_reset_flash_type_mismatched_vendor);
 	SUITE_ADD_TEST (suite, host_processor_dual_test_power_on_reset_flash_type_mismatched_devices);
 	SUITE_ADD_TEST (suite, host_processor_dual_test_power_on_reset_flash_type_mismatched_sizes);
+	SUITE_ADD_TEST (suite,
+		host_processor_dual_test_power_on_reset_flash_type_mismatched_addr_modes);
 	SUITE_ADD_TEST (suite, host_processor_dual_test_power_on_reset_host_access_error);
 	SUITE_ADD_TEST (suite, host_processor_dual_test_power_on_reset_no_pfm_dirty_clear_error);
 	SUITE_ADD_TEST (suite, host_processor_dual_test_power_on_reset_no_pfm_bypass_filter_error);

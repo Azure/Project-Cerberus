@@ -18,12 +18,12 @@ static const char *SUITE = "spi_flash";
 /**
  * Flash device ID to pass to SFDP for testing.
  */
-static const uint8_t TEST_ID[] = {0x11, 0x22, 0x33};
+const uint8_t TEST_ID[FLASH_ID_LEN] = {0x11, 0x22, 0x33};
 
 /**
  * SPI master capabilities supporting the full feature set.
  */
-static const uint32_t FULL_CAPABILITIES = FLASH_CAP_DUAL_2_2_2 | FLASH_CAP_DUAL_1_2_2 |
+const uint32_t FULL_CAPABILITIES = FLASH_CAP_DUAL_2_2_2 | FLASH_CAP_DUAL_1_2_2 |
 	FLASH_CAP_DUAL_1_1_2 | FLASH_CAP_QUAD_4_4_4 | FLASH_CAP_QUAD_1_4_4 | FLASH_CAP_QUAD_1_1_4 |
 	FLASH_CAP_3BYTE_ADDR | FLASH_CAP_4BYTE_ADDR;
 
@@ -119,7 +119,7 @@ static void spi_flash_testing_init_with_property_discovery (CuTest *test,
  * @param params_addr Address of the SFDP basic parameters table.
  * @param capabilities Capabilities to report for the SPI master.
  */
-static void spi_flash_testing_discover_params (CuTest *test, struct spi_flash *flash,
+void spi_flash_testing_discover_params (CuTest *test, struct spi_flash *flash,
 	struct flash_master_mock *mock, const uint8_t *id, const uint32_t *header,
 	const uint32_t *params, size_t params_len, uint32_t params_addr, uint32_t capabilities)
 {
@@ -140,7 +140,7 @@ static void spi_flash_testing_discover_params (CuTest *test, struct spi_flash *f
  * @param params_addr Address of the SFDP basic parameters table.
  * @param capabilities Capabilities to report for the SPI master.
  */
-static void spi_flash_testing_discover_params_fast_read (CuTest *test, struct spi_flash *flash,
+void spi_flash_testing_discover_params_fast_read (CuTest *test, struct spi_flash *flash,
 	struct flash_master_mock *mock, const uint8_t *id, const uint32_t *header,
 	const uint32_t *params, size_t params_len, uint32_t params_addr, uint32_t capabilities)
 {
@@ -19145,6 +19145,782 @@ static void spi_flash_test_restore_device_fast_read_init_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 }
 
+static void spi_flash_test_is_address_mode_fixed (CuTest *test)
+{
+	struct spi_flash flash;
+	struct flash_master_mock mock;
+	int status;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_is_address_mode_fixed (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_is_write_in_progress (&flash);
+
+	flash_master_mock_release (&mock);
+	spi_flash_release (&flash);
+}
+
+static void spi_flash_test_is_address_mode_fixed_3byte_only (CuTest *test)
+{
+	struct spi_flash flash;
+	struct flash_master_mock mock;
+	int status;
+	uint32_t header[] = {
+		0x50444653,
+		0xff010100,
+		0x09010000,
+		0xff000030
+	};
+	uint32_t params[] = {
+		0xff8020e5,
+		0x00ffffff,
+		0xff00ff00,
+		0xff00ff00,
+		0xffffffee,
+		0xff00ffff,
+		0xff00ffff,
+		0xd810200c,
+		0xff00ff00
+	};
+
+	TEST_START;
+
+	spi_flash_testing_discover_params (test, &flash, &mock, TEST_ID, header, params,
+		sizeof (params), 0x000030, FULL_CAPABILITIES);
+
+	status = spi_flash_is_address_mode_fixed (&flash);
+	CuAssertIntEquals (test, 1, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_is_write_in_progress (&flash);
+
+	flash_master_mock_release (&mock);
+	spi_flash_release (&flash);
+}
+
+static void spi_flash_test_is_address_mode_fixed_3byte_4byte (CuTest *test)
+{
+	struct spi_flash flash;
+	struct flash_master_mock mock;
+	int status;
+	uint32_t header[] = {
+		0x50444653,
+		0xff010106,
+		0x10010600,
+		0xff000030
+	};
+	uint32_t params[] = {
+		0xff8220e5,
+		0x00ffffff,
+		0xff00ff00,
+		0xff00ff00,
+		0xffffffee,
+		0xff00ffff,
+		0xff00ffff,
+		0xd810200c,
+		0xff00ff00,
+		0x00a60236,
+		0xb314ea82,
+		0x337663e9,
+		0x757a757a,
+		0x5cd5a2f7,
+		0xff088000,
+		0xa1f860e9
+	};
+
+	TEST_START;
+
+	spi_flash_testing_discover_params (test, &flash, &mock, TEST_ID, header, params,
+		sizeof (params), 0x000030, FULL_CAPABILITIES);
+
+	status = spi_flash_is_address_mode_fixed (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_is_write_in_progress (&flash);
+
+	flash_master_mock_release (&mock);
+	spi_flash_release (&flash);
+}
+
+static void spi_flash_test_is_address_mode_fixed_4byte_only (CuTest *test)
+{
+	struct spi_flash flash;
+	struct flash_master_mock mock;
+	int status;
+	uint32_t header[] = {
+		0x50444653,
+		0xff010100,
+		0x09010000,
+		0xff000030
+	};
+	uint32_t params[] = {
+		0xff8420e5,
+		0x00ffffff,
+		0xff00ff00,
+		0xff00ff00,
+		0xffffffee,
+		0xff00ffff,
+		0xff00ffff,
+		0xd810200c,
+		0xff00ff00
+	};
+
+	TEST_START;
+
+	spi_flash_testing_discover_params (test, &flash, &mock, TEST_ID, header, params,
+		sizeof (params), 0x000030, FULL_CAPABILITIES);
+
+	status = spi_flash_is_address_mode_fixed (&flash);
+	CuAssertIntEquals (test, 1, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_is_write_in_progress (&flash);
+
+	flash_master_mock_release (&mock);
+	spi_flash_release (&flash);
+}
+
+static void spi_flash_test_is_address_mode_fixed_null (CuTest *test)
+{
+	struct spi_flash flash;
+	struct flash_master_mock mock;
+	int status;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_is_address_mode_fixed (NULL);
+	CuAssertIntEquals (test, SPI_FLASH_INVALID_ARGUMENT, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_is_write_in_progress (&flash);
+
+	flash_master_mock_release (&mock);
+	spi_flash_release (&flash);
+}
+
+static void spi_flash_test_address_mode_requires_write_enable (CuTest *test)
+{
+	struct spi_flash flash;
+	struct flash_master_mock mock;
+	int status;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_address_mode_requires_write_enable (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_is_write_in_progress (&flash);
+
+	flash_master_mock_release (&mock);
+	spi_flash_release (&flash);
+}
+
+static void spi_flash_test_address_mode_requires_write_enable_with_write_enable (CuTest *test)
+{
+	struct spi_flash flash;
+	struct flash_master_mock mock;
+	int status;
+	uint32_t header[] = {
+		0x50444653,
+		0xff010106,
+		0x10010600,
+		0xff000030
+	};
+	uint32_t params[] = {
+		0xff8220e5,
+		0x00ffffff,
+		0xff00ff00,
+		0xff00ff00,
+		0xffffffee,
+		0xff00ffff,
+		0xff00ffff,
+		0xd810200c,
+		0xff00ff00,
+		0x00a60236,
+		0xb314ea82,
+		0x337663e9,
+		0x757a757a,
+		0x5cd5a2f7,
+		0xff088000,
+		0xa2f8a0e9
+	};
+
+	TEST_START;
+
+	spi_flash_testing_discover_params (test, &flash, &mock, TEST_ID, header, params,
+		sizeof (params), 0x000030, FULL_CAPABILITIES);
+
+	status = spi_flash_address_mode_requires_write_enable (&flash);
+	CuAssertIntEquals (test, 1, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_is_write_in_progress (&flash);
+
+	flash_master_mock_release (&mock);
+	spi_flash_release (&flash);
+}
+
+static void spi_flash_test_address_mode_requires_write_enable_3byte_only (CuTest *test)
+{
+	struct spi_flash flash;
+	struct flash_master_mock mock;
+	int status;
+	uint32_t header[] = {
+		0x50444653,
+		0xff010100,
+		0x09010000,
+		0xff000030
+	};
+	uint32_t params[] = {
+		0xff8020e5,
+		0x00ffffff,
+		0xff00ff00,
+		0xff00ff00,
+		0xffffffee,
+		0xff00ffff,
+		0xff00ffff,
+		0xd810200c,
+		0xff00ff00
+	};
+
+	TEST_START;
+
+	spi_flash_testing_discover_params (test, &flash, &mock, TEST_ID, header, params,
+		sizeof (params), 0x000030, FULL_CAPABILITIES);
+
+	status = spi_flash_address_mode_requires_write_enable (&flash);
+	CuAssertIntEquals (test, SPI_FLASH_ADDR_MODE_FIXED, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_is_write_in_progress (&flash);
+
+	flash_master_mock_release (&mock);
+	spi_flash_release (&flash);
+}
+
+static void spi_flash_test_address_mode_requires_write_enable_3byte_4byte (CuTest *test)
+{
+	struct spi_flash flash;
+	struct flash_master_mock mock;
+	int status;
+	uint32_t header[] = {
+		0x50444653,
+		0xff010106,
+		0x10010600,
+		0xff000030
+	};
+	uint32_t params[] = {
+		0xff8220e5,
+		0x00ffffff,
+		0xff00ff00,
+		0xff00ff00,
+		0xffffffee,
+		0xff00ffff,
+		0xff00ffff,
+		0xd810200c,
+		0xff00ff00,
+		0x00a60236,
+		0xb314ea82,
+		0x337663e9,
+		0x757a757a,
+		0x5cd5a2f7,
+		0xff088000,
+		0xa1f860e9
+	};
+
+	TEST_START;
+
+	spi_flash_testing_discover_params (test, &flash, &mock, TEST_ID, header, params,
+		sizeof (params), 0x000030, FULL_CAPABILITIES);
+
+	status = spi_flash_address_mode_requires_write_enable (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_is_write_in_progress (&flash);
+
+	flash_master_mock_release (&mock);
+	spi_flash_release (&flash);
+}
+
+static void spi_flash_test_address_mode_requires_write_enable_4byte_only (CuTest *test)
+{
+	struct spi_flash flash;
+	struct flash_master_mock mock;
+	int status;
+	uint32_t header[] = {
+		0x50444653,
+		0xff010100,
+		0x09010000,
+		0xff000030
+	};
+	uint32_t params[] = {
+		0xff8420e5,
+		0x00ffffff,
+		0xff00ff00,
+		0xff00ff00,
+		0xffffffee,
+		0xff00ffff,
+		0xff00ffff,
+		0xd810200c,
+		0xff00ff00
+	};
+
+	TEST_START;
+
+	spi_flash_testing_discover_params (test, &flash, &mock, TEST_ID, header, params,
+		sizeof (params), 0x000030, FULL_CAPABILITIES);
+
+	status = spi_flash_address_mode_requires_write_enable (&flash);
+	CuAssertIntEquals (test, SPI_FLASH_ADDR_MODE_FIXED, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_is_write_in_progress (&flash);
+
+	flash_master_mock_release (&mock);
+	spi_flash_release (&flash);
+}
+
+static void spi_flash_test_address_mode_requires_write_enable_null (CuTest *test)
+{
+	struct spi_flash flash;
+	struct flash_master_mock mock;
+	int status;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_address_mode_requires_write_enable (NULL);
+	CuAssertIntEquals (test, SPI_FLASH_INVALID_ARGUMENT, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_is_write_in_progress (&flash);
+
+	flash_master_mock_release (&mock);
+	spi_flash_release (&flash);
+}
+
+static void spi_flash_test_is_4byte_address_mode_on_reset_macronix (CuTest *test)
+{
+	struct spi_flash flash;
+	struct flash_master_mock mock;
+	int status;
+	uint8_t macronix[] = {0xc2, 0x20, 0x19};
+	const size_t length = sizeof (macronix);
+
+	TEST_START;
+
+	status = flash_master_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&mock, 0, macronix, length,
+		FLASH_EXP_READ_REG (0x9f, length));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_is_4byte_address_mode_on_reset (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_is_write_in_progress (&flash);
+
+	flash_master_mock_release (&mock);
+	spi_flash_release (&flash);
+}
+
+static void spi_flash_test_is_4byte_address_mode_on_reset_winbond (CuTest *test)
+{
+	struct spi_flash flash;
+	struct flash_master_mock mock;
+	int status;
+	uint8_t winbond[] = {0xef, 0x40, 0x19};
+	const size_t length = sizeof (winbond);
+	uint8_t reset_4b[] = {0x02};
+	uint8_t reset_3b[] = {~0x02};
+
+	TEST_START;
+
+	status = flash_master_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&mock, 0, winbond, length,
+		FLASH_EXP_READ_REG (0x9f, length));
+
+	status |= flash_master_mock_expect_rx_xfer (&mock, 0, reset_4b, 1,
+		FLASH_EXP_READ_REG (0x15, 1));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_is_4byte_address_mode_on_reset (&flash);
+	CuAssertIntEquals (test, 1, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&mock, 0, reset_3b, 1,
+		FLASH_EXP_READ_REG (0x15, 1));
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_is_4byte_address_mode_on_reset (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_is_write_in_progress (&flash);
+
+	flash_master_mock_release (&mock);
+	spi_flash_release (&flash);
+}
+
+static void spi_flash_test_is_4byte_address_mode_on_reset_micron (CuTest *test)
+{
+	struct spi_flash flash;
+	struct flash_master_mock mock;
+	int status;
+	uint8_t micron[] = {0x20, 0xba, 0x19};
+	const size_t length = sizeof (micron);
+	uint8_t reset_4b[] = {~0x01};
+	uint8_t reset_3b[] = {0x01};
+
+	TEST_START;
+
+	status = flash_master_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&mock, 0, micron, length,
+		FLASH_EXP_READ_REG (0x9f, length));
+
+	status |= flash_master_mock_expect_rx_xfer (&mock, 0, reset_4b, 1,
+		FLASH_EXP_READ_REG (0xb5, 1));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_is_4byte_address_mode_on_reset (&flash);
+	CuAssertIntEquals (test, 1, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&mock, 0, reset_3b, 1,
+		FLASH_EXP_READ_REG (0xb5, 1));
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_is_4byte_address_mode_on_reset (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_is_write_in_progress (&flash);
+
+	flash_master_mock_release (&mock);
+	spi_flash_release (&flash);
+}
+
+static void spi_flash_test_is_4byte_address_mode_on_reset_unknown (CuTest *test)
+{
+	struct spi_flash flash;
+	struct flash_master_mock mock;
+	int status;
+	uint8_t unknown[] = {0x11, 0x20, 0x19};
+	const size_t length = sizeof (unknown);
+
+	TEST_START;
+
+	status = flash_master_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&mock, 0, unknown, length,
+		FLASH_EXP_READ_REG (0x9f, length));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_is_4byte_address_mode_on_reset (&flash);
+	CuAssertIntEquals (test, SPI_FLASH_UNSUPPORTED_DEVICE, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_is_write_in_progress (&flash);
+
+	flash_master_mock_release (&mock);
+	spi_flash_release (&flash);
+}
+
+static void spi_flash_test_is_4byte_address_mode_on_reset_3byte_only (CuTest *test)
+{
+	struct spi_flash flash;
+	struct flash_master_mock mock;
+	int status;
+	uint32_t header[] = {
+		0x50444653,
+		0xff010100,
+		0x09010000,
+		0xff000030
+	};
+	uint32_t params[] = {
+		0xff8020e5,
+		0x00ffffff,
+		0xff00ff00,
+		0xff00ff00,
+		0xffffffee,
+		0xff00ffff,
+		0xff00ffff,
+		0xd810200c,
+		0xff00ff00
+	};
+
+	TEST_START;
+
+	spi_flash_testing_discover_params (test, &flash, &mock, TEST_ID, header, params,
+		sizeof (params), 0x000030, FULL_CAPABILITIES);
+
+	status = spi_flash_is_4byte_address_mode_on_reset (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_is_write_in_progress (&flash);
+
+	flash_master_mock_release (&mock);
+	spi_flash_release (&flash);
+}
+
+static void spi_flash_test_is_4byte_address_mode_on_reset_4byte_only (CuTest *test)
+{
+	struct spi_flash flash;
+	struct flash_master_mock mock;
+	int status;
+	uint32_t header[] = {
+		0x50444653,
+		0xff010100,
+		0x09010000,
+		0xff000030
+	};
+	uint32_t params[] = {
+		0xff8420e5,
+		0x00ffffff,
+		0xff00ff00,
+		0xff00ff00,
+		0xffffffee,
+		0xff00ffff,
+		0xff00ffff,
+		0xd810200c,
+		0xff00ff00
+	};
+
+	TEST_START;
+
+	spi_flash_testing_discover_params (test, &flash, &mock, TEST_ID, header, params,
+		sizeof (params), 0x000030, FULL_CAPABILITIES);
+
+	status = spi_flash_is_4byte_address_mode_on_reset (&flash);
+	CuAssertIntEquals (test, 1, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_is_write_in_progress (&flash);
+
+	flash_master_mock_release (&mock);
+	spi_flash_release (&flash);
+}
+
+static void spi_flash_test_is_4byte_address_mode_on_reset_null (CuTest *test)
+{
+	struct spi_flash flash;
+	struct flash_master_mock mock;
+	int status;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_is_4byte_address_mode_on_reset (NULL);
+	CuAssertIntEquals (test, SPI_FLASH_INVALID_ARGUMENT, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_is_write_in_progress (&flash);
+
+	flash_master_mock_release (&mock);
+	spi_flash_release (&flash);
+}
+
+static void spi_flash_test_is_4byte_address_mode_on_reset_error_id (CuTest *test)
+{
+	struct spi_flash flash;
+	struct flash_master_mock mock;
+	int status;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_xfer (&mock, FLASH_MASTER_XFER_FAILED,
+		FLASH_EXP_READ_REG (0x9f, 3));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_is_4byte_address_mode_on_reset (&flash);
+	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_is_write_in_progress (&flash);
+
+	flash_master_mock_release (&mock);
+	spi_flash_release (&flash);
+}
+
+static void spi_flash_test_is_4byte_address_mode_on_reset_error_read_reg_winbond (CuTest *test)
+{
+	struct spi_flash flash;
+	struct flash_master_mock mock;
+	int status;
+	uint8_t winbond[] = {0xef, 0x40, 0x19};
+	const size_t length = sizeof (winbond);
+
+	TEST_START;
+
+	status = flash_master_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&mock, 0, winbond, length,
+		FLASH_EXP_READ_REG (0x9f, length));
+
+	status |= flash_master_mock_expect_xfer (&mock, FLASH_MASTER_XFER_FAILED,
+		FLASH_EXP_READ_REG (0x15, 1));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_is_4byte_address_mode_on_reset (&flash);
+	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_is_write_in_progress (&flash);
+
+	flash_master_mock_release (&mock);
+	spi_flash_release (&flash);
+}
+
+static void spi_flash_test_is_4byte_address_mode_on_reset_error_read_reg_micron (CuTest *test)
+{
+	struct spi_flash flash;
+	struct flash_master_mock mock;
+	int status;
+	uint8_t micron[] = {0x20, 0xba, 0x19};
+	const size_t length = sizeof (micron);
+
+	TEST_START;
+
+	status = flash_master_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&mock, 0, micron, length,
+		FLASH_EXP_READ_REG (0x9f, length));
+
+	status |= flash_master_mock_expect_xfer (&mock, FLASH_MASTER_XFER_FAILED,
+		FLASH_EXP_READ_REG (0xb5, 1));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_is_4byte_address_mode_on_reset (&flash);
+	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_is_write_in_progress (&flash);
+
+	flash_master_mock_release (&mock);
+	spi_flash_release (&flash);
+}
+
 
 CuSuite* get_spi_flash_suite ()
 {
@@ -19512,6 +20288,27 @@ CuSuite* get_spi_flash_suite ()
 	SUITE_ADD_TEST (suite, spi_flash_test_restore_device_nonstandard_deep_powerdown);
 	SUITE_ADD_TEST (suite, spi_flash_test_restore_device_null);
 	SUITE_ADD_TEST (suite, spi_flash_test_restore_device_fast_read_init_error);
+	SUITE_ADD_TEST (suite, spi_flash_test_is_address_mode_fixed);
+	SUITE_ADD_TEST (suite, spi_flash_test_is_address_mode_fixed_3byte_only);
+	SUITE_ADD_TEST (suite, spi_flash_test_is_address_mode_fixed_3byte_4byte);
+	SUITE_ADD_TEST (suite, spi_flash_test_is_address_mode_fixed_4byte_only);
+	SUITE_ADD_TEST (suite, spi_flash_test_is_address_mode_fixed_null);
+	SUITE_ADD_TEST (suite, spi_flash_test_address_mode_requires_write_enable);
+	SUITE_ADD_TEST (suite, spi_flash_test_address_mode_requires_write_enable_with_write_enable);
+	SUITE_ADD_TEST (suite, spi_flash_test_address_mode_requires_write_enable_3byte_only);
+	SUITE_ADD_TEST (suite, spi_flash_test_address_mode_requires_write_enable_3byte_4byte);
+	SUITE_ADD_TEST (suite, spi_flash_test_address_mode_requires_write_enable_4byte_only);
+	SUITE_ADD_TEST (suite, spi_flash_test_address_mode_requires_write_enable_null);
+	SUITE_ADD_TEST (suite, spi_flash_test_is_4byte_address_mode_on_reset_macronix);
+	SUITE_ADD_TEST (suite, spi_flash_test_is_4byte_address_mode_on_reset_winbond);
+	SUITE_ADD_TEST (suite, spi_flash_test_is_4byte_address_mode_on_reset_micron);
+	SUITE_ADD_TEST (suite, spi_flash_test_is_4byte_address_mode_on_reset_unknown);
+	SUITE_ADD_TEST (suite, spi_flash_test_is_4byte_address_mode_on_reset_3byte_only);
+	SUITE_ADD_TEST (suite, spi_flash_test_is_4byte_address_mode_on_reset_4byte_only);
+	SUITE_ADD_TEST (suite, spi_flash_test_is_4byte_address_mode_on_reset_null);
+	SUITE_ADD_TEST (suite, spi_flash_test_is_4byte_address_mode_on_reset_error_id);
+	SUITE_ADD_TEST (suite, spi_flash_test_is_4byte_address_mode_on_reset_error_read_reg_winbond);
+	SUITE_ADD_TEST (suite, spi_flash_test_is_4byte_address_mode_on_reset_error_read_reg_micron);
 
 	return suite;
 }
