@@ -335,9 +335,9 @@ static void pcd_manager_test_get_id_measured_data (CuTest *test)
 {
 	struct pcd_mock pcd;
 	struct pcd_manager_mock manager;
-	uint8_t buffer[4];
+	uint8_t buffer[5];
 	size_t length = sizeof (buffer);
-	uint32_t id = 0x1234;
+	uint8_t id[] = {1, 2, 3, 4, 5};
 	int status;
 
 	TEST_START;
@@ -354,14 +354,14 @@ static void pcd_manager_test_get_id_measured_data (CuTest *test)
 		0, MOCK_ARG (&pcd.base));
 
 	status |= mock_expect (&pcd.mock, pcd.base.base.get_id, &pcd, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pcd.mock, 0, &id, sizeof (id), -1);
+	status |= mock_expect_output (&pcd.mock, 0, &id[1], sizeof (id) - 1, -1);
 
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcd_manager_get_id_measured_data (&manager.base, 0, buffer, length);
 	CuAssertIntEquals (test, sizeof (id), status);
 
-	status = testing_validate_array ((uint8_t*) &id, buffer, sizeof (id));
+	status = testing_validate_array (id, buffer, sizeof (id));
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcd_mock_validate_and_release (&pcd);
@@ -375,9 +375,9 @@ static void pcd_manager_test_get_id_measured_data_offset (CuTest *test)
 {
 	struct pcd_mock pcd;
 	struct pcd_manager_mock manager;
-	uint8_t buffer[4];
+	uint8_t buffer[5];
 	size_t length = sizeof (buffer);
-	uint32_t id = 0x1234;
+	uint8_t id[] = {1, 2, 3, 4, 5};
 	int status;
 
 	TEST_START;
@@ -394,14 +394,14 @@ static void pcd_manager_test_get_id_measured_data_offset (CuTest *test)
 		0, MOCK_ARG (&pcd.base));
 
 	status |= mock_expect (&pcd.mock, pcd.base.base.get_id, &pcd, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pcd.mock, 0, &id, sizeof (id), -1);
+	status |= mock_expect_output (&pcd.mock, 0, &id[1], sizeof (id) - 1, -1);
 
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcd_manager_get_id_measured_data (&manager.base, 2, buffer, length);
 	CuAssertIntEquals (test, sizeof (id) - 2, status);
 
-	status = testing_validate_array ((uint8_t*) &id + 2, buffer, sizeof (id) - 2);
+	status = testing_validate_array (id + 2, buffer, sizeof (id) - 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcd_mock_validate_and_release (&pcd);
@@ -415,9 +415,9 @@ static void pcd_manager_test_get_id_measured_data_small_buffer (CuTest *test)
 {
 	struct pcd_mock pcd;
 	struct pcd_manager_mock manager;
-	uint8_t buffer[3];
+	uint8_t buffer[4];
 	size_t length = sizeof (buffer);
-	uint32_t id = 0x1234;
+	uint8_t id[] = {1, 2, 3, 4, 5};
 	int status;
 
 	TEST_START;
@@ -434,14 +434,14 @@ static void pcd_manager_test_get_id_measured_data_small_buffer (CuTest *test)
 		0, MOCK_ARG (&pcd.base));
 
 	status |= mock_expect (&pcd.mock, pcd.base.base.get_id, &pcd, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pcd.mock, 0, &id, sizeof (id), -1);
+	status |= mock_expect_output (&pcd.mock, 0, &id[1], sizeof (id) - 1, -1);
 
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcd_manager_get_id_measured_data (&manager.base, 0, buffer, length);
-	CuAssertIntEquals (test, 3, status);
+	CuAssertIntEquals (test, 4, status);
 
-	status = testing_validate_array ((uint8_t*) &id, buffer, 3);
+	status = testing_validate_array (id, buffer, 4);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcd_mock_validate_and_release (&pcd);
@@ -455,8 +455,9 @@ static void pcd_manager_test_get_id_measured_data_no_active_pcd (CuTest *test)
 {
 	struct pcd_mock pcd;
 	struct pcd_manager_mock manager;
-	uint8_t buffer[4];
+	uint8_t buffer[5];
 	size_t length = sizeof (buffer);
+	uint8_t id[5] = {0};
 	int status;
 
 	TEST_START;
@@ -471,6 +472,9 @@ static void pcd_manager_test_get_id_measured_data_no_active_pcd (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcd_manager_get_id_measured_data (&manager.base, 0, buffer, length);
+	CuAssertIntEquals (test, sizeof (id), status);
+
+	status = testing_validate_array (id, buffer, sizeof (id));
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcd_mock_validate_and_release (&pcd);
@@ -692,8 +696,8 @@ static void pcd_manager_test_get_platform_id_measured_data_no_active_pcd (CuTest
 {
 	struct pcd_mock pcd;
 	struct pcd_manager_mock manager;
-	uint8_t buffer[5];
-	size_t length = sizeof (buffer);
+	uint8_t buffer;
+	char id = '\0';
 	int status;
 
 	TEST_START;
@@ -707,7 +711,10 @@ static void pcd_manager_test_get_platform_id_measured_data_no_active_pcd (CuTest
 	status = mock_expect (&manager.mock, manager.base.get_active_pcd, &manager, (intptr_t) NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcd_manager_get_platform_id_measured_data (&manager.base, 0, buffer, length);
+	status = pcd_manager_get_platform_id_measured_data (&manager.base, 0, &buffer, 1);
+	CuAssertIntEquals (test, 1, status);
+
+	status = testing_validate_array ((uint8_t*) &id, &buffer, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcd_mock_validate_and_release (&pcd);

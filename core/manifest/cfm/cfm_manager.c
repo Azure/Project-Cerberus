@@ -155,12 +155,12 @@ int cfm_manager_get_id_measured_data (struct cfm_manager *manager, size_t offset
 
 	active = manager->get_active_cfm (manager);
 	if (active == NULL) {
-		return 0;
+		status = manifest_manager_get_id_measured_data (NULL, offset, buffer, length);
 	}
-
-	status = manifest_manager_get_id_measured_data (&active->base, offset, buffer, length);
-
-	manager->free_cfm (manager, active);
+	else {
+		status = manifest_manager_get_id_measured_data (&active->base, offset, buffer, length);
+		manager->free_cfm (manager, active);
+	}
 
 	return status;
 }
@@ -188,13 +188,14 @@ int cfm_manager_get_platform_id_measured_data (struct cfm_manager *manager, size
 
 	active = manager->get_active_cfm (manager);
 	if (active == NULL) {
-		return 0;
+		status = manifest_manager_get_platform_id_measured_data (NULL, offset, buffer,
+			length);
 	}
-
-	status = manifest_manager_get_platform_id_measured_data (&active->base, offset, buffer,
-		length);
-
-	manager->free_cfm (manager, active);
+	else {
+		status = manifest_manager_get_platform_id_measured_data (&active->base, offset, buffer,
+			length);
+		manager->free_cfm (manager, active);
+	}
 
 	return status;
 }

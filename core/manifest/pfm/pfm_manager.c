@@ -160,12 +160,12 @@ int pfm_manager_get_id_measured_data (struct pfm_manager *manager, size_t offset
 
 	active = manager->get_active_pfm (manager);
 	if (active == NULL) {
-		return 0;
+		status = manifest_manager_get_id_measured_data (NULL, offset, buffer, length);
 	}
-
-	status = manifest_manager_get_id_measured_data (&active->base, offset, buffer, length);
-
-	manager->free_pfm (manager, active);
+	else {
+		status = manifest_manager_get_id_measured_data (&active->base, offset, buffer, length);
+		manager->free_pfm (manager, active);
+	}
 
 	return status;
 }
@@ -193,13 +193,15 @@ int pfm_manager_get_platform_id_measured_data (struct pfm_manager *manager, size
 
 	active = manager->get_active_pfm (manager);
 	if (active == NULL) {
-		return 0;
+		status = manifest_manager_get_platform_id_measured_data (NULL, offset, buffer,
+			length);
+	}
+	else {
+		status = manifest_manager_get_platform_id_measured_data (&active->base, offset, buffer,
+			length);
+		manager->free_pfm (manager, active);
 	}
 
-	status = manifest_manager_get_platform_id_measured_data (&active->base, offset, buffer,
-		length);
-
-	manager->free_pfm (manager, active);
 
 	return status;
 }

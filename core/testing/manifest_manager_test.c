@@ -46,8 +46,8 @@ static void manifest_manager_test_get_port_null (CuTest *test)
 static void manifest_manager_test_get_manifest_id_measured_data (CuTest *test)
 {
 	struct manifest_mock manifest;
-	uint32_t id = 0x1234;
-	uint8_t buffer[4];
+	uint8_t id[5] = {1, 2, 3, 4, 5};
+	uint8_t buffer[5];
 	size_t length = sizeof (buffer);
 	int status;
 
@@ -57,14 +57,14 @@ static void manifest_manager_test_get_manifest_id_measured_data (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&manifest.mock, manifest.base.get_id, &manifest, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&manifest.mock, 0, &id, sizeof (id), -1);
+	status |= mock_expect_output (&manifest.mock, 0, &id[1], sizeof (id) - 1, -1);
 
 	CuAssertIntEquals (test, 0, status);
 
 	status = manifest_manager_get_id_measured_data (&manifest.base, 0, buffer, length);
 	CuAssertIntEquals (test, sizeof (id), status);
 
-	status = testing_validate_array ((uint8_t*) &id, buffer, sizeof (id));
+	status = testing_validate_array (id, buffer, sizeof (id));
 	CuAssertIntEquals (test, 0, status);
 
 	status = manifest_mock_validate_and_release (&manifest);
@@ -74,8 +74,8 @@ static void manifest_manager_test_get_manifest_id_measured_data (CuTest *test)
 static void manifest_manager_test_get_manifest_id_measured_data_with_offset (CuTest *test)
 {
 	struct manifest_mock manifest;
-	uint32_t id = 0x1234;
-	uint8_t buffer[4];
+	uint8_t id[5] = {1, 2, 3, 4, 5};
+	uint8_t buffer[5];
 	size_t length = sizeof (buffer);
 	int status;
 
@@ -85,14 +85,14 @@ static void manifest_manager_test_get_manifest_id_measured_data_with_offset (CuT
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&manifest.mock, manifest.base.get_id, &manifest, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&manifest.mock, 0, &id, sizeof (id), -1);
+	status |= mock_expect_output (&manifest.mock, 0, &id[1], sizeof (id) - 1, -1);
 
 	CuAssertIntEquals (test, 0, status);
 
 	status = manifest_manager_get_id_measured_data (&manifest.base, 2, buffer, length);
 	CuAssertIntEquals (test, sizeof (id) - 2, status);
 
-	status = testing_validate_array ((uint8_t*) &id + 2, buffer, sizeof (id) - 2);
+	status = testing_validate_array (id + 2, buffer, sizeof (id) - 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = manifest_mock_validate_and_release (&manifest);
@@ -102,62 +102,7 @@ static void manifest_manager_test_get_manifest_id_measured_data_with_offset (CuT
 static void manifest_manager_test_get_manifest_id_measured_data_small_buffer (CuTest *test)
 {
 	struct manifest_mock manifest;
-	uint32_t id = 0x1234;
-	uint8_t buffer[3];
-	size_t length = sizeof (buffer);
-	int status;
-
-	TEST_START;
-
-	status = manifest_mock_init (&manifest);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&manifest.mock, manifest.base.get_id, &manifest, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&manifest.mock, 0, &id, sizeof (id), -1);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_get_id_measured_data (&manifest.base, 0, buffer, length);
-	CuAssertIntEquals (test, sizeof (id) - 1, status);
-
-	status = testing_validate_array ((uint8_t*) &id, buffer, sizeof (id) - 2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_mock_validate_and_release (&manifest);
-	CuAssertIntEquals (test, 0, status);
-}
-
-static void manifest_manager_test_get_manifest_id_measured_data_small_buffer_offset (CuTest *test)
-{
-	struct manifest_mock manifest;
-	uint32_t id = 0x1234;
-	uint8_t buffer[3];
-	size_t length = sizeof (buffer);
-	int status;
-
-	TEST_START;
-
-	status = manifest_mock_init (&manifest);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&manifest.mock, manifest.base.get_id, &manifest, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&manifest.mock, 0, &id, sizeof (id), -1);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_get_id_measured_data (&manifest.base, 1, buffer, length);
-	CuAssertIntEquals (test, sizeof (id) - 1, status);
-
-	status = testing_validate_array ((uint8_t*) &id + 1, buffer, sizeof (id) - 1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_mock_validate_and_release (&manifest);
-	CuAssertIntEquals (test, 0, status);
-}
-
-static void manifest_manager_test_get_manifest_id_measured_data_invalid_offset (CuTest *test)
-{
-	struct manifest_mock manifest;
+	uint8_t id[] = {1, 2, 3, 4, 5};
 	uint8_t buffer[4];
 	size_t length = sizeof (buffer);
 	int status;
@@ -167,7 +112,176 @@ static void manifest_manager_test_get_manifest_id_measured_data_invalid_offset (
 	status = manifest_mock_init (&manifest);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manifest_manager_get_id_measured_data (&manifest.base, 4, buffer, length);
+	status = mock_expect (&manifest.mock, manifest.base.get_id, &manifest, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manifest.mock, 0, &id[1], sizeof (id) - 1, -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_manager_get_id_measured_data (&manifest.base, 0, buffer, length);
+	CuAssertIntEquals (test, sizeof (id) - 1, status);
+
+	status = testing_validate_array (id, buffer, sizeof (id) - 2);
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_mock_validate_and_release (&manifest);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void manifest_manager_test_get_manifest_id_measured_data_small_buffer_offset (CuTest *test)
+{
+	struct manifest_mock manifest;
+	uint8_t id[] = {1, 2, 3, 4, 5};
+	uint8_t buffer[4];
+	size_t length = sizeof (buffer);
+	int status;
+
+	TEST_START;
+
+	status = manifest_mock_init (&manifest);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manifest.mock, manifest.base.get_id, &manifest, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manifest.mock, 0, &id[1], sizeof (id) - 1, -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_manager_get_id_measured_data (&manifest.base, 1, buffer, length);
+	CuAssertIntEquals (test, sizeof (id) - 1, status);
+
+	status = testing_validate_array (id + 1, buffer, sizeof (id) - 1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_mock_validate_and_release (&manifest);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void manifest_manager_test_get_manifest_id_measured_data_no_active (CuTest *test)
+{
+	struct manifest_mock manifest;
+	uint8_t id[5] = {0};
+	uint8_t buffer[5];
+	size_t length = sizeof (buffer);
+	int status;
+
+	TEST_START;
+
+	status = manifest_mock_init (&manifest);
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_manager_get_id_measured_data (NULL, 0, buffer, length);
+	CuAssertIntEquals (test, sizeof (id), status);
+
+	status = testing_validate_array (id, buffer, sizeof (id));
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_mock_validate_and_release (&manifest);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void manifest_manager_test_get_manifest_id_measured_data_no_active_offset (CuTest *test)
+{
+	struct manifest_mock manifest;
+	uint8_t id[5] = {0};
+	uint8_t buffer[5];
+	size_t length = sizeof (buffer);
+	int status;
+
+	TEST_START;
+
+	status = manifest_mock_init (&manifest);
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_manager_get_id_measured_data (NULL, 1, buffer, length);
+	CuAssertIntEquals (test, sizeof (id) - 1, status);
+
+	status = testing_validate_array (id, buffer, sizeof (id) - 1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_mock_validate_and_release (&manifest);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void manifest_manager_test_get_manifest_id_measured_data_no_active_small_buffer (
+	CuTest *test)
+{
+	struct manifest_mock manifest;
+	uint8_t id[5] = {0};
+	uint8_t buffer[4];
+	size_t length = sizeof (buffer);
+	int status;
+
+	TEST_START;
+
+	status = manifest_mock_init (&manifest);
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_manager_get_id_measured_data (NULL, 0, buffer, length);
+	CuAssertIntEquals (test, sizeof (buffer), status);
+
+	status = testing_validate_array (id, buffer, sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_mock_validate_and_release (&manifest);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void manifest_manager_test_get_manifest_id_measured_data_no_active_small_buffer_offset (
+	CuTest *test)
+{
+	struct manifest_mock manifest;
+	uint8_t id[5] = {0};
+	uint8_t buffer[2];
+	size_t length = sizeof (buffer);
+	int status;
+
+	TEST_START;
+
+	status = manifest_mock_init (&manifest);
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_manager_get_id_measured_data (NULL, 4, buffer, length);
+	CuAssertIntEquals (test, 1, status);
+
+	status = testing_validate_array (id, buffer, 1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_mock_validate_and_release (&manifest);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void manifest_manager_test_get_manifest_id_measured_data_no_active_invalid_offset (
+	CuTest *test)
+{
+	struct manifest_mock manifest;
+	uint8_t buffer[5];
+	size_t length = sizeof (buffer);
+	int status;
+
+	TEST_START;
+
+	status = manifest_mock_init (&manifest);
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_manager_get_id_measured_data (NULL, 5, buffer, length);
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_mock_validate_and_release (&manifest);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void manifest_manager_test_get_manifest_id_measured_data_invalid_offset (CuTest *test)
+{
+	struct manifest_mock manifest;
+	uint8_t buffer[5];
+	size_t length = sizeof (buffer);
+	int status;
+
+	TEST_START;
+
+	status = manifest_mock_init (&manifest);
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_manager_get_id_measured_data (&manifest.base, 5, buffer, length);
 	CuAssertIntEquals (test, 0, status);
 
 	status = manifest_mock_validate_and_release (&manifest);
@@ -185,9 +299,6 @@ static void manifest_manager_test_get_manifest_id_measured_data_null (CuTest *te
 
 	status = manifest_mock_init (&manifest);
 	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_get_id_measured_data (NULL, 0, buffer, length);
-	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
 
 	status = manifest_manager_get_id_measured_data (&manifest.base, 0, NULL, length);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
@@ -358,6 +469,48 @@ static void manifest_manager_test_get_manifest_platform_id_measured_data_small_b
 	CuAssertIntEquals (test, 0, status);
 }
 
+static void manifest_manager_test_get_manifest_platform_id_measured_data_no_active (CuTest *test)
+{
+	struct manifest_mock manifest;
+	char id = '\0';
+	uint8_t buffer;
+	int status;
+
+	TEST_START;
+
+	status = manifest_mock_init (&manifest);
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_manager_get_platform_id_measured_data (NULL, 0, &buffer, 1);
+	CuAssertIntEquals (test, 1, status);
+
+	status = testing_validate_array ((uint8_t*) &id, &buffer, 1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_mock_validate_and_release (&manifest);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void manifest_manager_test_get_manifest_platform_id_measured_data_no_active_invalid_offset (
+	CuTest *test)
+{
+	struct manifest_mock manifest;
+	uint8_t buffer[5];
+	size_t length = sizeof (buffer);
+	int status;
+
+	TEST_START;
+
+	status = manifest_mock_init (&manifest);
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_manager_get_platform_id_measured_data (NULL, 1, buffer, length);
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_mock_validate_and_release (&manifest);
+	CuAssertIntEquals (test, 0, status);
+}
+
 static void manifest_manager_test_get_manifest_platform_id_measured_data_invalid_offset (
 	CuTest *test)
 {
@@ -403,9 +556,6 @@ static void manifest_manager_test_get_manifest_platform_id_measured_data_null (C
 	status = manifest_mock_init (&manifest);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manifest_manager_get_platform_id_measured_data (NULL, 0, buffer, length);
-	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
-
 	status = manifest_manager_get_platform_id_measured_data (&manifest.base, 0, NULL, length);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
 
@@ -450,6 +600,14 @@ CuSuite* get_manifest_manager_suite ()
 	SUITE_ADD_TEST (suite, manifest_manager_test_get_manifest_id_measured_data_small_buffer);
 	SUITE_ADD_TEST (suite,
 		manifest_manager_test_get_manifest_id_measured_data_small_buffer_offset);
+	SUITE_ADD_TEST (suite, manifest_manager_test_get_manifest_id_measured_data_no_active);
+	SUITE_ADD_TEST (suite, manifest_manager_test_get_manifest_id_measured_data_no_active_offset);
+	SUITE_ADD_TEST (suite,
+		manifest_manager_test_get_manifest_id_measured_data_no_active_small_buffer);
+	SUITE_ADD_TEST (suite,
+		manifest_manager_test_get_manifest_id_measured_data_no_active_small_buffer_offset);
+	SUITE_ADD_TEST (suite,
+		manifest_manager_test_get_manifest_id_measured_data_no_active_invalid_offset);
 	SUITE_ADD_TEST (suite, manifest_manager_test_get_manifest_id_measured_data_invalid_offset);
 	SUITE_ADD_TEST (suite, manifest_manager_test_get_manifest_id_measured_data_null);
 	SUITE_ADD_TEST (suite, manifest_manager_test_get_manifest_id_measured_data_fail);
@@ -459,6 +617,9 @@ CuSuite* get_manifest_manager_suite ()
 		manifest_manager_test_get_manifest_platform_id_measured_data_small_buffer);
 	SUITE_ADD_TEST (suite,
 		manifest_manager_test_get_manifest_platform_id_measured_data_small_buffer_offset);
+	SUITE_ADD_TEST (suite, manifest_manager_test_get_manifest_platform_id_measured_data_no_active);
+	SUITE_ADD_TEST (suite,
+		manifest_manager_test_get_manifest_platform_id_measured_data_no_active_invalid_offset);
 	SUITE_ADD_TEST (suite,
 		manifest_manager_test_get_manifest_platform_id_measured_data_invalid_offset);
 	SUITE_ADD_TEST (suite, manifest_manager_test_get_manifest_platform_id_measured_data_null);

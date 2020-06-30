@@ -72,6 +72,7 @@ void pfm_observer_pcr_record_measurement (struct pfm_observer_pcr *observer,
 	struct pfm_manager *manager)
 {
 	struct pfm *active;
+	struct pfm_observer_pcr *pcr = (struct pfm_observer_pcr*) observer;
 
 	if ((observer == NULL) || (manager == NULL)) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
@@ -81,7 +82,10 @@ void pfm_observer_pcr_record_measurement (struct pfm_observer_pcr *observer,
 
 	active = manager->get_active_pfm (manager);
 	if (active) {
-		pfm_observer_pcr_on_pfm_activated (&observer->base, active);
+		manifest_pcr_record_manifest_measurement (&pcr->pcr, &active->base);
 		manager->free_pfm (manager, active);
+	}
+	else {
+		manifest_pcr_record_manifest_measurement (&pcr->pcr, NULL);
 	}
 }

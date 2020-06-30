@@ -72,6 +72,7 @@ void cfm_observer_pcr_record_measurement (struct cfm_observer_pcr *observer,
 	struct cfm_manager *manager)
 {
 	struct cfm *active;
+	struct cfm_observer_pcr *pcr = (struct cfm_observer_pcr*) observer;
 
 	if ((observer == NULL) || (manager == NULL)) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
@@ -81,7 +82,10 @@ void cfm_observer_pcr_record_measurement (struct cfm_observer_pcr *observer,
 
 	active = manager->get_active_cfm (manager);
 	if (active) {
-		cfm_observer_pcr_on_cfm_activated (&observer->base, active);
+		manifest_pcr_record_manifest_measurement (&pcr->pcr, &active->base);
 		manager->free_cfm (manager, active);
+	}
+	else {
+		manifest_pcr_record_manifest_measurement (&pcr->pcr, NULL);
 	}
 }
