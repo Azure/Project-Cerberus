@@ -33,8 +33,8 @@ static int session_manager_mock_establish_session (struct session_manager *sessi
 		MOCK_ARG_CALL (pub_key), MOCK_ARG_CALL (pub_key_len), MOCK_ARG_CALL (pair_key));
 }
 
-static int session_manager_mock_decrypt_message (struct session_manager *session, uint8_t eid, 
-	uint8_t *msg, size_t msg_len, size_t buffer_len)
+static int session_manager_mock_decrypt_message (struct session_manager *session, 
+	struct cmd_interface_request *request)
 {
 	struct session_manager_mock *mock = (struct session_manager_mock*) session;
 
@@ -42,12 +42,12 @@ static int session_manager_mock_decrypt_message (struct session_manager *session
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, session_manager_mock_decrypt_message, session, MOCK_ARG_CALL (eid), 
-		MOCK_ARG_CALL (msg), MOCK_ARG_CALL (msg_len), MOCK_ARG_CALL (buffer_len));
+	MOCK_RETURN (&mock->mock, session_manager_mock_decrypt_message, session, 
+		MOCK_ARG_CALL (request));
 }
 
-static int session_manager_mock_encrypt_message (struct session_manager *session, uint8_t eid, 
-	uint8_t *msg, size_t msg_len, size_t buffer_len)
+static int session_manager_mock_encrypt_message (struct session_manager *session, 
+	struct cmd_interface_request *request)
 {
 	struct session_manager_mock *mock = (struct session_manager_mock*) session;
 
@@ -56,8 +56,7 @@ static int session_manager_mock_encrypt_message (struct session_manager *session
 	}
 
 	MOCK_RETURN (&mock->mock, session_manager_mock_encrypt_message, session, 
-		MOCK_ARG_CALL (eid), MOCK_ARG_CALL (msg), MOCK_ARG_CALL (msg_len), 
-		MOCK_ARG_CALL (buffer_len));
+		MOCK_ARG_CALL (request));
 }
 
 static int session_manager_mock_is_session_established (struct session_manager *session, 
@@ -75,15 +74,15 @@ static int session_manager_mock_is_session_established (struct session_manager *
 
 static int session_manager_mock_func_arg_count (void *func)
 {
-	if (func == session_manager_mock_is_session_established) {
+	if ((func == session_manager_mock_is_session_established) || 
+		(func == session_manager_mock_decrypt_message) || 
+		(func == session_manager_mock_encrypt_message)) {
 		return 1;
 	}
 	else if (func == session_manager_mock_add_session) {
 		return 3;
 	}
-	else if ((func == session_manager_mock_establish_session) || 
-			(func == session_manager_mock_decrypt_message) || 
-			(func == session_manager_mock_encrypt_message)) {
+	else if (func == session_manager_mock_establish_session) {
 		return 4;
 	}
 	else {
@@ -146,16 +145,7 @@ static const char* session_manager_mock_arg_name_map (void *func, int arg)
 			(func == session_manager_mock_encrypt_message))  {
 		switch (arg) {
 			case 0:
-				return "eid";
-
-			case 1:
-				return "msg";
-
-			case 2:
-				return "msg_len";
-
-			case 3:
-				return "buffer_len";
+				return "request";
 		}
 	}
 	else if (func == session_manager_mock_is_session_established) {

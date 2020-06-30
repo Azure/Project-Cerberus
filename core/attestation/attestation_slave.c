@@ -309,8 +309,8 @@ static int attestation_slave_challenge_response (struct attestation_slave *attes
 	response->num_digests = num_measurements;
 	response->digests_size = sizeof (measurement);
 
-	status = attestation->rng->generate_random_buffer (attestation->rng,
-		ATTESTATION_NONCE_LEN, response->nonce);
+	status = attestation->rng->generate_random_buffer (attestation->rng, ATTESTATION_NONCE_LEN, 
+		response->nonce);
 	if (status != 0) {
 		goto cleanup;
 	}

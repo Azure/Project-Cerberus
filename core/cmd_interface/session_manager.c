@@ -117,73 +117,86 @@ int session_manager_is_session_established (struct session_manager *session, uin
  * Decrypt message using AES session key generated for session with device with requested EID.
  *
  * @param session Session manager instance to utilize.
- * @param eid Device EID. 
- * @param msg Encrypted message received from device to decrypt. The message is expected to 
- * 	follow the Cerberus protocol format, with a CERBERUS_PROTOCOL_AES_GCM_TAG_LEN GCM tag and 
- * 	CERBERUS_PROTOCOL_AES_IV_LEN IV at the end. 
- * @param msg_len Encrypted message length.
- * @param buffer_len Maximum buffer length.
+ * @param request Request to encrypt.
  *
- * @return Decrypted message length or an error code.
+ * @return Completion status, 0 if success or an error code.
  */
-int session_manager_decrypt_message (struct session_manager *session, uint8_t eid, uint8_t *msg, 
-	size_t msg_len, size_t buffer_len)
+int session_manager_decrypt_message (struct session_manager *session, 
+	struct cmd_interface_request *request)
 {
-	size_t trailer_len = CERBERUS_PROTOCOL_AES_GCM_TAG_LEN + CERBERUS_PROTOCOL_AES_IV_LEN;
+	uint8_t *payload;
 	size_t payload_len;
+	size_t buffer_len;
 	int status;
 
-	if (msg_len <= trailer_len) {
+	if ((session == NULL) || (request == NULL)) {
+		return SESSION_MANAGER_INVALID_ARGUMENT;
+	}
+
+	if (request->length <= (SESSION_MANAGER_TRAILER_LEN + 
+		sizeof (struct cerberus_protocol_header))) {
 		return SESSION_MANAGER_MALFORMED_MSG;
 	}
 
-	if ((session == NULL) || (msg == NULL) || (buffer_len < (msg_len - trailer_len))) {
-		return SESSION_MANAGER_INVALID_ARGUMENT;
-	}	
+	if ((sizeof (request->data) < (request->length - SESSION_MANAGER_TRAILER_LEN)) || 
+		(request->max_response <= (sizeof (struct cerberus_protocol_header) + 
+		SESSION_MANAGER_TRAILER_LEN))) {
+		return SESSION_MANAGER_BUF_TOO_SMALL;
+	}
 
-	status = session_manager_set_key (session, eid);
+	payload = request->data + sizeof (struct cerberus_protocol_header);
+	payload_len = request->length - sizeof (struct cerberus_protocol_header) - 
+		SESSION_MANAGER_TRAILER_LEN;
+	buffer_len = sizeof (request->data) - sizeof (struct cerberus_protocol_header);
+
+	status = session_manager_set_key (session, request->source_eid);
 	if (status != 0) {
 		return status;
 	}
-
-	payload_len = msg_len - trailer_len;
 	
-	status = session->aes->decrypt_data (session->aes, msg, payload_len, &msg[payload_len], 
-		&msg[payload_len + CERBERUS_PROTOCOL_AES_GCM_TAG_LEN], CERBERUS_PROTOCOL_AES_IV_LEN, msg, 
-		buffer_len);
-	if (status != 0) {
-		return status;
-	}
+	request->length -= SESSION_MANAGER_TRAILER_LEN;
 
-	return payload_len;
+	return session->aes->decrypt_data (session->aes, payload, payload_len, &payload[payload_len], 
+		&payload[payload_len + CERBERUS_PROTOCOL_AES_GCM_TAG_LEN], CERBERUS_PROTOCOL_AES_IV_LEN, 
+		payload, buffer_len);
 }
 
 /**
  * Encrypt message using AES session key generated for session with device with requested EID.
  *
  * @param session Session manager instance to utilize.
- * @param eid Device EID. 
- * @param msg Plaintext message to be encrypted. Encrypted message following the Cerberus 
- * 	protocol format will be stored in the same buffer, with a 
- * 	CERBERUS_PROTOCOL_AES_GCM_TAG_LEN GCM tag and CERBERUS_PROTOCOL_AES_IV_LEN IV at the end.
- * @param msg_len Plaintext data length.
- * @param buffer_len Maximum buffer length.
+ * @param request Request to encrypt.
  *
- * @return Encrypted message length or an error code.
+ * @return Completion status, 0 if success or an error code.
  */
-int session_manager_encrypt_message (struct session_manager *session, uint8_t eid, uint8_t *msg, 
-	size_t msg_len, size_t buffer_len)
+int session_manager_encrypt_message (struct session_manager *session, 
+	struct cmd_interface_request *request)
 {
-	uint8_t aes_iv[CERBERUS_PROTOCOL_AES_IV_LEN];
-	size_t trailer_len = CERBERUS_PROTOCOL_AES_GCM_TAG_LEN + CERBERUS_PROTOCOL_AES_IV_LEN;
+	struct cerberus_protocol_header *header;
+	uint8_t *aes_iv;
+	uint8_t *payload;
+	size_t payload_len;
+	size_t buffer_len;
 	int status;
 
-	if ((session == NULL) || (msg == NULL) || (msg_len == 0) || 
-		(buffer_len < (msg_len + trailer_len))) {
+	if ((session == NULL) || (request == NULL)) {
 		return SESSION_MANAGER_INVALID_ARGUMENT;
-	}
+	} 
 
-	status = session_manager_set_key (session, eid);
+	if (request->length <= sizeof (struct cerberus_protocol_header)) {
+		return 0;
+	}
+		
+	if ((request->length + SESSION_MANAGER_TRAILER_LEN) > request->max_response) {
+		return SESSION_MANAGER_BUF_TOO_SMALL;
+	}
+	
+	payload = request->data + sizeof (struct cerberus_protocol_header);
+	payload_len = request->length - sizeof (struct cerberus_protocol_header);
+	buffer_len = request->max_response - sizeof (struct cerberus_protocol_header);
+	aes_iv = &payload[payload_len + CERBERUS_PROTOCOL_AES_GCM_TAG_LEN];
+
+	status = session_manager_set_key (session, request->source_eid);
 	if (status != 0) {
 		return status;
 	}
@@ -194,16 +207,20 @@ int session_manager_encrypt_message (struct session_manager *session, uint8_t ei
 		return status;
 	}
 
-	status = session->aes->encrypt_data (session->aes, msg, msg_len, aes_iv, 
-		CERBERUS_PROTOCOL_AES_IV_LEN, msg, buffer_len, &msg[msg_len], buffer_len - msg_len);
+	status = session->aes->encrypt_data (session->aes, payload, payload_len, aes_iv, 
+		CERBERUS_PROTOCOL_AES_IV_LEN, payload, buffer_len - SESSION_MANAGER_TRAILER_LEN, 
+		&payload[payload_len], 
+		CERBERUS_PROTOCOL_AES_GCM_TAG_LEN);
 	if (status != 0) {
 		return status;
 	}
 
-	memcpy (&msg[msg_len + CERBERUS_PROTOCOL_AES_GCM_TAG_LEN], aes_iv, 
-		CERBERUS_PROTOCOL_AES_IV_LEN);
+	request->length += SESSION_MANAGER_TRAILER_LEN;
 
-	return (msg_len + trailer_len);
+	header = (struct cerberus_protocol_header*) request->data;
+	header->crypt = 1;
+
+	return status;
 }
 
 /**

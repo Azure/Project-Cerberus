@@ -111,6 +111,7 @@ struct attestation_slave {
 	struct riot_key_manager *riot;			/**< The manager for RIoT keys. */
 	struct pcr_store *pcr_store;			/**< Storage for device measurements. */
 	struct aux_attestation *aux;			/**< Auxiliary attestation service handler. */
+	uint8_t key_exchange_algorithm;			/**< Key exchange algorithm requested by caller. */
 	platform_mutex lock;					/**< Synchronization for shared handlers. */
 };
 

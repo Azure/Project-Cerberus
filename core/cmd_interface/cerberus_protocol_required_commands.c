@@ -12,6 +12,7 @@
 #include "cmd_background.h"
 #include "cmd_logging.h"
 #include "device_manager.h"
+#include "session_manager.h"
 #include "cerberus_protocol_required_commands.h"
 
 
@@ -55,12 +56,13 @@ int cerberus_protocol_get_fw_version (struct cmd_interface_fw_version *fw_versio
  * Process get certificate digest packet
  *
  * @param attestation Attestation manager instance to utilize
+ * @param session Session manager instance to utilize
  * @param request Get certificate digest request to process
  *
  * @return 0 if input processed successfully or an error code.
  */
 int cerberus_protocol_get_certificate_digest (struct attestation_slave *attestation,
-	struct cmd_interface_request *request)
+	struct session_manager *session, struct cmd_interface_request *request)
 {
 	struct cerberus_protocol_get_certificate_digest *rq =
 		(struct cerberus_protocol_get_certificate_digest*) request->data;
@@ -79,9 +81,15 @@ int cerberus_protocol_get_certificate_digest (struct attestation_slave *attestat
 		return CMD_HANDLER_OUT_OF_RANGE;
 	}
 
-	if (rq->digest.key_alg != ATTESTATION_ECDHE_KEY_EXCHANGE) {
+	if (rq->digest.key_alg >= NUM_ATTESTATION_KEY_EXCHANGE_ALGORITHMS) {
 		return CMD_HANDLER_UNSUPPORTED_INDEX;
 	}
+
+	if ((rq->digest.key_alg != ATTESTATION_KEY_EXCHANGE_NONE) && (session == NULL)) {
+		return CMD_HANDLER_UNSUPPORTED_OPERATION;
+	}
+
+	attestation->key_exchange_algorithm = rq->digest.key_alg;
 
 	status = attestation->get_digests (attestation, rq->digest.slot_num,
 		cerberus_protocol_certificate_digests (rsp), CERBERUS_PROTOCOL_MAX_CERT_DIGESTS (request),
@@ -175,14 +183,18 @@ int cerberus_protocol_get_certificate (struct attestation_slave *attestation,
  * Process challenge packet
  *
  * @param attestation Attestation manager instance to utilize
+ * @param session Session manager instance to utilize if initialized
  * @param request Challenge request to process
  *
  * @return 0 if request completed successfully or an error code.
  */
 int cerberus_protocol_get_challenge_response (struct attestation_slave *attestation,
-	struct cmd_interface_request *request)
+	struct session_manager *session, struct cmd_interface_request *request)
 {
 	struct cerberus_protocol_challenge *rq = (struct cerberus_protocol_challenge*) request->data;
+	struct cerberus_protocol_challenge_response *rsp = 
+		(struct cerberus_protocol_challenge_response*) request->data;
+	uint8_t device_nonce[ATTESTATION_NONCE_LEN];
 	int status;
 
 	request->crypto_timeout = true;
@@ -191,11 +203,19 @@ int cerberus_protocol_get_challenge_response (struct attestation_slave *attestat
 		return CMD_HANDLER_BAD_LENGTH;
 	}
 
+	memcpy (device_nonce, rq->challenge.nonce, sizeof (device_nonce));
+
 	status = attestation->challenge_response (attestation, (uint8_t*) &rq->challenge,
 		request->max_response - CERBERUS_PROTOCOL_MIN_MSG_LEN);
 	if (!ROT_IS_ERROR (status)) {
 		request->length = CERBERUS_PROTOCOL_MIN_MSG_LEN + status;
 		status = 0;
+
+		if ((session != NULL) && 
+			(attestation->key_exchange_algorithm == ATTESTATION_ECDHE_KEY_EXCHANGE)) {
+			session->add_session (session, request->source_eid, device_nonce, 
+				rsp->challenge.nonce);
+		}
 	}
 
 	return status;

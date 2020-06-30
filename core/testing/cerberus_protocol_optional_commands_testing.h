@@ -396,5 +396,17 @@ void cerberus_protocol_optional_commands_testing_process_get_attestation_data_fa
 void cerberus_protocol_optional_commands_testing_process_get_attestation_data_no_data (
 	CuTest *test, struct cmd_interface *cmd, struct pcr_store *store);
 
+void cerberus_protocol_optional_commands_testing_process_get_key_exchange_paired (
+	CuTest *test, struct cmd_interface *cmd, struct session_manager_mock *session);
+void cerberus_protocol_optional_commands_testing_process_get_key_exchange_not_paired (
+	CuTest *test, struct cmd_interface *cmd, struct session_manager_mock *session);
+void cerberus_protocol_optional_commands_testing_process_get_key_exchange_unsupported (
+	CuTest *test, struct cmd_interface *cmd);
+void cerberus_protocol_optional_commands_testing_process_get_key_exchange_invalid_len (
+	CuTest *test, struct cmd_interface *cmd);
+void cerberus_protocol_optional_commands_testing_process_get_key_exchange_unsupported_index (
+	CuTest *test, struct cmd_interface *cmd);
+void cerberus_protocol_optional_commands_testing_process_get_key_exchange_fail (
+	CuTest *test, struct cmd_interface *cmd, struct session_manager_mock *session);
 
 #endif /* CERBERUS_PROTOCOL_OPTIONAL_COMMANDS_TESTING_H_ */

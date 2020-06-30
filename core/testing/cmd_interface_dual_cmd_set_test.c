@@ -186,14 +186,6 @@ static void cmd_interface_dual_cmd_set_test_process_unsupported_message (CuTest 
 	CuAssertIntEquals (test, CMD_HANDLER_UNSUPPORTED_MSG, status);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 
-	header->pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
-	header->crypt = 1;
-
-	request.crypto_timeout = true;
-	status = cmd.interface.base.process_request (&cmd.interface.base, &request);
-	CuAssertIntEquals (test, CMD_HANDLER_UNSUPPORTED_MSG, status);
-	CuAssertIntEquals (test, false, request.crypto_timeout);
-
 	complete_cmd_interface_dual_cmd_set_test (test, &cmd);
 }
 

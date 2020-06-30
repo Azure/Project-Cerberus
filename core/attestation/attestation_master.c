@@ -397,7 +397,7 @@ static int attestation_process_challenge_response (struct attestation_master *at
 		goto hash_cancel;
 	}
 
-	if (attestation->encryption_algorithm == ATTESTATION_ECDHE_KEY_EXCHANGE) {
+	if (attestation->encryption_algorithm == ATTESTATION_ECC_ENCRYPTION_ALGORITHM) {
 		status = attestation_verify_and_load_ecc_leaf_key (attestation, &chain, &ecc_key);
 		if (status != 0) {
 			return status;
@@ -408,7 +408,7 @@ static int attestation_process_challenge_response (struct attestation_master *at
 
 		attestation->ecc->release_key_pair (attestation->ecc, NULL, &ecc_key);
 	}
-	else if (attestation->encryption_algorithm == ATTESTATION_RSA_KEY_EXCHANGE) {
+	else if (attestation->encryption_algorithm == ATTESTATION_RSA_ENCRYPTION_ALGORITHM) {
 		status = attestation_verify_and_load_rsa_leaf_key (attestation, &chain, &rsa_key);
 		if (status != 0) {
 			return status;
@@ -458,16 +458,16 @@ int attestation_master_init (struct attestation_master *attestation,
 	struct rsa_engine *rsa, struct x509_engine *x509, struct rng_engine *rng, 
 	struct device_manager *device_manager, uint8_t encryption_algo)
 {
-	if ((attestation == NULL) || (riot == NULL) || (hash == NULL) || (x509 == NULL) || (rng == NULL) ||
-		(device_manager == NULL) || 
+	if ((attestation == NULL) || (riot == NULL) || (hash == NULL) || (x509 == NULL) || 
+		(rng == NULL) || (device_manager == NULL) || 
 		(encryption_algo >= NUM_ATTESTATION_KEY_EXCHANGE_ALGORITHMS)) {
 		return ATTESTATION_INVALID_ARGUMENT;
 	}
 
-	if ((encryption_algo == ATTESTATION_ECDHE_KEY_EXCHANGE) && (ecc == NULL)) {
+	if ((encryption_algo == ATTESTATION_ECC_ENCRYPTION_ALGORITHM) && (ecc == NULL)) {
 		return ATTESTATION_INVALID_ARGUMENT;
 	}
-	else if ((encryption_algo == ATTESTATION_RSA_KEY_EXCHANGE) && (rsa == NULL)) {
+	else if ((encryption_algo == ATTESTATION_RSA_ENCRYPTION_ALGORITHM) && (rsa == NULL)) {
 		return ATTESTATION_INVALID_ARGUMENT;
 	}
 

@@ -288,7 +288,7 @@ void cerberus_protocol_master_commands_testing_process_process_certificate (CuTe
 		MOCK_ARG_PTR_CONTAINS_TMP (expected, sizeof (expected)), MOCK_ARG (sizeof (expected)));
 	CuAssertIntEquals (test, 0, status);
 
-	master_attestation->base.encryption_algorithm = ATTESTATION_ECDHE_KEY_EXCHANGE;
+	master_attestation->base.encryption_algorithm = ATTESTATION_ECC_ENCRYPTION_ALGORITHM;
 
 	request.new_request = false;
 	request.crypto_timeout = true;
@@ -305,7 +305,7 @@ void cerberus_protocol_master_commands_testing_process_process_certificate (CuTe
 	CuAssertIntEquals (test, 0, req->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_DIGEST, req->header.command);
 	CuAssertIntEquals (test, 0, req->digest.slot_num);
-	CuAssertIntEquals (test, ATTESTATION_ECDHE_KEY_EXCHANGE, req->digest.key_alg);
+	CuAssertIntEquals (test, ATTESTATION_KEY_EXCHANGE_NONE, req->digest.key_alg);
 	CuAssertIntEquals (test, true, request.new_request);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 }
@@ -529,7 +529,7 @@ void cerberus_protocol_master_commands_testing_issue_get_certificate_digest (CuT
 		(struct cerberus_protocol_get_certificate_digest*) buf;
 	int status;
 
-	master_attestation->base.encryption_algorithm = ATTESTATION_ECDHE_KEY_EXCHANGE;
+	master_attestation->base.encryption_algorithm = ATTESTATION_ECC_ENCRYPTION_ALGORITHM;
 
 	memset (buf, 0x55, sizeof (buf));
 
@@ -544,7 +544,7 @@ void cerberus_protocol_master_commands_testing_issue_get_certificate_digest (CuT
 	CuAssertIntEquals (test, 0, req->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_DIGEST, req->header.command);
 	CuAssertIntEquals (test, 0, req->digest.slot_num);
-	CuAssertIntEquals (test, ATTESTATION_ECDHE_KEY_EXCHANGE, req->digest.key_alg);
+	CuAssertIntEquals (test, ATTESTATION_KEY_EXCHANGE_NONE, req->digest.key_alg);
 }
 
 void cerberus_protocol_master_commands_testing_issue_get_certificate_digest_buf_too_small (

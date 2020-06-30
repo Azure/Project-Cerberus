@@ -9,6 +9,7 @@
 #include "cmd_interface/cmd_authorization.h"
 #include "cmd_interface/cmd_background.h"
 #include "cmd_interface/cmd_interface.h"
+#include "cmd_interface/session_manager.h"
 #include "attestation/pcr_store.h"
 #include "attestation/attestation.h"
 #include "crypto/hash.h"
@@ -89,10 +90,9 @@ enum {
 	CERBERUS_PROTOCOL_UNSEAL_ECDH_SHA256,					/**< Seed is the SHA256 hash of the ECDH output */
 };
 
+
 /**
  * Maximum number of PMRs that can be used for unsealing.
- *
- *
  */
 #define	CERBERUS_PROTOCOL_MAX_PMR			5
 
@@ -334,8 +334,28 @@ struct cerberus_protocol_update_pmr {
 struct cerberus_protocol_key_exchange {
 	struct cerberus_protocol_header header;					/**< Message header */
 	uint8_t key_type;										/**< Type of key being exchanged */
-	uint8_t key;											/**< First byte of variable key data */
 };
+
+/**
+ * Get the buffer containing the key data in an exchange request
+ */
+#define	cerberus_protocol_key_exchange_data(req)	(((uint8_t*) req) + sizeof (*req))
+
+/**
+ * Get the total message length for a key exchange request.
+ *
+ * @param len Length of the key data.
+ */
+#define	cerberus_protocol_key_exchange_length(len)	\
+	(len + sizeof (struct cerberus_protocol_key_exchange))
+
+/**
+ * Get the key length from a key exchange request.
+ *
+ * @param req The command request structure containing the message.
+ */
+#define	cerberus_protocol_key_exchange_key_len(req)	\
+	(req->length - sizeof (struct cerberus_protocol_key_exchange))
 
 /**
  * Cerberus protocol get log info request format
@@ -687,6 +707,9 @@ int cerberus_protocol_get_recovery_image_id (struct recovery_image_manager *mana
 	struct recovery_image_manager *manager_1, struct cmd_interface_request *request);
 
 int cerberus_protocol_get_attestation_data (struct pcr_store *store,
+	struct cmd_interface_request *request);
+	
+int cerberus_protocol_key_exchange (struct session_manager *session, 
 	struct cmd_interface_request *request);
 
 
