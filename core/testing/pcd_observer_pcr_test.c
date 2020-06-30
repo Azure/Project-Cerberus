@@ -11,22 +11,11 @@
 #include "mock/pcd_manager_mock.h"
 #include "engines/hash_testing_engine.h"
 #include "pcd_testing.h"
+#include "manifest_observer_pcr_testing.h"
 
 
 static const char *SUITE = "pcd_observer_pcr";
 
-/**
- * PCD_ID hash for testing.
- */
-static const uint8_t PCD_ID_HASH[] = {
-	0x67,0xab,0xdd,0x72,0x10,0x24,0xf0,0xff,0x4e,0x0b,0x3f,0x4c,0x2f,0xc1,0x3b,0xc5,
-	0xba,0xd4,0x2d,0x0b,0x78,0x51,0xd4,0x56,0xd8,0x8d,0x20,0x3d,0x15,0xaa,0xa4,0x50
-};
-
-/**
- * Length of the test PCD ID hash.
- */
-static const uint32_t PCD_ID_HASH_LEN = sizeof (PCD_ID_HASH);
 
 /**
  * PCD_PLATFORM_ID hash for testing.
@@ -260,7 +249,7 @@ static void pcd_observer_pcr_test_on_pcd_activated (CuTest *test)
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 1), &id_measurement);
 	CuAssertIntEquals (test, 0, status);
 
-	status = testing_validate_array (PCD_ID_HASH, id_measurement.digest, PCD_ID_HASH_LEN);
+	status = testing_validate_array (MANIFEST_ID_HASH, id_measurement.digest, MANIFEST_ID_HASH_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 2), &platform_id_measurement);
@@ -521,8 +510,8 @@ static void pcd_observer_pcr_test_on_pcd_activated_get_platform_id_error (CuTest
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 1), &id_measurement);
 	CuAssertIntEquals (test, 0, status);
 
-	status = testing_validate_array (PCD_ID_HASH, id_measurement.digest,
-		PCD_ID_HASH_LEN);
+	status = testing_validate_array (MANIFEST_ID_HASH, id_measurement.digest,
+		MANIFEST_ID_HASH_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 2), &platform_id_measurement);
@@ -624,7 +613,7 @@ static void pcd_observer_pcr_test_record_measurement (CuTest *test)
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 1), &id_measurement);
 	CuAssertIntEquals (test, 0, status);
 
-	status = testing_validate_array (PCD_ID_HASH, id_measurement.digest, PCD_ID_HASH_LEN);
+	status = testing_validate_array (MANIFEST_ID_HASH, id_measurement.digest, MANIFEST_ID_HASH_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 2), &platform_id_measurement);
@@ -701,19 +690,19 @@ static void pcd_observer_pcr_test_record_measurement_no_active (CuTest *test)
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
 	CuAssertIntEquals (test, 0, status);
 
-	status = testing_validate_array (invalid_measurement, measurement.digest, SHA256_HASH_LENGTH);
+	status = testing_validate_array (EMPTY_BUFFER_HASH, measurement.digest, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 1), &id_measurement);
 	CuAssertIntEquals (test, 0, status);
 
-	status = testing_validate_array (invalid_measurement, id_measurement.digest, SHA256_HASH_LENGTH);
+	status = testing_validate_array (NO_MANIFEST_ID_HASH, id_measurement.digest, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 2), &platform_id_measurement);
 	CuAssertIntEquals (test, 0, status);
 
-	status = testing_validate_array (invalid_measurement, platform_id_measurement.digest, SHA256_HASH_LENGTH);
+	status = testing_validate_array (EMPTY_STRING_HASH, platform_id_measurement.digest, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcd_manager_mock_validate_and_release (&manager);
@@ -1074,7 +1063,7 @@ static void pcd_observer_pcr_test_record_measurement_get_platform_id_error (CuTe
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 1), &id_measurement);
 	CuAssertIntEquals (test, 0, status);
 
-	status = testing_validate_array (PCD_ID_HASH, id_measurement.digest, PCD_ID_HASH_LEN);
+	status = testing_validate_array (MANIFEST_ID_HASH, id_measurement.digest, MANIFEST_ID_HASH_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 2), &platform_id_measurement);

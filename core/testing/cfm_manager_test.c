@@ -382,9 +382,9 @@ static void cfm_manager_test_get_id_measured_data (CuTest *test)
 {
 	struct cfm_mock cfm;
 	struct cfm_manager_mock manager;
-	uint8_t buffer[4];
+	uint8_t buffer[5];
 	size_t length = sizeof (buffer);
-	uint32_t id = 0x1234;
+	uint8_t id[] = {1, 2, 3, 4, 5};
 	int status;
 
 	TEST_START;
@@ -401,14 +401,14 @@ static void cfm_manager_test_get_id_measured_data (CuTest *test)
 		0, MOCK_ARG (&cfm.base));
 
 	status |= mock_expect (&cfm.mock, cfm.base.base.get_id, &cfm, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&cfm.mock, 0, &id, sizeof (id), -1);
+	status |= mock_expect_output (&cfm.mock, 0, &id[1], sizeof (id) - 1, -1);
 
 	CuAssertIntEquals (test, 0, status);
 
 	status = cfm_manager_get_id_measured_data (&manager.base, 0, buffer, length);
 	CuAssertIntEquals (test, sizeof (id), status);
 
-	status = testing_validate_array ((uint8_t*) &id, buffer, sizeof (id));
+	status = testing_validate_array (id, buffer, sizeof (id));
 	CuAssertIntEquals (test, 0, status);
 
 	status = cfm_mock_validate_and_release (&cfm);
@@ -422,9 +422,9 @@ static void cfm_manager_test_get_id_measured_data_offset (CuTest *test)
 {
 	struct cfm_mock cfm;
 	struct cfm_manager_mock manager;
-	uint8_t buffer[4];
+	uint8_t buffer[5];
 	size_t length = sizeof (buffer);
-	uint32_t id = 0x1234;
+	uint8_t id[] = {1, 2, 3, 4, 5};
 	int status;
 
 	TEST_START;
@@ -441,14 +441,14 @@ static void cfm_manager_test_get_id_measured_data_offset (CuTest *test)
 		0, MOCK_ARG (&cfm.base));
 
 	status |= mock_expect (&cfm.mock, cfm.base.base.get_id, &cfm, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&cfm.mock, 0, &id, sizeof (id), -1);
+	status |= mock_expect_output (&cfm.mock, 0, &id[1], sizeof (id) - 1, -1);
 
 	CuAssertIntEquals (test, 0, status);
 
 	status = cfm_manager_get_id_measured_data (&manager.base, 2, buffer, length);
 	CuAssertIntEquals (test, sizeof (id) - 2, status);
 
-	status = testing_validate_array ((uint8_t*) &id + 2, buffer, sizeof (id) - 2);
+	status = testing_validate_array (id + 2, buffer, sizeof (id) - 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = cfm_mock_validate_and_release (&cfm);
@@ -462,9 +462,9 @@ static void cfm_manager_test_get_id_measured_data_small_buffer (CuTest *test)
 {
 	struct cfm_mock cfm;
 	struct cfm_manager_mock manager;
-	uint8_t buffer[3];
+	uint8_t buffer[4];
 	size_t length = sizeof (buffer);
-	uint32_t id = 0x1234;
+	uint8_t id[] = {1, 2, 3, 4, 5};
 	int status;
 
 	TEST_START;
@@ -481,14 +481,14 @@ static void cfm_manager_test_get_id_measured_data_small_buffer (CuTest *test)
 		0, MOCK_ARG (&cfm.base));
 
 	status |= mock_expect (&cfm.mock, cfm.base.base.get_id, &cfm, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&cfm.mock, 0, &id, sizeof (id), -1);
+	status |= mock_expect_output (&cfm.mock, 0, &id[1], sizeof (id) - 1, -1);
 
 	CuAssertIntEquals (test, 0, status);
 
 	status = cfm_manager_get_id_measured_data (&manager.base, 0, buffer, length);
-	CuAssertIntEquals (test, 3, status);
+	CuAssertIntEquals (test, length, status);
 
-	status = testing_validate_array ((uint8_t*) &id, buffer, 3);
+	status = testing_validate_array (id, buffer, length);
 	CuAssertIntEquals (test, 0, status);
 
 	status = cfm_mock_validate_and_release (&cfm);
@@ -502,8 +502,9 @@ static void cfm_manager_test_get_id_measured_data_no_active_cfm (CuTest *test)
 {
 	struct cfm_mock cfm;
 	struct cfm_manager_mock manager;
-	uint8_t buffer[4];
+	uint8_t buffer[5];
 	size_t length = sizeof (buffer);
+	uint8_t id[5] = {0};
 	int status;
 
 	TEST_START;
@@ -518,6 +519,9 @@ static void cfm_manager_test_get_id_measured_data_no_active_cfm (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = cfm_manager_get_id_measured_data (&manager.base, 0, buffer, length);
+	CuAssertIntEquals (test, sizeof (buffer), status);
+
+	status = testing_validate_array (id, buffer, length);
 	CuAssertIntEquals (test, 0, status);
 
 	status = cfm_mock_validate_and_release (&cfm);
@@ -743,8 +747,8 @@ static void cfm_manager_test_get_platform_id_measured_data_no_active_cfm (CuTest
 {
 	struct cfm_mock cfm;
 	struct cfm_manager_mock manager;
-	uint8_t buffer[5];
-	size_t length = sizeof (buffer);
+	uint8_t buffer;
+	char id = '\0';
 	int status;
 
 	TEST_START;
@@ -758,7 +762,10 @@ static void cfm_manager_test_get_platform_id_measured_data_no_active_cfm (CuTest
 	status = mock_expect (&manager.mock, manager.base.get_active_cfm, &manager, (intptr_t) NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm_manager_get_platform_id_measured_data (&manager.base, 0, buffer, length);
+	status = cfm_manager_get_platform_id_measured_data (&manager.base, 0, &buffer, 1);
+	CuAssertIntEquals (test, 1, status);
+
+	status = testing_validate_array ((uint8_t*) &id, &buffer, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = cfm_mock_validate_and_release (&cfm);

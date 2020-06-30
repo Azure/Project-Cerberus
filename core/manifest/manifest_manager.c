@@ -49,12 +49,12 @@ int manifest_manager_get_port (struct manifest_manager *manager)
 int manifest_manager_get_id_measured_data (struct manifest *active, size_t offset,
 	uint8_t *buffer, size_t length)
 {
-	uint32_t id;
+	uint8_t id[5] = {0};
 	size_t id_length = sizeof (id);
 	size_t bytes_read;
 	int status;
 
-	if ((active == NULL) || (buffer == NULL)) {
+	if (buffer == NULL) {
 		return MANIFEST_MANAGER_INVALID_ARGUMENT;
 	}
 
@@ -62,14 +62,17 @@ int manifest_manager_get_id_measured_data (struct manifest *active, size_t offse
 		return 0;
 	}
 
-	status = active->get_id (active, &id);
-	if (status != 0) {
-		return status;
+	if (active) {
+		id[0] = 1;
+		status = active->get_id (active, (uint32_t*) &id[1]);
+		if (status != 0) {
+			return status;
+		}
 	}
 
 	bytes_read = ((id_length - offset) > length) ? length : (id_length - offset);
 
-	memcpy (buffer, (uint8_t*) &id + offset, bytes_read);
+	memcpy (buffer, id + offset, bytes_read);
 
 	return bytes_read;
 }
@@ -90,29 +93,37 @@ int manifest_manager_get_platform_id_measured_data (struct manifest *active, siz
 	char *id;
 	size_t id_length;
 	size_t bytes_read;
+	char empty_string = '\0';
 	int status;
 
-	if ((active == NULL) || (buffer == NULL)) {
+	if (buffer == NULL) {
 		return MANIFEST_MANAGER_INVALID_ARGUMENT;
 	}
 
-	status = active->get_platform_id (active, &id);
-	if (status != 0) {
-		return status;
+	if (active) {
+		status = active->get_platform_id (active, &id);
+		if (status != 0) {
+			return status;
+		}
+
+		id_length = strlen (id) + 1;
+	}
+	else {
+		id = &empty_string;
+		id_length = 1;
 	}
 
-	id_length = strlen (id) + 1;
-
-	if (offset > id_length) {
+	if (offset >= id_length) {
 		bytes_read = 0;
 		goto exit;
 	}
 
 	bytes_read = ((id_length - offset) > length) ? length : (id_length - offset);
-
 	memcpy (buffer, id + offset, bytes_read);
 
 exit:
-	platform_free (id);
+	if (active) {
+		platform_free (id);
+	}
 	return bytes_read;
 }

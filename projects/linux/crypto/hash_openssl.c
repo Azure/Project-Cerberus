@@ -11,7 +11,7 @@
 static int hash_openssl_calculate_sha1 (struct hash_engine *engine, const uint8_t *data,
 	size_t length, uint8_t *hash, size_t hash_length)
 {
-	if ((engine == NULL) || (data == NULL) || (hash == NULL) || (length == 0 )) {
+	if ((engine == NULL) || ((data == NULL) && (length != 0)) || (hash == NULL)) {
 		return HASH_ENGINE_INVALID_ARGUMENT;
 	}
 
@@ -44,7 +44,7 @@ static int hash_openssl_start_sha1 (struct hash_engine *engine)
 static int hash_openssl_calculate_sha256 (struct hash_engine *engine, const uint8_t *data,
 	size_t length, uint8_t *hash, size_t hash_length)
 {
-	if ((engine == NULL) || (data == NULL) || (hash == NULL) || (length == 0 )) {
+	if ((engine == NULL) || ((data == NULL)  && (length != 0)) || (hash == NULL)) {
 		return HASH_ENGINE_INVALID_ARGUMENT;
 	}
 
@@ -78,7 +78,7 @@ static int hash_openssl_update (struct hash_engine *engine, const uint8_t *data,
 	struct hash_engine_openssl *openssl = (struct hash_engine_openssl*) engine;
 	int status;
 
-	if ((openssl == NULL) || (data == NULL)) {
+	if ((openssl == NULL) || ((data == NULL) && (length != 0))) {
 		return HASH_ENGINE_INVALID_ARGUMENT;
 	}
 

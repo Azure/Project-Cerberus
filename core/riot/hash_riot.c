@@ -12,7 +12,7 @@ static int hash_riot_calculate_sha1 (struct hash_engine *engine, const uint8_t *
 {
 	struct hash_engine_riot *riot = (struct hash_engine_riot*) engine;
 
-	if ((riot == NULL) || (data == NULL) || (hash == NULL) || (length == 0)) {
+	if ((riot == NULL) || ((data == NULL) && (length != 0)) || (hash == NULL)) {
 		return HASH_ENGINE_INVALID_ARGUMENT;
 	}
 
@@ -45,7 +45,7 @@ static int hash_riot_calculate_sha256 (struct hash_engine *engine, const uint8_t
 {
 	struct hash_engine_riot *riot = (struct hash_engine_riot*) engine;
 
-	if ((riot == NULL) || (data == NULL) || (hash == NULL) || (length == 0)) {
+	if ((riot == NULL) || ((data == NULL) && (length != 0)) || (hash == NULL)) {
 		return HASH_ENGINE_INVALID_ARGUMENT;
 	}
 
@@ -76,7 +76,7 @@ static int hash_riot_update (struct hash_engine *engine, const uint8_t *data, si
 {
 	struct hash_engine_riot *riot = (struct hash_engine_riot*) engine;
 
-	if ((riot == NULL) || (data == NULL)) {
+	if ((riot == NULL) || ((data == NULL) && (length != 0))) {
 		return HASH_ENGINE_INVALID_ARGUMENT;
 	}
 
