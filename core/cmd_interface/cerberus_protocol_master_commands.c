@@ -89,7 +89,7 @@ int cerberus_protocol_issue_get_certificate_digest (struct attestation_master *a
 	}
 
 	rq->slot_num = 0;
-	rq->key_alg = attestation->encryption_algorithm;
+	rq->key_alg = ATTESTATION_KEY_EXCHANGE_NONE;
 
 	return (sizeof (struct cerberus_protocol_digest_info));
 }

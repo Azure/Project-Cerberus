@@ -21,6 +21,7 @@
 #include "cmd_background.h"
 #include "cmd_interface.h"
 #include "device_manager.h"
+#include "session_manager.h"
 #include "recovery/recovery_image.h"
 #include "cerberus_protocol_required_commands.h"
 #include "cerberus_protocol_master_commands.h"
@@ -1038,4 +1039,43 @@ int cerberus_protocol_get_attestation_data (struct pcr_store *pcr_store,
 	request->length = cerberus_protocol_get_attestation_data_response_length (status);
 
 	return 0;
+}
+
+/**
+ * Process a key exchange packet.
+ *
+ * @param session Session manager to utilize.
+ * @param request Key exchange request to process.
+ *
+ * @return 0 if request processing completed successfully or an error code.
+ */
+int cerberus_protocol_key_exchange (struct session_manager *session, 
+	struct cmd_interface_request *request)
+{
+	struct cerberus_protocol_key_exchange *rq =
+		(struct cerberus_protocol_key_exchange*) request->data;
+	int status;
+
+	if (session == NULL) {
+		return CMD_HANDLER_UNSUPPORTED_COMMAND;
+	}
+
+	if (request->length <= sizeof (struct cerberus_protocol_key_exchange)) {
+		return CMD_HANDLER_BAD_LENGTH;
+	}
+
+	if ((rq->key_type != CERBERUS_PROTOCOL_SESSION_KEY) && 
+		(rq->key_type != CERBERUS_PROTOCOL_PAIRED_KEY_ECC)) {
+		return CMD_HANDLER_UNSUPPORTED_INDEX;
+	}
+
+	status = session->establish_session (session, request->source_eid, 
+		cerberus_protocol_key_exchange_data (rq),
+		cerberus_protocol_key_exchange_key_len (request), 
+		(rq->key_type == CERBERUS_PROTOCOL_PAIRED_KEY_ECC));
+
+	request->length = 0;	
+	request->crypto_timeout = true;
+
+	return status;
 }

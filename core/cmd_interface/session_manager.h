@@ -12,10 +12,12 @@
 #include "crypto/rng.h"
 #include "riot/riot_key_manager.h"
 #include "status/rot_status.h"
+#include "cmd_interface.h"
 #include "cerberus_protocol.h"
 
 
 #define SESSION_MANAGER_NONCE_LEN						32
+#define SESSION_MANAGER_TRAILER_LEN						(CERBERUS_PROTOCOL_AES_GCM_TAG_LEN + CERBERUS_PROTOCOL_AES_IV_LEN)
 
 
 enum {
@@ -83,17 +85,11 @@ struct session_manager {
 	 * Decrypt message using AES session key generated for session with device with requested EID.
 	 *
 	 * @param session Session manager instance to utilize.
-	 * @param eid Device EID. 
-	 * @param msg Encrypted message received from device to decrypt. The message is expected to 
-	 * 	follow the Cerberus protocol format, with a CERBERUS_PROTOCOL_AES_GCM_TAG_LEN GCM tag and 
-	 * 	CERBERUS_PROTOCOL_AES_IV_LEN IV at the end. Decrypted message will be stored in same buffer.
-	 * @param msg_len Encrypted message length.
-	 * @param buffer_len Maximum buffer length. 
+	 * @param request Request to decrypt. 
 	 *
-	 * @return Decrypted message length or an error code.
+	 * @return Completion status, 0 if success or an error code.
 	 */
-	int (*decrypt_message) (struct session_manager *session, uint8_t eid, uint8_t *msg, 
-		size_t msg_len, size_t buffer_len);
+	int (*decrypt_message) (struct session_manager *session, struct cmd_interface_request *request);
 
 	/**
 	 * Encrypt message using AES session key generated for session with device with requested EID.
@@ -101,17 +97,11 @@ struct session_manager {
 	 * vector generated and used.
 	 *
 	 * @param session Session manager instance to utilize.
-	 * @param eid Device EID. 
-	 * @param msg Plaintext message to be encrypted. Encrypted message following the Cerberus 
-	 * 	protocol format will be stored in the same buffer, with a 
-	 * 	CERBERUS_PROTOCOL_AES_GCM_TAG_LEN GCM tag and CERBERUS_PROTOCOL_AES_IV_LEN IV at the end.
-	 * @param msg_len Plaintext data length. 
-	 * @param buffer_len Maximum buffer length. 
+	 * @param request Request to encrypt. 
 	 *
-	 * @return Encrypted message length or an error code.
+	 * @return Completion status, 0 if success or an error code.
 	 */
-	int (*encrypt_message) (struct session_manager *session, uint8_t eid, uint8_t *msg, 
-		size_t msg_len, size_t buffer_len);
+	int (*encrypt_message) (struct session_manager *session, struct cmd_interface_request *request);
 
 	struct aes_engine *aes;					/**< AES engine used to encrypt/decrypt session data */
 	struct hash_engine *hash;				/**< Hashing engine used to generate AES shared key */
@@ -132,10 +122,10 @@ void session_manager_release (struct session_manager *session);
 
 int session_manager_add_session (struct session_manager *session, uint8_t eid, 
 	const uint8_t *device_nonce, const uint8_t *cerberus_nonce);
-int session_manager_decrypt_message (struct session_manager *session, uint8_t eid, uint8_t *msg, 
-	size_t msg_len, size_t buffer_len);
-int session_manager_encrypt_message (struct session_manager *session, uint8_t eid, uint8_t *msg, 
-	size_t msg_len, size_t buffer_len);
+int session_manager_decrypt_message (struct session_manager *session, 
+	struct cmd_interface_request *request);
+int session_manager_encrypt_message (struct session_manager *session, 
+	struct cmd_interface_request *request);
 int session_manager_is_session_established (struct session_manager *session, uint8_t eid);
 
 struct session_manager_entry* session_manager_get_session (struct session_manager *session, 
@@ -155,6 +145,7 @@ enum {
 	SESSION_MANAGER_INVALID_ORDER = SESSION_MANAGER_ERROR (0x05), 				/**< Invalid order attempted for session establishment. */
 	SESSION_MANAGER_FULL = SESSION_MANAGER_ERROR (0x06),						/**< Session manager at capacity and cannot support more sessions. */
 	SESSION_MANAGER_MALFORMED_MSG = SESSION_MANAGER_ERROR (0x07),				/**< Provided message to decrypt invalid. */
+	SESSION_MANAGER_BUF_TOO_SMALL = SESSION_MANAGER_ERROR (0x08),				/**< Provided output buffer too small for operation. */
 };
 
 #endif // SESSION_MANAGER_H_

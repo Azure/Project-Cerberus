@@ -15,11 +15,13 @@
  * @param request The request being processed.
  * @param command_id Pointer to hold command ID of incoming request.
  * @param command_set Pointer to hold command set of incoming request.
+ * @param encrypted Pointer to hold encrypted flag of incoming request.
  * 
  * @return 0 if the request was successfully processed or an error code.
  */
 int cmd_interface_process_request (struct cmd_interface *intf, 
-	struct cmd_interface_request *request, uint8_t *command_id, uint8_t *command_set)
+	struct cmd_interface_request *request, uint8_t *command_id, uint8_t *command_set, 
+	uint8_t *encrypted)
 {
 	struct cerberus_protocol_header *header;
 	
@@ -41,13 +43,13 @@ int cmd_interface_process_request (struct cmd_interface *intf,
 	}
 
 	if ((header->msg_type != (MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF)) || 
-		(header->pci_vendor_id != CERBERUS_PROTOCOL_MSFT_PCI_VID) || 
-		(header->crypt != 0)) {
+		(header->pci_vendor_id != CERBERUS_PROTOCOL_MSFT_PCI_VID)) {
 		return CMD_HANDLER_UNSUPPORTED_MSG;
 	}
 
 	*command_id = header->command;
 	*command_set = header->rq;
+	*encrypted = header->crypt;
 
 	if (header->command == CERBERUS_PROTOCOL_ERROR) {
 		return CMD_ERROR_MESSAGE_ESCAPE_SEQ;

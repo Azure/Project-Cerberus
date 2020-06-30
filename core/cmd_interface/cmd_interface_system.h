@@ -10,8 +10,10 @@
 #include "attestation/attestation_slave.h"
 #include "cmd_interface.h"
 #include "device_manager.h"
+#include "session_manager.h"
 #include "cmd_background.h"
 #include "cmd_authorization.h"
+#include "session_manager.h"
 #include "crypto/hash.h"
 #include "firmware/firmware_update_control.h"
 #include "manifest/manifest_cmd_interface.h"
@@ -58,6 +60,7 @@ struct cmd_interface_system {
 	struct recovery_image_cmd_interface *recovery_cmd_1;	/**< Recovery image update command interface instance for port 1 */
 	struct cmd_device *cmd_device;							/**< Device command handler instance */
 	struct cmd_interface_device_id device_id;				/**< Device ID information */
+	struct session_manager *session;						/**< Session manager for channel encryption*/
 };
 
 
@@ -76,8 +79,8 @@ int cmd_interface_system_init (struct cmd_interface_system *intf,
 	struct recovery_image_cmd_interface *recovery_cmd_1,
 	struct recovery_image_manager *recovery_manager_0,
 	struct recovery_image_manager *recovery_manager_1, struct cmd_device *cmd_device, 
-	uint16_t vendor_id, uint16_t device_id, uint16_t subsystem_vid, uint16_t subsystem_id
-);
+	uint16_t vendor_id, uint16_t device_id, uint16_t subsystem_vid, uint16_t subsystem_id,
+	struct session_manager *session);
 void cmd_interface_system_deinit (struct cmd_interface_system *intf);
 
 /* Internal functions for use by derived types. */

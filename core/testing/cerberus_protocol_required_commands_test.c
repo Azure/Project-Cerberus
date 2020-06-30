@@ -22,15 +22,24 @@ void cerberus_protocol_required_commands_testing_supports_all_required_commands 
 	struct attestation_slave_mock *slave_attestation, struct device_manager *device_manager,
 	struct cmd_background_mock *background, struct keystore_mock *keystore,
 	struct cmd_device_mock *cmd_device, const uint8_t* csr, size_t csr_length, uint16_t vendor_id,
-	uint16_t device_id, uint16_t subsystem_vid, uint16_t subsystem_id)
+	uint16_t device_id, uint16_t subsystem_vid, uint16_t subsystem_id, 
+	struct session_manager_mock *session)
 {
 	cerberus_protocol_required_commands_testing_process_get_fw_version (test, cmd, version);
 	cerberus_protocol_required_commands_testing_process_get_certificate_digest (test, cmd,
 		slave_attestation);
 	cerberus_protocol_required_commands_testing_process_get_certificate (test, cmd,
 		slave_attestation);
-	cerberus_protocol_required_commands_testing_process_get_challenge_response (test, cmd,
-		slave_attestation);
+
+	if (session) {
+		cerberus_protocol_required_commands_testing_process_get_challenge_response (test, cmd,
+			slave_attestation, session);
+	}
+	else {
+		cerberus_protocol_required_commands_testing_process_get_challenge_response_no_session_mgr (
+			test, cmd, slave_attestation);
+	}
+
 	cerberus_protocol_required_commands_testing_process_get_capabilities (test, cmd,
 		device_manager);
 	cerberus_protocol_required_commands_testing_process_get_devid_csr (test, cmd, csr, csr_length);
@@ -535,6 +544,32 @@ void cerberus_protocol_required_commands_testing_process_get_certificate_digest_
 	CuAssertIntEquals (test, true, request.crypto_timeout);
 }
 
+void cerberus_protocol_required_commands_testing_process_get_certificate_digest_encryption_unsupported (
+	CuTest *test, struct cmd_interface *cmd)
+{
+	struct cmd_interface_request request;
+	struct cerberus_protocol_get_certificate_digest *req =
+		(struct cerberus_protocol_get_certificate_digest*) request.data;
+	int status;
+
+	memset (&request, 0, sizeof (request));
+	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req->header.command = CERBERUS_PROTOCOL_GET_DIGEST;
+
+	req->digest.slot_num = 2;
+	req->digest.key_alg = 1;
+	request.length = sizeof (struct cerberus_protocol_get_certificate_digest);
+	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+
+	request.crypto_timeout = false;
+	status = cmd->process_request (cmd, &request);
+	CuAssertIntEquals (test, CMD_HANDLER_UNSUPPORTED_OPERATION, status);
+	CuAssertIntEquals (test, true, request.crypto_timeout);
+}
+
 void cerberus_protocol_required_commands_testing_process_get_certificate_digest_invalid_len (
 	CuTest *test, struct cmd_interface *cmd)
 {
@@ -581,7 +616,7 @@ void cerberus_protocol_required_commands_testing_process_get_certificate_digest_
 	req->header.command = CERBERUS_PROTOCOL_GET_DIGEST;
 
 	req->digest.slot_num = 0;
-	req->digest.key_alg = 2;
+	req->digest.key_alg = NUM_ATTESTATION_KEY_EXCHANGE_ALGORITHMS;
 	request.length = sizeof (struct cerberus_protocol_get_certificate_digest);
 	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
 	request.source_eid = MCTP_PROTOCOL_BMC_EID;
@@ -1346,7 +1381,108 @@ void cerberus_protocol_required_commands_testing_process_get_certificate_fail (
 }
 
 void cerberus_protocol_required_commands_testing_process_get_challenge_response (CuTest *test,
-	struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation)
+	struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation, 
+	struct session_manager_mock *session)
+{
+	struct cmd_interface_request request;
+	struct cmd_interface_request digest_request;
+	struct cerberus_protocol_challenge *req = (struct cerberus_protocol_challenge*) request.data;
+	struct cerberus_protocol_challenge_response *resp =
+		(struct cerberus_protocol_challenge_response*) request.data;
+	struct cerberus_protocol_get_certificate_digest *digest_req =
+		(struct cerberus_protocol_get_certificate_digest*) digest_request.data;
+	uint8_t nonce[ATTESTATION_NONCE_LEN];
+	uint8_t response_buf[136] = {0};
+	struct attestation_response *response = (struct attestation_response*) response_buf;
+	int status;
+	int max_digest = CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG - 2;
+	int max = CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG;
+
+	memset (&digest_request, 0, sizeof (digest_request));
+	digest_req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	digest_req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	digest_req->header.command = CERBERUS_PROTOCOL_GET_DIGEST;
+
+	digest_req->digest.slot_num = 0;
+	digest_req->digest.key_alg = ATTESTATION_ECDHE_KEY_EXCHANGE;
+	digest_request.length = sizeof (struct cerberus_protocol_get_certificate_digest);
+	digest_request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
+	digest_request.source_eid = MCTP_PROTOCOL_BMC_EID;
+	digest_request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+
+	response->slot_num = 0;
+	response->slot_mask = 1;
+	response->min_protocol_version = 1;
+	response->max_protocol_version = 1;
+	response->nonce[0] = 0xAA;
+	response->nonce[31] = 0xBB;
+	response->num_digests = 2;
+	response->digests_size = SHA256_HASH_LENGTH;
+
+	response_buf[sizeof (*response)] = 0xCC;
+	response_buf[sizeof (*response) + 31] = 0xDD;
+	response_buf[sizeof (*response) + 32] = 0xEE;
+	response_buf[sizeof (*response) + 95] = 0xFF;
+
+	memset (&request, 0, sizeof (request));
+	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req->header.command = CERBERUS_PROTOCOL_ATTESTATION_CHALLENGE;
+
+	memset (nonce, 0x55, 32);
+	memcpy (req->challenge.nonce, nonce, sizeof (req->challenge.nonce));
+
+	req->challenge.slot_num = 0;
+	request.length = sizeof (struct cerberus_protocol_challenge);
+	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+
+	status = mock_expect (&slave_attestation->mock, slave_attestation->base.get_digests,
+		slave_attestation, 64, MOCK_ARG (0), 
+		MOCK_ARG (&digest_request.data[sizeof (struct cerberus_protocol_get_certificate_digest_response)]),
+		MOCK_ARG (max_digest), MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	digest_request.new_request = true;
+	status = cmd->process_request (cmd, &digest_request);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, false, digest_request.new_request);
+
+	status = mock_expect (&slave_attestation->mock, slave_attestation->base.challenge_response,
+		slave_attestation, sizeof (response_buf), MOCK_ARG_NOT_NULL, MOCK_ARG (max));
+	status |= mock_expect_output (&slave_attestation->mock, 0, response_buf, sizeof (response_buf),
+		-1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&session->mock, session->base.add_session, session, 0, 
+		MOCK_ARG (MCTP_PROTOCOL_BMC_EID), MOCK_ARG_PTR_CONTAINS_TMP (nonce, sizeof (nonce)), 
+		MOCK_ARG_PTR_CONTAINS_TMP (response->nonce, sizeof (response->nonce)));
+	CuAssertIntEquals (test, 0, status);
+
+	request.new_request = true;
+	request.crypto_timeout = false;
+	status = cmd->process_request (cmd, &request);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MIN_MSG_LEN + sizeof (response_buf), request.length);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
+	CuAssertIntEquals (test, 0, resp->header.crypt);
+	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.integrity_check);
+	CuAssertIntEquals (test, 0, resp->header.seq_num);
+	CuAssertIntEquals (test, 0, resp->header.rq);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_ATTESTATION_CHALLENGE, resp->header.command);
+	CuAssertIntEquals (test, false, request.new_request);
+	CuAssertIntEquals (test, true, request.crypto_timeout);
+
+	status = testing_validate_array (response_buf, &request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN],
+		sizeof (response_buf));
+	CuAssertIntEquals (test, 0, status);
+}
+
+void cerberus_protocol_required_commands_testing_process_get_challenge_response_no_session_mgr (
+	CuTest *test, struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation)
 {
 	struct cmd_interface_request request;
 	struct cerberus_protocol_challenge *req = (struct cerberus_protocol_challenge*) request.data;
@@ -1385,9 +1521,103 @@ void cerberus_protocol_required_commands_testing_process_get_challenge_response 
 
 	status = mock_expect (&slave_attestation->mock, slave_attestation->base.challenge_response,
 		slave_attestation, sizeof (response_buf), MOCK_ARG_NOT_NULL, MOCK_ARG (max));
-	status |= mock_expect_output (&slave_attestation->mock, 0, &response_buf, sizeof (response_buf),
+	status |= mock_expect_output (&slave_attestation->mock, 0, response_buf, sizeof (response_buf),
 		-1);
+	CuAssertIntEquals (test, 0, status);
 
+	request.new_request = true;
+	request.crypto_timeout = false;
+	status = cmd->process_request (cmd, &request);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MIN_MSG_LEN + sizeof (response_buf), request.length);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
+	CuAssertIntEquals (test, 0, resp->header.crypt);
+	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.integrity_check);
+	CuAssertIntEquals (test, 0, resp->header.seq_num);
+	CuAssertIntEquals (test, 0, resp->header.rq);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_ATTESTATION_CHALLENGE, resp->header.command);
+	CuAssertIntEquals (test, false, request.new_request);
+	CuAssertIntEquals (test, true, request.crypto_timeout);
+
+	status = testing_validate_array (response_buf, &request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN],
+		sizeof (response_buf));
+	CuAssertIntEquals (test, 0, status);
+}
+
+void cerberus_protocol_required_commands_testing_process_get_challenge_response_key_exchange_not_requested (
+	CuTest *test, struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation)
+{
+	struct cmd_interface_request request;
+	struct cmd_interface_request digest_request;
+	struct cerberus_protocol_challenge *req = (struct cerberus_protocol_challenge*) request.data;
+	struct cerberus_protocol_challenge_response *resp =
+		(struct cerberus_protocol_challenge_response*) request.data;
+	struct cerberus_protocol_get_certificate_digest *digest_req =
+		(struct cerberus_protocol_get_certificate_digest*) digest_request.data;
+	uint8_t nonce[ATTESTATION_NONCE_LEN];
+	uint8_t response_buf[136] = {0};
+	struct attestation_response *response = (struct attestation_response*) response_buf;
+	int status;
+	int max_digest = CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG - 2;
+	int max = CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG;
+
+	memset (&digest_request, 0, sizeof (digest_request));
+	digest_req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	digest_req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	digest_req->header.command = CERBERUS_PROTOCOL_GET_DIGEST;
+
+	digest_req->digest.slot_num = 0;
+	digest_req->digest.key_alg = ATTESTATION_KEY_EXCHANGE_NONE;
+	digest_request.length = sizeof (struct cerberus_protocol_get_certificate_digest);
+	digest_request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
+	digest_request.source_eid = MCTP_PROTOCOL_BMC_EID;
+	digest_request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+
+	response->slot_num = 0;
+	response->slot_mask = 1;
+	response->min_protocol_version = 1;
+	response->max_protocol_version = 1;
+	response->nonce[0] = 0xAA;
+	response->nonce[31] = 0xBB;
+	response->num_digests = 2;
+	response->digests_size = SHA256_HASH_LENGTH;
+
+	response_buf[sizeof (*response)] = 0xCC;
+	response_buf[sizeof (*response) + 31] = 0xDD;
+	response_buf[sizeof (*response) + 32] = 0xEE;
+	response_buf[sizeof (*response) + 95] = 0xFF;
+
+	memset (&request, 0, sizeof (request));
+	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req->header.command = CERBERUS_PROTOCOL_ATTESTATION_CHALLENGE;
+
+	memset (nonce, 0x55, 32);
+	memcpy (req->challenge.nonce, nonce, sizeof (req->challenge.nonce));
+
+	req->challenge.slot_num = 0;
+	request.length = sizeof (struct cerberus_protocol_challenge);
+	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+
+	status = mock_expect (&slave_attestation->mock, slave_attestation->base.get_digests,
+		slave_attestation, 64, MOCK_ARG (0), 
+		MOCK_ARG (&digest_request.data[sizeof (struct cerberus_protocol_get_certificate_digest_response)]),
+		MOCK_ARG (max_digest), MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	digest_request.new_request = true;
+	status = cmd->process_request (cmd, &digest_request);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, false, digest_request.new_request);
+
+	status = mock_expect (&slave_attestation->mock, slave_attestation->base.challenge_response,
+		slave_attestation, sizeof (response_buf), MOCK_ARG_NOT_NULL, MOCK_ARG (max));
+	status |= mock_expect_output (&slave_attestation->mock, 0, response_buf, sizeof (response_buf),
+		-1);
 	CuAssertIntEquals (test, 0, status);
 
 	request.new_request = true;
@@ -1412,6 +1642,107 @@ void cerberus_protocol_required_commands_testing_process_get_challenge_response 
 }
 
 void cerberus_protocol_required_commands_testing_process_get_challenge_response_limited_response (
+	CuTest *test, struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation, 
+	struct session_manager_mock *session)
+{
+	struct cmd_interface_request request;
+	struct cmd_interface_request digest_request;
+	struct cerberus_protocol_get_certificate_digest *digest_req =
+		(struct cerberus_protocol_get_certificate_digest*) digest_request.data;
+	struct cerberus_protocol_challenge *req = (struct cerberus_protocol_challenge*) request.data;
+	struct cerberus_protocol_challenge_response *resp =
+		(struct cerberus_protocol_challenge_response*) request.data;
+	uint8_t response_buf[136] = {0};
+	uint8_t nonce[ATTESTATION_NONCE_LEN];
+	struct attestation_response *response = (struct attestation_response*) response_buf;
+	int status;
+	int max_digest = CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG - 2;
+	int max = CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG - 128;
+
+	memset (&digest_request, 0, sizeof (digest_request));
+	digest_req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	digest_req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	digest_req->header.command = CERBERUS_PROTOCOL_GET_DIGEST;
+
+	digest_req->digest.slot_num = 0;
+	digest_req->digest.key_alg = ATTESTATION_ECDHE_KEY_EXCHANGE;
+	digest_request.length = sizeof (struct cerberus_protocol_get_certificate_digest);
+	digest_request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
+	digest_request.source_eid = MCTP_PROTOCOL_BMC_EID;
+	digest_request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+
+	response->slot_num = 0;
+	response->slot_mask = 1;
+	response->min_protocol_version = 1;
+	response->max_protocol_version = 1;
+	response->nonce[0] = 0xAA;
+	response->nonce[31] = 0xBB;
+	response->num_digests = 2;
+	response->digests_size = SHA256_HASH_LENGTH;
+
+	response_buf[sizeof (*response)] = 0xCC;
+	response_buf[sizeof (*response) + 31] = 0xDD;
+	response_buf[sizeof (*response) + 32] = 0xEE;
+	response_buf[sizeof (*response) + 95] = 0xFF;
+
+	memset (&request, 0, sizeof (request));
+	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req->header.command = CERBERUS_PROTOCOL_ATTESTATION_CHALLENGE;
+
+	memset (nonce, 0x55, 32);
+	memcpy (req->challenge.nonce, nonce, sizeof (req->challenge.nonce));
+
+	req->challenge.slot_num = 0;
+	request.length = sizeof (struct cerberus_protocol_challenge);
+	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY - 128;
+	request.source_eid = MCTP_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+
+	status = mock_expect (&slave_attestation->mock, slave_attestation->base.get_digests,
+		slave_attestation, 64, MOCK_ARG (0), 
+		MOCK_ARG (&digest_request.data[sizeof (struct cerberus_protocol_get_certificate_digest_response)]),
+		MOCK_ARG (max_digest), MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	digest_request.new_request = true;
+	status = cmd->process_request (cmd, &digest_request);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, false, digest_request.new_request);
+
+	status = mock_expect (&slave_attestation->mock, slave_attestation->base.challenge_response,
+		slave_attestation, sizeof (response_buf), MOCK_ARG_NOT_NULL, MOCK_ARG (max));
+	status |= mock_expect_output (&slave_attestation->mock, 0, response_buf, sizeof (response_buf),
+		-1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&session->mock, session->base.add_session, session, 0, 
+		MOCK_ARG (MCTP_PROTOCOL_BMC_EID), MOCK_ARG_PTR_CONTAINS_TMP (nonce, sizeof (nonce)), 
+		MOCK_ARG_PTR_CONTAINS_TMP (response->nonce, sizeof (response->nonce)));
+	CuAssertIntEquals (test, 0, status);
+
+	request.new_request = true;
+	request.crypto_timeout = false;
+	status = cmd->process_request (cmd, &request);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MIN_MSG_LEN + sizeof (response_buf), request.length);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
+	CuAssertIntEquals (test, 0, resp->header.crypt);
+	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.integrity_check);
+	CuAssertIntEquals (test, 0, resp->header.seq_num);
+	CuAssertIntEquals (test, 0, resp->header.rq);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_ATTESTATION_CHALLENGE, resp->header.command);
+	CuAssertIntEquals (test, false, request.new_request);
+	CuAssertIntEquals (test, true, request.crypto_timeout);
+
+	status = testing_validate_array (response_buf, &request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN],
+		sizeof (response_buf));
+	CuAssertIntEquals (test, 0, status);
+}
+
+void cerberus_protocol_required_commands_testing_process_get_challenge_response_limited_response_no_session_mgr (
 	CuTest *test, struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation)
 {
 	struct cmd_interface_request request;
@@ -1442,7 +1773,8 @@ void cerberus_protocol_required_commands_testing_process_get_challenge_response_
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_ATTESTATION_CHALLENGE;
 
-	memset (&req->challenge.nonce, 0x55, 32);
+	memset (req->challenge.nonce, 0x55, sizeof (req->challenge.nonce));
+
 	req->challenge.slot_num = 0;
 	request.length = sizeof (struct cerberus_protocol_challenge);
 	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY - 128;
@@ -1451,9 +1783,103 @@ void cerberus_protocol_required_commands_testing_process_get_challenge_response_
 
 	status = mock_expect (&slave_attestation->mock, slave_attestation->base.challenge_response,
 		slave_attestation, sizeof (response_buf), MOCK_ARG_NOT_NULL, MOCK_ARG (max));
-	status |= mock_expect_output (&slave_attestation->mock, 0, &response_buf, sizeof (response_buf),
+	status |= mock_expect_output (&slave_attestation->mock, 0, response_buf, sizeof (response_buf),
 		-1);
+	CuAssertIntEquals (test, 0, status);
 
+	request.new_request = true;
+	request.crypto_timeout = false;
+	status = cmd->process_request (cmd, &request);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MIN_MSG_LEN + sizeof (response_buf), request.length);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
+	CuAssertIntEquals (test, 0, resp->header.crypt);
+	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.integrity_check);
+	CuAssertIntEquals (test, 0, resp->header.seq_num);
+	CuAssertIntEquals (test, 0, resp->header.rq);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_ATTESTATION_CHALLENGE, resp->header.command);
+	CuAssertIntEquals (test, false, request.new_request);
+	CuAssertIntEquals (test, true, request.crypto_timeout);
+
+	status = testing_validate_array (response_buf, &request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN],
+		sizeof (response_buf));
+	CuAssertIntEquals (test, 0, status);
+}
+
+void cerberus_protocol_required_commands_testing_process_get_challenge_response_limited_response_key_exchange_not_requested (
+	CuTest *test, struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation)
+{
+	struct cmd_interface_request request;
+	struct cmd_interface_request digest_request;
+	struct cerberus_protocol_get_certificate_digest *digest_req =
+		(struct cerberus_protocol_get_certificate_digest*) digest_request.data;
+	struct cerberus_protocol_challenge *req = (struct cerberus_protocol_challenge*) request.data;
+	struct cerberus_protocol_challenge_response *resp =
+		(struct cerberus_protocol_challenge_response*) request.data;
+	uint8_t response_buf[136] = {0};
+	uint8_t nonce[ATTESTATION_NONCE_LEN];
+	struct attestation_response *response = (struct attestation_response*) response_buf;
+	int status;
+	int max_digest = CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG - 2;
+	int max = CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG - 128;
+
+	memset (&digest_request, 0, sizeof (digest_request));
+	digest_req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	digest_req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	digest_req->header.command = CERBERUS_PROTOCOL_GET_DIGEST;
+
+	digest_req->digest.slot_num = 0;
+	digest_req->digest.key_alg = ATTESTATION_KEY_EXCHANGE_NONE;
+	digest_request.length = sizeof (struct cerberus_protocol_get_certificate_digest);
+	digest_request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
+	digest_request.source_eid = MCTP_PROTOCOL_BMC_EID;
+	digest_request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+
+	response->slot_num = 0;
+	response->slot_mask = 1;
+	response->min_protocol_version = 1;
+	response->max_protocol_version = 1;
+	response->nonce[0] = 0xAA;
+	response->nonce[31] = 0xBB;
+	response->num_digests = 2;
+	response->digests_size = SHA256_HASH_LENGTH;
+
+	response_buf[sizeof (*response)] = 0xCC;
+	response_buf[sizeof (*response) + 31] = 0xDD;
+	response_buf[sizeof (*response) + 32] = 0xEE;
+	response_buf[sizeof (*response) + 95] = 0xFF;
+
+	memset (&request, 0, sizeof (request));
+	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req->header.command = CERBERUS_PROTOCOL_ATTESTATION_CHALLENGE;
+
+	memset (nonce, 0x55, 32);
+	memcpy (req->challenge.nonce, nonce, sizeof (req->challenge.nonce));
+
+	req->challenge.slot_num = 0;
+	request.length = sizeof (struct cerberus_protocol_challenge);
+	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY - 128;
+	request.source_eid = MCTP_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+
+	status = mock_expect (&slave_attestation->mock, slave_attestation->base.get_digests,
+		slave_attestation, 64, MOCK_ARG (0), 
+		MOCK_ARG (&digest_request.data[sizeof (struct cerberus_protocol_get_certificate_digest_response)]),
+		MOCK_ARG (max_digest), MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	digest_request.new_request = true;
+	status = cmd->process_request (cmd, &digest_request);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, false, digest_request.new_request);
+
+	status = mock_expect (&slave_attestation->mock, slave_attestation->base.challenge_response,
+		slave_attestation, sizeof (response_buf), MOCK_ARG_NOT_NULL, MOCK_ARG (max));
+	status |= mock_expect_output (&slave_attestation->mock, 0, response_buf, sizeof (response_buf),
+		-1);
 	CuAssertIntEquals (test, 0, status);
 
 	request.new_request = true;

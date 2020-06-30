@@ -92,7 +92,8 @@ struct cmd_interface {
 
 /* Internal functions for use by derived types. */
 int cmd_interface_process_request (struct cmd_interface *intf,
-	struct cmd_interface_request *request, uint8_t *command_id, uint8_t *command_set);
+	struct cmd_interface_request *request, uint8_t *command_id, uint8_t *command_set, 
+	uint8_t *encrypted);
 
 
 #define	CMD_HANDLER_ERROR(code)		ROT_ERROR (ROT_MODULE_CMD_HANDLER, code)
@@ -120,6 +121,8 @@ enum {
 	CMD_HANDLER_UNSUPPORTED_CHANNEL = CMD_HANDLER_ERROR (0x0E),		/**< The command is received on a channel not supported by the device. */
 	CMD_HANDLER_UNSUPPORTED_OPERATION = CMD_HANDLER_ERROR (0x0F),	/**< The requested operation is not supported. */
 	CMD_HANDLER_RESPONSE_TOO_SMALL = CMD_HANDLER_ERROR (0x10),		/**< The maximum allowed response is too small for the output. */
+	CMD_HANDLER_ENCRYPTION_UNSUPPORTED = CMD_HANDLER_ERROR (0x11),	/**< Channel encryption not supported on this interface. */
+	CMD_HANDLER_CMD_SHOULD_BE_ENCRYPTED = CMD_HANDLER_ERROR (0x12),	/**< Secure command received unencrypted after establishing an encrypted channel. */
 };
 
 

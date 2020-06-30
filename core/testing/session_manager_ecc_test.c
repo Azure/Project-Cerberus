@@ -1394,10 +1394,12 @@ static void session_manager_ecc_test_establish_session_invalid_arg (CuTest *test
 
 	setup_session_manager_ecc_test (test, &cmd);
 
-	status = cmd.session.base.establish_session (NULL, 0x10, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, true);
+	status = cmd.session.base.establish_session (NULL, 0x10, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, 
+		true);
 	CuAssertIntEquals (test, SESSION_MANAGER_INVALID_ARGUMENT, status);
 
-	status = cmd.session.base.establish_session (&cmd.session.base, 0x10, NULL, ECC_PUBKEY_DER_LEN, true);
+	status = cmd.session.base.establish_session (&cmd.session.base, 0x10, NULL, ECC_PUBKEY_DER_LEN,
+		 true);
 	CuAssertIntEquals (test, SESSION_MANAGER_INVALID_ARGUMENT, status);
 
 	release_session_manager_ecc_test (test, &cmd);
@@ -1406,6 +1408,7 @@ static void session_manager_ecc_test_establish_session_invalid_arg (CuTest *test
 static void session_manager_ecc_test_decrypt_message (CuTest *test)
 {
 	struct session_manager_ecc_testing cmd;
+	struct cmd_interface_request rq;
 	uint8_t nonce1[] = {
 		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,
 		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
@@ -1414,21 +1417,28 @@ static void session_manager_ecc_test_decrypt_message (CuTest *test)
 		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
 		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
 	};
-	uint8_t data[] = {0xA, 0xB, 0xC, 0xD, 0xE};
-	uint8_t decrypted[] = {0x1, 0x2, 0x3, 0x4, 0x5};
+	uint8_t data[] = {
+		0xA,0xB,0xC,0xD,0xE,0xF,0xAA,0xBB,0xCC,0xDD,0xEE,0xFF
+	};
+	uint8_t decrypted[] = {
+		0x6,0x7,0x8,0x9,0xA,0xB,0xC
+	};
 	uint8_t aes_key[] = {
 		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
 		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
 	};
-	uint8_t msg[33];
 	int status;
 
 	TEST_START;
 
-	memcpy (msg, data, sizeof (data));
-	memcpy (&msg[sizeof (data)], SESSION_AES_GCM_TAG, sizeof (SESSION_AES_GCM_TAG));
-	memcpy (&msg[sizeof (data) + sizeof (SESSION_AES_GCM_TAG)], SESSION_AES_IV,
+	memcpy (rq.data, data, sizeof (data));
+	memcpy (&rq.data[sizeof (data)], SESSION_AES_GCM_TAG, sizeof (SESSION_AES_GCM_TAG));
+	memcpy (&rq.data[sizeof (data) + sizeof (SESSION_AES_GCM_TAG)], SESSION_AES_IV, 
 		sizeof (SESSION_AES_IV));
+
+	rq.length = 40;
+	rq.source_eid = 0x10;
+	rq.max_response = 4096;
 
 	setup_session_manager_ecc_test (test, &cmd);
 
@@ -1478,19 +1488,26 @@ static void session_manager_ecc_test_decrypt_message (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.aes.mock, cmd.aes.base.decrypt_data, &cmd.aes, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP (msg, sizeof (data)), MOCK_ARG (sizeof (data)),
-		MOCK_ARG_PTR_CONTAINS (SESSION_AES_GCM_TAG, sizeof (SESSION_AES_GCM_TAG)),
-		MOCK_ARG_PTR_CONTAINS (SESSION_AES_IV, sizeof (SESSION_AES_IV)),
-		MOCK_ARG (sizeof (SESSION_AES_IV)), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (sizeof (msg)));
+		MOCK_ARG_PTR_CONTAINS_TMP (rq.data + sizeof (struct cerberus_protocol_header), 
+		sizeof (data) - sizeof (struct cerberus_protocol_header)), 
+		MOCK_ARG (sizeof (data) - sizeof (struct cerberus_protocol_header)), 
+		MOCK_ARG_PTR_CONTAINS (SESSION_AES_GCM_TAG, sizeof (SESSION_AES_GCM_TAG)), 
+		MOCK_ARG_PTR_CONTAINS (SESSION_AES_IV, sizeof (SESSION_AES_IV)), 
+		MOCK_ARG (sizeof (SESSION_AES_IV)), MOCK_ARG_NOT_NULL, 
+		MOCK_ARG (sizeof (rq.data) - sizeof (struct cerberus_protocol_header)));
 	status |= mock_expect_output (&cmd.aes.mock, 5, decrypted, sizeof (decrypted), 6);
 	CuAssertIntEquals (test, 0, status);
 
-	status = cmd.session.base.decrypt_message (&cmd.session.base, 0x10, msg, sizeof (msg),
-		sizeof (msg));
-	CuAssertIntEquals (test, sizeof (data), status);
+	status = cmd.session.base.decrypt_message (&cmd.session.base, &rq);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (data), rq.length);
+	CuAssertIntEquals (test, 4096, rq.max_response);
 
-	status = testing_validate_array (decrypted, msg, sizeof (decrypted));
+	status = testing_validate_array (data, rq.data, sizeof (struct cerberus_protocol_header));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (decrypted, rq.data + sizeof (struct cerberus_protocol_header), 
+		sizeof (decrypted));
 	CuAssertIntEquals (test, 0, status);
 
 	release_session_manager_ecc_test (test, &cmd);
@@ -1499,15 +1516,18 @@ static void session_manager_ecc_test_decrypt_message (CuTest *test)
 static void session_manager_ecc_test_decrypt_message_unexpected_eid (CuTest *test)
 {
 	struct session_manager_ecc_testing cmd;
-	uint8_t msg[33];
+	struct cmd_interface_request rq;
 	int status;
 
 	TEST_START;
 
 	setup_session_manager_ecc_test (test, &cmd);
 
-	status = cmd.session.base.decrypt_message (&cmd.session.base, 0x11, msg, sizeof (msg),
-		sizeof (msg));
+	rq.length = 40;
+	rq.source_eid = 0x11;
+	rq.max_response = 4096;
+
+	status = cmd.session.base.decrypt_message (&cmd.session.base, &rq);
 	CuAssertIntEquals (test, SESSION_MANAGER_UNEXPECTED_EID, status);
 
 	release_session_manager_ecc_test (test, &cmd);
@@ -1516,6 +1536,7 @@ static void session_manager_ecc_test_decrypt_message_unexpected_eid (CuTest *tes
 static void session_manager_ecc_test_decrypt_message_session_not_established (CuTest *test)
 {
 	struct session_manager_ecc_testing cmd;
+	struct cmd_interface_request rq;
 	uint8_t nonce1[] = {
 		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,
 		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
@@ -1524,18 +1545,20 @@ static void session_manager_ecc_test_decrypt_message_session_not_established (Cu
 		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
 		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
 	};
-	uint8_t msg[33];
 	int status;
 
 	TEST_START;
 
 	setup_session_manager_ecc_test (test, &cmd);
 
+	rq.length = 40;
+	rq.source_eid = 0x10;
+	rq.max_response = 4096;
+
 	status = cmd.session.base.add_session (&cmd.session.base, 0x10, nonce1, nonce2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = cmd.session.base.decrypt_message (&cmd.session.base, 0x10, msg, sizeof (msg),
-		sizeof (msg));
+	status = cmd.session.base.decrypt_message (&cmd.session.base, &rq);
 	CuAssertIntEquals (test, SESSION_MANAGER_SESSION_NOT_ESTABLISHED, status);
 
 	release_session_manager_ecc_test (test, &cmd);
@@ -1544,6 +1567,7 @@ static void session_manager_ecc_test_decrypt_message_session_not_established (Cu
 static void session_manager_ecc_test_decrypt_message_set_key_fail (CuTest *test)
 {
 	struct session_manager_ecc_testing cmd;
+	struct cmd_interface_request rq;
 	uint8_t nonce1[] = {
 		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,
 		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
@@ -1556,12 +1580,15 @@ static void session_manager_ecc_test_decrypt_message_set_key_fail (CuTest *test)
 		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
 		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
 	};
-	uint8_t msg[33];
 	int status;
 
 	TEST_START;
 
 	setup_session_manager_ecc_test (test, &cmd);
+
+	rq.length = 40;
+	rq.source_eid = 0x10;
+	rq.max_response = 4096;
 
 	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_key_pair, &cmd.ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
@@ -1608,8 +1635,7 @@ static void session_manager_ecc_test_decrypt_message_set_key_fail (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS_TMP (aes_key, sizeof (aes_key)), MOCK_ARG (sizeof (aes_key)));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cmd.session.base.decrypt_message (&cmd.session.base, 0x10, msg, sizeof (msg),
-		sizeof (msg));
+	status = cmd.session.base.decrypt_message (&cmd.session.base, &rq);
 	CuAssertIntEquals (test, AES_ENGINE_NO_MEMORY, status);
 
 	release_session_manager_ecc_test (test, &cmd);
@@ -1618,6 +1644,7 @@ static void session_manager_ecc_test_decrypt_message_set_key_fail (CuTest *test)
 static void session_manager_ecc_test_decrypt_message_fail (CuTest *test)
 {
 	struct session_manager_ecc_testing cmd;
+	struct cmd_interface_request rq;
 	uint8_t nonce1[] = {
 		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,
 		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
@@ -1627,21 +1654,24 @@ static void session_manager_ecc_test_decrypt_message_fail (CuTest *test)
 		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
 	};
 	uint8_t data[] = {
-		0xA,0xB,0xC,0xD,0xE
+		0xA,0xB,0xC,0xD,0xE,0xF,0xAA,0xBB,0xCC,0xDD,0xEE,0xFF
 	};
 	uint8_t aes_key[] = {
 		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
 		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
 	};
-	uint8_t msg[33];
 	int status;
 
 	TEST_START;
 
-	memcpy (msg, data, sizeof (data));
-	memcpy (&msg[sizeof (data)], SESSION_AES_GCM_TAG, sizeof (SESSION_AES_GCM_TAG));
-	memcpy (&msg[sizeof (data) + sizeof (SESSION_AES_GCM_TAG)], SESSION_AES_IV,
+	memcpy (rq.data, data, sizeof (data));
+	memcpy (&rq.data[sizeof (data)], SESSION_AES_GCM_TAG, sizeof (SESSION_AES_GCM_TAG));
+	memcpy (&rq.data[sizeof (data) + sizeof (SESSION_AES_GCM_TAG)], SESSION_AES_IV, 
 		sizeof (SESSION_AES_IV));
+
+	rq.length = 40;
+	rq.source_eid = 0x10;
+	rq.max_response = 4096;
 
 	setup_session_manager_ecc_test (test, &cmd);
 
@@ -1690,15 +1720,17 @@ static void session_manager_ecc_test_decrypt_message_fail (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS_TMP (aes_key, sizeof (aes_key)), MOCK_ARG (sizeof (aes_key)));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&cmd.aes.mock, cmd.aes.base.decrypt_data, &cmd.aes,
-		AES_ENGINE_NO_MEMORY, MOCK_ARG_PTR_CONTAINS (msg, sizeof (data)), MOCK_ARG (sizeof (data)),
-		MOCK_ARG_PTR_CONTAINS (SESSION_AES_GCM_TAG, sizeof (SESSION_AES_GCM_TAG)),
-		MOCK_ARG_PTR_CONTAINS (SESSION_AES_IV, sizeof (SESSION_AES_IV)),
+	status = mock_expect (&cmd.aes.mock, cmd.aes.base.decrypt_data, &cmd.aes, 
+		AES_ENGINE_NO_MEMORY, MOCK_ARG_PTR_CONTAINS (rq.data + 
+		sizeof (struct cerberus_protocol_header), 
+		sizeof (data) - sizeof (struct cerberus_protocol_header)), 
+		MOCK_ARG (sizeof (data) - sizeof (struct cerberus_protocol_header)), 
+		MOCK_ARG_PTR_CONTAINS (SESSION_AES_GCM_TAG, sizeof (SESSION_AES_GCM_TAG)), 
+		MOCK_ARG_PTR_CONTAINS (SESSION_AES_IV, sizeof (SESSION_AES_IV)), 
 		MOCK_ARG (sizeof (SESSION_AES_IV)), MOCK_ARG_NOT_NULL, MOCK_ARG_ANY);
 	CuAssertIntEquals (test, 0, status);
 
-	status = cmd.session.base.decrypt_message (&cmd.session.base, 0x10, msg, sizeof (msg),
-		sizeof (msg));
+	status = cmd.session.base.decrypt_message (&cmd.session.base, &rq);
 	CuAssertIntEquals (test, AES_ENGINE_NO_MEMORY, status);
 
 	release_session_manager_ecc_test (test, &cmd);
@@ -1707,40 +1739,64 @@ static void session_manager_ecc_test_decrypt_message_fail (CuTest *test)
 static void session_manager_ecc_test_decrypt_message_invalid_message (CuTest *test)
 {
 	struct session_manager_ecc_testing cmd;
-	uint8_t msg[33];
+	struct cmd_interface_request rq;
 	int status;
 
 	TEST_START;
 
 	setup_session_manager_ecc_test (test, &cmd);
 
-	status = cmd.session.base.decrypt_message (&cmd.session.base, 0x10, msg, 28,
-		sizeof (msg));
+	rq.length = SESSION_MANAGER_TRAILER_LEN + sizeof (struct cerberus_protocol_header);
+	rq.source_eid = 0x10;
+	rq.max_response = 4096;
+
+	status = cmd.session.base.decrypt_message (&cmd.session.base, &rq);
 	CuAssertIntEquals (test, SESSION_MANAGER_MALFORMED_MSG, status);
 
+	release_session_manager_ecc_test (test, &cmd);
+}
+
+static void session_manager_ecc_test_decrypt_message_buf_too_small (CuTest *test)
+{
+	struct session_manager_ecc_testing cmd;
+	struct cmd_interface_request rq;
+	int status;
+
+	TEST_START;
+
+	setup_session_manager_ecc_test (test, &cmd);
+
+	rq.length = sizeof (rq.data) + SESSION_MANAGER_TRAILER_LEN + 1;
+	rq.source_eid = 0x10;
+	rq.max_response = 4096;
+
+	status = cmd.session.base.decrypt_message (&cmd.session.base, &rq);
+	CuAssertIntEquals (test, SESSION_MANAGER_BUF_TOO_SMALL, status);
+
+	rq.length = SESSION_MANAGER_TRAILER_LEN + sizeof (struct cerberus_protocol_header) + 1;
+	rq.source_eid = 0x10;
+	rq.max_response = SESSION_MANAGER_TRAILER_LEN + sizeof (struct cerberus_protocol_header);
+
+	status = cmd.session.base.decrypt_message (&cmd.session.base, &rq);
+	CuAssertIntEquals (test, SESSION_MANAGER_BUF_TOO_SMALL, status);
+	
 	release_session_manager_ecc_test (test, &cmd);
 }
 
 static void session_manager_ecc_test_decrypt_message_invalid_arg (CuTest *test)
 {
 	struct session_manager_ecc_testing cmd;
-	uint8_t msg[33];
+	struct cmd_interface_request rq;
 	int status;
 
 	TEST_START;
 
 	setup_session_manager_ecc_test (test, &cmd);
 
-	status = cmd.session.base.decrypt_message (NULL, 0x10, msg, sizeof (msg),
-		sizeof (msg));
+	status = cmd.session.base.decrypt_message (NULL, &rq);
 	CuAssertIntEquals (test, SESSION_MANAGER_INVALID_ARGUMENT, status);
 
-	status = cmd.session.base.decrypt_message (&cmd.session.base, 0x10, NULL, sizeof (msg),
-		sizeof (msg));
-	CuAssertIntEquals (test, SESSION_MANAGER_INVALID_ARGUMENT, status);
-
-	status = cmd.session.base.decrypt_message (&cmd.session.base, 0x10, msg, sizeof (msg),
-		4);
+	status = cmd.session.base.decrypt_message (&cmd.session.base, NULL);
 	CuAssertIntEquals (test, SESSION_MANAGER_INVALID_ARGUMENT, status);
 
 	release_session_manager_ecc_test (test, &cmd);
@@ -1749,6 +1805,7 @@ static void session_manager_ecc_test_decrypt_message_invalid_arg (CuTest *test)
 static void session_manager_ecc_test_encrypt_message (CuTest *test)
 {
 	struct session_manager_ecc_testing cmd;
+	struct cmd_interface_request rq;
 	uint8_t nonce1[] = {
 		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,
 		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
@@ -1758,21 +1815,28 @@ static void session_manager_ecc_test_encrypt_message (CuTest *test)
 		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
 	};
 	uint8_t data[] = {
-		0xA,0xB,0xC,0xD,0xE
+		0xA,0xB,0xC,0xD,0xE,0xF,0xAA,0xBB,0xCC,0xDD,0xEE,0xFF
 	};
+	struct cerberus_protocol_header header;
 	uint8_t encrypted[] = {
-		0x1,0x2,0x3,0x4,0x5
+		0x1,0x2,0x3,0x4,0x5,0x6,0x7
 	};
 	uint8_t aes_key[] = {
 		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
 		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
 	};
 	int status;
-	uint8_t encrypted_buf[33];
 
 	TEST_START;
 
-	memcpy (encrypted_buf, data, sizeof (data));
+	memcpy (rq.data, data, sizeof (data));
+	memcpy (&header, data, sizeof (struct cerberus_protocol_header));
+
+	header.crypt = 1;
+
+	rq.length = sizeof (data);
+	rq.source_eid = 0x10;
+	rq.max_response = 4096;
 
 	setup_session_manager_ecc_test (test, &cmd);
 
@@ -1827,26 +1891,36 @@ static void session_manager_ecc_test_encrypt_message (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.aes.mock, cmd.aes.base.encrypt_data, &cmd.aes, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP (data, sizeof (data)), MOCK_ARG (sizeof (data)),
-		MOCK_ARG_PTR_CONTAINS (SESSION_AES_IV, sizeof (SESSION_AES_IV)),
-		MOCK_ARG (sizeof (SESSION_AES_IV)), MOCK_ARG_NOT_NULL, MOCK_ARG_ANY, MOCK_ARG_NOT_NULL,
+		MOCK_ARG_PTR_CONTAINS_TMP (data + sizeof (struct cerberus_protocol_header), 
+		sizeof (data) - sizeof (struct cerberus_protocol_header)), 
+		MOCK_ARG (sizeof (data) - sizeof (struct cerberus_protocol_header)), 
+		MOCK_ARG_PTR_CONTAINS (SESSION_AES_IV, sizeof (SESSION_AES_IV)), 
+		MOCK_ARG (sizeof (SESSION_AES_IV)), MOCK_ARG_NOT_NULL, MOCK_ARG_ANY, MOCK_ARG_NOT_NULL, 
 		MOCK_ARG_ANY);
 	status |= mock_expect_output (&cmd.aes.mock, 4, encrypted, sizeof (encrypted), 5);
 	status |= mock_expect_output (&cmd.aes.mock, 6, SESSION_AES_GCM_TAG,
 		sizeof (SESSION_AES_GCM_TAG), -1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = cmd.session.base.encrypt_message (&cmd.session.base, 0x10, encrypted_buf,
-		sizeof (data), sizeof (encrypted_buf));
-	CuAssertIntEquals (test,
-		sizeof (encrypted) + CERBERUS_PROTOCOL_AES_GCM_TAG_LEN + CERBERUS_PROTOCOL_AES_IV_LEN,
-		status);
+	status = cmd.session.base.encrypt_message (&cmd.session.base, &rq);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (data) + CERBERUS_PROTOCOL_AES_GCM_TAG_LEN + 
+		CERBERUS_PROTOCOL_AES_IV_LEN, rq.length);
+	CuAssertIntEquals (test, rq.max_response, 4096);
 
-	status = testing_validate_array (encrypted, encrypted_buf, sizeof (encrypted));
-	status |= testing_validate_array (SESSION_AES_GCM_TAG, &encrypted_buf[sizeof (encrypted)],
+	status = testing_validate_array ((uint8_t*) &header, rq.data, 
+		sizeof (struct cerberus_protocol_header));
+	CuAssertIntEquals (test, 0, status);
+	status = testing_validate_array (encrypted, 
+		rq.data + sizeof (struct cerberus_protocol_header), sizeof (encrypted));
+	CuAssertIntEquals (test, 0, status);
+	status = testing_validate_array (SESSION_AES_GCM_TAG, 
+		rq.data + sizeof (struct cerberus_protocol_header) + sizeof (encrypted), 
 		sizeof (SESSION_AES_GCM_TAG));
-	status |= testing_validate_array (SESSION_AES_IV,
-		&encrypted_buf[sizeof (encrypted) + sizeof (SESSION_AES_GCM_TAG)], sizeof (SESSION_AES_IV));
+	CuAssertIntEquals (test, 0, status);
+	status = testing_validate_array (SESSION_AES_IV, rq.data +
+		sizeof (struct cerberus_protocol_header) + sizeof (encrypted) +
+		sizeof (SESSION_AES_GCM_TAG), sizeof (SESSION_AES_IV));
 	CuAssertIntEquals (test, 0, status);
 
 	release_session_manager_ecc_test (test, &cmd);
@@ -1855,20 +1929,23 @@ static void session_manager_ecc_test_encrypt_message (CuTest *test)
 static void session_manager_ecc_test_encrypt_message_unexpected_eid (CuTest *test)
 {
 	struct session_manager_ecc_testing cmd;
+	struct cmd_interface_request rq;
 	uint8_t data[] = {
-		0xA,0xB,0xC,0xD,0xE
+		0xA,0xB,0xC,0xD,0xE,0xF,0xAA,0xBB,0xCC,0xDD,0xEE,0xFF
 	};
-	uint8_t encrypted_buf[33];
 	int status;
 
 	TEST_START;
 
-	memcpy (encrypted_buf, data, sizeof (data));
+	memcpy (rq.data, data, sizeof (data));
+
+	rq.length = sizeof (data);
+	rq.source_eid = 0x11;
+	rq.max_response = 4096;
 
 	setup_session_manager_ecc_test (test, &cmd);
 
-	status = cmd.session.base.encrypt_message (&cmd.session.base, 0x11, encrypted_buf,
-		sizeof (data), sizeof (encrypted_buf));
+	status = cmd.session.base.encrypt_message (&cmd.session.base, &rq);
 	CuAssertIntEquals (test, SESSION_MANAGER_UNEXPECTED_EID, status);
 
 	release_session_manager_ecc_test (test, &cmd);
@@ -1877,6 +1954,7 @@ static void session_manager_ecc_test_encrypt_message_unexpected_eid (CuTest *tes
 static void session_manager_ecc_test_encrypt_message_session_not_established (CuTest *test)
 {
 	struct session_manager_ecc_testing cmd;
+	struct cmd_interface_request rq;
 	uint8_t nonce1[] = {
 		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,
 		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
@@ -1886,22 +1964,24 @@ static void session_manager_ecc_test_encrypt_message_session_not_established (Cu
 		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
 	};
 	uint8_t data[] = {
-		0xA,0xB,0xC,0xD,0xE
+		0xA,0xB,0xC,0xD,0xE,0xF,0xAA,0xBB,0xCC,0xDD,0xEE,0xFF
 	};
-	uint8_t encrypted_buf[33];
 	int status;
 
 	TEST_START;
 
-	memcpy (encrypted_buf, data, sizeof (data));
+	memcpy (rq.data, data, sizeof (data));
+
+	rq.length = sizeof (data);
+	rq.source_eid = 0x10;
+	rq.max_response = 4096;
 
 	setup_session_manager_ecc_test (test, &cmd);
 
 	status = cmd.session.base.add_session (&cmd.session.base, 0x10, nonce1, nonce2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = cmd.session.base.encrypt_message (&cmd.session.base, 0x10, encrypted_buf,
-		sizeof (data), sizeof (encrypted_buf));
+	status = cmd.session.base.encrypt_message (&cmd.session.base, &rq);
 	CuAssertIntEquals (test, SESSION_MANAGER_SESSION_NOT_ESTABLISHED, status);
 
 	release_session_manager_ecc_test (test, &cmd);
@@ -1910,6 +1990,7 @@ static void session_manager_ecc_test_encrypt_message_session_not_established (Cu
 static void session_manager_ecc_test_encrypt_message_set_key_fail (CuTest *test)
 {
 	struct session_manager_ecc_testing cmd;
+	struct cmd_interface_request rq;
 	uint8_t nonce1[] = {
 		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,
 		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
@@ -1919,18 +2000,21 @@ static void session_manager_ecc_test_encrypt_message_set_key_fail (CuTest *test)
 		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
 	};
 	uint8_t data[] = {
-		0xA,0xB,0xC,0xD,0xE
+		0xA,0xB,0xC,0xD,0xE,0xF,0xAA,0xBB,0xCC,0xDD,0xEE,0xFF
 	};
 	uint8_t aes_key[] = {
 		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
 		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
 	};
 	int status;
-	uint8_t encrypted_buf[33];
 
 	TEST_START;
 
-	memcpy (encrypted_buf, data, sizeof (data));
+	memcpy (rq.data, data, sizeof (data));
+
+	rq.length = sizeof (data);
+	rq.source_eid = 0x10;
+	rq.max_response = 4096;
 
 	setup_session_manager_ecc_test (test, &cmd);
 
@@ -1979,8 +2063,7 @@ static void session_manager_ecc_test_encrypt_message_set_key_fail (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS_TMP (aes_key, sizeof (aes_key)), MOCK_ARG (sizeof (aes_key)));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cmd.session.base.encrypt_message (&cmd.session.base, 0x10, encrypted_buf,
-		sizeof (data), sizeof (encrypted_buf));
+	status = cmd.session.base.encrypt_message (&cmd.session.base, &rq);
 	CuAssertIntEquals (test, AES_ENGINE_NO_MEMORY, status);
 
 	release_session_manager_ecc_test (test, &cmd);
@@ -1989,6 +2072,7 @@ static void session_manager_ecc_test_encrypt_message_set_key_fail (CuTest *test)
 static void session_manager_ecc_test_encrypt_message_generate_iv_fail (CuTest *test)
 {
 	struct session_manager_ecc_testing cmd;
+	struct cmd_interface_request rq;
 	uint8_t nonce1[] = {
 		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,
 		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
@@ -1998,18 +2082,21 @@ static void session_manager_ecc_test_encrypt_message_generate_iv_fail (CuTest *t
 		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
 	};
 	uint8_t data[] = {
-		0xA,0xB,0xC,0xD,0xE
+		0xA,0xB,0xC,0xD,0xE,0xF,0xAA,0xBB,0xCC,0xDD,0xEE,0xFF
 	};
 	uint8_t aes_key[] = {
 		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
 		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
 	};
 	int status;
-	uint8_t encrypted_buf[33];
 
 	TEST_START;
 
-	memcpy (encrypted_buf, data, sizeof (data));
+	memcpy (rq.data, data, sizeof (data));
+
+	rq.length = sizeof (data);
+	rq.source_eid = 0x10;
+	rq.max_response = 4096;
 
 	setup_session_manager_ecc_test (test, &cmd);
 
@@ -2063,8 +2150,7 @@ static void session_manager_ecc_test_encrypt_message_generate_iv_fail (CuTest *t
 	status |= mock_expect_output (&cmd.rng.mock, 1, SESSION_AES_IV, sizeof (SESSION_AES_IV), 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = cmd.session.base.encrypt_message (&cmd.session.base, 0x10, encrypted_buf,
-		sizeof (data), sizeof (encrypted_buf));
+	status = cmd.session.base.encrypt_message (&cmd.session.base, &rq);
 	CuAssertIntEquals (test, RNG_ENGINE_NO_MEMORY, status);
 
 	release_session_manager_ecc_test (test, &cmd);
@@ -2073,6 +2159,7 @@ static void session_manager_ecc_test_encrypt_message_generate_iv_fail (CuTest *t
 static void session_manager_ecc_test_encrypt_message_fail (CuTest *test)
 {
 	struct session_manager_ecc_testing cmd;
+	struct cmd_interface_request rq;
 	uint8_t nonce1[] = {
 		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,
 		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
@@ -2082,18 +2169,21 @@ static void session_manager_ecc_test_encrypt_message_fail (CuTest *test)
 		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
 	};
 	uint8_t data[] = {
-		0xA,0xB,0xC,0xD,0xE
+		0xA,0xB,0xC,0xD,0xE,0xF,0xAA,0xBB,0xCC,0xDD,0xEE,0xFF
 	};
 	uint8_t aes_key[] = {
 		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
 		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
 	};
 	int status;
-	uint8_t encrypted_buf[33];
 
 	TEST_START;
 
-	memcpy (encrypted_buf, data, sizeof (data));
+	memcpy (rq.data, data, sizeof (data));
+
+	rq.length = sizeof (data);
+	rq.source_eid = 0x10;
+	rq.max_response = 4096;
 
 	setup_session_manager_ecc_test (test, &cmd);
 
@@ -2147,48 +2237,75 @@ static void session_manager_ecc_test_encrypt_message_fail (CuTest *test)
 	status |= mock_expect_output (&cmd.rng.mock, 1, SESSION_AES_IV, sizeof (SESSION_AES_IV), 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&cmd.aes.mock, cmd.aes.base.encrypt_data, &cmd.aes,
-		AES_ENGINE_NO_MEMORY, MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)),
-		MOCK_ARG_PTR_CONTAINS (SESSION_AES_IV, sizeof (SESSION_AES_IV)),
-		MOCK_ARG (sizeof (SESSION_AES_IV)), MOCK_ARG_NOT_NULL, MOCK_ARG_ANY, MOCK_ARG_NOT_NULL,
+	status = mock_expect (&cmd.aes.mock, cmd.aes.base.encrypt_data, &cmd.aes, 
+		AES_ENGINE_NO_MEMORY, MOCK_ARG_PTR_CONTAINS (data + sizeof (struct cerberus_protocol_header), 
+		sizeof (data) - sizeof (struct cerberus_protocol_header)), 
+		MOCK_ARG (sizeof (data) - sizeof (struct cerberus_protocol_header)), 
+		MOCK_ARG_PTR_CONTAINS (SESSION_AES_IV, sizeof (SESSION_AES_IV)), 
+		MOCK_ARG (sizeof (SESSION_AES_IV)), MOCK_ARG_NOT_NULL, MOCK_ARG_ANY, MOCK_ARG_NOT_NULL, 
 		MOCK_ARG_ANY);
 	CuAssertIntEquals (test, 0, status);
 
-	status = cmd.session.base.encrypt_message (&cmd.session.base, 0x10, encrypted_buf,
-		sizeof (data), sizeof (encrypted_buf));
+	status = cmd.session.base.encrypt_message (&cmd.session.base, &rq);
 	CuAssertIntEquals (test, AES_ENGINE_NO_MEMORY, status);
 
 	release_session_manager_ecc_test (test, &cmd);
 }
 
-static void session_manager_ecc_test_encrypt_message_invalid_arg (CuTest *test)
+static void session_manager_ecc_test_encrypt_message_no_payload (CuTest *test)
 {
 	struct session_manager_ecc_testing cmd;
-	uint8_t data[] = {
-		0xA,0xB,0xC,0xD,0xE
-	};
-	uint8_t encrypted_buf[33];
+	struct cmd_interface_request rq;
 	int status;
 
 	TEST_START;
 
 	setup_session_manager_ecc_test (test, &cmd);
 
-	status = cmd.session.base.encrypt_message (NULL, 0x10, encrypted_buf, sizeof (data),
-		sizeof (encrypted_buf));
+	rq.length = sizeof (struct cerberus_protocol_header);
+	rq.source_eid = 0x10;
+	rq.max_response = 4096;
+
+	status = cmd.session.base.encrypt_message (&cmd.session.base, &rq);
+	CuAssertIntEquals (test, 0, status);
+	
+	release_session_manager_ecc_test (test, &cmd);
+}
+
+static void session_manager_ecc_test_encrypt_message_buf_too_small (CuTest *test)
+{
+	struct session_manager_ecc_testing cmd;
+	struct cmd_interface_request rq;
+	int status;
+
+	TEST_START;
+
+	setup_session_manager_ecc_test (test, &cmd);
+
+	rq.length = sizeof (struct cerberus_protocol_header) + 1;
+	rq.max_response = rq.length + SESSION_MANAGER_TRAILER_LEN - 1;
+	rq.source_eid = 0x10;
+
+	status = cmd.session.base.encrypt_message (&cmd.session.base, &rq);
+	CuAssertIntEquals (test, SESSION_MANAGER_BUF_TOO_SMALL, status);
+	
+	release_session_manager_ecc_test (test, &cmd);
+}
+
+static void session_manager_ecc_test_encrypt_message_invalid_arg (CuTest *test)
+{
+	struct session_manager_ecc_testing cmd;
+	struct cmd_interface_request rq;
+	int status;
+
+	TEST_START;
+
+	setup_session_manager_ecc_test (test, &cmd);
+
+	status = cmd.session.base.encrypt_message (NULL, &rq);
 	CuAssertIntEquals (test, SESSION_MANAGER_INVALID_ARGUMENT, status);
 
-	status = cmd.session.base.encrypt_message (&cmd.session.base, 0x10, NULL, sizeof (data),
-		sizeof (encrypted_buf));
-	CuAssertIntEquals (test, SESSION_MANAGER_INVALID_ARGUMENT, status);
-
-	status = cmd.session.base.encrypt_message (&cmd.session.base, 0x10, encrypted_buf, 0,
-		sizeof (encrypted_buf));
-	CuAssertIntEquals (test, SESSION_MANAGER_INVALID_ARGUMENT, status);
-
-	status = cmd.session.base.encrypt_message (&cmd.session.base, 0x10, encrypted_buf,
-		sizeof (data), sizeof (data) + CERBERUS_PROTOCOL_AES_GCM_TAG_LEN +
-		CERBERUS_PROTOCOL_AES_IV_LEN - 1);
+	status = cmd.session.base.encrypt_message (&cmd.session.base, NULL);
 	CuAssertIntEquals (test, SESSION_MANAGER_INVALID_ARGUMENT, status);
 
 	release_session_manager_ecc_test (test, &cmd);
@@ -2332,6 +2449,7 @@ CuSuite* get_session_manager_ecc_suite ()
 	SUITE_ADD_TEST (suite, session_manager_ecc_test_decrypt_message_set_key_fail);
 	SUITE_ADD_TEST (suite, session_manager_ecc_test_decrypt_message_fail);
 	SUITE_ADD_TEST (suite, session_manager_ecc_test_decrypt_message_invalid_message);
+	SUITE_ADD_TEST (suite, session_manager_ecc_test_decrypt_message_buf_too_small);
 	SUITE_ADD_TEST (suite, session_manager_ecc_test_decrypt_message_invalid_arg);
 	SUITE_ADD_TEST (suite, session_manager_ecc_test_encrypt_message);
 	SUITE_ADD_TEST (suite, session_manager_ecc_test_encrypt_message_unexpected_eid);
@@ -2339,6 +2457,8 @@ CuSuite* get_session_manager_ecc_suite ()
 	SUITE_ADD_TEST (suite, session_manager_ecc_test_encrypt_message_set_key_fail);
 	SUITE_ADD_TEST (suite, session_manager_ecc_test_encrypt_message_generate_iv_fail);
 	SUITE_ADD_TEST (suite, session_manager_ecc_test_encrypt_message_fail);
+	SUITE_ADD_TEST (suite, session_manager_ecc_test_encrypt_message_no_payload);
+	SUITE_ADD_TEST (suite, session_manager_ecc_test_encrypt_message_buf_too_small);
 	SUITE_ADD_TEST (suite, session_manager_ecc_test_encrypt_message_invalid_arg);
 	SUITE_ADD_TEST (suite, session_manager_ecc_test_is_session_established);
 	SUITE_ADD_TEST (suite, session_manager_ecc_test_is_session_established_unexpected_eid);

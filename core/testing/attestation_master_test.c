@@ -351,7 +351,7 @@ static void attestation_master_test_init (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_master_init (&attestation, &riot, &hash.base, &ecc.base, &rsa.base,
-		&x509.base, &rng.base, &manager, ATTESTATION_ECDHE_KEY_EXCHANGE);
+		&x509.base, &rng.base, &manager, ATTESTATION_ECC_ENCRYPTION_ALGORITHM);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, attestation.issue_challenge);
 	CuAssertPtrNotNull (test, attestation.compare_digests);
@@ -416,35 +416,35 @@ static void attestation_master_test_init_null (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_master_init (NULL, &riot, &hash.base, &ecc.base, &rsa.base, &x509.base,
-		&rng.base, &manager, ATTESTATION_ECDHE_KEY_EXCHANGE);
+		&rng.base, &manager, ATTESTATION_ECC_ENCRYPTION_ALGORITHM);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
 	status = attestation_master_init (&attestation, NULL, &hash.base, &ecc.base, &rsa.base,
-		&x509.base, &rng.base, &manager, ATTESTATION_ECDHE_KEY_EXCHANGE);
+		&x509.base, &rng.base, &manager, ATTESTATION_ECC_ENCRYPTION_ALGORITHM);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
 	status = attestation_master_init (&attestation, &riot, NULL, &ecc.base, &rsa.base, &x509.base,
-		&rng.base, &manager, ATTESTATION_ECDHE_KEY_EXCHANGE);
+		&rng.base, &manager, ATTESTATION_ECC_ENCRYPTION_ALGORITHM);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
 	status = attestation_master_init (&attestation, &riot, &hash.base, NULL, &rsa.base, &x509.base,
-		&rng.base, &manager, ATTESTATION_ECDHE_KEY_EXCHANGE);
+		&rng.base, &manager, ATTESTATION_ECC_ENCRYPTION_ALGORITHM);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
 	status = attestation_master_init (&attestation, &riot, &hash.base, &ecc.base, NULL, &x509.base,
-		&rng.base, &manager, ATTESTATION_RSA_KEY_EXCHANGE);
+		&rng.base, &manager, ATTESTATION_RSA_ENCRYPTION_ALGORITHM);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
 	status = attestation_master_init (&attestation, &riot, &hash.base, &ecc.base, &rsa.base, NULL,
-		&rng.base, &manager, ATTESTATION_ECDHE_KEY_EXCHANGE);
+		&rng.base, &manager, ATTESTATION_ECC_ENCRYPTION_ALGORITHM);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
 	status = attestation_master_init (&attestation, &riot, &hash.base, &ecc.base, &rsa.base,
-		&x509.base, NULL, &manager, ATTESTATION_ECDHE_KEY_EXCHANGE);
+		&x509.base, NULL, &manager, ATTESTATION_ECC_ENCRYPTION_ALGORITHM);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
 	status = attestation_master_init (&attestation, &riot, &hash.base, &ecc.base, &rsa.base,
-		&x509.base, &rng.base, NULL, ATTESTATION_ECDHE_KEY_EXCHANGE);
+		&x509.base, &rng.base, NULL, ATTESTATION_ECC_ENCRYPTION_ALGORITHM);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
 	status = hash_mock_validate_and_release (&hash);
@@ -576,7 +576,7 @@ static void attestation_master_test_issue_challenge (CuTest *test)
 	TEST_START;
 
 	setup_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
-		ATTESTATION_ECDHE_KEY_EXCHANGE, &riot, &keystore, &manager);
+		ATTESTATION_ECC_ENCRYPTION_ALGORITHM, &riot, &keystore, &manager);
 
 	status = mock_expect (&rng.mock, rng.base.generate_random_buffer, &rng, 0, MOCK_ARG (32),
 		MOCK_ARG (challenge.nonce));
@@ -613,7 +613,7 @@ static void attestation_master_test_issue_challenge_buf_too_small (CuTest *test)
 	TEST_START;
 
 	setup_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
-		ATTESTATION_ECDHE_KEY_EXCHANGE, &riot, &keystore, &manager);
+		ATTESTATION_ECC_ENCRYPTION_ALGORITHM, &riot, &keystore, &manager);
 
 	status = attestation.issue_challenge (&attestation, 0xAA, 0, (uint8_t*)&challenge, 1);
 	CuAssertIntEquals (test, ATTESTATION_BUF_TOO_SMALL, status);
@@ -639,7 +639,7 @@ static void attestation_master_test_issue_challenge_invalid_slot_num (CuTest *te
 	TEST_START;
 
 	setup_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
-		ATTESTATION_ECDHE_KEY_EXCHANGE, &riot, &keystore, &manager);
+		ATTESTATION_ECC_ENCRYPTION_ALGORITHM, &riot, &keystore, &manager);
 
 	status = attestation.issue_challenge (&attestation, 0xAA, 1, (uint8_t*)&challenge,
 		sizeof (struct attestation_challenge));
@@ -666,7 +666,7 @@ static void attestation_master_test_issue_challenge_invalid_device (CuTest *test
 	TEST_START;
 
 	setup_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
-		ATTESTATION_ECDHE_KEY_EXCHANGE, &riot, &keystore, &manager);
+		ATTESTATION_ECC_ENCRYPTION_ALGORITHM, &riot, &keystore, &manager);
 
 	status = attestation.issue_challenge (&attestation, 0xCC, 0, (uint8_t*)&challenge,
 		sizeof (struct attestation_challenge));
@@ -693,7 +693,7 @@ static void attestation_master_test_issue_challenge_rng_fail (CuTest *test)
 	TEST_START;
 
 	setup_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
-		ATTESTATION_ECDHE_KEY_EXCHANGE, &riot, &keystore, &manager);
+		ATTESTATION_ECC_ENCRYPTION_ALGORITHM, &riot, &keystore, &manager);
 
 	status = mock_expect (&rng.mock, rng.base.generate_random_buffer, &rng, -1, MOCK_ARG (32),
 		MOCK_ARG_NOT_NULL);
@@ -725,7 +725,7 @@ static void attestation_master_test_issue_challenge_null (CuTest *test)
 	TEST_START;
 
 	setup_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
-		ATTESTATION_ECDHE_KEY_EXCHANGE, &riot, &keystore, &manager);
+		ATTESTATION_ECC_ENCRYPTION_ALGORITHM, &riot, &keystore, &manager);
 
 	status = attestation.issue_challenge (NULL, 0xAA, 0, (uint8_t*)&challenge, buf_len);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
@@ -758,7 +758,7 @@ static void attestation_master_test_compare_digests_first (CuTest *test)
 	TEST_START;
 
 	setup_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
-		ATTESTATION_ECDHE_KEY_EXCHANGE, &riot, &keystore, &manager);
+		ATTESTATION_ECC_ENCRYPTION_ALGORITHM, &riot, &keystore, &manager);
 
 	status = attestation.compare_digests (&attestation, 0xAA, &digests);
 	CuAssertIntEquals (test, 1, status);
@@ -792,7 +792,7 @@ static void attestation_master_test_compare_digests_incomplete_chain_stored (CuT
 	digests.digest[SHA256_HASH_LENGTH] = 0xAA;
 
 	setup_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
-		ATTESTATION_ECDHE_KEY_EXCHANGE, &riot, &keystore, &manager);
+		ATTESTATION_ECC_ENCRYPTION_ALGORITHM, &riot, &keystore, &manager);
 
 	status = attestation.compare_digests (&attestation, 0xAA, &digests);
 	CuAssertIntEquals (test, 1, status);
@@ -837,7 +837,7 @@ static void attestation_master_test_compare_digests_new_chain (CuTest *test)
 	TEST_START;
 
 	setup_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
-		ATTESTATION_ECDHE_KEY_EXCHANGE, &riot, &keystore, &manager);
+		ATTESTATION_ECC_ENCRYPTION_ALGORITHM, &riot, &keystore, &manager);
 
 	status = attestation.compare_digests (&attestation, 0xAA, &digests);
 	CuAssertIntEquals (test, 1, status);
@@ -877,7 +877,7 @@ static void attestation_master_test_compare_digests_same (CuTest *test)
 	digests.digest = platform_calloc (3, SHA256_HASH_LENGTH);
 
 	setup_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
-		ATTESTATION_ECDHE_KEY_EXCHANGE, &riot, &keystore, &manager);
+		ATTESTATION_ECC_ENCRYPTION_ALGORITHM, &riot, &keystore, &manager);
 
 	status = attestation.compare_digests (&attestation, 0xAA, &digests);
 	CuAssertIntEquals (test, 1, status);
@@ -940,7 +940,7 @@ static void attestation_master_test_compare_digests_mismatch (CuTest *test)
 	digests.digest[32] = 0xAA;
 
 	setup_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
-		ATTESTATION_ECDHE_KEY_EXCHANGE, &riot, &keystore, &manager);
+		ATTESTATION_ECC_ENCRYPTION_ALGORITHM, &riot, &keystore, &manager);
 
 	status = attestation.compare_digests (&attestation, 0xAA, &digests);
 	CuAssertIntEquals (test, 1, status);
@@ -1001,7 +1001,7 @@ static void attestation_master_test_compare_digests_hash_fail (CuTest *test)
 	digests.digest = platform_calloc (1, SHA256_HASH_LENGTH);
 
 	setup_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
-		ATTESTATION_ECDHE_KEY_EXCHANGE, &riot, &keystore, &manager);
+		ATTESTATION_ECC_ENCRYPTION_ALGORITHM, &riot, &keystore, &manager);
 
 	status = attestation.compare_digests (&attestation, 0xAA, &digests);
 	CuAssertIntEquals (test, 1, status);
@@ -1040,7 +1040,7 @@ static void attestation_master_test_compare_digests_invalid_device (CuTest *test
 	TEST_START;
 
 	setup_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
-		ATTESTATION_ECDHE_KEY_EXCHANGE, &riot, &keystore, &manager);
+		ATTESTATION_ECC_ENCRYPTION_ALGORITHM, &riot, &keystore, &manager);
 
 	status = attestation.compare_digests (&attestation, 0xEE, &digests);
 	CuAssertIntEquals (test, DEVICE_MGR_UNKNOWN_DEVICE, status);
@@ -1066,7 +1066,7 @@ static void attestation_master_test_compare_digests_null (CuTest *test)
 	TEST_START;
 
 	setup_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
-		ATTESTATION_ECDHE_KEY_EXCHANGE, &riot, &keystore, &manager);
+		ATTESTATION_ECC_ENCRYPTION_ALGORITHM, &riot, &keystore, &manager);
 
 	status = attestation.compare_digests (NULL, 0xAA, &digests);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
@@ -1100,7 +1100,7 @@ static void attestation_master_test_store_certificate (CuTest *test)
 	TEST_START;
 
 	setup_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
-		ATTESTATION_ECDHE_KEY_EXCHANGE, &riot, &keystore, &manager);
+		ATTESTATION_ECC_ENCRYPTION_ALGORITHM, &riot, &keystore, &manager);
 
 	status = attestation.compare_digests (&attestation, 0xAA, &digests);
 	CuAssertIntEquals (test, 1, status);
@@ -1135,7 +1135,7 @@ static void attestation_master_test_store_certificate_invalid_cert_num (CuTest *
 	TEST_START;
 
 	setup_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
-		ATTESTATION_ECDHE_KEY_EXCHANGE, &riot, &keystore, &manager);
+		ATTESTATION_ECC_ENCRYPTION_ALGORITHM, &riot, &keystore, &manager);
 
 	status = attestation.compare_digests (&attestation, 0xAA, &digests);
 	CuAssertIntEquals (test, 1, status);
@@ -1168,7 +1168,7 @@ static void attestation_master_test_store_certificate_invalid_slot_num (CuTest *
 	TEST_START;
 
 	setup_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
-		ATTESTATION_ECDHE_KEY_EXCHANGE, &riot, &keystore, &manager);
+		ATTESTATION_ECC_ENCRYPTION_ALGORITHM, &riot, &keystore, &manager);
 
 	status = attestation.compare_digests (&attestation, 0xAA, &digests);
 	CuAssertIntEquals (test, 1, status);
@@ -1198,7 +1198,7 @@ static void attestation_master_test_store_certificate_invalid_device (CuTest *te
 	TEST_START;
 
 	setup_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
-		ATTESTATION_ECDHE_KEY_EXCHANGE, &riot, &keystore, &manager);
+		ATTESTATION_ECC_ENCRYPTION_ALGORITHM, &riot, &keystore, &manager);
 
 	status = attestation.store_certificate (&attestation, 0xEE, 0, 0, buf, sizeof (buf));
 	CuAssertIntEquals (test, DEVICE_MGR_UNKNOWN_DEVICE, status);
@@ -1225,7 +1225,7 @@ static void attestation_master_test_store_certificate_null (CuTest *test)
 	TEST_START;
 
 	setup_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
-		ATTESTATION_ECDHE_KEY_EXCHANGE, &riot, &keystore, &manager);
+		ATTESTATION_ECC_ENCRYPTION_ALGORITHM, &riot, &keystore, &manager);
 
 	status = attestation.store_certificate (NULL, 0xAA, 0, 1, buf, sizeof (buf));
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
@@ -1261,7 +1261,7 @@ static void attestation_master_test_process_challenge_response_full_chain_ecc (C
 	TEST_START;
 
 	setup_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
-		ATTESTATION_ECDHE_KEY_EXCHANGE, &riot, &keystore, &manager);
+		ATTESTATION_ECC_ENCRYPTION_ALGORITHM, &riot, &keystore, &manager);
 
 	add_int_ca_to_riot_key_manager (test, &riot, &keystore, &x509, &dev_id_der, &ca_der, &int_der);
 
@@ -1368,7 +1368,7 @@ static void attestation_master_test_process_challenge_response_root_and_device_c
 	TEST_START;
 
 	setup_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
-		ATTESTATION_ECDHE_KEY_EXCHANGE, &riot, &keystore, &manager);
+		ATTESTATION_ECC_ENCRYPTION_ALGORITHM, &riot, &keystore, &manager);
 
 	add_root_ca_to_riot_key_manager (test, &riot, &keystore, &x509, &dev_id_der, &ca_der);
 
@@ -1473,7 +1473,7 @@ static void attestation_master_test_process_challenge_response_device_chain (CuT
 	TEST_START;
 
 	setup_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
-		ATTESTATION_ECDHE_KEY_EXCHANGE, &riot, &keystore, &manager);
+		ATTESTATION_ECC_ENCRYPTION_ALGORITHM, &riot, &keystore, &manager);
 
 	status = mock_expect (&rng.mock, rng.base.generate_random_buffer, &rng, 0, MOCK_ARG (32),
 		MOCK_ARG_NOT_NULL);
@@ -1574,7 +1574,7 @@ static void attestation_master_test_process_challenge_response_full_chain_rsa (C
 	TEST_START;
 
 	setup_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
-		ATTESTATION_RSA_KEY_EXCHANGE, &riot, &keystore, &manager);
+		ATTESTATION_RSA_ENCRYPTION_ALGORITHM, &riot, &keystore, &manager);
 
 	add_int_ca_to_riot_key_manager (test, &riot, &keystore, &x509, &dev_id_der, &ca_der, &int_der);
 
@@ -1675,7 +1675,7 @@ static void attestation_master_test_process_challenge_response_invalid_buf_len (
 	TEST_START;
 
 	setup_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
-		ATTESTATION_ECDHE_KEY_EXCHANGE, &riot, &keystore, &manager);
+		ATTESTATION_ECC_ENCRYPTION_ALGORITHM, &riot, &keystore, &manager);
 
 	status = attestation.process_challenge_response (&attestation, &buf, buf_len, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
@@ -1702,7 +1702,7 @@ static void attestation_master_test_process_challenge_response_invalid_device (C
 	TEST_START;
 
 	setup_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
-		ATTESTATION_ECDHE_KEY_EXCHANGE, &riot, &keystore, &manager);
+		ATTESTATION_ECC_ENCRYPTION_ALGORITHM, &riot, &keystore, &manager);
 
 	status = attestation.process_challenge_response (&attestation, &buf, buf_len, 0xEE);
 	CuAssertIntEquals (test, DEVICE_MGR_UNKNOWN_DEVICE, status);
@@ -1729,7 +1729,7 @@ static void attestation_master_test_process_challenge_response_invalid_slot_num 
 	TEST_START;
 
 	setup_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
-		ATTESTATION_ECDHE_KEY_EXCHANGE, &riot, &keystore, &manager);
+		ATTESTATION_ECC_ENCRYPTION_ALGORITHM, &riot, &keystore, &manager);
 
 	status = attestation.process_challenge_response (&attestation, &buf, buf_len, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_SLOT_NUM, status);
@@ -1757,7 +1757,7 @@ static void attestation_master_test_process_challenge_response_invalid_min_proto
 	TEST_START;
 
 	setup_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
-		ATTESTATION_ECDHE_KEY_EXCHANGE, &riot, &keystore, &manager);
+		ATTESTATION_ECC_ENCRYPTION_ALGORITHM, &riot, &keystore, &manager);
 
 	status = attestation.process_challenge_response (&attestation, buf, buf_len, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_UNSUPPORTED_PROTOCOL_VERSION, status);
@@ -1785,7 +1785,7 @@ static void attestation_master_test_process_challenge_response_invalid_max_proto
 	TEST_START;
 
 	setup_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
-		ATTESTATION_ECDHE_KEY_EXCHANGE, &riot, &keystore, &manager);
+		ATTESTATION_ECC_ENCRYPTION_ALGORITHM, &riot, &keystore, &manager);
 
 	attestation.version = 2;
 
@@ -1820,7 +1820,7 @@ static void attestation_master_test_process_challenge_response_start_hash_failur
 	digests.num_cert = 1;
 
 	setup_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
-		ATTESTATION_ECDHE_KEY_EXCHANGE, &riot, &keystore, &manager);
+		ATTESTATION_ECC_ENCRYPTION_ALGORITHM, &riot, &keystore, &manager);
 
 	status = mock_expect (&rng.mock, rng.base.generate_random_buffer, &rng, 0, MOCK_ARG (32),
 		MOCK_ARG_NOT_NULL);
@@ -1871,7 +1871,7 @@ static void attestation_master_test_process_challenge_response_hash_challenge_fa
 	digests.num_cert = 1;
 
 	setup_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
-		ATTESTATION_ECDHE_KEY_EXCHANGE, &riot, &keystore, &manager);
+		ATTESTATION_ECC_ENCRYPTION_ALGORITHM, &riot, &keystore, &manager);
 
 	status = mock_expect (&rng.mock, rng.base.generate_random_buffer, &rng, 0, MOCK_ARG (32),
 		MOCK_ARG_NOT_NULL);
@@ -1925,7 +1925,7 @@ static void attestation_master_test_process_challenge_response_hash_response_fai
 	digests.num_cert = 1;
 
 	setup_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
-		ATTESTATION_ECDHE_KEY_EXCHANGE, &riot, &keystore, &manager);
+		ATTESTATION_ECC_ENCRYPTION_ALGORITHM, &riot, &keystore, &manager);
 
 	status = mock_expect (&rng.mock, rng.base.generate_random_buffer, &rng, 0, MOCK_ARG (32),
 		MOCK_ARG_NOT_NULL);
@@ -1981,7 +1981,7 @@ static void attestation_master_test_process_challenge_response_finish_hash_failu
 	digests.num_cert = 1;
 
 	setup_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
-		ATTESTATION_ECDHE_KEY_EXCHANGE, &riot, &keystore, &manager);
+		ATTESTATION_ECC_ENCRYPTION_ALGORITHM, &riot, &keystore, &manager);
 
 	status = mock_expect (&rng.mock, rng.base.generate_random_buffer, &rng, 0, MOCK_ARG (32),
 		MOCK_ARG_NOT_NULL);
@@ -2039,7 +2039,7 @@ static void attestation_master_test_process_challenge_response_only_leaf (CuTest
 	digests.num_cert = 1;
 
 	setup_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
-		ATTESTATION_ECDHE_KEY_EXCHANGE, &riot, &keystore, &manager);
+		ATTESTATION_ECC_ENCRYPTION_ALGORITHM, &riot, &keystore, &manager);
 
 	status = mock_expect (&rng.mock, rng.base.generate_random_buffer, &rng, 0, MOCK_ARG (32),
 		MOCK_ARG_NOT_NULL);
@@ -2096,7 +2096,7 @@ static void attestation_master_test_process_challenge_response_init_cert_store_f
 	digests.num_cert = 3;
 
 	setup_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
-		ATTESTATION_ECDHE_KEY_EXCHANGE, &riot, &keystore, &manager);
+		ATTESTATION_ECC_ENCRYPTION_ALGORITHM, &riot, &keystore, &manager);
 
 	status = mock_expect (&rng.mock, rng.base.generate_random_buffer, &rng, 0, MOCK_ARG (32),
 		MOCK_ARG_NOT_NULL);
@@ -2165,7 +2165,7 @@ static void attestation_master_test_process_challenge_response_add_root_ca_failu
 	digests.num_cert = 3;
 
 	setup_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
-		ATTESTATION_ECDHE_KEY_EXCHANGE, &riot, &keystore, &manager);
+		ATTESTATION_ECC_ENCRYPTION_ALGORITHM, &riot, &keystore, &manager);
 
 	status = mock_expect (&rng.mock, rng.base.generate_random_buffer, &rng, 0, MOCK_ARG (32),
 		MOCK_ARG_NOT_NULL);
@@ -2240,7 +2240,7 @@ static void attestation_master_test_process_challenge_response_add_int_ca_failur
 	digests.num_cert = 3;
 
 	setup_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
-		ATTESTATION_ECDHE_KEY_EXCHANGE, &riot, &keystore, &manager);
+		ATTESTATION_ECC_ENCRYPTION_ALGORITHM, &riot, &keystore, &manager);
 
 	status = mock_expect (&rng.mock, rng.base.generate_random_buffer, &rng, 0, MOCK_ARG (32),
 		MOCK_ARG_NOT_NULL);
@@ -2319,7 +2319,7 @@ static void attestation_master_test_process_challenge_response_add_cert_as_root_
 	digests.num_cert = 3;
 
 	setup_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
-		ATTESTATION_ECDHE_KEY_EXCHANGE, &riot, &keystore, &manager);
+		ATTESTATION_ECC_ENCRYPTION_ALGORITHM, &riot, &keystore, &manager);
 
 	status = mock_expect (&rng.mock, rng.base.generate_random_buffer, &rng, 0, MOCK_ARG (32),
 		MOCK_ARG_NOT_NULL);
@@ -2394,7 +2394,7 @@ static void attestation_master_test_process_challenge_response_add_int_cert_fail
 	digests.num_cert = 3;
 
 	setup_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
-		ATTESTATION_ECDHE_KEY_EXCHANGE, &riot, &keystore, &manager);
+		ATTESTATION_ECC_ENCRYPTION_ALGORITHM, &riot, &keystore, &manager);
 
 	status = mock_expect (&rng.mock, rng.base.generate_random_buffer, &rng, 0, MOCK_ARG (32),
 		MOCK_ARG_NOT_NULL);
@@ -2472,7 +2472,7 @@ static void attestation_master_test_process_challenge_response_load_cert_failure
 	digests.num_cert = 3;
 
 	setup_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
-		ATTESTATION_ECDHE_KEY_EXCHANGE, &riot, &keystore, &manager);
+		ATTESTATION_ECC_ENCRYPTION_ALGORITHM, &riot, &keystore, &manager);
 
 	status = mock_expect (&rng.mock, rng.base.generate_random_buffer, &rng, 0, MOCK_ARG (32),
 		MOCK_ARG_NOT_NULL);
@@ -2553,7 +2553,7 @@ static void attestation_master_test_process_challenge_response_authenticate_fail
 	digests.num_cert = 3;
 
 	setup_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
-		ATTESTATION_ECDHE_KEY_EXCHANGE, &riot, &keystore, &manager);
+		ATTESTATION_ECC_ENCRYPTION_ALGORITHM, &riot, &keystore, &manager);
 
 	status = mock_expect (&rng.mock, rng.base.generate_random_buffer, &rng, 0, MOCK_ARG (32),
 		MOCK_ARG_NOT_NULL);
@@ -2639,7 +2639,7 @@ static void attestation_master_test_process_challenge_response_get_public_key_fa
 	digests.num_cert = 3;
 
 	setup_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
-		ATTESTATION_ECDHE_KEY_EXCHANGE, &riot, &keystore, &manager);
+		ATTESTATION_ECC_ENCRYPTION_ALGORITHM, &riot, &keystore, &manager);
 
 	status = mock_expect (&rng.mock, rng.base.generate_random_buffer, &rng, 0, MOCK_ARG (32),
 		MOCK_ARG_NOT_NULL);
@@ -2727,7 +2727,7 @@ static void attestation_master_test_process_challenge_response_ecc_public_key_fa
 	digests.num_cert = 2;
 
 	setup_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
-		ATTESTATION_ECDHE_KEY_EXCHANGE, &riot, &keystore, &manager);
+		ATTESTATION_ECC_ENCRYPTION_ALGORITHM, &riot, &keystore, &manager);
 
 	status = mock_expect (&rng.mock, rng.base.generate_random_buffer, &rng, 0, MOCK_ARG (32),
 		MOCK_ARG_NOT_NULL);
@@ -2812,7 +2812,7 @@ static void attestation_master_test_process_challenge_response_rsa_public_key_fa
 	digests.num_cert = 2;
 
 	setup_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
-		ATTESTATION_RSA_KEY_EXCHANGE, &riot, &keystore, &manager);
+		ATTESTATION_RSA_ENCRYPTION_ALGORITHM, &riot, &keystore, &manager);
 
 	status = mock_expect (&rng.mock, rng.base.generate_random_buffer, &rng, 0, MOCK_ARG (32),
 		MOCK_ARG_NOT_NULL);
@@ -2897,7 +2897,7 @@ static void attestation_master_test_process_challenge_response_ecc_verify_failur
 	digests.num_cert = 2;
 
 	setup_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
-		ATTESTATION_ECDHE_KEY_EXCHANGE, &riot, &keystore, &manager);
+		ATTESTATION_ECC_ENCRYPTION_ALGORITHM, &riot, &keystore, &manager);
 
 	status = mock_expect (&rng.mock, rng.base.generate_random_buffer, &rng, 0, MOCK_ARG (32),
 		MOCK_ARG_NOT_NULL);
@@ -2988,7 +2988,7 @@ static void attestation_master_test_process_challenge_response_rsa_verify_failur
 	digests.num_cert = 2;
 
 	setup_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
-		ATTESTATION_RSA_KEY_EXCHANGE, &riot, &keystore, &manager);
+		ATTESTATION_RSA_ENCRYPTION_ALGORITHM, &riot, &keystore, &manager);
 
 	status = mock_expect (&rng.mock, rng.base.generate_random_buffer, &rng, 0, MOCK_ARG (32),
 		MOCK_ARG_NOT_NULL);
@@ -3071,7 +3071,7 @@ static void attestation_master_test_process_challenge_response_null (CuTest *tes
 	TEST_START;
 
 	setup_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
-		ATTESTATION_ECDHE_KEY_EXCHANGE, &riot, &keystore, &manager);
+		ATTESTATION_ECC_ENCRYPTION_ALGORITHM, &riot, &keystore, &manager);
 
 	status = attestation.process_challenge_response (NULL, &buf, buf_len, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
