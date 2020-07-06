@@ -32,10 +32,9 @@ static int attestation_verify_and_load_leaf_key (struct attestation_master *atte
 	struct x509_ca_certs certs_chain;
 	struct x509_certificate cert;
 	const struct der_cert *root_ca = riot_key_manager_get_root_ca (attestation->riot);
-	const struct der_cert *int_ca = riot_key_manager_get_intermediate_ca (attestation->riot);
 	uint8_t *leaf_key = NULL;
 	size_t leaf_key_len = 0;
-	int8_t i_cert = 0;
+	int8_t i_cert;
 	int status;
 
 	if (chain->num_cert < 2) {
@@ -43,7 +42,6 @@ static int attestation_verify_and_load_leaf_key (struct attestation_master *atte
 	}
 
 	status = attestation->x509->init_ca_cert_store (attestation->x509, &certs_chain);
-
 	if (status != 0) {
 		return status;
 	}
@@ -51,35 +49,21 @@ static int attestation_verify_and_load_leaf_key (struct attestation_master *atte
 	if (root_ca != NULL) {
 		status = attestation->x509->add_root_ca (attestation->x509, &certs_chain, root_ca->cert,
 			root_ca->length);
-
 		if (status != 0) {
 			goto release_cert_store;
-		}
-
-		if (int_ca != NULL) {
-			status = attestation->x509->add_intermediate_ca (attestation->x509, &certs_chain,
-				int_ca->cert, int_ca->length);
-
-			if (status != 0) {
-				goto release_cert_store;
-			}
 		}
 	}
 	else {
 		status = attestation->x509->add_root_ca (attestation->x509, &certs_chain,
 			chain->cert[0].cert, chain->cert[0].length);
-
 		if (status != 0) {
 			goto release_cert_store;
 		}
-
-		++i_cert;
 	}
 
-	for (; i_cert < (chain->num_cert - 1); ++i_cert) {
+	for (i_cert = 1; i_cert < (chain->num_cert - 1); ++i_cert) {
 		status = attestation->x509->add_intermediate_ca (attestation->x509, &certs_chain,
 			chain->cert[i_cert].cert, chain->cert[i_cert].length);
-
 		if (status != 0) {
 			goto release_cert_store;
 		}
@@ -87,23 +71,19 @@ static int attestation_verify_and_load_leaf_key (struct attestation_master *atte
 
 	status = attestation->x509->load_certificate (attestation->x509, &cert,
 		chain->cert[chain->num_cert - 1].cert, chain->cert[chain->num_cert - 1].length);
-
 	if (status != 0) {
 		goto release_cert_store;
 	}
 
 	status = attestation->x509->authenticate (attestation->x509, &cert, &certs_chain);
-
 	if (status != 0) {
 		goto release_leaf_cert;
 	}
 
 	status = attestation->x509->get_public_key (attestation->x509, &cert, &leaf_key, &leaf_key_len);
-
 	if (status != 0) {
 		goto release_leaf_cert;
 	}
-
 
 	*der = leaf_key;
 	*length = leaf_key_len;
@@ -221,6 +201,30 @@ static int attestation_get_chain_digests (struct attestation_master *attestation
 	return 0;
 }
 
+/**
+ * Retrieve public key algorithm from x509 certificate
+ *
+ * @param x509 x509 engine to utilize.
+ * @param cert DER formatted certificate to inspect.
+ *
+ * @return Public key type if found successfully or an error code.
+ */
+static int attestation_get_cert_algorithm (struct x509_engine *x509, struct der_cert *cert)
+{
+	struct x509_certificate x509_cert;
+	int status;
+
+	status = x509->load_certificate (x509, &x509_cert, cert->cert, cert->length);
+	if (status != 0) {
+		return status;
+	}
+
+	status = x509->get_public_key_type (x509, &x509_cert);
+	x509->release_certificate (x509, &x509_cert);
+
+	return status;
+}
+
 static int attestation_issue_challenge (struct attestation_master *attestation, uint8_t eid,
 	uint8_t slot_num, uint8_t *buf, int buf_len)
 {
@@ -241,7 +245,6 @@ static int attestation_issue_challenge (struct attestation_master *attestation, 
 	}
 
 	device_num = device_manager_get_device_num (attestation->device_manager, eid);
-
 	if (ROT_IS_ERROR (device_num)) {
 		return device_num;
 	}
@@ -326,7 +329,6 @@ static int attestation_store_certificate (struct attestation_master *attestation
 	}
 
 	device_num = device_manager_get_device_num (attestation->device_manager, eid);
-
 	if (ROT_IS_ERROR (device_num)) {
 		return device_num;
 	}
@@ -344,6 +346,7 @@ static int attestation_process_challenge_response (struct attestation_master *at
 	uint8_t digest[SHA256_HASH_LENGTH];
 	int device_num;
 	int sig_len;
+	int key_type;
 	int status;
 
 	if ((attestation == NULL) || (buf == NULL)) {
@@ -356,7 +359,6 @@ static int attestation_process_challenge_response (struct attestation_master *at
 
 	sig_len = buf_len - 72;
 	device_num = device_manager_get_device_num (attestation->device_manager, eid);
-
 	if (ROT_IS_ERROR (device_num)) {
 		return device_num;
 	}
@@ -365,13 +367,18 @@ static int attestation_process_challenge_response (struct attestation_master *at
 		return ATTESTATION_INVALID_SLOT_NUM;
 	}
 
-	if ((attestation->version < buf[2]) || (attestation->version > buf[3])) {
+	if ((attestation->protocol_version < buf[2]) || (attestation->protocol_version > buf[3])) {
 		return ATTESTATION_UNSUPPORTED_PROTOCOL_VERSION;
 	}
 
 	status = device_manager_get_device_cert_chain (attestation->device_manager, device_num, &chain);
 	if (status != 0) {
 		return status;
+	}
+
+	key_type = attestation_get_cert_algorithm (attestation->x509, &chain.cert[chain.num_cert - 1]);
+	if (ROT_IS_ERROR (key_type)) {
+		return key_type;	
 	}
 
 	memcpy (&challenge, (uint8_t*)&attestation->challenge[device_num],
@@ -397,7 +404,7 @@ static int attestation_process_challenge_response (struct attestation_master *at
 		goto hash_cancel;
 	}
 
-	if (attestation->encryption_algorithm == ATTESTATION_ECC_ENCRYPTION_ALGORITHM) {
+	if (key_type == X509_PUBLIC_KEY_ECC) {
 		status = attestation_verify_and_load_ecc_leaf_key (attestation, &chain, &ecc_key);
 		if (status != 0) {
 			return status;
@@ -408,7 +415,7 @@ static int attestation_process_challenge_response (struct attestation_master *at
 
 		attestation->ecc->release_key_pair (attestation->ecc, NULL, &ecc_key);
 	}
-	else if (attestation->encryption_algorithm == ATTESTATION_RSA_ENCRYPTION_ALGORITHM) {
+	else if ((key_type == X509_PUBLIC_KEY_RSA) && (attestation->rsa != NULL)) {
 		status = attestation_verify_and_load_rsa_leaf_key (attestation, &chain, &rsa_key);
 		if (status != 0) {
 			return status;
@@ -449,25 +456,17 @@ hash_cancel:
  * @param x509 The x509 engine to utilize.
  * @param rng The RNG engine to utilize.
  * @param device_manager Device manager table.
- * @param encryption_algo Encryption algorithm selection.
+ * @param protocol_version Cerberus protocol version
  *
  * @return Initialization status, 0 if success or an error code.
  */
 int attestation_master_init (struct attestation_master *attestation, 
 	struct riot_key_manager *riot, struct hash_engine *hash, struct ecc_engine *ecc, 
 	struct rsa_engine *rsa, struct x509_engine *x509, struct rng_engine *rng, 
-	struct device_manager *device_manager, uint8_t encryption_algo)
+	struct device_manager *device_manager, uint8_t protocol_version)
 {
 	if ((attestation == NULL) || (riot == NULL) || (hash == NULL) || (x509 == NULL) || 
-		(rng == NULL) || (device_manager == NULL) || 
-		(encryption_algo >= NUM_ATTESTATION_KEY_EXCHANGE_ALGORITHMS)) {
-		return ATTESTATION_INVALID_ARGUMENT;
-	}
-
-	if ((encryption_algo == ATTESTATION_ECC_ENCRYPTION_ALGORITHM) && (ecc == NULL)) {
-		return ATTESTATION_INVALID_ARGUMENT;
-	}
-	else if ((encryption_algo == ATTESTATION_RSA_ENCRYPTION_ALGORITHM) && (rsa == NULL)) {
+		(rng == NULL) || (device_manager == NULL) || (ecc == NULL)) {
 		return ATTESTATION_INVALID_ARGUMENT;
 	}
 
@@ -486,8 +485,7 @@ int attestation_master_init (struct attestation_master *attestation,
 	attestation->x509 = x509;
 	attestation->rng = rng;
 	attestation->device_manager = device_manager;
-	attestation->encryption_algorithm = encryption_algo;
-	attestation->version = 0;
+	attestation->protocol_version = protocol_version;
 
 	attestation->issue_challenge = attestation_issue_challenge;
 	attestation->compare_digests = attestation_compare_digests;

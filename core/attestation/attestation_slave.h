@@ -112,16 +112,20 @@ struct attestation_slave {
 	struct pcr_store *pcr_store;			/**< Storage for device measurements. */
 	struct aux_attestation *aux;			/**< Auxiliary attestation service handler. */
 	uint8_t key_exchange_algorithm;			/**< Key exchange algorithm requested by caller. */
+	uint8_t min_protocol_version;			/**< Minimum protocol version supported by the device. */
+	uint8_t max_protocol_version;			/**< Maximum protocol version supported by the device. */
 	platform_mutex lock;					/**< Synchronization for shared handlers. */
 };
 
 
 int attestation_slave_init (struct attestation_slave *attestation, struct riot_key_manager *riot,
 	struct hash_engine *hash, struct ecc_engine *ecc, struct rng_engine *rng,
-	struct pcr_store *store, struct aux_attestation *aux);
+	struct pcr_store *store, struct aux_attestation *aux, uint8_t min_protocol_version, 
+	uint8_t max_protocol_version);
 int attestation_slave_init_no_aux (struct attestation_slave *attestation,
 	struct riot_key_manager *riot, struct hash_engine *hash, struct ecc_engine *ecc,
-	struct rng_engine *rng, struct pcr_store *store);
+	struct rng_engine *rng, struct pcr_store *store, uint8_t min_protocol_version, 
+	uint8_t max_protocol_version);
 
 void attestation_slave_release (struct attestation_slave *attestation);
 

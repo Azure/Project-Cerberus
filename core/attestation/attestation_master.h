@@ -80,15 +80,14 @@ struct attestation_master {
 	struct device_manager *device_manager;				/**< Device manager */
 	struct rsa_engine *rsa;								/**< The RSA engine for attestation authentication operations. */
 	struct attestation_challenge *challenge;			/**< Store challenge sent out to device. */
-	uint8_t version;									/**< Authentication protocol version. */
-	uint8_t encryption_algorithm;						/**< Encryption algorithm */
+	uint8_t protocol_version;							/**< Cerberus protocol version. */
 };
 
 
 int attestation_master_init (struct attestation_master *attestation,
 	struct riot_key_manager *riot, struct hash_engine *hash, struct ecc_engine *ecc,
 	struct rsa_engine *rsa, struct x509_engine *x509, struct rng_engine *rng,
-	struct device_manager *device_manager, uint8_t encryption_algo);
+	struct device_manager *device_manager, uint8_t protocol_version);
 
 void attestation_master_release (struct attestation_master *attestation);
 
