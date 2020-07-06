@@ -288,8 +288,6 @@ void cerberus_protocol_master_commands_testing_process_process_certificate (CuTe
 		MOCK_ARG_PTR_CONTAINS_TMP (expected, sizeof (expected)), MOCK_ARG (sizeof (expected)));
 	CuAssertIntEquals (test, 0, status);
 
-	master_attestation->base.encryption_algorithm = ATTESTATION_ECC_ENCRYPTION_ALGORITHM;
-
 	request.new_request = false;
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -528,8 +526,6 @@ void cerberus_protocol_master_commands_testing_issue_get_certificate_digest (CuT
 	struct cerberus_protocol_get_certificate_digest *req =
 		(struct cerberus_protocol_get_certificate_digest*) buf;
 	int status;
-
-	master_attestation->base.encryption_algorithm = ATTESTATION_ECC_ENCRYPTION_ALGORITHM;
 
 	memset (buf, 0x55, sizeof (buf));
 

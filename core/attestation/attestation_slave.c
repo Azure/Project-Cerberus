@@ -304,8 +304,8 @@ static int attestation_slave_challenge_response (struct attestation_slave *attes
 
 	response->slot_num = slot_num;
 	response->slot_mask = 1;
-	response->min_protocol_version = 1;
-	response->max_protocol_version = 1;
+	response->min_protocol_version = attestation->min_protocol_version;
+	response->max_protocol_version = attestation->max_protocol_version;
 	response->num_digests = num_measurements;
 	response->digests_size = sizeof (measurement);
 
@@ -397,12 +397,15 @@ static int attestation_slave_aux_decrypt_unsupported (struct attestation_slave *
  * @param ecc The ECC engine to utilize.
  * @param rng The RNG engine to utilize.
  * @param store PCR store to utilize.
+ * @param min_protocol_version Minimum protocol version supported by the device.
+ * @param max_protocol_version Maximum protocol version supported by the device.
  *
  * @return Initialization status, 0 if success or an error code.
  */
 static int attestation_slave_init_common (struct attestation_slave *attestation,
 	struct riot_key_manager *riot, struct hash_engine *hash, struct ecc_engine *ecc,
-	struct rng_engine *rng, struct pcr_store *store)
+	struct rng_engine *rng, struct pcr_store *store, uint8_t min_protocol_version, 
+	uint8_t max_protocol_version)
 {
 	const struct riot_keys *keys;
 	int status;
@@ -433,6 +436,8 @@ static int attestation_slave_init_common (struct attestation_slave *attestation,
 	attestation->ecc = ecc;
 	attestation->rng = rng;
 	attestation->pcr_store = store;
+	attestation->min_protocol_version = min_protocol_version;
+	attestation->max_protocol_version = max_protocol_version;
 
 	attestation->get_digests = attestation_slave_get_digests;
 	attestation->get_certificate = attestation_slave_get_certificate;
@@ -451,12 +456,15 @@ static int attestation_slave_init_common (struct attestation_slave *attestation,
  * @param rng The RNG engine to utilize.
  * @param store PCR store to utilize.
  * @param aux Aux attestation service handler to utilize.
+ * @param min_protocol_version Minimum protocol version supported by the device.
+ * @param max_protocol_version Maximum protocol version supported by the device.
  *
  * @return Initialization status, 0 if success or an error code.
  */
 int attestation_slave_init (struct attestation_slave *attestation,
 	struct riot_key_manager *riot, struct hash_engine *hash, struct ecc_engine *ecc,
-	struct rng_engine *rng, struct pcr_store *store, struct aux_attestation *aux)
+	struct rng_engine *rng, struct pcr_store *store, struct aux_attestation *aux, 
+	uint8_t min_protocol_version, uint8_t max_protocol_version)
 {
 	int status;
 
@@ -464,7 +472,8 @@ int attestation_slave_init (struct attestation_slave *attestation,
 		return ATTESTATION_INVALID_ARGUMENT;
 	}
 
-	status = attestation_slave_init_common (attestation, riot, hash, ecc, rng, store);
+	status = attestation_slave_init_common (attestation, riot, hash, ecc, rng, store, 
+		min_protocol_version, max_protocol_version);
 	if (status != 0) {
 		return status;
 	}
@@ -486,16 +495,20 @@ int attestation_slave_init (struct attestation_slave *attestation,
  * @param ecc The ECC engine to utilize.
  * @param rng The RNG engine to utilize.
  * @param store PCR store to utilize.
+ * @param min_protocol_version Minimum protocol version supported by the device.
+ * @param max_protocol_version Maximum protocol version supported by the device.
  *
  * @return Initialization status, 0 if success or an error code.
  */
 int attestation_slave_init_no_aux (struct attestation_slave *attestation,
 	struct riot_key_manager *riot, struct hash_engine *hash, struct ecc_engine *ecc,
-	struct rng_engine *rng, struct pcr_store *store)
+	struct rng_engine *rng, struct pcr_store *store, uint8_t min_protocol_version, 
+	uint8_t max_protocol_version)
 {
 	int status;
 
-	status = attestation_slave_init_common (attestation, riot, hash, ecc, rng, store);
+	status = attestation_slave_init_common (attestation, riot, hash, ecc, rng, store, 
+		min_protocol_version, max_protocol_version);
 	if (status != 0) {
 		return status;
 	}

@@ -21,15 +21,6 @@ enum {
 };
 
 /**
- * Encryption algorithms
- */
-enum {
-	ATTESTATION_RSA_ENCRYPTION_ALGORITHM = 0,	/**< RSA encryption */
-	ATTESTATION_ECC_ENCRYPTION_ALGORITHM,		/**< ECC encryption */
-	NUM_ATTESTATION_ENCRYPTION_ALGORITHMS		/**< Number of encryption algorithms */
-};
-
-/**
  * Slot numbers for each supported certificate chain
  */
 enum {

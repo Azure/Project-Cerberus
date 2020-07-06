@@ -383,7 +383,7 @@ void cerberus_protocol_debug_commands_testing_process_get_device_challenge (CuTe
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_master_init (&master_attestation->base, riot, &hash->base, &ecc.base,
-		&rsa.base, &x509.base, &rng.base, device_manager, 0);
+		&rsa.base, &x509.base, &rng.base, device_manager, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	memcpy (master_attestation->base.challenge[1].nonce, X509_CERTCA_ECC_CA_NOPL_DER,
