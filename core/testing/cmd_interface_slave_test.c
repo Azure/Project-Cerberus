@@ -1059,7 +1059,7 @@ static void cmd_interface_slave_test_process_get_certificate_digest (CuTest *tes
 
 	setup_cmd_interface_slave_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_certificate_digest (test,
-		&cmd.handler.base, &cmd.slave_attestation);
+		&cmd.handler.base, &cmd.slave_attestation, &cmd.session);
 	complete_cmd_interface_slave_mock_test (test, &cmd);
 }
 

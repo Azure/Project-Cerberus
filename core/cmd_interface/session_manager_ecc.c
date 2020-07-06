@@ -182,6 +182,7 @@ static int session_manager_ecc_init_internal (struct session_manager_ecc *sessio
 		session->base.is_session_established = session_manager_is_session_established;
 		session->base.decrypt_message = session_manager_decrypt_message;
 		session->base.encrypt_message = session_manager_encrypt_message;
+		session->base.reset_session = session_manager_reset_session;
 		session->ecc = ecc;
 	}
 

@@ -2415,6 +2415,110 @@ static void session_manager_ecc_test_is_session_established_invalid_arg (CuTest 
 	release_session_manager_ecc_test (test, &cmd);
 }
 
+static void session_manager_ecc_test_reset_session (CuTest *test)
+{
+	struct session_manager_ecc_testing cmd;
+	uint8_t nonce1[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
+	};
+	uint8_t nonce2[] = {
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+	uint8_t aes_key[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+	int status;
+
+	TEST_START;
+
+	setup_session_manager_ecc_test (test, &cmd);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_key_pair, &cmd.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_public_key, &cmd.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN),
+		MOCK_ARG (ECC_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_shared_secret_max_length, &cmd.ecc, 64,
+		MOCK_ARG_SAVED_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.compute_shared_secret, &cmd.ecc, 64,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_SAVED_ARG (1), MOCK_ARG_NOT_NULL, MOCK_ARG (64));
+	status |= mock_expect_output (&cmd.ecc.mock, 2, SHARED_SECRET, sizeof (SHARED_SECRET), 3);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_expect_hmac_init (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (&nonce1, sizeof (nonce1)), MOCK_ARG (sizeof (nonce1)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (&nonce2, sizeof (nonce2)), MOCK_ARG (sizeof (nonce2)));
+	status |= hash_mock_expect_hmac_finish (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET),
+		NULL, SHA256_HASH_LENGTH, aes_key, sizeof (aes_key));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_SAVED_ARG (1));
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd.session.base.add_session (&cmd.session.base, 0x10, nonce1, nonce2);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd.session.base.establish_session (&cmd.session.base, 0x10, ECC_PUBKEY_DER,
+		ECC_PUBKEY_DER_LEN, true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd.session.base.is_session_established (&cmd.session.base, 0x10);
+	CuAssertIntEquals (test, 1, status);
+
+	status = cmd.session.base.reset_session (&cmd.session.base, 0x10);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd.session.base.is_session_established (&cmd.session.base, 0x10);
+	CuAssertIntEquals (test, SESSION_MANAGER_UNEXPECTED_EID, status);
+
+	release_session_manager_ecc_test (test, &cmd);
+}
+
+static void session_manager_ecc_test_reset_session_unexpected_eid (CuTest *test)
+{
+	struct session_manager_ecc_testing cmd;
+	int status;
+
+	TEST_START;
+
+	setup_session_manager_ecc_test (test, &cmd);
+
+	status = cmd.session.base.reset_session (&cmd.session.base, 0x30);
+	CuAssertIntEquals (test, SESSION_MANAGER_UNEXPECTED_EID, status);
+
+	release_session_manager_ecc_test (test, &cmd);
+}
+
+static void session_manager_ecc_test_reset_session_invalid_arg (CuTest *test)
+{
+	struct session_manager_ecc_testing cmd;
+	int status;
+
+	TEST_START;
+
+	setup_session_manager_ecc_test (test, &cmd);
+
+	status = cmd.session.base.reset_session (NULL, 0x10);
+	CuAssertIntEquals (test, SESSION_MANAGER_INVALID_ARGUMENT, status);
+
+	release_session_manager_ecc_test (test, &cmd);
+}
+
 CuSuite* get_session_manager_ecc_suite ()
 {
 	CuSuite *suite = CuSuiteNew ();
@@ -2463,6 +2567,9 @@ CuSuite* get_session_manager_ecc_suite ()
 	SUITE_ADD_TEST (suite, session_manager_ecc_test_is_session_established);
 	SUITE_ADD_TEST (suite, session_manager_ecc_test_is_session_established_unexpected_eid);
 	SUITE_ADD_TEST (suite, session_manager_ecc_test_is_session_established_invalid_arg);
+	SUITE_ADD_TEST (suite, session_manager_ecc_test_reset_session);
+	SUITE_ADD_TEST (suite, session_manager_ecc_test_reset_session_unexpected_eid);
+	SUITE_ADD_TEST (suite, session_manager_ecc_test_reset_session_invalid_arg);
 
 	return suite;
 }

@@ -259,6 +259,34 @@ int session_manager_add_session (struct session_manager *session, uint8_t eid,
 }
 
 /**
+ * Terminate and reset session. 
+ *
+ * @param session Session manager instance to utilize.
+ * @param eid Device EID.  
+ *
+ * @return Completion status, 0 if success or an error code.
+ */
+int session_manager_reset_session (struct session_manager *session, uint8_t eid)
+{
+	struct session_manager_entry *req_session;
+
+	if (session == NULL) {
+		return SESSION_MANAGER_INVALID_ARGUMENT;
+	}
+
+	req_session = session_manager_get_session (session, eid);
+	if (req_session == NULL) {
+		return SESSION_MANAGER_UNEXPECTED_EID;
+	}
+
+	memset (req_session, 0, sizeof (struct session_manager_entry));
+
+	req_session->session_state = SESSION_STATE_UNUSED;
+
+	return 0;
+}
+
+/**
  * Initialize session manager instance and use the provided session manager entries table
  *
  * @param session Session manager instance to initialize.
