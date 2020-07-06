@@ -39,7 +39,12 @@ void cerberus_protocol_required_commands_testing_process_get_fw_version_bad_coun
 	struct cmd_interface *cmd);
 
 void cerberus_protocol_required_commands_testing_process_get_certificate_digest (CuTest *test,
-	struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation);
+	struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation,
+	struct session_manager_mock *session);
+void cerberus_protocol_required_commands_testing_process_get_certificate_digest_no_key_exchange (
+	CuTest *test, struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation);
+void cerberus_protocol_required_commands_testing_process_get_certificate_digest_in_session (
+	CuTest *test, struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation);
 void cerberus_protocol_required_commands_testing_process_get_certificate_digest_aux_slot (
 	CuTest *test, struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation);
 void cerberus_protocol_required_commands_testing_process_get_certificate_digest_limited_response (

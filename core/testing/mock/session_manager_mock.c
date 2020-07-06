@@ -72,11 +72,23 @@ static int session_manager_mock_is_session_established (struct session_manager *
 		MOCK_ARG_CALL (eid));
 }
 
+static int session_manager_mock_reset_session (struct session_manager *session, uint8_t eid)
+{
+	struct session_manager_mock *mock = (struct session_manager_mock*) session;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, session_manager_mock_reset_session, session, MOCK_ARG_CALL (eid));
+}
+
 static int session_manager_mock_func_arg_count (void *func)
 {
 	if ((func == session_manager_mock_is_session_established) || 
 		(func == session_manager_mock_decrypt_message) || 
-		(func == session_manager_mock_encrypt_message)) {
+		(func == session_manager_mock_encrypt_message) || 
+		(func == session_manager_mock_reset_session)) {
 		return 1;
 	}
 	else if (func == session_manager_mock_add_session) {
@@ -106,6 +118,9 @@ static const char* session_manager_mock_func_name_map (void *func)
 	}
 	else if (func == session_manager_mock_establish_session) {
 		return "establish_session";
+	}
+	else if (func == session_manager_mock_reset_session) {
+		return "reset_session";
 	}
 	else {
 		return "unknown";
@@ -154,6 +169,12 @@ static const char* session_manager_mock_arg_name_map (void *func, int arg)
 				return "eid";
 		}
 	}
+	else if (func == session_manager_mock_reset_session) {
+		switch (arg) {
+			case 0:
+				return "eid";
+		}
+	}
 
 	return "unknown";
 }
@@ -187,6 +208,7 @@ int session_manager_mock_init (struct session_manager_mock *mock)
 	mock->base.decrypt_message = session_manager_mock_decrypt_message;
 	mock->base.encrypt_message = session_manager_mock_encrypt_message;
 	mock->base.is_session_established = session_manager_mock_is_session_established;
+	mock->base.reset_session = session_manager_mock_reset_session;
 
 	mock->mock.func_arg_count = session_manager_mock_func_arg_count;
 	mock->mock.func_name_map = session_manager_mock_func_name_map;

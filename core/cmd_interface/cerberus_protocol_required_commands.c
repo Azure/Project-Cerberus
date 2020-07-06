@@ -85,8 +85,14 @@ int cerberus_protocol_get_certificate_digest (struct attestation_slave *attestat
 		return CMD_HANDLER_UNSUPPORTED_INDEX;
 	}
 
-	if ((rq->digest.key_alg != ATTESTATION_KEY_EXCHANGE_NONE) && (session == NULL)) {
-		return CMD_HANDLER_UNSUPPORTED_OPERATION;
+	if (rq->digest.key_alg != ATTESTATION_KEY_EXCHANGE_NONE) {
+		if (session == NULL) {
+			return CMD_HANDLER_UNSUPPORTED_OPERATION;
+		}
+
+		if (rq->header.crypt == 0) {
+			session->reset_session (session, request->source_eid);
+		}
 	}
 
 	attestation->key_exchange_algorithm = rq->digest.key_alg;

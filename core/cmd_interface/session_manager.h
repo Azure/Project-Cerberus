@@ -103,6 +103,16 @@ struct session_manager {
 	 */
 	int (*encrypt_message) (struct session_manager *session, struct cmd_interface_request *request);
 
+	/**
+	 * Terminate and reset session. 
+	 *
+	 * @param session Session manager instance to utilize.
+	 * @param eid Device EID.  
+	 *
+	 * @return Completion status, 0 if success or an error code.
+	 */
+	int (*reset_session) (struct session_manager *session, uint8_t eid);
+
 	struct aes_engine *aes;					/**< AES engine used to encrypt/decrypt session data */
 	struct hash_engine *hash;				/**< Hashing engine used to generate AES shared key */
 	struct rng_engine *rng;					/**< RNG engine used to generate IV buffers */
@@ -127,6 +137,7 @@ int session_manager_decrypt_message (struct session_manager *session,
 int session_manager_encrypt_message (struct session_manager *session, 
 	struct cmd_interface_request *request);
 int session_manager_is_session_established (struct session_manager *session, uint8_t eid);
+int session_manager_reset_session (struct session_manager *session, uint8_t eid);
 
 struct session_manager_entry* session_manager_get_session (struct session_manager *session, 
 	uint8_t eid);

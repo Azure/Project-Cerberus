@@ -3900,7 +3900,7 @@ static void cmd_interface_system_test_process_get_certificate_digest (CuTest *te
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, DEVICE_MANAGER_UPSTREAM, true);
 	cerberus_protocol_required_commands_testing_process_get_certificate_digest (test,
-		&cmd.handler.base, &cmd.slave_attestation);
+		&cmd.handler.base, &cmd.slave_attestation, &cmd.session);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
