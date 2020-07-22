@@ -19,32 +19,32 @@ static const char *SUITE = "host_processor_observer_pcr";
  * Digest of the number 0.  This indicates valid FW in active mode.
  */
 static const uint8_t DIGEST_ZERO[] = {
-	0xdf,0x3f,0x61,0x98,0x04,0xa9,0x2f,0xdb,0x40,0x57,0x19,0x2d,0xc4,0x3d,0xd7,0x48,
-	0xea,0x77,0x8a,0xdc,0x52,0xbc,0x49,0x8c,0xe8,0x05,0x24,0xc0,0x14,0xb8,0x11,0x19
+	0x47,0x40,0x56,0x46,0xe6,0x3c,0x9f,0x11,0xb4,0xc9,0xc5,0x80,0x03,0x82,0x7f,0xdb,
+	0x51,0x14,0xfa,0x50,0x1e,0xab,0x92,0xe5,0xf0,0xc1,0xc4,0xb5,0x0b,0xc0,0x2d,0x8b
 };
 
 /**
  * Digest of the state indicating bypass mode.
  */
 static const uint8_t DIGEST_BYPASS[] = {
-	0x67,0xab,0xdd,0x72,0x10,0x24,0xf0,0xff,0x4e,0x0b,0x3f,0x4c,0x2f,0xc1,0x3b,0xc5,
-	0xba,0xd4,0x2d,0x0b,0x78,0x51,0xd4,0x56,0xd8,0x8d,0x20,0x3d,0x15,0xaa,0xa4,0x50
+	0xb1,0xde,0x2f,0x62,0x8f,0xb6,0x8c,0x28,0xc1,0x2b,0x1f,0xee,0xad,0x61,0xe6,0x0c,
+	0x5a,0x4b,0x0b,0x20,0x49,0xa9,0x12,0x34,0x82,0x72,0x62,0xf2,0x12,0x3c,0xa4,0xb0
 };
 
 /**
  * Digest of the state indicating recovery mode.
  */
 static const uint8_t DIGEST_RECOVERY[] = {
-	0x26,0xb2,0x5d,0x45,0x75,0x97,0xa7,0xb0,0x46,0x3f,0x96,0x20,0xf6,0x66,0xdd,0x10,
-	0xaa,0x2c,0x43,0x73,0xa5,0x05,0x96,0x7c,0x7c,0x8d,0x70,0x92,0x2a,0x2d,0x6e,0xce
+	0xfa,0xb6,0x6f,0x51,0x96,0x05,0x96,0x9a,0x1a,0xa0,0xd2,0x87,0x00,0xee,0x25,0x84,
+	0x8a,0x27,0x39,0x80,0xe2,0xcc,0x45,0xda,0x53,0x2d,0xb3,0xad,0xc8,0xc0,0xf7,0x37
 };
 
 /**
  * Digest of the initial state.
  */
 static const uint8_t DIGEST_INIT[] = {
-	0xad,0x95,0x13,0x1b,0xc0,0xb7,0x99,0xc0,0xb1,0xaf,0x47,0x7f,0xb1,0x4f,0xcf,0x26,
-	0xa6,0xa9,0xf7,0x60,0x79,0xe4,0x8b,0xf0,0x90,0xac,0xb7,0xe8,0x36,0x7b,0xfd,0x0e
+	0x8f,0xce,0x49,0xc6,0x07,0xe3,0xf4,0xad,0x60,0x9f,0x37,0xb3,0xc8,0x7f,0x31,0xd9,
+	0x53,0x25,0xc4,0xe5,0xb7,0x6d,0x49,0x9e,0x9a,0x4a,0x95,0x5b,0x51,0x64,0x3f,0x30
 };
 
 
@@ -71,6 +71,7 @@ static void host_processor_observer_pcr_test_init (CuTest *test)
 	struct host_processor_observer_pcr observer;
 	int status;
 	struct pcr_measurement measurement;
+	uint32_t event = 0xaabbccdd;
 
 	TEST_START;
 
@@ -78,6 +79,9 @@ static void host_processor_observer_pcr_test_init (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_init (&store, num_pcr_measurements, sizeof (num_pcr_measurements));
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_event_type (&store.banks[0], 0, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_processor_observer_pcr_init (&observer, &hash.base, &store,
@@ -110,6 +114,7 @@ static void host_processor_observer_pcr_test_init_valid (CuTest *test)
 	struct host_processor_observer_pcr observer;
 	int status;
 	struct pcr_measurement measurement;
+	uint32_t event = 0xaabbccdd;
 
 	TEST_START;
 
@@ -117,6 +122,9 @@ static void host_processor_observer_pcr_test_init_valid (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_init (&store, num_pcr_measurements, sizeof (num_pcr_measurements));
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_event_type (&store.banks[0], 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_processor_observer_pcr_init (&observer, &hash.base, &store,
@@ -215,6 +223,7 @@ static void host_processor_observer_pcr_test_on_bypass_mode (CuTest *test)
 	struct host_processor_observer_pcr observer;
 	int status;
 	struct pcr_measurement measurement;
+	uint32_t event = 0xaabbccdd;
 
 	TEST_START;
 
@@ -222,6 +231,9 @@ static void host_processor_observer_pcr_test_on_bypass_mode (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_init (&store, num_pcr_measurements, sizeof (num_pcr_measurements));
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_event_type (&store.banks[0], 0, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_processor_observer_pcr_init (&observer, &hash.base, &store,
@@ -259,8 +271,9 @@ static void host_processor_observer_pcr_test_on_bypass_mode_error (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_HOST_FW,
 		.msg_index = HOST_LOGGING_PCR_UPDATE_ERROR,
 		.arg1 = PCR_MEASUREMENT (0, 0),
-		.arg2 = HASH_ENGINE_SHA256_FAILED
+		.arg2 = HASH_ENGINE_UPDATE_FAILED
 	};
+	uint32_t event = 0xaabbccdd;
 
 	TEST_START;
 
@@ -273,8 +286,16 @@ static void host_processor_observer_pcr_test_on_bypass_mode_error (CuTest *test)
 	status = pcr_store_init (&store, num_pcr_measurements, sizeof (num_pcr_measurements));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&hash.mock, hash.base.calculate_sha256, &hash, 0, MOCK_ARG_NOT_NULL,
-		MOCK_ARG (sizeof (uint32_t)), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+	status = pcr_update_event_type (&store.banks[0], 0, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&hash.mock, hash.base.start_sha256, &hash, 0);
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
+		MOCK_ARG_PTR_CONTAINS (&event, sizeof (event)), MOCK_ARG (sizeof (event)));
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG_NOT_NULL,
+		MOCK_ARG (sizeof (uint32_t)));
+	status |= mock_expect (&hash.mock, hash.base.finish, &hash, 0, MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_processor_observer_pcr_init (&observer, &hash.base, &store,
@@ -284,9 +305,10 @@ static void host_processor_observer_pcr_test_on_bypass_mode_error (CuTest *test)
 	status = mock_validate (&hash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&hash.mock, hash.base.calculate_sha256, &hash, HASH_ENGINE_SHA256_FAILED,
-		MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (uint32_t)), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (SHA256_HASH_LENGTH));
+	status = mock_expect (&hash.mock, hash.base.start_sha256, &hash, 0);
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, HASH_ENGINE_UPDATE_FAILED,
+		MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (uint32_t)));
+	status |= mock_expect (&hash.mock, hash.base.cancel, &hash, 0);
 
 	status |= mock_expect (&logger.mock, logger.base.create_entry, &logger, 0,
 		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, sizeof (entry)), MOCK_ARG (sizeof (entry)));
@@ -323,6 +345,7 @@ static void host_processor_observer_pcr_test_on_active_mode (CuTest *test)
 	struct host_processor_observer_pcr observer;
 	int status;
 	struct pcr_measurement measurement;
+	uint32_t event = 0xaabbccdd;
 
 	TEST_START;
 
@@ -330,6 +353,9 @@ static void host_processor_observer_pcr_test_on_active_mode (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_init (&store, num_pcr_measurements, sizeof (num_pcr_measurements));
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_event_type (&store.banks[0], 0, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_processor_observer_pcr_init (&observer, &hash.base, &store,
@@ -367,8 +393,9 @@ static void host_processor_observer_pcr_test_on_active_mode_error (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_HOST_FW,
 		.msg_index = HOST_LOGGING_PCR_UPDATE_ERROR,
 		.arg1 = PCR_MEASUREMENT (0, 0),
-		.arg2 = HASH_ENGINE_SHA256_FAILED
+		.arg2 = HASH_ENGINE_UPDATE_FAILED
 	};
+	uint32_t event = 0xaabbccdd;
 
 	TEST_START;
 
@@ -381,8 +408,16 @@ static void host_processor_observer_pcr_test_on_active_mode_error (CuTest *test)
 	status = pcr_store_init (&store, num_pcr_measurements, sizeof (num_pcr_measurements));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&hash.mock, hash.base.calculate_sha256, &hash, 0, MOCK_ARG_NOT_NULL,
-		MOCK_ARG (sizeof (uint32_t)), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+	status = pcr_update_event_type (&store.banks[0], 0, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&hash.mock, hash.base.start_sha256, &hash, 0);
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
+		MOCK_ARG_PTR_CONTAINS (&event, sizeof (event)), MOCK_ARG (sizeof (event)));
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG_NOT_NULL,
+		MOCK_ARG (sizeof (uint32_t)));
+	status |= mock_expect (&hash.mock, hash.base.finish, &hash, 0, MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_processor_observer_pcr_init (&observer, &hash.base, &store,
@@ -392,9 +427,10 @@ static void host_processor_observer_pcr_test_on_active_mode_error (CuTest *test)
 	status = mock_validate (&hash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&hash.mock, hash.base.calculate_sha256, &hash, HASH_ENGINE_SHA256_FAILED,
-		MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (uint32_t)), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (SHA256_HASH_LENGTH));
+	status = mock_expect (&hash.mock, hash.base.start_sha256, &hash, 0);
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, HASH_ENGINE_UPDATE_FAILED,
+		MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (uint32_t)));
+	status |= mock_expect (&hash.mock, hash.base.cancel, &hash, 0);
 
 	status |= mock_expect (&logger.mock, logger.base.create_entry, &logger, 0,
 		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, sizeof (entry)), MOCK_ARG (sizeof (entry)));
@@ -431,6 +467,7 @@ static void host_processor_observer_pcr_test_on_recovery (CuTest *test)
 	struct host_processor_observer_pcr observer;
 	int status;
 	struct pcr_measurement measurement;
+	uint32_t event = 0xaabbccdd;
 
 	TEST_START;
 
@@ -438,6 +475,9 @@ static void host_processor_observer_pcr_test_on_recovery (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_init (&store, num_pcr_measurements, sizeof (num_pcr_measurements));
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_event_type (&store.banks[0], 0, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_processor_observer_pcr_init (&observer, &hash.base, &store,
@@ -475,8 +515,9 @@ static void host_processor_observer_pcr_test_on_recovery_error (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_HOST_FW,
 		.msg_index = HOST_LOGGING_PCR_UPDATE_ERROR,
 		.arg1 = PCR_MEASUREMENT (0, 0),
-		.arg2 = HASH_ENGINE_SHA256_FAILED
+		.arg2 = HASH_ENGINE_UPDATE_FAILED
 	};
+	uint32_t event = 0xaabbccdd;
 
 	TEST_START;
 
@@ -489,8 +530,16 @@ static void host_processor_observer_pcr_test_on_recovery_error (CuTest *test)
 	status = pcr_store_init (&store, num_pcr_measurements, sizeof (num_pcr_measurements));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&hash.mock, hash.base.calculate_sha256, &hash, 0, MOCK_ARG_NOT_NULL,
-		MOCK_ARG (sizeof (uint32_t)), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+	status = pcr_update_event_type (&store.banks[0], 0, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&hash.mock, hash.base.start_sha256, &hash, 0);
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
+		MOCK_ARG_PTR_CONTAINS (&event, sizeof (event)), MOCK_ARG (sizeof (event)));
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG_NOT_NULL,
+		MOCK_ARG (sizeof (uint32_t)));
+	status |= mock_expect (&hash.mock, hash.base.finish, &hash, 0, MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_processor_observer_pcr_init (&observer, &hash.base, &store,
@@ -500,9 +549,10 @@ static void host_processor_observer_pcr_test_on_recovery_error (CuTest *test)
 	status = mock_validate (&hash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&hash.mock, hash.base.calculate_sha256, &hash, HASH_ENGINE_SHA256_FAILED,
-		MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (uint32_t)), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (SHA256_HASH_LENGTH));
+	status = mock_expect (&hash.mock, hash.base.start_sha256, &hash, 0);
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, HASH_ENGINE_UPDATE_FAILED,
+		MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (uint32_t)));
+	status |= mock_expect (&hash.mock, hash.base.cancel, &hash, 0);
 
 	status |= mock_expect (&logger.mock, logger.base.create_entry, &logger, 0,
 		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, sizeof (entry)), MOCK_ARG (sizeof (entry)));

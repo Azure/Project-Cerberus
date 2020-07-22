@@ -144,13 +144,15 @@ int pcr_store_update_digest (struct pcr_store *store, uint16_t measurement_type,
  * @param measurement_type The type of measurement being updated
  * @param buf Buffer holding data to compute measurement of
  * @param buf_len Length of data buffer
+ * @param include_event Flag that indicates whether to include the event type in measurement
+ * calculations.
  *
  * @return Completion status, 0 if success or an error code
  */
 int pcr_store_update_buffer (struct pcr_store *store, struct hash_engine *hash,
-	uint16_t measurement_type, const uint8_t *buf, size_t buf_len)
+	uint16_t measurement_type, const uint8_t *buf, size_t buf_len, bool include_event)
 {
-	uint8_t pcr_bank = (uint8_t)(measurement_type >> 8);
+	uint8_t pcr_bank = (uint8_t) (measurement_type >> 8);
 	uint8_t measurement_index = (uint8_t) measurement_type;
 
 	if (store == NULL) {
@@ -161,7 +163,41 @@ int pcr_store_update_buffer (struct pcr_store *store, struct hash_engine *hash,
 		return PCR_INVALID_PCR;
 	}
 
-	return pcr_update_buffer (&store->banks[pcr_bank], hash, measurement_index,	buf, buf_len);
+	return pcr_update_buffer (&store->banks[pcr_bank], hash, measurement_index, buf, buf_len,
+		include_event);
+}
+
+/**
+ * Compute digest of the versioned buffer and update the PCR bank's list of measurements
+ *
+ * @param store PCR store containing PCR to be updated
+ * @param hash Hashing engine to utilize in PCR bank operations
+ * @param measurement_type The type of measurement being updated
+ * @param buf Buffer holding data to compute measurement of
+ * @param buf_len Length of data buffer
+ * @param include_event Flag that indicates whether to include the event type in measurement
+ * calculations
+ * @param version The version associated with the measurement data.
+ *
+ * @return Completion status, 0 if success or an error code
+ */
+int pcr_store_update_versioned_buffer (struct pcr_store *store, struct hash_engine *hash,
+	uint16_t measurement_type, const uint8_t *buf, size_t buf_len, bool include_event,
+	uint8_t version)
+{
+	uint8_t pcr_bank = (uint8_t) (measurement_type >> 8);
+	uint8_t measurement_index = (uint8_t) measurement_type;
+
+	if (store == NULL) {
+		return PCR_INVALID_ARGUMENT;
+	}
+
+	if (pcr_bank >= store->num_pcr_banks) {
+		return PCR_INVALID_PCR;
+	}
+
+	return pcr_update_versioned_buffer (&store->banks[pcr_bank], hash, measurement_index, buf,
+		buf_len, include_event, version);
 }
 
 /**

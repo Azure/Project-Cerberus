@@ -27,7 +27,7 @@ enum pcr_data_type {
  *
  * @param context The context to query for measured data.
  * @param offset The offset to read data from.
- * @param buffer Output buffer to filled in with measured data.
+ * @param buffer Output buffer to be filled in with measured data.
  * @param length Maximum length of the buffer
  *
  * @return length of the measured data if successfully read or an error code.
@@ -44,7 +44,7 @@ struct pcr_measured_data {
 		uint8_t value_1byte;				/**< Value for 1 byte measured data type */
 		uint16_t value_2byte;				/**< Value for 2 bytes measured data type */
 		uint32_t value_4byte;				/**< Value for 4 bytes measured data type */
-		uint64_t value_8byte;				/**< Value for 4 bytes measured data type */
+		uint64_t value_8byte;				/**< Value for 8 bytes measured data type */
 
 		struct {
 			const uint8_t *buffer;			/**< Buffer containing the measured data */

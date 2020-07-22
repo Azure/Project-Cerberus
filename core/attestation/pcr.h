@@ -13,6 +13,9 @@
 
 #define PCR_DIGEST_LENGTH 	SHA256_HASH_LENGTH
 
+/* PCR flag to include data in measurement calculations */
+#define PCR_MEASUREMENT_FLAG_EVENT							(1U << 0)
+#define PCR_MEASUREMENT_FLAG_VERSION						(1U << 1)
 
 /**
  * Container for a PCR measurement
@@ -22,6 +25,8 @@ struct pcr_measurement {
 	uint8_t measurement[PCR_DIGEST_LENGTH];					/**< Aggregated measurement buffer */
 	struct pcr_measured_data *measured_data;				/**< Raw data used for measurement */
 	uint32_t event_type;									/**< TCG event type */
+	uint8_t version;										/**< Version associated with the measurement data */
+	uint8_t measurement_config;								/**< Indicates data to include in measurement calculations */
 };
 
 /**
@@ -43,8 +48,13 @@ int pcr_check_measurement_index (struct pcr_bank *pcr, uint8_t measurement_index
 int pcr_update_digest (struct pcr_bank *pcr, uint8_t measurement_index, const uint8_t *digest,
 	size_t digest_len);
 int pcr_update_buffer (struct pcr_bank *pcr, struct hash_engine *hash, uint8_t measurement_index,
-	const uint8_t *buf, size_t buf_len);
+	const uint8_t *buf, size_t buf_len, bool include_event);
+int pcr_update_versioned_buffer (struct pcr_bank *pcr, struct hash_engine *hash,
+	uint8_t measurement_index, const uint8_t *buf, size_t buf_len, bool include_event,
+	uint8_t version);
+
 int pcr_update_event_type (struct pcr_bank *pcr, uint8_t measurement_index, uint32_t event_type);
+int pcr_get_event_type (struct pcr_bank *pcr, uint8_t measurement_index, uint32_t *event_type);
 
 int pcr_compute (struct pcr_bank *pcr, struct hash_engine *hash, uint8_t *measurement, bool lock);
 int pcr_get_measurement (struct pcr_bank *pcr, uint8_t measurement_index,
