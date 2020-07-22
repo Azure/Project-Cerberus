@@ -10,6 +10,146 @@
 
 
 /**
+ * Common function to update digest in PCR bank's list of measurements
+ *
+ * @param pcr PCR bank to update
+ * @param measurement_index The index of measurement being updated
+ * @param digest Buffer holding digest to add
+ * @param digest_len Length of digest buffer
+ * @param measurement_config Indicates data included in measurement calculation
+ * @param version Version to associate with the measurement data
+ *
+ * @return 0 if successful or an error code
+ */
+static int pcr_update_digest_common (struct pcr_bank *pcr, uint8_t measurement_index,
+	const uint8_t *digest, size_t digest_len, uint8_t measurement_config, uint8_t version)
+{
+	if ((pcr == NULL) || (digest == NULL) || (digest_len == 0)) {
+		return PCR_INVALID_ARGUMENT;
+	}
+
+	if (digest_len != PCR_DIGEST_LENGTH) {
+		return PCR_UNSUPPORTED_ALGO;
+	}
+
+	if (measurement_index >= pcr->num_measurements) {
+		return PCR_INVALID_INDEX;
+	}
+
+	platform_mutex_lock (&pcr->lock);
+
+	memcpy (pcr->measurement_list[measurement_index].digest, digest, digest_len);
+	pcr->measurement_list[measurement_index].measurement_config = measurement_config;
+	pcr->measurement_list[measurement_index].version = version;
+
+	platform_mutex_unlock (&pcr->lock);
+
+	return 0;
+}
+
+/**
+ * Common function to compute digest of buffer and update the PCR bank's list of measurements
+ *
+ * @param pcr PCR bank to update measurement in
+ * @param hash Hashing engine to utilize
+ * @param measurement_index The index of measurement being updated
+ * @param buf Buffer holding data to compute measurement of
+ * @param buf_len Length of data buffer
+ * @param include_event Flag that indicates whether to include the event type in measurement
+ * calculations
+ * @param include_version Flag that indicates whether to include the version in measurement
+ * calculations
+ * @param version The version associated with the measurement data
+ *
+ * @return Completion status, 0 if success or an error code
+ */
+static int pcr_update_buffer_common (struct pcr_bank *pcr, struct hash_engine *hash,
+	uint8_t measurement_index, const uint8_t *buf, size_t buf_len, bool include_event,
+	bool include_version, uint8_t version)
+{
+	uint8_t digest[PCR_DIGEST_LENGTH];
+	int status;
+
+	status = hash->start_sha256 (hash);
+	if (status != 0) {
+		return status;
+	}
+
+	if (include_event) {
+		status = hash->update (hash,
+			(uint8_t*) &pcr->measurement_list[measurement_index].event_type,
+			sizeof (pcr->measurement_list[measurement_index].event_type));
+		if (status != 0) {
+			goto hash_cancel;
+		}
+	}
+
+	if (include_version) {
+		status = hash->update (hash, &version, sizeof (version));
+		if (status != 0) {
+			goto hash_cancel;
+		}
+	}
+
+	status = hash->update (hash, buf, buf_len);
+	if (status != 0) {
+		goto hash_cancel;
+	}
+
+	status = hash->finish (hash, digest, sizeof (digest));
+	if (status != 0) {
+		goto hash_cancel;
+	}
+
+	if (include_version && include_event) {
+		return pcr_update_digest_common (pcr, measurement_index, digest, sizeof (digest),
+			PCR_MEASUREMENT_FLAG_VERSION | PCR_MEASUREMENT_FLAG_EVENT, version);
+	}
+	else if (include_version && !include_event) {
+		return pcr_update_digest_common (pcr, measurement_index, digest, sizeof (digest),
+			PCR_MEASUREMENT_FLAG_VERSION, version);
+	}
+	else if (!include_version && include_event) {
+		return pcr_update_digest_common (pcr, measurement_index, digest, sizeof (digest),
+			PCR_MEASUREMENT_FLAG_EVENT, 0);
+	}
+	else {
+		return pcr_update_digest_common (pcr, measurement_index, digest, sizeof (digest), 0, 0);
+	}
+
+hash_cancel:
+	hash->cancel (hash);
+
+	return status;
+}
+
+/**
+ * Read the measurement data bytes and copy the data to the provided buffer
+ *
+ * @param buffer Output buffer containing the measured data
+ * @param buffer_len Maximum length of the buffer
+ * @param data Buffer storing the measurement data to be read
+ * @param data_len Size in bytes of the measurement data
+ * @param offset The offset index to read from
+ *
+ * @return total number of bytes read
+ */
+static int pcr_read_measurement_data_bytes (uint8_t *buffer, size_t buffer_len, const uint8_t *data,
+	size_t data_len, size_t offset)
+{
+	int bytes_read;
+
+	if ((buffer_len == 0) || (offset > data_len - 1)) {
+		return 0;
+	}
+
+	bytes_read = ((data_len - offset) > buffer_len) ?  buffer_len : (data_len - offset);
+	memcpy (buffer, data + offset, bytes_read);
+
+	return bytes_read;
+}
+
+/**
  * Initialize PCR bank to support the required number of measurements
  *
  * @param pcr The PCR bank to initialize
@@ -86,7 +226,7 @@ int pcr_check_measurement_index (struct pcr_bank *pcr, uint8_t measurement_index
 }
 
 /**
- * Update digest in PCR bank's list of measurements
+ * Update digest in PCR bank's list of measurements and reset measurement configuration
  *
  * @param pcr PCR bank to update
  * @param measurement_index The index of measurement being updated
@@ -98,25 +238,7 @@ int pcr_check_measurement_index (struct pcr_bank *pcr, uint8_t measurement_index
 int pcr_update_digest (struct pcr_bank *pcr, uint8_t measurement_index, const uint8_t *digest,
 	size_t digest_len)
 {
-	if ((pcr == NULL) || (digest == NULL) || (digest_len == 0)) {
-		return PCR_INVALID_ARGUMENT;
-	}
-
-	if (digest_len != PCR_DIGEST_LENGTH) {
-		return PCR_UNSUPPORTED_ALGO;
-	}
-
-	if (measurement_index >= pcr->num_measurements) {
-		return PCR_INVALID_INDEX;
-	}
-
-	platform_mutex_lock (&pcr->lock);
-
-	memcpy (pcr->measurement_list[measurement_index].digest, digest, digest_len);
-
-	platform_mutex_unlock (&pcr->lock);
-
-	return 0;
+	return pcr_update_digest_common (pcr, measurement_index, digest, digest_len, 0, 0);
 }
 
 /**
@@ -127,25 +249,46 @@ int pcr_update_digest (struct pcr_bank *pcr, uint8_t measurement_index, const ui
  * @param measurement_index The index of measurement being updated
  * @param buf Buffer holding data to compute measurement of
  * @param buf_len Length of data buffer
+ * @param include_event Flag that indicates whether to include the event type in measurement
+ * calculations
  *
  * @return Completion status, 0 if success or an error code
  */
 int pcr_update_buffer (struct pcr_bank *pcr, struct hash_engine *hash, uint8_t measurement_index,
-	const uint8_t *buf, size_t buf_len)
+	const uint8_t *buf, size_t buf_len, bool include_event)
 {
-	uint8_t digest[PCR_DIGEST_LENGTH];
-	int status;
-
 	if ((pcr == NULL) || (buf == NULL) || (buf_len == 0) || (hash == NULL)) {
 		return PCR_INVALID_ARGUMENT;
 	}
 
-	status = hash->calculate_sha256 (hash, buf, buf_len, digest, sizeof (digest));
-	if (status != 0) {
-		return status;
+	return pcr_update_buffer_common (pcr, hash, measurement_index, buf, buf_len, include_event,
+		false, 0);
+}
+
+/**
+ * Compute digest of versioned buffer and update the PCR bank's list of measurements
+ *
+ * @param pcr PCR bank to update measurement in
+ * @param hash Hashing engine to utilize
+ * @param measurement_index The index of measurement being updated
+ * @param buf Buffer holding data to compute measurement of
+ * @param buf_len Length of data buffer
+ * @param include_event Flag that indicates whether to include the event type in measurement
+ * calculations
+ * @param version The version associated with the measurement data
+ *
+ * @return Completion status, 0 if success or an error code
+ */
+int pcr_update_versioned_buffer (struct pcr_bank *pcr, struct hash_engine *hash,
+	uint8_t measurement_index, const uint8_t *buf, size_t buf_len, bool include_event,
+	uint8_t version)
+{
+	if ((pcr == NULL) || (buf == NULL) || (buf_len == 0) || (hash == NULL)) {
+		return PCR_INVALID_ARGUMENT;
 	}
 
-	return pcr_update_digest (pcr, measurement_index, digest, sizeof (digest));
+	return pcr_update_buffer_common (pcr, hash, measurement_index, buf, buf_len,
+		include_event, true, version);
 }
 
 /**
@@ -153,7 +296,7 @@ int pcr_update_buffer (struct pcr_bank *pcr, struct hash_engine *hash, uint8_t m
  *
  * @param pcr PCR bank to update measurement in
  * @param measurement_index The index of measurement being updated
- * @param event_type Event type to associate with measurment
+ * @param event_type Event type to associate with measurement
  *
  * @return Completion status, 0 if success or an error code
  */
@@ -172,6 +315,30 @@ int pcr_update_event_type (struct pcr_bank *pcr, uint8_t measurement_index, uint
 	pcr->measurement_list[measurement_index].event_type = event_type;
 
 	platform_mutex_unlock (&pcr->lock);
+
+	return 0;
+}
+
+/**
+ * Get the event type for a measurement in the PCR bank
+ *
+ * @param pcr PCR bank to retrieve measurement data
+ * @param measurement_index The index of measurement being accessed
+ * @param event_type Output buffer to store the event type
+ *
+ * @return Completion status, 0 if success or an error code
+ */
+int pcr_get_event_type (struct pcr_bank *pcr, uint8_t measurement_index, uint32_t *event_type)
+{
+	if ((pcr == NULL) || (event_type == NULL)) {
+		return PCR_INVALID_ARGUMENT;
+	}
+
+	if (measurement_index >= pcr->num_measurements) {
+		return PCR_INVALID_INDEX;
+	}
+
+	*event_type = pcr->measurement_list[measurement_index].event_type;
 
 	return 0;
 }
@@ -325,97 +492,130 @@ int pcr_get_measurement_data (struct pcr_bank *pcr, uint8_t measurement_index, s
 	 uint8_t *buffer, size_t length)
 {
 	struct pcr_measured_data *measured_data;
+	bool include_event;
+	bool include_version;
 	size_t bytes_read;
+	size_t total_bytes = 0;
+	int status = 0;
 
 	if ((pcr == NULL) || (buffer == NULL)) {
 		return PCR_INVALID_ARGUMENT;
 	}
 
 	if (measurement_index >= pcr->num_measurements) {
-		return PCR_INVALID_INDEX;
+		status = PCR_INVALID_INDEX;
+		goto exit;
 	}
 
-	if (pcr->measurement_list[measurement_index].measured_data == NULL) {
-		return 0;
-	}
+	platform_mutex_lock (&pcr->lock);
 
 	measured_data = pcr->measurement_list[measurement_index].measured_data;
+	if (measured_data == NULL) {
+		goto exit;
+	}
+
+	include_event = pcr->measurement_list[measurement_index].measurement_config &
+		PCR_MEASUREMENT_FLAG_EVENT;
+	include_version = pcr->measurement_list[measurement_index].measurement_config &
+		PCR_MEASUREMENT_FLAG_VERSION;
+
+	if (include_event) {
+		if (offset < 4) {
+			bytes_read = pcr_read_measurement_data_bytes (buffer, length,
+				(uint8_t*) &pcr->measurement_list[measurement_index].event_type, 4, offset);
+			offset = 0;
+			length -= bytes_read;
+			buffer = buffer + bytes_read;
+			total_bytes += bytes_read;
+		}
+		else {
+			offset -= 4;
+		}
+	}
+
+	if (include_version) {
+		if (offset < 1) {
+			bytes_read = pcr_read_measurement_data_bytes (buffer, length,
+				&pcr->measurement_list[measurement_index].version, 1, offset);
+			offset = 0;
+			length -= bytes_read;
+			buffer = buffer + bytes_read;
+			total_bytes += bytes_read;
+		}
+		else {
+			offset -= 1;
+		}
+	}
 
 	switch (measured_data->type) {
 		case PCR_DATA_TYPE_1BYTE:
-			if ((offset > 0) || (length == 0)) {
-				return 0;
-			}
-
-			*buffer = measured_data->data.value_1byte;
-			return 1;
+			bytes_read = pcr_read_measurement_data_bytes (buffer, length,
+				&measured_data->data.value_1byte, 1, offset);
+			status = bytes_read + total_bytes;
+			break;
 
 		case PCR_DATA_TYPE_2BYTE:
-			if (offset > 1) {
-				return 0;
-			}
-
-			bytes_read = ((2 - offset) > length) ? length : (2 - offset);
-			memcpy (buffer, (uint8_t*) &measured_data->data.value_2byte + offset, bytes_read);
-
-			return bytes_read;
+			bytes_read = pcr_read_measurement_data_bytes (buffer, length,
+				(uint8_t*) &measured_data->data.value_2byte, 2, offset);
+			status = bytes_read + total_bytes;
+			break;
 
 		case PCR_DATA_TYPE_4BYTE:
-			if (offset > 3) {
-				return 0;
-			}
-
-			bytes_read = ((4 - offset) > length) ? length : (4 - offset);
-			memcpy (buffer, (uint8_t*) &measured_data->data.value_4byte + offset, bytes_read);
-
-			return bytes_read;
+			bytes_read = pcr_read_measurement_data_bytes (buffer, length,
+				(uint8_t*) &measured_data->data.value_4byte, 4, offset);
+			status = bytes_read + total_bytes;
+			break;
 
 		case PCR_DATA_TYPE_8BYTE:
-			if (offset > 7) {
-				return 0;
-			}
-
-			bytes_read = ((8 - offset) > length) ? length : (8 - offset);
-			memcpy (buffer, (uint8_t*) &measured_data->data.value_8byte + offset, bytes_read);
-
-			return bytes_read;
+			bytes_read = pcr_read_measurement_data_bytes (buffer, length,
+				(uint8_t*) &measured_data->data.value_8byte, 8, offset);
+			status = bytes_read + total_bytes;
+			break;
 
 		case PCR_DATA_TYPE_MEMORY:
-			if (offset > (measured_data->data.memory.length - 1)) {
-				return 0;
-			}
-
-			bytes_read = ((measured_data->data.memory.length - offset) > length) ?
-				length : (measured_data->data.memory.length - offset);
-
-			memcpy (buffer, &measured_data->data.memory.buffer[offset], bytes_read);
-			return bytes_read;
+			bytes_read = pcr_read_measurement_data_bytes (buffer, length,
+				measured_data->data.memory.buffer, measured_data->data.memory.length, offset);
+			status = bytes_read + total_bytes;
+			break;
 
 		case PCR_DATA_TYPE_FLASH: {
 			struct flash *flash_device = measured_data->data.flash.flash;
 			size_t read_addr = measured_data->data.flash.addr + offset;
-			int status;
 
 			if (offset > (measured_data->data.flash.length - 1)) {
-				return 0;
+				status = total_bytes;
+				break;
 			}
 
 			bytes_read = ((measured_data->data.flash.length - offset) > length ? length :
 				(measured_data->data.flash.length - offset));
 
 			status = flash_device->read (flash_device, read_addr, buffer, bytes_read);
+			if (status == 0) {
+				status = bytes_read + total_bytes;
+			}
 
-			return (status == 0 ? bytes_read : status);
+			break;
 		}
 
-		case PCR_DATA_TYPE_CALLBACK:
-			return measured_data->data.callback.get_data (measured_data->data.callback.context,
+		case PCR_DATA_TYPE_CALLBACK: {
+			status = measured_data->data.callback.get_data (measured_data->data.callback.context,
 				offset, buffer, length);
+			if (!ROT_IS_ERROR (status)) {
+				status = status + total_bytes;
+			}
+
+			break;
+		}
 
 		default:
-			return PCR_INVALID_DATA_TYPE;
-
+			status = PCR_INVALID_DATA_TYPE;
 	}
+
+exit:
+	platform_mutex_unlock (&pcr->lock);
+
+	return status;
 }
 
 /**
