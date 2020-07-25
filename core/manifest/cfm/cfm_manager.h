@@ -54,7 +54,7 @@ int cfm_manager_add_observer (struct cfm_manager *manager, struct cfm_observer *
 int cfm_manager_remove_observer (struct cfm_manager *manager, struct cfm_observer *observer);
 
 /* Internal functions for use by derived types. */
-int cfm_manager_init (struct cfm_manager *manager);
+int cfm_manager_init (struct cfm_manager *manager, struct hash_engine *hash);
 void cfm_manager_release (struct cfm_manager *manager);
 
 void cfm_manager_on_cfm_verified (struct cfm_manager *manager);
@@ -63,6 +63,8 @@ void cfm_manager_on_cfm_activated (struct cfm_manager *manager);
 int cfm_manager_get_id_measured_data (struct cfm_manager *manager, size_t offset, uint8_t *buffer,
 	size_t length);
 int cfm_manager_get_platform_id_measured_data (struct cfm_manager *manager, size_t offset,
+	uint8_t *buffer, size_t length);
+int cfm_manager_get_cfm_measured_data (struct cfm_manager *manager, size_t offset,
 	uint8_t *buffer, size_t length);
 
 

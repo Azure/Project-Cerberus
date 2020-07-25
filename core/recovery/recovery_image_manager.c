@@ -600,3 +600,49 @@ int recovery_image_manager_get_port (struct recovery_image_manager *manager)
 	}
 }
 
+/**
+ * Get the data used for recovery image measurement.  The recovery image instance must be released
+ * with the manager.
+ *
+ * @param manager The recovery image manager to query.
+ * @param offset The offset to read data from
+ * @param buffer The output buffer to be filled with measured data
+ * @param length Maximum length of the buffer.
+ *
+ * @return Length of the measured data if successfully retrieved or an error code.
+ */
+int recovery_image_manager_get_measured_data (struct recovery_image_manager *manager, size_t offset,
+	uint8_t *buffer, size_t length)
+{
+	uint8_t hash_out[SHA256_HASH_LENGTH] = {0};
+	int status = 0;
+	struct recovery_image *active;
+	size_t bytes_read;
+
+	if ((buffer == NULL) || (manager == NULL)) {
+		return RECOVERY_IMAGE_MANAGER_INVALID_ARGUMENT;
+	}
+
+	if (offset > (SHA256_HASH_LENGTH - 1)) {
+		return 0;
+	}
+
+	active = manager->get_active_recovery_image (manager);
+	if (active) {
+		status = active->get_hash (active, manager->hash, hash_out, sizeof (hash_out));
+		if (status != 0) {
+			goto exit;
+		} 
+	}
+
+	bytes_read = ((SHA256_HASH_LENGTH - offset) > length) ? length : (SHA256_HASH_LENGTH - offset);
+
+	memcpy (buffer, hash_out + offset, bytes_read);
+
+exit:
+	if (active) {
+		manager->free_recovery_image (manager, active);
+	}
+
+	return (status == 0) ? bytes_read : status;
+}

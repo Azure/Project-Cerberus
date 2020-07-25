@@ -82,10 +82,11 @@ void manifest_pcr_record_manifest_measurement (struct manifest_pcr *pcr, struct 
 	uint8_t id[5];
 	char *platform_id = NULL;
 	char empty_string = '\0';
+	uint8_t zero[SHA256_HASH_LENGTH] = {0};
 	int status;
 
 	if (active == NULL) {
-		status = pcr->hash->calculate_sha256 (pcr->hash, NULL, 0, manifest_measurement,
+		status = pcr->hash->calculate_sha256 (pcr->hash, zero, sizeof (zero), manifest_measurement,
 			sizeof (manifest_measurement));
 	}
 	else {
@@ -98,9 +99,9 @@ void manifest_pcr_record_manifest_measurement (struct manifest_pcr *pcr, struct 
 			MANIFEST_LOGGING_GET_MEASUREMENT_FAIL, pcr->manifest_measurement, status);
 		return;
 	}
-	
-	status = pcr_store_update_digest (pcr->store, pcr->manifest_measurement, manifest_measurement,
-		SHA256_HASH_LENGTH);
+
+	status = pcr_store_update_versioned_buffer (pcr->store, pcr->hash, pcr->manifest_measurement,
+		manifest_measurement, SHA256_HASH_LENGTH, true, 0);
 	if (status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
 			MANIFEST_LOGGING_RECORD_MEASUREMENT_FAIL, pcr->manifest_measurement, status);
@@ -120,8 +121,8 @@ void manifest_pcr_record_manifest_measurement (struct manifest_pcr *pcr, struct 
 		}
 	}
 
-	status = pcr_store_update_buffer (pcr->store, pcr->hash, pcr->manifest_id_measurement, id,
-		sizeof (id), true);
+	status = pcr_store_update_versioned_buffer (pcr->store, pcr->hash, pcr->manifest_id_measurement,
+		id, sizeof (id), true, 0);
 	if (status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
 			MANIFEST_LOGGING_RECORD_MEASUREMENT_FAIL, pcr->manifest_id_measurement, status);
@@ -140,8 +141,9 @@ void manifest_pcr_record_manifest_measurement (struct manifest_pcr *pcr, struct 
 		}
 	}
 
-	status = pcr_store_update_buffer (pcr->store, pcr->hash, pcr->manifest_platform_id_measurement,
-		(uint8_t*) platform_id, strlen (platform_id) + 1, true);
+	status = pcr_store_update_versioned_buffer (pcr->store, pcr->hash,
+		pcr->manifest_platform_id_measurement, (uint8_t*) platform_id, strlen (platform_id) + 1,
+		true, 0);
 	if (status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
 			MANIFEST_LOGGING_RECORD_MEASUREMENT_FAIL, pcr->manifest_platform_id_measurement, status);

@@ -14,17 +14,25 @@ static void recovery_image_observer_pcr_on_recovery_image_activated (
 {
 	struct recovery_image_observer_pcr *pcr = (struct recovery_image_observer_pcr*) observer;
 	uint8_t measurement[SHA256_HASH_LENGTH];
+	uint8_t zero[SHA256_HASH_LENGTH] = {0};
 	int status;
 
-	status = active->get_hash (active, pcr->hash, measurement, sizeof (measurement));
+	if (active == NULL) {
+		status = pcr->hash->calculate_sha256 (pcr->hash, zero, SHA256_HASH_LENGTH, measurement,
+			sizeof (measurement));
+	}
+	else {
+		status = active->get_hash (active, pcr->hash, measurement, sizeof (measurement));
+	}
+
 	if (status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_RECOVERY_IMAGE,
 			RECOVERY_IMAGE_LOGGING_GET_MEASUREMENT_FAIL, pcr->measurement_id, status);
 		return;
 	}
 
-	status = pcr_store_update_digest (pcr->store, pcr->measurement_id, measurement,
-		SHA256_HASH_LENGTH);
+	status = pcr_store_update_versioned_buffer (pcr->store, pcr->hash, pcr->measurement_id, measurement,
+		SHA256_HASH_LENGTH, true, 0);
 	if (status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_RECOVERY_IMAGE,
 			RECOVERY_IMAGE_LOGGING_RECORD_MEASUREMENT_FAIL, pcr->measurement_id, status);
@@ -108,8 +116,8 @@ void recovery_image_observer_pcr_record_measurement (struct recovery_image_obser
 	}
 
 	active = manager->get_active_recovery_image (manager);
+	recovery_image_observer_pcr_on_recovery_image_activated (&observer->base, active);
 	if (active) {
-		recovery_image_observer_pcr_on_recovery_image_activated (&observer->base, active);
 		manager->free_recovery_image (manager, active);
 	}
 }

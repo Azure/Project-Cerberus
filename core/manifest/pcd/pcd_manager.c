@@ -48,10 +48,11 @@ int pcd_manager_remove_observer (struct pcd_manager *manager, struct pcd_observe
  * Initialize the base PCD manager.
  *
  * @param manager The manager to initialize.
+ * @param hash The hash engine to generate measurement data.
  *
  * @return 0 if the PCD manager was initialized successfully or an error code.
  */
-int pcd_manager_init (struct pcd_manager *manager)
+int pcd_manager_init (struct pcd_manager *manager, struct hash_engine *hash)
 {
 	int status;
 
@@ -62,7 +63,7 @@ int pcd_manager_init (struct pcd_manager *manager)
 		return status;
 	}
 
-	return 0;
+	return manifest_manager_init (&manager->base, hash);
 }
 
 /**
@@ -192,6 +193,41 @@ int pcd_manager_get_platform_id_measured_data (struct pcd_manager *manager, size
 	else {
 		status = manifest_manager_get_platform_id_measured_data (&active->base, offset, buffer,
 			length);
+		manager->free_pcd (manager, active);
+	}
+
+	return status;
+}
+
+/**
+ * Get the data used for PCD measurement.  The PCD instance must be released with the
+ * manager.
+ *
+ * @param manager The PCD manager to query.
+ * @param offset The offset to read data from
+ * @param buffer The output buffer to be filled with measured data
+ * @param length Maximum length of the buffer.
+ *
+ * @return Length of the measured data if successfully retrieved or an error code.
+ */
+int pcd_manager_get_pcd_measured_data (struct pcd_manager *manager, size_t offset, uint8_t *buffer,
+	size_t length)
+{
+	int status;
+	struct pcd *active;
+
+	if (manager == NULL) {
+		return MANIFEST_MANAGER_INVALID_ARGUMENT;
+	}
+
+	active = manager->get_active_pcd (manager);
+	if (active == NULL) {
+		status = manifest_manager_get_manifest_measured_data (&manager->base, NULL, offset, buffer,
+			length);
+	}
+	else {
+		status = manifest_manager_get_manifest_measured_data (&manager->base, &active->base, offset,
+			buffer, length);
 		manager->free_pcd (manager, active);
 	}
 

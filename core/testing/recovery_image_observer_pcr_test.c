@@ -9,6 +9,7 @@
 #include "mock/recovery_image_manager_mock.h"
 #include "recovery_image_testing.h"
 #include "state_manager/state_manager.h"
+#include "manifest_observer_pcr_testing.h"
 
 
 static const char *SUITE = "recovery_image_observer_pcr";
@@ -116,6 +117,7 @@ static void recovery_image_observer_pcr_test_on_recovery_image_activated (CuTest
 	struct recovery_image_mock image;
 	struct pcr_measurement measurement;
 	uint8_t invalid_measurement[SHA256_HASH_LENGTH] = {0};
+	uint32_t event = 0xaabbccdd;
 
 	TEST_START;
 
@@ -130,6 +132,9 @@ static void recovery_image_observer_pcr_test_on_recovery_image_activated (CuTest
 
 	status = recovery_image_observer_pcr_init (&observer, &hash.base, &store,
 		PCR_MEASUREMENT (0, 0));
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_event_type (&store.banks[0], 0, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
@@ -149,7 +154,7 @@ static void recovery_image_observer_pcr_test_on_recovery_image_activated (CuTest
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
 	CuAssertIntEquals (test, 0, status);
 
-	status = testing_validate_array (RECOVERY_IMAGE_HASH, measurement.digest,
+	status = testing_validate_array (RECOVERY_IMAGE_HASH_DIGEST, measurement.digest,
 		RECOVERY_IMAGE_HASH_LEN);
 	CuAssertIntEquals (test, 0, status);
 
@@ -227,6 +232,7 @@ static void recovery_image_observer_pcr_test_record_measurement (CuTest *test)
 	struct pcr_measurement measurement;
 	struct recovery_image_manager_mock manager;
 	uint8_t invalid_measurement[SHA256_HASH_LENGTH] = {0};
+	uint32_t event = 0xaabbccdd;
 
 	TEST_START;
 
@@ -244,6 +250,9 @@ static void recovery_image_observer_pcr_test_record_measurement (CuTest *test)
 
 	status = recovery_image_observer_pcr_init (&observer, &hash.base, &store,
 		PCR_MEASUREMENT (0, 0));
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_event_type (&store.banks[0], 0, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
@@ -269,7 +278,7 @@ static void recovery_image_observer_pcr_test_record_measurement (CuTest *test)
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
 	CuAssertIntEquals (test, 0, status);
 
-	status = testing_validate_array (RECOVERY_IMAGE_HASH, measurement.digest,
+	status = testing_validate_array (RECOVERY_IMAGE_HASH_DIGEST, measurement.digest,
 		RECOVERY_IMAGE_HASH_LEN);
 	CuAssertIntEquals (test, 0, status);
 
@@ -295,6 +304,7 @@ static void recovery_image_observer_pcr_test_record_measurement_no_active (CuTes
 	struct pcr_measurement measurement;
 	struct recovery_image_manager_mock manager;
 	uint8_t invalid_measurement[SHA256_HASH_LENGTH] = {0};
+	uint32_t event = 0xaabbccdd;
 
 	TEST_START;
 
@@ -302,6 +312,9 @@ static void recovery_image_observer_pcr_test_record_measurement_no_active (CuTes
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_init (&store, num_pcr_measurements, sizeof (num_pcr_measurements));
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_event_type (&store.banks[0], 0, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = recovery_image_manager_mock_init (&manager);
@@ -326,7 +339,7 @@ static void recovery_image_observer_pcr_test_record_measurement_no_active (CuTes
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
 	CuAssertIntEquals (test, 0, status);
 	
-	status = testing_validate_array (invalid_measurement, measurement.digest, SHA256_HASH_LENGTH);
+	status = testing_validate_array (ZERO_BUFFER_HASH_DIGEST, measurement.digest, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
 	status = recovery_image_manager_mock_validate_and_release (&manager);
@@ -466,6 +479,7 @@ static void recovery_image_observer_pcr_test_on_recovery_image_deactivated (CuTe
 	struct recovery_image_mock image;
 	struct pcr_measurement measurement;
 	uint8_t invalid_measurement[SHA256_HASH_LENGTH] = {0};
+	uint32_t event = 0xaabbccdd;
 
 	TEST_START;
 
@@ -480,6 +494,9 @@ static void recovery_image_observer_pcr_test_on_recovery_image_deactivated (CuTe
 
 	status = recovery_image_observer_pcr_init (&observer, &hash.base, &store,
 		PCR_MEASUREMENT (0, 0));
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_event_type (&store.banks[0], 0, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
@@ -499,7 +516,7 @@ static void recovery_image_observer_pcr_test_on_recovery_image_deactivated (CuTe
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
 	CuAssertIntEquals (test, 0, status);
 	
-	status = testing_validate_array (RECOVERY_IMAGE_HASH, measurement.digest, 
+	status = testing_validate_array (RECOVERY_IMAGE_HASH_DIGEST, measurement.digest, 
 		RECOVERY_IMAGE_HASH_LEN);
 	CuAssertIntEquals (test, 0, status);
 

@@ -43,7 +43,7 @@ int pcd_manager_add_observer (struct pcd_manager *manager, struct pcd_observer *
 int pcd_manager_remove_observer (struct pcd_manager *manager, struct pcd_observer *observer);
 
 /* Internal functions for use by derived types. */
-int pcd_manager_init (struct pcd_manager *manager);
+int pcd_manager_init (struct pcd_manager *manager, struct hash_engine *hash);
 void pcd_manager_release (struct pcd_manager *manager);
 
 void pcd_manager_on_pcd_verified (struct pcd_manager *manager);
@@ -53,6 +53,8 @@ int pcd_manager_get_id_measured_data (struct pcd_manager *manager, size_t offset
 	size_t length);
 int pcd_manager_get_platform_id_measured_data (struct pcd_manager *manager, size_t offset,
 	uint8_t *buffer, size_t length);
+int pcd_manager_get_pcd_measured_data (struct pcd_manager *manager, size_t offset, uint8_t *buffer,
+	size_t length);
 
 
 #endif /* PCD_MANAGER_H_ */

@@ -66,9 +66,12 @@ struct manifest_manager {
 	 */
 	int (*clear_all_manifests) (struct manifest_manager *manager);
 
-	int port;			/**< Port identifier for the manager. */
+	int port;						/**< Port identifier for the manager. */
+	struct hash_engine *hash;		/**< The hash engine for generating measurement data. */
 };
 
+
+int manifest_manager_init (struct manifest_manager *manager, struct hash_engine *hash);
 
 void manifest_manager_set_port (struct manifest_manager *manager, int port);
 int manifest_manager_get_port (struct manifest_manager *manager);
@@ -77,6 +80,8 @@ int manifest_manager_get_id_measured_data (struct manifest *active, size_t offse
 	uint8_t *buffer, size_t length);
 int manifest_manager_get_platform_id_measured_data (struct manifest *active, size_t offset,
 	uint8_t *buffer, size_t length);
+int manifest_manager_get_manifest_measured_data (struct manifest_manager *manager,
+	struct manifest *active, size_t offset, uint8_t *buffer, size_t length);
 
 
 #define	MANIFEST_MANAGER_ERROR(code)		ROT_ERROR (ROT_MODULE_MANIFEST_MANAGER, code)
