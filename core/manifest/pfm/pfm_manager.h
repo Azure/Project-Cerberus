@@ -55,7 +55,7 @@ int pfm_manager_add_observer (struct pfm_manager *manager, struct pfm_observer *
 int pfm_manager_remove_observer (struct pfm_manager *manager, struct pfm_observer *observer);
 
 /* Internal functions for use by derived types. */
-int pfm_manager_init (struct pfm_manager *manager, int port);
+int pfm_manager_init (struct pfm_manager *manager, struct hash_engine *hash, int port);
 void pfm_manager_release (struct pfm_manager *manager);
 
 void pfm_manager_on_pfm_verified (struct pfm_manager *manager);
@@ -65,6 +65,8 @@ int pfm_manager_get_id_measured_data (struct pfm_manager *manager, size_t offset
 	size_t length);
 int pfm_manager_get_platform_id_measured_data (struct pfm_manager *manager, size_t offset,
 	uint8_t *buffer, size_t length);
+int pfm_manager_get_pfm_measured_data (struct pfm_manager *manager, size_t offset, uint8_t *buffer,
+	size_t length);
 
 
 #endif /* PFM_MANAGER_H_ */

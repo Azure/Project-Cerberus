@@ -265,7 +265,7 @@ int pfm_manager_flash_init_port (struct pfm_manager_flash *manager, struct pfm_f
 
 	memset (manager, 0, sizeof (struct pfm_manager_flash));
 
-	status = pfm_manager_init (&manager->base, port);
+	status = pfm_manager_init (&manager->base, hash, port);
 	if (status != 0) {
 		return status;
 	}

@@ -19,6 +19,7 @@ extern const uint8_t PCD2_DATA[];
 extern const uint32_t PCD2_DATA_LEN;
 
 extern const uint8_t PCD_HASH[];
+extern const uint8_t PCD_HASH_DIGEST[];
 extern const uint8_t PCD2_HASH[];
 extern const uint32_t PCD_HASH_LEN;
 

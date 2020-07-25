@@ -18,11 +18,11 @@ static const char *SUITE = "pfm_observer_pcr";
 
 
 /**
- * PFM_PLATFORM_ID hash for testing.
+ * Hash for PFM platform ID PFM_PLATFORM_ID, event type 0xaabbccdd, and version 0x0 for testing.
  */
 static const uint8_t PFM_PLATFORM_ID_HASH[] = {
-	0xb5,0x6e,0xec,0xa9,0x7a,0x3a,0x98,0xe8,0x3e,0x8c,0x33,0xb5,0x05,0xd3,0xa7,0x77,
-	0x56,0x61,0x6e,0x5b,0x1d,0xea,0x2f,0x2f,0x7b,0x4b,0xc3,0x03,0xdf,0x97,0x30,0x94
+	0x5e,0x29,0x9f,0x2e,0x68,0x12,0x44,0x62,0x8c,0x51,0x7c,0x9a,0x21,0x0e,0x26,0x93,
+	0x69,0x2b,0x08,0x64,0x5b,0xbb,0x84,0x5c,0x00,0x94,0x65,0x54,0xca,0xb8,0x14,0xdc
 };
 
 /**
@@ -200,6 +200,9 @@ static void pfm_observer_pcr_test_on_pfm_activated (CuTest *test)
 	status = pcr_store_init (&store, num_pcr_measurements, sizeof (num_pcr_measurements));
 	CuAssertIntEquals (test, 0, status);
 
+	status = pcr_update_event_type (&store.banks[0], 0, event);
+	CuAssertIntEquals (test, 0, status);
+
 	status = pcr_update_event_type (&store.banks[0], 1, event);
 	CuAssertIntEquals (test, 0, status);
 
@@ -251,7 +254,7 @@ static void pfm_observer_pcr_test_on_pfm_activated (CuTest *test)
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &manifest_measurement);
 	CuAssertIntEquals (test, 0, status);
 
-	status = testing_validate_array (PFM_HASH, manifest_measurement.digest, PFM_HASH_LEN);
+	status = testing_validate_array (PFM_HASH_DIGEST, manifest_measurement.digest, PFM_HASH_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 1), &manifest_id_measurement);
@@ -371,6 +374,7 @@ static void pfm_observer_pcr_test_on_pfm_activated_get_id_error (CuTest *test)
 	struct pcr_measurement id_measurement;
 	struct pcr_measurement platform_id_measurement;
 	uint8_t invalid_measurement[SHA256_HASH_LENGTH] = {0};
+	uint32_t event = 0xaabbccdd;
 
 	TEST_START;
 
@@ -385,6 +389,9 @@ static void pfm_observer_pcr_test_on_pfm_activated_get_id_error (CuTest *test)
 
 	status = pfm_observer_pcr_init (&observer, &hash.base, &store, PCR_MEASUREMENT (0, 0),
 		PCR_MEASUREMENT (0, 1), PCR_MEASUREMENT (0, 2));
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_event_type (&store.banks[0], 0, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
@@ -413,7 +420,7 @@ static void pfm_observer_pcr_test_on_pfm_activated_get_id_error (CuTest *test)
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
 	CuAssertIntEquals (test, 0, status);
 
-	status = testing_validate_array (PFM_HASH, measurement.digest, PFM_HASH_LEN);
+	status = testing_validate_array (PFM_HASH_DIGEST, measurement.digest, PFM_HASH_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 1), &id_measurement);
@@ -459,6 +466,9 @@ static void pfm_observer_pcr_test_on_pfm_activated_get_platform_id_error (CuTest
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_init (&store, num_pcr_measurements, sizeof (num_pcr_measurements));
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_event_type (&store.banks[0], 0, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_event_type (&store.banks[0], 1, event);
@@ -507,7 +517,7 @@ static void pfm_observer_pcr_test_on_pfm_activated_get_platform_id_error (CuTest
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
 	CuAssertIntEquals (test, 0, status);
 
-	status = testing_validate_array (PFM_HASH, measurement.digest, PFM_HASH_LEN);
+	status = testing_validate_array (PFM_HASH_DIGEST, measurement.digest, PFM_HASH_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 1), &id_measurement);
@@ -561,6 +571,9 @@ static void pfm_observer_pcr_test_record_measurement (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_init (&store, num_pcr_measurements, sizeof (num_pcr_measurements));
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_event_type (&store.banks[0], 0, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_event_type (&store.banks[0], 1, event);
@@ -619,7 +632,7 @@ static void pfm_observer_pcr_test_record_measurement (CuTest *test)
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
 	CuAssertIntEquals (test, 0, status);
 
-	status = testing_validate_array (PFM_HASH, measurement.digest, PFM_HASH_LEN);
+	status = testing_validate_array (PFM_HASH_DIGEST, measurement.digest, PFM_HASH_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 1), &id_measurement);
@@ -670,6 +683,9 @@ static void pfm_observer_pcr_test_record_measurement_no_active (CuTest *test)
 	status = pcr_store_init (&store, num_pcr_measurements, sizeof (num_pcr_measurements));
 	CuAssertIntEquals (test, 0, status);
 
+	status = pcr_update_event_type (&store.banks[0], 0, event);
+	CuAssertIntEquals (test, 0, status);
+
 	status = pcr_update_event_type (&store.banks[0], 1, event);
 	CuAssertIntEquals (test, 0, status);
 
@@ -711,7 +727,8 @@ static void pfm_observer_pcr_test_record_measurement_no_active (CuTest *test)
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
 	CuAssertIntEquals (test, 0, status);
 
-	status = testing_validate_array (EMPTY_BUFFER_HASH, measurement.digest, SHA256_HASH_LENGTH);
+	status = testing_validate_array (ZERO_BUFFER_HASH_DIGEST, measurement.digest,
+		SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 1), &id_measurement);
@@ -932,6 +949,7 @@ static void pfm_observer_pcr_test_record_measurement_get_id_error (CuTest *test)
 	struct pcr_measurement platform_id_measurement;
 	struct pfm_manager_mock manager;
 	uint8_t invalid_measurement[SHA256_HASH_LENGTH] = {0};
+	uint32_t event = 0xaabbccdd;
 
 	TEST_START;
 
@@ -949,6 +967,9 @@ static void pfm_observer_pcr_test_record_measurement_get_id_error (CuTest *test)
 
 	status = pfm_observer_pcr_init (&observer, &hash.base, &store, PCR_MEASUREMENT (0, 0),
 		PCR_MEASUREMENT (0, 1), PCR_MEASUREMENT (0, 2));
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_event_type (&store.banks[0], 0, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
@@ -988,7 +1009,7 @@ static void pfm_observer_pcr_test_record_measurement_get_id_error (CuTest *test)
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
 	CuAssertIntEquals (test, 0, status);
 
-	status = testing_validate_array (PFM_HASH, measurement.digest, PFM_HASH_LEN);
+	status = testing_validate_array (PFM_HASH_DIGEST, measurement.digest, PFM_HASH_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 1), &id_measurement);
@@ -1039,6 +1060,9 @@ static void pfm_observer_pcr_test_record_measurement_get_platform_id_error (CuTe
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_init (&store, num_pcr_measurements, sizeof (num_pcr_measurements));
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_event_type (&store.banks[0], 0, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_event_type (&store.banks[0], 1, event);
@@ -1094,7 +1118,7 @@ static void pfm_observer_pcr_test_record_measurement_get_platform_id_error (CuTe
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
 	CuAssertIntEquals (test, 0, status);
 
-	status = testing_validate_array (PFM_HASH, measurement.digest, PFM_HASH_LEN);
+	status = testing_validate_array (PFM_HASH_DIGEST, measurement.digest, PFM_HASH_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 1), &id_measurement);

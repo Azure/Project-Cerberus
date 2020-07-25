@@ -10,6 +10,7 @@
 extern const uint8_t RECOVERY_IMAGE_DATA[];
 extern const uint32_t RECOVERY_IMAGE_DATA_LEN;
 extern const uint8_t RECOVERY_IMAGE_HASH[];
+extern const uint8_t RECOVERY_IMAGE_HASH_DIGEST[];
 extern const uint32_t RECOVERY_IMAGE_HASH_LEN;
 extern const uint32_t RECOVERY_IMAGE_SIGNATURE_OFFSET;
 extern const uint8_t *RECOVERY_IMAGE_SIGNATURE;

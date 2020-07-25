@@ -49,25 +49,26 @@ int pfm_manager_remove_observer (struct pfm_manager *manager, struct pfm_observe
  *
  * @param manager The manager to initialize.
  * @param port The port identifier for the manager.  A negative value will use the default ID.
+ * @param hash The hash engine to generate measurement data.
  *
  * @return 0 if the PFM manager was initialized successfully or an error code.
  */
-int pfm_manager_init (struct pfm_manager *manager, int port)
+int pfm_manager_init (struct pfm_manager *manager, struct hash_engine *hash, int port)
 {
 	int status;
 
 	memset (manager, 0, sizeof (struct pfm_manager));
 
-	if (port > 0) {
-		manifest_manager_set_port (&manager->base, port);
-	}
-
-	status = observable_init (&manager->observable);
+	status = manifest_manager_init (&manager->base, hash);
 	if (status != 0) {
 		return status;
 	}
 
-	return 0;
+	if (port > 0) {
+		manifest_manager_set_port (&manager->base, port);
+	}
+
+	return observable_init (&manager->observable);
 }
 
 /**
@@ -202,6 +203,41 @@ int pfm_manager_get_platform_id_measured_data (struct pfm_manager *manager, size
 		manager->free_pfm (manager, active);
 	}
 
+
+	return status;
+}
+
+/**
+ * Get the data used for PFM measurement.  The PFM instance must be released with the
+ * manager.
+ *
+ * @param manager The PFM manager to query.
+ * @param offset The offset to read data from
+ * @param buffer The output buffer to be filled with measured data
+ * @param length Maximum length of the buffer.
+ *
+ * @return Length of the measured data if successfully retrieved or an error code.
+ */
+int pfm_manager_get_pfm_measured_data (struct pfm_manager *manager, size_t offset, uint8_t *buffer,
+	size_t length)
+{
+	int status;
+	struct pfm *active;
+
+	if (manager == NULL) {
+		return MANIFEST_MANAGER_INVALID_ARGUMENT;
+	}
+
+	active = manager->get_active_pfm (manager);
+	if (active == NULL) {
+		status = manifest_manager_get_manifest_measured_data (&manager->base, NULL, offset, buffer,
+			length);
+	}
+	else {
+		status = manifest_manager_get_manifest_measured_data (&manager->base, &active->base, offset,
+			buffer, length);
+		manager->free_pfm (manager, active);
+	}
 
 	return status;
 }

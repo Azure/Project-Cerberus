@@ -189,7 +189,7 @@ int pcd_manager_flash_init (struct pcd_manager_flash *manager, struct pcd_flash 
 
 	memset (manager, 0, sizeof (struct pcd_manager_flash));
 
-	status = pcd_manager_init (&manager->base);
+	status = pcd_manager_init (&manager->base, hash);
 	if (status != 0) {
 		return status;
 	}
