@@ -85,6 +85,8 @@ int flash_program_and_verify (struct flash *flash, uint32_t start_addr, const ui
 	size_t length);
 int flash_sector_program_and_verify (struct flash *flash, uint32_t start_addr, const uint8_t *data,
 	size_t length);
+int flash_write_and_verify (struct flash *flash, uint32_t start_addr, const uint8_t *data,
+	size_t length);
 
 int flash_copy (struct flash *flash, uint32_t dest_addr, uint32_t src_addr, size_t length);
 int flash_sector_copy (struct flash *flash, uint32_t dest_addr, uint32_t src_addr, size_t length);

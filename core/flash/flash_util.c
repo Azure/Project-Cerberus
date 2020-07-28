@@ -607,7 +607,7 @@ int flash_sector_erase_region_and_verify (struct flash *flash, uint32_t start_ad
  * @param start_addr The starting address where the data should be stored.
  * @param data The data to store in the flash.
  * @param length The amount of data to store.
- * @param erase The function to use to erase the flash.
+ * @param erase The function to use to erase the flash.  Null to skip erasing.
  *
  * @return 0 if the data was successfully programmed in flash or an error code.
  */
@@ -620,9 +620,11 @@ static int flash_program_data_ext (struct flash *flash, uint32_t start_addr, con
 		return FLASH_UTIL_INVALID_ARGUMENT;
 	}
 
-	status = erase (flash, start_addr, length);
-	if (status != 0) {
-		return status;
+	if (erase) {
+		status = erase (flash, start_addr, length);
+		if (status != 0) {
+			return status;
+		}
 	}
 
 	status = flash->write (flash, start_addr, data, length);
@@ -701,7 +703,7 @@ int flash_verify_data (struct flash *flash, uint32_t start_addr, const uint8_t *
  * @param start_addr The starting address where the data should be stored.
  * @param data The data to store in the flash.
  * @param length The length of the data to store.
- * @param erase Function to use for erasing the flash.
+ * @param erase Function to use for erasing the flash.  Null to skip erase.
  *
  * @return 0 if the data was successfully programmed in flash or an error code.
  */
@@ -757,6 +759,26 @@ int flash_sector_program_and_verify (struct flash *flash, uint32_t start_addr, c
 {
 	return flash_program_and_verify_ext (flash, start_addr, data, length,
 		flash_sector_erase_region);
+}
+
+/**
+ * Program a block of data to a flash device.  After the data has been programmed, verify that the
+ * programming was successful by checking that the flash contains the expected data.
+ *
+ * The flash region being programmed must have previously been erased.  No erase operation will be
+ * performed.
+ *
+ * @param flash The flash device to program.
+ * @param start_addr The starting address where the data should be stored.
+ * @param data The data to store in the flash.
+ * @param length The length of the data to store.
+ *
+ * @return 0 if the data was successfully programmed in flash or an error code.
+ */
+int flash_write_and_verify (struct flash *flash, uint32_t start_addr, const uint8_t *data,
+	size_t length)
+{
+	return flash_program_and_verify_ext (flash, start_addr, data, length, NULL);
 }
 
 /**
