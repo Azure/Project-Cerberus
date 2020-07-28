@@ -2379,6 +2379,9 @@ static void aux_attestation_test_unseal_ecdh_raw (CuTest *test)
 		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
 	status |= mock_expect_save_arg (&aux.ecc.mock, 2, 1);
 
+	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.get_shared_secret_max_length, &aux.ecc, 32,
+		MOCK_ARG_SAVED_ARG (1));
+
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.compute_shared_secret, &aux.ecc,
 		KEY_SEED_LEN, MOCK_ARG_SAVED_ARG (1), MOCK_ARG_SAVED_ARG (0), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (3072 / 8));
@@ -2469,6 +2472,9 @@ static void aux_attestation_test_unseal_ecdh_sha256 (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
 	status |= mock_expect_save_arg (&aux.ecc.mock, 2, 1);
+
+	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.get_shared_secret_max_length, &aux.ecc, 32,
+		MOCK_ARG_SAVED_ARG (1));
 
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.compute_shared_secret, &aux.ecc,
 		KEY_SEED_LEN, MOCK_ARG_SAVED_ARG (1), MOCK_ARG_SAVED_ARG (0), MOCK_ARG_NOT_NULL,
@@ -4432,6 +4438,55 @@ static void aux_attestation_test_unseal_ecdh_private_key_error (CuTest *test)
 	pcr_store_release (&pcr);
 }
 
+static void aux_attestation_test_unseal_ecdh_secret_length_error (CuTest *test)
+{
+	struct aux_attestation_testing aux;
+	struct pcr_store pcr;
+	uint8_t num_measurements[] = {0};
+	int status;
+	uint8_t attestation_key[32];
+
+	TEST_START;
+
+	aux_attestation_testing_init (test, &aux);
+
+	status = pcr_store_init (&pcr, num_measurements, sizeof (num_measurements));
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_update_digest (&pcr, PCR_MEASUREMENT (0, 0), PCR0_VALUE, PCR0_VALUE_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Derive seed */
+	status = mock_expect (&aux.ecc.mock, aux.ecc.base.init_public_key, &aux.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN), MOCK_ARG (ECC_PUBKEY_DER_LEN),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&aux.ecc.mock, 2, 0);
+
+	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.init_key_pair, &aux.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+	status |= mock_expect_save_arg (&aux.ecc.mock, 2, 1);
+
+	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.get_shared_secret_max_length, &aux.ecc,
+		ECC_ENGINE_SECRET_LENGTH_FAILED, MOCK_ARG_SAVED_ARG (1));
+
+	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.release_key_pair, &aux.ecc, 0,
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG (NULL));
+	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.release_key_pair, &aux.ecc, 0,
+		MOCK_ARG (NULL), MOCK_ARG_SAVED_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
+		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, AUX_ATTESTATION_SEED_ECDH,
+		AUX_ATTESTATION_PARAM_ECDH_RAW, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
+		SEALING_POLICY, 1, attestation_key, sizeof (attestation_key));
+	CuAssertIntEquals (test, ECC_ENGINE_SECRET_LENGTH_FAILED, status);
+
+	aux_attestation_testing_validate_and_release (test, &aux);
+	pcr_store_release (&pcr);
+}
+
 static void aux_attestation_test_unseal_ecdh_shared_secret_error (CuTest *test)
 {
 	struct aux_attestation_testing aux;
@@ -4460,6 +4515,9 @@ static void aux_attestation_test_unseal_ecdh_shared_secret_error (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
 	status |= mock_expect_save_arg (&aux.ecc.mock, 2, 1);
+
+	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.get_shared_secret_max_length, &aux.ecc, 32,
+		MOCK_ARG_SAVED_ARG (1));
 
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.compute_shared_secret, &aux.ecc,
 		ECC_ENGINE_SHARED_SECRET_FAILED, MOCK_ARG_SAVED_ARG (1), MOCK_ARG_SAVED_ARG (0),
@@ -4510,6 +4568,9 @@ static void aux_attestation_test_unseal_ecdh_hash_error (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
 	status |= mock_expect_save_arg (&aux.ecc.mock, 2, 1);
+
+	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.get_shared_secret_max_length, &aux.ecc, 32,
+		MOCK_ARG_SAVED_ARG (1));
 
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.compute_shared_secret, &aux.ecc,
 		KEY_SEED_LEN, MOCK_ARG_SAVED_ARG (1), MOCK_ARG_SAVED_ARG (0), MOCK_ARG_NOT_NULL,
@@ -6273,6 +6334,506 @@ static void aux_attestation_test_decrypt_error (CuTest *test)
 	aux_attestation_testing_validate_and_release (test, &aux);
 }
 
+static void aux_attestation_test_generate_ecdh_seed (CuTest *test)
+{
+	struct aux_attestation_testing aux;
+	int status;
+	uint8_t seed[32];
+
+	TEST_START;
+
+	aux_attestation_testing_init (test, &aux);
+
+	status = mock_expect (&aux.ecc.mock, aux.ecc.base.init_public_key, &aux.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN), MOCK_ARG (ECC_PUBKEY_DER_LEN),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&aux.ecc.mock, 2, 0);
+
+	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.init_key_pair, &aux.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+	status |= mock_expect_save_arg (&aux.ecc.mock, 2, 1);
+
+	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.get_shared_secret_max_length, &aux.ecc, 32,
+		MOCK_ARG_SAVED_ARG (1));
+
+	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.compute_shared_secret, &aux.ecc,
+		KEY_SEED_LEN, MOCK_ARG_SAVED_ARG (1), MOCK_ARG_SAVED_ARG (0), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&aux.ecc.mock, 2, KEY_SEED, KEY_SEED_LEN, 3);
+
+	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.release_key_pair, &aux.ecc, 0,
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG (NULL));
+	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.release_key_pair, &aux.ecc, 0,
+		MOCK_ARG (NULL), MOCK_ARG_SAVED_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = aux_attestation_generate_ecdh_seed (&aux.test, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN,
+		NULL, seed, sizeof (seed));
+	CuAssertIntEquals (test, KEY_SEED_LEN, status);
+
+	status = testing_validate_array (KEY_SEED, seed, KEY_SEED_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	aux_attestation_testing_validate_and_release (test, &aux);
+}
+
+static void aux_attestation_test_generate_ecdh_seed_sha256 (CuTest *test)
+{
+	struct aux_attestation_testing aux;
+	int status;
+	uint8_t seed[32];
+
+	TEST_START;
+
+	aux_attestation_testing_init (test, &aux);
+
+	status = mock_expect (&aux.ecc.mock, aux.ecc.base.init_public_key, &aux.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN), MOCK_ARG (ECC_PUBKEY_DER_LEN),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&aux.ecc.mock, 2, 0);
+
+	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.init_key_pair, &aux.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+	status |= mock_expect_save_arg (&aux.ecc.mock, 2, 1);
+
+	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.get_shared_secret_max_length, &aux.ecc, 32,
+		MOCK_ARG_SAVED_ARG (1));
+
+	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.compute_shared_secret, &aux.ecc,
+		KEY_SEED_LEN, MOCK_ARG_SAVED_ARG (1), MOCK_ARG_SAVED_ARG (0), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&aux.ecc.mock, 2, KEY_SEED, KEY_SEED_LEN, 3);
+
+	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.release_key_pair, &aux.ecc, 0,
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG (NULL));
+	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.release_key_pair, &aux.ecc, 0,
+		MOCK_ARG (NULL), MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&aux.hash.mock, aux.hash.base.calculate_sha256, &aux.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (KEY_SEED, KEY_SEED_LEN), MOCK_ARG (KEY_SEED_LEN), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&aux.hash.mock, 2, KEY_SEED_HASH, KEY_SEED_HASH_LEN, 3);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = aux_attestation_generate_ecdh_seed (&aux.test, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN,
+		&aux.hash.base, seed, sizeof (seed));
+	CuAssertIntEquals (test, KEY_SEED_HASH_LEN, status);
+
+	status = testing_validate_array (KEY_SEED_HASH, seed, KEY_SEED_HASH_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	aux_attestation_testing_validate_and_release (test, &aux);
+}
+
+static void aux_attestation_test_generate_ecdh_seed_no_mock (CuTest *test)
+{
+	ECC_TESTING_ENGINE ecc;
+	struct aux_attestation_testing aux;
+	int status;
+	uint8_t seed[32];
+
+	TEST_START;
+
+	status = ECC_TESTING_ENGINE_INIT (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	aux_attestation_testing_init_dependencies (test, &aux);
+
+	status = aux_attestation_init (&aux.test, &aux.keystore.base, &aux.rsa.base, &aux.riot,
+		&ecc.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = aux_attestation_generate_ecdh_seed (&aux.test, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN,
+		NULL, seed, sizeof (seed));
+	CuAssertIntEquals (test, KEY_SEED_LEN, status);
+
+	status = testing_validate_array (KEY_SEED, seed, KEY_SEED_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	aux_attestation_testing_validate_and_release (test, &aux);
+
+	ECC_TESTING_ENGINE_RELEASE (&ecc);
+}
+
+static void aux_attestation_test_generate_ecdh_seed_sha256_no_mock (CuTest *test)
+{
+	ECC_TESTING_ENGINE ecc;
+	HASH_TESTING_ENGINE hash;
+	struct aux_attestation_testing aux;
+	int status;
+	uint8_t seed[32];
+
+	TEST_START;
+
+	status = ECC_TESTING_ENGINE_INIT (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	aux_attestation_testing_init_dependencies (test, &aux);
+
+	status = aux_attestation_init (&aux.test, &aux.keystore.base, &aux.rsa.base, &aux.riot,
+		&ecc.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = aux_attestation_generate_ecdh_seed (&aux.test, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN,
+		&hash.base, seed, sizeof (seed));
+	CuAssertIntEquals (test, KEY_SEED_HASH_LEN, status);
+
+	status = testing_validate_array (KEY_SEED_HASH, seed, KEY_SEED_HASH_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	aux_attestation_testing_validate_and_release (test, &aux);
+
+	ECC_TESTING_ENGINE_RELEASE (&ecc);
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void aux_attestation_test_generate_ecdh_seed_null (CuTest *test)
+{
+	struct aux_attestation_testing aux;
+	int status;
+	uint8_t seed[32];
+
+	TEST_START;
+
+	aux_attestation_testing_init (test, &aux);
+
+	status = aux_attestation_generate_ecdh_seed (NULL, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN,
+		NULL, seed, sizeof (seed));
+	CuAssertIntEquals (test, AUX_ATTESTATION_INVALID_ARGUMENT, status);
+
+	status = aux_attestation_generate_ecdh_seed (&aux.test, NULL, ECC_PUBKEY_DER_LEN,
+		NULL, seed, sizeof (seed));
+	CuAssertIntEquals (test, AUX_ATTESTATION_INVALID_ARGUMENT, status);
+
+	status = aux_attestation_generate_ecdh_seed (&aux.test, ECC_PUBKEY_DER, 0,
+		NULL, seed, sizeof (seed));
+	CuAssertIntEquals (test, AUX_ATTESTATION_INVALID_ARGUMENT, status);
+
+	status = aux_attestation_generate_ecdh_seed (&aux.test, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN,
+		NULL, NULL, sizeof (seed));
+	CuAssertIntEquals (test, AUX_ATTESTATION_INVALID_ARGUMENT, status);
+
+	aux_attestation_testing_validate_and_release (test, &aux);
+}
+
+static void aux_attestation_test_generate_ecdh_seed_no_ecc_support (CuTest *test)
+{
+	struct aux_attestation_testing aux;
+	int status;
+	uint8_t seed[32];
+
+	TEST_START;
+
+	aux_attestation_testing_init_dependencies (test, &aux);
+
+	status = aux_attestation_init (&aux.test, &aux.keystore.base, &aux.rsa.base, NULL, NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = aux_attestation_generate_ecdh_seed (&aux.test, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN,
+		NULL, seed, sizeof (seed));
+	CuAssertIntEquals (test, AUX_ATTESTATION_UNSUPPORTED_CRYPTO, status);
+
+	aux_attestation_testing_validate_and_release (test, &aux);
+}
+
+static void aux_attestation_test_generate_ecdh_seed_small_seed_buffer (CuTest *test)
+{
+	struct aux_attestation_testing aux;
+	int status;
+	uint8_t seed[20];
+
+	TEST_START;
+
+	aux_attestation_testing_init (test, &aux);
+
+	status = mock_expect (&aux.ecc.mock, aux.ecc.base.init_public_key, &aux.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN), MOCK_ARG (ECC_PUBKEY_DER_LEN),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&aux.ecc.mock, 2, 0);
+
+	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.init_key_pair, &aux.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+	status |= mock_expect_save_arg (&aux.ecc.mock, 2, 1);
+
+	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.get_shared_secret_max_length, &aux.ecc, 20,
+		MOCK_ARG_SAVED_ARG (1));
+
+	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.release_key_pair, &aux.ecc, 0,
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG (NULL));
+	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.release_key_pair, &aux.ecc, 0,
+		MOCK_ARG (NULL), MOCK_ARG_SAVED_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = aux_attestation_generate_ecdh_seed (&aux.test, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN,
+		NULL, seed, sizeof (seed) - 1);
+	CuAssertIntEquals (test, AUX_ATTESTATION_BUFFER_TOO_SMALL, status);
+
+	aux_attestation_testing_validate_and_release (test, &aux);
+}
+
+static void aux_attestation_test_generate_ecdh_seed_small_seed_buffer_sha256 (CuTest *test)
+{
+	struct aux_attestation_testing aux;
+	int status;
+	uint8_t seed[32];
+
+	TEST_START;
+
+	aux_attestation_testing_init (test, &aux);
+
+	status = mock_expect (&aux.ecc.mock, aux.ecc.base.init_public_key, &aux.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN), MOCK_ARG (ECC_PUBKEY_DER_LEN),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&aux.ecc.mock, 2, 0);
+
+	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.init_key_pair, &aux.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+	status |= mock_expect_save_arg (&aux.ecc.mock, 2, 1);
+
+	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.get_shared_secret_max_length, &aux.ecc, 20,
+		MOCK_ARG_SAVED_ARG (1));
+
+	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.release_key_pair, &aux.ecc, 0,
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG (NULL));
+	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.release_key_pair, &aux.ecc, 0,
+		MOCK_ARG (NULL), MOCK_ARG_SAVED_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = aux_attestation_generate_ecdh_seed (&aux.test, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN,
+		&aux.hash.base, seed, sizeof (seed) - 1);
+	CuAssertIntEquals (test, AUX_ATTESTATION_BUFFER_TOO_SMALL, status);
+
+	aux_attestation_testing_validate_and_release (test, &aux);
+}
+
+static void aux_attestation_test_generate_ecdh_seed_small_seed_buffer_sha256_large_secret (
+	CuTest *test)
+{
+	struct aux_attestation_testing aux;
+	int status;
+	uint8_t seed[48];
+
+	TEST_START;
+
+	aux_attestation_testing_init (test, &aux);
+
+	status = mock_expect (&aux.ecc.mock, aux.ecc.base.init_public_key, &aux.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN), MOCK_ARG (ECC_PUBKEY_DER_LEN),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&aux.ecc.mock, 2, 0);
+
+	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.init_key_pair, &aux.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+	status |= mock_expect_save_arg (&aux.ecc.mock, 2, 1);
+
+	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.get_shared_secret_max_length, &aux.ecc, 48,
+		MOCK_ARG_SAVED_ARG (1));
+
+	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.release_key_pair, &aux.ecc, 0,
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG (NULL));
+	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.release_key_pair, &aux.ecc, 0,
+		MOCK_ARG (NULL), MOCK_ARG_SAVED_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = aux_attestation_generate_ecdh_seed (&aux.test, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN,
+		&aux.hash.base, seed, sizeof (seed) - 1);
+	CuAssertIntEquals (test, AUX_ATTESTATION_BUFFER_TOO_SMALL, status);
+
+	aux_attestation_testing_validate_and_release (test, &aux);
+}
+
+static void aux_attestation_test_generate_ecdh_seed_public_key_error (CuTest *test)
+{
+	struct aux_attestation_testing aux;
+	int status;
+	uint8_t seed[32];
+
+	TEST_START;
+
+	aux_attestation_testing_init (test, &aux);
+
+	status = mock_expect (&aux.ecc.mock, aux.ecc.base.init_public_key, &aux.ecc,
+		ECC_ENGINE_PUBLIC_KEY_FAILED, MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN),
+		MOCK_ARG (ECC_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = aux_attestation_generate_ecdh_seed (&aux.test, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN,
+		NULL, seed, sizeof (seed));
+	CuAssertIntEquals (test, ECC_ENGINE_PUBLIC_KEY_FAILED, status);
+
+	aux_attestation_testing_validate_and_release (test, &aux);
+}
+
+static void aux_attestation_test_generate_ecdh_seed_private_key_error (CuTest *test)
+{
+	struct aux_attestation_testing aux;
+	int status;
+	uint8_t seed[32];
+
+	TEST_START;
+
+	aux_attestation_testing_init (test, &aux);
+
+	status = mock_expect (&aux.ecc.mock, aux.ecc.base.init_public_key, &aux.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN), MOCK_ARG (ECC_PUBKEY_DER_LEN),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&aux.ecc.mock, 2, 0);
+
+	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.init_key_pair, &aux.ecc,
+		ECC_ENGINE_KEY_PAIR_FAILED,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+
+	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.release_key_pair, &aux.ecc, 0,
+		MOCK_ARG (NULL), MOCK_ARG_SAVED_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = aux_attestation_generate_ecdh_seed (&aux.test, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN,
+		NULL, seed, sizeof (seed));
+	CuAssertIntEquals (test, ECC_ENGINE_KEY_PAIR_FAILED, status);
+
+	aux_attestation_testing_validate_and_release (test, &aux);
+}
+
+static void aux_attestation_test_generate_ecdh_seed_secret_length_error (CuTest *test)
+{
+	struct aux_attestation_testing aux;
+	int status;
+	uint8_t seed[32];
+
+	TEST_START;
+
+	aux_attestation_testing_init (test, &aux);
+
+	status = mock_expect (&aux.ecc.mock, aux.ecc.base.init_public_key, &aux.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN), MOCK_ARG (ECC_PUBKEY_DER_LEN),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&aux.ecc.mock, 2, 0);
+
+	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.init_key_pair, &aux.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+	status |= mock_expect_save_arg (&aux.ecc.mock, 2, 1);
+
+	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.get_shared_secret_max_length, &aux.ecc,
+		ECC_ENGINE_SECRET_LENGTH_FAILED, MOCK_ARG_SAVED_ARG (1));
+
+	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.release_key_pair, &aux.ecc, 0,
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG (NULL));
+	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.release_key_pair, &aux.ecc, 0,
+		MOCK_ARG (NULL), MOCK_ARG_SAVED_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = aux_attestation_generate_ecdh_seed (&aux.test, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN,
+		NULL, seed, sizeof (seed));
+	CuAssertIntEquals (test, ECC_ENGINE_SECRET_LENGTH_FAILED, status);
+
+	aux_attestation_testing_validate_and_release (test, &aux);
+}
+
+static void aux_attestation_test_generate_ecdh_seed_shared_secret_error (CuTest *test)
+{
+	struct aux_attestation_testing aux;
+	int status;
+	uint8_t seed[32];
+
+	TEST_START;
+
+	aux_attestation_testing_init (test, &aux);
+
+	status = mock_expect (&aux.ecc.mock, aux.ecc.base.init_public_key, &aux.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN), MOCK_ARG (ECC_PUBKEY_DER_LEN),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&aux.ecc.mock, 2, 0);
+
+	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.init_key_pair, &aux.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+	status |= mock_expect_save_arg (&aux.ecc.mock, 2, 1);
+
+	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.get_shared_secret_max_length, &aux.ecc, 32,
+		MOCK_ARG_SAVED_ARG (1));
+
+	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.compute_shared_secret, &aux.ecc,
+		ECC_ENGINE_SHARED_SECRET_FAILED, MOCK_ARG_SAVED_ARG (1), MOCK_ARG_SAVED_ARG (0),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+
+	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.release_key_pair, &aux.ecc, 0,
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG (NULL));
+	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.release_key_pair, &aux.ecc, 0,
+		MOCK_ARG (NULL), MOCK_ARG_SAVED_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = aux_attestation_generate_ecdh_seed (&aux.test, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN,
+		NULL, seed, sizeof (seed));
+	CuAssertIntEquals (test, ECC_ENGINE_SHARED_SECRET_FAILED, status);
+
+	aux_attestation_testing_validate_and_release (test, &aux);
+}
+
+static void aux_attestation_test_generate_ecdh_seed_hash_error (CuTest *test)
+{
+	struct aux_attestation_testing aux;
+	int status;
+	uint8_t seed[32];
+
+	TEST_START;
+
+	aux_attestation_testing_init (test, &aux);
+
+	status = mock_expect (&aux.ecc.mock, aux.ecc.base.init_public_key, &aux.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN), MOCK_ARG (ECC_PUBKEY_DER_LEN),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&aux.ecc.mock, 2, 0);
+
+	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.init_key_pair, &aux.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+	status |= mock_expect_save_arg (&aux.ecc.mock, 2, 1);
+
+	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.get_shared_secret_max_length, &aux.ecc, 32,
+		MOCK_ARG_SAVED_ARG (1));
+
+	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.compute_shared_secret, &aux.ecc,
+		KEY_SEED_LEN, MOCK_ARG_SAVED_ARG (1), MOCK_ARG_SAVED_ARG (0), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&aux.ecc.mock, 2, KEY_SEED, KEY_SEED_LEN, 3);
+
+	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.release_key_pair, &aux.ecc, 0,
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG (NULL));
+	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.release_key_pair, &aux.ecc, 0,
+		MOCK_ARG (NULL), MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&aux.hash.mock, aux.hash.base.calculate_sha256, &aux.hash,
+		HASH_ENGINE_SHA256_FAILED, MOCK_ARG_PTR_CONTAINS (KEY_SEED, KEY_SEED_LEN),
+		MOCK_ARG (KEY_SEED_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = aux_attestation_generate_ecdh_seed (&aux.test, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN,
+		&aux.hash.base, seed, sizeof (seed));
+	CuAssertIntEquals (test, HASH_ENGINE_SHA256_FAILED, status);
+
+	aux_attestation_testing_validate_and_release (test, &aux);
+}
+
 
 CuSuite* get_aux_attestation_suite ()
 {
@@ -6350,6 +6911,7 @@ CuSuite* get_aux_attestation_suite ()
 	SUITE_ADD_TEST (suite, aux_attestation_test_unseal_ecdh_invalid_padding);
 	SUITE_ADD_TEST (suite, aux_attestation_test_unseal_ecdh_public_key_error);
 	SUITE_ADD_TEST (suite, aux_attestation_test_unseal_ecdh_private_key_error);
+	SUITE_ADD_TEST (suite, aux_attestation_test_unseal_ecdh_secret_length_error);
 	SUITE_ADD_TEST (suite, aux_attestation_test_unseal_ecdh_shared_secret_error);
 	SUITE_ADD_TEST (suite, aux_attestation_test_unseal_ecdh_hash_error);
 	SUITE_ADD_TEST (suite, aux_attestation_test_unseal_signing_key_init_error);
@@ -6383,6 +6945,21 @@ CuSuite* get_aux_attestation_suite ()
 	SUITE_ADD_TEST (suite, aux_attestation_test_decrypt_load_error);
 	SUITE_ADD_TEST (suite, aux_attestation_test_decrypt_init_key_error);
 	SUITE_ADD_TEST (suite, aux_attestation_test_decrypt_error);
+	SUITE_ADD_TEST (suite, aux_attestation_test_generate_ecdh_seed);
+	SUITE_ADD_TEST (suite, aux_attestation_test_generate_ecdh_seed_sha256);
+	SUITE_ADD_TEST (suite, aux_attestation_test_generate_ecdh_seed_no_mock);
+	SUITE_ADD_TEST (suite, aux_attestation_test_generate_ecdh_seed_sha256_no_mock);
+	SUITE_ADD_TEST (suite, aux_attestation_test_generate_ecdh_seed_null);
+	SUITE_ADD_TEST (suite, aux_attestation_test_generate_ecdh_seed_no_ecc_support);
+	SUITE_ADD_TEST (suite, aux_attestation_test_generate_ecdh_seed_small_seed_buffer);
+	SUITE_ADD_TEST (suite, aux_attestation_test_generate_ecdh_seed_small_seed_buffer_sha256);
+	SUITE_ADD_TEST (suite,
+		aux_attestation_test_generate_ecdh_seed_small_seed_buffer_sha256_large_secret);
+	SUITE_ADD_TEST (suite, aux_attestation_test_generate_ecdh_seed_public_key_error);
+	SUITE_ADD_TEST (suite, aux_attestation_test_generate_ecdh_seed_private_key_error);
+	SUITE_ADD_TEST (suite, aux_attestation_test_generate_ecdh_seed_secret_length_error);
+	SUITE_ADD_TEST (suite, aux_attestation_test_generate_ecdh_seed_shared_secret_error);
+	SUITE_ADD_TEST (suite, aux_attestation_test_generate_ecdh_seed_hash_error);
 
 	return suite;
 }

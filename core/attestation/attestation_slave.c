@@ -309,7 +309,7 @@ static int attestation_slave_challenge_response (struct attestation_slave *attes
 	response->num_digests = num_measurements;
 	response->digests_size = sizeof (measurement);
 
-	status = attestation->rng->generate_random_buffer (attestation->rng, ATTESTATION_NONCE_LEN, 
+	status = attestation->rng->generate_random_buffer (attestation->rng, ATTESTATION_NONCE_LEN,
 		response->nonce);
 	if (status != 0) {
 		goto cleanup;
@@ -388,6 +388,23 @@ static int attestation_slave_aux_decrypt_unsupported (struct attestation_slave *
 	return ATTESTATION_UNSUPPORTED_OPERATION;
 }
 
+static int attestation_slave_generate_ecdh_seed (struct attestation_slave *attestation,
+	const uint8_t *pub_key, size_t key_length, bool hash_seed, uint8_t *seed, size_t seed_length)
+{
+	if (attestation == NULL) {
+		return ATTESTATION_INVALID_ARGUMENT;
+	}
+
+	return aux_attestation_generate_ecdh_seed (attestation->aux, pub_key, key_length,
+		(hash_seed) ? attestation->hash : NULL, seed, seed_length);
+}
+
+static int attestation_slave_generate_ecdh_seed_unsupported (struct attestation_slave *attestation,
+	const uint8_t *pub_key, size_t key_length, bool hash_seed, uint8_t *seed, size_t seed_length)
+{
+	return ATTESTATION_UNSUPPORTED_OPERATION;
+}
+
 /**
  * Initialize the common components for slave attestation management.
  *
@@ -404,7 +421,7 @@ static int attestation_slave_aux_decrypt_unsupported (struct attestation_slave *
  */
 static int attestation_slave_init_common (struct attestation_slave *attestation,
 	struct riot_key_manager *riot, struct hash_engine *hash, struct ecc_engine *ecc,
-	struct rng_engine *rng, struct pcr_store *store, uint8_t min_protocol_version, 
+	struct rng_engine *rng, struct pcr_store *store, uint8_t min_protocol_version,
 	uint8_t max_protocol_version)
 {
 	const struct riot_keys *keys;
@@ -463,7 +480,7 @@ static int attestation_slave_init_common (struct attestation_slave *attestation,
  */
 int attestation_slave_init (struct attestation_slave *attestation,
 	struct riot_key_manager *riot, struct hash_engine *hash, struct ecc_engine *ecc,
-	struct rng_engine *rng, struct pcr_store *store, struct aux_attestation *aux, 
+	struct rng_engine *rng, struct pcr_store *store, struct aux_attestation *aux,
 	uint8_t min_protocol_version, uint8_t max_protocol_version)
 {
 	int status;
@@ -472,7 +489,7 @@ int attestation_slave_init (struct attestation_slave *attestation,
 		return ATTESTATION_INVALID_ARGUMENT;
 	}
 
-	status = attestation_slave_init_common (attestation, riot, hash, ecc, rng, store, 
+	status = attestation_slave_init_common (attestation, riot, hash, ecc, rng, store,
 		min_protocol_version, max_protocol_version);
 	if (status != 0) {
 		return status;
@@ -482,6 +499,7 @@ int attestation_slave_init (struct attestation_slave *attestation,
 
 	attestation->aux_attestation_unseal = attestation_slave_aux_attestation_unseal;
 	attestation->aux_decrypt = attestation_slave_aux_decrypt;
+	attestation->generate_ecdh_seed = attestation_slave_generate_ecdh_seed;
 
 	return 0;
 }
@@ -502,12 +520,12 @@ int attestation_slave_init (struct attestation_slave *attestation,
  */
 int attestation_slave_init_no_aux (struct attestation_slave *attestation,
 	struct riot_key_manager *riot, struct hash_engine *hash, struct ecc_engine *ecc,
-	struct rng_engine *rng, struct pcr_store *store, uint8_t min_protocol_version, 
+	struct rng_engine *rng, struct pcr_store *store, uint8_t min_protocol_version,
 	uint8_t max_protocol_version)
 {
 	int status;
 
-	status = attestation_slave_init_common (attestation, riot, hash, ecc, rng, store, 
+	status = attestation_slave_init_common (attestation, riot, hash, ecc, rng, store,
 		min_protocol_version, max_protocol_version);
 	if (status != 0) {
 		return status;
@@ -515,6 +533,7 @@ int attestation_slave_init_no_aux (struct attestation_slave *attestation,
 
 	attestation->aux_attestation_unseal = attestation_slave_aux_attestation_unseal_unsupported;
 	attestation->aux_decrypt = attestation_slave_aux_decrypt_unsupported;
+	attestation->generate_ecdh_seed = attestation_slave_generate_ecdh_seed_unsupported;
 
 	return 0;
 }
