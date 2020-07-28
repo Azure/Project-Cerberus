@@ -5,6 +5,7 @@
 #define ATTESTATION_SLAVE_H_
 
 #include <stdint.h>
+#include <stdbool.h>
 #include "status/rot_status.h"
 #include "platform.h"
 #include "crypto/ecc.h"
@@ -98,11 +99,28 @@ struct attestation_slave {
 	 * @param decrypted Decrypted payload.
 	 * @param len_decrypted Length of decrypted payload buffer.
 	 *
-	 * @return Decrypted payload length if the decryption was successful or an error code.
+	 * @return Decrypted payload length if the decryption was successful or an error code.  Use
+	 * ROT_IS_ERROR to check the return value.
 	 */
 	int (*aux_decrypt) (struct attestation_slave *attestation, const uint8_t *encrypted,
 		size_t len_encrypted, const uint8_t *label, size_t len_label, enum hash_type pad_hash,
 		uint8_t *decrypted, size_t len_decrypted);
+
+	/**
+	 * Generate an attestation seed using ECDH.
+	 *
+	 * @param attestation The slave attestation manager interface to utilize.
+	 * @param pub_key The DER encoded ECC public key to use for seed generation.
+	 * @param key_length Length of the ECC public key.
+	 * @param hash_seed true to calculate the SHA256 hash of the seed.
+	 * @param seed Output for the generated attestation seed.
+	 * @param seed_length Length of the seed output buffer.
+	 *
+	 * @return Length of the generated seed or an error code.  Use ROT_IS_ERROR to check the return
+	 * value.
+	 */
+	int (*generate_ecdh_seed) (struct attestation_slave *attestation, const uint8_t *pub_key,
+		size_t key_length, bool hash_seed, uint8_t *seed, size_t seed_length);
 
 	struct ecc_private_key ecc_priv_key;	/**< RIoT ECC private key. */
 	struct hash_engine *hash;				/**< The hashing engine for attestation authentication operations. */
@@ -120,11 +138,11 @@ struct attestation_slave {
 
 int attestation_slave_init (struct attestation_slave *attestation, struct riot_key_manager *riot,
 	struct hash_engine *hash, struct ecc_engine *ecc, struct rng_engine *rng,
-	struct pcr_store *store, struct aux_attestation *aux, uint8_t min_protocol_version, 
+	struct pcr_store *store, struct aux_attestation *aux, uint8_t min_protocol_version,
 	uint8_t max_protocol_version);
 int attestation_slave_init_no_aux (struct attestation_slave *attestation,
 	struct riot_key_manager *riot, struct hash_engine *hash, struct ecc_engine *ecc,
-	struct rng_engine *rng, struct pcr_store *store, uint8_t min_protocol_version, 
+	struct rng_engine *rng, struct pcr_store *store, uint8_t min_protocol_version,
 	uint8_t max_protocol_version);
 
 void attestation_slave_release (struct attestation_slave *attestation);

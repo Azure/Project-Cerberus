@@ -416,10 +416,13 @@ static void attestation_slave_test_init (CuTest *test)
 	status = attestation_slave_init (&attestation.slave, &attestation.riot, &attestation.hash.base,
 		&attestation.ecc.base, &attestation.rng.base, &attestation.store, &attestation.aux, 1, 2);
 	CuAssertIntEquals (test, 0, status);
+
 	CuAssertPtrNotNull (test, attestation.slave.get_digests);
 	CuAssertPtrNotNull (test, attestation.slave.get_certificate);
 	CuAssertPtrNotNull (test, attestation.slave.challenge_response);
 	CuAssertPtrNotNull (test, attestation.slave.aux_attestation_unseal);
+	CuAssertPtrNotNull (test, attestation.slave.aux_decrypt);
+	CuAssertPtrNotNull (test, attestation.slave.generate_ecdh_seed);
 
 	complete_attestation_slave_mock_test (test, &attestation);
 }
@@ -503,13 +506,16 @@ static void attestation_slave_test_init_no_aux (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_slave_init_no_aux (&attestation.slave, &attestation.riot,
-		&attestation.hash.base, &attestation.ecc.base, &attestation.rng.base, &attestation.store, 1, 
+		&attestation.hash.base, &attestation.ecc.base, &attestation.rng.base, &attestation.store, 1,
 		2);
 	CuAssertIntEquals (test, 0, status);
+
 	CuAssertPtrNotNull (test, attestation.slave.get_digests);
 	CuAssertPtrNotNull (test, attestation.slave.get_certificate);
 	CuAssertPtrNotNull (test, attestation.slave.challenge_response);
 	CuAssertPtrNotNull (test, attestation.slave.aux_attestation_unseal);
+	CuAssertPtrNotNull (test, attestation.slave.aux_decrypt);
+	CuAssertPtrNotNull (test, attestation.slave.generate_ecdh_seed);
 
 	complete_attestation_slave_mock_test (test, &attestation);
 }
@@ -531,7 +537,7 @@ static void attestation_slave_test_init_no_aux_init_keypair_fail (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_slave_init_no_aux (&attestation.slave, &attestation.riot,
-		&attestation.hash.base, &attestation.ecc.base, &attestation.rng.base, &attestation.store, 1, 
+		&attestation.hash.base, &attestation.ecc.base, &attestation.rng.base, &attestation.store, 1,
 		2);
 	CuAssertIntEquals (test, ECC_ENGINE_KEY_PAIR_FAILED, status);
 
@@ -548,12 +554,12 @@ static void attestation_slave_test_init_no_aux_null (CuTest *test)
 	attestation_slave_testing_init_dependencies (test, &attestation);
 
 	status = attestation_slave_init_no_aux (NULL, &attestation.riot,
-		&attestation.hash.base, &attestation.ecc.base, &attestation.rng.base, &attestation.store, 1, 
+		&attestation.hash.base, &attestation.ecc.base, &attestation.rng.base, &attestation.store, 1,
 		2);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
 	status = attestation_slave_init_no_aux (&attestation.slave, NULL,
-		&attestation.hash.base, &attestation.ecc.base, &attestation.rng.base, &attestation.store, 1, 
+		&attestation.hash.base, &attestation.ecc.base, &attestation.rng.base, &attestation.store, 1,
 		2);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
@@ -3416,6 +3422,177 @@ static void attestation_slave_test_aux_decrypt_null (CuTest *test)
 	complete_attestation_slave_mock_test (test, &attestation);
 }
 
+static void attestation_slave_test_generate_ecdh_seed (CuTest *test)
+{
+	struct attestation_slave_testing attestation;
+	uint8_t seed[32];
+	int status;
+	int arg_base;
+
+	TEST_START;
+
+	setup_attestation_slave_mock_test (test, &attestation);
+
+	arg_base = mock_expect_next_save_id (&attestation.ecc.mock);
+
+	status = mock_expect (&attestation.ecc.mock, attestation.ecc.base.init_public_key,
+		&attestation.ecc, 0, MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN),
+		MOCK_ARG (ECC_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&attestation.ecc.mock, 2, arg_base);
+
+	status |= mock_expect (&attestation.ecc.mock, attestation.ecc.base.init_key_pair,
+		&attestation.ecc, 0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+	status |= mock_expect_save_arg (&attestation.ecc.mock, 2, arg_base + 1);
+
+	status |= mock_expect (&attestation.ecc.mock, attestation.ecc.base.get_shared_secret_max_length,
+		&attestation.ecc, 32, MOCK_ARG_SAVED_ARG (arg_base + 1));
+
+	status |= mock_expect (&attestation.ecc.mock, attestation.ecc.base.compute_shared_secret,
+		&attestation.ecc, KEY_SEED_LEN, MOCK_ARG_SAVED_ARG (arg_base + 1),
+		MOCK_ARG_SAVED_ARG (arg_base), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&attestation.ecc.mock, 2, KEY_SEED, KEY_SEED_LEN, 3);
+
+	status |= mock_expect (&attestation.ecc.mock, attestation.ecc.base.release_key_pair,
+		&attestation.ecc, 0, MOCK_ARG_SAVED_ARG (arg_base + 1), MOCK_ARG (NULL));
+	status |= mock_expect (&attestation.ecc.mock, attestation.ecc.base.release_key_pair,
+		&attestation.ecc, 0, MOCK_ARG (NULL), MOCK_ARG_SAVED_ARG (arg_base));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation.slave.generate_ecdh_seed (&attestation.slave, ECC_PUBKEY_DER,
+		ECC_PUBKEY_DER_LEN, false, seed, sizeof (seed));
+	CuAssertIntEquals (test, KEY_SEED_LEN, status);
+
+	status = testing_validate_array (KEY_SEED, seed, KEY_SEED_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	complete_attestation_slave_mock_test (test, &attestation);
+}
+
+static void attestation_slave_test_generate_ecdh_seed_sha256 (CuTest *test)
+{
+	struct attestation_slave_testing attestation;
+	uint8_t seed[32];
+	int status;
+	int arg_base;
+
+	TEST_START;
+
+	setup_attestation_slave_mock_test (test, &attestation);
+
+	arg_base = mock_expect_next_save_id (&attestation.ecc.mock);
+
+	status = mock_expect (&attestation.ecc.mock, attestation.ecc.base.init_public_key,
+		&attestation.ecc, 0, MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN),
+		MOCK_ARG (ECC_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&attestation.ecc.mock, 2, arg_base);
+
+	status |= mock_expect (&attestation.ecc.mock, attestation.ecc.base.init_key_pair,
+		&attestation.ecc, 0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+	status |= mock_expect_save_arg (&attestation.ecc.mock, 2, arg_base + 1);
+
+	status |= mock_expect (&attestation.ecc.mock, attestation.ecc.base.get_shared_secret_max_length,
+		&attestation.ecc, 32, MOCK_ARG_SAVED_ARG (arg_base + 1));
+
+	status |= mock_expect (&attestation.ecc.mock, attestation.ecc.base.compute_shared_secret,
+		&attestation.ecc, KEY_SEED_LEN, MOCK_ARG_SAVED_ARG (arg_base + 1),
+		MOCK_ARG_SAVED_ARG (arg_base), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&attestation.ecc.mock, 2, KEY_SEED, KEY_SEED_LEN, 3);
+
+	status |= mock_expect (&attestation.ecc.mock, attestation.ecc.base.release_key_pair,
+		&attestation.ecc, 0, MOCK_ARG_SAVED_ARG (arg_base + 1), MOCK_ARG (NULL));
+	status |= mock_expect (&attestation.ecc.mock, attestation.ecc.base.release_key_pair,
+		&attestation.ecc, 0, MOCK_ARG (NULL), MOCK_ARG_SAVED_ARG (arg_base));
+
+	status |= mock_expect (&attestation.hash.mock, attestation.hash.base.calculate_sha256,
+		&attestation.hash, 0, MOCK_ARG_PTR_CONTAINS (KEY_SEED, KEY_SEED_LEN),
+		MOCK_ARG (KEY_SEED_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&attestation.hash.mock, 2, KEY_SEED_HASH, KEY_SEED_HASH_LEN, 3);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation.slave.generate_ecdh_seed (&attestation.slave, ECC_PUBKEY_DER,
+		ECC_PUBKEY_DER_LEN, true, seed, sizeof (seed));
+	CuAssertIntEquals (test, KEY_SEED_HASH_LEN, status);
+
+	status = testing_validate_array (KEY_SEED_HASH, seed, KEY_SEED_HASH_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	complete_attestation_slave_mock_test (test, &attestation);
+}
+
+static void attestation_slave_test_generate_ecdh_seed_no_aux (CuTest *test)
+{
+	struct attestation_slave_testing attestation;
+	uint8_t seed[32];
+	int status;
+
+	TEST_START;
+
+	setup_attestation_slave_no_aux_mock_test (test, &attestation);
+
+	status = attestation.slave.generate_ecdh_seed (&attestation.slave, ECC_PUBKEY_DER,
+		ECC_PUBKEY_DER_LEN, false, seed, sizeof (seed));
+	CuAssertIntEquals (test, ATTESTATION_UNSUPPORTED_OPERATION, status);
+
+	complete_attestation_slave_mock_test (test, &attestation);
+}
+
+static void attestation_slave_test_generate_ecdh_seed_fail (CuTest *test)
+{
+	struct attestation_slave_testing attestation;
+	uint8_t seed[32];
+	int status;
+
+	TEST_START;
+
+	setup_attestation_slave_mock_test (test, &attestation);
+
+	status = mock_expect (&attestation.ecc.mock, attestation.ecc.base.init_public_key,
+		&attestation.ecc, ECC_ENGINE_PUBLIC_KEY_FAILED,
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN), MOCK_ARG (ECC_PUBKEY_DER_LEN),
+		MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation.slave.generate_ecdh_seed (&attestation.slave, ECC_PUBKEY_DER,
+		ECC_PUBKEY_DER_LEN, false, seed, sizeof (seed));
+	CuAssertIntEquals (test, ECC_ENGINE_PUBLIC_KEY_FAILED, status);
+
+	complete_attestation_slave_mock_test (test, &attestation);
+}
+
+static void attestation_slave_test_generate_ecdh_seed_null (CuTest *test)
+{
+	struct attestation_slave_testing attestation;
+	uint8_t seed[32];
+	int status;
+
+	TEST_START;
+
+	setup_attestation_slave_mock_test (test, &attestation);
+
+	status = attestation.slave.generate_ecdh_seed (NULL, ECC_PUBKEY_DER,
+		ECC_PUBKEY_DER_LEN, false, seed, sizeof (seed));
+	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
+
+	status = attestation.slave.generate_ecdh_seed (&attestation.slave, NULL,
+		ECC_PUBKEY_DER_LEN, false, seed, sizeof (seed));
+	CuAssertIntEquals (test, AUX_ATTESTATION_INVALID_ARGUMENT, status);
+
+	status = attestation.slave.generate_ecdh_seed (&attestation.slave, ECC_PUBKEY_DER,
+		0, false, seed, sizeof (seed));
+	CuAssertIntEquals (test, AUX_ATTESTATION_INVALID_ARGUMENT, status);
+
+	status = attestation.slave.generate_ecdh_seed (&attestation.slave, ECC_PUBKEY_DER,
+		ECC_PUBKEY_DER_LEN, false, NULL, sizeof (seed));
+	CuAssertIntEquals (test, AUX_ATTESTATION_INVALID_ARGUMENT, status);
+
+	complete_attestation_slave_mock_test (test, &attestation);
+}
+
 
 CuSuite* get_attestation_slave_suite ()
 {
@@ -3516,6 +3693,11 @@ CuSuite* get_attestation_slave_suite ()
 	SUITE_ADD_TEST (suite, attestation_slave_test_aux_decrypt_no_aux);
 	SUITE_ADD_TEST (suite, attestation_slave_test_aux_decrypt_fail);
 	SUITE_ADD_TEST (suite, attestation_slave_test_aux_decrypt_null);
+	SUITE_ADD_TEST (suite, attestation_slave_test_generate_ecdh_seed);
+	SUITE_ADD_TEST (suite, attestation_slave_test_generate_ecdh_seed_sha256);
+	SUITE_ADD_TEST (suite, attestation_slave_test_generate_ecdh_seed_no_aux);
+	SUITE_ADD_TEST (suite, attestation_slave_test_generate_ecdh_seed_fail);
+	SUITE_ADD_TEST (suite, attestation_slave_test_generate_ecdh_seed_null);
 
 	return suite;
 }
