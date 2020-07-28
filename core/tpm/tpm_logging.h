@@ -12,6 +12,12 @@
  */
 enum {
 	TPM_LOGGING_CLEAR_FAILED,				/**< TPM clear failed. */
+	TPM_LOGGING_CLEAR_TPM,					/**< TPM storage has been cleared. */
+	TPM_LOGGING_INVALID_HEADER,				/**< TPM storage header was not valid. */
+	TPM_LOGGING_READ_HEADER_FAILED,			/**< Failed to read the TPM header. */
+	TPM_LOGGING_SOFT_RESET_ERROR,			/**< Error during reset processing. */
+	TPM_LOGGING_NO_HEADER,					/**< TPM header not available. */
+	TPM_LOGGING_NO_SEGMENT_DATA,			/**< TPM storage segment had no data. */
 };
 
 

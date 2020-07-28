@@ -4,27 +4,26 @@
 #ifndef TPM_H_
 #define TPM_H_
 
+#include <stdint.h>
 #include <stdbool.h>
 #include "status/rot_status.h"
-#include "flash/flash.h"
-#include "flash/flash_common.h"
+#include "flash/flash_store.h"
 #include "host_fw/host_processor_observer.h"
 
 
-#define TPM_MAGIC									0xACFE
 #define TPM_STORAGE_SEGMENT_SIZE					512
 
-
 /**
- * A log that will persistently store entries on flash.
+ * Flash storage for TPM data.
  */
 struct tpm {
 	struct host_processor_observer observer;		/**< The base observer interface. */
-	struct flash *flash;							/**< The flash used for TPM storage. */
-	uint32_t storage_size;							/**< Size of TPM storage. */
-	uint32_t base_addr;								/**< The base address of the TPM on flash. */
-	uint8_t num_segments;							/**< Number of storage segemnts used by TPM. */
+	struct flash_store *flash;						/**< The flash used for TPM storage. */
+	uint8_t buffer[TPM_STORAGE_SEGMENT_SIZE];		/**< Buffer for TPM flash storage. */
 };
+
+#define TPM_MAGIC									0xACFE
+#define	TPM_HEADER_FORMAT							0
 
 /**
  * TPM header stored at the beginning of TPM NV storage.
@@ -39,14 +38,15 @@ struct tpm_header {
 #pragma pack(pop)
 
 
-int tpm_init (struct tpm *tpm, struct flash *flash, uint32_t base_addr, uint8_t num_segments);
+int tpm_init (struct tpm *tpm, struct flash_store *flash);
 void tpm_release (struct tpm *tpm);
 
 int tpm_increment_counter (struct tpm *tpm);
 int tpm_get_counter (struct tpm *tpm, uint64_t *counter);
 
 int tpm_set_storage (struct tpm *tpm, uint8_t index, uint8_t *storage, size_t storage_len);
-int tpm_get_storage (struct tpm *tpm, uint8_t index, uint8_t *storage, size_t storage_len);
+int tpm_get_storage (struct tpm *tpm, uint8_t index, uint8_t *storage, size_t storage_len,
+	bool mask_data_error);
 
 int tpm_schedule_clear (struct tpm *tpm);
 

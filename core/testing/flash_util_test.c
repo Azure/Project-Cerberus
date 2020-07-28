@@ -15537,6 +15537,154 @@ static void flash_noncontiguous_contents_verification_at_offset_test_read_error_
 	HASH_TESTING_ENGINE_RELEASE (&hash);
 }
 
+static void flash_write_and_verify_test (CuTest *test)
+{
+	struct flash_mock flash;
+	int status;
+	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
+
+	TEST_START;
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&flash.mock, flash.base.write, &flash, sizeof (data), MOCK_ARG (0x10000),
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)));
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data)));
+	status |= mock_expect_output (&flash.mock, 1, data, sizeof (data), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_write_and_verify (&flash.base, 0x10000, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void flash_write_and_verify_test_mismatch (CuTest *test)
+{
+	struct flash_mock flash;
+	int status;
+	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
+	uint8_t check[] = {0x01, 0x02, 0x13, 0x04};
+
+	TEST_START;
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&flash.mock, flash.base.write, &flash, sizeof (data), MOCK_ARG (0x10000),
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)));
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data)));
+	status |= mock_expect_output (&flash.mock, 1, check, sizeof (check), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_write_and_verify (&flash.base, 0x10000, data, sizeof (data));
+	CuAssertIntEquals (test, FLASH_UTIL_DATA_MISMATCH, status);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void flash_write_and_verify_test_null (CuTest *test)
+{
+	struct flash_mock flash;
+	int status;
+	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
+
+	TEST_START;
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_write_and_verify (NULL, 0x10000, data, sizeof (data));
+	CuAssertIntEquals (test, FLASH_UTIL_INVALID_ARGUMENT, status);
+
+	status = flash_write_and_verify (&flash.base, 0x10000, NULL, sizeof (data));
+	CuAssertIntEquals (test, FLASH_UTIL_INVALID_ARGUMENT, status);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void flash_write_and_verify_test_write_error (CuTest *test)
+{
+	struct flash_mock flash;
+	int status;
+	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
+
+	TEST_START;
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&flash.mock, flash.base.write, &flash, FLASH_WRITE_FAILED,
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_write_and_verify (&flash.base, 0x10000, data, sizeof (data));
+	CuAssertIntEquals (test, FLASH_WRITE_FAILED, status);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void flash_write_and_verify_test_incomplete_write (CuTest *test)
+{
+	struct flash_mock flash;
+	int status;
+	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
+
+	TEST_START;
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&flash.mock, flash.base.write, &flash, sizeof (data) - 1,
+		MOCK_ARG (0x100fe), MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_write_and_verify (&flash.base, 0x100fe, data, sizeof (data));
+	CuAssertIntEquals (test, FLASH_UTIL_INCOMPLETE_WRITE, status);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void flash_write_and_verify_test_verify_error (CuTest *test)
+{
+	struct flash_mock flash;
+	int status;
+	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
+
+	TEST_START;
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&flash.mock, flash.base.write, &flash, sizeof (data), MOCK_ARG (0x10000),
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)));
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, FLASH_READ_FAILED,
+		MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_write_and_verify (&flash.base, 0x10000, data, sizeof (data));
+	CuAssertIntEquals (test, FLASH_READ_FAILED, status);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+}
+
 
 CuSuite* get_flash_util_suite ()
 {
@@ -15930,6 +16078,12 @@ CuSuite* get_flash_util_suite ()
 		flash_noncontiguous_contents_verification_at_offset_test_hash_buffer_too_small);
 	SUITE_ADD_TEST (suite,
 		flash_noncontiguous_contents_verification_at_offset_test_read_error_with_hash_out);
+	SUITE_ADD_TEST (suite, flash_write_and_verify_test);
+	SUITE_ADD_TEST (suite, flash_write_and_verify_test_mismatch);
+	SUITE_ADD_TEST (suite, flash_write_and_verify_test_null);
+	SUITE_ADD_TEST (suite, flash_write_and_verify_test_write_error);
+	SUITE_ADD_TEST (suite, flash_write_and_verify_test_incomplete_write);
+	SUITE_ADD_TEST (suite, flash_write_and_verify_test_verify_error);
 
 	return suite;
 }

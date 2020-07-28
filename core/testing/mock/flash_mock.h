@@ -28,11 +28,21 @@ int flash_mock_validate_and_release (struct flash_mock *mock);
 /* Helper functions to mock flash operations based on flash_util functions. */
 
 int flash_mock_expect_blank_check (struct flash_mock *mock, uint32_t start, size_t length);
+
 int flash_mock_expect_erase_flash (struct flash_mock *mock, uint32_t addr, size_t length);
+int flash_mock_expect_erase_flash_ext (struct flash_mock *mock, uint32_t addr, size_t length,
+	uint32_t block_size);
 int flash_mock_expect_erase_flash_sector (struct flash_mock *mock, uint32_t addr, size_t length);
+int flash_mock_expect_erase_flash_sector_ext (struct flash_mock *mock, uint32_t addr, size_t length,
+	uint32_t sector_size);
+
 int flash_mock_expect_erase_flash_verify (struct flash_mock *mock, uint32_t addr, size_t length);
+int flash_mock_expect_erase_flash_verify_ext (struct flash_mock *mock, uint32_t addr, size_t length,
+	uint32_t block_size);
 int flash_mock_expect_erase_flash_sector_verify (struct flash_mock *mock, uint32_t addr,
 	size_t length);
+int flash_mock_expect_erase_flash_sector_verify_ext (struct flash_mock *mock, uint32_t addr,
+	size_t length, uint32_t sector_size);
 
 int flash_mock_expect_copy_flash_verify (struct flash_mock *mock_dest, struct flash_mock *mock_src,
 	uint32_t dest_addr, uint32_t src_addr, const uint8_t *data, size_t length);

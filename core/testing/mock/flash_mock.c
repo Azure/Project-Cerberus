@@ -361,15 +361,30 @@ int flash_mock_expect_blank_check (struct flash_mock *mock, uint32_t start, size
  */
 int flash_mock_expect_erase_flash (struct flash_mock *mock, uint32_t addr, size_t length)
 {
+	return flash_mock_expect_erase_flash_ext (mock, addr, length, FLASH_BLOCK_SIZE);
+}
+
+/**
+ * Set up expectations for successfully erasing blocks of flash.
+ *
+ * @param mock The mock to update.
+ * @param addr The starting address of the sector.
+ * @param length The length of the block to erase.
+ * @param block_size The erase block size.
+ *
+ * @return 0 if the expectations were added successfully or non-zero if not.
+ */
+int flash_mock_expect_erase_flash_ext (struct flash_mock *mock, uint32_t addr, size_t length,
+	uint32_t block_size)
+{
 	int status;
-	uint32_t bytes = FLASH_BLOCK_SIZE;
 	size_t erase_length;
 
 	status = mock_expect (&mock->mock, mock->base.get_block_size, mock, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output_tmp (&mock->mock, 0, &bytes, sizeof (bytes), -1);
+	status |= mock_expect_output_tmp (&mock->mock, 0, &block_size, sizeof (block_size), -1);
 
 	while ((status == 0) && (length > 0)) {
-		erase_length = FLASH_BLOCK_SIZE - FLASH_BLOCK_OFFSET (addr);
+		erase_length = block_size - FLASH_REGION_OFFSET (addr, block_size);
 		erase_length = (length > erase_length) ? erase_length : length;
 
 		status |= mock_expect (&mock->mock, mock->base.block_erase, mock, 0, MOCK_ARG (addr));
@@ -392,15 +407,30 @@ int flash_mock_expect_erase_flash (struct flash_mock *mock, uint32_t addr, size_
  */
 int flash_mock_expect_erase_flash_sector (struct flash_mock *mock, uint32_t addr, size_t length)
 {
+	return flash_mock_expect_erase_flash_sector_ext (mock, addr, length, FLASH_SECTOR_SIZE);
+}
+
+/**
+ * Set up expectations for successfully erasing sectors of flash.
+ *
+ * @param mock The mock to update.
+ * @param addr The starting address of the sector.
+ * @param length The length of the block to erase.
+ * @param sector_size The erase sector size.
+ *
+ * @return 0 if the expectations were added successfully or non-zero if not.
+ */
+int flash_mock_expect_erase_flash_sector_ext (struct flash_mock *mock, uint32_t addr, size_t length,
+	uint32_t sector_size)
+{
 	int status;
-	uint32_t bytes = FLASH_SECTOR_SIZE;
 	size_t erase_length;
 
 	status = mock_expect (&mock->mock, mock->base.get_sector_size, mock, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output_tmp (&mock->mock, 0, &bytes, sizeof (bytes), -1);
+	status |= mock_expect_output_tmp (&mock->mock, 0, &sector_size, sizeof (sector_size), -1);
 
 	while ((status == 0) && (length > 0)) {
-		erase_length = FLASH_SECTOR_SIZE - FLASH_SECTOR_OFFSET (addr);
+		erase_length = sector_size - FLASH_REGION_OFFSET (addr, sector_size);
 		erase_length = (length > erase_length) ? erase_length : length;
 
 		status |= mock_expect (&mock->mock, mock->base.sector_erase, mock, 0, MOCK_ARG (addr));
@@ -423,9 +453,25 @@ int flash_mock_expect_erase_flash_sector (struct flash_mock *mock, uint32_t addr
  */
 int flash_mock_expect_erase_flash_verify (struct flash_mock *mock, uint32_t addr, size_t length)
 {
+	return flash_mock_expect_erase_flash_verify_ext (mock, addr, length, FLASH_BLOCK_SIZE);
+}
+
+/**
+ * Set up expectations for successfully erasing a region of flash blocks with a blank check.
+ *
+ * @param mock The mock to update.
+ * @param addr The starting address of the region.
+ * @param length The length of the region.
+ * @param block_size The erase block size.
+ *
+ * @return 0 if the expectations were added successfully or non-zero if not.
+ */
+int flash_mock_expect_erase_flash_verify_ext (struct flash_mock *mock, uint32_t addr, size_t length,
+	uint32_t block_size)
+{
 	int status;
 
-	status = flash_mock_expect_erase_flash (mock, addr, length);
+	status = flash_mock_expect_erase_flash_ext (mock, addr, length, block_size);
 	status |= flash_mock_expect_blank_check (mock, addr, length);
 
 	return status;
@@ -443,9 +489,25 @@ int flash_mock_expect_erase_flash_verify (struct flash_mock *mock, uint32_t addr
 int flash_mock_expect_erase_flash_sector_verify (struct flash_mock *mock, uint32_t addr,
 	size_t length)
 {
+	return flash_mock_expect_erase_flash_sector_verify_ext (mock, addr, length, FLASH_SECTOR_SIZE);
+}
+
+/**
+ * Set up expectations for successfully erasing a region of flash sectors with a blank check.
+ *
+ * @param mock The mock to update.
+ * @param addr The starting address of the region.
+ * @param length The length of the region.
+ * @param sector_size The erase sector size.
+ *
+ * @return 0 if the expectations were added successfully or non-zero if not.
+ */
+int flash_mock_expect_erase_flash_sector_verify_ext (struct flash_mock *mock, uint32_t addr,
+	size_t length, uint32_t sector_size)
+{
 	int status;
 
-	status = flash_mock_expect_erase_flash_sector (mock, addr, length);
+	status = flash_mock_expect_erase_flash_sector_ext (mock, addr, length, sector_size);
 	status |= flash_mock_expect_blank_check (mock, addr, length);
 
 	return status;
