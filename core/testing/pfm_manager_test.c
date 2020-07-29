@@ -5,11 +5,11 @@
 #include <stdint.h>
 #include <string.h>
 #include "testing.h"
-#include "pfm_testing.h"
 #include "manifest/pfm/pfm_manager.h"
 #include "mock/pfm_mock.h"
 #include "mock/pfm_manager_mock.h"
 #include "mock/pfm_observer_mock.h"
+#include "pfm_testing.h"
 
 
 static const char *SUITE = "pfm_manager";
@@ -991,7 +991,7 @@ static void pfm_manager_test_get_pfm_measured_data_no_active_pfm (CuTest *test)
 	status = pfm_manager_get_pfm_measured_data (&manager.base, 0, buffer, length);
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
-	status = testing_validate_array (zero, buffer, sizeof (zero));
+	status = testing_validate_array (zero, buffer, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pfm_mock_validate_and_release (&pfm);

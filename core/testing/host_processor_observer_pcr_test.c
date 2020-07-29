@@ -19,7 +19,7 @@ static const char *SUITE = "host_processor_observer_pcr";
  * Digest of the number 0 with event type 0xaabbccdd and version 0x0.  This indicates valid FW in
  * active mode.
  */
-static const uint8_t DIGEST_ZERO[] = {
+static const uint8_t DIGEST_ACTIVE[] = {
 	0x91,0xc2,0x06,0x73,0x18,0x55,0x21,0x12,0xdf,0xc2,0x77,0x4c,0xc2,0xa7,0xb4,0xc2,
 	0x3b,0xd5,0xe8,0x1c,0xe8,0x15,0x57,0x53,0xf7,0xb8,0x01,0xf4,0x5d,0x6a,0x34,0x84
 };
@@ -140,7 +140,7 @@ static void host_processor_observer_pcr_test_init_valid (CuTest *test)
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 2), &measurement);
 	CuAssertIntEquals (test, 0, status);
 
-	status = testing_validate_array (DIGEST_ZERO, measurement.digest, SHA256_HASH_LENGTH);
+	status = testing_validate_array (DIGEST_ACTIVE, measurement.digest, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
 	host_processor_observer_pcr_release (&observer);
@@ -372,7 +372,7 @@ static void host_processor_observer_pcr_test_on_active_mode (CuTest *test)
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
 	CuAssertIntEquals (test, 0, status);
 
-	status = testing_validate_array (DIGEST_ZERO, measurement.digest, SHA256_HASH_LENGTH);
+	status = testing_validate_array (DIGEST_ACTIVE, measurement.digest, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
 	host_processor_observer_pcr_release (&observer);

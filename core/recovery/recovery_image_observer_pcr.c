@@ -13,26 +13,20 @@ static void recovery_image_observer_pcr_on_recovery_image_activated (
 	struct recovery_image_observer *observer, struct recovery_image *active)
 {
 	struct recovery_image_observer_pcr *pcr = (struct recovery_image_observer_pcr*) observer;
-	uint8_t measurement[SHA256_HASH_LENGTH];
-	uint8_t zero[SHA256_HASH_LENGTH] = {0};
+	uint8_t measurement[SHA256_HASH_LENGTH] = {0};
 	int status;
 
-	if (active == NULL) {
-		status = pcr->hash->calculate_sha256 (pcr->hash, zero, SHA256_HASH_LENGTH, measurement,
-			sizeof (measurement));
-	}
-	else {
+	if (active) {
 		status = active->get_hash (active, pcr->hash, measurement, sizeof (measurement));
+		if (status != 0) {
+			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_RECOVERY_IMAGE,
+				RECOVERY_IMAGE_LOGGING_GET_MEASUREMENT_FAIL, pcr->measurement_id, status);
+			return;
+		}
 	}
 
-	if (status != 0) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_RECOVERY_IMAGE,
-			RECOVERY_IMAGE_LOGGING_GET_MEASUREMENT_FAIL, pcr->measurement_id, status);
-		return;
-	}
-
-	status = pcr_store_update_versioned_buffer (pcr->store, pcr->hash, pcr->measurement_id, measurement,
-		SHA256_HASH_LENGTH, true, 0);
+	status = pcr_store_update_versioned_buffer (pcr->store, pcr->hash, pcr->measurement_id,
+		measurement, SHA256_HASH_LENGTH, true, 0);
 	if (status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_RECOVERY_IMAGE,
 			RECOVERY_IMAGE_LOGGING_RECORD_MEASUREMENT_FAIL, pcr->measurement_id, status);
@@ -42,14 +36,7 @@ static void recovery_image_observer_pcr_on_recovery_image_activated (
 static void recovery_image_observer_pcr_on_recovery_image_deactivated (
 	struct recovery_image_observer *observer)
 {
-	struct recovery_image_observer_pcr *pcr = (struct recovery_image_observer_pcr*) observer;
-	int status;
-
-	status = pcr_store_invalidate_measurement (pcr->store, pcr->measurement_id);
-	if (status != 0) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_RECOVERY_IMAGE,
-			RECOVERY_IMAGE_LOGGING_INVALIDATE_MEASUREMENT_FAIL, pcr->measurement_id, status);
-	}
+	recovery_image_observer_pcr_on_recovery_image_activated (observer, NULL);
 }
 
 /**
@@ -62,8 +49,8 @@ static void recovery_image_observer_pcr_on_recovery_image_deactivated (
  *
  * @return 0 if the observer was successfully initialized or an error code.
  */
-int recovery_image_observer_pcr_init (struct recovery_image_observer_pcr *observer, struct hash_engine *hash,
-	struct pcr_store *store, uint16_t measurement_type)
+int recovery_image_observer_pcr_init (struct recovery_image_observer_pcr *observer,
+	struct hash_engine *hash, struct pcr_store *store, uint16_t measurement_type)
 {
 	int status;
 
@@ -82,8 +69,10 @@ int recovery_image_observer_pcr_init (struct recovery_image_observer_pcr *observ
 	observer->store = store;
 	observer->measurement_id = measurement_type;
 
-	observer->base.on_recovery_image_activated = recovery_image_observer_pcr_on_recovery_image_activated;
-	observer->base.on_recovery_image_deactivated = recovery_image_observer_pcr_on_recovery_image_deactivated;
+	observer->base.on_recovery_image_activated =
+		recovery_image_observer_pcr_on_recovery_image_activated;
+	observer->base.on_recovery_image_deactivated =
+		recovery_image_observer_pcr_on_recovery_image_deactivated;
 
 	return 0;
 }

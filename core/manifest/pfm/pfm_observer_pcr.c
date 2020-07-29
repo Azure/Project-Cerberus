@@ -23,7 +23,8 @@ static void pfm_observer_pcr_on_pfm_activated (struct pfm_observer *observer, st
  * @param store The PCR store to update as the PFM changes.
  * @param manifest_measurement The identifier for the manifest measurement in the PCR.
  * @param manifest_id_measurement The identifier for the manifest ID measurement in the PCR.
- * @param platform_id_measurement The identifier for the manifest platform ID measurement in the PCR.
+ * @param platform_id_measurement The identifier for the manifest platform ID measurement in the
+ * PCR.
  *
  * @return 0 if the observer was successfully initialized or an error code.
  */
