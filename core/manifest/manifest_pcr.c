@@ -78,26 +78,20 @@ void manifest_pcr_release (struct manifest_pcr *pcr)
  */
 void manifest_pcr_record_manifest_measurement (struct manifest_pcr *pcr, struct manifest *active)
 {
-	uint8_t manifest_measurement[SHA256_HASH_LENGTH];
+	uint8_t manifest_measurement[SHA256_HASH_LENGTH] = {0};
 	uint8_t id[5];
 	char *platform_id = NULL;
 	char empty_string = '\0';
-	uint8_t zero[SHA256_HASH_LENGTH] = {0};
 	int status;
 
-	if (active == NULL) {
-		status = pcr->hash->calculate_sha256 (pcr->hash, zero, sizeof (zero), manifest_measurement,
-			sizeof (manifest_measurement));
-	}
-	else {
+	if (active) {
 		status = active->get_hash (active, pcr->hash, manifest_measurement,
 			sizeof (manifest_measurement));
-	}
-
-	if (status != 0) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
-			MANIFEST_LOGGING_GET_MEASUREMENT_FAIL, pcr->manifest_measurement, status);
-		return;
+		if (status != 0) {
+			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
+				MANIFEST_LOGGING_GET_MEASUREMENT_FAIL, pcr->manifest_measurement, status);
+			return;
+		}
 	}
 
 	status = pcr_store_update_versioned_buffer (pcr->store, pcr->hash, pcr->manifest_measurement,
@@ -136,7 +130,8 @@ void manifest_pcr_record_manifest_measurement (struct manifest_pcr *pcr, struct 
 		status = active->get_platform_id (active, &platform_id);
 		if (status != 0) {
 			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
-				MANIFEST_LOGGING_GET_PLATFORM_ID_FAIL, pcr->manifest_platform_id_measurement, status);
+				MANIFEST_LOGGING_GET_PLATFORM_ID_FAIL, pcr->manifest_platform_id_measurement,
+				status);
 			return;
 		}
 	}
@@ -146,7 +141,8 @@ void manifest_pcr_record_manifest_measurement (struct manifest_pcr *pcr, struct 
 		true, 0);
 	if (status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
-			MANIFEST_LOGGING_RECORD_MEASUREMENT_FAIL, pcr->manifest_platform_id_measurement, status);
+			MANIFEST_LOGGING_RECORD_MEASUREMENT_FAIL, pcr->manifest_platform_id_measurement,
+			status);
 	}
 
 	if (active != NULL) {

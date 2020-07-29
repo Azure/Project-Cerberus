@@ -21,7 +21,7 @@ int manifest_manager_init (struct manifest_manager *manager, struct hash_engine 
 	}
 
 	manager->hash = hash;
-	
+
 	return 0;
 }
 

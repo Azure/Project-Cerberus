@@ -23,7 +23,7 @@ static struct recovery_image_manager_flash_region* recovery_image_manager_get_re
 	struct recovery_image_manager *manager, bool active)
 {
 	return &manager->region1;
-} 
+}
 
 /**
  * Get the requested recovery image region based on the host state.
@@ -40,12 +40,12 @@ static struct recovery_image_manager_flash_region* recovery_image_manager_get_re
 
 	current = host_state_manager_get_active_recovery_image (manager->state);
 	if (current == RECOVERY_IMAGE_REGION_1) {
-		return (active) ? &manager->region1 : &manager->region2; 
+		return (active) ? &manager->region1 : &manager->region2;
 	}
 	else {
-		return (active) ? &manager->region2 : &manager->region1; 
+		return (active) ? &manager->region2 : &manager->region1;
 	}
-} 
+}
 
 /**
  * Notify all observers of an event for a recovery image.  The recovery image will be released to
@@ -227,7 +227,7 @@ static int recovery_image_manager_clear_recovery_image_region (
 		observable_notify_observers (&manager->observable,
 			offsetof (struct recovery_image_observer, on_recovery_image_deactivated));
 	}
- 
+
 	return status;
 }
 
@@ -256,7 +256,7 @@ static void recovery_image_manager_free_recovery_image (struct recovery_image_ma
 		region->ref_count--;
 	}
 
-	platform_mutex_unlock (&manager->lock);	
+	platform_mutex_unlock (&manager->lock);
 }
 
 static int recovery_image_manager_write_recovery_image_data (struct recovery_image_manager *manager,
@@ -283,7 +283,7 @@ static int recovery_image_manager_activate_recovery_image (struct recovery_image
 		return RECOVERY_IMAGE_MANAGER_INVALID_ARGUMENT;
 	}
 
-	platform_mutex_lock (&manager->lock); 
+	platform_mutex_lock (&manager->lock);
 
 	if (flash_updater_get_remaining_bytes (manager->updating) > 0) {
 		platform_mutex_unlock (&manager->lock);
@@ -318,7 +318,7 @@ exit:
 			manager->get_active_recovery_image (manager),
 			offsetof (struct recovery_image_observer, on_recovery_image_activated));
 	}
-	
+
 	return status;
 }
 
@@ -363,7 +363,7 @@ static int recovery_image_manager_erase_all_recovery_regions (
 		return RECOVERY_IMAGE_MANAGER_INVALID_ARGUMENT;
 	}
 
-	platform_mutex_lock (&manager->lock); 
+	platform_mutex_lock (&manager->lock);
 
 	region1 = manager->internal.get_region (manager, false);
 	prev_valid |= region1->is_valid;
@@ -630,19 +630,14 @@ int recovery_image_manager_get_measured_data (struct recovery_image_manager *man
 	active = manager->get_active_recovery_image (manager);
 	if (active) {
 		status = active->get_hash (active, manager->hash, hash_out, sizeof (hash_out));
+		manager->free_recovery_image (manager, active);
 		if (status != 0) {
-			goto exit;
-		} 
+			return status;
+		}
 	}
 
 	bytes_read = ((SHA256_HASH_LENGTH - offset) > length) ? length : (SHA256_HASH_LENGTH - offset);
 
 	memcpy (buffer, hash_out + offset, bytes_read);
-
-exit:
-	if (active) {
-		manager->free_recovery_image (manager, active);
-	}
-
-	return (status == 0) ? bytes_read : status;
+	return bytes_read;
 }

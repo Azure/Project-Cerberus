@@ -993,7 +993,7 @@ static void cfm_manager_test_get_cfm_measured_data_no_active_cfm (CuTest *test)
 	status = cfm_manager_get_cfm_measured_data (&manager.base, 0, buffer, length);
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
-	status = testing_validate_array (zero, buffer, sizeof (zero));
+	status = testing_validate_array (zero, buffer, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
 	status = cfm_mock_validate_and_release (&cfm);

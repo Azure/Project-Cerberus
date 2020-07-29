@@ -5,11 +5,11 @@
 #include <stdint.h>
 #include <string.h>
 #include "testing.h"
-#include "pcd_testing.h"
 #include "manifest/pcd/pcd_manager.h"
 #include "mock/pcd_mock.h"
 #include "mock/pcd_manager_mock.h"
 #include "mock/pcd_observer_mock.h"
+#include "pcd_testing.h"
 
 
 static const char *SUITE = "pcd_manager";
@@ -940,7 +940,7 @@ static void pcd_manager_test_get_pcd_measured_data_no_active_pcd (CuTest *test)
 	status = pcd_manager_get_pcd_measured_data (&manager.base, 0, buffer, length);
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
-	status = testing_validate_array (zero, buffer, sizeof (zero));
+	status = testing_validate_array (zero, buffer, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcd_mock_validate_and_release (&pcd);

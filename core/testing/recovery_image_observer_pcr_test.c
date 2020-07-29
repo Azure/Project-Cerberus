@@ -139,7 +139,7 @@ static void recovery_image_observer_pcr_test_on_recovery_image_activated (CuTest
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
 	CuAssertIntEquals (test, 0, status);
-	
+
 	status = testing_validate_array (invalid_measurement, measurement.digest, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
@@ -189,13 +189,13 @@ static void recovery_image_observer_pcr_test_on_recovery_image_activated_hash_er
 	status = recovery_image_mock_init (&image);
 	CuAssertIntEquals (test, 0, status);
 
-	status = recovery_image_observer_pcr_init (&observer, &hash.base, &store, 
+	status = recovery_image_observer_pcr_init (&observer, &hash.base, &store,
 		PCR_MEASUREMENT (0, 0));
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
 	CuAssertIntEquals (test, 0, status);
-	
+
 	status = testing_validate_array (invalid_measurement, measurement.digest, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
@@ -208,7 +208,7 @@ static void recovery_image_observer_pcr_test_on_recovery_image_activated_hash_er
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
 	CuAssertIntEquals (test, 0, status);
-	
+
 	status = testing_validate_array (invalid_measurement, measurement.digest, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
@@ -257,7 +257,7 @@ static void recovery_image_observer_pcr_test_record_measurement (CuTest *test)
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
 	CuAssertIntEquals (test, 0, status);
-	
+
 	status = testing_validate_array (invalid_measurement, measurement.digest, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
@@ -326,7 +326,7 @@ static void recovery_image_observer_pcr_test_record_measurement_no_active (CuTes
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
 	CuAssertIntEquals (test, 0, status);
-	
+
 	status = testing_validate_array (invalid_measurement, measurement.digest, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
@@ -338,8 +338,8 @@ static void recovery_image_observer_pcr_test_record_measurement_no_active (CuTes
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
 	CuAssertIntEquals (test, 0, status);
-	
-	status = testing_validate_array (ZERO_BUFFER_HASH_DIGEST, measurement.digest, SHA256_HASH_LENGTH);
+
+	status = testing_validate_array (ZERO_BUFFER_HASH, measurement.digest, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
 	status = recovery_image_manager_mock_validate_and_release (&manager);
@@ -378,7 +378,7 @@ static void recovery_image_observer_pcr_test_record_measurement_null (CuTest *te
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
 	CuAssertIntEquals (test, 0, status);
-	
+
 	status = testing_validate_array (invalid_measurement, measurement.digest, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
@@ -388,7 +388,7 @@ static void recovery_image_observer_pcr_test_record_measurement_null (CuTest *te
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
 	CuAssertIntEquals (test, 0, status);
-	
+
 	status = testing_validate_array (invalid_measurement, measurement.digest, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
@@ -433,7 +433,7 @@ static void recovery_image_observer_pcr_test_record_measurement_hash_error (CuTe
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
 	CuAssertIntEquals (test, 0, status);
-	
+
 	status = testing_validate_array (invalid_measurement, measurement.digest, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
@@ -453,7 +453,7 @@ static void recovery_image_observer_pcr_test_record_measurement_hash_error (CuTe
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
 	CuAssertIntEquals (test, 0, status);
-	
+
 	status = testing_validate_array (invalid_measurement, measurement.digest, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
@@ -501,7 +501,7 @@ static void recovery_image_observer_pcr_test_on_recovery_image_deactivated (CuTe
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
 	CuAssertIntEquals (test, 0, status);
-	
+
 	status = testing_validate_array (invalid_measurement, measurement.digest, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
@@ -515,8 +515,8 @@ static void recovery_image_observer_pcr_test_on_recovery_image_deactivated (CuTe
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
 	CuAssertIntEquals (test, 0, status);
-	
-	status = testing_validate_array (RECOVERY_IMAGE_HASH_DIGEST, measurement.digest, 
+
+	status = testing_validate_array (RECOVERY_IMAGE_HASH_DIGEST, measurement.digest,
 		RECOVERY_IMAGE_HASH_LEN);
 	CuAssertIntEquals (test, 0, status);
 
@@ -524,8 +524,8 @@ static void recovery_image_observer_pcr_test_on_recovery_image_deactivated (CuTe
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
 	CuAssertIntEquals (test, 0, status);
-	
-	status = testing_validate_array (invalid_measurement, measurement.digest, SHA256_HASH_LENGTH);
+
+	status = testing_validate_array (ZERO_BUFFER_HASH, measurement.digest, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
 	status = recovery_image_mock_validate_and_release (&image);
