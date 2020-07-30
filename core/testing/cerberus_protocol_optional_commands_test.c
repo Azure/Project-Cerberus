@@ -1240,6 +1240,8 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_port0_region
 {
 	struct cmd_interface_request request;
 	struct cerberus_protocol_get_pfm_id *req = (struct cerberus_protocol_get_pfm_id*) request.data;
+	struct cerberus_protocol_get_pfm_id_version_response *resp =
+		(struct cerberus_protocol_get_pfm_id_version_response*) request.data;
 	int status;
 
 	memset (&request, 0, sizeof (request));
@@ -1257,7 +1259,20 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_port0_region
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
-	CuAssertIntEquals (test, CMD_HANDLER_UNSUPPORTED_INDEX, status);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_pfm_id_version_response),
+		request.length);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
+	CuAssertIntEquals (test, 0, resp->header.crypt);
+	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.integrity_check);
+	CuAssertIntEquals (test, 0, resp->header.seq_num);
+	CuAssertIntEquals (test, 0, resp->header.rq);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_PFM_ID, resp->header.command);
+	CuAssertIntEquals (test, 0, resp->valid);
+	CuAssertIntEquals (test, 0, resp->version);
+	CuAssertIntEquals (test, false, request.new_request);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 }
 
@@ -1266,6 +1281,8 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_port0_region
 {
 	struct cmd_interface_request request;
 	struct cerberus_protocol_get_pfm_id *req = (struct cerberus_protocol_get_pfm_id*) request.data;
+	struct cerberus_protocol_get_pfm_id_version_response *resp =
+		(struct cerberus_protocol_get_pfm_id_version_response*) request.data;
 	int status;
 
 	memset (&request, 0, sizeof (request));
@@ -1283,7 +1300,20 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_port0_region
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
-	CuAssertIntEquals (test, CMD_HANDLER_UNSUPPORTED_INDEX, status);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_pfm_id_version_response),
+		request.length);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
+	CuAssertIntEquals (test, 0, resp->header.crypt);
+	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.integrity_check);
+	CuAssertIntEquals (test, 0, resp->header.seq_num);
+	CuAssertIntEquals (test, 0, resp->header.rq);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_PFM_ID, resp->header.command);
+	CuAssertIntEquals (test, 0, resp->valid);
+	CuAssertIntEquals (test, 0, resp->version);
+	CuAssertIntEquals (test, false, request.new_request);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 }
 
@@ -1292,6 +1322,8 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_port1_region
 {
 	struct cmd_interface_request request;
 	struct cerberus_protocol_get_pfm_id *req = (struct cerberus_protocol_get_pfm_id*) request.data;
+	struct cerberus_protocol_get_pfm_id_version_response *resp =
+		(struct cerberus_protocol_get_pfm_id_version_response*) request.data;
 	int status;
 
 	memset (&request, 0, sizeof (request));
@@ -1309,7 +1341,20 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_port1_region
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
-	CuAssertIntEquals (test, CMD_HANDLER_UNSUPPORTED_INDEX, status);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_pfm_id_version_response),
+		request.length);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
+	CuAssertIntEquals (test, 0, resp->header.crypt);
+	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.integrity_check);
+	CuAssertIntEquals (test, 0, resp->header.seq_num);
+	CuAssertIntEquals (test, 0, resp->header.rq);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_PFM_ID, resp->header.command);
+	CuAssertIntEquals (test, 0, resp->valid);
+	CuAssertIntEquals (test, 0, resp->version);
+	CuAssertIntEquals (test, false, request.new_request);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 }
 
@@ -1318,6 +1363,8 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_port1_region
 {
 	struct cmd_interface_request request;
 	struct cerberus_protocol_get_pfm_id *req = (struct cerberus_protocol_get_pfm_id*) request.data;
+	struct cerberus_protocol_get_pfm_id_version_response *resp =
+		(struct cerberus_protocol_get_pfm_id_version_response*) request.data;
 	int status;
 
 	memset (&request, 0, sizeof (request));
@@ -1335,7 +1382,20 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_port1_region
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
-	CuAssertIntEquals (test, CMD_HANDLER_UNSUPPORTED_INDEX, status);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_pfm_id_version_response),
+		request.length);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
+	CuAssertIntEquals (test, 0, resp->header.crypt);
+	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.integrity_check);
+	CuAssertIntEquals (test, 0, resp->header.seq_num);
+	CuAssertIntEquals (test, 0, resp->header.rq);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_PFM_ID, resp->header.command);
+	CuAssertIntEquals (test, 0, resp->valid);
+	CuAssertIntEquals (test, 0, resp->version);
+	CuAssertIntEquals (test, false, request.new_request);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 }
 
@@ -2282,6 +2342,8 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_po
 	struct cmd_interface_request request;
 	struct cerberus_protocol_get_pfm_supported_fw *req =
 		(struct cerberus_protocol_get_pfm_supported_fw*) request.data;
+	struct cerberus_protocol_get_pfm_supported_fw_response *resp =
+		(struct cerberus_protocol_get_pfm_supported_fw_response*) request.data;
 	uint32_t offset = 0;
 	int status;
 
@@ -2300,7 +2362,20 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_po
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
-	CuAssertIntEquals (test, CMD_HANDLER_UNSUPPORTED_INDEX, status);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_pfm_supported_fw_response),
+		request.length);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
+	CuAssertIntEquals (test, 0, resp->header.crypt);
+	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.integrity_check);
+	CuAssertIntEquals (test, 0, resp->header.seq_num);
+	CuAssertIntEquals (test, 0, resp->header.rq);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_PFM_SUPPORTED_FW, resp->header.command);
+	CuAssertIntEquals (test, 0, resp->valid);
+	CuAssertIntEquals (test, 0, resp->version);
+	CuAssertIntEquals (test, false, request.new_request);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 }
 
@@ -2310,6 +2385,8 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_po
 	struct cmd_interface_request request;
 	struct cerberus_protocol_get_pfm_supported_fw *req =
 		(struct cerberus_protocol_get_pfm_supported_fw*) request.data;
+	struct cerberus_protocol_get_pfm_supported_fw_response *resp =
+		(struct cerberus_protocol_get_pfm_supported_fw_response*) request.data;
 	uint32_t offset = 0;
 	int status;
 
@@ -2328,7 +2405,20 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_po
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
-	CuAssertIntEquals (test, CMD_HANDLER_UNSUPPORTED_INDEX, status);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_pfm_supported_fw_response),
+		request.length);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
+	CuAssertIntEquals (test, 0, resp->header.crypt);
+	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.integrity_check);
+	CuAssertIntEquals (test, 0, resp->header.seq_num);
+	CuAssertIntEquals (test, 0, resp->header.rq);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_PFM_SUPPORTED_FW, resp->header.command);
+	CuAssertIntEquals (test, 0, resp->valid);
+	CuAssertIntEquals (test, 0, resp->version);
+	CuAssertIntEquals (test, false, request.new_request);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 }
 
@@ -2338,6 +2428,8 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_po
 	struct cmd_interface_request request;
 	struct cerberus_protocol_get_pfm_supported_fw *req =
 		(struct cerberus_protocol_get_pfm_supported_fw*) request.data;
+	struct cerberus_protocol_get_pfm_supported_fw_response *resp =
+		(struct cerberus_protocol_get_pfm_supported_fw_response*) request.data;
 	uint32_t offset = 0;
 	int status;
 
@@ -2356,7 +2448,20 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_po
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
-	CuAssertIntEquals (test, CMD_HANDLER_UNSUPPORTED_INDEX, status);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_pfm_supported_fw_response),
+		request.length);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
+	CuAssertIntEquals (test, 0, resp->header.crypt);
+	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.integrity_check);
+	CuAssertIntEquals (test, 0, resp->header.seq_num);
+	CuAssertIntEquals (test, 0, resp->header.rq);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_PFM_SUPPORTED_FW, resp->header.command);
+	CuAssertIntEquals (test, 0, resp->valid);
+	CuAssertIntEquals (test, 0, resp->version);
+	CuAssertIntEquals (test, false, request.new_request);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 }
 
@@ -2366,6 +2471,8 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_po
 	struct cmd_interface_request request;
 	struct cerberus_protocol_get_pfm_supported_fw *req =
 		(struct cerberus_protocol_get_pfm_supported_fw*) request.data;
+	struct cerberus_protocol_get_pfm_supported_fw_response *resp =
+		(struct cerberus_protocol_get_pfm_supported_fw_response*) request.data;
 	uint32_t offset = 0;
 	int status;
 
@@ -2384,7 +2491,20 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_po
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
-	CuAssertIntEquals (test, CMD_HANDLER_UNSUPPORTED_INDEX, status);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_pfm_supported_fw_response),
+		request.length);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
+	CuAssertIntEquals (test, 0, resp->header.crypt);
+	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.integrity_check);
+	CuAssertIntEquals (test, 0, resp->header.seq_num);
+	CuAssertIntEquals (test, 0, resp->header.rq);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_PFM_SUPPORTED_FW, resp->header.command);
+	CuAssertIntEquals (test, 0, resp->valid);
+	CuAssertIntEquals (test, 0, resp->version);
+	CuAssertIntEquals (test, false, request.new_request);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 }
 
@@ -5364,7 +5484,7 @@ void cerberus_protocol_optional_commands_testing_process_reset_bypass_no_nonce_i
 	CuAssertIntEquals (test, true, request.crypto_timeout);
 }
 
-void cerberus_protocol_optional_commands_testing_process_reset_bypass_error (CuTest *test, 
+void cerberus_protocol_optional_commands_testing_process_reset_bypass_error (CuTest *test,
 	struct cmd_interface *cmd, struct cmd_authorization_mock *auth,
 	struct cmd_background_mock *background)
 {
@@ -5753,7 +5873,7 @@ void cerberus_protocol_optional_commands_testing_process_restore_defaults_no_non
 	CuAssertIntEquals (test, true, request.crypto_timeout);
 }
 
-void cerberus_protocol_optional_commands_testing_process_restore_defaults_error (CuTest *test, 
+void cerberus_protocol_optional_commands_testing_process_restore_defaults_error (CuTest *test,
 	struct cmd_interface *cmd, struct cmd_authorization_mock *auth,
 	struct cmd_background_mock *background)
 {
@@ -6931,7 +7051,7 @@ void cerberus_protocol_optional_commands_testing_process_get_attestation_data_wi
 	CuAssertIntEquals (test, false, request.new_request);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 
-	status = testing_validate_array ((uint8_t*) &data_8byte + 3, 
+	status = testing_validate_array ((uint8_t*) &data_8byte + 3,
 		cerberus_protocol_attestation_data (resp), sizeof (data_8byte) - 3);
 	CuAssertIntEquals (test, 0, status);
 }
@@ -7053,7 +7173,7 @@ void cerberus_protocol_optional_commands_testing_process_get_attestation_data_no
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 }
 
-void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_0 (CuTest *test, 
+void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_0 (CuTest *test,
 	struct cmd_interface *cmd, struct session_manager_mock *session)
 {
 	struct cmd_interface_request request;
@@ -7076,9 +7196,9 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_0
 
 	rq->hmac_type = CERBERUS_PROTOCOL_HMAC_SHA256;
 
-	memcpy (cerberus_protocol_key_exchange_type_0_key_data (rq), ECC_PUBKEY_DER, 
+	memcpy (cerberus_protocol_key_exchange_type_0_key_data (rq), ECC_PUBKEY_DER,
 		ECC_PUBKEY_DER_LEN);
-	
+
 	request.length = cerberus_protocol_key_exchange_type_0_length (ECC_PUBKEY_DER_LEN);
 	request.source_eid = MCTP_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
@@ -7091,26 +7211,26 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_0
 	resp->reserved = 0;
 	resp->key_len = ECC_PUBKEY_DER_LEN;
 
-	memcpy (cerberus_protocol_key_exchange_type_0_response_key_data (resp), 
+	memcpy (cerberus_protocol_key_exchange_type_0_response_key_data (resp),
 		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
 
 	cerberus_protocol_key_exchange_type_0_response_sig_len (resp) = ECC_SIG_TEST_LEN;
 
-	memcpy (cerberus_protocol_key_exchange_type_0_response_sig_data (resp), ECC_SIGNATURE_TEST, 
+	memcpy (cerberus_protocol_key_exchange_type_0_response_sig_data (resp), ECC_SIGNATURE_TEST,
 		ECC_SIG_TEST_LEN);
 
 	cerberus_protocol_key_exchange_type_0_response_hmac_len (resp) = SHA256_HASH_LENGTH;
 
-	memcpy (cerberus_protocol_key_exchange_type_0_response_hmac_data (resp), hmac_buf, 
+	memcpy (cerberus_protocol_key_exchange_type_0_response_hmac_data (resp), hmac_buf,
 		SHA256_HASH_LENGTH);
-	
-	response.length = cerberus_protocol_key_exchange_type_0_response_length (ECC_PUBKEY_DER_LEN, 
+
+	response.length = cerberus_protocol_key_exchange_type_0_response_length (ECC_PUBKEY_DER_LEN,
 		ECC_SIG_TEST_LEN, SHA256_HASH_LENGTH);
 	response.source_eid = MCTP_PROTOCOL_BMC_EID;
 	response.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
 	response.crypto_timeout = true;
 
-	status = mock_expect (&session->mock, session->base.establish_session, session, 0, 
+	status = mock_expect (&session->mock, session->base.establish_session, session, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (&request, sizeof (request)));
 	status |= mock_expect_output (&session->mock, 0, &response, sizeof (response), -1);
 	CuAssertIntEquals (test, 0, status);
@@ -7120,8 +7240,8 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_0
 	request.crypto_timeout = false;
 	status = cmd->process_request (cmd, &request);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, 
-		cerberus_protocol_key_exchange_type_0_response_length (ECC_PUBKEY_DER_LEN, ECC_SIG_TEST_LEN, 
+	CuAssertIntEquals (test,
+		cerberus_protocol_key_exchange_type_0_response_length (ECC_PUBKEY_DER_LEN, ECC_SIG_TEST_LEN,
 		SHA256_HASH_LENGTH), request.length);
 	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->common.header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->common.header.pci_vendor_id);
@@ -7134,22 +7254,22 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_0
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_SESSION_KEY, resp->common.key_type);
 	CuAssertIntEquals (test, 0, resp->reserved);
 	CuAssertIntEquals (test, ECC_PUBKEY_DER_LEN, resp->key_len);
-	CuAssertIntEquals (test, ECC_SIG_TEST_LEN, 
+	CuAssertIntEquals (test, ECC_SIG_TEST_LEN,
 		cerberus_protocol_key_exchange_type_0_response_sig_len (resp));
-	CuAssertIntEquals (test, SHA256_HASH_LENGTH, 
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH,
 		cerberus_protocol_key_exchange_type_0_response_hmac_len (resp));
 	CuAssertIntEquals (test, false, request.new_request);
 	CuAssertIntEquals (test, true, request.crypto_timeout);
 
-	status = testing_validate_array (ECC_PUBKEY_DER, 
+	status = testing_validate_array (ECC_PUBKEY_DER,
 		cerberus_protocol_key_exchange_type_0_response_key_data (resp), ECC_PUBKEY_DER_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = testing_validate_array (ECC_SIGNATURE_TEST, 
+	status = testing_validate_array (ECC_SIGNATURE_TEST,
 		cerberus_protocol_key_exchange_type_0_response_sig_data (resp), ECC_SIG_TEST_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = testing_validate_array (hmac_buf, 
+	status = testing_validate_array (hmac_buf,
 		cerberus_protocol_key_exchange_type_0_response_hmac_data (resp), SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 }
@@ -7171,14 +7291,14 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_0
 	rq->common.key_type = CERBERUS_PROTOCOL_SESSION_KEY;
 	rq->hmac_type = CERBERUS_PROTOCOL_HMAC_SHA256;
 
-	memcpy (cerberus_protocol_key_exchange_type_0_key_data (rq), ECC_PUBKEY_DER, 
+	memcpy (cerberus_protocol_key_exchange_type_0_key_data (rq), ECC_PUBKEY_DER,
 		ECC_PUBKEY_DER_LEN);
-	
+
 	request.length = cerberus_protocol_key_exchange_type_0_length (ECC_PUBKEY_DER_LEN);
 	request.source_eid = MCTP_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
 
-	status = mock_expect (&session->mock, session->base.establish_session, session, 
+	status = mock_expect (&session->mock, session->base.establish_session, session,
 		SESSION_MANAGER_NO_MEMORY, MOCK_ARG_PTR_CONTAINS_TMP (&request, sizeof (request)));
 	CuAssertIntEquals (test, 0, status);
 
@@ -7188,7 +7308,7 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_0
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 }
 
-void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_1 (CuTest *test, 
+void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_1 (CuTest *test,
 	struct cmd_interface *cmd, struct session_manager_mock *session)
 {
 	struct cmd_interface_request request;
@@ -7218,7 +7338,7 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_1
 	rq->pairing_key_len = 0xBB;
 
 	memset (cerberus_protocol_key_exchange_type_1_hmac_data (rq), 0xCC, sizeof (hmac_buf));
-	
+
 	request.length = cerberus_protocol_key_exchange_type_1_length (sizeof (hmac_buf));
 	request.source_eid = MCTP_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
@@ -7231,9 +7351,9 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_1
 	decrypted_rq->common.key_type = CERBERUS_PROTOCOL_PAIRED_KEY_HMAC;
 	decrypted_rq->pairing_key_len = ECC_PUBKEY_DER_LEN;
 
-	memcpy (cerberus_protocol_key_exchange_type_1_hmac_data (decrypted_rq), hmac_buf, 
+	memcpy (cerberus_protocol_key_exchange_type_1_hmac_data (decrypted_rq), hmac_buf,
 		sizeof (hmac_buf));
-	
+
 	decrypted_request.length = cerberus_protocol_key_exchange_type_1_length (sizeof (hmac_buf));
 	decrypted_request.source_eid = MCTP_PROTOCOL_BMC_EID;
 	decrypted_request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
@@ -7244,7 +7364,7 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_1
 	resp->header.command = CERBERUS_PROTOCOL_EXCHANGE_KEYS;
 
 	resp->key_type = CERBERUS_PROTOCOL_PAIRED_KEY_HMAC;
-	
+
 	response.length = sizeof (struct cerberus_protocol_key_exchange_response);
 	response.source_eid = MCTP_PROTOCOL_BMC_EID;
 	response.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
@@ -7258,26 +7378,26 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_1
 	resp->header.command = CERBERUS_PROTOCOL_EXCHANGE_KEYS;
 
 	resp->key_type = 0xBB;
-	
+
 	encrypted_response.length = sizeof (struct cerberus_protocol_key_exchange_response);
 	encrypted_response.source_eid = MCTP_PROTOCOL_BMC_EID;
 	encrypted_response.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
 	encrypted_response.crypto_timeout = true;
 
-	status = mock_expect (&session->mock, session->base.decrypt_message, session, 0, 
+	status = mock_expect (&session->mock, session->base.decrypt_message, session, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (&request, sizeof (request)));
-	status |= mock_expect_output (&session->mock, 0, &decrypted_request, sizeof (decrypted_request), 
+	status |= mock_expect_output (&session->mock, 0, &decrypted_request, sizeof (decrypted_request),
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&session->mock, session->base.setup_paired_session, session, 0, 
-		MOCK_ARG (MCTP_PROTOCOL_BMC_EID), MOCK_ARG (ECC_PUBKEY_DER_LEN), 
+	status = mock_expect (&session->mock, session->base.setup_paired_session, session, 0,
+		MOCK_ARG (MCTP_PROTOCOL_BMC_EID), MOCK_ARG (ECC_PUBKEY_DER_LEN),
 		MOCK_ARG_PTR_CONTAINS_TMP (hmac_buf, sizeof (hmac_buf)), MOCK_ARG (sizeof (hmac_buf)));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&session->mock, session->base.encrypt_message, session, 0, 
+	status = mock_expect (&session->mock, session->base.encrypt_message, session, 0,
 		MOCK_ARG_VALIDATOR_TMP (cmd_interface_mock_validate_request, &response, sizeof (response)));
-	status |= mock_expect_output (&session->mock, 0, &encrypted_response, 
+	status |= mock_expect_output (&session->mock, 0, &encrypted_response,
 		sizeof (encrypted_response), -1);
 	CuAssertIntEquals (test, 0, status);
 
@@ -7286,7 +7406,7 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_1
 	request.crypto_timeout = false;
 	status = cmd->process_request (cmd, &request);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_key_exchange_response), 
+	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_key_exchange_response),
 		request.length);
 	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
@@ -7321,7 +7441,7 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_1
 	rq->pairing_key_len = ECC_PUBKEY_DER_LEN;
 
 	memcpy (cerberus_protocol_key_exchange_type_1_hmac_data (rq), hmac_buf, sizeof (hmac_buf));
-	
+
 	request.length = cerberus_protocol_key_exchange_type_1_length (sizeof (hmac_buf));
 	request.source_eid = MCTP_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
@@ -7356,7 +7476,7 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_1
 	rq->pairing_key_len = 0xBB;
 
 	memset (cerberus_protocol_key_exchange_type_1_hmac_data (rq), 0xCC, sizeof (hmac_buf));
-	
+
 	request.length = cerberus_protocol_key_exchange_type_1_length (sizeof (hmac_buf));
 	request.source_eid = MCTP_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
@@ -7369,21 +7489,21 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_1
 	decrypted_rq->common.key_type = CERBERUS_PROTOCOL_PAIRED_KEY_HMAC;
 	decrypted_rq->pairing_key_len = ECC_PUBKEY_DER_LEN;
 
-	memcpy (cerberus_protocol_key_exchange_type_1_hmac_data (decrypted_rq), hmac_buf, 
+	memcpy (cerberus_protocol_key_exchange_type_1_hmac_data (decrypted_rq), hmac_buf,
 		sizeof (hmac_buf));
-	
+
 	decrypted_request.length = cerberus_protocol_key_exchange_type_1_length (sizeof (hmac_buf));
 	decrypted_request.source_eid = MCTP_PROTOCOL_BMC_EID;
 	decrypted_request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
 
-	status = mock_expect (&session->mock, session->base.decrypt_message, session, 0, 
+	status = mock_expect (&session->mock, session->base.decrypt_message, session, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (&request, sizeof (request)));
-	status |= mock_expect_output (&session->mock, 0, &decrypted_request, sizeof (decrypted_request), 
+	status |= mock_expect_output (&session->mock, 0, &decrypted_request, sizeof (decrypted_request),
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&session->mock, session->base.setup_paired_session, session, 
-		SESSION_MANAGER_NO_MEMORY, MOCK_ARG (MCTP_PROTOCOL_BMC_EID), MOCK_ARG (ECC_PUBKEY_DER_LEN), 
+	status = mock_expect (&session->mock, session->base.setup_paired_session, session,
+		SESSION_MANAGER_NO_MEMORY, MOCK_ARG (MCTP_PROTOCOL_BMC_EID), MOCK_ARG (ECC_PUBKEY_DER_LEN),
 		MOCK_ARG_PTR_CONTAINS_TMP (hmac_buf, sizeof (hmac_buf)), MOCK_ARG (sizeof (hmac_buf)));
 	CuAssertIntEquals (test, 0, status);
 
@@ -7393,7 +7513,7 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_1
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 }
 
-void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_2 (CuTest *test, 
+void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_2 (CuTest *test,
 	struct cmd_interface *cmd, struct session_manager_mock *session)
 {
 	struct cmd_interface_request request;
@@ -7418,7 +7538,7 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_2
 	rq->key_type = 0xAA;
 
 	memset (cerberus_protocol_key_exchange_type_2_hmac_data (rq), 0xCC, sizeof (hmac_buf));
-	
+
 	request.length = cerberus_protocol_key_exchange_type_2_length (sizeof (hmac_buf));
 	request.source_eid = MCTP_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
@@ -7430,28 +7550,28 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_2
 
 	decrypted_rq->key_type = CERBERUS_PROTOCOL_DELETE_SESSION_KEY;
 
-	memcpy (cerberus_protocol_key_exchange_type_2_hmac_data (decrypted_rq), hmac_buf, 
+	memcpy (cerberus_protocol_key_exchange_type_2_hmac_data (decrypted_rq), hmac_buf,
 		sizeof (hmac_buf));
-	
+
 	decrypted_request.length = cerberus_protocol_key_exchange_type_2_length (sizeof (hmac_buf));
 	decrypted_request.source_eid = MCTP_PROTOCOL_BMC_EID;
 	decrypted_request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
 
-	status = mock_expect (&session->mock, session->base.decrypt_message, session, 0, 
+	status = mock_expect (&session->mock, session->base.decrypt_message, session, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (&request, sizeof (request)));
-	status |= mock_expect_output (&session->mock, 0, &decrypted_request, sizeof (decrypted_request), 
+	status |= mock_expect_output (&session->mock, 0, &decrypted_request, sizeof (decrypted_request),
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&session->mock, session->base.reset_session, session, 0, 
-		MOCK_ARG (MCTP_PROTOCOL_BMC_EID), MOCK_ARG_PTR_CONTAINS_TMP (hmac_buf, sizeof (hmac_buf)), 
+	status = mock_expect (&session->mock, session->base.reset_session, session, 0,
+		MOCK_ARG (MCTP_PROTOCOL_BMC_EID), MOCK_ARG_PTR_CONTAINS_TMP (hmac_buf, sizeof (hmac_buf)),
 		MOCK_ARG (sizeof (hmac_buf)));
 	CuAssertIntEquals (test, 0, status);
 
 	request.crypto_timeout = false;
 	status = cmd->process_request (cmd, &request);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_key_exchange_response), 
+	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_key_exchange_response),
 		request.length);
 	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
@@ -7484,7 +7604,7 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_2
 	rq->key_type = CERBERUS_PROTOCOL_DELETE_SESSION_KEY;
 
 	memcpy (cerberus_protocol_key_exchange_type_2_hmac_data (rq), hmac_buf, sizeof (hmac_buf));
-	
+
 	request.length = cerberus_protocol_key_exchange_type_2_length (sizeof (hmac_buf));
 	request.source_eid = MCTP_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
@@ -7518,7 +7638,7 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_2
 	rq->key_type = 0xAA;
 
 	memset (cerberus_protocol_key_exchange_type_2_hmac_data (rq), 0xCC, sizeof (hmac_buf));
-	
+
 	request.length = cerberus_protocol_key_exchange_type_2_length (sizeof (hmac_buf));
 	request.source_eid = MCTP_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
@@ -7530,21 +7650,21 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_2
 
 	decrypted_rq->key_type = CERBERUS_PROTOCOL_DELETE_SESSION_KEY;
 
-	memcpy (cerberus_protocol_key_exchange_type_2_hmac_data (decrypted_rq), hmac_buf, 
+	memcpy (cerberus_protocol_key_exchange_type_2_hmac_data (decrypted_rq), hmac_buf,
 		sizeof (hmac_buf));
-	
+
 	decrypted_request.length = cerberus_protocol_key_exchange_type_2_length (sizeof (hmac_buf));
 	decrypted_request.source_eid = MCTP_PROTOCOL_BMC_EID;
 	decrypted_request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
 
-	status = mock_expect (&session->mock, session->base.decrypt_message, session, 0, 
+	status = mock_expect (&session->mock, session->base.decrypt_message, session, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (&request, sizeof (request)));
-	status |= mock_expect_output (&session->mock, 0, &decrypted_request, sizeof (decrypted_request), 
+	status |= mock_expect_output (&session->mock, 0, &decrypted_request, sizeof (decrypted_request),
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&session->mock, session->base.reset_session, session, 
-		SESSION_MANAGER_NO_MEMORY, MOCK_ARG (MCTP_PROTOCOL_BMC_EID), 
+	status = mock_expect (&session->mock, session->base.reset_session, session,
+		SESSION_MANAGER_NO_MEMORY, MOCK_ARG (MCTP_PROTOCOL_BMC_EID),
 		MOCK_ARG_PTR_CONTAINS_TMP (hmac_buf, sizeof (hmac_buf)), MOCK_ARG (sizeof (hmac_buf)));
 	CuAssertIntEquals (test, 0, status);
 
@@ -7554,7 +7674,7 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_2
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 }
 
-void cerberus_protocol_optional_commands_testing_process_get_key_exchange_unsupported (CuTest *test, 
+void cerberus_protocol_optional_commands_testing_process_get_key_exchange_unsupported (CuTest *test,
 	struct cmd_interface *cmd)
 {
 	struct cmd_interface_request request;
@@ -7571,9 +7691,9 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_unsupp
 	rq->common.key_type = CERBERUS_PROTOCOL_SESSION_KEY;
 	rq->hmac_type = CERBERUS_PROTOCOL_HMAC_SHA256;
 
-	memcpy (cerberus_protocol_key_exchange_type_0_key_data (rq), ECC_PUBKEY_DER, 
+	memcpy (cerberus_protocol_key_exchange_type_0_key_data (rq), ECC_PUBKEY_DER,
 		ECC_PUBKEY_DER_LEN);
-	
+
 	request.length = cerberus_protocol_key_exchange_type_0_length (ECC_PUBKEY_DER_LEN);
 	request.source_eid = MCTP_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
@@ -7601,9 +7721,9 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_unsupp
 	rq->common.key_type = 3;
 	rq->hmac_type = CERBERUS_PROTOCOL_HMAC_SHA256;
 
-	memcpy (cerberus_protocol_key_exchange_type_0_key_data (rq), ECC_PUBKEY_DER, 
+	memcpy (cerberus_protocol_key_exchange_type_0_key_data (rq), ECC_PUBKEY_DER,
 		ECC_PUBKEY_DER_LEN);
-	
+
 	request.length = cerberus_protocol_key_exchange_type_0_length (ECC_PUBKEY_DER_LEN);
 	request.source_eid = MCTP_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
@@ -7614,7 +7734,7 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_unsupp
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 }
 
-void cerberus_protocol_optional_commands_testing_process_get_key_exchange_invalid_len (CuTest *test, 
+void cerberus_protocol_optional_commands_testing_process_get_key_exchange_invalid_len (CuTest *test,
 	struct cmd_interface *cmd)
 {
 	struct cmd_interface_request request;
@@ -7630,7 +7750,7 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_invali
 	rq->header.command = CERBERUS_PROTOCOL_EXCHANGE_KEYS;
 
 	rq->key_type = CERBERUS_PROTOCOL_SESSION_KEY;
-	
+
 	request.length = sizeof (struct cerberus_protocol_key_exchange);
 	request.source_eid = MCTP_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
@@ -8650,7 +8770,7 @@ static void cerberus_protocol_optional_commands_test_key_exchange_type0_format (
 
 	CuAssertIntEquals (test, 0x00, rq->hmac_type);
 
-	CuAssertPtrEquals (test, &raw_buffer_req[7], 
+	CuAssertPtrEquals (test, &raw_buffer_req[7],
 		cerberus_protocol_key_exchange_type_0_key_data (raw_buffer_req));
 
 	rsp = (struct cerberus_protocol_key_exchange_response_type_0*) raw_buffer_rsp;
@@ -8668,19 +8788,19 @@ static void cerberus_protocol_optional_commands_test_key_exchange_type0_format (
 	CuAssertIntEquals (test, 0x00, rsp->reserved);
 	CuAssertIntEquals (test, 0x03, rsp->key_len);
 
-	CuAssertPtrEquals (test, &raw_buffer_rsp[9], 
+	CuAssertPtrEquals (test, &raw_buffer_rsp[9],
 		cerberus_protocol_key_exchange_type_0_response_key_data (rsp));
 
-	CuAssertIntEquals (test, 0x02, 
+	CuAssertIntEquals (test, 0x02,
 		cerberus_protocol_key_exchange_type_0_response_sig_len (rsp));
 
-	CuAssertPtrEquals (test, &raw_buffer_rsp[14], 
+	CuAssertPtrEquals (test, &raw_buffer_rsp[14],
 		cerberus_protocol_key_exchange_type_0_response_sig_data (rsp));
-	
-	CuAssertIntEquals (test, 0x04, 
+
+	CuAssertIntEquals (test, 0x04,
 		cerberus_protocol_key_exchange_type_0_response_hmac_len (rsp));
 
-	CuAssertPtrEquals (test, &raw_buffer_rsp[18], 
+	CuAssertPtrEquals (test, &raw_buffer_rsp[18],
 		cerberus_protocol_key_exchange_type_0_response_hmac_data (rsp));
 }
 
@@ -8714,7 +8834,7 @@ static void cerberus_protocol_optional_commands_test_key_exchange_type1_format (
 
 	CuAssertIntEquals (test, 0xaa, rq->pairing_key_len);
 
-	CuAssertPtrEquals (test, &raw_buffer_req[8], 
+	CuAssertPtrEquals (test, &raw_buffer_req[8],
 		cerberus_protocol_key_exchange_type_1_hmac_data (rq));
 
 	rsp = (struct cerberus_protocol_key_exchange_response*) raw_buffer_rsp;
@@ -8758,7 +8878,7 @@ static void cerberus_protocol_optional_commands_test_key_exchange_type2_format (
 
 	CuAssertIntEquals (test, 0x02, rq->common.key_type);
 
-	CuAssertPtrEquals (test, &raw_buffer_req[6], 
+	CuAssertPtrEquals (test, &raw_buffer_req[6],
 		cerberus_protocol_key_exchange_type_2_hmac_data (rq));
 
 	rsp = (struct cerberus_protocol_key_exchange_response*) raw_buffer_rsp;

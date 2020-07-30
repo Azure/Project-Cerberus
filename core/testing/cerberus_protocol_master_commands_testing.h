@@ -104,6 +104,8 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_id_no_id_type (Cu
 	struct cmd_interface *cmd, struct cfm_manager_mock *cfm_manager);
 void cerberus_protocol_master_commands_testing_process_get_cfm_id_invalid_len (CuTest *test,
 	struct cmd_interface *cmd);
+void cerberus_protocol_master_commands_testing_process_get_cfm_id_invalid_region (CuTest *test,
+	struct cmd_interface *cmd);
 void cerberus_protocol_master_commands_testing_process_get_cfm_id_fail (CuTest *test,
 	struct cmd_interface *cmd, struct cfm_manager_mock *cfm_manager);
 void cerberus_protocol_master_commands_testing_process_get_cfm_id_no_cfm (CuTest *test,

@@ -378,7 +378,15 @@ int cerberus_protocol_get_pfm_id (struct pfm_manager *pfm_mgr_0, struct pfm_mana
 	}
 
 	status = cerberus_protocol_get_curr_pfm (pfm_mgr_0, pfm_mgr_1, port, rq->region, &curr_pfm);
+	/* When there's no valid PFM manager, return a success
+	 * with response indicating no valid manifest */
 	if (status != 0) {
+		if (status == CMD_HANDLER_UNSUPPORTED_INDEX) {
+			status = 0;
+			rsp->valid = 0;
+			rsp->version = 0;
+			goto rsp_len;
+		}
 		return status;
 	}
 
@@ -395,6 +403,7 @@ int cerberus_protocol_get_pfm_id (struct pfm_manager *pfm_mgr_0, struct pfm_mana
 		rsp->version = 0;
 	}
 
+rsp_len:
 	request->length = sizeof (struct cerberus_protocol_get_pfm_id_version_response);
 
 exit:
@@ -422,7 +431,7 @@ int cerberus_protocol_get_pfm_fw (struct manifest_cmd_interface *pfm_0,
 	struct cerberus_protocol_get_pfm_supported_fw_response *rsp =
 		(struct cerberus_protocol_get_pfm_supported_fw_response*) request->data;
 	struct pfm_firmware_versions supported_ids;
-	struct pfm *curr_pfm;
+	struct pfm *curr_pfm = NULL;
 	uint32_t fw_length = 0;
 	uint32_t offset;
 	uint32_t port;
@@ -440,14 +449,23 @@ int cerberus_protocol_get_pfm_fw (struct manifest_cmd_interface *pfm_0,
 		return CMD_HANDLER_OUT_OF_RANGE;
 	}
 
+	offset = rq->offset;
+	port = rq->port_id;
+
 	status = cerberus_protocol_get_curr_pfm (pfm_mgr_0, pfm_mgr_1, rq->port_id, rq->region,
 		&curr_pfm);
 	if (status != 0) {
-		return status;
+		if (status == CMD_HANDLER_UNSUPPORTED_INDEX) {
+			status = 0;
+			rsp->valid = 0;
+			rsp->version = 0;
+			request->length = cerberus_protocol_get_pfm_supported_fw_response_length (0);
+			goto exit;
+		}
+		else {
+			return status;
+		}
 	}
-
-	offset = rq->offset;
-	port = rq->port_id;
 
 	if (curr_pfm != NULL) {
 		rsp->valid = 1;
@@ -1050,12 +1068,12 @@ int cerberus_protocol_get_attestation_data (struct pcr_store *pcr_store,
  *
  * @return 0 if request processing completed successfully or an error code.
  */
-int cerberus_protocol_key_exchange (struct session_manager *session, 
+int cerberus_protocol_key_exchange (struct session_manager *session,
 	struct cmd_interface_request *request, uint8_t encrypted)
 {
-	struct cerberus_protocol_key_exchange_type_1 *type1_rq = 
+	struct cerberus_protocol_key_exchange_type_1 *type1_rq =
 		(struct cerberus_protocol_key_exchange_type_1*) request->data;
-	struct cerberus_protocol_key_exchange_type_2 *type2_rq = 
+	struct cerberus_protocol_key_exchange_type_2 *type2_rq =
 		(struct cerberus_protocol_key_exchange_type_2*) request->data;
 	int status;
 
@@ -1076,9 +1094,9 @@ int cerberus_protocol_key_exchange (struct session_manager *session,
 				return CMD_HANDLER_CMD_SHOULD_BE_ENCRYPTED;
 			}
 
-			status = session->setup_paired_session (session, request->source_eid, 
-				type1_rq->pairing_key_len, 
-				cerberus_protocol_key_exchange_type_1_hmac_data (type1_rq), 
+			status = session->setup_paired_session (session, request->source_eid,
+				type1_rq->pairing_key_len,
+				cerberus_protocol_key_exchange_type_1_hmac_data (type1_rq),
 				cerberus_protocol_key_exchange_type_1_hmac_len (request));
 
 			break;
@@ -1088,21 +1106,21 @@ int cerberus_protocol_key_exchange (struct session_manager *session,
 				return CMD_HANDLER_CMD_SHOULD_BE_ENCRYPTED;
 			}
 
-			status = session->reset_session (session, request->source_eid, 
-				cerberus_protocol_key_exchange_type_2_hmac_data (type2_rq), 
+			status = session->reset_session (session, request->source_eid,
+				cerberus_protocol_key_exchange_type_2_hmac_data (type2_rq),
 				cerberus_protocol_key_exchange_type_2_hmac_len (request));
 			if (status == 0) {
 				type2_rq->common.header.crypt = 0;
 			}
 
 			break;
-			
+
 		default:
 			return CMD_HANDLER_UNSUPPORTED_INDEX;
 	}
 
 	if (status == 0) {
-		request->length = sizeof (struct cerberus_protocol_key_exchange_response);	
+		request->length = sizeof (struct cerberus_protocol_key_exchange_response);
 		request->crypto_timeout = true;
 	}
 
