@@ -1046,14 +1046,17 @@ int cerberus_protocol_get_attestation_data (struct pcr_store *pcr_store,
  *
  * @param session Session manager to utilize.
  * @param request Key exchange request to process.
+ * @param encrypted Flag indicating if request was received in an encrypted session.
  *
  * @return 0 if request processing completed successfully or an error code.
  */
 int cerberus_protocol_key_exchange (struct session_manager *session, 
-	struct cmd_interface_request *request)
+	struct cmd_interface_request *request, uint8_t encrypted)
 {
-	struct cerberus_protocol_key_exchange *rq =
-		(struct cerberus_protocol_key_exchange*) request->data;
+	struct cerberus_protocol_key_exchange_type_1 *type1_rq = 
+		(struct cerberus_protocol_key_exchange_type_1*) request->data;
+	struct cerberus_protocol_key_exchange_type_2 *type2_rq = 
+		(struct cerberus_protocol_key_exchange_type_2*) request->data;
 	int status;
 
 	if (session == NULL) {
@@ -1064,18 +1067,44 @@ int cerberus_protocol_key_exchange (struct session_manager *session,
 		return CMD_HANDLER_BAD_LENGTH;
 	}
 
-	if ((rq->key_type != CERBERUS_PROTOCOL_SESSION_KEY) && 
-		(rq->key_type != CERBERUS_PROTOCOL_PAIRED_KEY_ECC)) {
-		return CMD_HANDLER_UNSUPPORTED_INDEX;
+	switch (type1_rq->common.key_type) {
+		case CERBERUS_PROTOCOL_SESSION_KEY:
+			return session->establish_session (session, request);
+
+		case CERBERUS_PROTOCOL_PAIRED_KEY_HMAC:
+			if (!encrypted) {
+				return CMD_HANDLER_CMD_SHOULD_BE_ENCRYPTED;
+			}
+
+			status = session->setup_paired_session (session, request->source_eid, 
+				type1_rq->pairing_key_len, 
+				cerberus_protocol_key_exchange_type_1_hmac_data (type1_rq), 
+				cerberus_protocol_key_exchange_type_1_hmac_len (request));
+
+			break;
+
+		case CERBERUS_PROTOCOL_DELETE_SESSION_KEY:
+			if (!encrypted) {
+				return CMD_HANDLER_CMD_SHOULD_BE_ENCRYPTED;
+			}
+
+			status = session->reset_session (session, request->source_eid, 
+				cerberus_protocol_key_exchange_type_2_hmac_data (type2_rq), 
+				cerberus_protocol_key_exchange_type_2_hmac_len (request));
+			if (status == 0) {
+				type2_rq->common.header.crypt = 0;
+			}
+
+			break;
+			
+		default:
+			return CMD_HANDLER_UNSUPPORTED_INDEX;
 	}
 
-	status = session->establish_session (session, request->source_eid, 
-		cerberus_protocol_key_exchange_data (rq),
-		cerberus_protocol_key_exchange_key_len (request), 
-		(rq->key_type == CERBERUS_PROTOCOL_PAIRED_KEY_ECC));
-
-	request->length = 0;	
-	request->crypto_timeout = true;
+	if (status == 0) {
+		request->length = sizeof (struct cerberus_protocol_key_exchange_response);	
+		request->crypto_timeout = true;
+	}
 
 	return status;
 }

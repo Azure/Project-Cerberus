@@ -2933,6 +2933,7 @@ static void attestation_slave_test_aux_attestation_unseal (CuTest *test)
 	struct attestation_slave_testing attestation;
 	uint8_t key[SHA256_HASH_LENGTH];
 	uint8_t *key_der;
+	uint8_t separator = 0;
 
 	TEST_START;
 
@@ -2971,7 +2972,9 @@ static void attestation_slave_test_aux_attestation_unseal (CuTest *test)
 		MOCK_ARG (NIST_KEY_DERIVE_I_LEN));
 	status |= mock_expect (&attestation.hash.mock, attestation.hash.base.update, &attestation.hash,
 		0, MOCK_ARG_PTR_CONTAINS ((uint8_t*) SIGNING_KEY_LABEL, SIGNING_KEY_LABEL_LEN),
-		MOCK_ARG (SIGNING_KEY_LABEL_LEN));
+		MOCK_ARG (SIGNING_KEY_LABEL_LEN - 1));
+	status |= mock_expect (&attestation.hash.mock, attestation.hash.base.update, &attestation.hash, 
+		0, MOCK_ARG_PTR_CONTAINS (&separator, sizeof (separator)), MOCK_ARG (sizeof (separator)));
 	status |= mock_expect (&attestation.hash.mock, attestation.hash.base.update, &attestation.hash,
 		0, MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_L, NIST_KEY_DERIVE_L_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_L_LEN));
@@ -2991,7 +2994,9 @@ static void attestation_slave_test_aux_attestation_unseal (CuTest *test)
 		MOCK_ARG (NIST_KEY_DERIVE_I_LEN));
 	status |= mock_expect (&attestation.hash.mock, attestation.hash.base.update, &attestation.hash,
 		0, MOCK_ARG_PTR_CONTAINS ((uint8_t*) ENCRYPTION_KEY_LABEL, ENCRYPTION_KEY_LABEL_LEN),
-		MOCK_ARG (ENCRYPTION_KEY_LABEL_LEN));
+		MOCK_ARG (ENCRYPTION_KEY_LABEL_LEN - 1));
+	status |= mock_expect (&attestation.hash.mock, attestation.hash.base.update, &attestation.hash, 
+		0, MOCK_ARG_PTR_CONTAINS (&separator, sizeof (separator)), MOCK_ARG (sizeof (separator)));
 	status |= mock_expect (&attestation.hash.mock, attestation.hash.base.update, &attestation.hash,
 		0, MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_L, NIST_KEY_DERIVE_L_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_L_LEN));
@@ -3020,6 +3025,7 @@ static void attestation_slave_test_aux_attestation_unseal_sha256 (CuTest *test)
 	struct attestation_slave_testing attestation;
 	uint8_t key[SHA256_HASH_LENGTH];
 	uint8_t *key_der;
+	uint8_t separator = 0;
 
 	TEST_START;
 
@@ -3058,7 +3064,9 @@ static void attestation_slave_test_aux_attestation_unseal_sha256 (CuTest *test)
 		MOCK_ARG (NIST_KEY_DERIVE_I_LEN));
 	status |= mock_expect (&attestation.hash.mock, attestation.hash.base.update, &attestation.hash,
 		0, MOCK_ARG_PTR_CONTAINS ((uint8_t*) SIGNING_KEY_LABEL, SIGNING_KEY_LABEL_LEN),
-		MOCK_ARG (SIGNING_KEY_LABEL_LEN));
+		MOCK_ARG (SIGNING_KEY_LABEL_LEN - 1));
+	status |= mock_expect (&attestation.hash.mock, attestation.hash.base.update, &attestation.hash, 
+		0, MOCK_ARG_PTR_CONTAINS (&separator, sizeof (separator)), MOCK_ARG (sizeof (separator)));
 	status |= mock_expect (&attestation.hash.mock, attestation.hash.base.update, &attestation.hash,
 		0, MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_L, NIST_KEY_DERIVE_L_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_L_LEN));
@@ -3078,7 +3086,9 @@ static void attestation_slave_test_aux_attestation_unseal_sha256 (CuTest *test)
 		MOCK_ARG (NIST_KEY_DERIVE_I_LEN));
 	status |= mock_expect (&attestation.hash.mock, attestation.hash.base.update, &attestation.hash,
 		0, MOCK_ARG_PTR_CONTAINS ((uint8_t*) ENCRYPTION_KEY_LABEL, ENCRYPTION_KEY_LABEL_LEN),
-		MOCK_ARG (ENCRYPTION_KEY_LABEL_LEN));
+		MOCK_ARG (ENCRYPTION_KEY_LABEL_LEN - 1));
+	status |= mock_expect (&attestation.hash.mock, attestation.hash.base.update, &attestation.hash, 
+		0, MOCK_ARG_PTR_CONTAINS (&separator, sizeof (separator)), MOCK_ARG (sizeof (separator)));
 	status |= mock_expect (&attestation.hash.mock, attestation.hash.base.update, &attestation.hash,
 		0, MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_L, NIST_KEY_DERIVE_L_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_L_LEN));

@@ -6,8 +6,9 @@
 #include <string.h>
 #include <stdbool.h>
 #include "platform.h"
-#include "aux_attestation.h"
+#include "crypto/kdf.h"
 #include "riot/riot_core.h"
+#include "aux_attestation.h"
 
 
 /* The size of the auxiliary attestation key. */
@@ -340,8 +341,6 @@ int aux_attestation_unseal (struct aux_attestation *aux, struct hash_engine *has
 	uint8_t secret[AUX_ATTESTATION_KEY_BYTES];
 	int secret_length = 0;
 	struct hmac_engine run_hmac;
-	uint8_t i[4] = {0};
-	uint8_t L[4] = {0};
 	uint8_t signing_key[AUX_ATTESTATION_KEY_256BIT];
 	uint8_t payload_hmac[SHA256_HASH_LENGTH];
 	uint8_t pcr_value[SHA256_HASH_LENGTH];
@@ -411,32 +410,10 @@ int aux_attestation_unseal (struct aux_attestation *aux, struct hash_engine *has
 		return secret_length;
 	}
 
-	i[3] = 1;
-	L[2] = 1;
-
 	/* Derive the signing key. */
-	status = hash_hmac_init (&run_hmac, hash, HMAC_SHA256, secret, secret_length);
-	if (status != 0) {
-		return status;
-	}
-
-	status = hash_hmac_update (&run_hmac, i, sizeof (i));
-	if (status != 0) {
-		goto hmac_error;
-	}
-
-	status = hash_hmac_update (&run_hmac, (const uint8_t*) AUX_ATTESTATION_SIGNING_LABEL,
-		sizeof (AUX_ATTESTATION_SIGNING_LABEL));
-	if (status != 0) {
-		goto hmac_error;
-	}
-
-	status = hash_hmac_update (&run_hmac, L, sizeof (L));
-	if (status != 0) {
-		goto hmac_error;
-	}
-
-	status = hash_hmac_finish (&run_hmac, signing_key, sizeof (signing_key));
+	status = kdf_nist800_108_counter_mode (hash, HMAC_SHA256, secret, secret_length, 
+		(const uint8_t*) AUX_ATTESTATION_SIGNING_LABEL, sizeof (AUX_ATTESTATION_SIGNING_LABEL) - 1, 
+		NULL, 0, signing_key, sizeof (signing_key));
 	if (status != 0) {
 		return status;
 	}
@@ -492,33 +469,11 @@ int aux_attestation_unseal (struct aux_attestation *aux, struct hash_engine *has
 	}
 
 	/* Derive the encryption key. */
-	status = hash_hmac_init (&run_hmac, hash, HMAC_SHA256, secret, secret_length);
-	if (status != 0) {
-		return status;
-	}
+	status = kdf_nist800_108_counter_mode (hash, HMAC_SHA256, secret, secret_length, 
+		(const uint8_t*) AUX_ATTESTATION_ENCRYPTION_LABEL, 
+		sizeof (AUX_ATTESTATION_ENCRYPTION_LABEL) - 1, NULL, 0, key, SHA256_HASH_LENGTH);
 
-	status = hash_hmac_update (&run_hmac, i, sizeof (i));
-	if (status != 0) {
-		goto hmac_error;
-	}
-
-	status = hash_hmac_update (&run_hmac, (const uint8_t*) AUX_ATTESTATION_ENCRYPTION_LABEL,
-		sizeof (AUX_ATTESTATION_ENCRYPTION_LABEL));
-	if (status != 0) {
-		goto hmac_error;
-	}
-
-	status = hash_hmac_update (&run_hmac, L, sizeof (L));
-	if (status != 0) {
-		goto hmac_error;
-	}
-
-	status = hash_hmac_finish (&run_hmac, key, SHA256_HASH_LENGTH);
-	if (status != 0) {
-		return status;
-	}
-
-	return 0;
+	return status;
 
 hmac_error:
 	hash_hmac_cancel (&run_hmac);

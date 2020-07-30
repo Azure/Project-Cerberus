@@ -91,7 +91,7 @@ int cerberus_protocol_get_certificate_digest (struct attestation_slave *attestat
 		}
 
 		if (rq->header.crypt == 0) {
-			session->reset_session (session, request->source_eid);
+			session->reset_session (session, request->source_eid, NULL, 0);
 		}
 	}
 
@@ -219,8 +219,7 @@ int cerberus_protocol_get_challenge_response (struct attestation_slave *attestat
 
 		if ((session != NULL) && 
 			(attestation->key_exchange_algorithm == ATTESTATION_ECDHE_KEY_EXCHANGE)) {
-			session->add_session (session, request->source_eid, device_nonce, 
-				rsp->challenge.nonce);
+			session->add_session (session, request->source_eid, device_nonce, rsp->challenge.nonce);
 		}
 	}
 
