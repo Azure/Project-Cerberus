@@ -14,6 +14,7 @@
 #include "mock/rng_mock.h"
 #include "mock/x509_mock.h"
 #include "mock/keystore_mock.h"
+#include "cmd_interface/cerberus_protocol_optional_commands.h"
 #include "cmd_interface/session_manager_ecc.h"
 #include "testing/ecc_testing.h"
 #include "testing/riot_core_testing.h"
@@ -48,6 +49,10 @@ const static uint8_t SESSION_AES_GCM_TAG[] = {
 	0x77,0x0e,0x72,0x2a,0x01,0xf8,0xfb,0xf6,0x26,0x1d,0x78,0xec,0x83,0xff,0xcf,0x4c
 };
 
+const static uint8_t PAIRING_EIDS[] = {
+	0x10,0x11
+};
+
 /**
  * Dependencies for testing the system command interface.
  */
@@ -60,6 +65,7 @@ struct session_manager_ecc_testing {
 	struct keystore_mock riot_keystore;				/**< RIoT keystore. */
 	struct riot_key_manager riot; 					/**< RIoT key manager. */
 	struct x509_engine_mock x509;					/**< RIoT x509 engine mock. */
+	struct keystore_mock keys_keystore;				/**< Pairing keys keystore. */
 };
 
 
@@ -89,6 +95,9 @@ static void setup_session_manager_ecc_test (CuTest *test, struct session_manager
 	status = x509_mock_init (&cmd->x509);
 	CuAssertIntEquals (test, 0, status);
 
+	status = keystore_mock_init (&cmd->keys_keystore);
+	CuAssertIntEquals (test, 0, status);
+
 	status = keystore_mock_init (&cmd->riot_keystore);
 	CuAssertIntEquals (test, 0, status);
 
@@ -107,7 +116,8 @@ static void setup_session_manager_ecc_test (CuTest *test, struct session_manager
 	CuAssertIntEquals (test, 0, status);
 
 	status = session_manager_ecc_init (&cmd->session, &cmd->aes.base, &cmd->ecc.base,
-		&cmd->hash.base, &cmd->rng.base, &cmd->riot, 3);
+		&cmd->hash.base, &cmd->rng.base, &cmd->riot, NULL, 3, PAIRING_EIDS, 2, 
+		&cmd->keys_keystore.base);
 	CuAssertIntEquals (test, 0, status);
 }
 
@@ -136,6 +146,9 @@ static void release_session_manager_ecc_test (CuTest *test, struct session_manag
 	status = x509_mock_validate_and_release (&cmd->x509);
 	CuAssertIntEquals (test, 0, status);
 
+	status = keystore_mock_validate_and_release (&cmd->keys_keystore);
+	CuAssertIntEquals (test, 0, status);
+
 	status = keystore_mock_validate_and_release (&cmd->riot_keystore);
 	CuAssertIntEquals (test, 0, status);
 
@@ -144,6 +157,172 @@ static void release_session_manager_ecc_test (CuTest *test, struct session_manag
 	session_manager_ecc_release (&cmd->session);
 }
 
+static void session_manager_ecc_establish_session (CuTest *test, 
+	struct session_manager_ecc_testing *cmd, uint8_t eid)
+{
+	struct cmd_interface_request rq;
+	struct cerberus_protocol_key_exchange_type_0 *rq_ptr =
+		(struct cerberus_protocol_key_exchange_type_0*) &rq.data;
+	uint8_t nonce1[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
+	};
+	uint8_t nonce2[] = {
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+	uint8_t session_key[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+	uint8_t hmac_key[] = {
+		0xf1,0x3b,0x43,0x16,0xd5,0xc5,0xc6,0x10,0xad,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x37,
+		0x0e,0x9a,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+	uint8_t digest[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0x0e,0x9a,0x37,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,
+		0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,0xd5,0xc5,0xc6
+	};
+	uint8_t hmac[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0xad,0xd5,0xc5,0xc6,0x9a,0x37,0xff,0x3e,0x75,
+		0x0e,0x73,0xc5,0x54,0x10,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+	uint8_t *ecc_cerberus_key;
+	uint32_t i_1 = platform_htonl (1);
+	uint8_t separator = 0;
+	uint32_t L = platform_htonl (256);
+	int status;
+
+	rq.max_response = 4096;
+	rq.source_eid = eid;
+	rq.length = cerberus_protocol_key_exchange_type_0_length (ECC_PUBKEY_DER_LEN);
+
+	rq_ptr->common.key_type = CERBERUS_PROTOCOL_SESSION_KEY;
+	rq_ptr->hmac_type = CERBERUS_PROTOCOL_HMAC_SHA256;
+
+	memcpy (((uint8_t*) rq_ptr) + sizeof (struct cerberus_protocol_key_exchange_type_0), ECC_PUBKEY_DER, 
+		ECC_PUBKEY_DER_LEN);
+
+	ecc_cerberus_key = platform_malloc (ECC_PUBKEY2_DER_LEN);
+	CuAssertPtrNotNull (test, ecc_cerberus_key);
+
+	memcpy (ecc_cerberus_key, ECC_PUBKEY2_DER, ECC_PUBKEY2_DER_LEN);
+
+	status = cmd->session.base.add_session (&cmd->session.base, eid, nonce1, nonce2);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd->ecc.mock, cmd->ecc.base.init_public_key, &cmd->ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN),
+		MOCK_ARG (ECC_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&cmd->ecc.mock, 2, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd->ecc.mock, cmd->ecc.base.generate_key_pair, &cmd->ecc, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&cmd->ecc.mock, 0, 1);
+	status |= mock_expect_save_arg (&cmd->ecc.mock, 1, 2);
+	CuAssertIntEquals (test, 0, status);
+	
+	status = mock_expect (&cmd->ecc.mock, cmd->ecc.base.get_public_key_der, &cmd->ecc, 0,
+		MOCK_ARG_SAVED_ARG (2), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&cmd->ecc.mock, 1, &ecc_cerberus_key, sizeof (ecc_cerberus_key), 
+		-1);
+	status |= mock_expect_output (&cmd->ecc.mock, 2, &ECC_PUBKEY2_DER_LEN, 
+		sizeof (ECC_PUBKEY2_DER_LEN), -1);
+	CuAssertIntEquals (test, 0, status);
+	
+	status = mock_expect (&cmd->hash.mock, cmd->hash.base.start_sha256, &cmd->hash, 0);
+	status |= mock_expect (&cmd->hash.mock, cmd->hash.base.update, &cmd->hash, 0, 
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN), MOCK_ARG (ECC_PUBKEY_DER_LEN));
+	status |= mock_expect (&cmd->hash.mock, cmd->hash.base.update, &cmd->hash, 0, 
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY2_DER, ECC_PUBKEY2_DER_LEN), 
+		MOCK_ARG (ECC_PUBKEY2_DER_LEN));
+	status |= mock_expect (&cmd->hash.mock, cmd->hash.base.finish, &cmd->hash, 0, 
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&cmd->hash.mock, 0, digest, sizeof (digest), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd->ecc.mock, cmd->ecc.base.init_key_pair, &cmd->ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+	status |= mock_expect_save_arg (&cmd->ecc.mock, 2, 3);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd->ecc.mock, cmd->ecc.base.get_signature_max_length, &cmd->ecc, 91,
+		MOCK_ARG_SAVED_ARG (3));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd->ecc.mock, cmd->ecc.base.sign, &cmd->ecc, ECC_SIG_TEST_LEN, 
+		MOCK_ARG_SAVED_ARG (3), MOCK_ARG_PTR_CONTAINS_TMP (digest, sizeof (digest)), 
+		MOCK_ARG (sizeof (digest)), MOCK_ARG_NOT_NULL, MOCK_ARG (rq.max_response - 
+		sizeof (struct cerberus_protocol_key_exchange_response_type_0) - ECC_PUBKEY2_DER_LEN - 
+		sizeof (uint16_t)));
+	status |= mock_expect_output (&cmd->ecc.mock, 3, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN, -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd->ecc.mock, cmd->ecc.base.get_shared_secret_max_length, &cmd->ecc, 64,
+		MOCK_ARG_SAVED_ARG (1));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd->ecc.mock, cmd->ecc.base.compute_shared_secret, &cmd->ecc, 64,
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_SAVED_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG (64));
+	status |= mock_expect_output (&cmd->ecc.mock, 2, SHARED_SECRET, sizeof (SHARED_SECRET), 3);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_expect_hmac_init (&cmd->hash, SHARED_SECRET, sizeof (SHARED_SECRET));
+	status |= mock_expect (&cmd->hash.mock, cmd->hash.base.update, &cmd->hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&i_1, sizeof (i_1)), MOCK_ARG (sizeof (i_1)));
+	status |= mock_expect (&cmd->hash.mock, cmd->hash.base.update, &cmd->hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&nonce1, sizeof (nonce1)), MOCK_ARG (sizeof (nonce1)));
+	status |= mock_expect (&cmd->hash.mock, cmd->hash.base.update, &cmd->hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&separator, sizeof (separator)), MOCK_ARG (sizeof (separator)));
+	status |= mock_expect (&cmd->hash.mock, cmd->hash.base.update, &cmd->hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&nonce2, sizeof (nonce2)), MOCK_ARG (sizeof (nonce2)));
+	status |= mock_expect (&cmd->hash.mock, cmd->hash.base.update, &cmd->hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&L, sizeof (L)), MOCK_ARG (sizeof (L)));
+	status |= hash_mock_expect_hmac_finish (&cmd->hash, SHARED_SECRET, sizeof (SHARED_SECRET),
+		NULL, SHA256_HASH_LENGTH, session_key, sizeof (session_key));
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_expect_hmac_init (&cmd->hash, SHARED_SECRET, sizeof (SHARED_SECRET));
+	status |= mock_expect (&cmd->hash.mock, cmd->hash.base.update, &cmd->hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&i_1, sizeof (i_1)), MOCK_ARG (sizeof (i_1)));
+	status |= mock_expect (&cmd->hash.mock, cmd->hash.base.update, &cmd->hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&nonce2, sizeof (nonce2)), MOCK_ARG (sizeof (nonce2)));
+	status |= mock_expect (&cmd->hash.mock, cmd->hash.base.update, &cmd->hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&separator, sizeof (separator)), MOCK_ARG (sizeof (separator)));
+	status |= mock_expect (&cmd->hash.mock, cmd->hash.base.update, &cmd->hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&nonce1, sizeof (nonce1)), MOCK_ARG (sizeof (nonce1)));
+	status |= mock_expect (&cmd->hash.mock, cmd->hash.base.update, &cmd->hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&L, sizeof (L)), MOCK_ARG (sizeof (L)));
+	status |= hash_mock_expect_hmac_finish (&cmd->hash, SHARED_SECRET, sizeof (SHARED_SECRET),
+		NULL, SHA256_HASH_LENGTH, hmac_key, sizeof (hmac_key));
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_expect_hmac_init (&cmd->hash, hmac_key, sizeof (hmac_key));
+	status |= mock_expect (&cmd->hash.mock, cmd->hash.base.update, &cmd->hash, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_CERT, RIOT_CORE_ALIAS_CERT_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_CERT_LEN));
+	status |= hash_mock_expect_hmac_finish (&cmd->hash, hmac_key, sizeof (hmac_key), NULL, 
+		rq.max_response - sizeof (struct cerberus_protocol_key_exchange_response_type_0) - 
+		ECC_PUBKEY2_DER_LEN - sizeof (uint16_t)*2 - ECC_SIG_TEST_LEN, hmac, sizeof (hmac));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd->ecc.mock, cmd->ecc.base.release_key_pair, &cmd->ecc, 0,
+		MOCK_ARG_SAVED_ARG (3), MOCK_ARG (NULL));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd->ecc.mock, cmd->ecc.base.release_key_pair, &cmd->ecc, 0,
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_SAVED_ARG (2));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd->ecc.mock, cmd->ecc.base.release_key_pair, &cmd->ecc, 0,
+		MOCK_ARG (NULL), MOCK_ARG_SAVED_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd->session.base.establish_session (&cmd->session.base, &rq);
+	CuAssertIntEquals (test, 0, status);
+}
 
 /*******************
  * Test cases
@@ -172,6 +351,9 @@ static void session_manager_ecc_test_init (CuTest *test)
 	status = x509_mock_init (&cmd.x509);
 	CuAssertIntEquals (test, 0, status);
 
+	status = keystore_mock_init (&cmd.keys_keystore);
+	CuAssertIntEquals (test, 0, status);
+
 	status = keystore_mock_init (&cmd.riot_keystore);
 	CuAssertIntEquals (test, 0, status);
 
@@ -189,13 +371,75 @@ static void session_manager_ecc_test_init (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = session_manager_ecc_init (&cmd.session, &cmd.aes.base, &cmd.ecc.base, &cmd.hash.base,
-		&cmd.rng.base, &cmd.riot, 1);
+		&cmd.rng.base, &cmd.riot, NULL, 1, NULL, 0, &cmd.keys_keystore.base);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, cmd.session.base.add_session);
 	CuAssertPtrNotNull (test, cmd.session.base.establish_session);
 	CuAssertPtrNotNull (test, cmd.session.base.is_session_established);
+	CuAssertPtrNotNull (test, cmd.session.base.get_pairing_state);
 	CuAssertPtrNotNull (test, cmd.session.base.decrypt_message);
 	CuAssertPtrNotNull (test, cmd.session.base.encrypt_message);
+	CuAssertPtrNotNull (test, cmd.session.base.reset_session);
+	CuAssertPtrNotNull (test, cmd.session.base.setup_paired_session);
+
+	release_session_manager_ecc_test (test, &cmd);
+}
+
+static void session_manager_ecc_test_init_preallocated_table (CuTest *test)
+{
+	struct session_manager_ecc_testing cmd;
+	struct session_manager_entry sessions_table[2];
+	uint8_t *dev_id_der = NULL;
+	int status;
+
+	TEST_START;
+
+	status = aes_mock_init (&cmd.aes);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_mock_init (&cmd.ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_init (&cmd.hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = rng_mock_init (&cmd.rng);
+	CuAssertIntEquals (test, 0, status);
+
+	status = x509_mock_init (&cmd.x509);
+	CuAssertIntEquals (test, 0, status);
+
+	status = keystore_mock_init (&cmd.keys_keystore);
+	CuAssertIntEquals (test, 0, status);
+
+	status = keystore_mock_init (&cmd.riot_keystore);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.riot_keystore.mock, cmd.riot_keystore.base.load_key,
+		&cmd.riot_keystore, KEYSTORE_NO_KEY, MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&cmd.riot_keystore.mock, 1, &dev_id_der, sizeof (dev_id_der), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	keys.alias_cert_length = RIOT_CORE_ALIAS_CERT_LEN;
+	keys.devid_cert_length = RIOT_CORE_DEVID_CERT_LEN;
+	keys.alias_key_length = RIOT_CORE_ALIAS_KEY_LEN;
+
+	status = riot_key_manager_init_static (&cmd.riot, &cmd.riot_keystore.base, &keys,
+		&cmd.x509.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = session_manager_ecc_init (&cmd.session, &cmd.aes.base,
+		&cmd.ecc.base, &cmd.hash.base, &cmd.rng.base, &cmd.riot, sessions_table, 2, NULL, 0,
+		&cmd.keys_keystore.base);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, cmd.session.base.add_session);
+	CuAssertPtrNotNull (test, cmd.session.base.establish_session);
+	CuAssertPtrNotNull (test, cmd.session.base.is_session_established);
+	CuAssertPtrNotNull (test, cmd.session.base.get_pairing_state);
+	CuAssertPtrNotNull (test, cmd.session.base.decrypt_message);
+	CuAssertPtrNotNull (test, cmd.session.base.encrypt_message);
+	CuAssertPtrNotNull (test, cmd.session.base.reset_session);
+	CuAssertPtrNotNull (test, cmd.session.base.setup_paired_session);
 
 	release_session_manager_ecc_test (test, &cmd);
 }
@@ -219,28 +463,31 @@ static void session_manager_ecc_test_init_invalid_arg (CuTest *test)
 	status = rng_mock_init (&cmd.rng);
 	CuAssertIntEquals (test, 0, status);
 
+	status = keystore_mock_init (&cmd.keys_keystore);
+	CuAssertIntEquals (test, 0, status);
+
 	status = session_manager_ecc_init (NULL, &cmd.aes.base, &cmd.ecc.base, &cmd.hash.base,
-		&cmd.rng.base, &cmd.riot, 1);
+		&cmd.rng.base, &cmd.riot, NULL, 1, NULL, 0, &cmd.keys_keystore.base);
 	CuAssertIntEquals (test, SESSION_MANAGER_INVALID_ARGUMENT, status);
 
 	status = session_manager_ecc_init (&cmd.session, NULL, &cmd.ecc.base, &cmd.hash.base,
-		&cmd.rng.base, &cmd.riot, 1);
+		&cmd.rng.base, &cmd.riot, NULL, 1, NULL, 0,&cmd.keys_keystore.base);
 	CuAssertIntEquals (test, SESSION_MANAGER_INVALID_ARGUMENT, status);
 
 	status = session_manager_ecc_init (&cmd.session, &cmd.aes.base, NULL, &cmd.hash.base,
-		&cmd.rng.base, &cmd.riot, 1);
+		&cmd.rng.base, &cmd.riot, NULL, 1, NULL, 0,&cmd.keys_keystore.base);
 	CuAssertIntEquals (test, SESSION_MANAGER_INVALID_ARGUMENT, status);
 
 	status = session_manager_ecc_init (&cmd.session, &cmd.aes.base, &cmd.ecc.base, NULL,
-		&cmd.rng.base, &cmd.riot, 1);
+		&cmd.rng.base, &cmd.riot, NULL, 1, NULL, 0,&cmd.keys_keystore.base);
 	CuAssertIntEquals (test, SESSION_MANAGER_INVALID_ARGUMENT, status);
 
 	status = session_manager_ecc_init (&cmd.session, &cmd.aes.base, &cmd.ecc.base, &cmd.hash.base,
-		NULL, &cmd.riot, 1);
+		NULL, &cmd.riot, NULL, 1, NULL, 0,&cmd.keys_keystore.base);
 	CuAssertIntEquals (test, SESSION_MANAGER_INVALID_ARGUMENT, status);
 
 	status = session_manager_ecc_init (&cmd.session, &cmd.aes.base, &cmd.ecc.base, &cmd.hash.base,
-		&cmd.rng.base, NULL, 1);
+		&cmd.rng.base, NULL, NULL, 1, NULL, 0,&cmd.keys_keystore.base);
 	CuAssertIntEquals (test, SESSION_MANAGER_INVALID_ARGUMENT, status);
 
 	status = aes_mock_validate_and_release (&cmd.aes);
@@ -254,118 +501,8 @@ static void session_manager_ecc_test_init_invalid_arg (CuTest *test)
 
 	status = rng_mock_validate_and_release (&cmd.rng);
 	CuAssertIntEquals (test, 0, status);
-}
 
-static void session_manager_ecc_test_init_preallocated_table (CuTest *test)
-{
-	struct session_manager_ecc_testing cmd;
-	struct session_manager_ecc_entry sessions_table[2];
-	uint8_t *dev_id_der = NULL;
-	int status;
-
-	TEST_START;
-
-	status = aes_mock_init (&cmd.aes);
-	CuAssertIntEquals (test, 0, status);
-
-	status = ecc_mock_init (&cmd.ecc);
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_mock_init (&cmd.hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = rng_mock_init (&cmd.rng);
-	CuAssertIntEquals (test, 0, status);
-
-	status = x509_mock_init (&cmd.x509);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_init (&cmd.riot_keystore);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.riot_keystore.mock, cmd.riot_keystore.base.load_key,
-		&cmd.riot_keystore, KEYSTORE_NO_KEY, MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&cmd.riot_keystore.mock, 1, &dev_id_der, sizeof (dev_id_der), -1);
-	CuAssertIntEquals (test, 0, status);
-
-	keys.alias_cert_length = RIOT_CORE_ALIAS_CERT_LEN;
-	keys.devid_cert_length = RIOT_CORE_DEVID_CERT_LEN;
-	keys.alias_key_length = RIOT_CORE_ALIAS_KEY_LEN;
-
-	status = riot_key_manager_init_static (&cmd.riot, &cmd.riot_keystore.base, &keys,
-		&cmd.x509.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = session_manager_ecc_init_table_preallocated (&cmd.session, &cmd.aes.base,
-		&cmd.ecc.base, &cmd.hash.base, &cmd.rng.base, &cmd.riot, sessions_table, 1);
-	CuAssertIntEquals (test, 0, status);
-	CuAssertPtrNotNull (test, cmd.session.base.add_session);
-	CuAssertPtrNotNull (test, cmd.session.base.establish_session);
-	CuAssertPtrNotNull (test, cmd.session.base.is_session_established);
-	CuAssertPtrNotNull (test, cmd.session.base.decrypt_message);
-	CuAssertPtrNotNull (test, cmd.session.base.encrypt_message);
-
-	release_session_manager_ecc_test (test, &cmd);
-}
-
-static void session_manager_ecc_test_init_preallocated_table_invalid_arg (CuTest *test)
-{
-	struct session_manager_ecc_testing cmd;
-	struct session_manager_ecc_entry sessions_table[2];
-	int status;
-
-	TEST_START;
-
-	status = aes_mock_init (&cmd.aes);
-	CuAssertIntEquals (test, 0, status);
-
-	status = ecc_mock_init (&cmd.ecc);
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_mock_init (&cmd.hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = rng_mock_init (&cmd.rng);
-	CuAssertIntEquals (test, 0, status);
-
-	status = session_manager_ecc_init_table_preallocated (NULL, &cmd.aes.base, &cmd.ecc.base,
-		&cmd.hash.base, &cmd.rng.base, &cmd.riot, sessions_table, 1);
-	CuAssertIntEquals (test, SESSION_MANAGER_INVALID_ARGUMENT, status);
-
-	status = session_manager_ecc_init_table_preallocated (&cmd.session, NULL, &cmd.ecc.base,
-		&cmd.hash.base, &cmd.rng.base, &cmd.riot, sessions_table, 1);
-	CuAssertIntEquals (test, SESSION_MANAGER_INVALID_ARGUMENT, status);
-
-	status = session_manager_ecc_init_table_preallocated (&cmd.session, &cmd.aes.base, NULL,
-		&cmd.hash.base, &cmd.rng.base, &cmd.riot, sessions_table, 1);
-	CuAssertIntEquals (test, SESSION_MANAGER_INVALID_ARGUMENT, status);
-
-	status = session_manager_ecc_init_table_preallocated (&cmd.session, &cmd.aes.base,
-		&cmd.ecc.base, NULL, &cmd.rng.base, &cmd.riot, sessions_table, 1);
-	CuAssertIntEquals (test, SESSION_MANAGER_INVALID_ARGUMENT, status);
-
-	status = session_manager_ecc_init_table_preallocated (&cmd.session, &cmd.aes.base,
-		&cmd.ecc.base, &cmd.hash.base, NULL, &cmd.riot, sessions_table, 1);
-	CuAssertIntEquals (test, SESSION_MANAGER_INVALID_ARGUMENT, status);
-
-	status = session_manager_ecc_init_table_preallocated (&cmd.session, &cmd.aes.base,
-		&cmd.ecc.base, &cmd.hash.base, &cmd.rng.base, NULL, sessions_table, 1);
-	CuAssertIntEquals (test, SESSION_MANAGER_INVALID_ARGUMENT, status);
-
-	status = session_manager_ecc_init_table_preallocated (&cmd.session, &cmd.aes.base,
-		&cmd.ecc.base, &cmd.hash.base, &cmd.rng.base, &cmd.riot, NULL, 1);
-	CuAssertIntEquals (test, SESSION_MANAGER_INVALID_ARGUMENT, status);
-
-	status = aes_mock_validate_and_release (&cmd.aes);
-	CuAssertIntEquals (test, 0, status);
-
-	status = ecc_mock_validate_and_release (&cmd.ecc);
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_mock_validate_and_release (&cmd.hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = rng_mock_validate_and_release (&cmd.rng);
+	status = keystore_mock_validate_and_release (&cmd.keys_keystore);
 	CuAssertIntEquals (test, 0, status);
 }
 
@@ -489,6 +626,11 @@ static void session_manager_ecc_test_add_session_invalid_arg (CuTest *test)
 static void session_manager_ecc_test_establish_session (CuTest *test)
 {
 	struct session_manager_ecc_testing cmd;
+	struct cmd_interface_request rq;
+	struct cerberus_protocol_key_exchange_type_0 *rq_ptr =
+		(struct cerberus_protocol_key_exchange_type_0*) rq.data;
+	struct cerberus_protocol_key_exchange_response_type_0 *rsp_ptr =
+		(struct cerberus_protocol_key_exchange_response_type_0*) rq.data;
 	uint8_t nonce1[] = {
 		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,
 		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
@@ -497,184 +639,188 @@ static void session_manager_ecc_test_establish_session (CuTest *test)
 		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
 		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
 	};
-	uint8_t aes_key[] = {
+	uint8_t session_key[] = {
 		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
 		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
 	};
+	uint8_t hmac_key[] = {
+		0xf1,0x3b,0x43,0x16,0xd5,0xc5,0xc6,0x10,0xad,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x37,
+		0x0e,0x9a,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+	uint8_t digest[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0x0e,0x9a,0x37,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,
+		0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,0xd5,0xc5,0xc6
+	};
+	uint8_t hmac[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0xad,0xd5,0xc5,0xc6,0x9a,0x37,0xff,0x3e,0x75,
+		0x0e,0x73,0xc5,0x54,0x10,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+	uint8_t *ecc_cerberus_key;
+	uint32_t i_1 = platform_htonl (1);
+	uint8_t separator = 0;
+	uint32_t L = platform_htonl (256);
 	int status;
 
 	TEST_START;
 
+	rq.max_response = 4096;
+	rq.source_eid = 0x10;
+	rq.length = cerberus_protocol_key_exchange_type_0_length (ECC_PUBKEY_DER_LEN);
+
+	rq_ptr->common.key_type = CERBERUS_PROTOCOL_SESSION_KEY;
+	rq_ptr->hmac_type = CERBERUS_PROTOCOL_HMAC_SHA256;
+
+	memcpy (((uint8_t*) rq_ptr) + sizeof (struct cerberus_protocol_key_exchange_type_0), 
+		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
+
+	ecc_cerberus_key = platform_malloc (ECC_PUBKEY2_DER_LEN);
+	CuAssertPtrNotNull (test, ecc_cerberus_key);
+
+	memcpy (ecc_cerberus_key, ECC_PUBKEY2_DER, ECC_PUBKEY2_DER_LEN);
+
 	setup_session_manager_ecc_test (test, &cmd);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
-		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_public_key, &cmd.ecc, 0,
-		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN),
-		MOCK_ARG (ECC_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_shared_secret_max_length, &cmd.ecc, 64,
-		MOCK_ARG_SAVED_ARG (0));
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.compute_shared_secret, &cmd.ecc, 64,
-		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_SAVED_ARG (1), MOCK_ARG_NOT_NULL, MOCK_ARG (64));
-	status |= mock_expect_output (&cmd.ecc.mock, 2, SHARED_SECRET, sizeof (SHARED_SECRET), 3);
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_mock_expect_hmac_init (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET));
-	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
-		MOCK_ARG_PTR_CONTAINS (&nonce1, sizeof (nonce1)), MOCK_ARG (sizeof (nonce1)));
-	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
-		MOCK_ARG_PTR_CONTAINS (&nonce2, sizeof (nonce2)), MOCK_ARG (sizeof (nonce2)));
-	status |= hash_mock_expect_hmac_finish (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET),
-		NULL, SHA256_HASH_LENGTH, aes_key, sizeof (aes_key));
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_SAVED_ARG (1));
-	CuAssertIntEquals (test, 0, status);
 
 	status = cmd.session.base.add_session (&cmd.session.base, 0x10, nonce1, nonce2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = cmd.session.base.establish_session (&cmd.session.base, 0x10, ECC_PUBKEY_DER,
-		ECC_PUBKEY_DER_LEN, true);
-	CuAssertIntEquals (test, 0, status);
-
-	release_session_manager_ecc_test (test, &cmd);
-}
-
-static void session_manager_ecc_test_establish_session_paired (CuTest *test)
-{
-	struct session_manager_ecc_testing cmd;
-	uint8_t nonce1[] = {
-		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,
-		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
-	};
-	uint8_t nonce2[] = {
-		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
-		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
-	};
-	uint8_t nonce3[] = {
-		0xf1,0xdd,0xaa,0x16,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
-		0x0e,0xbb,0xcc,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
-	};
-	uint8_t nonce4[] = {
-		0x0e,0xbb,0xcc,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,
-		0xf1,0xdd,0xaa,0x16,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
-	};
-	uint8_t aes_key[] = {
-		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
-		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
-	};
-	uint8_t aes_key2[] = {
-		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,
-		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
-	};
-	int status;
-
-	TEST_START;
-
-	setup_session_manager_ecc_test (test, &cmd);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
-		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_public_key, &cmd.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN),
+		MOCK_ARG (ECC_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_public_key, &cmd.ecc, 0,
-		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN),
-		MOCK_ARG (ECC_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 1);
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.generate_key_pair, &cmd.ecc, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 0, 1);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 1, 2);
 	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_shared_secret_max_length, &cmd.ecc, 64,
-		MOCK_ARG_SAVED_ARG (0));
+	
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_public_key_der, &cmd.ecc, 0,
+		MOCK_ARG_SAVED_ARG (2), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&cmd.ecc.mock, 1, &ecc_cerberus_key, sizeof (ecc_cerberus_key), 
+		-1);
+	status |= mock_expect_output (&cmd.ecc.mock, 2, &ECC_PUBKEY2_DER_LEN, 
+		sizeof (ECC_PUBKEY2_DER_LEN), -1);
 	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.compute_shared_secret, &cmd.ecc, 64,
-		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_SAVED_ARG (1), MOCK_ARG_NOT_NULL, MOCK_ARG (64));
-	status |= mock_expect_output (&cmd.ecc.mock, 2, SHARED_SECRET, sizeof (SHARED_SECRET), 3);
+	
+	status = mock_expect (&cmd.hash.mock, cmd.hash.base.start_sha256, &cmd.hash, 0);
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0, 
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN), MOCK_ARG (ECC_PUBKEY_DER_LEN));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0, 
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY2_DER, ECC_PUBKEY2_DER_LEN), 
+		MOCK_ARG (ECC_PUBKEY2_DER_LEN));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.finish, &cmd.hash, 0, 
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&cmd.hash.mock, 0, digest, sizeof (digest), -1);
 	CuAssertIntEquals (test, 0, status);
-
-	status = hash_mock_expect_hmac_init (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET));
-	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
-		MOCK_ARG_PTR_CONTAINS (&nonce1, sizeof (nonce1)), MOCK_ARG (sizeof (nonce1)));
-	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
-		MOCK_ARG_PTR_CONTAINS (&nonce2, sizeof (nonce2)), MOCK_ARG (sizeof (nonce2)));
-	status |= hash_mock_expect_hmac_finish (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET),
-		NULL, SHA256_HASH_LENGTH, aes_key, sizeof (aes_key));
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_SAVED_ARG (1));
-	CuAssertIntEquals (test, 0, status);
-
-	status = cmd.session.base.add_session (&cmd.session.base, 0x10, nonce1, nonce2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cmd.session.base.establish_session (&cmd.session.base, 0x10, ECC_PUBKEY_DER,
-		ECC_PUBKEY_DER_LEN, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cmd.session.base.is_session_established (&cmd.session.base, 0x10);
-	CuAssertIntEquals (test, 1, status);
 
 	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_key_pair, &cmd.ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_public_key, &cmd.ecc, 0,
-		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN),
-		MOCK_ARG (ECC_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 3);
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_signature_max_length, &cmd.ecc, 91,
+		MOCK_ARG_SAVED_ARG (3));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.sign, &cmd.ecc, ECC_SIG_TEST_LEN, 
+		MOCK_ARG_SAVED_ARG (3), MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)), 
+		MOCK_ARG (sizeof (digest)), MOCK_ARG_NOT_NULL, MOCK_ARG (rq.max_response - 
+		sizeof (struct cerberus_protocol_key_exchange_response_type_0) - ECC_PUBKEY2_DER_LEN - 
+		sizeof (uint16_t)));
+	status |= mock_expect_output (&cmd.ecc.mock, 3, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN, -1);
+	CuAssertIntEquals (test, 0, status);
+
 	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_shared_secret_max_length, &cmd.ecc, 64,
-		MOCK_ARG_SAVED_ARG (2));
+		MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.compute_shared_secret, &cmd.ecc, 64,
-		MOCK_ARG_SAVED_ARG (2), MOCK_ARG_SAVED_ARG (3), MOCK_ARG_NOT_NULL, MOCK_ARG (64));
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_SAVED_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG (64));
 	status |= mock_expect_output (&cmd.ecc.mock, 2, SHARED_SECRET, sizeof (SHARED_SECRET), 3);
 	CuAssertIntEquals (test, 0, status);
 
 	status = hash_mock_expect_hmac_init (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET));
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
-		MOCK_ARG_PTR_CONTAINS (&nonce3, sizeof (nonce3)), MOCK_ARG (sizeof (nonce3)));
+		MOCK_ARG_PTR_CONTAINS (&i_1, sizeof (i_1)), MOCK_ARG (sizeof (i_1)));
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
-		MOCK_ARG_PTR_CONTAINS (&nonce4, sizeof (nonce4)), MOCK_ARG (sizeof (nonce4)));
+		MOCK_ARG_PTR_CONTAINS (&nonce1, sizeof (nonce1)), MOCK_ARG (sizeof (nonce1)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (&separator, sizeof (separator)), MOCK_ARG (sizeof (separator)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (&nonce2, sizeof (nonce2)), MOCK_ARG (sizeof (nonce2)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (&L, sizeof (L)), MOCK_ARG (sizeof (L)));
 	status |= hash_mock_expect_hmac_finish (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET),
-		NULL, SHA256_HASH_LENGTH, aes_key2, sizeof (aes_key2));
+		NULL, SHA256_HASH_LENGTH, session_key, sizeof (session_key));
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_expect_hmac_init (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (&i_1, sizeof (i_1)), MOCK_ARG (sizeof (i_1)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (&nonce2, sizeof (nonce2)), MOCK_ARG (sizeof (nonce2)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (&separator, sizeof (separator)), MOCK_ARG (sizeof (separator)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (&nonce1, sizeof (nonce1)), MOCK_ARG (sizeof (nonce1)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (&L, sizeof (L)), MOCK_ARG (sizeof (L)));
+	status |= hash_mock_expect_hmac_finish (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET),
+		NULL, SHA256_HASH_LENGTH, hmac_key, sizeof (hmac_key));
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_expect_hmac_init (&cmd.hash, hmac_key, sizeof (hmac_key));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_CERT, RIOT_CORE_ALIAS_CERT_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_CERT_LEN));
+	status |= hash_mock_expect_hmac_finish (&cmd.hash, hmac_key, sizeof (hmac_key), NULL, 
+		rq.max_response - sizeof (struct cerberus_protocol_key_exchange_response_type_0) - 
+		ECC_PUBKEY2_DER_LEN - sizeof (uint16_t) * 2 - ECC_SIG_TEST_LEN, hmac, sizeof (hmac));
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_SAVED_ARG (2), MOCK_ARG_SAVED_ARG (3));
+		MOCK_ARG_SAVED_ARG (3), MOCK_ARG (NULL));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cmd.session.base.add_session (&cmd.session.base, 0x10, nonce3, nonce4);
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_SAVED_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cmd.session.base.establish_session (&cmd.session.base, 0x10, ECC_PUBKEY_DER,
-		ECC_PUBKEY_DER_LEN, true);
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
+		MOCK_ARG (NULL), MOCK_ARG_SAVED_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd.session.base.establish_session (&cmd.session.base, &rq);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, cerberus_protocol_key_exchange_type_0_response_length (
+		ECC_PUBKEY2_DER_LEN, ECC_SIG_TEST_LEN, SHA256_HASH_LENGTH), rq.length);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_SESSION_KEY, rsp_ptr->common.key_type);
+	CuAssertIntEquals (test, 0, rsp_ptr->reserved);
+	CuAssertIntEquals (test, ECC_PUBKEY2_DER_LEN, rsp_ptr->key_len);
+	CuAssertIntEquals (test, ECC_SIG_TEST_LEN, 
+		cerberus_protocol_key_exchange_type_0_response_sig_len (rsp_ptr));
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, 
+		cerberus_protocol_key_exchange_type_0_response_hmac_len (rsp_ptr));
+	
+	status = testing_validate_array (ECC_PUBKEY2_DER, 
+		cerberus_protocol_key_exchange_type_0_response_key_data (rsp_ptr), ECC_PUBKEY2_DER_LEN);
+	status |= testing_validate_array (ECC_SIGNATURE_TEST, 
+		cerberus_protocol_key_exchange_type_0_response_sig_data (rsp_ptr), ECC_SIG_TEST_LEN);
+	status |= testing_validate_array (hmac, 
+		cerberus_protocol_key_exchange_type_0_response_hmac_data (rsp_ptr), sizeof (hmac));
 	CuAssertIntEquals (test, 0, status);
 
 	release_session_manager_ecc_test (test, &cmd);
 }
 
-static void session_manager_ecc_test_establish_session_replace (CuTest *test)
+static void session_manager_ecc_test_establish_session_invalid_request (CuTest *test)
 {
 	struct session_manager_ecc_testing cmd;
+	struct cmd_interface_request rq;
+	struct cerberus_protocol_key_exchange_type_0 *rq_ptr =
+		(struct cerberus_protocol_key_exchange_type_0*) rq.data;
 	uint8_t nonce1[] = {
 		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,
 		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
@@ -683,119 +829,37 @@ static void session_manager_ecc_test_establish_session_replace (CuTest *test)
 		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
 		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
 	};
-	uint8_t nonce3[] = {
-		0xf1,0xdd,0xaa,0x16,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
-		0x0e,0xbb,0xcc,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
-	};
-	uint8_t nonce4[] = {
-		0x0e,0xbb,0xcc,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,
-		0xf1,0xdd,0xaa,0x16,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
-	};
-	uint8_t aes_key[] = {
-		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
-		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
-	};
-	uint8_t aes_key2[] = {
-		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,
-		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
-	};
 	int status;
 
 	TEST_START;
 
+	rq.max_response = 4096;
+	rq.source_eid = 0x10;
+	rq.length = cerberus_protocol_key_exchange_type_0_length (0);
+
+	rq_ptr->common.key_type = CERBERUS_PROTOCOL_SESSION_KEY;
+	rq_ptr->hmac_type = CERBERUS_PROTOCOL_HMAC_SHA256;
+
+	memcpy (((uint8_t*) rq_ptr) + sizeof (struct cerberus_protocol_key_exchange_type_0), 
+		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
+
 	setup_session_manager_ecc_test (test, &cmd);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
-		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_public_key, &cmd.ecc, 0,
-		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN),
-		MOCK_ARG (ECC_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_shared_secret_max_length, &cmd.ecc, 64,
-		MOCK_ARG_SAVED_ARG (0));
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.compute_shared_secret, &cmd.ecc, 64,
-		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_SAVED_ARG (1), MOCK_ARG_NOT_NULL, MOCK_ARG (64));
-	status |= mock_expect_output (&cmd.ecc.mock, 2, SHARED_SECRET, sizeof (SHARED_SECRET), 3);
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_mock_expect_hmac_init (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET));
-	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
-		MOCK_ARG_PTR_CONTAINS (&nonce1, sizeof (nonce1)), MOCK_ARG (sizeof (nonce1)));
-	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
-		MOCK_ARG_PTR_CONTAINS (&nonce2, sizeof (nonce2)), MOCK_ARG (sizeof (nonce2)));
-	status |= hash_mock_expect_hmac_finish (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET),
-		NULL, SHA256_HASH_LENGTH, aes_key, sizeof (aes_key));
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_SAVED_ARG (1));
-	CuAssertIntEquals (test, 0, status);
 
 	status = cmd.session.base.add_session (&cmd.session.base, 0x10, nonce1, nonce2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = cmd.session.base.establish_session (&cmd.session.base, 0x10, ECC_PUBKEY_DER,
-		ECC_PUBKEY_DER_LEN, false);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cmd.session.base.is_session_established (&cmd.session.base, 0x10);
-	CuAssertIntEquals (test, 1, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
-		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_public_key, &cmd.ecc, 0,
-		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY2_DER, ECC_PUBKEY2_DER_LEN),
-		MOCK_ARG (ECC_PUBKEY2_DER_LEN), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 3);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_shared_secret_max_length, &cmd.ecc, 64,
-		MOCK_ARG_SAVED_ARG (2));
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.compute_shared_secret, &cmd.ecc, 64,
-		MOCK_ARG_SAVED_ARG (2), MOCK_ARG_SAVED_ARG (3), MOCK_ARG_NOT_NULL, MOCK_ARG (64));
-	status |= mock_expect_output (&cmd.ecc.mock, 2, SHARED_SECRET, sizeof (SHARED_SECRET), 3);
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_mock_expect_hmac_init (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET));
-	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
-		MOCK_ARG_PTR_CONTAINS (&nonce3, sizeof (nonce3)), MOCK_ARG (sizeof (nonce3)));
-	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
-		MOCK_ARG_PTR_CONTAINS (&nonce4, sizeof (nonce4)), MOCK_ARG (sizeof (nonce4)));
-	status |= hash_mock_expect_hmac_finish (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET),
-		NULL, SHA256_HASH_LENGTH, aes_key2, sizeof (aes_key2));
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_SAVED_ARG (2), MOCK_ARG_SAVED_ARG (3));
-	CuAssertIntEquals (test, 0, status);
-
-	status = cmd.session.base.add_session (&cmd.session.base, 0x10, nonce3, nonce4);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cmd.session.base.establish_session (&cmd.session.base, 0x10, ECC_PUBKEY2_DER,
-		ECC_PUBKEY2_DER_LEN, false);
-	CuAssertIntEquals (test, 0, status);
+	status = cmd.session.base.establish_session (&cmd.session.base, &rq);
+	CuAssertIntEquals (test, SESSION_MANAGER_INVALID_REQUEST, status);
 
 	release_session_manager_ecc_test (test, &cmd);
 }
 
-static void session_manager_ecc_test_establish_session_paired_unexpected_key (CuTest *test)
+static void session_manager_ecc_test_establish_session_buf_smaller_than_response (CuTest *test)
 {
 	struct session_manager_ecc_testing cmd;
+	struct cmd_interface_request rq;
+	struct cerberus_protocol_key_exchange_type_0 *rq_ptr =
+		(struct cerberus_protocol_key_exchange_type_0*) &rq.data;
 	uint8_t nonce1[] = {
 		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,
 		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
@@ -804,74 +868,27 @@ static void session_manager_ecc_test_establish_session_paired_unexpected_key (Cu
 		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
 		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
 	};
-	uint8_t nonce3[] = {
-		0x0e,0xbb,0xcc,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,
-		0xf1,0xdd,0xaa,0x16,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
-	};
-	uint8_t nonce4[] = {
-		0xf1,0xdd,0xaa,0x16,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
-		0x0e,0xbb,0xcc,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
-	};
-	uint8_t aes_key[] = {
-		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
-		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
-	};
 	int status;
 
 	TEST_START;
 
+	rq.max_response = sizeof (struct cerberus_protocol_key_exchange_response);
+	rq.source_eid = 0x10;
+	rq.length = cerberus_protocol_key_exchange_type_0_length (ECC_PUBKEY_DER_LEN);
+
+	rq_ptr->common.key_type = CERBERUS_PROTOCOL_SESSION_KEY;
+	rq_ptr->hmac_type = CERBERUS_PROTOCOL_HMAC_SHA256;
+
+	memcpy (((uint8_t*) rq_ptr) + sizeof (struct cerberus_protocol_key_exchange_type_0), 
+		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
+
 	setup_session_manager_ecc_test (test, &cmd);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
-		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_public_key, &cmd.ecc, 0,
-		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN),
-		MOCK_ARG (ECC_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_shared_secret_max_length, &cmd.ecc, 64,
-		MOCK_ARG_SAVED_ARG (0));
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.compute_shared_secret, &cmd.ecc, 64,
-		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_SAVED_ARG (1), MOCK_ARG_NOT_NULL, MOCK_ARG (64));
-	status |= mock_expect_output (&cmd.ecc.mock, 2, SHARED_SECRET, sizeof (SHARED_SECRET), 3);
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_mock_expect_hmac_init (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET));
-	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
-		MOCK_ARG_PTR_CONTAINS (&nonce1, sizeof (nonce1)), MOCK_ARG (sizeof (nonce1)));
-	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
-		MOCK_ARG_PTR_CONTAINS (&nonce2, sizeof (nonce2)), MOCK_ARG (sizeof (nonce2)));
-	status |= hash_mock_expect_hmac_finish (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET),
-		NULL, SHA256_HASH_LENGTH, aes_key, sizeof (aes_key));
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_SAVED_ARG (1));
-	CuAssertIntEquals (test, 0, status);
 
 	status = cmd.session.base.add_session (&cmd.session.base, 0x10, nonce1, nonce2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = cmd.session.base.establish_session (&cmd.session.base, 0x10, ECC_PUBKEY_DER,
-		ECC_PUBKEY_DER_LEN, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cmd.session.base.is_session_established (&cmd.session.base, 0x10);
-	CuAssertIntEquals (test, 1, status);
-
-	status = cmd.session.base.add_session (&cmd.session.base, 0x10, nonce3, nonce4);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cmd.session.base.establish_session (&cmd.session.base, 0x10, ECC_PUBKEY2_DER,
-		ECC_PUBKEY2_DER_LEN, true);
-	CuAssertIntEquals (test, SESSION_MANAGER_UNEXPECTED_PUBKEY, status);
+	status = cmd.session.base.establish_session (&cmd.session.base, &rq);
+	CuAssertIntEquals (test, SESSION_MANAGER_BUF_TOO_SMALL, status);
 
 	release_session_manager_ecc_test (test, &cmd);
 }
@@ -879,70 +896,28 @@ static void session_manager_ecc_test_establish_session_paired_unexpected_key (Cu
 static void session_manager_ecc_test_establish_session_invalid_order (CuTest *test)
 {
 	struct session_manager_ecc_testing cmd;
-	uint8_t nonce1[] = {
-		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,
-		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
-	};
-	uint8_t nonce2[] = {
-		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
-		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
-	};
-	uint8_t aes_key[] = {
-		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
-		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
-	};
+	struct cmd_interface_request rq;
+	struct cerberus_protocol_key_exchange_type_0 *rq_ptr =
+		(struct cerberus_protocol_key_exchange_type_0*) &rq.data;
 	int status;
 
 	TEST_START;
 
+	rq.max_response = 4096;
+	rq.source_eid = 0x10;
+	rq.length = cerberus_protocol_key_exchange_type_0_length (ECC_PUBKEY2_DER_LEN);
+
+	rq_ptr->common.key_type = CERBERUS_PROTOCOL_SESSION_KEY;
+	rq_ptr->hmac_type = CERBERUS_PROTOCOL_HMAC_SHA256;
+
+	memcpy (((uint8_t*) rq_ptr) + sizeof (struct cerberus_protocol_key_exchange_type_0), 
+		ECC_PUBKEY2_DER, ECC_PUBKEY2_DER_LEN);
+
 	setup_session_manager_ecc_test (test, &cmd);
 
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
-		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 0);
-	CuAssertIntEquals (test, 0, status);
+	session_manager_ecc_establish_session (test, &cmd, 0x10);
 
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_public_key, &cmd.ecc, 0,
-		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN),
-		MOCK_ARG (ECC_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_shared_secret_max_length, &cmd.ecc, 64,
-		MOCK_ARG_SAVED_ARG (0));
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.compute_shared_secret, &cmd.ecc, 64,
-		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_SAVED_ARG (1), MOCK_ARG_NOT_NULL, MOCK_ARG (64));
-	status |= mock_expect_output (&cmd.ecc.mock, 2, SHARED_SECRET, sizeof (SHARED_SECRET), 3);
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_mock_expect_hmac_init (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET));
-	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
-		MOCK_ARG_PTR_CONTAINS (&nonce1, sizeof (nonce1)), MOCK_ARG (sizeof (nonce1)));
-	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
-		MOCK_ARG_PTR_CONTAINS (&nonce2, sizeof (nonce2)), MOCK_ARG (sizeof (nonce2)));
-	status |= hash_mock_expect_hmac_finish (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET),
-		NULL, SHA256_HASH_LENGTH, aes_key, sizeof (aes_key));
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_SAVED_ARG (1));
-	CuAssertIntEquals (test, 0, status);
-
-	status = cmd.session.base.add_session (&cmd.session.base, 0x10, nonce1, nonce2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cmd.session.base.establish_session (&cmd.session.base, 0x10, ECC_PUBKEY_DER,
-		ECC_PUBKEY_DER_LEN, false);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cmd.session.base.is_session_established (&cmd.session.base, 0x10);
-	CuAssertIntEquals (test, 1, status);
-
-	status = cmd.session.base.establish_session (&cmd.session.base, 0x10, ECC_PUBKEY2_DER,
-		ECC_PUBKEY2_DER_LEN, false);
+	status = cmd.session.base.establish_session (&cmd.session.base, &rq);
 	CuAssertIntEquals (test, SESSION_MANAGER_INVALID_ORDER, status);
 
 	release_session_manager_ecc_test (test, &cmd);
@@ -951,6 +926,9 @@ static void session_manager_ecc_test_establish_session_invalid_order (CuTest *te
 static void session_manager_ecc_test_establish_session_unexpected_eid (CuTest *test)
 {
 	struct session_manager_ecc_testing cmd;
+	struct cmd_interface_request rq;
+	struct cerberus_protocol_key_exchange_type_0 *rq_ptr =
+		(struct cerberus_protocol_key_exchange_type_0*) &rq.data;
 	uint8_t nonce1[] = {
 		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,
 		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
@@ -962,22 +940,34 @@ static void session_manager_ecc_test_establish_session_unexpected_eid (CuTest *t
 	int status;
 
 	TEST_START;
+
+	rq.max_response = 4096;
+	rq.source_eid = 0x11;
+	rq.length = cerberus_protocol_key_exchange_type_0_length (ECC_PUBKEY_DER_LEN);
+
+	rq_ptr->common.key_type = CERBERUS_PROTOCOL_SESSION_KEY;
+	rq_ptr->hmac_type = CERBERUS_PROTOCOL_HMAC_SHA256;
+
+	memcpy (((uint8_t*) rq_ptr) + sizeof (struct cerberus_protocol_key_exchange_type_0), 
+		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
 
 	setup_session_manager_ecc_test (test, &cmd);
 
 	status = cmd.session.base.add_session (&cmd.session.base, 0x10, nonce1, nonce2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = cmd.session.base.establish_session (&cmd.session.base, 0x11, ECC_PUBKEY_DER,
-		ECC_PUBKEY_DER_LEN, true);
+	status = cmd.session.base.establish_session (&cmd.session.base, &rq);
 	CuAssertIntEquals (test, SESSION_MANAGER_UNEXPECTED_EID, status);
 
 	release_session_manager_ecc_test (test, &cmd);
 }
 
-static void session_manager_ecc_test_establish_session_init_priv_key_fail (CuTest *test)
+static void session_manager_ecc_test_establish_session_unsupported_hash_type (CuTest *test)
 {
 	struct session_manager_ecc_testing cmd;
+	struct cmd_interface_request rq;
+	struct cerberus_protocol_key_exchange_type_0 *rq_ptr =
+		(struct cerberus_protocol_key_exchange_type_0*) &rq.data;
 	uint8_t nonce1[] = {
 		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,
 		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
@@ -990,26 +980,705 @@ static void session_manager_ecc_test_establish_session_init_priv_key_fail (CuTes
 
 	TEST_START;
 
+	rq.max_response = 4096;
+	rq.source_eid = 0x10;
+	rq.length = cerberus_protocol_key_exchange_type_0_length (ECC_PUBKEY_DER_LEN);
+
+	rq_ptr->common.key_type = CERBERUS_PROTOCOL_SESSION_KEY;
+	rq_ptr->hmac_type = CERBERUS_PROTOCOL_HMAC_SHA384;
+
+	memcpy (((uint8_t*) rq_ptr) + sizeof (struct cerberus_protocol_key_exchange_type_0), 
+		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
+
 	setup_session_manager_ecc_test (test, &cmd);
+
+	status = cmd.session.base.add_session (&cmd.session.base, 0x10, nonce1, nonce2);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd.session.base.establish_session (&cmd.session.base, &rq);
+	CuAssertIntEquals (test, SESSION_MANAGER_OPERATION_UNSUPPORTED, status);
+
+	release_session_manager_ecc_test (test, &cmd);
+}
+
+static void session_manager_ecc_test_establish_session_init_device_pub_key_fail (CuTest *test)
+{
+	struct session_manager_ecc_testing cmd;
+	struct cmd_interface_request rq;
+	struct cerberus_protocol_key_exchange_type_0 *rq_ptr =
+		(struct cerberus_protocol_key_exchange_type_0*) &rq.data;
+	uint8_t nonce1[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
+	};
+	uint8_t nonce2[] = {
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+	int status;
+
+	TEST_START;
+
+	rq.max_response = 4096;
+	rq.source_eid = 0x10;
+	rq.length = cerberus_protocol_key_exchange_type_0_length (ECC_PUBKEY_DER_LEN);
+
+	rq_ptr->common.key_type = CERBERUS_PROTOCOL_SESSION_KEY;
+	rq_ptr->hmac_type = CERBERUS_PROTOCOL_HMAC_SHA256;
+
+	memcpy (((uint8_t*) rq_ptr) + sizeof (struct cerberus_protocol_key_exchange_type_0), 
+		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
+
+	setup_session_manager_ecc_test (test, &cmd);
+
+	status = cmd.session.base.add_session (&cmd.session.base, 0x10, nonce1, nonce2);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_public_key, &cmd.ecc, 
+		ECC_ENGINE_NO_MEMORY, MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN),
+		MOCK_ARG (ECC_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd.session.base.establish_session (&cmd.session.base, &rq);
+	CuAssertIntEquals (test, ECC_ENGINE_NO_MEMORY, status);
+
+	release_session_manager_ecc_test (test, &cmd);
+}
+
+static void session_manager_ecc_test_establish_session_generate_response_key_fail (CuTest *test)
+{
+	struct session_manager_ecc_testing cmd;
+	struct cmd_interface_request rq;
+	struct cerberus_protocol_key_exchange_type_0 *rq_ptr =
+		(struct cerberus_protocol_key_exchange_type_0*) &rq.data;
+	uint8_t nonce1[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
+	};
+	uint8_t nonce2[] = {
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+	int status;
+
+	TEST_START;
+
+	rq.max_response = 4096;
+	rq.source_eid = 0x10;
+	rq.length = cerberus_protocol_key_exchange_type_0_length (ECC_PUBKEY_DER_LEN);
+
+	rq_ptr->common.key_type = CERBERUS_PROTOCOL_SESSION_KEY;
+	rq_ptr->hmac_type = CERBERUS_PROTOCOL_HMAC_SHA256;
+
+	memcpy (((uint8_t*) rq_ptr) + sizeof (struct cerberus_protocol_key_exchange_type_0), 
+		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
+
+	setup_session_manager_ecc_test (test, &cmd);
+
+	status = cmd.session.base.add_session (&cmd.session.base, 0x10, nonce1, nonce2);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_public_key, &cmd.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN),
+		MOCK_ARG (ECC_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.generate_key_pair, &cmd.ecc, 
+		ECC_ENGINE_NO_MEMORY, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
+		MOCK_ARG (NULL), MOCK_ARG_SAVED_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd.session.base.establish_session (&cmd.session.base, &rq);
+	CuAssertIntEquals (test, ECC_ENGINE_NO_MEMORY, status);
+
+	release_session_manager_ecc_test (test, &cmd);
+}
+
+static void session_manager_ecc_test_establish_session_get_session_key_der_fail (CuTest *test)
+{
+	struct session_manager_ecc_testing cmd;
+	struct cmd_interface_request rq;
+	struct cerberus_protocol_key_exchange_type_0 *rq_ptr =
+		(struct cerberus_protocol_key_exchange_type_0*) &rq.data;
+	uint8_t nonce1[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
+	};
+	uint8_t nonce2[] = {
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+	int status;
+
+	TEST_START;
+
+	rq.max_response = 4096;
+	rq.source_eid = 0x10;
+	rq.length = cerberus_protocol_key_exchange_type_0_length (ECC_PUBKEY_DER_LEN);
+
+	rq_ptr->common.key_type = CERBERUS_PROTOCOL_SESSION_KEY;
+	rq_ptr->hmac_type = CERBERUS_PROTOCOL_HMAC_SHA256;
+
+	memcpy (((uint8_t*) rq_ptr) + sizeof (struct cerberus_protocol_key_exchange_type_0), 
+		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
+
+	setup_session_manager_ecc_test (test, &cmd);
+
+	status = cmd.session.base.add_session (&cmd.session.base, 0x10, nonce1, nonce2);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_public_key, &cmd.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN),
+		MOCK_ARG (ECC_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.generate_key_pair, &cmd.ecc, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 0, 1);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 1, 2);
+	CuAssertIntEquals (test, 0, status);
+	
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_public_key_der, &cmd.ecc, 
+		ECC_ENGINE_NO_MEMORY, MOCK_ARG_SAVED_ARG (2), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_SAVED_ARG (2));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
+		 MOCK_ARG (NULL), MOCK_ARG_SAVED_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd.session.base.establish_session (&cmd.session.base, &rq);
+	CuAssertIntEquals (test, ECC_ENGINE_NO_MEMORY, status);
+
+	release_session_manager_ecc_test (test, &cmd);
+}
+
+static void session_manager_ecc_test_establish_session_start_keys_digest_fail (CuTest *test)
+{
+	struct session_manager_ecc_testing cmd;
+	struct cmd_interface_request rq;
+	struct cerberus_protocol_key_exchange_type_0 *rq_ptr =
+		(struct cerberus_protocol_key_exchange_type_0*) &rq.data;
+	uint8_t nonce1[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
+	};
+	uint8_t nonce2[] = {
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+	uint8_t *ecc_cerberus_key;
+	int status;
+
+	TEST_START;
+
+	rq.max_response = 4096;
+	rq.source_eid = 0x10;
+	rq.length = cerberus_protocol_key_exchange_type_0_length (ECC_PUBKEY_DER_LEN);
+
+	rq_ptr->common.key_type = CERBERUS_PROTOCOL_SESSION_KEY;
+	rq_ptr->hmac_type = CERBERUS_PROTOCOL_HMAC_SHA256;
+
+	memcpy (((uint8_t*) rq_ptr) + sizeof (struct cerberus_protocol_key_exchange_type_0), 
+		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
+
+	ecc_cerberus_key = platform_malloc (ECC_PUBKEY2_DER_LEN);
+	CuAssertPtrNotNull (test, ecc_cerberus_key);
+
+	memcpy (ecc_cerberus_key, ECC_PUBKEY2_DER, ECC_PUBKEY2_DER_LEN);
+
+	setup_session_manager_ecc_test (test, &cmd);
+
+	status = cmd.session.base.add_session (&cmd.session.base, 0x10, nonce1, nonce2);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_public_key, &cmd.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN),
+		MOCK_ARG (ECC_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.generate_key_pair, &cmd.ecc, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 0, 1);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 1, 2);
+	CuAssertIntEquals (test, 0, status);
+	
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_public_key_der, &cmd.ecc, 0,
+		MOCK_ARG_SAVED_ARG (2), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&cmd.ecc.mock, 1, &ecc_cerberus_key, sizeof (ecc_cerberus_key),
+		-1);
+	status |= mock_expect_output (&cmd.ecc.mock, 2, &ECC_PUBKEY2_DER_LEN, 
+		sizeof (ECC_PUBKEY2_DER_LEN), -1);
+	CuAssertIntEquals (test, 0, status);
+	
+	status = mock_expect (&cmd.hash.mock, cmd.hash.base.start_sha256, &cmd.hash, 
+		HASH_ENGINE_NO_MEMORY);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_SAVED_ARG (2));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
+		 MOCK_ARG (NULL), MOCK_ARG_SAVED_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd.session.base.establish_session (&cmd.session.base, &rq);
+	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
+
+	release_session_manager_ecc_test (test, &cmd);
+}
+
+static void session_manager_ecc_test_establish_session_update_keys_digest_device_key_fail (
+	CuTest *test)
+{
+	struct session_manager_ecc_testing cmd;
+	struct cmd_interface_request rq;
+	struct cerberus_protocol_key_exchange_type_0 *rq_ptr =
+		(struct cerberus_protocol_key_exchange_type_0*) &rq.data;
+	uint8_t nonce1[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
+	};
+	uint8_t nonce2[] = {
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+	uint8_t *ecc_cerberus_key;
+	int status;
+
+	TEST_START;
+
+	rq.max_response = 4096;
+	rq.source_eid = 0x10;
+	rq.length = cerberus_protocol_key_exchange_type_0_length (ECC_PUBKEY_DER_LEN);
+
+	rq_ptr->common.key_type = CERBERUS_PROTOCOL_SESSION_KEY;
+	rq_ptr->hmac_type = CERBERUS_PROTOCOL_HMAC_SHA256;
+
+	memcpy (((uint8_t*) rq_ptr) + sizeof (struct cerberus_protocol_key_exchange_type_0), 
+		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
+
+	ecc_cerberus_key = platform_malloc (ECC_PUBKEY2_DER_LEN);
+	CuAssertPtrNotNull (test, ecc_cerberus_key);
+
+	memcpy (ecc_cerberus_key, ECC_PUBKEY2_DER, ECC_PUBKEY2_DER_LEN);
+
+	setup_session_manager_ecc_test (test, &cmd);
+
+	status = cmd.session.base.add_session (&cmd.session.base, 0x10, nonce1, nonce2);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_public_key, &cmd.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN),
+		MOCK_ARG (ECC_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.generate_key_pair, &cmd.ecc, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 0, 1);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 1, 2);
+	CuAssertIntEquals (test, 0, status);
+	
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_public_key_der, &cmd.ecc, 0,
+		MOCK_ARG_SAVED_ARG (2), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&cmd.ecc.mock, 1, &ecc_cerberus_key, sizeof (ecc_cerberus_key),
+		-1);
+	status |= mock_expect_output (&cmd.ecc.mock, 2, &ECC_PUBKEY2_DER_LEN, 
+		sizeof (ECC_PUBKEY2_DER_LEN), -1);
+	CuAssertIntEquals (test, 0, status);
+	
+	status = mock_expect (&cmd.hash.mock, cmd.hash.base.start_sha256, &cmd.hash, 0);
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, HASH_ENGINE_NO_MEMORY, 
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN), MOCK_ARG (ECC_PUBKEY_DER_LEN));
+	CuAssertIntEquals (test, 0, status);
+	
+	status = mock_expect (&cmd.hash.mock, cmd.hash.base.cancel, &cmd.hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_SAVED_ARG (2));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
+		 MOCK_ARG (NULL), MOCK_ARG_SAVED_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd.session.base.establish_session (&cmd.session.base, &rq);
+	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
+
+	release_session_manager_ecc_test (test, &cmd);
+}
+
+static void session_manager_ecc_test_establish_session_update_keys_digest_session_key_fail (
+	CuTest *test)
+{
+	struct session_manager_ecc_testing cmd;
+	struct cmd_interface_request rq;
+	struct cerberus_protocol_key_exchange_type_0 *rq_ptr =
+		(struct cerberus_protocol_key_exchange_type_0*) &rq.data;
+	uint8_t nonce1[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
+	};
+	uint8_t nonce2[] = {
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+	uint8_t *ecc_cerberus_key;
+	int status;
+
+	TEST_START;
+
+	rq.max_response = 4096;
+	rq.source_eid = 0x10;
+	rq.length = cerberus_protocol_key_exchange_type_0_length (ECC_PUBKEY_DER_LEN);
+
+	rq_ptr->common.key_type = CERBERUS_PROTOCOL_SESSION_KEY;
+	rq_ptr->hmac_type = CERBERUS_PROTOCOL_HMAC_SHA256;
+
+	memcpy (((uint8_t*) rq_ptr) + sizeof (struct cerberus_protocol_key_exchange_type_0), 
+		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
+
+	ecc_cerberus_key = platform_malloc (ECC_PUBKEY2_DER_LEN);
+	CuAssertPtrNotNull (test, ecc_cerberus_key);
+
+	memcpy (ecc_cerberus_key, ECC_PUBKEY2_DER, ECC_PUBKEY2_DER_LEN);
+
+	setup_session_manager_ecc_test (test, &cmd);
+
+	status = cmd.session.base.add_session (&cmd.session.base, 0x10, nonce1, nonce2);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_public_key, &cmd.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN),
+		MOCK_ARG (ECC_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.generate_key_pair, &cmd.ecc, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 0, 1);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 1, 2);
+	CuAssertIntEquals (test, 0, status);
+	
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_public_key_der, &cmd.ecc, 0,
+		MOCK_ARG_SAVED_ARG (2), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&cmd.ecc.mock, 1, &ecc_cerberus_key, sizeof (ecc_cerberus_key),
+		-1);
+	status |= mock_expect_output (&cmd.ecc.mock, 2, &ECC_PUBKEY2_DER_LEN, 
+		sizeof (ECC_PUBKEY2_DER_LEN), -1);
+	CuAssertIntEquals (test, 0, status);
+	
+	status = mock_expect (&cmd.hash.mock, cmd.hash.base.start_sha256, &cmd.hash, 0);
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0, 
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN), MOCK_ARG (ECC_PUBKEY_DER_LEN));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, HASH_ENGINE_NO_MEMORY, 
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY2_DER, ECC_PUBKEY2_DER_LEN), 
+		MOCK_ARG (ECC_PUBKEY2_DER_LEN));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.hash.mock, cmd.hash.base.cancel, &cmd.hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_SAVED_ARG (2));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
+		 MOCK_ARG (NULL), MOCK_ARG_SAVED_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd.session.base.establish_session (&cmd.session.base, &rq);
+	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
+
+	release_session_manager_ecc_test (test, &cmd);
+}
+
+static void session_manager_ecc_test_establish_session_finish_keys_digest_fail (CuTest *test)
+{
+	struct session_manager_ecc_testing cmd;
+	struct cmd_interface_request rq;
+	struct cerberus_protocol_key_exchange_type_0 *rq_ptr =
+		(struct cerberus_protocol_key_exchange_type_0*) &rq.data;
+	uint8_t nonce1[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
+	};
+	uint8_t nonce2[] = {
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+	uint8_t *ecc_cerberus_key;
+	int status;
+
+	TEST_START;
+
+	rq.max_response = 4096;
+	rq.source_eid = 0x10;
+	rq.length = cerberus_protocol_key_exchange_type_0_length (ECC_PUBKEY_DER_LEN);
+
+	rq_ptr->common.key_type = CERBERUS_PROTOCOL_SESSION_KEY;
+	rq_ptr->hmac_type = CERBERUS_PROTOCOL_HMAC_SHA256;
+
+	memcpy (((uint8_t*) rq_ptr) + sizeof (struct cerberus_protocol_key_exchange_type_0), 
+		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
+
+	ecc_cerberus_key = platform_malloc (ECC_PUBKEY2_DER_LEN);
+	CuAssertPtrNotNull (test, ecc_cerberus_key);
+
+	memcpy (ecc_cerberus_key, ECC_PUBKEY2_DER, ECC_PUBKEY2_DER_LEN);
+
+	setup_session_manager_ecc_test (test, &cmd);
+
+	status = cmd.session.base.add_session (&cmd.session.base, 0x10, nonce1, nonce2);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_public_key, &cmd.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN),
+		MOCK_ARG (ECC_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.generate_key_pair, &cmd.ecc, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 0, 1);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 1, 2);
+	CuAssertIntEquals (test, 0, status);
+	
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_public_key_der, &cmd.ecc, 0,
+		MOCK_ARG_SAVED_ARG (2), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&cmd.ecc.mock, 1, &ecc_cerberus_key, sizeof (ecc_cerberus_key),
+		-1);
+	status |= mock_expect_output (&cmd.ecc.mock, 2, &ECC_PUBKEY2_DER_LEN, 
+		sizeof (ECC_PUBKEY2_DER_LEN), -1);
+	CuAssertIntEquals (test, 0, status);
+	
+	status = mock_expect (&cmd.hash.mock, cmd.hash.base.start_sha256, &cmd.hash, 0);
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0, 
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN), MOCK_ARG (ECC_PUBKEY_DER_LEN));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0, 
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY2_DER, ECC_PUBKEY2_DER_LEN), 
+		MOCK_ARG (ECC_PUBKEY2_DER_LEN));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.finish, &cmd.hash, HASH_ENGINE_NO_MEMORY, 
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.hash.mock, cmd.hash.base.cancel, &cmd.hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_SAVED_ARG (2));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
+		 MOCK_ARG (NULL), MOCK_ARG_SAVED_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd.session.base.establish_session (&cmd.session.base, &rq);
+	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
+
+	release_session_manager_ecc_test (test, &cmd);
+}
+
+static void session_manager_ecc_test_establish_session_buf_smaller_than_session_key (CuTest *test)
+{
+	struct session_manager_ecc_testing cmd;
+	struct cmd_interface_request rq;
+	struct cerberus_protocol_key_exchange_type_0 *rq_ptr =
+		(struct cerberus_protocol_key_exchange_type_0*) &rq.data;
+	uint8_t nonce1[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
+	};
+	uint8_t nonce2[] = {
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+	uint8_t digest[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0x0e,0x9a,0x37,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,
+		0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,0xd5,0xc5,0xc6
+	};
+	uint8_t *ecc_cerberus_key;
+	int status;
+
+	TEST_START;
+
+	rq.max_response = sizeof (struct cerberus_protocol_key_exchange_response_type_0) + 
+		ECC_PUBKEY2_DER_LEN;
+	rq.source_eid = 0x10;
+	rq.length = cerberus_protocol_key_exchange_type_0_length (ECC_PUBKEY_DER_LEN);
+
+	rq_ptr->common.key_type = CERBERUS_PROTOCOL_SESSION_KEY;
+	rq_ptr->hmac_type = CERBERUS_PROTOCOL_HMAC_SHA256;
+
+	memcpy (((uint8_t*) rq_ptr) + sizeof (struct cerberus_protocol_key_exchange_type_0), 
+		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
+
+	ecc_cerberus_key = platform_malloc (ECC_PUBKEY2_DER_LEN);
+	CuAssertPtrNotNull (test, ecc_cerberus_key);
+
+	memcpy (ecc_cerberus_key, ECC_PUBKEY2_DER, ECC_PUBKEY2_DER_LEN);
+
+	setup_session_manager_ecc_test (test, &cmd);
+
+	status = cmd.session.base.add_session (&cmd.session.base, 0x10, nonce1, nonce2);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_public_key, &cmd.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN),
+		MOCK_ARG (ECC_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.generate_key_pair, &cmd.ecc, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 0, 1);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 1, 2);
+	CuAssertIntEquals (test, 0, status);
+	
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_public_key_der, &cmd.ecc, 0,
+		MOCK_ARG_SAVED_ARG (2), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&cmd.ecc.mock, 1, &ecc_cerberus_key, sizeof (ecc_cerberus_key),
+		-1);
+	status |= mock_expect_output (&cmd.ecc.mock, 2, &ECC_PUBKEY2_DER_LEN, 
+		sizeof (ECC_PUBKEY2_DER_LEN), -1);
+	CuAssertIntEquals (test, 0, status);
+	
+	status = mock_expect (&cmd.hash.mock, cmd.hash.base.start_sha256, &cmd.hash, 0);
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0, 
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN), MOCK_ARG (ECC_PUBKEY_DER_LEN));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0, 
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY2_DER, ECC_PUBKEY2_DER_LEN), 
+		MOCK_ARG (ECC_PUBKEY2_DER_LEN));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.finish, &cmd.hash, 0, 
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&cmd.hash.mock, 0, digest, sizeof (digest), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_SAVED_ARG (2));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
+		 MOCK_ARG (NULL), MOCK_ARG_SAVED_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd.session.base.establish_session (&cmd.session.base, &rq);
+	CuAssertIntEquals (test, SESSION_MANAGER_BUF_TOO_SMALL, status);
+
+	release_session_manager_ecc_test (test, &cmd);
+}
+
+static void session_manager_ecc_test_establish_session_init_alias_priv_key_fail (CuTest *test)
+{
+	struct session_manager_ecc_testing cmd;
+	struct cmd_interface_request rq;
+	struct cerberus_protocol_key_exchange_type_0 *rq_ptr =
+		(struct cerberus_protocol_key_exchange_type_0*) &rq.data;
+	uint8_t nonce1[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
+	};
+	uint8_t nonce2[] = {
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+	uint8_t digest[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0x0e,0x9a,0x37,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,
+		0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,0xd5,0xc5,0xc6
+	};
+	uint8_t *ecc_cerberus_key;
+	int status;
+
+	TEST_START;
+
+	rq.max_response = 4096;
+	rq.source_eid = 0x10;
+	rq.length = cerberus_protocol_key_exchange_type_0_length (ECC_PUBKEY_DER_LEN);
+
+	rq_ptr->common.key_type = CERBERUS_PROTOCOL_SESSION_KEY;
+	rq_ptr->hmac_type = CERBERUS_PROTOCOL_HMAC_SHA256;
+
+	memcpy (((uint8_t*) rq_ptr) + sizeof (struct cerberus_protocol_key_exchange_type_0), 
+		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
+
+	ecc_cerberus_key = platform_malloc (ECC_PUBKEY2_DER_LEN);
+	CuAssertPtrNotNull (test, ecc_cerberus_key);
+
+	memcpy (ecc_cerberus_key, ECC_PUBKEY2_DER, ECC_PUBKEY2_DER_LEN);
+
+	setup_session_manager_ecc_test (test, &cmd);
+
+	status = cmd.session.base.add_session (&cmd.session.base, 0x10, nonce1, nonce2);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_public_key, &cmd.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN),
+		MOCK_ARG (ECC_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.generate_key_pair, &cmd.ecc, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 0, 1);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 1, 2);
+	CuAssertIntEquals (test, 0, status);
+	
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_public_key_der, &cmd.ecc, 0,
+		MOCK_ARG_SAVED_ARG (2), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&cmd.ecc.mock, 1, &ecc_cerberus_key, sizeof (ecc_cerberus_key),
+		-1);
+	status |= mock_expect_output (&cmd.ecc.mock, 2, &ECC_PUBKEY2_DER_LEN, 
+		sizeof (ECC_PUBKEY2_DER_LEN), -1);
+	CuAssertIntEquals (test, 0, status);
+	
+	status = mock_expect (&cmd.hash.mock, cmd.hash.base.start_sha256, &cmd.hash, 0);
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0, 
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN), MOCK_ARG (ECC_PUBKEY_DER_LEN));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0, 
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY2_DER, ECC_PUBKEY2_DER_LEN), 
+		MOCK_ARG (ECC_PUBKEY2_DER_LEN));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.finish, &cmd.hash, 0, 
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&cmd.hash.mock, 0, digest, sizeof (digest), -1);
+	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_key_pair, &cmd.ecc, ECC_ENGINE_NO_MEMORY,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cmd.session.base.add_session (&cmd.session.base, 0x10, nonce1, nonce2);
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_SAVED_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cmd.session.base.establish_session (&cmd.session.base, 0x10, ECC_PUBKEY_DER,
-		ECC_PUBKEY_DER_LEN, true);
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
+		 MOCK_ARG (NULL), MOCK_ARG_SAVED_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd.session.base.establish_session (&cmd.session.base, &rq);
 	CuAssertIntEquals (test, ECC_ENGINE_NO_MEMORY, status);
 
 	release_session_manager_ecc_test (test, &cmd);
 }
 
-static void session_manager_ecc_test_establish_session_init_pub_key_fail (CuTest *test)
+static void session_manager_ecc_test_establish_session_get_max_sig_len_fail (CuTest *test)
 {
 	struct session_manager_ecc_testing cmd;
+	struct cmd_interface_request rq;
+	struct cerberus_protocol_key_exchange_type_0 *rq_ptr =
+		(struct cerberus_protocol_key_exchange_type_0*) &rq.data;
 	uint8_t nonce1[] = {
 		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,
 		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
@@ -1018,32 +1687,198 @@ static void session_manager_ecc_test_establish_session_init_pub_key_fail (CuTest
 		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
 		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
 	};
+	uint8_t digest[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0x0e,0x9a,0x37,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,
+		0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,0xd5,0xc5,0xc6
+	};
+	uint8_t *ecc_cerberus_key;
 	int status;
 
 	TEST_START;
 
+	rq.max_response = 4096;
+	rq.source_eid = 0x10;
+	rq.length = cerberus_protocol_key_exchange_type_0_length (ECC_PUBKEY_DER_LEN);
+
+	rq_ptr->common.key_type = CERBERUS_PROTOCOL_SESSION_KEY;
+	rq_ptr->hmac_type = CERBERUS_PROTOCOL_HMAC_SHA256;
+
+	memcpy (((uint8_t*) rq_ptr) + sizeof (struct cerberus_protocol_key_exchange_type_0), 
+		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
+
+	ecc_cerberus_key = platform_malloc (ECC_PUBKEY2_DER_LEN);
+	CuAssertPtrNotNull (test, ecc_cerberus_key);
+
+	memcpy (ecc_cerberus_key, ECC_PUBKEY2_DER, ECC_PUBKEY2_DER_LEN);
+
 	setup_session_manager_ecc_test (test, &cmd);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
-		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_public_key, &cmd.ecc,
-		ECC_ENGINE_NO_MEMORY, MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN),
-		MOCK_ARG (ECC_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
-	CuAssertIntEquals (test, 0, status);
 
 	status = cmd.session.base.add_session (&cmd.session.base, 0x10, nonce1, nonce2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = cmd.session.base.establish_session (&cmd.session.base, 0x10, ECC_PUBKEY_DER,
-		ECC_PUBKEY_DER_LEN, true);
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_public_key, &cmd.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN),
+		MOCK_ARG (ECC_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.generate_key_pair, &cmd.ecc, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 0, 1);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 1, 2);
+	CuAssertIntEquals (test, 0, status);
+	
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_public_key_der, &cmd.ecc, 0,
+		MOCK_ARG_SAVED_ARG (2), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&cmd.ecc.mock, 1, &ecc_cerberus_key, sizeof (ecc_cerberus_key),
+		-1);
+	status |= mock_expect_output (&cmd.ecc.mock, 2, &ECC_PUBKEY2_DER_LEN, 
+		sizeof (ECC_PUBKEY2_DER_LEN), -1);
+	CuAssertIntEquals (test, 0, status);
+	
+	status = mock_expect (&cmd.hash.mock, cmd.hash.base.start_sha256, &cmd.hash, 0);
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0, 
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN), MOCK_ARG (ECC_PUBKEY_DER_LEN));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0, 
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY2_DER, ECC_PUBKEY2_DER_LEN), 
+		MOCK_ARG (ECC_PUBKEY2_DER_LEN));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.finish, &cmd.hash, 0, 
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&cmd.hash.mock, 0, digest, sizeof (digest), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_key_pair, &cmd.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 3);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_signature_max_length, &cmd.ecc, 
+		ECC_ENGINE_NO_MEMORY, MOCK_ARG_SAVED_ARG (3));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
+		MOCK_ARG_SAVED_ARG (3), MOCK_ARG (NULL));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_SAVED_ARG (2));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
+		 MOCK_ARG (NULL), MOCK_ARG_SAVED_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd.session.base.establish_session (&cmd.session.base, &rq);
+	CuAssertIntEquals (test, ECC_ENGINE_NO_MEMORY, status);
+
+	release_session_manager_ecc_test (test, &cmd);
+}
+
+static void session_manager_ecc_test_establish_session_sign_fail (CuTest *test)
+{
+	struct session_manager_ecc_testing cmd;
+	struct cmd_interface_request rq;
+	struct cerberus_protocol_key_exchange_type_0 *rq_ptr =
+		(struct cerberus_protocol_key_exchange_type_0*) &rq.data;
+	uint8_t nonce1[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
+	};
+	uint8_t nonce2[] = {
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+	uint8_t digest[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0x0e,0x9a,0x37,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,
+		0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,0xd5,0xc5,0xc6
+	};
+	uint8_t *ecc_cerberus_key;
+	int status;
+
+	TEST_START;
+
+	rq.max_response = 4096;
+	rq.source_eid = 0x10;
+	rq.length = cerberus_protocol_key_exchange_type_0_length (ECC_PUBKEY_DER_LEN);
+
+	rq_ptr->common.key_type = CERBERUS_PROTOCOL_SESSION_KEY;
+	rq_ptr->hmac_type = CERBERUS_PROTOCOL_HMAC_SHA256;
+
+	memcpy (((uint8_t*) rq_ptr) + sizeof (struct cerberus_protocol_key_exchange_type_0), 
+		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
+
+	ecc_cerberus_key = platform_malloc (ECC_PUBKEY2_DER_LEN);
+	CuAssertPtrNotNull (test, ecc_cerberus_key);
+
+	memcpy (ecc_cerberus_key, ECC_PUBKEY2_DER, ECC_PUBKEY2_DER_LEN);
+
+	setup_session_manager_ecc_test (test, &cmd);
+
+	status = cmd.session.base.add_session (&cmd.session.base, 0x10, nonce1, nonce2);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_public_key, &cmd.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN),
+		MOCK_ARG (ECC_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.generate_key_pair, &cmd.ecc, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 0, 1);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 1, 2);
+	CuAssertIntEquals (test, 0, status);
+	
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_public_key_der, &cmd.ecc, 0,
+		MOCK_ARG_SAVED_ARG (2), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&cmd.ecc.mock, 1, &ecc_cerberus_key, sizeof (ecc_cerberus_key),
+		-1);
+	status |= mock_expect_output (&cmd.ecc.mock, 2, &ECC_PUBKEY2_DER_LEN, 
+		sizeof (ECC_PUBKEY2_DER_LEN), -1);
+	CuAssertIntEquals (test, 0, status);
+	
+	status = mock_expect (&cmd.hash.mock, cmd.hash.base.start_sha256, &cmd.hash, 0);
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0, 
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN), MOCK_ARG (ECC_PUBKEY_DER_LEN));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0, 
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY2_DER, ECC_PUBKEY2_DER_LEN), 
+		MOCK_ARG (ECC_PUBKEY2_DER_LEN));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.finish, &cmd.hash, 0, 
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&cmd.hash.mock, 0, digest, sizeof (digest), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_key_pair, &cmd.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 3);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_signature_max_length, &cmd.ecc, 91,
+		MOCK_ARG_SAVED_ARG (3));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.sign, &cmd.ecc, ECC_ENGINE_NO_MEMORY, 
+		MOCK_ARG_SAVED_ARG (3), MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)), 
+		MOCK_ARG (sizeof (digest)), MOCK_ARG_NOT_NULL, MOCK_ARG (rq.max_response - 
+		sizeof (struct cerberus_protocol_key_exchange_response_type_0) - ECC_PUBKEY2_DER_LEN - 
+		sizeof (uint16_t)));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
+		MOCK_ARG_SAVED_ARG (3), MOCK_ARG (NULL));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_SAVED_ARG (2));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
+		 MOCK_ARG (NULL), MOCK_ARG_SAVED_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd.session.base.establish_session (&cmd.session.base, &rq);
 	CuAssertIntEquals (test, ECC_ENGINE_NO_MEMORY, status);
 
 	release_session_manager_ecc_test (test, &cmd);
@@ -1052,6 +1887,9 @@ static void session_manager_ecc_test_establish_session_init_pub_key_fail (CuTest
 static void session_manager_ecc_test_establish_session_size_shared_secret_fail (CuTest *test)
 {
 	struct session_manager_ecc_testing cmd;
+	struct cmd_interface_request rq;
+	struct cerberus_protocol_key_exchange_type_0 *rq_ptr =
+		(struct cerberus_protocol_key_exchange_type_0*) &rq.data;
 	uint8_t nonce1[] = {
 		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,
 		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
@@ -1060,37 +1898,101 @@ static void session_manager_ecc_test_establish_session_size_shared_secret_fail (
 		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
 		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
 	};
+	uint8_t digest[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0x0e,0x9a,0x37,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,
+		0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,0xd5,0xc5,0xc6
+	};
+	uint8_t *ecc_cerberus_key;
 	int status;
 
 	TEST_START;
 
+	rq.max_response = 4096;
+	rq.source_eid = 0x10;
+	rq.length = cerberus_protocol_key_exchange_type_0_length (ECC_PUBKEY_DER_LEN);
+
+	rq_ptr->common.key_type = CERBERUS_PROTOCOL_SESSION_KEY;
+	rq_ptr->hmac_type = CERBERUS_PROTOCOL_HMAC_SHA256;
+
+	memcpy (((uint8_t*) rq_ptr) + sizeof (struct cerberus_protocol_key_exchange_type_0), 
+		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
+
+	ecc_cerberus_key = platform_malloc (ECC_PUBKEY2_DER_LEN);
+	CuAssertPtrNotNull (test, ecc_cerberus_key);
+
+	memcpy (ecc_cerberus_key, ECC_PUBKEY2_DER, ECC_PUBKEY2_DER_LEN);
+
 	setup_session_manager_ecc_test (test, &cmd);
 
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
-		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 0);
+	status = cmd.session.base.add_session (&cmd.session.base, 0x10, nonce1, nonce2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_public_key, &cmd.ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN),
 		MOCK_ARG (ECC_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 1);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_shared_secret_max_length, &cmd.ecc,
-		ECC_ENGINE_NO_MEMORY, MOCK_ARG_SAVED_ARG (0));
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.generate_key_pair, &cmd.ecc, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 0, 1);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 1, 2);
+	CuAssertIntEquals (test, 0, status);
+	
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_public_key_der, &cmd.ecc, 0,
+		MOCK_ARG_SAVED_ARG (2), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&cmd.ecc.mock, 1, &ecc_cerberus_key, sizeof (ecc_cerberus_key),
+		-1);
+	status |= mock_expect_output (&cmd.ecc.mock, 2, &ECC_PUBKEY2_DER_LEN, 
+		sizeof (ECC_PUBKEY2_DER_LEN), -1);
+	CuAssertIntEquals (test, 0, status);
+	
+	status = mock_expect (&cmd.hash.mock, cmd.hash.base.start_sha256, &cmd.hash, 0);
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0, 
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN), MOCK_ARG (ECC_PUBKEY_DER_LEN));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0, 
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY2_DER, ECC_PUBKEY2_DER_LEN), 
+		MOCK_ARG (ECC_PUBKEY2_DER_LEN));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.finish, &cmd.hash, 0, 
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&cmd.hash.mock, 0, digest, sizeof (digest), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_key_pair, &cmd.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 3);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_signature_max_length, &cmd.ecc, 91,
+		MOCK_ARG_SAVED_ARG (3));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.sign, &cmd.ecc, ECC_SIG_TEST_LEN, 
+		MOCK_ARG_SAVED_ARG (3), MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)), 
+		MOCK_ARG (sizeof (digest)), MOCK_ARG_NOT_NULL, MOCK_ARG (rq.max_response - 
+		sizeof (struct cerberus_protocol_key_exchange_response_type_0) - ECC_PUBKEY2_DER_LEN - 
+		sizeof (uint16_t)));
+	status |= mock_expect_output (&cmd.ecc.mock, 3, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN, -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_shared_secret_max_length, &cmd.ecc, 
+		ECC_ENGINE_NO_MEMORY, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_SAVED_ARG (1));
+		MOCK_ARG_SAVED_ARG (3), MOCK_ARG (NULL));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cmd.session.base.add_session (&cmd.session.base, 0x10, nonce1, nonce2);
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_SAVED_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cmd.session.base.establish_session (&cmd.session.base, 0x10, ECC_PUBKEY_DER,
-		ECC_PUBKEY_DER_LEN, true);
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
+		 MOCK_ARG (NULL), MOCK_ARG_SAVED_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd.session.base.establish_session (&cmd.session.base, &rq);
 	CuAssertIntEquals (test, ECC_ENGINE_NO_MEMORY, status);
 
 	release_session_manager_ecc_test (test, &cmd);
@@ -1099,6 +2001,9 @@ static void session_manager_ecc_test_establish_session_size_shared_secret_fail (
 static void session_manager_ecc_test_establish_session_compute_shared_secret_fail (CuTest *test)
 {
 	struct session_manager_ecc_testing cmd;
+	struct cmd_interface_request rq;
+	struct cerberus_protocol_key_exchange_type_0 *rq_ptr =
+		(struct cerberus_protocol_key_exchange_type_0*) &rq.data;
 	uint8_t nonce1[] = {
 		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,
 		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
@@ -1107,51 +2012,117 @@ static void session_manager_ecc_test_establish_session_compute_shared_secret_fai
 		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
 		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
 	};
+	uint8_t digest[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0x0e,0x9a,0x37,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,
+		0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,0xd5,0xc5,0xc6
+	};
+	uint8_t *ecc_cerberus_key;
 	int status;
 
 	TEST_START;
 
+	rq.max_response = 4096;
+	rq.source_eid = 0x10;
+	rq.length = cerberus_protocol_key_exchange_type_0_length (ECC_PUBKEY_DER_LEN);
+
+	rq_ptr->common.key_type = CERBERUS_PROTOCOL_SESSION_KEY;
+	rq_ptr->hmac_type = CERBERUS_PROTOCOL_HMAC_SHA256;
+
+	memcpy (((uint8_t*) rq_ptr) + sizeof (struct cerberus_protocol_key_exchange_type_0), 
+		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
+
+	ecc_cerberus_key = platform_malloc (ECC_PUBKEY2_DER_LEN);
+	CuAssertPtrNotNull (test, ecc_cerberus_key);
+
+	memcpy (ecc_cerberus_key, ECC_PUBKEY2_DER, ECC_PUBKEY2_DER_LEN);
+
 	setup_session_manager_ecc_test (test, &cmd);
 
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
-		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 0);
+	status = cmd.session.base.add_session (&cmd.session.base, 0x10, nonce1, nonce2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_public_key, &cmd.ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN),
 		MOCK_ARG (ECC_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 1);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.generate_key_pair, &cmd.ecc, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 0, 1);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 1, 2);
+	CuAssertIntEquals (test, 0, status);
+	
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_public_key_der, &cmd.ecc, 0,
+		MOCK_ARG_SAVED_ARG (2), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&cmd.ecc.mock, 1, &ecc_cerberus_key, sizeof (ecc_cerberus_key),
+		-1);
+	status |= mock_expect_output (&cmd.ecc.mock, 2, &ECC_PUBKEY2_DER_LEN, 
+		sizeof (ECC_PUBKEY2_DER_LEN), -1);
+	CuAssertIntEquals (test, 0, status);
+	
+	status = mock_expect (&cmd.hash.mock, cmd.hash.base.start_sha256, &cmd.hash, 0);
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0, 
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN), MOCK_ARG (ECC_PUBKEY_DER_LEN));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0, 
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY2_DER, ECC_PUBKEY2_DER_LEN), 
+		MOCK_ARG (ECC_PUBKEY2_DER_LEN));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.finish, &cmd.hash, 0, 
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&cmd.hash.mock, 0, digest, sizeof (digest), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_key_pair, &cmd.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 3);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_signature_max_length, &cmd.ecc, 91,
+		MOCK_ARG_SAVED_ARG (3));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.sign, &cmd.ecc, ECC_SIG_TEST_LEN, 
+		MOCK_ARG_SAVED_ARG (3), MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)), 
+		MOCK_ARG (sizeof (digest)), MOCK_ARG_NOT_NULL, MOCK_ARG (rq.max_response - 
+		sizeof (struct cerberus_protocol_key_exchange_response_type_0) - ECC_PUBKEY2_DER_LEN - 
+		sizeof (uint16_t)));
+	status |= mock_expect_output (&cmd.ecc.mock, 3, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN, -1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_shared_secret_max_length, &cmd.ecc, 64,
-		MOCK_ARG_SAVED_ARG (0));
+		MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.compute_shared_secret, &cmd.ecc,
-		ECC_ENGINE_NO_MEMORY, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_SAVED_ARG (1), MOCK_ARG_NOT_NULL,
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.compute_shared_secret, &cmd.ecc, 
+		ECC_ENGINE_NO_MEMORY, MOCK_ARG_SAVED_ARG (1), MOCK_ARG_SAVED_ARG (0), MOCK_ARG_NOT_NULL, 
 		MOCK_ARG (64));
-	status |= mock_expect_output (&cmd.ecc.mock, 2, SHARED_SECRET, sizeof (SHARED_SECRET), 3);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_SAVED_ARG (1));
+		MOCK_ARG_SAVED_ARG (3), MOCK_ARG (NULL));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cmd.session.base.add_session (&cmd.session.base, 0x10, nonce1, nonce2);
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_SAVED_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cmd.session.base.establish_session (&cmd.session.base, 0x10, ECC_PUBKEY_DER,
-		ECC_PUBKEY_DER_LEN, true);
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
+		 MOCK_ARG (NULL), MOCK_ARG_SAVED_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd.session.base.establish_session (&cmd.session.base, &rq);
 	CuAssertIntEquals (test, ECC_ENGINE_NO_MEMORY, status);
 
 	release_session_manager_ecc_test (test, &cmd);
 }
 
-static void session_manager_ecc_test_establish_session_init_hmac_fail (CuTest *test)
+static void session_manager_ecc_test_establish_session_generate_session_key_fail (CuTest *test)
 {
 	struct session_manager_ecc_testing cmd;
+	struct cmd_interface_request rq;
+	struct cerberus_protocol_key_exchange_type_0 *rq_ptr =
+		(struct cerberus_protocol_key_exchange_type_0*) &rq.data;
 	uint8_t nonce1[] = {
 		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,
 		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
@@ -1160,172 +2131,121 @@ static void session_manager_ecc_test_establish_session_init_hmac_fail (CuTest *t
 		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
 		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
 	};
+	uint8_t digest[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0x0e,0x9a,0x37,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,
+		0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,0xd5,0xc5,0xc6
+	};
+	uint8_t *ecc_cerberus_key;
 	int status;
 
 	TEST_START;
 
+	rq.max_response = 4096;
+	rq.source_eid = 0x10;
+	rq.length = cerberus_protocol_key_exchange_type_0_length (ECC_PUBKEY_DER_LEN);
+
+	rq_ptr->common.key_type = CERBERUS_PROTOCOL_SESSION_KEY;
+	rq_ptr->hmac_type = CERBERUS_PROTOCOL_HMAC_SHA256;
+
+	memcpy (((uint8_t*) rq_ptr) + sizeof (struct cerberus_protocol_key_exchange_type_0), 
+		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
+
+	ecc_cerberus_key = platform_malloc (ECC_PUBKEY2_DER_LEN);
+	CuAssertPtrNotNull (test, ecc_cerberus_key);
+
+	memcpy (ecc_cerberus_key, ECC_PUBKEY2_DER, ECC_PUBKEY2_DER_LEN);
+
 	setup_session_manager_ecc_test (test, &cmd);
 
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
-		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 0);
+	status = cmd.session.base.add_session (&cmd.session.base, 0x10, nonce1, nonce2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_public_key, &cmd.ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN),
 		MOCK_ARG (ECC_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 1);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.generate_key_pair, &cmd.ecc, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 0, 1);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 1, 2);
+	CuAssertIntEquals (test, 0, status);
+	
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_public_key_der, &cmd.ecc, 0,
+		MOCK_ARG_SAVED_ARG (2), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&cmd.ecc.mock, 1, &ecc_cerberus_key, sizeof (ecc_cerberus_key),
+		-1);
+	status |= mock_expect_output (&cmd.ecc.mock, 2, &ECC_PUBKEY2_DER_LEN, 
+		sizeof (ECC_PUBKEY2_DER_LEN), -1);
+	CuAssertIntEquals (test, 0, status);
+	
+	status = mock_expect (&cmd.hash.mock, cmd.hash.base.start_sha256, &cmd.hash, 0);
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0, 
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN), MOCK_ARG (ECC_PUBKEY_DER_LEN));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0, 
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY2_DER, ECC_PUBKEY2_DER_LEN), 
+		MOCK_ARG (ECC_PUBKEY2_DER_LEN));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.finish, &cmd.hash, 0, 
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&cmd.hash.mock, 0, digest, sizeof (digest), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_key_pair, &cmd.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 3);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_signature_max_length, &cmd.ecc, 91,
+		MOCK_ARG_SAVED_ARG (3));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.sign, &cmd.ecc, ECC_SIG_TEST_LEN, 
+		MOCK_ARG_SAVED_ARG (3), MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)), 
+		MOCK_ARG (sizeof (digest)), MOCK_ARG_NOT_NULL, MOCK_ARG (rq.max_response - 
+		sizeof (struct cerberus_protocol_key_exchange_response_type_0) - ECC_PUBKEY2_DER_LEN - 
+		sizeof (uint16_t)));
+	status |= mock_expect_output (&cmd.ecc.mock, 3, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN, -1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_shared_secret_max_length, &cmd.ecc, 64,
-		MOCK_ARG_SAVED_ARG (0));
+		MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.compute_shared_secret, &cmd.ecc, 64,
-		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_SAVED_ARG (1), MOCK_ARG_NOT_NULL, MOCK_ARG (64));
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_SAVED_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG (64));
 	status |= mock_expect_output (&cmd.ecc.mock, 2, SHARED_SECRET, sizeof (SHARED_SECRET), 3);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&cmd.hash.mock, cmd.hash.base.start_sha256, &cmd.hash,
+	status = mock_expect (&cmd.hash.mock, cmd.hash.base.start_sha256, &cmd.hash, 
 		HASH_ENGINE_NO_MEMORY);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_SAVED_ARG (1));
-	CuAssertIntEquals (test, 0, status);
-
-	status = cmd.session.base.add_session (&cmd.session.base, 0x10, nonce1, nonce2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cmd.session.base.establish_session (&cmd.session.base, 0x10, ECC_PUBKEY_DER,
-		ECC_PUBKEY_DER_LEN, true);
-	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
-
-	release_session_manager_ecc_test (test, &cmd);
-}
-
-static void session_manager_ecc_test_establish_session_update1_hmac_fail (CuTest *test)
-{
-	struct session_manager_ecc_testing cmd;
-	uint8_t nonce1[] = {
-		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,
-		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
-	};
-	uint8_t nonce2[] = {
-		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
-		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
-	};
-	int status;
-
-	TEST_START;
-
-	setup_session_manager_ecc_test (test, &cmd);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
-		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_public_key, &cmd.ecc, 0,
-		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN),
-		MOCK_ARG (ECC_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_shared_secret_max_length, &cmd.ecc, 64,
-		MOCK_ARG_SAVED_ARG (0));
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.compute_shared_secret, &cmd.ecc, 64,
-		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_SAVED_ARG (1), MOCK_ARG_NOT_NULL, MOCK_ARG (64));
-	status |= mock_expect_output (&cmd.ecc.mock, 2, SHARED_SECRET, sizeof (SHARED_SECRET), 3);
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_mock_expect_hmac_init (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET));
-	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, HASH_ENGINE_NO_MEMORY,
-		MOCK_ARG_PTR_CONTAINS (&nonce1, sizeof (nonce1)), MOCK_ARG (sizeof (nonce1)));
-	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.cancel, &cmd.hash, 0);
+		MOCK_ARG_SAVED_ARG (3), MOCK_ARG (NULL));
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_SAVED_ARG (1));
-	CuAssertIntEquals (test, 0, status);
-
-	status = cmd.session.base.add_session (&cmd.session.base, 0x10, nonce1, nonce2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cmd.session.base.establish_session (&cmd.session.base, 0x10, ECC_PUBKEY_DER,
-		ECC_PUBKEY_DER_LEN, true);
-	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
-
-	release_session_manager_ecc_test (test, &cmd);
-}
-
-static void session_manager_ecc_test_establish_session_update2_hmac_fail (CuTest *test)
-{
-	struct session_manager_ecc_testing cmd;
-	uint8_t nonce1[] = {
-		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,
-		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
-	};
-	uint8_t nonce2[] = {
-		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
-		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
-	};
-	int status;
-
-	TEST_START;
-
-	setup_session_manager_ecc_test (test, &cmd);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
-		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_public_key, &cmd.ecc, 0,
-		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN),
-		MOCK_ARG (ECC_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_shared_secret_max_length, &cmd.ecc, 64,
-		MOCK_ARG_SAVED_ARG (0));
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.compute_shared_secret, &cmd.ecc, 64,
-		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_SAVED_ARG (1), MOCK_ARG_NOT_NULL, MOCK_ARG (64));
-	status |= mock_expect_output (&cmd.ecc.mock, 2, SHARED_SECRET, sizeof (SHARED_SECRET), 3);
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_mock_expect_hmac_init (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET));
-	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
-		MOCK_ARG_PTR_CONTAINS (&nonce1, sizeof (nonce1)), MOCK_ARG (sizeof (nonce1)));
-	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, HASH_ENGINE_NO_MEMORY,
-		MOCK_ARG_PTR_CONTAINS (&nonce2, sizeof (nonce2)), MOCK_ARG (sizeof (nonce2)));
-	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.cancel, &cmd.hash, 0);
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_SAVED_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_SAVED_ARG (1));
+		 MOCK_ARG (NULL), MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cmd.session.base.add_session (&cmd.session.base, 0x10, nonce1, nonce2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cmd.session.base.establish_session (&cmd.session.base, 0x10, ECC_PUBKEY_DER,
-		ECC_PUBKEY_DER_LEN, true);
+	status = cmd.session.base.establish_session (&cmd.session.base, &rq);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
 	release_session_manager_ecc_test (test, &cmd);
 }
 
-static void session_manager_ecc_test_establish_session_finish_hmac_fail (CuTest *test)
+static void session_manager_ecc_test_establish_session_generate_hmac_key_fail (CuTest *test)
 {
 	struct session_manager_ecc_testing cmd;
+	struct cmd_interface_request rq;
+	struct cerberus_protocol_key_exchange_type_0 *rq_ptr =
+		(struct cerberus_protocol_key_exchange_type_0*) &rq.data;
 	uint8_t nonce1[] = {
 		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,
 		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
@@ -1334,52 +2254,296 @@ static void session_manager_ecc_test_establish_session_finish_hmac_fail (CuTest 
 		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
 		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
 	};
+	uint8_t session_key[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+	uint8_t digest[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0x0e,0x9a,0x37,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,
+		0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,0xd5,0xc5,0xc6
+	};
+	uint32_t i_1 = platform_htonl (1);
+	uint8_t separator = 0;
+	uint32_t L = platform_htonl (256);
+	uint8_t *ecc_cerberus_key;
 	int status;
 
 	TEST_START;
 
+	rq.max_response = 4096;
+	rq.source_eid = 0x10;
+	rq.length = cerberus_protocol_key_exchange_type_0_length (ECC_PUBKEY_DER_LEN);
+
+	rq_ptr->common.key_type = CERBERUS_PROTOCOL_SESSION_KEY;
+	rq_ptr->hmac_type = CERBERUS_PROTOCOL_HMAC_SHA256;
+
+	memcpy (((uint8_t*) rq_ptr) + sizeof (struct cerberus_protocol_key_exchange_type_0), 
+		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
+
+	ecc_cerberus_key = platform_malloc (ECC_PUBKEY2_DER_LEN);
+	CuAssertPtrNotNull (test, ecc_cerberus_key);
+
+	memcpy (ecc_cerberus_key, ECC_PUBKEY2_DER, ECC_PUBKEY2_DER_LEN);
+
 	setup_session_manager_ecc_test (test, &cmd);
 
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
-		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 0);
+	status = cmd.session.base.add_session (&cmd.session.base, 0x10, nonce1, nonce2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_public_key, &cmd.ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN),
 		MOCK_ARG (ECC_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 1);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_shared_secret_max_length, &cmd.ecc, 64,
-		MOCK_ARG_SAVED_ARG (0));
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.generate_key_pair, &cmd.ecc, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 0, 1);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 1, 2);
 	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.compute_shared_secret, &cmd.ecc, 64,
-		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_SAVED_ARG (1), MOCK_ARG_NOT_NULL, MOCK_ARG (64));
-	status |= mock_expect_output (&cmd.ecc.mock, 2, SHARED_SECRET, sizeof (SHARED_SECRET), 3);
+	
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_public_key_der, &cmd.ecc, 0,
+		MOCK_ARG_SAVED_ARG (2), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&cmd.ecc.mock, 1, &ecc_cerberus_key, sizeof (ecc_cerberus_key),
+		-1);
+	status |= mock_expect_output (&cmd.ecc.mock, 2, &ECC_PUBKEY2_DER_LEN, 
+		sizeof (ECC_PUBKEY2_DER_LEN), -1);
 	CuAssertIntEquals (test, 0, status);
-
-	status = hash_mock_expect_hmac_init (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET));
-	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
-		MOCK_ARG_PTR_CONTAINS (&nonce1, sizeof (nonce1)), MOCK_ARG (sizeof (nonce1)));
-	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
-		MOCK_ARG_PTR_CONTAINS (&nonce2, sizeof (nonce2)), MOCK_ARG (sizeof (nonce2)));
-	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.finish, &cmd.hash, HASH_ENGINE_NO_MEMORY,
+	
+	status = mock_expect (&cmd.hash.mock, cmd.hash.base.start_sha256, &cmd.hash, 0);
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0, 
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN), MOCK_ARG (ECC_PUBKEY_DER_LEN));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0, 
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY2_DER, ECC_PUBKEY2_DER_LEN), 
+		MOCK_ARG (ECC_PUBKEY2_DER_LEN));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.finish, &cmd.hash, 0, 
 		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
-	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.cancel, &cmd.hash, 0);
+	status |= mock_expect_output (&cmd.hash.mock, 0, digest, sizeof (digest), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_key_pair, &cmd.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 3);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_signature_max_length, &cmd.ecc, 91,
+		MOCK_ARG_SAVED_ARG (3));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.sign, &cmd.ecc, ECC_SIG_TEST_LEN, 
+		MOCK_ARG_SAVED_ARG (3), MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)), 
+		MOCK_ARG (sizeof (digest)), MOCK_ARG_NOT_NULL, MOCK_ARG (rq.max_response - 
+		sizeof (struct cerberus_protocol_key_exchange_response_type_0) - ECC_PUBKEY2_DER_LEN - 
+		sizeof (uint16_t)));
+	status |= mock_expect_output (&cmd.ecc.mock, 3, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN, -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_shared_secret_max_length, &cmd.ecc, 64,
+		MOCK_ARG_SAVED_ARG (1));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.compute_shared_secret, &cmd.ecc, 64,
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_SAVED_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG (64));
+	status |= mock_expect_output (&cmd.ecc.mock, 2, SHARED_SECRET, sizeof (SHARED_SECRET), 3);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_expect_hmac_init (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (&i_1, sizeof (i_1)), MOCK_ARG (sizeof (i_1)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (&nonce1, sizeof (nonce1)), MOCK_ARG (sizeof (nonce1)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (&separator, sizeof (separator)), MOCK_ARG (sizeof (separator)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (&nonce2, sizeof (nonce2)), MOCK_ARG (sizeof (nonce2)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (&L, sizeof (L)), MOCK_ARG (sizeof (L)));
+	status |= hash_mock_expect_hmac_finish (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET),
+		NULL, SHA256_HASH_LENGTH, session_key, sizeof (session_key));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.hash.mock, cmd.hash.base.start_sha256, &cmd.hash, 
+		HASH_ENGINE_NO_MEMORY);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_SAVED_ARG (1));
+		MOCK_ARG_SAVED_ARG (3), MOCK_ARG (NULL));
 	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_SAVED_ARG (2));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
+		 MOCK_ARG (NULL), MOCK_ARG_SAVED_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd.session.base.establish_session (&cmd.session.base, &rq);
+	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
+
+	release_session_manager_ecc_test (test, &cmd);
+}
+
+static void session_manager_ecc_test_establish_session_generate_hmac_fail (CuTest *test)
+{
+	struct session_manager_ecc_testing cmd;
+	struct cmd_interface_request rq;
+	struct cerberus_protocol_key_exchange_type_0 *rq_ptr =
+		(struct cerberus_protocol_key_exchange_type_0*) &rq.data;
+	uint8_t nonce1[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
+	};
+	uint8_t nonce2[] = {
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+	uint8_t session_key[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+	uint8_t hmac_key[] = {
+		0xf1,0x3b,0x43,0x16,0xd5,0xc5,0xc6,0x10,0xad,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x37,
+		0x0e,0x9a,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+	uint8_t digest[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0x0e,0x9a,0x37,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,
+		0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,0xd5,0xc5,0xc6
+	};
+	uint8_t *ecc_cerberus_key;
+	uint32_t i_1 = platform_htonl (1);
+	uint8_t separator = 0;
+	uint32_t L = platform_htonl (256);
+	int status;
+
+	TEST_START;
+
+	rq.max_response = 4096;
+	rq.source_eid = 0x10;
+	rq.length = cerberus_protocol_key_exchange_type_0_length (ECC_PUBKEY_DER_LEN);
+
+	rq_ptr->common.key_type = CERBERUS_PROTOCOL_SESSION_KEY;
+	rq_ptr->hmac_type = CERBERUS_PROTOCOL_HMAC_SHA256;
+
+	memcpy (((uint8_t*) rq_ptr) + sizeof (struct cerberus_protocol_key_exchange_type_0), 
+		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
+
+	ecc_cerberus_key = platform_malloc (ECC_PUBKEY2_DER_LEN);
+	CuAssertPtrNotNull (test, ecc_cerberus_key);
+
+	memcpy (ecc_cerberus_key, ECC_PUBKEY2_DER, ECC_PUBKEY2_DER_LEN);
+
+	setup_session_manager_ecc_test (test, &cmd);
 
 	status = cmd.session.base.add_session (&cmd.session.base, 0x10, nonce1, nonce2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = cmd.session.base.establish_session (&cmd.session.base, 0x10, ECC_PUBKEY_DER,
-		ECC_PUBKEY_DER_LEN, true);
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_public_key, &cmd.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN),
+		MOCK_ARG (ECC_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.generate_key_pair, &cmd.ecc, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 0, 1);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 1, 2);
+	CuAssertIntEquals (test, 0, status);
+	
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_public_key_der, &cmd.ecc, 0,
+		MOCK_ARG_SAVED_ARG (2), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&cmd.ecc.mock, 1, &ecc_cerberus_key, sizeof (ecc_cerberus_key),
+		-1);
+	status |= mock_expect_output (&cmd.ecc.mock, 2, &ECC_PUBKEY2_DER_LEN, 
+		sizeof (ECC_PUBKEY2_DER_LEN), -1);
+	CuAssertIntEquals (test, 0, status);
+	
+	status = mock_expect (&cmd.hash.mock, cmd.hash.base.start_sha256, &cmd.hash, 0);
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0, 
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN), MOCK_ARG (ECC_PUBKEY_DER_LEN));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0, 
+		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY2_DER, ECC_PUBKEY2_DER_LEN), 
+		MOCK_ARG (ECC_PUBKEY2_DER_LEN));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.finish, &cmd.hash, 0, 
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&cmd.hash.mock, 0, digest, sizeof (digest), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_key_pair, &cmd.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 3);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_signature_max_length, &cmd.ecc, 91,
+		MOCK_ARG_SAVED_ARG (3));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.sign, &cmd.ecc, ECC_SIG_TEST_LEN, 
+		MOCK_ARG_SAVED_ARG (3), MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)), 
+		MOCK_ARG (sizeof (digest)), MOCK_ARG_NOT_NULL, MOCK_ARG (rq.max_response - 
+		sizeof (struct cerberus_protocol_key_exchange_response_type_0) - ECC_PUBKEY2_DER_LEN - 
+		sizeof (uint16_t)));
+	status |= mock_expect_output (&cmd.ecc.mock, 3, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN, -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_shared_secret_max_length, &cmd.ecc, 64,
+		MOCK_ARG_SAVED_ARG (1));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.compute_shared_secret, &cmd.ecc, 64,
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_SAVED_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG (64));
+	status |= mock_expect_output (&cmd.ecc.mock, 2, SHARED_SECRET, sizeof (SHARED_SECRET), 3);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_expect_hmac_init (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (&i_1, sizeof (i_1)), MOCK_ARG (sizeof (i_1)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (&nonce1, sizeof (nonce1)), MOCK_ARG (sizeof (nonce1)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (&separator, sizeof (separator)), MOCK_ARG (sizeof (separator)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (&nonce2, sizeof (nonce2)), MOCK_ARG (sizeof (nonce2)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (&L, sizeof (L)), MOCK_ARG (sizeof (L)));
+	status |= hash_mock_expect_hmac_finish (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET),
+		NULL, SHA256_HASH_LENGTH, session_key, sizeof (session_key));
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_expect_hmac_init (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (&i_1, sizeof (i_1)), MOCK_ARG (sizeof (i_1)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (&nonce2, sizeof (nonce2)), MOCK_ARG (sizeof (nonce2)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (&separator, sizeof (separator)), MOCK_ARG (sizeof (separator)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (&nonce1, sizeof (nonce1)), MOCK_ARG (sizeof (nonce1)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (&L, sizeof (L)), MOCK_ARG (sizeof (L)));
+	status |= hash_mock_expect_hmac_finish (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET),
+		NULL, SHA256_HASH_LENGTH, hmac_key, sizeof (hmac_key));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.hash.mock, cmd.hash.base.start_sha256, &cmd.hash, 
+		HASH_ENGINE_NO_MEMORY);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
+		MOCK_ARG_SAVED_ARG (3), MOCK_ARG (NULL));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_SAVED_ARG (2));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
+		 MOCK_ARG (NULL), MOCK_ARG_SAVED_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd.session.base.establish_session (&cmd.session.base, &rq);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
 	release_session_manager_ecc_test (test, &cmd);
@@ -1388,18 +2552,17 @@ static void session_manager_ecc_test_establish_session_finish_hmac_fail (CuTest 
 static void session_manager_ecc_test_establish_session_invalid_arg (CuTest *test)
 {
 	struct session_manager_ecc_testing cmd;
+	struct cmd_interface_request rq;
 	int status;
 
 	TEST_START;
 
 	setup_session_manager_ecc_test (test, &cmd);
 
-	status = cmd.session.base.establish_session (NULL, 0x10, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, 
-		true);
+	status = cmd.session.base.establish_session (NULL, &rq);
 	CuAssertIntEquals (test, SESSION_MANAGER_INVALID_ARGUMENT, status);
 
-	status = cmd.session.base.establish_session (&cmd.session.base, 0x10, NULL, ECC_PUBKEY_DER_LEN,
-		 true);
+	status = cmd.session.base.establish_session (&cmd.session.base, NULL);
 	CuAssertIntEquals (test, SESSION_MANAGER_INVALID_ARGUMENT, status);
 
 	release_session_manager_ecc_test (test, &cmd);
@@ -1409,14 +2572,6 @@ static void session_manager_ecc_test_decrypt_message (CuTest *test)
 {
 	struct session_manager_ecc_testing cmd;
 	struct cmd_interface_request rq;
-	uint8_t nonce1[] = {
-		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,
-		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
-	};
-	uint8_t nonce2[] = {
-		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
-		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
-	};
 	uint8_t data[] = {
 		0xA,0xB,0xC,0xD,0xE,0xF,0xAA,0xBB,0xCC,0xDD,0xEE,0xFF
 	};
@@ -1432,8 +2587,8 @@ static void session_manager_ecc_test_decrypt_message (CuTest *test)
 	TEST_START;
 
 	memcpy (rq.data, data, sizeof (data));
-	memcpy (&rq.data[sizeof (data)], SESSION_AES_GCM_TAG, sizeof (SESSION_AES_GCM_TAG));
-	memcpy (&rq.data[sizeof (data) + sizeof (SESSION_AES_GCM_TAG)], SESSION_AES_IV, 
+	memcpy (rq.data + sizeof (data), SESSION_AES_GCM_TAG, sizeof (SESSION_AES_GCM_TAG));
+	memcpy (rq.data + sizeof (data) + sizeof (SESSION_AES_GCM_TAG), SESSION_AES_IV, 
 		sizeof (SESSION_AES_IV));
 
 	rq.length = 40;
@@ -1442,46 +2597,7 @@ static void session_manager_ecc_test_decrypt_message (CuTest *test)
 
 	setup_session_manager_ecc_test (test, &cmd);
 
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
-		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_public_key, &cmd.ecc, 0,
-		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN),
-		MOCK_ARG (ECC_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_shared_secret_max_length, &cmd.ecc, 64,
-		MOCK_ARG_SAVED_ARG (0));
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.compute_shared_secret, &cmd.ecc, 64,
-		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_SAVED_ARG (1), MOCK_ARG_NOT_NULL, MOCK_ARG (64));
-	status |= mock_expect_output (&cmd.ecc.mock, 2, SHARED_SECRET, sizeof (SHARED_SECRET), 3);
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_mock_expect_hmac_init (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET));
-	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
-		MOCK_ARG_PTR_CONTAINS (&nonce1, sizeof (nonce1)), MOCK_ARG (sizeof (nonce1)));
-	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
-		MOCK_ARG_PTR_CONTAINS (&nonce2, sizeof (nonce2)), MOCK_ARG (sizeof (nonce2)));
-	status |= hash_mock_expect_hmac_finish (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET),
-		NULL, SHA256_HASH_LENGTH, aes_key, sizeof (aes_key));
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_SAVED_ARG (1));
-	CuAssertIntEquals (test, 0, status);
-
-	status = cmd.session.base.add_session (&cmd.session.base, 0x10, nonce1, nonce2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cmd.session.base.establish_session (&cmd.session.base, 0x10, ECC_PUBKEY_DER,
-		ECC_PUBKEY_DER_LEN, true);
-	CuAssertIntEquals (test, 0, status);
+	session_manager_ecc_establish_session (test, &cmd, 0x10);
 
 	status = mock_expect (&cmd.aes.mock, cmd.aes.base.set_key, &cmd.aes, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (aes_key, sizeof (aes_key)), MOCK_ARG (sizeof (aes_key)));
@@ -1568,14 +2684,6 @@ static void session_manager_ecc_test_decrypt_message_set_key_fail (CuTest *test)
 {
 	struct session_manager_ecc_testing cmd;
 	struct cmd_interface_request rq;
-	uint8_t nonce1[] = {
-		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,
-		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
-	};
-	uint8_t nonce2[] = {
-		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
-		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
-	};
 	uint8_t aes_key[] = {
 		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
 		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
@@ -1590,46 +2698,7 @@ static void session_manager_ecc_test_decrypt_message_set_key_fail (CuTest *test)
 	rq.source_eid = 0x10;
 	rq.max_response = 4096;
 
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
-		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_public_key, &cmd.ecc, 0,
-		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN),
-		MOCK_ARG (ECC_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_shared_secret_max_length, &cmd.ecc, 64,
-		MOCK_ARG_SAVED_ARG (0));
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.compute_shared_secret, &cmd.ecc, 64,
-		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_SAVED_ARG (1), MOCK_ARG_NOT_NULL, MOCK_ARG (64));
-	status |= mock_expect_output (&cmd.ecc.mock, 2, SHARED_SECRET, sizeof (SHARED_SECRET), 3);
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_mock_expect_hmac_init (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET));
-	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
-		MOCK_ARG_PTR_CONTAINS (&nonce1, sizeof (nonce1)), MOCK_ARG (sizeof (nonce1)));
-	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
-		MOCK_ARG_PTR_CONTAINS (&nonce2, sizeof (nonce2)), MOCK_ARG (sizeof (nonce2)));
-	status |= hash_mock_expect_hmac_finish (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET),
-		NULL, SHA256_HASH_LENGTH, aes_key, sizeof (aes_key));
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_SAVED_ARG (1));
-	CuAssertIntEquals (test, 0, status);
-
-	status = cmd.session.base.add_session (&cmd.session.base, 0x10, nonce1, nonce2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cmd.session.base.establish_session (&cmd.session.base, 0x10, ECC_PUBKEY_DER,
-		ECC_PUBKEY_DER_LEN, true);
-	CuAssertIntEquals (test, 0, status);
+	session_manager_ecc_establish_session (test, &cmd, 0x10);
 
 	status = mock_expect (&cmd.aes.mock, cmd.aes.base.set_key, &cmd.aes, AES_ENGINE_NO_MEMORY,
 		MOCK_ARG_PTR_CONTAINS_TMP (aes_key, sizeof (aes_key)), MOCK_ARG (sizeof (aes_key)));
@@ -1645,14 +2714,6 @@ static void session_manager_ecc_test_decrypt_message_fail (CuTest *test)
 {
 	struct session_manager_ecc_testing cmd;
 	struct cmd_interface_request rq;
-	uint8_t nonce1[] = {
-		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,
-		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
-	};
-	uint8_t nonce2[] = {
-		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
-		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
-	};
 	uint8_t data[] = {
 		0xA,0xB,0xC,0xD,0xE,0xF,0xAA,0xBB,0xCC,0xDD,0xEE,0xFF
 	};
@@ -1665,8 +2726,8 @@ static void session_manager_ecc_test_decrypt_message_fail (CuTest *test)
 	TEST_START;
 
 	memcpy (rq.data, data, sizeof (data));
-	memcpy (&rq.data[sizeof (data)], SESSION_AES_GCM_TAG, sizeof (SESSION_AES_GCM_TAG));
-	memcpy (&rq.data[sizeof (data) + sizeof (SESSION_AES_GCM_TAG)], SESSION_AES_IV, 
+	memcpy (rq.data + sizeof (data), SESSION_AES_GCM_TAG, sizeof (SESSION_AES_GCM_TAG));
+	memcpy (rq.data + sizeof (data) + sizeof (SESSION_AES_GCM_TAG), SESSION_AES_IV, 
 		sizeof (SESSION_AES_IV));
 
 	rq.length = 40;
@@ -1675,46 +2736,7 @@ static void session_manager_ecc_test_decrypt_message_fail (CuTest *test)
 
 	setup_session_manager_ecc_test (test, &cmd);
 
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
-		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_public_key, &cmd.ecc, 0,
-		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN),
-		MOCK_ARG (ECC_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_shared_secret_max_length, &cmd.ecc, 64,
-		MOCK_ARG_SAVED_ARG (0));
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.compute_shared_secret, &cmd.ecc, 64,
-		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_SAVED_ARG (1), MOCK_ARG_NOT_NULL, MOCK_ARG (64));
-	status |= mock_expect_output (&cmd.ecc.mock, 2, SHARED_SECRET, sizeof (SHARED_SECRET), 3);
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_mock_expect_hmac_init (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET));
-	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
-		MOCK_ARG_PTR_CONTAINS (&nonce1, sizeof (nonce1)), MOCK_ARG (sizeof (nonce1)));
-	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
-		MOCK_ARG_PTR_CONTAINS (&nonce2, sizeof (nonce2)), MOCK_ARG (sizeof (nonce2)));
-	status |= hash_mock_expect_hmac_finish (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET),
-		NULL, SHA256_HASH_LENGTH, aes_key, sizeof (aes_key));
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_SAVED_ARG (1));
-	CuAssertIntEquals (test, 0, status);
-
-	status = cmd.session.base.add_session (&cmd.session.base, 0x10, nonce1, nonce2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cmd.session.base.establish_session (&cmd.session.base, 0x10, ECC_PUBKEY_DER,
-		ECC_PUBKEY_DER_LEN, true);
-	CuAssertIntEquals (test, 0, status);
+	session_manager_ecc_establish_session (test, &cmd, 0x10);
 
 	status = mock_expect (&cmd.aes.mock, cmd.aes.base.set_key, &cmd.aes, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (aes_key, sizeof (aes_key)), MOCK_ARG (sizeof (aes_key)));
@@ -1806,14 +2828,6 @@ static void session_manager_ecc_test_encrypt_message (CuTest *test)
 {
 	struct session_manager_ecc_testing cmd;
 	struct cmd_interface_request rq;
-	uint8_t nonce1[] = {
-		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,
-		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
-	};
-	uint8_t nonce2[] = {
-		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
-		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
-	};
 	uint8_t data[] = {
 		0xA,0xB,0xC,0xD,0xE,0xF,0xAA,0xBB,0xCC,0xDD,0xEE,0xFF
 	};
@@ -1840,46 +2854,7 @@ static void session_manager_ecc_test_encrypt_message (CuTest *test)
 
 	setup_session_manager_ecc_test (test, &cmd);
 
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
-		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_public_key, &cmd.ecc, 0,
-		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN),
-		MOCK_ARG (ECC_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_shared_secret_max_length, &cmd.ecc, 64,
-		MOCK_ARG_SAVED_ARG (0));
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.compute_shared_secret, &cmd.ecc, 64,
-		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_SAVED_ARG (1), MOCK_ARG_NOT_NULL, MOCK_ARG (64));
-	status |= mock_expect_output (&cmd.ecc.mock, 2, SHARED_SECRET, sizeof (SHARED_SECRET), 3);
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_mock_expect_hmac_init (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET));
-	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
-		MOCK_ARG_PTR_CONTAINS (&nonce1, sizeof (nonce1)), MOCK_ARG (sizeof (nonce1)));
-	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
-		MOCK_ARG_PTR_CONTAINS (&nonce2, sizeof (nonce2)), MOCK_ARG (sizeof (nonce2)));
-	status |= hash_mock_expect_hmac_finish (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET),
-		NULL, SHA256_HASH_LENGTH, aes_key, sizeof (aes_key));
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_SAVED_ARG (1));
-	CuAssertIntEquals (test, 0, status);
-
-	status = cmd.session.base.add_session (&cmd.session.base, 0x10, nonce1, nonce2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cmd.session.base.establish_session (&cmd.session.base, 0x10, ECC_PUBKEY_DER,
-		ECC_PUBKEY_DER_LEN, true);
-	CuAssertIntEquals (test, 0, status);
+	session_manager_ecc_establish_session (test, &cmd, 0x10);
 
 	status = mock_expect (&cmd.aes.mock, cmd.aes.base.set_key, &cmd.aes, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (aes_key, sizeof (aes_key)), MOCK_ARG (sizeof (aes_key)));
@@ -1991,14 +2966,6 @@ static void session_manager_ecc_test_encrypt_message_set_key_fail (CuTest *test)
 {
 	struct session_manager_ecc_testing cmd;
 	struct cmd_interface_request rq;
-	uint8_t nonce1[] = {
-		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,
-		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
-	};
-	uint8_t nonce2[] = {
-		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
-		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
-	};
 	uint8_t data[] = {
 		0xA,0xB,0xC,0xD,0xE,0xF,0xAA,0xBB,0xCC,0xDD,0xEE,0xFF
 	};
@@ -2018,46 +2985,7 @@ static void session_manager_ecc_test_encrypt_message_set_key_fail (CuTest *test)
 
 	setup_session_manager_ecc_test (test, &cmd);
 
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
-		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_public_key, &cmd.ecc, 0,
-		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN),
-		MOCK_ARG (ECC_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_shared_secret_max_length, &cmd.ecc, 64,
-		MOCK_ARG_SAVED_ARG (0));
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.compute_shared_secret, &cmd.ecc, 64,
-		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_SAVED_ARG (1), MOCK_ARG_NOT_NULL, MOCK_ARG (64));
-	status |= mock_expect_output (&cmd.ecc.mock, 2, SHARED_SECRET, sizeof (SHARED_SECRET), 3);
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_mock_expect_hmac_init (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET));
-	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
-		MOCK_ARG_PTR_CONTAINS (&nonce1, sizeof (nonce1)), MOCK_ARG (sizeof (nonce1)));
-	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
-		MOCK_ARG_PTR_CONTAINS (&nonce2, sizeof (nonce2)), MOCK_ARG (sizeof (nonce2)));
-	status |= hash_mock_expect_hmac_finish (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET),
-		NULL, SHA256_HASH_LENGTH, aes_key, sizeof (aes_key));
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_SAVED_ARG (1));
-	CuAssertIntEquals (test, 0, status);
-
-	status = cmd.session.base.add_session (&cmd.session.base, 0x10, nonce1, nonce2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cmd.session.base.establish_session (&cmd.session.base, 0x10, ECC_PUBKEY_DER,
-		ECC_PUBKEY_DER_LEN, true);
-	CuAssertIntEquals (test, 0, status);
+	session_manager_ecc_establish_session (test, &cmd, 0x10);
 
 	status = mock_expect (&cmd.aes.mock, cmd.aes.base.set_key, &cmd.aes, AES_ENGINE_NO_MEMORY,
 		MOCK_ARG_PTR_CONTAINS_TMP (aes_key, sizeof (aes_key)), MOCK_ARG (sizeof (aes_key)));
@@ -2073,14 +3001,6 @@ static void session_manager_ecc_test_encrypt_message_generate_iv_fail (CuTest *t
 {
 	struct session_manager_ecc_testing cmd;
 	struct cmd_interface_request rq;
-	uint8_t nonce1[] = {
-		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,
-		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
-	};
-	uint8_t nonce2[] = {
-		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
-		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
-	};
 	uint8_t data[] = {
 		0xA,0xB,0xC,0xD,0xE,0xF,0xAA,0xBB,0xCC,0xDD,0xEE,0xFF
 	};
@@ -2100,46 +3020,7 @@ static void session_manager_ecc_test_encrypt_message_generate_iv_fail (CuTest *t
 
 	setup_session_manager_ecc_test (test, &cmd);
 
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
-		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_public_key, &cmd.ecc, 0,
-		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN),
-		MOCK_ARG (ECC_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_shared_secret_max_length, &cmd.ecc, 64,
-		MOCK_ARG_SAVED_ARG (0));
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.compute_shared_secret, &cmd.ecc, 64,
-		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_SAVED_ARG (1), MOCK_ARG_NOT_NULL, MOCK_ARG (64));
-	status |= mock_expect_output (&cmd.ecc.mock, 2, SHARED_SECRET, sizeof (SHARED_SECRET), 3);
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_mock_expect_hmac_init (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET));
-	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
-		MOCK_ARG_PTR_CONTAINS (&nonce1, sizeof (nonce1)), MOCK_ARG (sizeof (nonce1)));
-	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
-		MOCK_ARG_PTR_CONTAINS (&nonce2, sizeof (nonce2)), MOCK_ARG (sizeof (nonce2)));
-	status |= hash_mock_expect_hmac_finish (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET),
-		NULL, SHA256_HASH_LENGTH, aes_key, sizeof (aes_key));
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_SAVED_ARG (1));
-	CuAssertIntEquals (test, 0, status);
-
-	status = cmd.session.base.add_session (&cmd.session.base, 0x10, nonce1, nonce2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cmd.session.base.establish_session (&cmd.session.base, 0x10, ECC_PUBKEY_DER,
-		ECC_PUBKEY_DER_LEN, true);
-	CuAssertIntEquals (test, 0, status);
+	session_manager_ecc_establish_session (test, &cmd, 0x10);
 
 	status = mock_expect (&cmd.aes.mock, cmd.aes.base.set_key, &cmd.aes, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (aes_key, sizeof (aes_key)), MOCK_ARG (sizeof (aes_key)));
@@ -2160,14 +3041,6 @@ static void session_manager_ecc_test_encrypt_message_fail (CuTest *test)
 {
 	struct session_manager_ecc_testing cmd;
 	struct cmd_interface_request rq;
-	uint8_t nonce1[] = {
-		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,
-		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
-	};
-	uint8_t nonce2[] = {
-		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
-		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
-	};
 	uint8_t data[] = {
 		0xA,0xB,0xC,0xD,0xE,0xF,0xAA,0xBB,0xCC,0xDD,0xEE,0xFF
 	};
@@ -2187,46 +3060,7 @@ static void session_manager_ecc_test_encrypt_message_fail (CuTest *test)
 
 	setup_session_manager_ecc_test (test, &cmd);
 
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
-		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_public_key, &cmd.ecc, 0,
-		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN),
-		MOCK_ARG (ECC_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_shared_secret_max_length, &cmd.ecc, 64,
-		MOCK_ARG_SAVED_ARG (0));
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.compute_shared_secret, &cmd.ecc, 64,
-		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_SAVED_ARG (1), MOCK_ARG_NOT_NULL, MOCK_ARG (64));
-	status |= mock_expect_output (&cmd.ecc.mock, 2, SHARED_SECRET, sizeof (SHARED_SECRET), 3);
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_mock_expect_hmac_init (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET));
-	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
-		MOCK_ARG_PTR_CONTAINS (&nonce1, sizeof (nonce1)), MOCK_ARG (sizeof (nonce1)));
-	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
-		MOCK_ARG_PTR_CONTAINS (&nonce2, sizeof (nonce2)), MOCK_ARG (sizeof (nonce2)));
-	status |= hash_mock_expect_hmac_finish (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET),
-		NULL, SHA256_HASH_LENGTH, aes_key, sizeof (aes_key));
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_SAVED_ARG (1));
-	CuAssertIntEquals (test, 0, status);
-
-	status = cmd.session.base.add_session (&cmd.session.base, 0x10, nonce1, nonce2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cmd.session.base.establish_session (&cmd.session.base, 0x10, ECC_PUBKEY_DER,
-		ECC_PUBKEY_DER_LEN, true);
-	CuAssertIntEquals (test, 0, status);
+	session_manager_ecc_establish_session (test, &cmd, 0x10);
 
 	status = mock_expect (&cmd.aes.mock, cmd.aes.base.set_key, &cmd.aes, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (aes_key, sizeof (aes_key)), MOCK_ARG (sizeof (aes_key)));
@@ -2322,56 +3156,13 @@ static void session_manager_ecc_test_is_session_established (CuTest *test)
 		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
 		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
 	};
-	uint8_t aes_key[] = {
-		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
-		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
-	};
 	int status;
 
 	TEST_START;
 
 	setup_session_manager_ecc_test (test, &cmd);
 
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
-		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_public_key, &cmd.ecc, 0,
-		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN),
-		MOCK_ARG (ECC_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_shared_secret_max_length, &cmd.ecc, 64,
-		MOCK_ARG_SAVED_ARG (0));
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.compute_shared_secret, &cmd.ecc, 64,
-		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_SAVED_ARG (1), MOCK_ARG_NOT_NULL, MOCK_ARG (64));
-	status |= mock_expect_output (&cmd.ecc.mock, 2, SHARED_SECRET, sizeof (SHARED_SECRET), 3);
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_mock_expect_hmac_init (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET));
-	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
-		MOCK_ARG_PTR_CONTAINS (&nonce1, sizeof (nonce1)), MOCK_ARG (sizeof (nonce1)));
-	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
-		MOCK_ARG_PTR_CONTAINS (&nonce2, sizeof (nonce2)), MOCK_ARG (sizeof (nonce2)));
-	status |= hash_mock_expect_hmac_finish (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET),
-		NULL, SHA256_HASH_LENGTH, aes_key, sizeof (aes_key));
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_SAVED_ARG (1));
-	CuAssertIntEquals (test, 0, status);
-
-	status = cmd.session.base.add_session (&cmd.session.base, 0x10, nonce1, nonce2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cmd.session.base.establish_session (&cmd.session.base, 0x10, ECC_PUBKEY_DER,
-		ECC_PUBKEY_DER_LEN, true);
-	CuAssertIntEquals (test, 0, status);
+	session_manager_ecc_establish_session (test, &cmd, 0x10);
 
 	status = cmd.session.base.is_session_established (&cmd.session.base, 0x10);
 	CuAssertIntEquals (test, 1, status);
@@ -2395,7 +3186,7 @@ static void session_manager_ecc_test_is_session_established_unexpected_eid (CuTe
 	setup_session_manager_ecc_test (test, &cmd);
 
 	status = cmd.session.base.is_session_established (&cmd.session.base, 0x30);
-	CuAssertIntEquals (test, SESSION_MANAGER_UNEXPECTED_EID, status);
+	CuAssertIntEquals (test, 0, status);
 
 	release_session_manager_ecc_test (test, &cmd);
 }
@@ -2415,20 +3206,376 @@ static void session_manager_ecc_test_is_session_established_invalid_arg (CuTest 
 	release_session_manager_ecc_test (test, &cmd);
 }
 
+static void session_manager_ecc_test_get_pairing_state (CuTest *test)
+{
+	struct session_manager_ecc_testing cmd;
+	
+	uint8_t session_key[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+	uint8_t session_key2[] = {
+		0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+	uint8_t hmac_key[] = {
+		0xf1,0x3b,0x43,0x16,0xd5,0xc5,0xc6,0x10,0xad,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x37,
+		0x0e,0x9a,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+	uint8_t pairing_key[] = {
+		0xf1,0x3b,0x43,0x16,0xc6,0x10,0x34,0xd6,0x37,0xff,0x3e,0xa0,0x02,0x73,0xc5,0x54,
+		0x0e,0x9a,0x2c,0xe4,0x05,0x75,0xd5,0xc5,0xad,0x80,0xfa,0x1a,0x0e,0x0a,0x04,0x41
+	};
+	uint8_t hmac[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,
+		0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
+	};
+	uint8_t *pairing_key_buf;
+	size_t pairing_key_buf_len = sizeof (pairing_key);
+	char *label_str = "pairing";
+	uint8_t separator = 0;
+	uint32_t i_1 = platform_htonl (1);
+	uint32_t L = platform_htonl (256);
+	int status;
+
+	TEST_START;
+
+	pairing_key_buf = platform_malloc (SHA256_HASH_LENGTH);
+	CuAssertPtrNotNull (test, pairing_key_buf);
+
+	setup_session_manager_ecc_test (test, &cmd);
+
+	session_manager_ecc_establish_session (test, &cmd, 0x10);
+
+	status = mock_expect (&cmd.keys_keystore.mock, cmd.keys_keystore.base.load_key, 
+		&cmd.keys_keystore, 0, MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&cmd.keys_keystore.mock, 1, &pairing_key_buf, sizeof (uint8_t*), 
+		-1);
+	status |= mock_expect_output (&cmd.keys_keystore.mock, 2, &pairing_key_buf_len, 
+		sizeof (pairing_key_buf_len), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd.session.base.get_pairing_state (&cmd.session.base, 0x10);
+	CuAssertIntEquals (test, SESSION_PAIRING_STATE_NOT_PAIRED, status);
+
+	status = mock_expect (&cmd.keys_keystore.mock, cmd.keys_keystore.base.load_key, 
+		&cmd.keys_keystore, KEYSTORE_NO_KEY, MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_expect_hmac_init (&cmd.hash, session_key, sizeof (session_key));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&i_1, sizeof (i_1)), MOCK_ARG (sizeof (i_1)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (label_str, strlen (label_str)), MOCK_ARG (strlen (label_str)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&separator, sizeof (separator)), MOCK_ARG (sizeof (separator)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&L, sizeof (L)), MOCK_ARG (sizeof (L)));
+	status |= hash_mock_expect_hmac_finish (&cmd.hash, session_key, sizeof (session_key),
+		NULL, SHA256_HASH_LENGTH, pairing_key, sizeof (pairing_key));
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_expect_hmac_init (&cmd.hash, hmac_key, sizeof (hmac_key));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (pairing_key, sizeof (pairing_key)), MOCK_ARG (sizeof (pairing_key)));
+	status |= hash_mock_expect_hmac_finish (&cmd.hash, hmac_key, sizeof (hmac_key), NULL, 
+		SHA256_HASH_LENGTH, hmac, sizeof (hmac));
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_expect_hmac_init (&cmd.hash, pairing_key, sizeof (pairing_key));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&i_1, sizeof (i_1)), MOCK_ARG (sizeof (i_1)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&session_key, sizeof (session_key)), 
+		MOCK_ARG (sizeof (session_key)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&separator, sizeof (separator)), MOCK_ARG (sizeof (separator)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&L, sizeof (L)), MOCK_ARG (sizeof (L)));
+	status |= hash_mock_expect_hmac_finish (&cmd.hash, pairing_key, sizeof (pairing_key),
+		NULL, SHA256_HASH_LENGTH, session_key2, sizeof (session_key2));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.keys_keystore.mock, cmd.keys_keystore.base.save_key, 
+		&cmd.keys_keystore, 0, MOCK_ARG (0), 
+		MOCK_ARG_PTR_CONTAINS_TMP (&pairing_key, sizeof (pairing_key)), 
+		MOCK_ARG (sizeof (pairing_key)));
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd.session.base.setup_paired_session (&cmd.session.base, 0x10, SHA256_HASH_LENGTH, 
+		hmac, sizeof (hmac));
+	CuAssertIntEquals (test, 0, status);
+
+	pairing_key_buf = platform_malloc (SHA256_HASH_LENGTH);
+	CuAssertPtrNotNull (test, pairing_key_buf);
+
+	status = mock_expect (&cmd.keys_keystore.mock, cmd.keys_keystore.base.load_key, 
+		&cmd.keys_keystore, 0, MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&cmd.keys_keystore.mock, 1, &pairing_key_buf, sizeof (uint8_t*), 
+		-1);
+	status |= mock_expect_output (&cmd.keys_keystore.mock, 2, &pairing_key_buf_len, 
+		sizeof (pairing_key_buf_len), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd.session.base.get_pairing_state (&cmd.session.base, 0x10);
+	CuAssertIntEquals (test, SESSION_PAIRING_STATE_PAIRED, status);
+
+	release_session_manager_ecc_test (test, &cmd);
+}
+
+static void session_manager_ecc_test_get_pairing_state_not_supported (CuTest *test)
+{
+	struct session_manager_ecc_testing cmd;
+	int status;
+
+	TEST_START;
+
+	setup_session_manager_ecc_test (test, &cmd);
+
+	session_manager_ecc_establish_session (test, &cmd, 0x12);
+
+	status = cmd.session.base.get_pairing_state (&cmd.session.base, 0x12);
+	CuAssertIntEquals (test, SESSION_PAIRING_STATE_NOT_SUPPORTED, status);
+
+	release_session_manager_ecc_test (test, &cmd);
+}
+
+static void session_manager_ecc_test_get_pairing_state_not_initialized (CuTest *test)
+{
+	struct session_manager_ecc_testing cmd;
+	int status;
+
+	TEST_START;
+
+	setup_session_manager_ecc_test (test, &cmd);
+
+	session_manager_ecc_establish_session (test, &cmd, 0x10);
+
+	status = mock_expect (&cmd.keys_keystore.mock, cmd.keys_keystore.base.load_key, 
+		&cmd.keys_keystore, KEYSTORE_NO_KEY, MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd.session.base.get_pairing_state (&cmd.session.base, 0x10);
+	CuAssertIntEquals (test, SESSION_PAIRING_STATE_NOT_INITIALIZED, status);
+
+	release_session_manager_ecc_test (test, &cmd);
+}
+
+static void session_manager_ecc_test_get_pairing_state_unexpected_eid (CuTest *test)
+{
+	struct session_manager_ecc_testing cmd;
+	uint8_t *dev_id_der = NULL;
+	uint8_t *pairing_key_buf;
+	size_t pairing_key_buf_len = SHA256_HASH_LENGTH;
+	uint8_t pairing_eid = 0x30;
+	int status;
+
+	TEST_START;
+
+	pairing_key_buf = platform_malloc (SHA256_HASH_LENGTH);
+	CuAssertPtrNotNull (test, pairing_key_buf);
+
+	status = aes_mock_init (&cmd.aes);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_mock_init (&cmd.ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_init (&cmd.hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = rng_mock_init (&cmd.rng);
+	CuAssertIntEquals (test, 0, status);
+
+	status = x509_mock_init (&cmd.x509);
+	CuAssertIntEquals (test, 0, status);
+
+	status = keystore_mock_init (&cmd.keys_keystore);
+	CuAssertIntEquals (test, 0, status);
+
+	status = keystore_mock_init (&cmd.riot_keystore);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.riot_keystore.mock, cmd.riot_keystore.base.load_key,
+		&cmd.riot_keystore, KEYSTORE_NO_KEY, MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&cmd.riot_keystore.mock, 1, &dev_id_der, sizeof (dev_id_der),
+		-1);
+	CuAssertIntEquals (test, 0, status);
+
+	keys.alias_cert_length = RIOT_CORE_ALIAS_CERT_LEN;
+	keys.devid_cert_length = RIOT_CORE_DEVID_CERT_LEN;
+	keys.alias_key_length = RIOT_CORE_ALIAS_KEY_LEN;
+
+	status = riot_key_manager_init_static (&cmd.riot, &cmd.riot_keystore.base, &keys,
+		&cmd.x509.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = session_manager_ecc_init (&cmd.session, &cmd.aes.base, &cmd.ecc.base,
+		&cmd.hash.base, &cmd.rng.base, &cmd.riot, NULL, 3, &pairing_eid, sizeof (pairing_eid), 
+		&cmd.keys_keystore.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.keys_keystore.mock, cmd.keys_keystore.base.load_key, 
+		&cmd.keys_keystore, 0, MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&cmd.keys_keystore.mock, 1, &pairing_key_buf, sizeof (uint8_t*), 
+		-1);
+	status |= mock_expect_output (&cmd.keys_keystore.mock, 2, &pairing_key_buf_len, 
+		sizeof (pairing_key_buf_len), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd.session.base.get_pairing_state (&cmd.session.base, 0x30);
+	CuAssertIntEquals (test, SESSION_PAIRING_STATE_NOT_PAIRED, status);
+
+	release_session_manager_ecc_test (test, &cmd);
+}
+
+static void session_manager_ecc_test_get_pairing_state_invalid_arg (CuTest *test)
+{
+	struct session_manager_ecc_testing cmd;
+	int status;
+
+	TEST_START;
+
+	setup_session_manager_ecc_test (test, &cmd);
+
+	status = cmd.session.base.get_pairing_state (NULL, 0x10);
+	CuAssertIntEquals (test, SESSION_MANAGER_INVALID_ARGUMENT, status);
+
+	release_session_manager_ecc_test (test, &cmd);
+}
+
 static void session_manager_ecc_test_reset_session (CuTest *test)
 {
 	struct session_manager_ecc_testing cmd;
-	uint8_t nonce1[] = {
-		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,
-		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
-	};
-	uint8_t nonce2[] = {
-		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
-		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
-	};
-	uint8_t aes_key[] = {
+	int status;
+
+	TEST_START;
+
+	setup_session_manager_ecc_test (test, &cmd);
+
+	session_manager_ecc_establish_session (test, &cmd, 0x10);
+
+	status = cmd.session.base.reset_session (&cmd.session.base, 0x10, NULL, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd.session.base.is_session_established (&cmd.session.base, 0x10);
+	CuAssertIntEquals (test, 0, status);
+
+	release_session_manager_ecc_test (test, &cmd);
+}
+
+static void session_manager_ecc_test_reset_session_paired_device (CuTest *test)
+{
+	struct session_manager_ecc_testing cmd;
+	uint8_t session_key[] = {
 		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
 		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+	uint8_t session_key2[] = {
+		0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+	uint8_t hmac_key[] = {
+		0xf1,0x3b,0x43,0x16,0xd5,0xc5,0xc6,0x10,0xad,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x37,
+		0x0e,0x9a,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+	uint8_t pairing_key[] = {
+		0xf1,0x3b,0x43,0x16,0xc6,0x10,0x34,0xd6,0x37,0xff,0x3e,0xa0,0x02,0x73,0xc5,0x54,
+		0x0e,0x9a,0x2c,0xe4,0x05,0x75,0xd5,0xc5,0xad,0x80,0xfa,0x1a,0x0e,0x0a,0x04,0x41
+	};
+	uint8_t hmac[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,
+		0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
+	};
+	uint8_t *pairing_key_buf;
+	char *label_str = "pairing";
+	uint8_t separator = 0;
+	uint32_t i_1 = platform_htonl (1);
+	uint32_t L = platform_htonl (256);
+	int status;
+
+	TEST_START;
+
+	pairing_key_buf = platform_malloc (sizeof (pairing_key));
+	CuAssertPtrNotNull (test, pairing_key_buf);
+
+	memcpy (pairing_key_buf, pairing_key, sizeof (pairing_key));
+
+	setup_session_manager_ecc_test (test, &cmd);
+
+	session_manager_ecc_establish_session (test, &cmd, 0x10);
+
+	status = mock_expect (&cmd.keys_keystore.mock, cmd.keys_keystore.base.load_key, 
+		&cmd.keys_keystore, KEYSTORE_NO_KEY, MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_expect_hmac_init (&cmd.hash, session_key, sizeof (session_key));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (&i_1, sizeof (i_1)), MOCK_ARG (sizeof (i_1)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (label_str, strlen (label_str)), MOCK_ARG (strlen (label_str)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&separator, sizeof (separator)), MOCK_ARG (sizeof (separator)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (&L, sizeof (L)), MOCK_ARG (sizeof (L)));
+	status |= hash_mock_expect_hmac_finish (&cmd.hash, session_key, sizeof (session_key),
+		NULL, SHA256_HASH_LENGTH, pairing_key, sizeof (pairing_key));
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_expect_hmac_init (&cmd.hash, hmac_key, sizeof (hmac_key));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (pairing_key, sizeof (pairing_key)), MOCK_ARG (sizeof (pairing_key)));
+	status |= hash_mock_expect_hmac_finish (&cmd.hash, hmac_key, sizeof (hmac_key), NULL, 
+		SHA256_HASH_LENGTH, hmac, sizeof (hmac));
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_expect_hmac_init (&cmd.hash, pairing_key, sizeof (pairing_key));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (&i_1, sizeof (i_1)), MOCK_ARG (sizeof (i_1)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (&session_key, sizeof (session_key)), 
+		MOCK_ARG (sizeof (session_key)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&separator, sizeof (separator)), MOCK_ARG (sizeof (separator)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (&L, sizeof (L)), MOCK_ARG (sizeof (L)));
+	status |= hash_mock_expect_hmac_finish (&cmd.hash, pairing_key, sizeof (pairing_key),
+		NULL, SHA256_HASH_LENGTH, session_key2, sizeof (session_key2));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.keys_keystore.mock, cmd.keys_keystore.base.save_key, 
+		&cmd.keys_keystore, 0, MOCK_ARG (0), 
+		MOCK_ARG_PTR_CONTAINS_TMP (&pairing_key, sizeof (pairing_key)), 
+		MOCK_ARG (sizeof (pairing_key)));
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd.session.base.setup_paired_session (&cmd.session.base, 0x10, SHA256_HASH_LENGTH, 
+		hmac, sizeof (hmac));
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd.session.base.reset_session (&cmd.session.base, 0x10, NULL, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd.session.base.is_session_established (&cmd.session.base, 0x10);
+	CuAssertIntEquals (test, 0, status);
+
+	release_session_manager_ecc_test (test, &cmd);
+}
+
+static void session_manager_ecc_test_reset_session_with_hmac (CuTest *test)
+{
+	struct session_manager_ecc_testing cmd;
+	uint8_t session_key[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+	uint8_t hmac_key[] = {
+		0xf1,0x3b,0x43,0x16,0xd5,0xc5,0xc6,0x10,0xad,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x37,
+		0x0e,0x9a,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+	uint8_t hmac[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,
+		0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
 	};
 	int status;
 
@@ -2436,55 +3583,135 @@ static void session_manager_ecc_test_reset_session (CuTest *test)
 
 	setup_session_manager_ecc_test (test, &cmd);
 
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
-		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 0);
-	CuAssertIntEquals (test, 0, status);
+	session_manager_ecc_establish_session (test, &cmd, 0x10);
 
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.init_public_key, &cmd.ecc, 0,
-		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN),
-		MOCK_ARG (ECC_PUBKEY_DER_LEN), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_shared_secret_max_length, &cmd.ecc, 64,
-		MOCK_ARG_SAVED_ARG (0));
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.compute_shared_secret, &cmd.ecc, 64,
-		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_SAVED_ARG (1), MOCK_ARG_NOT_NULL, MOCK_ARG (64));
-	status |= mock_expect_output (&cmd.ecc.mock, 2, SHARED_SECRET, sizeof (SHARED_SECRET), 3);
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_mock_expect_hmac_init (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET));
+	status = hash_mock_expect_hmac_init (&cmd.hash, hmac_key, sizeof (hmac_key));
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
-		MOCK_ARG_PTR_CONTAINS (&nonce1, sizeof (nonce1)), MOCK_ARG (sizeof (nonce1)));
-	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
-		MOCK_ARG_PTR_CONTAINS (&nonce2, sizeof (nonce2)), MOCK_ARG (sizeof (nonce2)));
-	status |= hash_mock_expect_hmac_finish (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET),
-		NULL, SHA256_HASH_LENGTH, aes_key, sizeof (aes_key));
+		MOCK_ARG_PTR_CONTAINS (session_key, sizeof (session_key)), MOCK_ARG (sizeof (session_key)));
+	status |= hash_mock_expect_hmac_finish (&cmd.hash, hmac_key, sizeof (hmac_key), NULL, 
+		SHA256_HASH_LENGTH, hmac, sizeof (hmac));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_SAVED_ARG (1));
+	status = cmd.session.base.reset_session (&cmd.session.base, 0x10, hmac, sizeof (hmac));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cmd.session.base.add_session (&cmd.session.base, 0x10, nonce1, nonce2);
+	status = cmd.session.base.is_session_established (&cmd.session.base, 0x10);
 	CuAssertIntEquals (test, 0, status);
 
-	status = cmd.session.base.establish_session (&cmd.session.base, 0x10, ECC_PUBKEY_DER,
-		ECC_PUBKEY_DER_LEN, true);
-	CuAssertIntEquals (test, 0, status);
+	release_session_manager_ecc_test (test, &cmd);
+}
+
+static void session_manager_ecc_test_reset_session_with_hmac_session_not_established (CuTest *test)
+{
+	struct session_manager_ecc_testing cmd;
+	uint8_t hmac[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,
+		0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
+	};
+	int status;
+
+	TEST_START;
+
+	setup_session_manager_ecc_test (test, &cmd);
+
+	status = cmd.session.base.reset_session (&cmd.session.base, 0x10, hmac, sizeof (hmac));
+	CuAssertIntEquals (test, SESSION_MANAGER_UNEXPECTED_EID, status);
+
+	release_session_manager_ecc_test (test, &cmd);
+}
+
+static void session_manager_ecc_test_reset_session_with_hmac_unsupported_hmac_len (CuTest *test)
+{
+	struct session_manager_ecc_testing cmd;
+	uint8_t hmac[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,
+		0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
+		0xaa
+	};
+	int status;
+
+	TEST_START;
+
+	setup_session_manager_ecc_test (test, &cmd);
+
+	session_manager_ecc_establish_session (test, &cmd, 0x10);
+
+	status = cmd.session.base.reset_session (&cmd.session.base, 0x10, hmac, sizeof (hmac));
+	CuAssertIntEquals (test, SESSION_MANAGER_OPERATION_UNSUPPORTED, status);
 
 	status = cmd.session.base.is_session_established (&cmd.session.base, 0x10);
 	CuAssertIntEquals (test, 1, status);
 
-	status = cmd.session.base.reset_session (&cmd.session.base, 0x10);
+	release_session_manager_ecc_test (test, &cmd);
+}
+
+static void session_manager_ecc_test_reset_session_with_hmac_fail (CuTest *test)
+{
+	struct session_manager_ecc_testing cmd;
+	uint8_t hmac[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,
+		0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
+	};
+	int status;
+
+	TEST_START;
+
+	setup_session_manager_ecc_test (test, &cmd);
+
+	session_manager_ecc_establish_session (test, &cmd, 0x10);
+
+	status = mock_expect (&cmd.hash.mock, cmd.hash.base.start_sha256, &cmd.hash, 
+		HASH_ENGINE_NO_MEMORY);
 	CuAssertIntEquals (test, 0, status);
 
+	status = cmd.session.base.reset_session (&cmd.session.base, 0x10, hmac, sizeof (hmac));
+	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
+
 	status = cmd.session.base.is_session_established (&cmd.session.base, 0x10);
-	CuAssertIntEquals (test, SESSION_MANAGER_UNEXPECTED_EID, status);
+	CuAssertIntEquals (test, 1, status);
+
+	release_session_manager_ecc_test (test, &cmd);
+}
+
+static void session_manager_ecc_test_reset_session_with_hmac_not_permitted (CuTest *test)
+{
+	struct session_manager_ecc_testing cmd;
+	uint8_t session_key[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+	uint8_t hmac_key[] = {
+		0xf1,0x3b,0x43,0x16,0xd5,0xc5,0xc6,0x10,0xad,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x37,
+		0x0e,0x9a,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+	uint8_t hmac[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,
+		0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
+	};
+	uint8_t hmac2[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,
+		0xaa,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
+	};
+	int status;
+
+	TEST_START;
+
+	setup_session_manager_ecc_test (test, &cmd);
+
+	session_manager_ecc_establish_session (test, &cmd, 0x10);
+
+	status = hash_mock_expect_hmac_init (&cmd.hash, hmac_key, sizeof (hmac_key));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (session_key, sizeof (session_key)), MOCK_ARG (sizeof (session_key)));
+	status |= hash_mock_expect_hmac_finish (&cmd.hash, hmac_key, sizeof (hmac_key), NULL, 
+		SHA256_HASH_LENGTH, hmac, sizeof (hmac));
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd.session.base.reset_session (&cmd.session.base, 0x10, hmac2, sizeof (hmac2));
+	CuAssertIntEquals (test, SESSION_MANAGER_OPERATION_NOT_PERMITTED, status);
+
+	status = cmd.session.base.is_session_established (&cmd.session.base, 0x10);
+	CuAssertIntEquals (test, 1, status);
 
 	release_session_manager_ecc_test (test, &cmd);
 }
@@ -2498,7 +3725,7 @@ static void session_manager_ecc_test_reset_session_unexpected_eid (CuTest *test)
 
 	setup_session_manager_ecc_test (test, &cmd);
 
-	status = cmd.session.base.reset_session (&cmd.session.base, 0x30);
+	status = cmd.session.base.reset_session (&cmd.session.base, 0x30, NULL, 0);
 	CuAssertIntEquals (test, SESSION_MANAGER_UNEXPECTED_EID, status);
 
 	release_session_manager_ecc_test (test, &cmd);
@@ -2513,39 +3740,754 @@ static void session_manager_ecc_test_reset_session_invalid_arg (CuTest *test)
 
 	setup_session_manager_ecc_test (test, &cmd);
 
-	status = cmd.session.base.reset_session (NULL, 0x10);
+	status = cmd.session.base.reset_session (NULL, 0x10, NULL, 0);
 	CuAssertIntEquals (test, SESSION_MANAGER_INVALID_ARGUMENT, status);
 
 	release_session_manager_ecc_test (test, &cmd);
 }
+
+static void session_manager_ecc_test_setup_paired_session (CuTest *test)
+{
+	struct session_manager_ecc_testing cmd;
+	uint8_t session_key[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+	uint8_t session_key2[] = {
+		0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+	uint8_t hmac_key[] = {
+		0xf1,0x3b,0x43,0x16,0xd5,0xc5,0xc6,0x10,0xad,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x37,
+		0x0e,0x9a,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+	uint8_t pairing_key[] = {
+		0xf1,0x3b,0x43,0x16,0xc6,0x10,0x34,0xd6,0x37,0xff,0x3e,0xa0,0x02,0x73,0xc5,0x54,
+		0x0e,0x9a,0x2c,0xe4,0x05,0x75,0xd5,0xc5,0xad,0x80,0xfa,0x1a,0x0e,0x0a,0x04,0x41
+	};
+	uint8_t hmac[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,
+		0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
+	};
+	char* label_str = "pairing";
+	uint8_t separator = 0;
+	uint32_t i_1 = platform_htonl (1);
+	uint32_t L = platform_htonl (256);
+	int status;
+
+	TEST_START;
+
+	setup_session_manager_ecc_test (test, &cmd);
+
+	session_manager_ecc_establish_session (test, &cmd, 0x10);
+
+	status = mock_expect (&cmd.keys_keystore.mock, cmd.keys_keystore.base.load_key, 
+		&cmd.keys_keystore, KEYSTORE_NO_KEY, MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_expect_hmac_init (&cmd.hash, session_key, sizeof (session_key));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&i_1, sizeof (i_1)), MOCK_ARG (sizeof (i_1)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (label_str, strlen (label_str)), MOCK_ARG (strlen (label_str)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&separator, sizeof (separator)), MOCK_ARG (sizeof (separator)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&L, sizeof (L)), MOCK_ARG (sizeof (L)));
+	status |= hash_mock_expect_hmac_finish (&cmd.hash, session_key, sizeof (session_key),
+		NULL, SHA256_HASH_LENGTH, pairing_key, sizeof (pairing_key));
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_expect_hmac_init (&cmd.hash, hmac_key, sizeof (hmac_key));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (pairing_key, sizeof (pairing_key)), MOCK_ARG (sizeof (pairing_key)));
+	status |= hash_mock_expect_hmac_finish (&cmd.hash, hmac_key, sizeof (hmac_key), NULL, 
+		SHA256_HASH_LENGTH, hmac, sizeof (hmac));
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_expect_hmac_init (&cmd.hash, pairing_key, sizeof (pairing_key));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&i_1, sizeof (i_1)), MOCK_ARG (sizeof (i_1)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&session_key, sizeof (session_key)), 
+		MOCK_ARG (sizeof (session_key)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&separator, sizeof (separator)), MOCK_ARG (sizeof (separator)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&L, sizeof (L)), MOCK_ARG (sizeof (L)));
+	status |= hash_mock_expect_hmac_finish (&cmd.hash, pairing_key, sizeof (pairing_key),
+		NULL, SHA256_HASH_LENGTH, session_key2, sizeof (session_key2));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.keys_keystore.mock, cmd.keys_keystore.base.save_key, 
+		&cmd.keys_keystore, 0, MOCK_ARG (0), 
+		MOCK_ARG_PTR_CONTAINS_TMP (&pairing_key, sizeof (pairing_key)), 
+		MOCK_ARG (sizeof (pairing_key)));
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd.session.base.setup_paired_session (&cmd.session.base, 0x10, SHA256_HASH_LENGTH, 
+		hmac, sizeof (hmac));
+	CuAssertIntEquals (test, 0, status);
+
+	release_session_manager_ecc_test (test, &cmd);
+}
+
+static void session_manager_ecc_test_setup_paired_session_already_paired (CuTest *test)
+{
+	struct session_manager_ecc_testing cmd;
+	uint8_t session_key[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+	uint8_t session_key2[] = {
+		0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+	uint8_t hmac_key[] = {
+		0xf1,0x3b,0x43,0x16,0xd5,0xc5,0xc6,0x10,0xad,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x37,
+		0x0e,0x9a,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+	uint8_t pairing_key[] = {
+		0xf1,0x3b,0x43,0x16,0xc6,0x10,0x34,0xd6,0x37,0xff,0x3e,0xa0,0x02,0x73,0xc5,0x54,
+		0x0e,0x9a,0x2c,0xe4,0x05,0x75,0xd5,0xc5,0xad,0x80,0xfa,0x1a,0x0e,0x0a,0x04,0x41
+	};
+	uint8_t hmac2[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,
+		0x0a,0x04,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,0xd6,0x41,0x80,0xfa,0x1a,0x0e
+	};
+	uint8_t *pairing_key_buf;
+	size_t pairing_key_buf_len = sizeof (pairing_key);
+	uint8_t separator = 0;
+	uint32_t i_1 = platform_htonl (1);
+	uint32_t L = platform_htonl (256);
+	int status;
+
+	TEST_START;
+
+	pairing_key_buf = platform_malloc (sizeof (pairing_key));
+	CuAssertPtrNotNull (test, pairing_key_buf);
+
+	memcpy (pairing_key_buf, pairing_key, sizeof (pairing_key));
+
+	setup_session_manager_ecc_test (test, &cmd);
+
+	session_manager_ecc_establish_session (test, &cmd, 0x10);
+
+	status = mock_expect (&cmd.keys_keystore.mock, cmd.keys_keystore.base.load_key, 
+		&cmd.keys_keystore, 0, MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&cmd.keys_keystore.mock, 1, &pairing_key_buf, sizeof (uint8_t*), 
+		-1);
+	status |= mock_expect_output (&cmd.keys_keystore.mock, 2, &pairing_key_buf_len, 
+		sizeof (pairing_key_buf_len), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_expect_hmac_init (&cmd.hash, hmac_key, sizeof (hmac_key));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (pairing_key, sizeof (pairing_key)), MOCK_ARG (sizeof (pairing_key)));
+	status |= hash_mock_expect_hmac_finish (&cmd.hash, hmac_key, sizeof (hmac_key), NULL, 
+		SHA256_HASH_LENGTH, hmac2, sizeof (hmac2));
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_expect_hmac_init (&cmd.hash, pairing_key, sizeof (pairing_key));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (&i_1, sizeof (i_1)), MOCK_ARG (sizeof (i_1)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (&session_key, sizeof (session_key)), 
+		MOCK_ARG (sizeof (session_key)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (&separator, sizeof (separator)), MOCK_ARG (sizeof (separator)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (&L, sizeof (L)), MOCK_ARG (sizeof (L)));
+	status |= hash_mock_expect_hmac_finish (&cmd.hash, pairing_key, sizeof (pairing_key),
+		NULL, SHA256_HASH_LENGTH, session_key2, sizeof (session_key2));
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd.session.base.setup_paired_session (&cmd.session.base, 0x10, SHA256_HASH_LENGTH, 
+		hmac2, sizeof (hmac2));
+	CuAssertIntEquals (test, 0, status);
+
+	release_session_manager_ecc_test (test, &cmd);
+}
+
+static void session_manager_ecc_test_setup_paired_session_unexpected_eid (CuTest *test)
+{
+	struct session_manager_ecc_testing cmd;
+	uint8_t hmac[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,
+		0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
+	};
+	int status;
+
+	TEST_START;
+
+	setup_session_manager_ecc_test (test, &cmd);
+
+	session_manager_ecc_establish_session (test, &cmd, 0x10);
+
+	status = cmd.session.base.setup_paired_session (&cmd.session.base, 0x11, SHA256_HASH_LENGTH, 
+		hmac, sizeof (hmac));
+	CuAssertIntEquals (test, SESSION_MANAGER_UNEXPECTED_EID, status);
+
+	release_session_manager_ecc_test (test, &cmd);
+}
+
+static void session_manager_ecc_test_setup_paired_session_invalid_order (CuTest *test)
+{
+	struct session_manager_ecc_testing cmd;
+	uint8_t hmac[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,
+		0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
+	};
+	int status;
+
+	TEST_START;
+
+	setup_session_manager_ecc_test (test, &cmd);
+
+	status = cmd.session.base.setup_paired_session (&cmd.session.base, 0x10, SHA256_HASH_LENGTH, 
+		hmac, sizeof (hmac));
+	CuAssertIntEquals (test, SESSION_MANAGER_UNEXPECTED_EID, status);
+
+	release_session_manager_ecc_test (test, &cmd);
+}
+
+static void session_manager_ecc_test_setup_paired_session_not_permitted (CuTest *test)
+{
+	struct session_manager_ecc_testing cmd;
+	uint8_t hmac[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,
+		0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
+	};
+	int status;
+
+	TEST_START;
+
+	setup_session_manager_ecc_test (test, &cmd);
+
+	session_manager_ecc_establish_session (test, &cmd, 0x12);
+
+	status = cmd.session.base.setup_paired_session (&cmd.session.base, 0x12, SHA256_HASH_LENGTH, 
+		hmac, sizeof (hmac));
+	CuAssertIntEquals (test, SESSION_MANAGER_PAIRING_NOT_SUPPORTED_WITH_DEVICE, status);
+
+	release_session_manager_ecc_test (test, &cmd);
+}
+
+static void session_manager_ecc_test_setup_paired_session_load_pairing_key_fail (CuTest *test)
+{
+	struct session_manager_ecc_testing cmd;
+	uint8_t hmac2[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,
+		0x0a,0x04,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,0xd6,0x41,0x80,0xfa,0x1a,0x0e
+	};
+	uint8_t *pairing_key_buf;
+	int status;
+
+	TEST_START;
+
+	pairing_key_buf = platform_malloc (SHA256_HASH_LENGTH);
+	CuAssertPtrNotNull (test, pairing_key_buf);
+
+	setup_session_manager_ecc_test (test, &cmd);
+
+	session_manager_ecc_establish_session (test, &cmd, 0x10);
+
+	status = mock_expect (&cmd.keys_keystore.mock, cmd.keys_keystore.base.load_key, 
+		&cmd.keys_keystore, KEYSTORE_NO_MEMORY, MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd.session.base.setup_paired_session (&cmd.session.base, 0x10, SHA256_HASH_LENGTH, 
+		hmac2, sizeof (hmac2));
+	CuAssertIntEquals (test, KEYSTORE_NO_MEMORY, status);
+
+	release_session_manager_ecc_test (test, &cmd);
+}
+
+static void session_manager_ecc_test_setup_paired_session_generate_pairing_key_fail (CuTest *test)
+{
+	struct session_manager_ecc_testing cmd;
+	uint8_t hmac[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,
+		0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
+	};
+	int status;
+
+	TEST_START;
+
+	setup_session_manager_ecc_test (test, &cmd);
+
+	session_manager_ecc_establish_session (test, &cmd, 0x10);
+
+	status = mock_expect (&cmd.keys_keystore.mock, cmd.keys_keystore.base.load_key, 
+		&cmd.keys_keystore, KEYSTORE_NO_KEY, MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.hash.mock, cmd.hash.base.start_sha256, &cmd.hash, 
+		HASH_ENGINE_NO_MEMORY);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd.session.base.setup_paired_session (&cmd.session.base, 0x10, SHA256_HASH_LENGTH, 
+		hmac, sizeof (hmac));
+	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
+
+	release_session_manager_ecc_test (test, &cmd);
+}
+
+static void session_manager_ecc_test_setup_paired_session_generate_hmac_init_fail (
+	CuTest *test)
+{
+	struct session_manager_ecc_testing cmd;
+	uint8_t session_key[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+	uint8_t pairing_key[] = {
+		0xf1,0x3b,0x43,0x16,0xc6,0x10,0x34,0xd6,0x37,0xff,0x3e,0xa0,0x02,0x73,0xc5,0x54,
+		0x0e,0x9a,0x2c,0xe4,0x05,0x75,0xd5,0xc5,0xad,0x80,0xfa,0x1a,0x0e,0x0a,0x04,0x41
+	};
+	uint8_t hmac[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,
+		0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
+	};
+	char* label_str = "pairing";
+	uint8_t separator = 0;
+	uint32_t i_1 = platform_htonl (1);
+	uint32_t L = platform_htonl (256);
+	int status;
+
+	TEST_START;
+
+	setup_session_manager_ecc_test (test, &cmd);
+
+	session_manager_ecc_establish_session (test, &cmd, 0x10);
+
+	status = mock_expect (&cmd.keys_keystore.mock, cmd.keys_keystore.base.load_key, 
+		&cmd.keys_keystore, KEYSTORE_NO_KEY, MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_expect_hmac_init (&cmd.hash, session_key, sizeof (session_key));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&i_1, sizeof (i_1)), MOCK_ARG (sizeof (i_1)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (label_str, strlen (label_str)), MOCK_ARG (strlen (label_str)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&separator, sizeof (separator)), MOCK_ARG (sizeof (separator)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&L, sizeof (L)), MOCK_ARG (sizeof (L)));
+	status |= hash_mock_expect_hmac_finish (&cmd.hash, session_key, sizeof (session_key),
+		NULL, SHA256_HASH_LENGTH, pairing_key, sizeof (pairing_key));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.hash.mock, cmd.hash.base.start_sha256, &cmd.hash, 
+		HASH_ENGINE_NO_MEMORY);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd.session.base.setup_paired_session (&cmd.session.base, 0x10, SHA256_HASH_LENGTH, 
+		hmac, sizeof (hmac));
+	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
+
+	release_session_manager_ecc_test (test, &cmd);
+}
+
+static void session_manager_ecc_test_setup_paired_session_generate_hmac_update_fail (
+	CuTest *test)
+{
+	struct session_manager_ecc_testing cmd;
+	uint8_t session_key[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+	uint8_t hmac_key[] = {
+		0xf1,0x3b,0x43,0x16,0xd5,0xc5,0xc6,0x10,0xad,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x37,
+		0x0e,0x9a,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+	uint8_t pairing_key[] = {
+		0xf1,0x3b,0x43,0x16,0xc6,0x10,0x34,0xd6,0x37,0xff,0x3e,0xa0,0x02,0x73,0xc5,0x54,
+		0x0e,0x9a,0x2c,0xe4,0x05,0x75,0xd5,0xc5,0xad,0x80,0xfa,0x1a,0x0e,0x0a,0x04,0x41
+	};
+	uint8_t hmac[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,
+		0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
+	};
+	char* label_str = "pairing";
+	uint8_t separator = 0;
+	uint32_t i_1 = platform_htonl (1);
+	uint32_t L = platform_htonl (256);
+	int status;
+
+	TEST_START;
+
+	setup_session_manager_ecc_test (test, &cmd);
+
+	session_manager_ecc_establish_session (test, &cmd, 0x10);
+
+	status = mock_expect (&cmd.keys_keystore.mock, cmd.keys_keystore.base.load_key, 
+		&cmd.keys_keystore, KEYSTORE_NO_KEY, MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_expect_hmac_init (&cmd.hash, session_key, sizeof (session_key));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&i_1, sizeof (i_1)), MOCK_ARG (sizeof (i_1)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (label_str, strlen (label_str)), MOCK_ARG (strlen (label_str)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&separator, sizeof (separator)), MOCK_ARG (sizeof (separator)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&L, sizeof (L)), MOCK_ARG (sizeof (L)));
+	status |= hash_mock_expect_hmac_finish (&cmd.hash, session_key, sizeof (session_key),
+		NULL, SHA256_HASH_LENGTH, pairing_key, sizeof (pairing_key));
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_expect_hmac_init (&cmd.hash, hmac_key, sizeof (hmac_key));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, HASH_ENGINE_NO_MEMORY,
+		MOCK_ARG_PTR_CONTAINS (pairing_key, sizeof (pairing_key)), MOCK_ARG (sizeof (pairing_key)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.cancel, &cmd.hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd.session.base.setup_paired_session (&cmd.session.base, 0x10, SHA256_HASH_LENGTH, 
+		hmac, sizeof (hmac));
+	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
+
+	release_session_manager_ecc_test (test, &cmd);
+}
+
+static void session_manager_ecc_test_setup_paired_session_generate_hmac_finish_fail (
+	CuTest *test)
+{
+	struct session_manager_ecc_testing cmd;
+	uint8_t session_key[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+	uint8_t hmac_key[] = {
+		0xf1,0x3b,0x43,0x16,0xd5,0xc5,0xc6,0x10,0xad,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x37,
+		0x0e,0x9a,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+	uint8_t pairing_key[] = {
+		0xf1,0x3b,0x43,0x16,0xc6,0x10,0x34,0xd6,0x37,0xff,0x3e,0xa0,0x02,0x73,0xc5,0x54,
+		0x0e,0x9a,0x2c,0xe4,0x05,0x75,0xd5,0xc5,0xad,0x80,0xfa,0x1a,0x0e,0x0a,0x04,0x41
+	};
+	uint8_t hmac[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,
+		0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
+	};
+	char* label_str = "pairing";
+	uint8_t separator = 0;
+	uint32_t i_1 = platform_htonl (1);
+	uint32_t L = platform_htonl (256);
+	int status;
+
+	TEST_START;
+
+	setup_session_manager_ecc_test (test, &cmd);
+
+	session_manager_ecc_establish_session (test, &cmd, 0x10);
+
+	status = mock_expect (&cmd.keys_keystore.mock, cmd.keys_keystore.base.load_key, 
+		&cmd.keys_keystore, KEYSTORE_NO_KEY, MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_expect_hmac_init (&cmd.hash, session_key, sizeof (session_key));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&i_1, sizeof (i_1)), MOCK_ARG (sizeof (i_1)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (label_str, strlen (label_str)), MOCK_ARG (strlen (label_str)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&separator, sizeof (separator)), MOCK_ARG (sizeof (separator)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&L, sizeof (L)), MOCK_ARG (sizeof (L)));
+	status |= hash_mock_expect_hmac_finish (&cmd.hash, session_key, sizeof (session_key),
+		NULL, SHA256_HASH_LENGTH, pairing_key, sizeof (pairing_key));
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_expect_hmac_init (&cmd.hash, hmac_key, sizeof (hmac_key));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (pairing_key, sizeof (pairing_key)), MOCK_ARG (sizeof (pairing_key)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.finish, &cmd.hash, HASH_ENGINE_NO_MEMORY,
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.cancel, &cmd.hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd.session.base.setup_paired_session (&cmd.session.base, 0x10, SHA256_HASH_LENGTH, 
+		hmac, sizeof (hmac));
+	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
+
+	release_session_manager_ecc_test (test, &cmd);
+}
+
+static void session_manager_ecc_test_setup_paired_session_generate_session_key_fail (CuTest *test)
+{
+	struct session_manager_ecc_testing cmd;
+	uint8_t session_key[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+	uint8_t hmac_key[] = {
+		0xf1,0x3b,0x43,0x16,0xd5,0xc5,0xc6,0x10,0xad,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x37,
+		0x0e,0x9a,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+	uint8_t pairing_key[] = {
+		0xf1,0x3b,0x43,0x16,0xc6,0x10,0x34,0xd6,0x37,0xff,0x3e,0xa0,0x02,0x73,0xc5,0x54,
+		0x0e,0x9a,0x2c,0xe4,0x05,0x75,0xd5,0xc5,0xad,0x80,0xfa,0x1a,0x0e,0x0a,0x04,0x41
+	};
+	uint8_t hmac[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,
+		0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
+	};
+	char* label_str = "pairing";
+	uint8_t separator = 0;
+	uint32_t i_1 = platform_htonl (1);
+	uint32_t L = platform_htonl (256);
+	int status;
+
+	TEST_START;
+
+	setup_session_manager_ecc_test (test, &cmd);
+
+	session_manager_ecc_establish_session (test, &cmd, 0x10);
+
+	status = mock_expect (&cmd.keys_keystore.mock, cmd.keys_keystore.base.load_key, 
+		&cmd.keys_keystore, KEYSTORE_NO_KEY, MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_expect_hmac_init (&cmd.hash, session_key, sizeof (session_key));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&i_1, sizeof (i_1)), MOCK_ARG (sizeof (i_1)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (label_str, strlen (label_str)), MOCK_ARG (strlen (label_str)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&separator, sizeof (separator)), MOCK_ARG (sizeof (separator)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&L, sizeof (L)), MOCK_ARG (sizeof (L)));
+	status |= hash_mock_expect_hmac_finish (&cmd.hash, session_key, sizeof (session_key),
+		NULL, SHA256_HASH_LENGTH, pairing_key, sizeof (pairing_key));
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_expect_hmac_init (&cmd.hash, hmac_key, sizeof (hmac_key));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (pairing_key, sizeof (pairing_key)), MOCK_ARG (sizeof (pairing_key)));
+	status |= hash_mock_expect_hmac_finish (&cmd.hash, hmac_key, sizeof (hmac_key), NULL, 
+		SHA256_HASH_LENGTH, hmac, sizeof (hmac));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.hash.mock, cmd.hash.base.start_sha256, &cmd.hash, 
+		HASH_ENGINE_NO_MEMORY);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd.session.base.setup_paired_session (&cmd.session.base, 0x10, SHA256_HASH_LENGTH, 
+		hmac, sizeof (hmac));
+	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
+
+	release_session_manager_ecc_test (test, &cmd);
+}
+
+static void session_manager_ecc_test_setup_paired_session_save_pairing_key_fail (CuTest *test)
+{
+	struct session_manager_ecc_testing cmd;
+	uint8_t session_key[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+	uint8_t session_key2[] = {
+		0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+	uint8_t hmac_key[] = {
+		0xf1,0x3b,0x43,0x16,0xd5,0xc5,0xc6,0x10,0xad,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x37,
+		0x0e,0x9a,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+	uint8_t pairing_key[] = {
+		0xf1,0x3b,0x43,0x16,0xc6,0x10,0x34,0xd6,0x37,0xff,0x3e,0xa0,0x02,0x73,0xc5,0x54,
+		0x0e,0x9a,0x2c,0xe4,0x05,0x75,0xd5,0xc5,0xad,0x80,0xfa,0x1a,0x0e,0x0a,0x04,0x41
+	};
+	uint8_t hmac[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,
+		0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
+	};
+	char* label_str = "pairing";
+	uint8_t separator = 0;
+	uint32_t i_1 = platform_htonl (1);
+	uint32_t L = platform_htonl (256);
+	int status;
+
+	TEST_START;
+
+	setup_session_manager_ecc_test (test, &cmd);
+
+	session_manager_ecc_establish_session (test, &cmd, 0x10);
+
+	status = mock_expect (&cmd.keys_keystore.mock, cmd.keys_keystore.base.load_key, 
+		&cmd.keys_keystore, KEYSTORE_NO_KEY, MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_expect_hmac_init (&cmd.hash, session_key, sizeof (session_key));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&i_1, sizeof (i_1)), MOCK_ARG (sizeof (i_1)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (label_str, strlen (label_str)), MOCK_ARG (strlen (label_str)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&separator, sizeof (separator)), MOCK_ARG (sizeof (separator)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&L, sizeof (L)), MOCK_ARG (sizeof (L)));
+	status |= hash_mock_expect_hmac_finish (&cmd.hash, session_key, sizeof (session_key),
+		NULL, SHA256_HASH_LENGTH, pairing_key, sizeof (pairing_key));
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_expect_hmac_init (&cmd.hash, hmac_key, sizeof (hmac_key));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (pairing_key, sizeof (pairing_key)), MOCK_ARG (sizeof (pairing_key)));
+	status |= hash_mock_expect_hmac_finish (&cmd.hash, hmac_key, sizeof (hmac_key), NULL, 
+		SHA256_HASH_LENGTH, hmac, sizeof (hmac));
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_expect_hmac_init (&cmd.hash, pairing_key, sizeof (pairing_key));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&i_1, sizeof (i_1)), MOCK_ARG (sizeof (i_1)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&session_key, sizeof (session_key)), 
+		MOCK_ARG (sizeof (session_key)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&separator, sizeof (separator)), MOCK_ARG (sizeof (separator)));
+	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&L, sizeof (L)), MOCK_ARG (sizeof (L)));
+	status |= hash_mock_expect_hmac_finish (&cmd.hash, pairing_key, sizeof (pairing_key),
+		NULL, SHA256_HASH_LENGTH, session_key2, sizeof (session_key2));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.keys_keystore.mock, cmd.keys_keystore.base.save_key, 
+		&cmd.keys_keystore, KEYSTORE_NO_MEMORY, MOCK_ARG (0), 
+		MOCK_ARG_PTR_CONTAINS_TMP (&pairing_key, sizeof (pairing_key)), 
+		MOCK_ARG (sizeof (pairing_key)));
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd.session.base.setup_paired_session (&cmd.session.base, 0x10, SHA256_HASH_LENGTH, 
+		hmac, sizeof (hmac));
+	CuAssertIntEquals (test, KEYSTORE_NO_MEMORY, status);
+
+	release_session_manager_ecc_test (test, &cmd);
+}
+
+static void session_manager_ecc_test_setup_paired_session_unsupported (CuTest *test)
+{
+	struct session_manager_ecc_testing cmd;
+	uint8_t hmac[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,
+		0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
+	};
+	uint8_t *dev_id_der = NULL;
+	int status;
+
+	TEST_START;
+
+	status = aes_mock_init (&cmd.aes);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_mock_init (&cmd.ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_init (&cmd.hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = rng_mock_init (&cmd.rng);
+	CuAssertIntEquals (test, 0, status);
+
+	status = x509_mock_init (&cmd.x509);
+	CuAssertIntEquals (test, 0, status);
+
+	status = keystore_mock_init (&cmd.riot_keystore);
+	CuAssertIntEquals (test, 0, status);
+
+	status = keystore_mock_init (&cmd.keys_keystore);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.riot_keystore.mock, cmd.riot_keystore.base.load_key,
+		&cmd.riot_keystore, KEYSTORE_NO_KEY, MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&cmd.riot_keystore.mock, 1, &dev_id_der, sizeof (dev_id_der),
+		-1);
+	CuAssertIntEquals (test, 0, status);
+
+	keys.alias_cert_length = RIOT_CORE_ALIAS_CERT_LEN;
+	keys.devid_cert_length = RIOT_CORE_DEVID_CERT_LEN;
+	keys.alias_key_length = RIOT_CORE_ALIAS_KEY_LEN;
+
+	status = riot_key_manager_init_static (&cmd.riot, &cmd.riot_keystore.base, &keys,
+		&cmd.x509.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = session_manager_ecc_init (&cmd.session, &cmd.aes.base, &cmd.ecc.base,
+		&cmd.hash.base, &cmd.rng.base, &cmd.riot, NULL, 3, NULL, 1, NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	session_manager_ecc_establish_session (test, &cmd, 0x10);
+
+	status = cmd.session.base.setup_paired_session (&cmd.session.base, 0x10, SHA256_HASH_LENGTH, 
+		hmac, sizeof (hmac));
+	CuAssertIntEquals (test, SESSION_MANAGER_OPERATION_UNSUPPORTED, status);
+
+	release_session_manager_ecc_test (test, &cmd);
+}
+
+static void session_manager_ecc_test_setup_paired_session_invalid_arg (CuTest *test)
+{
+	struct session_manager_ecc_testing cmd;
+	uint8_t hmac[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,
+		0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
+	};
+	int status;
+
+	TEST_START;
+
+	setup_session_manager_ecc_test (test, &cmd);
+
+	status = cmd.session.base.setup_paired_session (NULL, 0x10, SHA256_HASH_LENGTH, 
+		hmac, sizeof (hmac));
+	CuAssertIntEquals (test, SESSION_MANAGER_INVALID_ARGUMENT, status);
+
+	status = cmd.session.base.setup_paired_session (&cmd.session.base, 0x10, SHA256_HASH_LENGTH, 
+		NULL, sizeof (hmac));
+	CuAssertIntEquals (test, SESSION_MANAGER_INVALID_ARGUMENT, status);
+
+	release_session_manager_ecc_test (test, &cmd);
+}
+
 
 CuSuite* get_session_manager_ecc_suite ()
 {
 	CuSuite *suite = CuSuiteNew ();
 
 	SUITE_ADD_TEST (suite, session_manager_ecc_test_init);
-	SUITE_ADD_TEST (suite, session_manager_ecc_test_init_invalid_arg);
 	SUITE_ADD_TEST (suite, session_manager_ecc_test_init_preallocated_table);
-	SUITE_ADD_TEST (suite, session_manager_ecc_test_init_preallocated_table_invalid_arg);
+	SUITE_ADD_TEST (suite, session_manager_ecc_test_init_invalid_arg);
 	SUITE_ADD_TEST (suite, session_manager_ecc_test_release_null);
 	SUITE_ADD_TEST (suite, session_manager_ecc_test_add_session);
 	SUITE_ADD_TEST (suite, session_manager_ecc_test_add_session_restart);
 	SUITE_ADD_TEST (suite, session_manager_ecc_test_add_session_full);
 	SUITE_ADD_TEST (suite, session_manager_ecc_test_add_session_invalid_arg);
 	SUITE_ADD_TEST (suite, session_manager_ecc_test_establish_session);
-	SUITE_ADD_TEST (suite, session_manager_ecc_test_establish_session_paired);
-	SUITE_ADD_TEST (suite, session_manager_ecc_test_establish_session_replace);
-	SUITE_ADD_TEST (suite, session_manager_ecc_test_establish_session_paired_unexpected_key);
+	SUITE_ADD_TEST (suite, session_manager_ecc_test_establish_session_invalid_request);
+	SUITE_ADD_TEST (suite, session_manager_ecc_test_establish_session_buf_smaller_than_response);
 	SUITE_ADD_TEST (suite, session_manager_ecc_test_establish_session_invalid_order);
 	SUITE_ADD_TEST (suite, session_manager_ecc_test_establish_session_unexpected_eid);
-	SUITE_ADD_TEST (suite, session_manager_ecc_test_establish_session_init_priv_key_fail);
-	SUITE_ADD_TEST (suite, session_manager_ecc_test_establish_session_init_pub_key_fail);
+	SUITE_ADD_TEST (suite, session_manager_ecc_test_establish_session_unsupported_hash_type);
+	SUITE_ADD_TEST (suite, session_manager_ecc_test_establish_session_init_device_pub_key_fail);
+	SUITE_ADD_TEST (suite, session_manager_ecc_test_establish_session_generate_response_key_fail);
+	SUITE_ADD_TEST (suite, session_manager_ecc_test_establish_session_get_session_key_der_fail);
+	SUITE_ADD_TEST (suite, session_manager_ecc_test_establish_session_start_keys_digest_fail);
+	SUITE_ADD_TEST (suite, 
+		session_manager_ecc_test_establish_session_update_keys_digest_device_key_fail);
+	SUITE_ADD_TEST (suite, 
+		session_manager_ecc_test_establish_session_update_keys_digest_session_key_fail);
+	SUITE_ADD_TEST (suite, session_manager_ecc_test_establish_session_finish_keys_digest_fail);
+	SUITE_ADD_TEST (suite, session_manager_ecc_test_establish_session_buf_smaller_than_session_key);
+	SUITE_ADD_TEST (suite, session_manager_ecc_test_establish_session_init_alias_priv_key_fail);
+	SUITE_ADD_TEST (suite, session_manager_ecc_test_establish_session_get_max_sig_len_fail);
+	SUITE_ADD_TEST (suite, session_manager_ecc_test_establish_session_sign_fail);
 	SUITE_ADD_TEST (suite, session_manager_ecc_test_establish_session_size_shared_secret_fail);
 	SUITE_ADD_TEST (suite, session_manager_ecc_test_establish_session_compute_shared_secret_fail);
-	SUITE_ADD_TEST (suite, session_manager_ecc_test_establish_session_init_hmac_fail);
-	SUITE_ADD_TEST (suite, session_manager_ecc_test_establish_session_update1_hmac_fail);
-	SUITE_ADD_TEST (suite, session_manager_ecc_test_establish_session_update2_hmac_fail);
-	SUITE_ADD_TEST (suite, session_manager_ecc_test_establish_session_finish_hmac_fail);
+	SUITE_ADD_TEST (suite, session_manager_ecc_test_establish_session_generate_session_key_fail);
+	SUITE_ADD_TEST (suite, session_manager_ecc_test_establish_session_generate_hmac_key_fail);
+	SUITE_ADD_TEST (suite, session_manager_ecc_test_establish_session_generate_hmac_fail);
 	SUITE_ADD_TEST (suite, session_manager_ecc_test_establish_session_invalid_arg);
 	SUITE_ADD_TEST (suite, session_manager_ecc_test_decrypt_message);
 	SUITE_ADD_TEST (suite, session_manager_ecc_test_decrypt_message_unexpected_eid);
@@ -2567,9 +4509,35 @@ CuSuite* get_session_manager_ecc_suite ()
 	SUITE_ADD_TEST (suite, session_manager_ecc_test_is_session_established);
 	SUITE_ADD_TEST (suite, session_manager_ecc_test_is_session_established_unexpected_eid);
 	SUITE_ADD_TEST (suite, session_manager_ecc_test_is_session_established_invalid_arg);
+	SUITE_ADD_TEST (suite, session_manager_ecc_test_get_pairing_state);
+	SUITE_ADD_TEST (suite, session_manager_ecc_test_get_pairing_state_not_supported);
+	SUITE_ADD_TEST (suite, session_manager_ecc_test_get_pairing_state_not_initialized);
+	SUITE_ADD_TEST (suite, session_manager_ecc_test_get_pairing_state_unexpected_eid);
+	SUITE_ADD_TEST (suite, session_manager_ecc_test_get_pairing_state_invalid_arg);
 	SUITE_ADD_TEST (suite, session_manager_ecc_test_reset_session);
+	SUITE_ADD_TEST (suite, session_manager_ecc_test_reset_session_paired_device);
+	SUITE_ADD_TEST (suite, session_manager_ecc_test_reset_session_with_hmac);
+	SUITE_ADD_TEST (suite, 
+		session_manager_ecc_test_reset_session_with_hmac_session_not_established);
+	SUITE_ADD_TEST (suite, session_manager_ecc_test_reset_session_with_hmac_unsupported_hmac_len);
+	SUITE_ADD_TEST (suite, session_manager_ecc_test_reset_session_with_hmac_fail);
+	SUITE_ADD_TEST (suite, session_manager_ecc_test_reset_session_with_hmac_not_permitted);
 	SUITE_ADD_TEST (suite, session_manager_ecc_test_reset_session_unexpected_eid);
 	SUITE_ADD_TEST (suite, session_manager_ecc_test_reset_session_invalid_arg);
+	SUITE_ADD_TEST (suite, session_manager_ecc_test_setup_paired_session);
+	SUITE_ADD_TEST (suite, session_manager_ecc_test_setup_paired_session_already_paired);
+	SUITE_ADD_TEST (suite, session_manager_ecc_test_setup_paired_session_unexpected_eid);
+	SUITE_ADD_TEST (suite, session_manager_ecc_test_setup_paired_session_invalid_order);
+	SUITE_ADD_TEST (suite, session_manager_ecc_test_setup_paired_session_not_permitted);
+	SUITE_ADD_TEST (suite, session_manager_ecc_test_setup_paired_session_load_pairing_key_fail);
+	SUITE_ADD_TEST (suite, session_manager_ecc_test_setup_paired_session_generate_pairing_key_fail);
+	SUITE_ADD_TEST (suite, session_manager_ecc_test_setup_paired_session_generate_hmac_init_fail);
+	SUITE_ADD_TEST (suite, session_manager_ecc_test_setup_paired_session_generate_hmac_update_fail);
+	SUITE_ADD_TEST (suite, session_manager_ecc_test_setup_paired_session_generate_hmac_finish_fail);
+	SUITE_ADD_TEST (suite, session_manager_ecc_test_setup_paired_session_generate_session_key_fail);
+	SUITE_ADD_TEST (suite, session_manager_ecc_test_setup_paired_session_save_pairing_key_fail);
+	SUITE_ADD_TEST (suite, session_manager_ecc_test_setup_paired_session_unsupported);
+	SUITE_ADD_TEST (suite, session_manager_ecc_test_setup_paired_session_invalid_arg);
 
 	return suite;
 }

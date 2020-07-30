@@ -9,6 +9,34 @@
 
 
 /**
+ * Determine if received request is encrypted from Cerberus protocol header.
+ *
+ * @param intf The command interface that will process the request.
+ * @param request The request being processed.
+ * 
+ * @return 0 if the request is not encrypted, 1 if request is encrypted or an error code.
+ */
+int cmd_interface_is_request_encrypted (struct cmd_interface *intf, 
+	struct cmd_interface_request *request)
+{
+	struct cerberus_protocol_header *header;
+	
+	if ((intf == NULL) || (request == NULL)) {
+		return CMD_HANDLER_INVALID_ARGUMENT;
+	}
+
+	header = (struct cerberus_protocol_header*) request->data;
+
+	if ((request->length < CERBERUS_PROTOCOL_MIN_MSG_LEN) ||
+		(header->msg_type != MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF) || 
+		(header->pci_vendor_id != CERBERUS_PROTOCOL_MSFT_PCI_VID)) {
+		return 0;
+	}
+
+	return header->crypt;
+}
+
+/**
  * Pre-process received request.
  *
  * @param intf The command interface that will process the request.

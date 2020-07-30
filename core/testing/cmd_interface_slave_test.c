@@ -883,7 +883,6 @@ static void cmd_interface_slave_test_process_encrypted_message_no_response (CuTe
 	struct cmd_interface_slave_testing cmd;
 	struct cmd_interface_request request;
 	struct cmd_interface_request decrypted_request;
-	struct cmd_interface_request response;
 	struct cerberus_protocol_import_certificate *req =
 		(struct cerberus_protocol_import_certificate*) request.data;	
 	struct cerberus_protocol_import_certificate *plaintext_rq = 
@@ -924,11 +923,6 @@ static void cmd_interface_slave_test_process_encrypted_message_no_response (CuTe
 	decrypted_request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
 	decrypted_request.source_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
 	decrypted_request.target_eid = MCTP_PROTOCOL_BMC_EID;
-
-	memcpy (&response, &decrypted_request, sizeof (response));
-
-	response.length = 0;
-	response.crypto_timeout = 1;
 	
 	setup_cmd_interface_slave_mock_test (test, &cmd);
 
@@ -943,10 +937,6 @@ static void cmd_interface_slave_test_process_encrypted_message_no_response (CuTe
 		X509_CERTSS_RSA_CA_NOPL_DER_LEN), MOCK_ARG (X509_CERTSS_RSA_CA_NOPL_DER_LEN));
 	status |= mock_expect (&cmd.background.mock, cmd.background.base.authenticate_riot_certs, 
 		&cmd.background, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&cmd.session.mock, cmd.session.base.encrypt_message,
-		&cmd.session, 0, MOCK_ARG_PTR_CONTAINS_TMP (&response, sizeof (response)));
 	CuAssertIntEquals (test, 0, status);
 
 	request.crypto_timeout = false;
@@ -1857,24 +1847,90 @@ static void cmd_interface_slave_test_issue_request_unsupported (CuTest *test)
 	complete_cmd_interface_slave_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_key_exchange_paired (CuTest *test)
+static void cmd_interface_slave_test_process_key_exchange_type_0 (CuTest *test)
 {
 	struct cmd_interface_slave_testing cmd;
 
 	setup_cmd_interface_slave_mock_test (test, &cmd);
 
-	cerberus_protocol_optional_commands_testing_process_get_key_exchange_paired (test, 
+	cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_0 (test, 
 		&cmd.handler.base, &cmd.session);
 	complete_cmd_interface_slave_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_key_exchange_not_paired (CuTest *test)
+static void cmd_interface_slave_test_process_key_exchange_type_0_fail (CuTest *test)
 {
 	struct cmd_interface_slave_testing cmd;
 
 	setup_cmd_interface_slave_mock_test (test, &cmd);
 
-	cerberus_protocol_optional_commands_testing_process_get_key_exchange_not_paired (test, 
+	cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_0_fail (test, 
+		&cmd.handler.base, &cmd.session);
+	complete_cmd_interface_slave_mock_test (test, &cmd);
+}
+
+static void cmd_interface_slave_test_process_key_exchange_type_1 (CuTest *test)
+{
+	struct cmd_interface_slave_testing cmd;
+
+	setup_cmd_interface_slave_mock_test (test, &cmd);
+
+	cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_1 (test, 
+		&cmd.handler.base, &cmd.session);
+	complete_cmd_interface_slave_mock_test (test, &cmd);
+}
+
+static void cmd_interface_slave_test_process_key_exchange_type_1_unencrypted (CuTest *test)
+{
+	struct cmd_interface_slave_testing cmd;
+
+	setup_cmd_interface_slave_mock_test (test, &cmd);
+
+	cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_1_unencrypted (
+		test, &cmd.handler.base);
+	complete_cmd_interface_slave_mock_test (test, &cmd);
+}
+
+static void cmd_interface_slave_test_process_key_exchange_type_1_fail (CuTest *test)
+{
+	struct cmd_interface_slave_testing cmd;
+
+	setup_cmd_interface_slave_mock_test (test, &cmd);
+
+	cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_1_fail (test, 
+		&cmd.handler.base, &cmd.session);
+	complete_cmd_interface_slave_mock_test (test, &cmd);
+}
+
+static void cmd_interface_slave_test_process_key_exchange_type_2 (CuTest *test)
+{
+	struct cmd_interface_slave_testing cmd;
+
+	setup_cmd_interface_slave_mock_test (test, &cmd);
+
+	cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_2 (test, 
+		&cmd.handler.base, &cmd.session);
+	complete_cmd_interface_slave_mock_test (test, &cmd);
+}
+
+static void cmd_interface_slave_test_process_key_exchange_type_2_unencrypted (CuTest *test)
+{
+	struct cmd_interface_slave_testing cmd;
+
+	setup_cmd_interface_slave_mock_test (test, &cmd);
+
+	cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_2_unencrypted (
+		test, &cmd.handler.base);
+	complete_cmd_interface_slave_mock_test (test, &cmd);
+}
+
+static void cmd_interface_slave_test_process_key_exchange_type_2_fail (CuTest *test)
+{
+	struct cmd_interface_slave_testing cmd;
+
+	setup_cmd_interface_slave_mock_test (test, &cmd);
+
+	cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_2_fail (test, 
 		&cmd.handler.base, &cmd.session);
 	complete_cmd_interface_slave_mock_test (test, &cmd);
 }
@@ -1890,17 +1946,6 @@ static void cmd_interface_slave_test_process_key_exchange_unsupported (CuTest *t
 	complete_cmd_interface_slave_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_key_exchange_invalid_len (CuTest *test)
-{
-	struct cmd_interface_slave_testing cmd;
-
-	setup_cmd_interface_slave_mock_test (test, &cmd);
-
-	cerberus_protocol_optional_commands_testing_process_get_key_exchange_invalid_len (test, 
-		&cmd.handler.base);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
-}
-
 static void cmd_interface_slave_test_process_key_exchange_unsupported_index (CuTest *test)
 {
 	struct cmd_interface_slave_testing cmd;
@@ -1912,14 +1957,14 @@ static void cmd_interface_slave_test_process_key_exchange_unsupported_index (CuT
 	complete_cmd_interface_slave_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_key_exchange_fail (CuTest *test)
+static void cmd_interface_slave_test_process_key_exchange_invalid_len (CuTest *test)
 {
 	struct cmd_interface_slave_testing cmd;
 
 	setup_cmd_interface_slave_mock_test (test, &cmd);
 
-	cerberus_protocol_optional_commands_testing_process_get_key_exchange_fail (test, 
-		&cmd.handler.base, &cmd.session);
+	cerberus_protocol_optional_commands_testing_process_get_key_exchange_invalid_len (test, 
+		&cmd.handler.base);
 	complete_cmd_interface_slave_mock_test (test, &cmd);
 }
 
@@ -2027,12 +2072,17 @@ CuSuite* get_cmd_interface_slave_suite ()
 	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_reset_counter_invalid_counter);
 	SUITE_ADD_TEST (suite, cmd_interface_slave_test_supports_all_required_commands);
 	SUITE_ADD_TEST (suite, cmd_interface_slave_test_issue_request_unsupported);
-	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_key_exchange_paired);
-	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_key_exchange_not_paired);
+	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_key_exchange_type_0);
+	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_key_exchange_type_0_fail);
+	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_key_exchange_type_1);
+	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_key_exchange_type_1_unencrypted);
+	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_key_exchange_type_1_fail);
+	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_key_exchange_type_2);
+	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_key_exchange_type_2_unencrypted);
+	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_key_exchange_type_2_fail);
 	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_key_exchange_unsupported);
-	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_key_exchange_invalid_len);
 	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_key_exchange_unsupported_index);
-	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_key_exchange_fail);
+	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_key_exchange_invalid_len);
 
 	return suite;
 }

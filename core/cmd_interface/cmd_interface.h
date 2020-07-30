@@ -94,6 +94,8 @@ struct cmd_interface {
 int cmd_interface_process_request (struct cmd_interface *intf,
 	struct cmd_interface_request *request, uint8_t *command_id, uint8_t *command_set, 
 	uint8_t *encrypted);
+int cmd_interface_is_request_encrypted (struct cmd_interface *intf, 
+	struct cmd_interface_request *request);
 
 
 #define	CMD_HANDLER_ERROR(code)		ROT_ERROR (ROT_MODULE_CMD_HANDLER, code)

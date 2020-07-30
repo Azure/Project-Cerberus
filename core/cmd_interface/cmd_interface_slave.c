@@ -100,7 +100,7 @@ static int cmd_interface_slave_process_request (struct cmd_interface *intf,
 			break;
 			
 		case CERBERUS_PROTOCOL_EXCHANGE_KEYS:
-			status = cerberus_protocol_key_exchange (interface->session, request);
+			status = cerberus_protocol_key_exchange (interface->session, request, encrypted);
 			break;
 
 		default:
@@ -108,6 +108,15 @@ static int cmd_interface_slave_process_request (struct cmd_interface *intf,
 	}
 
 	if ((status == 0) && encrypted) {
+		encrypted = cmd_interface_is_request_encrypted (intf, request);
+		if (ROT_IS_ERROR (encrypted)) {
+			return encrypted;
+		}
+
+		if (!encrypted) {
+			return 0;
+		}
+
 		request->max_response += SESSION_MANAGER_TRAILER_LEN;
 		
 		status = interface->session->encrypt_message (interface->session, request);

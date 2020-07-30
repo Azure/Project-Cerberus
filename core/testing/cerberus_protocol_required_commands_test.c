@@ -297,7 +297,7 @@ void cerberus_protocol_required_commands_testing_process_get_certificate_digest 
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&session->mock, session->base.reset_session, session, 0, 
-		MOCK_ARG (MCTP_PROTOCOL_BMC_EID));
+		MOCK_ARG (MCTP_PROTOCOL_BMC_EID), MOCK_ARG (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1572,7 +1572,7 @@ void cerberus_protocol_required_commands_testing_process_get_challenge_response 
 	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&session->mock, session->base.reset_session, session, 0, 
-		MOCK_ARG (MCTP_PROTOCOL_BMC_EID));
+		MOCK_ARG (MCTP_PROTOCOL_BMC_EID), MOCK_ARG (NULL), MOCK_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&slave_attestation->mock, slave_attestation->base.get_digests,
@@ -1837,7 +1837,7 @@ void cerberus_protocol_required_commands_testing_process_get_challenge_response_
 	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&session->mock, session->base.reset_session, session, 0, 
-		MOCK_ARG (MCTP_PROTOCOL_BMC_EID));
+		MOCK_ARG (MCTP_PROTOCOL_BMC_EID), MOCK_ARG (NULL), MOCK_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&slave_attestation->mock, slave_attestation->base.get_digests,
