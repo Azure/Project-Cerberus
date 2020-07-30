@@ -292,7 +292,7 @@ int cerberus_protocol_get_cfm_id (struct cfm_manager *cfm_mgr,
 	struct cerberus_protocol_get_cfm_id *rq = (struct cerberus_protocol_get_cfm_id*) request->data;
 	struct cerberus_protocol_get_cfm_id_version_response *rsp =
 		(struct cerberus_protocol_get_cfm_id_version_response*) request->data;
-	struct cfm *curr_cfm;
+	struct cfm *curr_cfm = NULL;
 	int status = 0;
 
 	if (request->length == (sizeof (struct cerberus_protocol_get_cfm_id) - sizeof (rq->id))) {
@@ -300,6 +300,14 @@ int cerberus_protocol_get_cfm_id (struct cfm_manager *cfm_mgr,
 	}
 	else if (request->length != sizeof (struct cerberus_protocol_get_cfm_id)) {
 		return CMD_HANDLER_BAD_LENGTH;
+	}
+
+	/* When there's no valid CFM manager, return a success
+	* with response indicating no valid manifest */
+	if (cfm_mgr == NULL) {
+		rsp->valid = 0;
+		rsp->version = 0;
+		goto resp_len;
 	}
 
 	status = cerberus_protocol_get_curr_cfm (cfm_mgr, rq->region, &curr_cfm);
@@ -320,6 +328,7 @@ int cerberus_protocol_get_cfm_id (struct cfm_manager *cfm_mgr,
 		rsp->version = 0;
 	}
 
+resp_len:
 	request->length = sizeof (struct cerberus_protocol_get_cfm_id_version_response);
 
 exit:
@@ -343,14 +352,21 @@ int cerberus_protocol_get_cfm_component_ids (struct cfm_manager *cfm_mgr,
 	struct cerberus_protocol_get_cfm_component_ids_response *rsp =
 		(struct cerberus_protocol_get_cfm_component_ids_response*) request->data;
 	struct cfm_component_ids component_ids;
-	struct cfm *curr_cfm;
+	struct cfm *curr_cfm = NULL;
 	uint16_t length;
 	uint32_t id_length;
 	uint32_t offset;
-	int status;
+	int status = 0;
 
 	if (request->length != sizeof (struct cerberus_protocol_get_cfm_component_ids)) {
 		return CMD_HANDLER_BAD_LENGTH;
+	}
+
+	if (cfm_mgr == NULL) {
+		rsp->valid = 0;
+		rsp->version = 0;
+		request->length = cerberus_protocol_get_cfm_component_ids_response_length (0);
+		return status;
 	}
 
 	status = cerberus_protocol_get_curr_cfm (cfm_mgr, rq->region, &curr_cfm);
@@ -456,7 +472,7 @@ int cerberus_protocol_get_pcd_id (struct pcd_manager *pcd_mgr,
 	struct cerberus_protocol_get_pcd_id *rq = (struct cerberus_protocol_get_pcd_id*) request->data;
 	struct cerberus_protocol_get_pcd_id_version_response *rsp =
 		(struct cerberus_protocol_get_pcd_id_version_response*) request->data;
-	struct pcd *curr_pcd;
+	struct pcd *curr_pcd = NULL;
 	int status = 0;
 
 	if (request->length == (sizeof (struct cerberus_protocol_get_pcd_id) - sizeof (rq->id))) {
@@ -466,8 +482,12 @@ int cerberus_protocol_get_pcd_id (struct pcd_manager *pcd_mgr,
 		return CMD_HANDLER_BAD_LENGTH;
 	}
 
+	/* When there's no valid PCD manager, return a success
+	 * with response indicating no valid manifest */
 	if (pcd_mgr == NULL) {
-		return CMD_HANDLER_UNSUPPORTED_COMMAND;
+		rsp->valid = 0;
+		rsp->version = 0;
+		goto req_len;
 	}
 
 	curr_pcd = pcd_mgr->get_active_pcd (pcd_mgr);
@@ -484,6 +504,7 @@ int cerberus_protocol_get_pcd_id (struct pcd_manager *pcd_mgr,
 		rsp->version = 0;
 	}
 
+req_len:
 	request->length = sizeof (struct cerberus_protocol_get_pcd_id_version_response);
 
 exit:
