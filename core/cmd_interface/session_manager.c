@@ -150,7 +150,7 @@ int session_manager_get_pairing_state (struct session_manager *session, uint8_t 
 	}
 
 	key_id = session_manager_get_paired_key_index (session, eid);
-	if (ROT_IS_ERROR (key_id)) {
+	if (ROT_IS_ERROR (key_id) || (session->store == NULL)) {
 		return SESSION_PAIRING_STATE_NOT_SUPPORTED;
 	}
 

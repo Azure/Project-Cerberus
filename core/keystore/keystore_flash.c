@@ -83,6 +83,17 @@ static int keystore_flash_erase_key (struct keystore *store, int id)
 	return flash->store->erase (flash->store, id);
 }
 
+static int keystore_flash_erase_all_keys (struct keystore *store)
+{
+	struct keystore_flash *flash = (struct keystore_flash*) store;
+
+	if (flash == NULL) {
+		return KEYSTORE_INVALID_ARGUMENT;
+	}
+
+	return flash->store->erase_all (flash->store);
+}
+
 /**
  * Initialize flash storage for device keys and certificates.  Keys are stored in flash block
  * storage.  Key IDs map directly to flash block IDs.
@@ -103,6 +114,7 @@ int keystore_flash_init (struct keystore_flash *store, struct flash_store *flash
 	store->base.save_key = keystore_flash_save_key;
 	store->base.load_key = keystore_flash_load_key;
 	store->base.erase_key = keystore_flash_erase_key;
+	store->base.erase_all_keys = keystore_flash_erase_all_keys;
 
 	store->store = flash;
 

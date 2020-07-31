@@ -749,6 +749,81 @@ static void keystore_flash_test_erase_key_erase_error (CuTest *test)
 	keystore_flash_release (&store);
 }
 
+static void keystore_flash_test_erase_all_keys (CuTest *test)
+{
+	struct flash_store_mock flash;
+	struct keystore_flash store;
+	int status;
+
+	TEST_START;
+
+	status = flash_store_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = keystore_flash_init (&store, &flash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&flash.mock, flash.base.erase_all, &flash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.base.erase_all_keys (&store.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_store_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	keystore_flash_release (&store);
+}
+
+static void keystore_flash_test_erase_all_keys_null (CuTest *test)
+{
+	struct flash_store_mock flash;
+	struct keystore_flash store;
+	int status;
+
+	TEST_START;
+
+	status = flash_store_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = keystore_flash_init (&store, &flash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.base.erase_all_keys (NULL);
+	CuAssertIntEquals (test, KEYSTORE_INVALID_ARGUMENT, status);
+
+	status = flash_store_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	keystore_flash_release (&store);
+}
+
+static void keystore_flash_test_erase_all_keys_erase_error (CuTest *test)
+{
+	struct flash_store_mock flash;
+	struct keystore_flash store;
+	int status;
+
+	TEST_START;
+
+	status = flash_store_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = keystore_flash_init (&store, &flash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&flash.mock, flash.base.erase_all, &flash, FLASH_STORE_ERASE_ALL_FAILED);
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.base.erase_all_keys (&store.base);
+	CuAssertIntEquals (test, FLASH_STORE_ERASE_ALL_FAILED, status);
+
+	status = flash_store_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	keystore_flash_release (&store);
+}
+
 
 CuSuite* get_keystore_flash_suite ()
 {
@@ -775,6 +850,9 @@ CuSuite* get_keystore_flash_suite ()
 	SUITE_ADD_TEST (suite, keystore_flash_test_erase_key_not_first_key);
 	SUITE_ADD_TEST (suite, keystore_flash_test_erase_key_null);
 	SUITE_ADD_TEST (suite, keystore_flash_test_erase_key_erase_error);
+	SUITE_ADD_TEST (suite, keystore_flash_test_erase_all_keys);
+	SUITE_ADD_TEST (suite, keystore_flash_test_erase_all_keys_null);
+	SUITE_ADD_TEST (suite, keystore_flash_test_erase_all_keys_erase_error);
 
 	return suite;
 }
