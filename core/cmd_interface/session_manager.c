@@ -178,7 +178,7 @@ int session_manager_get_pairing_state (struct session_manager *session, uint8_t 
  * Decrypt message using AES session key generated for session with device with requested EID.
  *
  * @param session Session manager instance to utilize.
- * @param request Request to encrypt.
+ * @param request Request to decrypt.
  *
  * @return Completion status, 0 if success or an error code.
  */

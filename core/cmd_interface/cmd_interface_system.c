@@ -21,13 +21,12 @@ int cmd_interface_system_process_request (struct cmd_interface *intf,
 	struct cmd_interface_system *interface = (struct cmd_interface_system*) intf;
 	uint8_t command_id;
 	uint8_t command_set;
-	uint8_t encrypted;
 	int device_num;
 	int direction;
 	int status;
 
 	status = cmd_interface_process_request (&interface->base, request, &command_id, &command_set, 
-		&encrypted);
+		true);
 	if (status != 0) {
 		return status;
 	}
@@ -42,20 +41,6 @@ int cmd_interface_system_process_request (struct cmd_interface *intf,
 		return direction;
 	}
 
-	if (encrypted) {
-		if (interface->session) {
-			status = interface->session->decrypt_message (interface->session, request);
-			if (status != 0) {
-				return status;
-			}
-
-			request->max_response -= SESSION_MANAGER_TRAILER_LEN;
-		}
-		else {
-			return CMD_HANDLER_ENCRYPTION_UNSUPPORTED;
-		}
-	}
-
 	switch (command_id) {
 		case CERBERUS_PROTOCOL_GET_FW_VERSION:
 			status = cerberus_protocol_get_fw_version (interface->fw_version, request);
@@ -64,7 +49,7 @@ int cmd_interface_system_process_request (struct cmd_interface *intf,
 		case CERBERUS_PROTOCOL_GET_DIGEST:
 			if (direction == DEVICE_MANAGER_UPSTREAM) {
 				status = cerberus_protocol_get_certificate_digest (interface->slave_attestation,
-					interface->session, request);
+					interface->base.session, request);
 				break;
 			}
 			else if (direction == DEVICE_MANAGER_DOWNSTREAM) {
@@ -91,7 +76,7 @@ int cmd_interface_system_process_request (struct cmd_interface *intf,
 		case CERBERUS_PROTOCOL_ATTESTATION_CHALLENGE:
 			if (direction == DEVICE_MANAGER_UPSTREAM) {
 				status = cerberus_protocol_get_challenge_response (interface->slave_attestation,
-					interface->session, request);
+					interface->base.session, request);
 			break;
 			}
 			if (direction == DEVICE_MANAGER_DOWNSTREAM) {
@@ -272,7 +257,8 @@ int cmd_interface_system_process_request (struct cmd_interface *intf,
 			break;
 			
 		case CERBERUS_PROTOCOL_EXCHANGE_KEYS:
-			status = cerberus_protocol_key_exchange (interface->session, request, encrypted);
+			status = cerberus_protocol_key_exchange (interface->base.session, request, 
+				intf->curr_txn_encrypted);
 			break;
 
 #ifdef ENABLE_DEBUG_COMMANDS
@@ -307,19 +293,8 @@ int cmd_interface_system_process_request (struct cmd_interface *intf,
 			return CMD_HANDLER_UNKNOWN_COMMAND;
 	}
 
-	if ((status == 0) && encrypted) {
-		encrypted = cmd_interface_is_request_encrypted (intf, request);
-		if (ROT_IS_ERROR (encrypted)) {
-			return encrypted;
-		}
-
-		if (!encrypted) {
-			return 0;
-		}
-
-		request->max_response += SESSION_MANAGER_TRAILER_LEN;
-
-		status = interface->session->encrypt_message (interface->session, request);
+	if (status == 0) {
+		status = cmd_interface_process_response (&interface->base, request);
 	}
 
 	return status;
@@ -469,7 +444,6 @@ int cmd_interface_system_init (struct cmd_interface_system *intf,
 	intf->recovery_manager_1 = recovery_manager_1;
 	intf->fw_version = fw_version;
 	intf->cmd_device = cmd_device;
-	intf->session = session;
 
 	intf->device_id.vendor_id = vendor_id;
 	intf->device_id.device_id = device_id;
@@ -478,6 +452,9 @@ int cmd_interface_system_init (struct cmd_interface_system *intf,
 
 	intf->base.process_request = cmd_interface_system_process_request;
 	intf->base.issue_request = cmd_interface_system_issue_request;
+	intf->base.generate_error_packet = cmd_interface_generate_error_packet;
+	
+	intf->base.session = session;
 
 	return 0;
 }

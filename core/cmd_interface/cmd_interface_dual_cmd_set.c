@@ -13,10 +13,9 @@ static int cmd_interface_dual_cmd_set_process_request (struct cmd_interface *int
 	struct cmd_interface_dual_cmd_set *interface = (struct cmd_interface_dual_cmd_set*) intf;
 	uint8_t command_id;
 	uint8_t command_set;
-	uint8_t encrypted;
 	int status;
 
-	status = cmd_interface_process_request (intf, request, &command_id, &command_set, &encrypted);
+	status = cmd_interface_process_request (intf, request, &command_id, &command_set, false);
 	if (status != 0) {
 		return status;
 	}

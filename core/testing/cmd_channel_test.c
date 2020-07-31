@@ -382,8 +382,10 @@ static void cmd_channel_test_receive_and_process_multi_packet_message (CuTest *t
 	struct cmd_packet tx_packet;
 	struct cmd_interface_request request;
 	struct cmd_interface_request response;
+	struct cmd_interface_request error_packet;
 	struct mctp_protocol_transport_header *header =
 		(struct mctp_protocol_transport_header*) rx_packet[0].data;
+	struct cerberus_protocol_error *error = (struct cerberus_protocol_error*) error_packet.data;
 	const int msg_size = 300;
 	uint16_t pci_vid = 0x1414;
 	uint8_t payload[msg_size];
@@ -477,6 +479,19 @@ static void cmd_channel_test_receive_and_process_multi_packet_message (CuTest *t
 	tx_packet.state = CMD_VALID_PACKET;
 	tx_packet.dest_addr = 0x55;
 
+	error_packet.length = sizeof (struct cerberus_protocol_error);
+
+	error->header.msg_type = 0x7E;
+	error->header.pci_vendor_id = 0x1414;
+	error->header.crypt = 0;
+	error->header.d_bit = 0;
+	error->header.integrity_check = 0;
+	error->header.seq_num = 0;
+	error->header.rq = 0;
+	error->header.command = 0x7F;
+	error->error_code = CERBERUS_PROTOCOL_NO_ERROR;
+	error->error_data = 0;
+
 	status = cmd_channel_mock_init (&channel, 0);
 	CuAssertIntEquals (test, 0, status);
 
@@ -528,6 +543,10 @@ static void cmd_channel_test_receive_and_process_multi_packet_message (CuTest *t
 	status |= mock_expect (&cmd.mock, cmd.base.process_request, &cmd, 0,
 		MOCK_ARG_VALIDATOR (cmd_interface_mock_validate_request, &request, sizeof (request)));
 	status |= mock_expect_output (&cmd.mock, 0, &response, sizeof (response), -1);
+
+	status |= mock_expect (&cmd.mock, cmd.base.generate_error_packet, &cmd, 0, MOCK_ARG_NOT_NULL, 
+		MOCK_ARG (CERBERUS_PROTOCOL_NO_ERROR), MOCK_ARG (0), MOCK_ARG (0));
+	status |= mock_expect_output (&cmd.mock, 0, &error_packet, sizeof (error_packet), -1);
 
 	status |= mock_expect (&channel.mock, channel.base.send_packet, &channel, 0,
 		MOCK_ARG_VALIDATOR (cmd_channel_mock_validate_packet, &tx_packet, sizeof (tx_packet)));
@@ -941,8 +960,10 @@ static void cmd_channel_test_receive_and_process_null (CuTest *test)
 	struct cmd_packet tx_packet;
 	struct cmd_interface_request request;
 	struct cmd_interface_request response;
+	struct cmd_interface_request error_packet;
 	struct mctp_protocol_transport_header *header =
 		(struct mctp_protocol_transport_header*) rx_packet[0].data;
+	struct cerberus_protocol_error *error = (struct cerberus_protocol_error*) error_packet.data;
 	const int msg_size = 300;
 	uint16_t pci_vid = 0x1414;
 	uint8_t payload[msg_size];
@@ -1062,6 +1083,19 @@ static void cmd_channel_test_receive_and_process_null (CuTest *test)
 	request.channel_id = 0;
 	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
 
+	error_packet.length = sizeof (struct cerberus_protocol_error);
+
+	error->header.msg_type = 0x7E;
+	error->header.pci_vendor_id = 0x1414;
+	error->header.crypt = 0;
+	error->header.d_bit = 0;
+	error->header.integrity_check = 0;
+	error->header.seq_num = 0;
+	error->header.rq = 0;
+	error->header.command = 0x7F;
+	error->error_code = CERBERUS_PROTOCOL_NO_ERROR;
+	error->error_data = 0;
+
 	memset (&response, 0, sizeof (response));
 
 	status = mock_expect (&channel.mock, channel.base.receive_packet, &channel, 0,
@@ -1098,6 +1132,10 @@ static void cmd_channel_test_receive_and_process_null (CuTest *test)
 	status |= mock_expect (&cmd.mock, cmd.base.process_request, &cmd, 0,
 		MOCK_ARG_VALIDATOR (cmd_interface_mock_validate_request, &request, sizeof (request)));
 	status |= mock_expect_output (&cmd.mock, 0, &response, sizeof (response), -1);
+
+	status |= mock_expect (&cmd.mock, cmd.base.generate_error_packet, &cmd, 0, MOCK_ARG_NOT_NULL, 
+		MOCK_ARG (CERBERUS_PROTOCOL_NO_ERROR), MOCK_ARG (0), MOCK_ARG (0));
+	status |= mock_expect_output (&cmd.mock, 0, &error_packet, sizeof (error_packet), -1);
 
 	status |= mock_expect (&channel.mock, channel.base.send_packet, &channel, 0,
 		MOCK_ARG_VALIDATOR (cmd_channel_mock_validate_packet, &tx_packet, sizeof (tx_packet)));
@@ -1292,8 +1330,10 @@ static void cmd_channel_test_receive_and_process_mctp_fatal_error (CuTest *test)
 	int status;
 	struct cmd_packet rx_packet[3];
 	struct cmd_packet tx_packet;
+	struct cmd_interface_request error_packet;
 	struct mctp_protocol_transport_header *header =
 		(struct mctp_protocol_transport_header*) rx_packet[0].data;
+	struct cerberus_protocol_error *error = (struct cerberus_protocol_error*) error_packet.data;
 	const int msg_size = 300;
 	uint16_t pci_vid = 0x1414;
 	uint8_t payload[msg_size];
@@ -1399,6 +1439,19 @@ static void cmd_channel_test_receive_and_process_mctp_fatal_error (CuTest *test)
 	tx_packet.state = CMD_VALID_PACKET;
 	tx_packet.dest_addr = 0x55;
 
+	error_packet.length = sizeof (struct cerberus_protocol_error);
+
+	error->header.msg_type = 0x7E;
+	error->header.pci_vendor_id = 0x1414;
+	error->header.crypt = 0;
+	error->header.d_bit = 0;
+	error->header.integrity_check = 0;
+	error->header.seq_num = 0;
+	error->header.rq = 0;
+	error->header.command = 0x7F;
+	error->error_code = CERBERUS_PROTOCOL_ERROR_OUT_OF_ORDER_MSG;
+	error->error_data = 0;
+
 	status = cmd_channel_mock_init (&channel, 0);
 	CuAssertIntEquals (test, 0, status);
 
@@ -1447,6 +1500,10 @@ static void cmd_channel_test_receive_and_process_mctp_fatal_error (CuTest *test)
 		MOCK_ARG_NOT_NULL, MOCK_ARG (-1));
 	status |= mock_expect_output (&channel.mock, 0, &rx_packet[2], sizeof (struct cmd_packet), -1);
 
+	status |= mock_expect (&cmd.mock, cmd.base.generate_error_packet, &cmd, 0, MOCK_ARG_NOT_NULL, 
+		MOCK_ARG (CERBERUS_PROTOCOL_ERROR_OUT_OF_ORDER_MSG), MOCK_ARG (0), MOCK_ARG (0));
+	status |= mock_expect_output (&cmd.mock, 0, &error_packet, sizeof (error_packet), -1);
+
 	status |= mock_expect (&channel.mock, channel.base.send_packet, &channel, 0,
 		MOCK_ARG_VALIDATOR (cmd_channel_mock_validate_packet, &tx_packet, sizeof (tx_packet)));
 
@@ -1477,8 +1534,10 @@ static void cmd_channel_test_receive_and_process_receive_failure (CuTest *test)
 	struct cmd_packet tx_packet;
 	struct cmd_interface_request request;
 	struct cmd_interface_request response;
+	struct cmd_interface_request error_packet;
 	struct mctp_protocol_transport_header *header =
 		(struct mctp_protocol_transport_header*) rx_packet[0].data;
+	struct cerberus_protocol_error *error = (struct cerberus_protocol_error*) error_packet.data;
 	const int msg_size = 300;
 	uint16_t pci_vid = 0x1414;
 	uint8_t payload[msg_size];
@@ -1597,6 +1656,19 @@ static void cmd_channel_test_receive_and_process_receive_failure (CuTest *test)
 	request.crypto_timeout = false;
 	request.channel_id = 0;
 	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
+
+	error_packet.length = sizeof (struct cerberus_protocol_error);
+
+	error->header.msg_type = 0x7E;
+	error->header.pci_vendor_id = 0x1414;
+	error->header.crypt = 0;
+	error->header.d_bit = 0;
+	error->header.integrity_check = 0;
+	error->header.seq_num = 0;
+	error->header.rq = 0;
+	error->header.command = 0x7F;
+	error->error_code = CERBERUS_PROTOCOL_NO_ERROR;
+	error->error_data = 0;
 
 	memset (&response, 0, sizeof (response));
 
@@ -1637,6 +1709,10 @@ static void cmd_channel_test_receive_and_process_receive_failure (CuTest *test)
 		MOCK_ARG_VALIDATOR (cmd_interface_mock_validate_request, &request, sizeof (request)));
 	status |= mock_expect_output (&cmd.mock, 0, &response, sizeof (response), -1);
 
+	status |= mock_expect (&cmd.mock, cmd.base.generate_error_packet, &cmd, 0, MOCK_ARG_NOT_NULL, 
+		MOCK_ARG (CERBERUS_PROTOCOL_NO_ERROR), MOCK_ARG (0), MOCK_ARG (0));
+	status |= mock_expect_output (&cmd.mock, 0, &error_packet, sizeof (error_packet), -1);
+
 	status |= mock_expect (&channel.mock, channel.base.send_packet, &channel, 0,
 		MOCK_ARG_VALIDATOR (cmd_channel_mock_validate_packet, &tx_packet, sizeof (tx_packet)));
 
@@ -1667,8 +1743,10 @@ static void cmd_channel_test_receive_and_process_receive_timeout (CuTest *test)
 	struct cmd_packet tx_packet;
 	struct cmd_interface_request request;
 	struct cmd_interface_request response;
+	struct cmd_interface_request error_packet;
 	struct mctp_protocol_transport_header *header =
 		(struct mctp_protocol_transport_header*) rx_packet[0].data;
+	struct cerberus_protocol_error *error = (struct cerberus_protocol_error*) error_packet.data;
 	const int msg_size = 300;
 	uint16_t pci_vid = 0x1414;
 	uint8_t payload[msg_size];
@@ -1788,6 +1866,19 @@ static void cmd_channel_test_receive_and_process_receive_timeout (CuTest *test)
 	request.channel_id = 0;
 	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
 
+	error_packet.length = sizeof (struct cerberus_protocol_error);
+
+	error->header.msg_type = 0x7E;
+	error->header.pci_vendor_id = 0x1414;
+	error->header.crypt = 0;
+	error->header.d_bit = 0;
+	error->header.integrity_check = 0;
+	error->header.seq_num = 0;
+	error->header.rq = 0;
+	error->header.command = 0x7F;
+	error->error_code = CERBERUS_PROTOCOL_NO_ERROR;
+	error->error_data = 0;
+
 	memset (&response, 0, sizeof (response));
 
 	status = mock_expect (&channel.mock, channel.base.receive_packet, &channel, 0,
@@ -1827,6 +1918,10 @@ static void cmd_channel_test_receive_and_process_receive_timeout (CuTest *test)
 		MOCK_ARG_VALIDATOR (cmd_interface_mock_validate_request, &request, sizeof (request)));
 	status |= mock_expect_output (&cmd.mock, 0, &response, sizeof (response), -1);
 
+	status |= mock_expect (&cmd.mock, cmd.base.generate_error_packet, &cmd, 0, MOCK_ARG_NOT_NULL, 
+		MOCK_ARG (CERBERUS_PROTOCOL_NO_ERROR), MOCK_ARG (0), MOCK_ARG (0));
+	status |= mock_expect_output (&cmd.mock, 0, &error_packet, sizeof (error_packet), -1);
+
 	status |= mock_expect (&channel.mock, channel.base.send_packet, &channel, 0,
 		MOCK_ARG_VALIDATOR (cmd_channel_mock_validate_packet, &tx_packet, sizeof (tx_packet)));
 
@@ -1855,8 +1950,10 @@ static void cmd_channel_test_receive_and_process_overflow_packet (CuTest *test)
 	int status;
 	struct cmd_packet rx_packet[4];
 	struct cmd_packet tx_packet;
+	struct cmd_interface_request error_packet;
 	struct mctp_protocol_transport_header *header =
 		(struct mctp_protocol_transport_header*) rx_packet[0].data;
+	struct cerberus_protocol_error *error = (struct cerberus_protocol_error*) error_packet.data;
 	const int msg_size = 300;
 	uint16_t pci_vid = 0x1414;
 	uint8_t payload[msg_size];
@@ -1981,6 +2078,19 @@ static void cmd_channel_test_receive_and_process_overflow_packet (CuTest *test)
 	tx_packet.state = CMD_VALID_PACKET;
 	tx_packet.dest_addr = 0x55;
 
+	error_packet.length = sizeof (struct cerberus_protocol_error);
+
+	error->header.msg_type = 0x7E;
+	error->header.pci_vendor_id = 0x1414;
+	error->header.crypt = 0;
+	error->header.d_bit = 0;
+	error->header.integrity_check = 0;
+	error->header.seq_num = 0;
+	error->header.rq = 0;
+	error->header.command = 0x7F;
+	error->error_code = CERBERUS_PROTOCOL_ERROR_OUT_OF_ORDER_MSG;
+	error->error_data = 0;
+
 	status = cmd_channel_mock_init (&channel, 0);
 	CuAssertIntEquals (test, 0, status);
 
@@ -2044,6 +2154,10 @@ static void cmd_channel_test_receive_and_process_overflow_packet (CuTest *test)
 		MOCK_ARG_NOT_NULL, MOCK_ARG (-1));
 	status |= mock_expect_output (&channel.mock, 0, &rx_packet[3], sizeof (struct cmd_packet), -1);
 
+	status |= mock_expect (&cmd.mock, cmd.base.generate_error_packet, &cmd, 0, MOCK_ARG_NOT_NULL, 
+		MOCK_ARG (CERBERUS_PROTOCOL_ERROR_OUT_OF_ORDER_MSG), MOCK_ARG (0), MOCK_ARG (0));
+	status |= mock_expect_output (&cmd.mock, 0, &error_packet, sizeof (error_packet), -1);
+
 	status |= mock_expect (&channel.mock, channel.base.send_packet, &channel, 0,
 		MOCK_ARG_VALIDATOR (cmd_channel_mock_validate_packet, &tx_packet, sizeof (tx_packet)));
 
@@ -2072,8 +2186,10 @@ static void cmd_channel_test_receive_and_process_multiple_overflow_packet (CuTes
 	int status;
 	struct cmd_packet rx_packet[5];
 	struct cmd_packet tx_packet;
+	struct cmd_interface_request error_packet;
 	struct mctp_protocol_transport_header *header =
 		(struct mctp_protocol_transport_header*) rx_packet[0].data;
+	struct cerberus_protocol_error *error = (struct cerberus_protocol_error*) error_packet.data;
 	const int msg_size = 300;
 	uint16_t pci_vid = 0x1414;
 	uint8_t payload[msg_size];
@@ -2205,6 +2321,19 @@ static void cmd_channel_test_receive_and_process_multiple_overflow_packet (CuTes
 	tx_packet.state = CMD_VALID_PACKET;
 	tx_packet.dest_addr = 0x55;
 
+	error_packet.length = sizeof (struct cerberus_protocol_error);
+
+	error->header.msg_type = 0x7E;
+	error->header.pci_vendor_id = 0x1414;
+	error->header.crypt = 0;
+	error->header.d_bit = 0;
+	error->header.integrity_check = 0;
+	error->header.seq_num = 0;
+	error->header.rq = 0;
+	error->header.command = 0x7F;
+	error->error_code = CERBERUS_PROTOCOL_ERROR_OUT_OF_ORDER_MSG;
+	error->error_data = 0;
+
 	status = cmd_channel_mock_init (&channel, 0);
 	CuAssertIntEquals (test, 0, status);
 
@@ -2282,6 +2411,10 @@ static void cmd_channel_test_receive_and_process_multiple_overflow_packet (CuTes
 	status = mock_expect (&channel.mock, channel.base.receive_packet, &channel, 0,
 		MOCK_ARG_NOT_NULL, MOCK_ARG (-1));
 	status |= mock_expect_output (&channel.mock, 0, &rx_packet[4], sizeof (struct cmd_packet), -1);
+
+	status |= mock_expect (&cmd.mock, cmd.base.generate_error_packet, &cmd, 0, MOCK_ARG_NOT_NULL, 
+		MOCK_ARG (CERBERUS_PROTOCOL_ERROR_OUT_OF_ORDER_MSG), MOCK_ARG (0), MOCK_ARG (0));
+	status |= mock_expect_output (&cmd.mock, 0, &error_packet, sizeof (error_packet), -1);
 
 	status |= mock_expect (&channel.mock, channel.base.send_packet, &channel, 0,
 		MOCK_ARG_VALIDATOR (cmd_channel_mock_validate_packet, &tx_packet, sizeof (tx_packet)));

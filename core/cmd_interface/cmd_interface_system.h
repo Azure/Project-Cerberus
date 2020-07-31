@@ -60,7 +60,6 @@ struct cmd_interface_system {
 	struct recovery_image_cmd_interface *recovery_cmd_1;	/**< Recovery image update command interface instance for port 1 */
 	struct cmd_device *cmd_device;							/**< Device command handler instance */
 	struct cmd_interface_device_id device_id;				/**< Device ID information */
-	struct session_manager *session;						/**< Session manager for channel encryption*/
 };
 
 
