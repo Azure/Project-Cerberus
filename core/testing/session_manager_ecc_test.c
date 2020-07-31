@@ -3340,6 +3340,59 @@ static void session_manager_ecc_test_get_pairing_state_not_supported (CuTest *te
 	release_session_manager_ecc_test (test, &cmd);
 }
 
+static void session_manager_ecc_test_get_pairing_state_no_keystore (CuTest *test)
+{
+	struct session_manager_ecc_testing cmd;
+	uint8_t *dev_id_der = NULL;
+	int status;
+
+	TEST_START;
+
+	status = aes_mock_init (&cmd.aes);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_mock_init (&cmd.ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_init (&cmd.hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = rng_mock_init (&cmd.rng);
+	CuAssertIntEquals (test, 0, status);
+
+	status = x509_mock_init (&cmd.x509);
+	CuAssertIntEquals (test, 0, status);
+
+	status = keystore_mock_init (&cmd.riot_keystore);
+	CuAssertIntEquals (test, 0, status);
+
+	status = keystore_mock_init (&cmd.keys_keystore);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.riot_keystore.mock, cmd.riot_keystore.base.load_key,
+		&cmd.riot_keystore, KEYSTORE_NO_KEY, MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&cmd.riot_keystore.mock, 1, &dev_id_der, sizeof (dev_id_der),
+		-1);
+	CuAssertIntEquals (test, 0, status);
+
+	keys.alias_cert_length = RIOT_CORE_ALIAS_CERT_LEN;
+	keys.devid_cert_length = RIOT_CORE_DEVID_CERT_LEN;
+	keys.alias_key_length = RIOT_CORE_ALIAS_KEY_LEN;
+
+	status = riot_key_manager_init_static (&cmd.riot, &cmd.riot_keystore.base, &keys,
+		&cmd.x509.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = session_manager_ecc_init (&cmd.session, &cmd.aes.base, &cmd.ecc.base,
+		&cmd.hash.base, &cmd.rng.base, &cmd.riot, NULL, 3, PAIRING_EIDS, 2, NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd.session.base.get_pairing_state (&cmd.session.base, 0x10);
+	CuAssertIntEquals (test, SESSION_PAIRING_STATE_NOT_SUPPORTED, status);
+
+	release_session_manager_ecc_test (test, &cmd);
+}
+
 static void session_manager_ecc_test_get_pairing_state_not_initialized (CuTest *test)
 {
 	struct session_manager_ecc_testing cmd;
@@ -4511,6 +4564,7 @@ CuSuite* get_session_manager_ecc_suite ()
 	SUITE_ADD_TEST (suite, session_manager_ecc_test_is_session_established_invalid_arg);
 	SUITE_ADD_TEST (suite, session_manager_ecc_test_get_pairing_state);
 	SUITE_ADD_TEST (suite, session_manager_ecc_test_get_pairing_state_not_supported);
+	SUITE_ADD_TEST (suite, session_manager_ecc_test_get_pairing_state_no_keystore);
 	SUITE_ADD_TEST (suite, session_manager_ecc_test_get_pairing_state_not_initialized);
 	SUITE_ADD_TEST (suite, session_manager_ecc_test_get_pairing_state_unexpected_eid);
 	SUITE_ADD_TEST (suite, session_manager_ecc_test_get_pairing_state_invalid_arg);

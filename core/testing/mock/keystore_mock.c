@@ -43,6 +43,17 @@ static int keystore_mock_erase_key (struct keystore *store, int id)
 	MOCK_RETURN (&mock->mock, keystore_mock_erase_key, store, MOCK_ARG_CALL (id));
 }
 
+static int keystore_mock_erase_all_keys (struct keystore *store)
+{
+	struct keystore_mock *mock = (struct keystore_mock*) store;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN_NO_ARGS (&mock->mock, keystore_mock_erase_all_keys, store);
+}
+
 static int keystore_mock_func_arg_count (void *func)
 {
 	if ((func == keystore_mock_save_key) || (func == keystore_mock_load_key)) {
@@ -66,6 +77,9 @@ static const char* keystore_mock_func_name_map (void *func)
 	}
 	else if (func == keystore_mock_erase_key) {
 		return "erase_key";
+	}
+	else if (func == keystore_mock_erase_all_keys) {
+		return "erase_all_keys";
 	}
 	else {
 		return "unknown";
@@ -123,6 +137,7 @@ int keystore_mock_init (struct keystore_mock *mock)
 	mock->base.save_key = keystore_mock_save_key;
 	mock->base.load_key = keystore_mock_load_key;
 	mock->base.erase_key = keystore_mock_erase_key;
+	mock->base.erase_all_keys = keystore_mock_erase_all_keys;
 
 	mock->mock.func_arg_count = keystore_mock_func_arg_count;
 	mock->mock.func_name_map = keystore_mock_func_name_map;

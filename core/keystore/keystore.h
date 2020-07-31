@@ -47,6 +47,15 @@ struct keystore {
 	 * @return 0 if the key was successfully erased or an error code.
 	 */
 	int (*erase_key) (struct keystore *store, int id);
+
+	/**
+	 * Erase all keys from storage.
+	 *
+	 * @param store The key storage to utilize.
+	 *
+	 * @return 0 if the keys were successfully erased or an error code.
+	 */
+	int (*erase_all_keys) (struct keystore *store);
 };
 
 

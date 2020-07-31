@@ -149,7 +149,7 @@ struct session_manager {
 	 */
 	int (*setup_paired_session) (struct session_manager *session, uint8_t eid, 
 		size_t pairing_key_len, uint8_t *pairing_key_hmac, size_t pairing_key_hmac_len);
-
+		
 	struct aes_engine *aes;								/**< AES engine used to encrypt/decrypt session data */
 	struct hash_engine *hash;							/**< Hashing engine used to generate AES shared key */
 	struct rng_engine *rng;								/**< RNG engine used to generate IV buffers */
