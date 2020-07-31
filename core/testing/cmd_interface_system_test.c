@@ -704,6 +704,7 @@ static void cmd_interface_system_test_init (CuTest *test)
 
 	CuAssertPtrNotNull (test, interface.base.process_request);
 	CuAssertPtrNotNull (test, interface.base.issue_request);
+	CuAssertPtrNotNull (test, interface.base.generate_error_packet);
 
 	status = firmware_update_control_mock_validate_and_release (&update);
 	CuAssertIntEquals (test, 0, status);
@@ -6394,6 +6395,160 @@ static void cmd_interface_system_test_process_reset_counter_invalid_counter (CuT
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
+static void cmd_interface_system_test_process_key_exchange_type_0 (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM, true);
+
+	cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_0 (test, 
+		&cmd.handler.base, &cmd.session);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_key_exchange_type_0_fail (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM, true);
+
+	cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_0_fail (test, 
+		&cmd.handler.base, &cmd.session);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_key_exchange_type_1 (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM, true);
+
+	cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_1 (test, 
+		&cmd.handler.base, &cmd.session);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_key_exchange_type_1_unencrypted (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM, true);
+
+	cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_1_unencrypted (test, 
+		&cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_key_exchange_type_1_fail (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM, true);
+
+	cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_1_fail (test, 
+		&cmd.handler.base, &cmd.session);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_key_exchange_type_2 (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM, true);
+
+	cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_2 (test, 
+		&cmd.handler.base, &cmd.session);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_key_exchange_type_2_unencrypted (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM, true);
+
+	cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_2_unencrypted (test, 
+		&cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_key_exchange_type_2_fail (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM, true);
+
+	cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_2_fail (test, 
+		&cmd.handler.base, &cmd.session);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_key_exchange_unsupported (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM, false);
+
+	cerberus_protocol_optional_commands_testing_process_get_key_exchange_unsupported (test, 
+		&cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_key_exchange_unsupported_index (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM, true);
+
+	cerberus_protocol_optional_commands_testing_process_get_key_exchange_unsupported_index (test, 
+		&cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_key_exchange_invalid_len (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM, true);
+
+	cerberus_protocol_optional_commands_testing_process_get_key_exchange_invalid_len (test, 
+		&cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
 static void cmd_interface_system_test_supports_all_required_commands (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
@@ -6580,7 +6735,7 @@ static void cmd_interface_system_test_issue_challenge_null (CuTest *test)
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
-static void cmd_interface_system_test_process_key_exchange_type_0 (CuTest *test)
+static void cmd_interface_system_test_generate_error_packet (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
 
@@ -6589,12 +6744,12 @@ static void cmd_interface_system_test_process_key_exchange_type_0 (CuTest *test)
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, DEVICE_MANAGER_UPSTREAM, true);
 
-	cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_0 (test,
-		&cmd.handler.base, &cmd.session);
+	cerberus_protocol_required_commands_testing_generate_error_packet (test, &cmd.handler.base);
+
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
-static void cmd_interface_system_test_process_key_exchange_type_0_fail (CuTest *test)
+static void cmd_interface_system_test_generate_error_packet_encrypted (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
 
@@ -6603,12 +6758,13 @@ static void cmd_interface_system_test_process_key_exchange_type_0_fail (CuTest *
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, DEVICE_MANAGER_UPSTREAM, true);
 
-	cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_0_fail (test,
+	cerberus_protocol_required_commands_testing_generate_error_packet_encrypted (test, 
 		&cmd.handler.base, &cmd.session);
+	
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
-static void cmd_interface_system_test_process_key_exchange_type_1 (CuTest *test)
+static void cmd_interface_system_test_generate_error_packet_encrypted_fail (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
 
@@ -6617,12 +6773,13 @@ static void cmd_interface_system_test_process_key_exchange_type_1 (CuTest *test)
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, DEVICE_MANAGER_UPSTREAM, true);
 
-	cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_1 (test,
+	cerberus_protocol_required_commands_testing_generate_error_packet_encrypted_fail (test, 
 		&cmd.handler.base, &cmd.session);
+	
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
-static void cmd_interface_system_test_process_key_exchange_type_1_unencrypted (CuTest *test)
+static void cmd_interface_system_test_generate_error_packet_invalid_arg (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
 
@@ -6631,108 +6788,12 @@ static void cmd_interface_system_test_process_key_exchange_type_1_unencrypted (C
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, DEVICE_MANAGER_UPSTREAM, true);
 
-	cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_1_unencrypted (test,
+	cerberus_protocol_required_commands_testing_generate_error_packet_invalid_arg (test, 
 		&cmd.handler.base);
+	
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
-static void cmd_interface_system_test_process_key_exchange_type_1_fail (CuTest *test)
-{
-	struct cmd_interface_system_testing cmd;
-
-	TEST_START;
-
-	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
-
-	cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_1_fail (test,
-		&cmd.handler.base, &cmd.session);
-	complete_cmd_interface_system_mock_test (test, &cmd);
-}
-
-static void cmd_interface_system_test_process_key_exchange_type_2 (CuTest *test)
-{
-	struct cmd_interface_system_testing cmd;
-
-	TEST_START;
-
-	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
-
-	cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_2 (test,
-		&cmd.handler.base, &cmd.session);
-	complete_cmd_interface_system_mock_test (test, &cmd);
-}
-
-static void cmd_interface_system_test_process_key_exchange_type_2_unencrypted (CuTest *test)
-{
-	struct cmd_interface_system_testing cmd;
-
-	TEST_START;
-
-	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
-
-	cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_2_unencrypted (test,
-		&cmd.handler.base);
-	complete_cmd_interface_system_mock_test (test, &cmd);
-}
-
-static void cmd_interface_system_test_process_key_exchange_type_2_fail (CuTest *test)
-{
-	struct cmd_interface_system_testing cmd;
-
-	TEST_START;
-
-	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
-
-	cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_2_fail (test,
-		&cmd.handler.base, &cmd.session);
-	complete_cmd_interface_system_mock_test (test, &cmd);
-}
-
-static void cmd_interface_system_test_process_key_exchange_unsupported (CuTest *test)
-{
-	struct cmd_interface_system_testing cmd;
-
-	TEST_START;
-
-	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, false);
-
-	cerberus_protocol_optional_commands_testing_process_get_key_exchange_unsupported (test,
-		&cmd.handler.base);
-	complete_cmd_interface_system_mock_test (test, &cmd);
-}
-
-static void cmd_interface_system_test_process_key_exchange_unsupported_index (CuTest *test)
-{
-	struct cmd_interface_system_testing cmd;
-
-	TEST_START;
-
-	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
-
-	cerberus_protocol_optional_commands_testing_process_get_key_exchange_unsupported_index (test,
-		&cmd.handler.base);
-	complete_cmd_interface_system_mock_test (test, &cmd);
-}
-
-static void cmd_interface_system_test_process_key_exchange_invalid_len (CuTest *test)
-{
-	struct cmd_interface_system_testing cmd;
-
-	TEST_START;
-
-	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
-
-	cerberus_protocol_optional_commands_testing_process_get_key_exchange_invalid_len (test,
-		&cmd.handler.base);
-	complete_cmd_interface_system_mock_test (test, &cmd);
-}
 
 CuSuite* get_cmd_interface_system_suite ()
 {
@@ -7169,19 +7230,6 @@ CuSuite* get_cmd_interface_system_suite ()
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_reset_counter_port1);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_reset_counter_invalid_len);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_reset_counter_invalid_counter);
-	SUITE_ADD_TEST (suite, cmd_interface_system_test_supports_all_required_commands);
-	SUITE_ADD_TEST (suite, cmd_interface_system_test_issue_request_null);
-	SUITE_ADD_TEST (suite, cmd_interface_system_test_issue_request_invalid_request);
-	SUITE_ADD_TEST (suite, cmd_interface_system_test_issue_get_device_capabilities);
-	SUITE_ADD_TEST (suite, cmd_interface_system_test_issue_get_device_capabilities_buf_too_small);
-	SUITE_ADD_TEST (suite, cmd_interface_system_test_issue_get_certificate_digest);
-	SUITE_ADD_TEST (suite, cmd_interface_system_test_issue_get_certificate_digest_buf_too_small);
-	SUITE_ADD_TEST (suite, cmd_interface_system_test_issue_get_certificate);
-	SUITE_ADD_TEST (suite, cmd_interface_system_test_issue_get_certificate_buf_too_small);
-	SUITE_ADD_TEST (suite, cmd_interface_system_test_issue_get_certificate_null);
-	SUITE_ADD_TEST (suite, cmd_interface_system_test_issue_challenge);
-	SUITE_ADD_TEST (suite, cmd_interface_system_test_issue_challenge_fail);
-	SUITE_ADD_TEST (suite, cmd_interface_system_test_issue_challenge_null);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_attestation_data);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_attestation_data_with_offset);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_attestation_data_invalid_len);
@@ -7198,6 +7246,23 @@ CuSuite* get_cmd_interface_system_suite ()
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_key_exchange_unsupported);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_key_exchange_unsupported_index);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_key_exchange_invalid_len);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_supports_all_required_commands);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_issue_request_null);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_issue_request_invalid_request);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_issue_get_device_capabilities);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_issue_get_device_capabilities_buf_too_small);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_issue_get_certificate_digest);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_issue_get_certificate_digest_buf_too_small);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_issue_get_certificate);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_issue_get_certificate_buf_too_small);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_issue_get_certificate_null);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_issue_challenge);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_issue_challenge_fail);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_issue_challenge_null);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_generate_error_packet);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_generate_error_packet_encrypted);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_generate_error_packet_encrypted_fail);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_generate_error_packet_invalid_arg);
 
 	/* Tear down after the tests in this suite have run. */
 	SUITE_ADD_TEST (suite, cmd_interface_system_testing_suite_tear_down);

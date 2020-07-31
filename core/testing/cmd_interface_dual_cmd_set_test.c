@@ -325,6 +325,82 @@ static void cmd_interface_dual_cmd_set_test_process_cmd_set_0 (CuTest *test)
 	complete_cmd_interface_dual_cmd_set_test (test, &cmd);
 }
 
+static void cmd_interface_dual_cmd_set_test_process_cmd_set_0_encrypted (CuTest *test)
+{
+	struct cmd_interface_dual_cmd_set_testing cmd;
+	struct cmd_interface_request request;
+	struct cmd_interface_request response;
+	struct cerberus_protocol_header* header =
+		(struct cerberus_protocol_header*) request.data;
+	int status;
+
+	TEST_START;
+
+	memset (&request, 0, sizeof (request));
+	request.length = CERBERUS_PROTOCOL_MIN_MSG_LEN + 1;
+	request.source_eid = 0xCC;
+	request.target_eid = 0xDD;
+	request.channel_id = 0;
+
+	header->msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	header->pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	header->crypt = 1;
+	header->d_bit = 0;
+	header->integrity_check = 0;
+	header->seq_num = 0;
+	header->rq = 0;
+	header->command = 0x04;
+	request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN] = 0xAA;
+
+	header = (struct cerberus_protocol_header*) response.data;
+
+	memset (&response, 0, sizeof (response));
+	response.length = CERBERUS_PROTOCOL_MIN_MSG_LEN + 1;
+	response.source_eid = 0xDD;
+	response.target_eid = 0xCC;
+	response.channel_id = 0;
+
+	header->msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	header->pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	header->crypt = 1;
+	header->d_bit = 0;
+	header->integrity_check = 0;
+	header->seq_num = 0;
+	header->rq = 0;
+	header->command = 0x04;
+	response.data[CERBERUS_PROTOCOL_MIN_MSG_LEN] = 0xBB;
+
+	setup_cmd_interface_dual_cmd_set_test (test, &cmd);
+
+	status = mock_expect (&cmd.primary_handler.mock, cmd.primary_handler.base.process_request,
+		&cmd.primary_handler, 0,
+		MOCK_ARG_VALIDATOR_TMP (cmd_interface_mock_validate_request, &request, sizeof (request)));
+	status |= mock_expect_output (&cmd.primary_handler.mock, 0, &response, sizeof (response), -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	header = (struct cerberus_protocol_header*) request.data;
+
+	request.new_request = true;
+	request.crypto_timeout = true;
+	status = cmd.interface.base.process_request (&cmd.interface.base, &request);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MIN_MSG_LEN + 1, request.length);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, header->msg_type);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, header->pci_vendor_id);
+	CuAssertIntEquals (test, 1, header->crypt);
+	CuAssertIntEquals (test, 0, header->d_bit);
+	CuAssertIntEquals (test, 0, header->integrity_check);
+	CuAssertIntEquals (test, 0, header->seq_num);
+	CuAssertIntEquals (test, 0, header->rq);
+	CuAssertIntEquals (test, 0x04, header->command);
+	CuAssertIntEquals (test, 0xBB, request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN]);
+	CuAssertIntEquals (test, false, request.new_request);
+	CuAssertIntEquals (test, false, request.crypto_timeout);
+
+	complete_cmd_interface_dual_cmd_set_test (test, &cmd);
+}
+
 static void cmd_interface_dual_cmd_set_test_process_cmd_set_1 (CuTest *test)
 {
 	struct cmd_interface_dual_cmd_set_testing cmd;
@@ -389,6 +465,82 @@ static void cmd_interface_dual_cmd_set_test_process_cmd_set_1 (CuTest *test)
 	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, header->msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, header->pci_vendor_id);
 	CuAssertIntEquals (test, 0, header->crypt);
+	CuAssertIntEquals (test, 0, header->d_bit);
+	CuAssertIntEquals (test, 0, header->integrity_check);
+	CuAssertIntEquals (test, 0, header->seq_num);
+	CuAssertIntEquals (test, 1, header->rq);
+	CuAssertIntEquals (test, 0x04, header->command);
+	CuAssertIntEquals (test, 0xBB, request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN]);
+	CuAssertIntEquals (test, false, request.new_request);
+	CuAssertIntEquals (test, false, request.crypto_timeout);
+
+	complete_cmd_interface_dual_cmd_set_test (test, &cmd);
+}
+
+static void cmd_interface_dual_cmd_set_test_process_cmd_set_1_encrypted (CuTest *test)
+{
+	struct cmd_interface_dual_cmd_set_testing cmd;
+	struct cmd_interface_request request;
+	struct cmd_interface_request response;
+	struct cerberus_protocol_header* header =
+		(struct cerberus_protocol_header*) request.data;
+	int status;
+
+	TEST_START;
+
+	memset (&request, 0, sizeof (request));
+	request.length = CERBERUS_PROTOCOL_MIN_MSG_LEN + 1;
+	request.source_eid = 0xCC;
+	request.target_eid = 0xDD;
+	request.channel_id = 0;
+
+	header->msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	header->pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	header->crypt = 1;
+	header->d_bit = 0;
+	header->integrity_check = 0;
+	header->seq_num = 0;
+	header->rq = 1;
+	header->command = 0x04;
+	request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN] = 0xAA;
+
+	header = (struct cerberus_protocol_header*) response.data;
+
+	memset (&response, 0, sizeof (response));
+	response.length = CERBERUS_PROTOCOL_MIN_MSG_LEN + 1;
+	response.source_eid = 0xDD;
+	response.target_eid = 0xCC;
+	response.channel_id = 0;
+
+	header->msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	header->pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	header->crypt = 1;
+	header->d_bit = 0;
+	header->integrity_check = 0;
+	header->seq_num = 0;
+	header->rq = 1;
+	header->command = 0x04;
+	response.data[CERBERUS_PROTOCOL_MIN_MSG_LEN] = 0xBB;
+
+	setup_cmd_interface_dual_cmd_set_test (test, &cmd);
+
+	status = mock_expect (&cmd.secondary_handler.mock, cmd.secondary_handler.base.process_request,
+		&cmd.secondary_handler, 0,
+		MOCK_ARG_VALIDATOR_TMP (cmd_interface_mock_validate_request, &request, sizeof (request)));
+	status |= mock_expect_output (&cmd.secondary_handler.mock, 0, &response, sizeof (response), -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	header = (struct cerberus_protocol_header*) request.data;
+
+	request.new_request = true;
+	request.crypto_timeout = true;
+	status = cmd.interface.base.process_request (&cmd.interface.base, &request);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MIN_MSG_LEN + 1, request.length);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, header->msg_type);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, header->pci_vendor_id);
+	CuAssertIntEquals (test, 1, header->crypt);
 	CuAssertIntEquals (test, 0, header->d_bit);
 	CuAssertIntEquals (test, 0, header->integrity_check);
 	CuAssertIntEquals (test, 0, header->seq_num);
@@ -568,7 +720,9 @@ CuSuite* get_cmd_interface_dual_cmd_set_suite ()
 	SUITE_ADD_TEST (suite, cmd_interface_dual_cmd_set_test_process_error_packet);
 	SUITE_ADD_TEST (suite, cmd_interface_dual_cmd_set_test_process_null);
 	SUITE_ADD_TEST (suite, cmd_interface_dual_cmd_set_test_process_cmd_set_0);
+	SUITE_ADD_TEST (suite, cmd_interface_dual_cmd_set_test_process_cmd_set_0_encrypted);
 	SUITE_ADD_TEST (suite, cmd_interface_dual_cmd_set_test_process_cmd_set_1);
+	SUITE_ADD_TEST (suite, cmd_interface_dual_cmd_set_test_process_cmd_set_1_encrypted);
 	SUITE_ADD_TEST (suite, cmd_interface_dual_cmd_set_test_process_cmd_set_0_fail);
 	SUITE_ADD_TEST (suite, cmd_interface_dual_cmd_set_test_process_cmd_set_1_fail);
 	SUITE_ADD_TEST (suite, cmd_interface_dual_cmd_set_test_issue_request_null);

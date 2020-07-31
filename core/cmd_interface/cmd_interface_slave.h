@@ -28,7 +28,6 @@ struct cmd_interface_slave {
 	struct device_manager *device_manager;					/**< Device manager instance */
 	struct cmd_device *cmd_device;							/**< Device command handler instance */
 	struct cmd_interface_device_id device_id;				/**< Device ID information */
-	struct session_manager *session;						/**< Session manager for channel encryption*/
 };
 
 

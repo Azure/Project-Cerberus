@@ -33,9 +33,24 @@ static int cmd_interface_mock_issue_request (struct cmd_interface *intf, uint8_t
 		MOCK_ARG_CALL (request_params), MOCK_ARG_CALL (buf), MOCK_ARG_CALL (buf_len));
 }
 
+static int cmd_interface_mock_generate_error_packet (struct cmd_interface *intf, 
+	struct cmd_interface_request *request, uint8_t error_code, uint32_t error_data, uint8_t cmd_set)
+{
+	struct cmd_interface_mock *mock = (struct cmd_interface_mock*) intf;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, cmd_interface_mock_generate_error_packet, intf, 
+		MOCK_ARG_CALL (request), MOCK_ARG_CALL (error_code), MOCK_ARG_CALL (error_data), 
+		MOCK_ARG_CALL (cmd_set));
+}
+
 static int cmd_interface_mock_func_arg_count (void *func)
 {
-	if (func == cmd_interface_mock_issue_request) {
+	if ((func == cmd_interface_mock_issue_request) || 
+		(func == cmd_interface_mock_generate_error_packet)) {
 		return 4;
 	}
 	else if (func == cmd_interface_mock_process_request) {
@@ -53,6 +68,9 @@ static const char* cmd_interface_mock_func_name_map (void *func)
 	}
 	else if (func == cmd_interface_mock_issue_request) {
 		return "issue_request";
+	}
+	else if (func == cmd_interface_mock_generate_error_packet) {
+		return "generate_error_packet";
 	}
 	else {
 		return "unknown";
@@ -80,6 +98,21 @@ static const char* cmd_interface_mock_arg_name_map (void *func, int arg)
 
 			case 3:
 				return "buf_len";
+		}
+	}
+	else if (func == cmd_interface_mock_generate_error_packet) {
+		switch (arg) {
+			case 0:
+				return "request";
+
+			case 1:
+				return "error_code";
+
+			case 2:
+				return "error_data";
+
+			case 3:
+				return "cmd_set";
 		}
 	}
 
@@ -113,6 +146,7 @@ int cmd_interface_mock_init (struct cmd_interface_mock *mock)
 
 	mock->base.process_request = cmd_interface_mock_process_request;
 	mock->base.issue_request = cmd_interface_mock_issue_request;
+	mock->base.generate_error_packet = cmd_interface_mock_generate_error_packet;
 
 	mock->mock.func_arg_count = cmd_interface_mock_func_arg_count;
 	mock->mock.func_name_map = cmd_interface_mock_func_name_map;
