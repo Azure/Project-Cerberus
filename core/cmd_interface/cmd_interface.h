@@ -96,26 +96,26 @@ struct cmd_interface {
 	 * @param error_code Identifier for the error.
 	 * @param error_data Data for the error condition.
  	 * @param cmd_set Command set to respond on.
-	 * 
-	 * @return Packet length if generated successfully or an error code.
+	 *
+	 * @return 0 if the packet was generated successfully or an error code.
 	 */
 	int (*generate_error_packet) (struct cmd_interface *intf, struct cmd_interface_request *request,
 		uint8_t error_code, uint32_t error_data, uint8_t cmd_set);
 
 	struct session_manager *session;						/**< Session manager for channel encryption*/
-	bool curr_txn_encrypted;								/**< Current transaction encrypted */ 
+	bool curr_txn_encrypted;								/**< Current transaction encrypted */
 };
 
 
 /* Internal functions for use by derived types. */
 int cmd_interface_process_request (struct cmd_interface *intf,
 	struct cmd_interface_request *request, uint8_t *command_id, uint8_t *command_set, bool decrypt);
-int cmd_interface_process_response (struct cmd_interface *intf, 
+int cmd_interface_process_response (struct cmd_interface *intf,
 	struct cmd_interface_request *response);
-int cmd_interface_is_request_encrypted (struct cmd_interface *intf, 
+int cmd_interface_is_request_encrypted (struct cmd_interface *intf,
 	struct cmd_interface_request *request);
-int cmd_interface_generate_error_packet (struct cmd_interface *intf, 
-	struct cmd_interface_request *request, uint8_t error_code, uint32_t error_data, 
+int cmd_interface_generate_error_packet (struct cmd_interface *intf,
+	struct cmd_interface_request *request, uint8_t error_code, uint32_t error_data,
 	uint8_t cmd_set);
 
 
