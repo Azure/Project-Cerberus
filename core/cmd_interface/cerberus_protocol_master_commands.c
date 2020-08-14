@@ -279,6 +279,109 @@ int cerberus_protocol_cfm_update_complete (struct manifest_cmd_interface *cfm_in
 }
 
 /**
+ * Process manifest ID version
+ *
+ * @param manifest manifest to query
+ * @param request manifest version ID request to process
+ *
+ * @return 0 if request processing completed successfully or an error code.
+ */
+int cerberus_protocol_get_manifest_id_version (struct manifest *manifest,
+	struct cmd_interface_request *request)
+{
+	struct cerberus_protocol_get_cfm_id_version_response *rsp =
+		(struct cerberus_protocol_get_cfm_id_version_response*) request->data;
+	int status = 0;
+
+	if (manifest != NULL) {
+		status = manifest->get_id (manifest, &rsp->version);
+		if (status != 0) {
+			return status;
+		}
+
+		rsp->valid = 1;
+	}
+	else {
+		rsp->valid = 0;
+		rsp->version = 0;
+	}
+
+	request->length = sizeof (struct cerberus_protocol_get_cfm_id_version_response);
+
+	return status;
+}
+
+/**
+ * Process manifest ID platform
+ *
+ * @param manifest manifest to query
+ * @param request manifest platform ID request to process
+ *
+ * @return 0 if request processing completed successfully or an error code.
+ */
+int cerberus_protocol_get_manifest_id_platform (struct manifest *manifest,
+	struct cmd_interface_request *request)
+{
+	struct cerberus_protocol_get_cfm_id_platform_response *rsp =
+		(struct cerberus_protocol_get_cfm_id_platform_response*) request->data;
+	char *platform_id = NULL;
+	size_t platform_id_len;
+	int status = 0;
+
+	if (manifest != NULL) {
+		status = manifest->get_platform_id (manifest, &platform_id);
+		if (status != 0) {
+			return status;
+		}
+
+		rsp->valid = 1;
+		strcpy ((char*) &rsp->platform, platform_id);
+		platform_id_len = strlen (platform_id) + 1;
+	}
+	else {
+		rsp->valid = 0;
+		rsp->platform = '\0';
+		platform_id_len = 1;
+	}
+
+	request->length = cerberus_protocol_get_cfm_id_platform_response_length (platform_id_len);
+
+	if (platform_id != NULL) {
+		platform_free (platform_id);
+	}
+
+	return status;
+}
+
+/**
+ * Process CFM ID version
+ *
+ * @param cfm CFM to query
+ * @param request CFM platform ID request to process
+ *
+ * @return 0 if request processing completed successfully or an error code.
+ */
+static int cerberus_protocol_get_cfm_id_version (struct cfm *cfm,
+	struct cmd_interface_request *request)
+{
+	return cerberus_protocol_get_manifest_id_version (&cfm->base, request);
+}
+
+/**
+ * Process CFM ID platform
+ *
+ * @param cfm CFM to query
+ * @param request CFM version ID request to process
+ *
+ * @return 0 if request processing completed successfully or an error code.
+ */
+static int cerberus_protocol_get_cfm_id_platform (struct cfm *cfm,
+	struct cmd_interface_request *request)
+{
+	return cerberus_protocol_get_manifest_id_platform (&cfm->base, request);
+}
+
+/**
  * Process CFM ID packet
  *
  * @param cfm_mgr CFM manager instance to utilize
@@ -290,10 +393,9 @@ int cerberus_protocol_get_cfm_id (struct cfm_manager *cfm_mgr,
 	struct cmd_interface_request *request)
 {
 	struct cerberus_protocol_get_cfm_id *rq = (struct cerberus_protocol_get_cfm_id*) request->data;
-	struct cerberus_protocol_get_cfm_id_version_response *rsp =
-		(struct cerberus_protocol_get_cfm_id_version_response*) request->data;
 	struct cfm *curr_cfm = NULL;
 	int status = 0;
+	int id;
 
 	if (request->length == (sizeof (struct cerberus_protocol_get_cfm_id) - sizeof (rq->id))) {
 		rq->id = 0;
@@ -302,36 +404,25 @@ int cerberus_protocol_get_cfm_id (struct cfm_manager *cfm_mgr,
 		return CMD_HANDLER_BAD_LENGTH;
 	}
 
-	/* When there's no valid CFM manager, return a success
-	* with response indicating no valid manifest */
-	if (cfm_mgr == NULL) {
-		rsp->valid = 0;
-		rsp->version = 0;
-		goto resp_len;
+	id = rq->id;
+	if (id > 1) {
+		return CMD_HANDLER_OUT_OF_RANGE;
 	}
 
 	status = cerberus_protocol_get_curr_cfm (cfm_mgr, rq->region, &curr_cfm);
-	if (status != 0) {
+	/* When there's no valid CFM manager, return a success
+	* with response indicating no valid manifest */
+	if ((status != 0) && (status != CMD_HANDLER_UNSUPPORTED_COMMAND)) {
 		return status;
 	}
 
-	if (curr_cfm != NULL) {
-		status = curr_cfm->base.get_id (&curr_cfm->base, &rsp->version);
-		if (status != 0) {
-			goto exit;
-		}
-
-		rsp->valid = 1;
+	if (id == 0) {
+		status = cerberus_protocol_get_cfm_id_version (curr_cfm, request);
 	}
 	else {
-		rsp->valid = 0;
-		rsp->version = 0;
+		status = cerberus_protocol_get_cfm_id_platform (curr_cfm, request);
 	}
 
-resp_len:
-	request->length = sizeof (struct cerberus_protocol_get_cfm_id_version_response);
-
-exit:
 	cerberus_protocol_free_cfm (cfm_mgr, curr_cfm);
 	return status;
 }
@@ -459,6 +550,34 @@ int cerberus_protocol_pcd_update_complete (struct manifest_cmd_interface *pcd_in
 }
 
 /**
+ * Process PCD platform ID packet
+ *
+ * @param pcd PCD instance to utilize
+ * @param request Get PCD platform ID request to process
+ *
+ * @return 0 if request processing completed successfully or an error code.
+ */
+static int cerberus_protocol_get_pcd_platform_id (struct pcd *pcd,
+	struct cmd_interface_request *request)
+{
+	return cerberus_protocol_get_manifest_id_platform (&pcd->base, request);
+}
+
+/**
+ * Process PCD version ID packet
+ *
+ * @param pcd PCD instance to utilize
+ * @param request Get PCD version ID request to process
+ *
+ * @return 0 if request processing completed successfully or an error code.
+ */
+static int cerberus_protocol_get_pcd_version_id (struct pcd *pcd,
+	struct cmd_interface_request *request)
+{
+	return cerberus_protocol_get_manifest_id_version (&pcd->base, request);
+}
+
+/**
  * Process PCD ID packet
  *
  * @param pcd_mgr PCD manager instance to utilize
@@ -470,10 +589,8 @@ int cerberus_protocol_get_pcd_id (struct pcd_manager *pcd_mgr,
 	struct cmd_interface_request *request)
 {
 	struct cerberus_protocol_get_pcd_id *rq = (struct cerberus_protocol_get_pcd_id*) request->data;
-	struct cerberus_protocol_get_pcd_id_version_response *rsp =
-		(struct cerberus_protocol_get_pcd_id_version_response*) request->data;
 	struct pcd *curr_pcd = NULL;
-	int status = 0;
+	int status;
 
 	if (request->length == (sizeof (struct cerberus_protocol_get_pcd_id) - sizeof (rq->id))) {
 		rq->id = 0;
@@ -482,32 +599,23 @@ int cerberus_protocol_get_pcd_id (struct pcd_manager *pcd_mgr,
 		return CMD_HANDLER_BAD_LENGTH;
 	}
 
+	if (rq->id > 1) {
+		return CMD_HANDLER_OUT_OF_RANGE;
+	}
+
 	/* When there's no valid PCD manager, return a success
 	 * with response indicating no valid manifest */
-	if (pcd_mgr == NULL) {
-		rsp->valid = 0;
-		rsp->version = 0;
-		goto req_len;
+	if (pcd_mgr != NULL) {
+		curr_pcd = pcd_mgr->get_active_pcd (pcd_mgr);
 	}
 
-	curr_pcd = pcd_mgr->get_active_pcd (pcd_mgr);
-	if (curr_pcd != NULL) {
-		status = curr_pcd->base.get_id (&curr_pcd->base, &rsp->version);
-		if (status != 0) {
-			goto exit;
-		}
-
-		rsp->valid = 1;
+	if (rq->id == 0) {
+		status = cerberus_protocol_get_pcd_version_id (curr_pcd, request);
 	}
 	else {
-		rsp->valid = 0;
-		rsp->version = 0;
+		status = cerberus_protocol_get_pcd_platform_id (curr_pcd, request);
 	}
 
-req_len:
-	request->length = sizeof (struct cerberus_protocol_get_pcd_id_version_response);
-
-exit:
 	cerberus_protocol_free_pcd (pcd_mgr, curr_pcd);
 	return status;
 }

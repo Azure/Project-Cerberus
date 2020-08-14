@@ -347,6 +347,34 @@ int cerberus_protocol_log_clear (struct cmd_background *background,
 }
 
 /**
+ * Process PFM ID version packet
+ *
+ * @param pfm PFM to query
+ * @param request PFM ID request to process
+ *
+ * @return 0 if request processing completed successfully or an error code.
+ */
+static int cerberus_protocol_get_pfm_id_version (struct pfm *pfm,
+	struct cmd_interface_request *request)
+{
+	return cerberus_protocol_get_manifest_id_version (&pfm->base, request);
+}
+
+/**
+ * Process PFM ID platform packet
+ *
+ * @param pfm PFM to query
+ * @param request PFM ID request to process
+ *
+ * @return 0 if request processing completed successfully or an error code.
+ */
+static int cerberus_protocol_get_pfm_id_platform (struct pfm *pfm,
+	struct cmd_interface_request *request)
+{
+	return cerberus_protocol_get_manifest_id_platform (&pfm->base, request);
+}
+
+/**
  * Process PFM ID packet
  *
  * @param pfm_mgr_0 PFM manager for port 0
@@ -359,10 +387,9 @@ int cerberus_protocol_get_pfm_id (struct pfm_manager *pfm_mgr_0, struct pfm_mana
 	struct cmd_interface_request *request)
 {
 	struct cerberus_protocol_get_pfm_id *rq = (struct cerberus_protocol_get_pfm_id*) request->data;
-	struct cerberus_protocol_get_pfm_id_version_response *rsp =
-		(struct cerberus_protocol_get_pfm_id_version_response*) request->data;
 	struct pfm *curr_pfm = NULL;
 	uint8_t port;
+	uint8_t id;
 	int status = 0;
 
 	if (request->length == (sizeof (struct cerberus_protocol_get_pfm_id) - sizeof (rq->id))) {
@@ -373,40 +400,25 @@ int cerberus_protocol_get_pfm_id (struct pfm_manager *pfm_mgr_0, struct pfm_mana
 	}
 
 	port = rq->port_id;
-	if (port > 1) {
+	id = rq->id;
+	if ((port > 1) || (id > 1)) {
 		return CMD_HANDLER_OUT_OF_RANGE;
 	}
 
 	status = cerberus_protocol_get_curr_pfm (pfm_mgr_0, pfm_mgr_1, port, rq->region, &curr_pfm);
 	/* When there's no valid PFM manager, return a success
 	 * with response indicating no valid manifest */
-	if (status != 0) {
-		if (status == CMD_HANDLER_UNSUPPORTED_INDEX) {
-			status = 0;
-			rsp->valid = 0;
-			rsp->version = 0;
-			goto rsp_len;
-		}
+	if ((status != 0) && (status != CMD_HANDLER_UNSUPPORTED_INDEX)) {
 		return status;
 	}
 
-	if (curr_pfm != NULL) {
-		status = curr_pfm->base.get_id (&curr_pfm->base, &rsp->version);
-		if (status != 0) {
-			goto exit;
-		}
-
-		rsp->valid = 1;
+	if (id == 0) {
+		status = cerberus_protocol_get_pfm_id_version (curr_pfm, request);
 	}
 	else {
-		rsp->valid = 0;
-		rsp->version = 0;
+		status = cerberus_protocol_get_pfm_id_platform (curr_pfm, request);
 	}
 
-rsp_len:
-	request->length = sizeof (struct cerberus_protocol_get_pfm_id_version_response);
-
-exit:
 	cerberus_protocol_free_pfm (pfm_mgr_0, pfm_mgr_1, port, curr_pfm);
 	return status;
 }

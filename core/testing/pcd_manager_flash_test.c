@@ -136,12 +136,12 @@ const uint32_t PCD2_PLATFORM_ID_OFFSET = sizeof (struct manifest_header) +
 /**
  * The platform ID for the PCD.
  */
-const char *PCD_PLATFORM_ID = "C2030";
+const char PCD_PLATFORM_ID[] = "C2030";
 
 /**
  * The length of the PCD platform ID.
  */
-const size_t PCD_PLATFORM_ID_LEN = 5;
+const size_t PCD_PLATFORM_ID_LEN = sizeof (PCD_PLATFORM_ID) - 1;
 
 /**
  * The offset from the base for the PCD signature.

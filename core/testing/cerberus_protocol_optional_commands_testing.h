@@ -122,6 +122,31 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_invalid_port
 	struct cmd_interface *cmd);
 void cerberus_protocol_optional_commands_testing_process_get_pfm_id_invalid_region (CuTest *test,
 	struct cmd_interface *cmd);
+void cerberus_protocol_optional_commands_testing_process_get_pfm_id_invalid_id (CuTest *test,
+	struct cmd_interface *cmd);
+
+void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_port0_region0 (
+	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_0);
+void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_port0_region1 (
+	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_0);
+void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_port1_region0 (
+	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_1);
+void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_port1_region1 (
+	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_1);
+void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_no_active_pfm (
+	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_0);
+void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_no_pending_pfm (
+	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_0);
+void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_port0_region0_null (
+	CuTest *test, struct cmd_interface *cmd);
+void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_port0_region1_null (
+	CuTest *test, struct cmd_interface *cmd);
+void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_port1_region0_null (
+	CuTest *test, struct cmd_interface *cmd);
+void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_port1_region1_null (
+	CuTest *test, struct cmd_interface *cmd);
+void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_fail (CuTest *test,
+	struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_0);
 
 void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_port0_region0 (
 	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_0);
