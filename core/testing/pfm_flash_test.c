@@ -205,12 +205,12 @@ const size_t PFM_PLATFORM_ID_OFFSET = 0x250;
 /**
  * The platform identifier in the PFM data.
  */
-const char *PFM_PLATFORM_ID = "PFM Test1";
+const char PFM_PLATFORM_ID[] = "PFM Test1";
 
 /**
  * Length of PFM platform ID
  */
- const size_t PFM_PLATFORM_ID_LEN = 9;
+ const size_t PFM_PLATFORM_ID_LEN = sizeof (PFM_PLATFORM_ID) - 1;
 
 
 /*******************

@@ -171,6 +171,14 @@ struct cerberus_protocol_get_pfm_id_platform_response {
 };
 
 /**
+ * Get the total response length for a get platform firmware manifest ID response message.
+ *
+ * @param len Length of the platform id string including null terminator
+ */
+#define	cerberus_protocol_get_pfm_id_platform_response_length(len)	\
+	(len + sizeof (struct cerberus_protocol_get_pfm_id_platform_response) - sizeof (uint8_t))
+
+/**
  * Cerberus protocol get platform firmware manifest supported FW request format
  */
 struct cerberus_protocol_get_pfm_supported_fw {
@@ -381,7 +389,7 @@ struct cerberus_protocol_key_exchange_response {
  * Cerberus protocol key exchange type 0 request format
  */
 struct cerberus_protocol_key_exchange_type_0 {
-	struct cerberus_protocol_key_exchange common;			/**< Common request fields between all key exchange requests */			
+	struct cerberus_protocol_key_exchange common;			/**< Common request fields between all key exchange requests */
 	uint8_t hmac_type;										/**< Type of HMAC to be used in this exchange */
 };
 
@@ -413,7 +421,7 @@ struct cerberus_protocol_key_exchange_type_0 {
  * Cerberus protocol key exchange type 0 response format
  */
 struct cerberus_protocol_key_exchange_response_type_0 {
-	struct cerberus_protocol_key_exchange common;			/**< Common response fields between all key exchange responses */	
+	struct cerberus_protocol_key_exchange common;			/**< Common response fields between all key exchange responses */
 	uint8_t reserved;										/**< Reserved */
 	uint16_t key_len;										/**< Cerberus ephemeral key length */
 };
@@ -502,7 +510,7 @@ struct cerberus_protocol_key_exchange_response_type_0 {
  * Cerberus protocol key exchange type 1 request format
  */
 struct cerberus_protocol_key_exchange_type_1 {
-	struct cerberus_protocol_key_exchange common;			/**< Common request fields between all key exchange requests */		
+	struct cerberus_protocol_key_exchange common;			/**< Common request fields between all key exchange requests */
 	uint16_t pairing_key_len;								/**< Length in bytes of the pairing key */
 };
 
@@ -912,8 +920,8 @@ int cerberus_protocol_get_recovery_image_id (struct recovery_image_manager *mana
 
 int cerberus_protocol_get_attestation_data (struct pcr_store *store,
 	struct cmd_interface_request *request);
-	
-int cerberus_protocol_key_exchange (struct session_manager *session, 
+
+int cerberus_protocol_key_exchange (struct session_manager *session,
 	struct cmd_interface_request *request, uint8_t encrypted);
 
 

@@ -86,6 +86,14 @@ struct cerberus_protocol_get_cfm_id_platform_response {
 };
 
 /**
+ * Get the total response length for a get component firmware manifest ID response message.
+ *
+ * @param len Length of the platform id string including null terminator
+ */
+#define	cerberus_protocol_get_cfm_id_platform_response_length(len)	\
+	(len + sizeof (struct cerberus_protocol_get_cfm_id_platform_response) - sizeof (uint8_t))
+
+/**
  * Cerberus protocol prepare component firmware manifest request format
  */
 struct cerberus_protocol_prepare_cfm_update {
@@ -181,6 +189,14 @@ struct cerberus_protocol_get_pcd_id_platform_response {
 	uint8_t valid;									/**< Indication if the PCD is valid */
 	uint8_t platform;								/**< First byte of the ASCII PCD platform ID */
 };
+
+/**
+ * Get the total response length for a get platform configuration data ID response message.
+ *
+ * @param len Length of the platform id string including null terminator
+ */
+#define	cerberus_protocol_get_pcd_id_platform_response_length(len)	\
+	(len + sizeof (struct cerberus_protocol_get_pcd_id_platform_response) - sizeof (uint8_t))
 
 /**
  * Cerberus protocol prepare platform configuration data request format
@@ -345,6 +361,13 @@ int cerberus_protocol_process_certificate (struct attestation_master *attestatio
 	struct cmd_interface_request *request);
 int cerberus_protocol_process_challenge_response (struct attestation_master *attestation,
 	struct cmd_interface_request *request);
+
+/* Private functions for internal use */
+int cerberus_protocol_get_manifest_id_version (struct manifest *manifest,
+	struct cmd_interface_request *request);
+int cerberus_protocol_get_manifest_id_platform (struct manifest *manifest,
+	struct cmd_interface_request *request);
+
 
 
 #endif // CERBERUS_PROTOCOL_MASTER_COMMANDS_H_

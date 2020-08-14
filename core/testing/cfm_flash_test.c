@@ -94,6 +94,16 @@ const char TEST_VERSION_ID_1[] = "v01.01.01";
 */
 const char TEST_VERSION_ID_2[] = "v02.02.02";
 
+/*
+ * The platform identifier in the CFM data
+ */
+const char CFM_PLATFORM_ID[] = "CFM_Test1";
+
+/*
+ * Length of CFM platform ID
+ */
+const size_t CFM_PLATFORM_ID_LEN = sizeof (CFM_PLATFORM_ID) - 1;
+
 /**
  * The length of the CFM signature.
  */

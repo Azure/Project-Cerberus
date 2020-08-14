@@ -29,7 +29,7 @@ extern const uint32_t PCD_COMPONENTS_OFFSET;
 extern const uint32_t PCD_PLATFORM_ID_HDR_OFFSET;
 extern const uint32_t PCD_PLATFORM_ID_OFFSET;
 
-extern const char *PCD_PLATFORM_ID;
+extern const char PCD_PLATFORM_ID[];
 extern const size_t PCD_PLATFORM_ID_LEN;
 
 /*
