@@ -191,7 +191,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_in
 
 void cerberus_protocol_optional_commands_testing_process_log_clear_debug (CuTest *test,
 	struct cmd_interface *cmd, struct cmd_background_mock *background);
-void cerberus_protocol_optional_commands_testing_process_log_clear_tcg (CuTest *test,
+void cerberus_protocol_optional_commands_testing_process_log_clear_attestation (CuTest *test,
 	struct cmd_interface *cmd);
 void cerberus_protocol_optional_commands_testing_process_log_clear_invalid_len (CuTest *test,
 	struct cmd_interface *cmd);
@@ -201,24 +201,24 @@ void cerberus_protocol_optional_commands_testing_process_log_clear_debug_fail (C
 	struct cmd_interface *cmd, struct cmd_background_mock *background);
 
 void cerberus_protocol_optional_commands_testing_process_get_log_info (CuTest *test,
-	struct cmd_interface *cmd, struct logging_mock *debug, int tcg_entries);
+	struct cmd_interface *cmd, struct logging_mock *debug, int attestation_entries);
 void cerberus_protocol_optional_commands_testing_process_get_log_info_invalid_len (CuTest *test,
 	struct cmd_interface *cmd);
 void cerberus_protocol_optional_commands_testing_process_get_log_info_fail_debug (CuTest *test,
-	struct cmd_interface *cmd, struct logging_mock *debug, int tcg_entries);
+	struct cmd_interface *cmd, struct logging_mock *debug, int attestation_entries);
 
 void cerberus_protocol_optional_commands_testing_process_log_read_debug (CuTest *test,
 	struct cmd_interface *cmd, struct logging_mock *debug);
 void cerberus_protocol_optional_commands_testing_process_log_read_debug_limited_response (
 	CuTest *test, struct cmd_interface *cmd, struct logging_mock *debug);
-void cerberus_protocol_optional_commands_testing_process_log_read_tcg (CuTest *test,
+void cerberus_protocol_optional_commands_testing_process_log_read_attestation (CuTest *test,
 	struct cmd_interface *cmd, struct hash_engine_mock *hash, struct pcr_store *store);
-void cerberus_protocol_optional_commands_testing_process_log_read_tcg_limited_response (
+void cerberus_protocol_optional_commands_testing_process_log_read_attestation_limited_response (
 	CuTest *test, struct cmd_interface *cmd, struct hash_engine_mock *hash,
 	struct pcr_store *store);
 void cerberus_protocol_optional_commands_testing_process_log_read_debug_fail (CuTest *test,
 	struct cmd_interface *cmd, struct logging_mock *debug);
-void cerberus_protocol_optional_commands_testing_process_log_read_tcg_fail (CuTest *test,
+void cerberus_protocol_optional_commands_testing_process_log_read_attestation_fail (CuTest *test,
 	struct cmd_interface *cmd, struct hash_engine_mock *hash, struct pcr_store *store);
 void cerberus_protocol_optional_commands_testing_process_log_read_invalid_offset (CuTest *test,
 	struct cmd_interface *cmd, struct logging_mock *debug);

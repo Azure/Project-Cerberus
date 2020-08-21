@@ -28,7 +28,7 @@
  */
 enum {
 	CERBERUS_PROTOCOL_DEBUG_LOG = 1,						/**< Debug log type. */
-	CERBERUS_PROTOCOL_TCG_LOG,								/**< TCG log type. */
+	CERBERUS_PROTOCOL_ATTESTATION_LOG,						/**< Attestation log type. */
 	CERBERUS_PROTOCOL_TAMPER_LOG							/**< Tamper log type. */
 };
 

@@ -264,7 +264,7 @@ int cerberus_protocol_get_log_info (struct pcr_store *pcr_store,
 	}
 	rsp->debug_log_length = log_length;
 
-	log_length = pcr_store_get_tcg_log_size (pcr_store);
+	log_length = pcr_store_get_attestation_log_size (pcr_store);
 	if (ROT_IS_ERROR (log_length)) {
 		log_length = 0;
 	}
@@ -301,8 +301,8 @@ int cerberus_protocol_log_read (struct pcr_store *pcr_store, struct hash_engine 
 		log_length = debug_log_read_contents (rq->offset, cerberus_protocol_log_data (rsp),
 			CERBERUS_PROTOCOL_MAX_LOG_DATA (request));
 	}
-	else if (rq->log_type == CERBERUS_PROTOCOL_TCG_LOG) {
-		log_length = pcr_store_get_tcg_log (pcr_store, hash, rq->offset,
+	else if (rq->log_type == CERBERUS_PROTOCOL_ATTESTATION_LOG) {
+		log_length = pcr_store_get_attestation_log (pcr_store, hash, rq->offset,
 			cerberus_protocol_log_data (rsp), CERBERUS_PROTOCOL_MAX_LOG_DATA (request));
 	}
 	else {
@@ -339,7 +339,7 @@ int cerberus_protocol_log_clear (struct cmd_background *background,
 	if (rq->log_type == CERBERUS_PROTOCOL_DEBUG_LOG) {
 		return background->debug_log_clear (background);
 	}
-	else if (rq->log_type == CERBERUS_PROTOCOL_TCG_LOG) {
+	else if (rq->log_type == CERBERUS_PROTOCOL_ATTESTATION_LOG) {
 		return 0;
 	}
 
