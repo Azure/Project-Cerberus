@@ -1094,7 +1094,7 @@ static void pcr_store_test_get_num_banks_invalid_arg (CuTest *test)
 	CuAssertIntEquals (test, PCR_INVALID_ARGUMENT, status);
 }
 
-static void pcr_store_test_get_tcg_log_size (CuTest *test)
+static void pcr_store_test_get_attestation_log_size (CuTest *test)
 {
 	struct pcr_store store;
 	struct hash_engine_mock hash;
@@ -1104,13 +1104,13 @@ static void pcr_store_test_get_tcg_log_size (CuTest *test)
 
 	setup_pcr_store_mock_test (test, &store, &hash, 6, 6);
 
-	status = pcr_store_get_tcg_log_size (&store);
-	CuAssertIntEquals (test, 12 * sizeof (struct pcr_store_tcg_log_entry), status);
+	status = pcr_store_get_attestation_log_size (&store);
+	CuAssertIntEquals (test, 12 * sizeof (struct pcr_store_attestation_log_entry), status);
 
 	complete_pcr_store_mock_test (test, &store, &hash);
 }
 
-static void pcr_store_test_get_tcg_log_size_explicit (CuTest *test)
+static void pcr_store_test_get_attestation_log_size_explicit (CuTest *test)
 {
 	struct pcr_store store;
 	struct hash_engine_mock hash;
@@ -1120,28 +1120,28 @@ static void pcr_store_test_get_tcg_log_size_explicit (CuTest *test)
 
 	setup_pcr_store_mock_test (test, &store, &hash, 6, 0);
 
-	status = pcr_store_get_tcg_log_size (&store);
-	CuAssertIntEquals (test, 6 * sizeof (struct pcr_store_tcg_log_entry), status);
+	status = pcr_store_get_attestation_log_size (&store);
+	CuAssertIntEquals (test, 6 * sizeof (struct pcr_store_attestation_log_entry), status);
 
 	complete_pcr_store_mock_test (test, &store, &hash);
 }
 
-static void pcr_store_test_get_tcg_log_size_invalid_arg (CuTest *test)
+static void pcr_store_test_get_attestation_log_size_invalid_arg (CuTest *test)
 {
 	int status;
 
 	TEST_START;
 
-	status = pcr_store_get_tcg_log_size (NULL);
+	status = pcr_store_get_attestation_log_size (NULL);
 	CuAssertIntEquals (test, PCR_INVALID_ARGUMENT, status);
 }
 
-static void pcr_store_test_get_tcg_log (CuTest *test)
+static void pcr_store_test_get_attestation_log (CuTest *test)
 {
 	struct pcr_store store;
 	struct hash_engine_mock hash;
-	struct pcr_store_tcg_log_entry buf[6];
-	struct pcr_store_tcg_log_entry exp_buf[6];
+	struct pcr_store_attestation_log_entry buf[6];
+	struct pcr_store_attestation_log_entry exp_buf[6];
 	uint8_t buffer0[PCR_DIGEST_LENGTH] = {0};
 	uint8_t digests[6][PCR_DIGEST_LENGTH] = {
 		{
@@ -1176,7 +1176,7 @@ static void pcr_store_test_get_tcg_log (CuTest *test)
 
 	for (i_measurement = 0; i_measurement < 6; ++i_measurement) {
 		exp_buf[i_measurement].header.log_magic = 0xCB;
-		exp_buf[i_measurement].header.length = sizeof (struct pcr_store_tcg_log_entry);
+		exp_buf[i_measurement].header.length = sizeof (struct pcr_store_attestation_log_entry);
 		exp_buf[i_measurement].header.entry_id = i_measurement;
 		exp_buf[i_measurement].entry.digest_algorithm_id = 0x0B;
 		exp_buf[i_measurement].entry.digest_count = 1;
@@ -1273,8 +1273,8 @@ static void pcr_store_test_get_tcg_log (CuTest *test)
 			0x0A + i_measurement + 3);
 	}
 
-	status = pcr_store_get_tcg_log (&store, &hash.base, 0, (uint8_t*) buf, sizeof (buf));
-	CuAssertIntEquals (test, 6 * sizeof (struct pcr_store_tcg_log_entry), status);
+	status = pcr_store_get_attestation_log (&store, &hash.base, 0, (uint8_t*) buf, sizeof (buf));
+	CuAssertIntEquals (test, 6 * sizeof (struct pcr_store_attestation_log_entry), status);
 
 	status = testing_validate_array ((uint8_t*) exp_buf, (uint8_t*) buf, status);
 	CuAssertIntEquals (test, 0, status);
@@ -1282,12 +1282,12 @@ static void pcr_store_test_get_tcg_log (CuTest *test)
 	complete_pcr_store_mock_test (test, &store, &hash);
 }
 
-static void pcr_store_test_get_tcg_log_invalid_entry (CuTest *test)
+static void pcr_store_test_get_attestation_log_invalid_entry (CuTest *test)
 {
 	struct pcr_store store;
 	struct hash_engine_mock hash;
-	struct pcr_store_tcg_log_entry buf[6];
-	struct pcr_store_tcg_log_entry exp_buf[6];
+	struct pcr_store_attestation_log_entry buf[6];
+	struct pcr_store_attestation_log_entry exp_buf[6];
 	uint8_t buffer0[PCR_DIGEST_LENGTH] = {0};
 	uint8_t digests[6][PCR_DIGEST_LENGTH] = {
 		{
@@ -1322,7 +1322,7 @@ static void pcr_store_test_get_tcg_log_invalid_entry (CuTest *test)
 
 	for (i_measurement = 0; i_measurement < 6; ++i_measurement) {
 		exp_buf[i_measurement].header.log_magic = 0xCB;
-		exp_buf[i_measurement].header.length = sizeof (struct pcr_store_tcg_log_entry);
+		exp_buf[i_measurement].header.length = sizeof (struct pcr_store_attestation_log_entry);
 		exp_buf[i_measurement].header.entry_id = i_measurement;
 		exp_buf[i_measurement].entry.digest_algorithm_id = 0x0B;
 		exp_buf[i_measurement].entry.digest_count = 1;
@@ -1421,8 +1421,8 @@ static void pcr_store_test_get_tcg_log_invalid_entry (CuTest *test)
 
 	pcr_store_update_event_type (&store, PCR_MEASUREMENT (1, 2), 0x0A + 5);
 
-	status = pcr_store_get_tcg_log (&store, &hash.base, 0, (uint8_t*) buf, sizeof (buf));
-	CuAssertIntEquals (test, 6 * sizeof (struct pcr_store_tcg_log_entry), status);
+	status = pcr_store_get_attestation_log (&store, &hash.base, 0, (uint8_t*) buf, sizeof (buf));
+	CuAssertIntEquals (test, 6 * sizeof (struct pcr_store_attestation_log_entry), status);
 
 	status = testing_validate_array ((uint8_t*) exp_buf, (uint8_t*) buf, status);
 	CuAssertIntEquals (test, 0, status);
@@ -1430,12 +1430,12 @@ static void pcr_store_test_get_tcg_log_invalid_entry (CuTest *test)
 	complete_pcr_store_mock_test (test, &store, &hash);
 }
 
-static void pcr_store_test_get_tcg_log_explicit (CuTest *test)
+static void pcr_store_test_get_attestation_log_explicit (CuTest *test)
 {
 	struct pcr_store store;
 	struct hash_engine_mock hash;
-	struct pcr_store_tcg_log_entry buf[6];
-	struct pcr_store_tcg_log_entry exp_buf[6];
+	struct pcr_store_attestation_log_entry buf[6];
+	struct pcr_store_attestation_log_entry exp_buf[6];
 	uint8_t buffer0[PCR_DIGEST_LENGTH] = {0};
 	uint8_t digests[6][PCR_DIGEST_LENGTH] = {
 		{
@@ -1470,7 +1470,7 @@ static void pcr_store_test_get_tcg_log_explicit (CuTest *test)
 
 	for (i_measurement = 0; i_measurement < 3; ++i_measurement) {
 		exp_buf[i_measurement].header.log_magic = 0xCB;
-		exp_buf[i_measurement].header.length = sizeof (struct pcr_store_tcg_log_entry);
+		exp_buf[i_measurement].header.length = sizeof (struct pcr_store_attestation_log_entry);
 		exp_buf[i_measurement].header.entry_id = i_measurement;
 		exp_buf[i_measurement].entry.digest_algorithm_id = 0x0B;
 		exp_buf[i_measurement].entry.digest_count = 1;
@@ -1526,8 +1526,8 @@ static void pcr_store_test_get_tcg_log_explicit (CuTest *test)
 
 	pcr_store_update_digest (&store, PCR_MEASUREMENT (1, 0), digests[3], PCR_DIGEST_LENGTH);
 
-	status = pcr_store_get_tcg_log (&store, &hash.base, 0, (uint8_t*) buf, sizeof (buf));
-	CuAssertIntEquals (test, 3 * sizeof (struct pcr_store_tcg_log_entry), status);
+	status = pcr_store_get_attestation_log (&store, &hash.base, 0, (uint8_t*) buf, sizeof (buf));
+	CuAssertIntEquals (test, 3 * sizeof (struct pcr_store_attestation_log_entry), status);
 
 	status = testing_validate_array ((uint8_t*) exp_buf, (uint8_t*) buf, status);
 	CuAssertIntEquals (test, 0, status);
@@ -1535,12 +1535,12 @@ static void pcr_store_test_get_tcg_log_explicit (CuTest *test)
 	complete_pcr_store_mock_test (test, &store, &hash);
 }
 
-static void pcr_store_test_get_tcg_log_non_zero_offset (CuTest *test)
+static void pcr_store_test_get_attestation_log_non_zero_offset (CuTest *test)
 {
 	struct pcr_store store;
 	struct hash_engine_mock hash;
-	struct pcr_store_tcg_log_entry buf[6];
-	struct pcr_store_tcg_log_entry exp_buf[6];
+	struct pcr_store_attestation_log_entry buf[6];
+	struct pcr_store_attestation_log_entry exp_buf[6];
 	uint8_t buffer0[PCR_DIGEST_LENGTH] = {0};
 	uint8_t digests[6][PCR_DIGEST_LENGTH] = {
 		{
@@ -1575,7 +1575,7 @@ static void pcr_store_test_get_tcg_log_non_zero_offset (CuTest *test)
 
 	for (i_measurement = 0; i_measurement < 6; ++i_measurement) {
 		exp_buf[i_measurement].header.log_magic = 0xCB;
-		exp_buf[i_measurement].header.length = sizeof (struct pcr_store_tcg_log_entry);
+		exp_buf[i_measurement].header.length = sizeof (struct pcr_store_attestation_log_entry);
 		exp_buf[i_measurement].header.entry_id = i_measurement;
 		exp_buf[i_measurement].entry.digest_algorithm_id = 0x0B;
 		exp_buf[i_measurement].entry.digest_count = 1;
@@ -1672,9 +1672,10 @@ static void pcr_store_test_get_tcg_log_non_zero_offset (CuTest *test)
 			0x0A + i_measurement + 3);
 	}
 
-	status = pcr_store_get_tcg_log (&store, &hash.base, 3 * sizeof (struct pcr_store_tcg_log_entry),
-		(uint8_t*) buf, 6 * sizeof (struct pcr_store_tcg_log_entry));
-	CuAssertIntEquals (test, 3 * sizeof (struct pcr_store_tcg_log_entry), status);
+	status = pcr_store_get_attestation_log (&store, &hash.base, 3 * 
+		sizeof (struct pcr_store_attestation_log_entry), (uint8_t*) buf, 
+		6 * sizeof (struct pcr_store_attestation_log_entry));
+	CuAssertIntEquals (test, 3 * sizeof (struct pcr_store_attestation_log_entry), status);
 
 	status = testing_validate_array ((uint8_t*) &exp_buf[3], (uint8_t*) buf, status);
 	CuAssertIntEquals (test, 0, status);
@@ -1682,12 +1683,12 @@ static void pcr_store_test_get_tcg_log_non_zero_offset (CuTest *test)
 	complete_pcr_store_mock_test (test, &store, &hash);
 }
 
-static void pcr_store_test_get_tcg_log_partial_measurement (CuTest *test)
+static void pcr_store_test_get_attestation_log_partial_measurement (CuTest *test)
 {
 	struct pcr_store store;
 	struct hash_engine_mock hash;
-	struct pcr_store_tcg_log_entry buf[6];
-	struct pcr_store_tcg_log_entry exp_buf[6];
+	struct pcr_store_attestation_log_entry buf[6];
+	struct pcr_store_attestation_log_entry exp_buf[6];
 	uint8_t buffer0[PCR_DIGEST_LENGTH] = {0};
 	uint8_t digests[6][PCR_DIGEST_LENGTH] = {
 		{
@@ -1722,7 +1723,7 @@ static void pcr_store_test_get_tcg_log_partial_measurement (CuTest *test)
 
 	for (i_measurement = 0; i_measurement < 6; ++i_measurement) {
 		exp_buf[i_measurement].header.log_magic = 0xCB;
-		exp_buf[i_measurement].header.length = sizeof (struct pcr_store_tcg_log_entry);
+		exp_buf[i_measurement].header.length = sizeof (struct pcr_store_attestation_log_entry);
 		exp_buf[i_measurement].header.entry_id = i_measurement;
 		exp_buf[i_measurement].entry.digest_algorithm_id = 0x0B;
 		exp_buf[i_measurement].entry.digest_count = 1;
@@ -1819,10 +1820,10 @@ static void pcr_store_test_get_tcg_log_partial_measurement (CuTest *test)
 			0x0A + i_measurement + 3);
 	}
 
-	status = pcr_store_get_tcg_log (&store, &hash.base,
-		2 * sizeof (struct pcr_store_tcg_log_entry) + 5, (uint8_t*) buf,
-		6 * sizeof (struct pcr_store_tcg_log_entry));
-	CuAssertIntEquals (test, 4 * sizeof (struct pcr_store_tcg_log_entry) - 5, status);
+	status = pcr_store_get_attestation_log (&store, &hash.base,
+		2 * sizeof (struct pcr_store_attestation_log_entry) + 5, (uint8_t*) buf,
+		6 * sizeof (struct pcr_store_attestation_log_entry));
+	CuAssertIntEquals (test, 4 * sizeof (struct pcr_store_attestation_log_entry) - 5, status);
 
 	status = testing_validate_array (((uint8_t*) &exp_buf[2]) + 5, (uint8_t*) buf, status);
 	CuAssertIntEquals (test, 0, status);
@@ -1830,12 +1831,12 @@ static void pcr_store_test_get_tcg_log_partial_measurement (CuTest *test)
 	complete_pcr_store_mock_test (test, &store, &hash);
 }
 
-static void pcr_store_test_get_tcg_log_small_buffer (CuTest *test)
+static void pcr_store_test_get_attestation_log_small_buffer (CuTest *test)
 {
 	struct pcr_store store;
 	struct hash_engine_mock hash;
-	struct pcr_store_tcg_log_entry buf[6];
-	struct pcr_store_tcg_log_entry exp_buf[6];
+	struct pcr_store_attestation_log_entry buf[6];
+	struct pcr_store_attestation_log_entry exp_buf[6];
 	uint8_t buffer0[PCR_DIGEST_LENGTH] = {0};
 	uint8_t digests[6][PCR_DIGEST_LENGTH] = {
 		{
@@ -1870,7 +1871,7 @@ static void pcr_store_test_get_tcg_log_small_buffer (CuTest *test)
 
 	for (i_measurement = 0; i_measurement < 6; ++i_measurement) {
 		exp_buf[i_measurement].header.log_magic = 0xCB;
-		exp_buf[i_measurement].header.length = sizeof (struct pcr_store_tcg_log_entry);
+		exp_buf[i_measurement].header.length = sizeof (struct pcr_store_attestation_log_entry);
 		exp_buf[i_measurement].header.entry_id = i_measurement;
 		exp_buf[i_measurement].entry.digest_algorithm_id = 0x0B;
 		exp_buf[i_measurement].entry.digest_count = 1;
@@ -1937,9 +1938,9 @@ static void pcr_store_test_get_tcg_log_small_buffer (CuTest *test)
 			0x0A + i_measurement + 3);
 	}
 
-	status = pcr_store_get_tcg_log (&store, &hash.base, 0, (uint8_t*) buf,
-		sizeof (struct pcr_store_tcg_log_entry));
-	CuAssertIntEquals (test, sizeof (struct pcr_store_tcg_log_entry), status);
+	status = pcr_store_get_attestation_log (&store, &hash.base, 0, (uint8_t*) buf,
+		sizeof (struct pcr_store_attestation_log_entry));
+	CuAssertIntEquals (test, sizeof (struct pcr_store_attestation_log_entry), status);
 
 	status = testing_validate_array ((uint8_t*) exp_buf, (uint8_t*) buf, status);
 	CuAssertIntEquals (test, 0, status);
@@ -1947,12 +1948,12 @@ static void pcr_store_test_get_tcg_log_small_buffer (CuTest *test)
 	complete_pcr_store_mock_test (test, &store, &hash);
 }
 
-static void pcr_store_test_get_tcg_log_small_buffer_not_entry_aligned (CuTest *test)
+static void pcr_store_test_get_attestation_log_small_buffer_not_entry_aligned (CuTest *test)
 {
 	struct pcr_store store;
 	struct hash_engine_mock hash;
-	struct pcr_store_tcg_log_entry buf[6];
-	struct pcr_store_tcg_log_entry exp_buf[6];
+	struct pcr_store_attestation_log_entry buf[6];
+	struct pcr_store_attestation_log_entry exp_buf[6];
 	uint8_t buffer0[PCR_DIGEST_LENGTH] = {0};
 	uint8_t digests[6][PCR_DIGEST_LENGTH] = {
 		{
@@ -1987,7 +1988,7 @@ static void pcr_store_test_get_tcg_log_small_buffer_not_entry_aligned (CuTest *t
 
 	for (i_measurement = 0; i_measurement < 6; ++i_measurement) {
 		exp_buf[i_measurement].header.log_magic = 0xCB;
-		exp_buf[i_measurement].header.length = sizeof (struct pcr_store_tcg_log_entry);
+		exp_buf[i_measurement].header.length = sizeof (struct pcr_store_attestation_log_entry);
 		exp_buf[i_measurement].header.entry_id = i_measurement;
 		exp_buf[i_measurement].entry.digest_algorithm_id = 0x0B;
 		exp_buf[i_measurement].entry.digest_count = 1;
@@ -2054,9 +2055,9 @@ static void pcr_store_test_get_tcg_log_small_buffer_not_entry_aligned (CuTest *t
 			0x0A + i_measurement + 3);
 	}
 
-	status = pcr_store_get_tcg_log (&store, &hash.base, 0, (uint8_t*) buf,
-		sizeof (struct pcr_store_tcg_log_entry) + 10);
-	CuAssertIntEquals (test, sizeof (struct pcr_store_tcg_log_entry) + 10, status);
+	status = pcr_store_get_attestation_log (&store, &hash.base, 0, (uint8_t*) buf,
+		sizeof (struct pcr_store_attestation_log_entry) + 10);
+	CuAssertIntEquals (test, sizeof (struct pcr_store_attestation_log_entry) + 10, status);
 
 	status = testing_validate_array ((uint8_t*) exp_buf, (uint8_t*) buf, status);
 	CuAssertIntEquals (test, 0, status);
@@ -2064,12 +2065,12 @@ static void pcr_store_test_get_tcg_log_small_buffer_not_entry_aligned (CuTest *t
 	complete_pcr_store_mock_test (test, &store, &hash);
 }
 
-static void pcr_store_test_get_tcg_log_small_buffer_nonzero_offset (CuTest *test)
+static void pcr_store_test_get_attestation_log_small_buffer_nonzero_offset (CuTest *test)
 {
 	struct pcr_store store;
 	struct hash_engine_mock hash;
-	struct pcr_store_tcg_log_entry buf[6];
-	struct pcr_store_tcg_log_entry exp_buf[6];
+	struct pcr_store_attestation_log_entry buf[6];
+	struct pcr_store_attestation_log_entry exp_buf[6];
 	uint8_t buffer0[PCR_DIGEST_LENGTH] = {0};
 	uint8_t digests[6][PCR_DIGEST_LENGTH] = {
 		{
@@ -2104,7 +2105,7 @@ static void pcr_store_test_get_tcg_log_small_buffer_nonzero_offset (CuTest *test
 
 	for (i_measurement = 0; i_measurement < 6; ++i_measurement) {
 		exp_buf[i_measurement].header.log_magic = 0xCB;
-		exp_buf[i_measurement].header.length = sizeof (struct pcr_store_tcg_log_entry);
+		exp_buf[i_measurement].header.length = sizeof (struct pcr_store_attestation_log_entry);
 		exp_buf[i_measurement].header.entry_id = i_measurement;
 		exp_buf[i_measurement].entry.digest_algorithm_id = 0x0B;
 		exp_buf[i_measurement].entry.digest_count = 1;
@@ -2201,9 +2202,10 @@ static void pcr_store_test_get_tcg_log_small_buffer_nonzero_offset (CuTest *test
 			0x0A + i_measurement + 3);
 	}
 
-	status = pcr_store_get_tcg_log (&store, &hash.base, sizeof (struct pcr_store_tcg_log_entry),
-		(uint8_t*) buf, 3 * sizeof (struct pcr_store_tcg_log_entry));
-	CuAssertIntEquals (test, 3 * sizeof (struct pcr_store_tcg_log_entry), status);
+	status = pcr_store_get_attestation_log (&store, &hash.base, 
+		sizeof (struct pcr_store_attestation_log_entry), (uint8_t*) buf, 
+		3 * sizeof (struct pcr_store_attestation_log_entry));
+	CuAssertIntEquals (test, 3 * sizeof (struct pcr_store_attestation_log_entry), status);
 
 	status = testing_validate_array ((uint8_t*) &exp_buf[1], (uint8_t*) buf, status);
 	CuAssertIntEquals (test, 0, status);
@@ -2211,12 +2213,12 @@ static void pcr_store_test_get_tcg_log_small_buffer_nonzero_offset (CuTest *test
 	complete_pcr_store_mock_test (test, &store, &hash);
 }
 
-static void pcr_store_test_get_tcg_log_invalid_offset (CuTest *test)
+static void pcr_store_test_get_attestation_log_invalid_offset (CuTest *test)
 {
 	struct pcr_store store;
 	struct hash_engine_mock hash;
-	struct pcr_store_tcg_log_entry buf[6];
-	struct pcr_store_tcg_log_entry exp_buf[6];
+	struct pcr_store_attestation_log_entry buf[6];
+	struct pcr_store_attestation_log_entry exp_buf[6];
 	uint8_t buffer0[PCR_DIGEST_LENGTH] = {0};
 	uint8_t digests[6][PCR_DIGEST_LENGTH] = {
 		{
@@ -2251,7 +2253,7 @@ static void pcr_store_test_get_tcg_log_invalid_offset (CuTest *test)
 
 	for (i_measurement = 0; i_measurement < 6; ++i_measurement) {
 		exp_buf[i_measurement].header.log_magic = 0xCB;
-		exp_buf[i_measurement].header.length = sizeof (struct pcr_store_tcg_log_entry);
+		exp_buf[i_measurement].header.length = sizeof (struct pcr_store_attestation_log_entry);
 		exp_buf[i_measurement].header.entry_id = i_measurement;
 		exp_buf[i_measurement].entry.digest_algorithm_id = 0x0B;
 		exp_buf[i_measurement].entry.digest_count = 1;
@@ -2348,41 +2350,42 @@ static void pcr_store_test_get_tcg_log_invalid_offset (CuTest *test)
 			0x0A + i_measurement + 3);
 	}
 
-	status = pcr_store_get_tcg_log (&store, &hash.base, 6 * sizeof (struct pcr_store_tcg_log_entry),
-		(uint8_t*) buf, 6 * sizeof (struct pcr_store_tcg_log_entry));
+	status = pcr_store_get_attestation_log (&store, &hash.base, 
+		6 * sizeof (struct pcr_store_attestation_log_entry), (uint8_t*) buf, 
+		6 * sizeof (struct pcr_store_attestation_log_entry));
 	CuAssertIntEquals (test, 0, status);
 
 	complete_pcr_store_mock_test (test, &store, &hash);
 }
 
-static void pcr_store_test_get_tcg_log_invalid_arg (CuTest *test)
+static void pcr_store_test_get_attestation_log_invalid_arg (CuTest *test)
 {
 	struct pcr_store store;
 	struct hash_engine_mock hash;
-	struct pcr_store_tcg_log_entry buf[6];
+	struct pcr_store_attestation_log_entry buf[6];
 	int status;
 
 	TEST_START;
 
 	setup_pcr_store_mock_test (test, &store, &hash, 3, 3);
 
-	status = pcr_store_get_tcg_log (NULL, &hash.base, 0, (uint8_t*)buf, 1);
+	status = pcr_store_get_attestation_log (NULL, &hash.base, 0, (uint8_t*)buf, 1);
 	CuAssertIntEquals (test, PCR_INVALID_ARGUMENT, status);
 
-	status = pcr_store_get_tcg_log (&store, NULL, 0, (uint8_t*)buf, 1);
+	status = pcr_store_get_attestation_log (&store, NULL, 0, (uint8_t*)buf, 1);
 	CuAssertIntEquals (test, PCR_INVALID_ARGUMENT, status);
 
-	status = pcr_store_get_tcg_log (&store, &hash.base, 0, NULL, 1);
+	status = pcr_store_get_attestation_log (&store, &hash.base, 0, NULL, 1);
 	CuAssertIntEquals (test, PCR_INVALID_ARGUMENT, status);
 
 	complete_pcr_store_mock_test (test, &store, &hash);
 }
 
-static void pcr_store_test_get_tcg_log_compute_fail (CuTest *test)
+static void pcr_store_test_get_attestation_log_compute_fail (CuTest *test)
 {
 	struct pcr_store store;
 	struct hash_engine_mock hash;
-	struct pcr_store_tcg_log_entry buf[6];
+	struct pcr_store_attestation_log_entry buf[6];
 	uint8_t digest[] = {
 		0xab,0xe6,0xe6,0x4f,0x38,0x13,0x4f,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
 		0x7f,0xe6,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x7f,0x6e
@@ -2398,8 +2401,8 @@ static void pcr_store_test_get_tcg_log_compute_fail (CuTest *test)
 
 	pcr_store_update_digest (&store, PCR_MEASUREMENT (0, 0), digest, PCR_DIGEST_LENGTH);
 
-	status = pcr_store_get_tcg_log (&store, &hash.base, 0, (uint8_t*)buf,
-		6 * sizeof (struct pcr_store_tcg_log_entry));
+	status = pcr_store_get_attestation_log (&store, &hash.base, 0, (uint8_t*)buf,
+		6 * sizeof (struct pcr_store_attestation_log_entry));
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
 	complete_pcr_store_mock_test (test, &store, &hash);
@@ -2776,20 +2779,20 @@ CuSuite* get_pcr_store_suite ()
 	SUITE_ADD_TEST (suite, pcr_store_test_get_measurement_fail);
 	SUITE_ADD_TEST (suite, pcr_store_test_get_num_banks);
 	SUITE_ADD_TEST (suite, pcr_store_test_get_num_banks_invalid_arg);
-	SUITE_ADD_TEST (suite, pcr_store_test_get_tcg_log_size);
-	SUITE_ADD_TEST (suite, pcr_store_test_get_tcg_log_size_explicit);
-	SUITE_ADD_TEST (suite, pcr_store_test_get_tcg_log_size_invalid_arg);
-	SUITE_ADD_TEST (suite, pcr_store_test_get_tcg_log);
-	SUITE_ADD_TEST (suite, pcr_store_test_get_tcg_log_invalid_entry);
-	SUITE_ADD_TEST (suite, pcr_store_test_get_tcg_log_explicit);
-	SUITE_ADD_TEST (suite, pcr_store_test_get_tcg_log_non_zero_offset);
-	SUITE_ADD_TEST (suite, pcr_store_test_get_tcg_log_partial_measurement);
-	SUITE_ADD_TEST (suite, pcr_store_test_get_tcg_log_small_buffer);
-	SUITE_ADD_TEST (suite, pcr_store_test_get_tcg_log_small_buffer_not_entry_aligned);
-	SUITE_ADD_TEST (suite, pcr_store_test_get_tcg_log_small_buffer_nonzero_offset);
-	SUITE_ADD_TEST (suite, pcr_store_test_get_tcg_log_invalid_offset);
-	SUITE_ADD_TEST (suite, pcr_store_test_get_tcg_log_invalid_arg);
-	SUITE_ADD_TEST (suite, pcr_store_test_get_tcg_log_compute_fail);
+	SUITE_ADD_TEST (suite, pcr_store_test_get_attestation_log_size);
+	SUITE_ADD_TEST (suite, pcr_store_test_get_attestation_log_size_explicit);
+	SUITE_ADD_TEST (suite, pcr_store_test_get_attestation_log_size_invalid_arg);
+	SUITE_ADD_TEST (suite, pcr_store_test_get_attestation_log);
+	SUITE_ADD_TEST (suite, pcr_store_test_get_attestation_log_invalid_entry);
+	SUITE_ADD_TEST (suite, pcr_store_test_get_attestation_log_explicit);
+	SUITE_ADD_TEST (suite, pcr_store_test_get_attestation_log_non_zero_offset);
+	SUITE_ADD_TEST (suite, pcr_store_test_get_attestation_log_partial_measurement);
+	SUITE_ADD_TEST (suite, pcr_store_test_get_attestation_log_small_buffer);
+	SUITE_ADD_TEST (suite, pcr_store_test_get_attestation_log_small_buffer_not_entry_aligned);
+	SUITE_ADD_TEST (suite, pcr_store_test_get_attestation_log_small_buffer_nonzero_offset);
+	SUITE_ADD_TEST (suite, pcr_store_test_get_attestation_log_invalid_offset);
+	SUITE_ADD_TEST (suite, pcr_store_test_get_attestation_log_invalid_arg);
+	SUITE_ADD_TEST (suite, pcr_store_test_get_attestation_log_compute_fail);
 	SUITE_ADD_TEST (suite, pcr_store_test_invalidate_measurement);
 	SUITE_ADD_TEST (suite, pcr_store_test_invalidate_measurement_explicit);
 	SUITE_ADD_TEST (suite, pcr_store_test_invalidate_measurement_null);

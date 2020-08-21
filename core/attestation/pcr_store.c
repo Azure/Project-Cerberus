@@ -385,13 +385,13 @@ static int pcr_store_get_num_measurements (struct pcr_store *store)
 }
 
 /**
- * Get size of TCG log if constructed by PCR store
+ * Get size of attestation log if constructed by PCR store
  *
- * @param store PCR store to get TCG log size from
+ * @param store PCR store to get attestation log size from
  *
- * @return TCG log size or an error code
+ * @return Attestation log size or an error code
  */
-int pcr_store_get_tcg_log_size (struct pcr_store *store)
+int pcr_store_get_attestation_log_size (struct pcr_store *store)
 {
 	int status;
 
@@ -404,11 +404,11 @@ int pcr_store_get_tcg_log_size (struct pcr_store *store)
 		return status;
 	}
 
-	return (status * sizeof (struct pcr_store_tcg_log_entry));
+	return (status * sizeof (struct pcr_store_attestation_log_entry));
 }
 
 /**
- * Generate TCG log from PCR banks.
+ * Generate attestation log from PCR banks.
  *
  * @param store PCR store to get measurements from.
  * @param hash Hashing engine to utilize in PCR bank operations.
@@ -418,10 +418,10 @@ int pcr_store_get_tcg_log_size (struct pcr_store *store)
  *
  * @return The number of bytes read from the log or an error code.
  */
-int pcr_store_get_tcg_log (struct pcr_store *store, struct hash_engine *hash, uint32_t offset,
-	uint8_t *contents, size_t length)
+int pcr_store_get_attestation_log (struct pcr_store *store, struct hash_engine *hash, 
+	uint32_t offset, uint8_t *contents, size_t length)
 {
-	struct pcr_store_tcg_log_entry log_entry;
+	struct pcr_store_attestation_log_entry log_entry;
 	const struct pcr_measurement *measurements;
 	uint32_t contents_offset = 0;
 	uint32_t entry_length;
@@ -469,16 +469,16 @@ int pcr_store_get_tcg_log (struct pcr_store *store, struct hash_engine *hash, ui
 		}
 
 		if (total_log_size >= offset) {
-			total_log_size += num_measurements * sizeof (struct pcr_store_tcg_log_entry);
+			total_log_size += num_measurements * sizeof (struct pcr_store_attestation_log_entry);
 			starting_measurement = 0;
 			entry_offset = 0;
 		}
 		else {
 			starting_measurement = (offset - total_log_size) /
-				sizeof (struct pcr_store_tcg_log_entry);
+				sizeof (struct pcr_store_attestation_log_entry);
 			entry_offset = (offset - total_log_size) - (starting_measurement) *
-				sizeof (struct pcr_store_tcg_log_entry);
-			total_log_size += num_measurements * sizeof (struct pcr_store_tcg_log_entry);
+				sizeof (struct pcr_store_attestation_log_entry);
+			total_log_size += num_measurements * sizeof (struct pcr_store_attestation_log_entry);
 
 			if (total_log_size <= offset) {
 				i_entry += num_measurements;
@@ -495,7 +495,7 @@ int pcr_store_get_tcg_log (struct pcr_store *store, struct hash_engine *hash, ui
 			}
 
 			log_entry.header.log_magic = LOGGING_MAGIC_START;
-			log_entry.header.length = sizeof (struct pcr_store_tcg_log_entry);
+			log_entry.header.length = sizeof (struct pcr_store_attestation_log_entry);
 			log_entry.header.entry_id = i_entry++;
 
 			log_entry.entry.digest_algorithm_id = 0x0B;
@@ -510,7 +510,7 @@ int pcr_store_get_tcg_log (struct pcr_store *store, struct hash_engine *hash, ui
 				sizeof (measurements[i_measurement].measurement));
 
 			entry_length = min (length - contents_offset,
-				sizeof (struct pcr_store_tcg_log_entry) - entry_offset);
+				sizeof (struct pcr_store_attestation_log_entry) - entry_offset);
 
 			memcpy (&contents[contents_offset], ((uint8_t*) &log_entry) + entry_offset,
 				entry_length);

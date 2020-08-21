@@ -3507,7 +3507,7 @@ void cerberus_protocol_optional_commands_testing_process_log_clear_debug (CuTest
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 }
 
-void cerberus_protocol_optional_commands_testing_process_log_clear_tcg (CuTest *test,
+void cerberus_protocol_optional_commands_testing_process_log_clear_attestation (CuTest *test,
 	struct cmd_interface *cmd)
 {
 	struct cmd_interface_request request;
@@ -3615,7 +3615,7 @@ void cerberus_protocol_optional_commands_testing_process_log_clear_debug_fail (C
 }
 
 void cerberus_protocol_optional_commands_testing_process_get_log_info (CuTest *test,
-	struct cmd_interface *cmd, struct logging_mock *debug, int tcg_entries)
+	struct cmd_interface *cmd, struct logging_mock *debug, int attestation_entries)
 {
 	struct cmd_interface_request request;
 	struct cerberus_protocol_get_log_info *req =
@@ -3655,7 +3655,7 @@ void cerberus_protocol_optional_commands_testing_process_get_log_info (CuTest *t
 	CuAssertIntEquals (test, 0, resp->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_LOG_INFO, resp->header.command);
 	CuAssertIntEquals (test, debug_size, resp->debug_log_length);
-	CuAssertIntEquals (test, tcg_entries * sizeof (struct pcr_store_tcg_log_entry),
+	CuAssertIntEquals (test, attestation_entries * sizeof (struct pcr_store_attestation_log_entry),
 		resp->attestation_log_length);
 	CuAssertIntEquals (test, 0, resp->tamper_log_length);
 	CuAssertIntEquals (test, false, request.new_request);
@@ -3689,7 +3689,7 @@ void cerberus_protocol_optional_commands_testing_process_get_log_info_invalid_le
 }
 
 void cerberus_protocol_optional_commands_testing_process_get_log_info_fail_debug (CuTest *test,
-	struct cmd_interface *cmd, struct logging_mock *debug, int tcg_entries)
+	struct cmd_interface *cmd, struct logging_mock *debug, int attestation_entries)
 {
 	struct cmd_interface_request request;
 	struct cerberus_protocol_get_log_info *req =
@@ -3729,7 +3729,7 @@ void cerberus_protocol_optional_commands_testing_process_get_log_info_fail_debug
 	CuAssertIntEquals (test, 0, resp->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_LOG_INFO, resp->header.command);
 	CuAssertIntEquals (test, debug_size, resp->debug_log_length);
-	CuAssertIntEquals (test, tcg_entries * sizeof (struct pcr_store_tcg_log_entry),
+	CuAssertIntEquals (test, attestation_entries * sizeof (struct pcr_store_attestation_log_entry),
 		resp->attestation_log_length);
 	CuAssertIntEquals (test, 0, resp->tamper_log_length);
 	CuAssertIntEquals (test, false, request.new_request);
@@ -3938,10 +3938,10 @@ void cerberus_protocol_optional_commands_testing_process_log_read_debug_limited_
 	debug_log = NULL;
 }
 
-void cerberus_protocol_optional_commands_testing_process_log_read_tcg (CuTest *test,
+void cerberus_protocol_optional_commands_testing_process_log_read_attestation (CuTest *test,
 	struct cmd_interface *cmd, struct hash_engine_mock *hash, struct pcr_store *store)
 {
-	struct pcr_store_tcg_log_entry exp_buf[6];
+	struct pcr_store_attestation_log_entry exp_buf[6];
 	uint8_t buffer0[PCR_DIGEST_LENGTH] = {0};
 	uint8_t digests[6][PCR_DIGEST_LENGTH] = {
 		{
@@ -3992,7 +3992,7 @@ void cerberus_protocol_optional_commands_testing_process_log_read_tcg (CuTest *t
 	memset (exp_buf, 0, sizeof (exp_buf));
 	for (i_measurement = 0; i_measurement < 6; ++i_measurement) {
 		exp_buf[i_measurement].header.log_magic = 0xCB;
-		exp_buf[i_measurement].header.length = sizeof (struct pcr_store_tcg_log_entry);
+		exp_buf[i_measurement].header.length = sizeof (struct pcr_store_attestation_log_entry);
 		exp_buf[i_measurement].header.entry_id = i_measurement;
 		exp_buf[i_measurement].entry.digest_algorithm_id = 0x0B;
 		exp_buf[i_measurement].entry.digest_count = 1;
@@ -4101,10 +4101,10 @@ void cerberus_protocol_optional_commands_testing_process_log_read_tcg (CuTest *t
 	CuAssertIntEquals (test, 0, status);
 }
 
-void cerberus_protocol_optional_commands_testing_process_log_read_tcg_limited_response (
+void cerberus_protocol_optional_commands_testing_process_log_read_attestation_limited_response (
 	CuTest *test, struct cmd_interface *cmd, struct hash_engine_mock *hash, struct pcr_store *store)
 {
-	struct pcr_store_tcg_log_entry exp_buf[6];
+	struct pcr_store_attestation_log_entry exp_buf[6];
 	uint8_t buffer0[PCR_DIGEST_LENGTH] = {0};
 	uint8_t digests[6][PCR_DIGEST_LENGTH] = {
 		{
@@ -4156,7 +4156,7 @@ void cerberus_protocol_optional_commands_testing_process_log_read_tcg_limited_re
 	memset (exp_buf, 0, sizeof (exp_buf));
 	for (i_measurement = 0; i_measurement < 6; ++i_measurement) {
 		exp_buf[i_measurement].header.log_magic = 0xCB;
-		exp_buf[i_measurement].header.length = sizeof (struct pcr_store_tcg_log_entry);
+		exp_buf[i_measurement].header.length = sizeof (struct pcr_store_attestation_log_entry);
 		exp_buf[i_measurement].header.entry_id = i_measurement;
 		exp_buf[i_measurement].entry.digest_algorithm_id = 0x0B;
 		exp_buf[i_measurement].entry.digest_count = 1;
@@ -4300,7 +4300,7 @@ void cerberus_protocol_optional_commands_testing_process_log_read_debug_fail (Cu
 	debug_log = NULL;
 }
 
-void cerberus_protocol_optional_commands_testing_process_log_read_tcg_fail (CuTest *test,
+void cerberus_protocol_optional_commands_testing_process_log_read_attestation_fail (CuTest *test,
 	struct cmd_interface *cmd, struct hash_engine_mock *hash, struct pcr_store *store)
 {
 	uint8_t buffer0[PCR_DIGEST_LENGTH] = {0};
