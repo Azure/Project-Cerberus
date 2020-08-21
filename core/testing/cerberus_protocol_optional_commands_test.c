@@ -1753,7 +1753,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_por
 		MOCK_ARG (&pfm.base));
 
 	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 0, &platform_id, strlen (platform_id), -1);
+	status |= mock_expect_output (&pfm.mock, 0, &platform_id, sizeof (platform_id), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1819,7 +1819,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_por
 		MOCK_ARG (&pfm.base));
 
 	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 0, &platform_id, strlen (platform_id), -1);
+	status |= mock_expect_output (&pfm.mock, 0, &platform_id, sizeof (platform_id), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1885,7 +1885,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_por
 		MOCK_ARG (&pfm.base));
 
 	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 0, &platform_id, strlen (platform_id), -1);
+	status |= mock_expect_output (&pfm.mock, 0, &platform_id, sizeof (platform_id), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
