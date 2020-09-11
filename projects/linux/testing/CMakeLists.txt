@@ -55,6 +55,17 @@ target_include_directories(
 		${PLATFORM_INCLUDES}/testing/config
 	)
 
+target_compile_options(
+	${TARGET_NAME}
+	PRIVATE
+ 		-fno-builtin
+		-fdata-sections
+		-Wall
+		-Wextra
+ 		-Wno-pedantic
+		-g -ggdb3
+	)
+
 target_compile_definitions(
 	${TARGET_NAME}
 	PRIVATE
