@@ -39,7 +39,10 @@ static void fw_update_task_updater (struct fw_update_task *task)
 	}
 	else {
 		/* Ensure the recovery image is in a good state. */
-		firmware_update_validate_recovery_image (task->updater);
+		if (firmware_update_is_recovery_good (task->updater)) {
+			firmware_update_validate_recovery_image (task->updater);
+		}
+
 		status = firmware_update_restore_recovery_image (task->updater);
 		if (status == 0) {
 			debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CERBERUS_FW,

@@ -157,6 +157,7 @@ void firmware_update_set_recovery_revision (struct firmware_update *updater, int
 int firmware_update_validate_recovery_image (struct firmware_update *updater);
 int firmware_update_restore_recovery_image (struct firmware_update *updater);
 int firmware_update_restore_active_image (struct firmware_update *updater);
+int firmware_update_is_recovery_good (struct firmware_update *updater);
 
 int firmware_update_add_observer (struct firmware_update *updater,
 	struct firmware_update_observer *observer);
