@@ -26,7 +26,7 @@ int cmd_interface_system_process_request (struct cmd_interface *intf,
 	int status;
 
 	status = cmd_interface_process_request (&interface->base, request, &command_id, &command_set, 
-		true);
+		true, true);
 	if (status != 0) {
 		return status;
 	}

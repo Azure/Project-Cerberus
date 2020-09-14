@@ -73,9 +73,9 @@ void cerberus_protocol_master_commands_testing_process_process_certificate_diges
 	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, req->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, req->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, req->header.crypt);
-	CuAssertIntEquals (test, 0, req->header.d_bit);
+	CuAssertIntEquals (test, 0, req->header.reserved2);
 	CuAssertIntEquals (test, 0, req->header.integrity_check);
-	CuAssertIntEquals (test, 0, req->header.seq_num);
+	CuAssertIntEquals (test, 0, req->header.reserved1);
 	CuAssertIntEquals (test, 0, req->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_ATTESTATION_CHALLENGE, req->header.command);
 	CuAssertIntEquals (test, true, request.new_request);
@@ -129,9 +129,9 @@ void cerberus_protocol_master_commands_testing_process_process_certificate_diges
 	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, req->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, req->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, req->header.crypt);
-	CuAssertIntEquals (test, 0, req->header.d_bit);
+	CuAssertIntEquals (test, 0, req->header.reserved2);
 	CuAssertIntEquals (test, 0, req->header.integrity_check);
-	CuAssertIntEquals (test, 0, req->header.seq_num);
+	CuAssertIntEquals (test, 0, req->header.reserved1);
 	CuAssertIntEquals (test, 0, req->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_CERTIFICATE, req->header.command);
 	CuAssertIntEquals (test, 0, req->certificate.cert_num);
@@ -299,9 +299,9 @@ void cerberus_protocol_master_commands_testing_process_process_certificate (CuTe
 	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, req->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, req->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, req->header.crypt);
-	CuAssertIntEquals (test, 0, req->header.d_bit);
+	CuAssertIntEquals (test, 0, req->header.reserved2);
 	CuAssertIntEquals (test, 0, req->header.integrity_check);
-	CuAssertIntEquals (test, 0, req->header.seq_num);
+	CuAssertIntEquals (test, 0, req->header.reserved1);
 	CuAssertIntEquals (test, 0, req->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_DIGEST, req->header.command);
 	CuAssertIntEquals (test, 0, req->digest.slot_num);
@@ -499,9 +499,9 @@ void cerberus_protocol_master_commands_testing_issue_get_device_capabilities (Cu
 	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, req->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, req->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, req->header.crypt);
-	CuAssertIntEquals (test, 0, req->header.d_bit);
+	CuAssertIntEquals (test, 0, req->header.reserved2);
 	CuAssertIntEquals (test, 0, req->header.integrity_check);
-	CuAssertIntEquals (test, 0, req->header.seq_num);
+	CuAssertIntEquals (test, 0, req->header.reserved1);
 	CuAssertIntEquals (test, 0, req->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_DEVICE_CAPABILITIES, req->header.command);
 
@@ -536,9 +536,9 @@ void cerberus_protocol_master_commands_testing_issue_get_certificate_digest (CuT
 	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, req->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, req->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, req->header.crypt);
-	CuAssertIntEquals (test, 0, req->header.d_bit);
+	CuAssertIntEquals (test, 0, req->header.reserved2);
 	CuAssertIntEquals (test, 0, req->header.integrity_check);
-	CuAssertIntEquals (test, 0, req->header.seq_num);
+	CuAssertIntEquals (test, 0, req->header.reserved1);
 	CuAssertIntEquals (test, 0, req->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_DIGEST, req->header.command);
 	CuAssertIntEquals (test, 0, req->digest.slot_num);
@@ -574,9 +574,9 @@ void cerberus_protocol_master_commands_testing_issue_get_certificate (CuTest *te
 	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, req->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, req->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, req->header.crypt);
-	CuAssertIntEquals (test, 0, req->header.d_bit);
+	CuAssertIntEquals (test, 0, req->header.reserved2);
 	CuAssertIntEquals (test, 0, req->header.integrity_check);
-	CuAssertIntEquals (test, 0, req->header.seq_num);
+	CuAssertIntEquals (test, 0, req->header.reserved1);
 	CuAssertIntEquals (test, 0, req->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_CERTIFICATE, req->header.command);
 	CuAssertIntEquals (test, 1, req->certificate.slot_num);
@@ -642,9 +642,9 @@ void cerberus_protocol_master_commands_testing_issue_challenge (CuTest *test,
 	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, req->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, req->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, req->header.crypt);
-	CuAssertIntEquals (test, 0, req->header.d_bit);
+	CuAssertIntEquals (test, 0, req->header.reserved2);
 	CuAssertIntEquals (test, 0, req->header.integrity_check);
-	CuAssertIntEquals (test, 0, req->header.seq_num);
+	CuAssertIntEquals (test, 0, req->header.reserved1);
 	CuAssertIntEquals (test, 0, req->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_ATTESTATION_CHALLENGE, req->header.command);
 	CuAssertIntEquals (test, 3, req->challenge.slot_num);
@@ -1094,9 +1094,9 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_id_region0 (CuTes
 	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
-	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.reserved2);
 	CuAssertIntEquals (test, 0, resp->header.integrity_check);
-	CuAssertIntEquals (test, 0, resp->header.seq_num);
+	CuAssertIntEquals (test, 0, resp->header.reserved1);
 	CuAssertIntEquals (test, 0, resp->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_CFM_ID, resp->header.command);
 	CuAssertIntEquals (test, 1, resp->valid);
@@ -1154,9 +1154,9 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_id_region1 (CuTes
 	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
-	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.reserved2);
 	CuAssertIntEquals (test, 0, resp->header.integrity_check);
-	CuAssertIntEquals (test, 0, resp->header.seq_num);
+	CuAssertIntEquals (test, 0, resp->header.reserved1);
 	CuAssertIntEquals (test, 0, resp->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_CFM_ID, resp->header.command);
 	CuAssertIntEquals (test, 1, resp->valid);
@@ -1213,9 +1213,9 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_id_no_id_type (Cu
 	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
-	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.reserved2);
 	CuAssertIntEquals (test, 0, resp->header.integrity_check);
-	CuAssertIntEquals (test, 0, resp->header.seq_num);
+	CuAssertIntEquals (test, 0, resp->header.reserved1);
 	CuAssertIntEquals (test, 0, resp->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_CFM_ID, resp->header.command);
 	CuAssertIntEquals (test, 1, resp->valid);
@@ -1362,9 +1362,9 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_id_no_cfm (CuTest
 	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
-	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.reserved2);
 	CuAssertIntEquals (test, 0, resp->header.integrity_check);
-	CuAssertIntEquals (test, 0, resp->header.seq_num);
+	CuAssertIntEquals (test, 0, resp->header.reserved1);
 	CuAssertIntEquals (test, 0, resp->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_CFM_ID, resp->header.command);
 	CuAssertIntEquals (test, 0, resp->valid);
@@ -1401,9 +1401,9 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_id_no_cfm_manager
 	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
-	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.reserved2);
 	CuAssertIntEquals (test, 0, resp->header.integrity_check);
-	CuAssertIntEquals (test, 0, resp->header.seq_num);
+	CuAssertIntEquals (test, 0, resp->header.reserved1);
 	CuAssertIntEquals (test, 0, resp->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_CFM_ID, resp->header.command);
 	CuAssertIntEquals (test, 0, resp->valid);
@@ -1491,9 +1491,9 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_id_platform_regio
 	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
-	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.reserved2);
 	CuAssertIntEquals (test, 0, resp->header.integrity_check);
-	CuAssertIntEquals (test, 0, resp->header.seq_num);
+	CuAssertIntEquals (test, 0, resp->header.reserved1);
 	CuAssertIntEquals (test, 0, resp->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_CFM_ID, resp->header.command);
 	CuAssertIntEquals (test, 1, resp->valid);
@@ -1557,9 +1557,9 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_id_platform_regio
 	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
-	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.reserved2);
 	CuAssertIntEquals (test, 0, resp->header.integrity_check);
-	CuAssertIntEquals (test, 0, resp->header.seq_num);
+	CuAssertIntEquals (test, 0, resp->header.reserved1);
 	CuAssertIntEquals (test, 0, resp->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_CFM_ID, resp->header.command);
 	CuAssertIntEquals (test, 1, resp->valid);
@@ -1608,9 +1608,9 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_id_platform_no_cf
 	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
-	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.reserved2);
 	CuAssertIntEquals (test, 0, resp->header.integrity_check);
-	CuAssertIntEquals (test, 0, resp->header.seq_num);
+	CuAssertIntEquals (test, 0, resp->header.reserved1);
 	CuAssertIntEquals (test, 0, resp->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_CFM_ID, resp->header.command);
 	CuAssertIntEquals (test, 0, resp->valid);
@@ -1648,9 +1648,9 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_id_platform_no_cf
 	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
-	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.reserved2);
 	CuAssertIntEquals (test, 0, resp->header.integrity_check);
-	CuAssertIntEquals (test, 0, resp->header.seq_num);
+	CuAssertIntEquals (test, 0, resp->header.reserved1);
 	CuAssertIntEquals (test, 0, resp->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_CFM_ID, resp->header.command);
 	CuAssertIntEquals (test, 0, resp->valid);
@@ -1772,9 +1772,9 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_reg
 	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
-	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.reserved2);
 	CuAssertIntEquals (test, 0, resp->header.integrity_check);
-	CuAssertIntEquals (test, 0, resp->header.seq_num);
+	CuAssertIntEquals (test, 0, resp->header.reserved1);
 	CuAssertIntEquals (test, 0, resp->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_CFM_SUPPORTED_COMPONENT_IDS,
 		resp->header.command);
@@ -1860,9 +1860,9 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_reg
 	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
-	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.reserved2);
 	CuAssertIntEquals (test, 0, resp->header.integrity_check);
-	CuAssertIntEquals (test, 0, resp->header.seq_num);
+	CuAssertIntEquals (test, 0, resp->header.reserved1);
 	CuAssertIntEquals (test, 0, resp->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_CFM_SUPPORTED_COMPONENT_IDS,
 		resp->header.command);
@@ -1948,9 +1948,9 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_non
 	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
-	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.reserved2);
 	CuAssertIntEquals (test, 0, resp->header.integrity_check);
-	CuAssertIntEquals (test, 0, resp->header.seq_num);
+	CuAssertIntEquals (test, 0, resp->header.reserved1);
 	CuAssertIntEquals (test, 0, resp->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_CFM_SUPPORTED_COMPONENT_IDS,
 		resp->header.command);
@@ -2036,9 +2036,9 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_lim
 	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
-	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.reserved2);
 	CuAssertIntEquals (test, 0, resp->header.integrity_check);
-	CuAssertIntEquals (test, 0, resp->header.seq_num);
+	CuAssertIntEquals (test, 0, resp->header.reserved1);
 	CuAssertIntEquals (test, 0, resp->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_CFM_SUPPORTED_COMPONENT_IDS,
 		resp->header.command);
@@ -2086,9 +2086,9 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_no_
 	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
-	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.reserved2);
 	CuAssertIntEquals (test, 0, resp->header.integrity_check);
-	CuAssertIntEquals (test, 0, resp->header.seq_num);
+	CuAssertIntEquals (test, 0, resp->header.reserved1);
 	CuAssertIntEquals (test, 0, resp->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_CFM_SUPPORTED_COMPONENT_IDS,
 		resp->header.command);
@@ -2137,9 +2137,9 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_no_
 	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
-	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.reserved2);
 	CuAssertIntEquals (test, 0, resp->header.integrity_check);
-	CuAssertIntEquals (test, 0, resp->header.seq_num);
+	CuAssertIntEquals (test, 0, resp->header.reserved1);
 	CuAssertIntEquals (test, 0, resp->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_CFM_SUPPORTED_COMPONENT_IDS,
 		resp->header.command);
@@ -2187,9 +2187,9 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_no_
 	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
-	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.reserved2);
 	CuAssertIntEquals (test, 0, resp->header.integrity_check);
-	CuAssertIntEquals (test, 0, resp->header.seq_num);
+	CuAssertIntEquals (test, 0, resp->header.reserved1);
 	CuAssertIntEquals (test, 0, resp->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_CFM_SUPPORTED_COMPONENT_IDS,
 		resp->header.command);
@@ -2423,9 +2423,9 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_inv
 	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
-	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.reserved2);
 	CuAssertIntEquals (test, 0, resp->header.integrity_check);
-	CuAssertIntEquals (test, 0, resp->header.seq_num);
+	CuAssertIntEquals (test, 0, resp->header.reserved1);
 	CuAssertIntEquals (test, 0, resp->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_CFM_SUPPORTED_COMPONENT_IDS,
 		resp->header.command);
@@ -2483,9 +2483,9 @@ void cerberus_protocol_master_commands_testing_process_get_pcd_id (CuTest *test,
 	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
-	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.reserved2);
 	CuAssertIntEquals (test, 0, resp->header.integrity_check);
-	CuAssertIntEquals (test, 0, resp->header.seq_num);
+	CuAssertIntEquals (test, 0, resp->header.reserved1);
 	CuAssertIntEquals (test, 0, resp->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_PCD_ID, resp->header.command);
 	CuAssertIntEquals (test, 1, resp->valid);
@@ -2541,9 +2541,9 @@ void cerberus_protocol_master_commands_testing_process_get_pcd_id_no_id_type (Cu
 	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
-	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.reserved2);
 	CuAssertIntEquals (test, 0, resp->header.integrity_check);
-	CuAssertIntEquals (test, 0, resp->header.seq_num);
+	CuAssertIntEquals (test, 0, resp->header.reserved1);
 	CuAssertIntEquals (test, 0, resp->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_PCD_ID, resp->header.command);
 	CuAssertIntEquals (test, 1, resp->valid);
@@ -2591,9 +2591,9 @@ void cerberus_protocol_master_commands_testing_process_get_pcd_id_no_pcd (CuTest
 	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
-	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.reserved2);
 	CuAssertIntEquals (test, 0, resp->header.integrity_check);
-	CuAssertIntEquals (test, 0, resp->header.seq_num);
+	CuAssertIntEquals (test, 0, resp->header.reserved1);
 	CuAssertIntEquals (test, 0, resp->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_PCD_ID, resp->header.command);
 	CuAssertIntEquals (test, 0, resp->valid);
@@ -2629,9 +2629,9 @@ void cerberus_protocol_master_commands_testing_process_get_pcd_id_no_pcd_manager
 	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
-	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.reserved2);
 	CuAssertIntEquals (test, 0, resp->header.integrity_check);
-	CuAssertIntEquals (test, 0, resp->header.seq_num);
+	CuAssertIntEquals (test, 0, resp->header.reserved1);
 	CuAssertIntEquals (test, 0, resp->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_PCD_ID, resp->header.command);
 	CuAssertIntEquals (test, 0, resp->valid);
@@ -2780,9 +2780,9 @@ void cerberus_protocol_master_commands_testing_process_get_pcd_id_platform (CuTe
 	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
-	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.reserved2);
 	CuAssertIntEquals (test, 0, resp->header.integrity_check);
-	CuAssertIntEquals (test, 0, resp->header.seq_num);
+	CuAssertIntEquals (test, 0, resp->header.reserved1);
 	CuAssertIntEquals (test, 0, resp->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_PCD_ID, resp->header.command);
 	CuAssertIntEquals (test, 1, resp->valid);
@@ -2830,9 +2830,9 @@ void cerberus_protocol_master_commands_testing_process_get_pcd_id_platform_no_pc
 	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
-	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.reserved2);
 	CuAssertIntEquals (test, 0, resp->header.integrity_check);
-	CuAssertIntEquals (test, 0, resp->header.seq_num);
+	CuAssertIntEquals (test, 0, resp->header.reserved1);
 	CuAssertIntEquals (test, 0, resp->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_PCD_ID, resp->header.command);
 	CuAssertIntEquals (test, 0, resp->valid);
@@ -2869,9 +2869,9 @@ void cerberus_protocol_master_commands_testing_process_get_pcd_id_platform_no_pc
 	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
-	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.reserved2);
 	CuAssertIntEquals (test, 0, resp->header.integrity_check);
-	CuAssertIntEquals (test, 0, resp->header.seq_num);
+	CuAssertIntEquals (test, 0, resp->header.reserved1);
 	CuAssertIntEquals (test, 0, resp->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_PCD_ID, resp->header.command);
 	CuAssertIntEquals (test, 0, resp->valid);
@@ -3279,9 +3279,9 @@ void cerberus_protocol_master_commands_testing_process_get_fw_update_status (CuT
 	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
-	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.reserved2);
 	CuAssertIntEquals (test, 0, resp->header.integrity_check);
-	CuAssertIntEquals (test, 0, resp->header.seq_num);
+	CuAssertIntEquals (test, 0, resp->header.reserved1);
 	CuAssertIntEquals (test, 0, resp->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_UPDATE_STATUS, resp->header.command);
 	CuAssertIntEquals (test, update_status, resp->update_status);
@@ -3349,9 +3349,9 @@ void cerberus_protocol_master_commands_testing_process_get_pfm_update_status_por
 	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
-	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.reserved2);
 	CuAssertIntEquals (test, 0, resp->header.integrity_check);
-	CuAssertIntEquals (test, 0, resp->header.seq_num);
+	CuAssertIntEquals (test, 0, resp->header.reserved1);
 	CuAssertIntEquals (test, 0, resp->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_UPDATE_STATUS, resp->header.command);
 	CuAssertIntEquals (test, update_status, resp->update_status);
@@ -3394,9 +3394,9 @@ void cerberus_protocol_master_commands_testing_process_get_pfm_update_status_por
 	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
-	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.reserved2);
 	CuAssertIntEquals (test, 0, resp->header.integrity_check);
-	CuAssertIntEquals (test, 0, resp->header.seq_num);
+	CuAssertIntEquals (test, 0, resp->header.reserved1);
 	CuAssertIntEquals (test, 0, resp->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_UPDATE_STATUS, resp->header.command);
 	CuAssertIntEquals (test, update_status, resp->update_status);
@@ -3515,9 +3515,9 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_update_status (Cu
 	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
-	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.reserved2);
 	CuAssertIntEquals (test, 0, resp->header.integrity_check);
-	CuAssertIntEquals (test, 0, resp->header.seq_num);
+	CuAssertIntEquals (test, 0, resp->header.reserved1);
 	CuAssertIntEquals (test, 0, resp->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_UPDATE_STATUS, resp->header.command);
 	CuAssertIntEquals (test, 0x11223344, resp->update_status);
@@ -3583,9 +3583,9 @@ void cerberus_protocol_master_commands_testing_process_get_pcd_update_status (Cu
 	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
-	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.reserved2);
 	CuAssertIntEquals (test, 0, resp->header.integrity_check);
-	CuAssertIntEquals (test, 0, resp->header.seq_num);
+	CuAssertIntEquals (test, 0, resp->header.reserved1);
 	CuAssertIntEquals (test, 0, resp->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_UPDATE_STATUS, resp->header.command);
 	CuAssertIntEquals (test, 0x11223344, resp->update_status);
@@ -3653,9 +3653,9 @@ void cerberus_protocol_master_commands_testing_process_get_host_fw_reset_verific
 	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
-	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.reserved2);
 	CuAssertIntEquals (test, 0, resp->header.integrity_check);
-	CuAssertIntEquals (test, 0, resp->header.seq_num);
+	CuAssertIntEquals (test, 0, resp->header.reserved1);
 	CuAssertIntEquals (test, 0, resp->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_UPDATE_STATUS, resp->header.command);
 	CuAssertIntEquals (test, HOST_PROCESSOR_ACTION_VERIFY_PFM_AND_UPDATE, resp->update_status);
@@ -3698,9 +3698,9 @@ void cerberus_protocol_master_commands_testing_process_get_host_fw_reset_verific
 	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
-	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.reserved2);
 	CuAssertIntEquals (test, 0, resp->header.integrity_check);
-	CuAssertIntEquals (test, 0, resp->header.seq_num);
+	CuAssertIntEquals (test, 0, resp->header.reserved1);
 	CuAssertIntEquals (test, 0, resp->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_UPDATE_STATUS, resp->header.command);
 	CuAssertIntEquals (test, HOST_PROCESSOR_ACTION_VERIFY_PFM_AND_UPDATE, resp->update_status);
@@ -3852,9 +3852,9 @@ void cerberus_protocol_master_commands_testing_process_get_recovery_image_update
 	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
-	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.reserved2);
 	CuAssertIntEquals (test, 0, resp->header.integrity_check);
-	CuAssertIntEquals (test, 0, resp->header.seq_num);
+	CuAssertIntEquals (test, 0, resp->header.reserved1);
 	CuAssertIntEquals (test, 0, resp->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_UPDATE_STATUS, resp->header.command);
 	CuAssertIntEquals (test, update_status, resp->update_status);
@@ -3898,9 +3898,9 @@ void cerberus_protocol_master_commands_testing_process_get_recovery_image_update
 	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
-	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.reserved2);
 	CuAssertIntEquals (test, 0, resp->header.integrity_check);
-	CuAssertIntEquals (test, 0, resp->header.seq_num);
+	CuAssertIntEquals (test, 0, resp->header.reserved1);
 	CuAssertIntEquals (test, 0, resp->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_UPDATE_STATUS, resp->header.command);
 	CuAssertIntEquals (test, update_status, resp->update_status);
@@ -4020,9 +4020,9 @@ void cerberus_protocol_master_commands_testing_process_get_reset_config_status (
 	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
-	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.reserved2);
 	CuAssertIntEquals (test, 0, resp->header.integrity_check);
-	CuAssertIntEquals (test, 0, resp->header.seq_num);
+	CuAssertIntEquals (test, 0, resp->header.reserved1);
 	CuAssertIntEquals (test, 0, resp->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_UPDATE_STATUS, resp->header.command);
 	CuAssertIntEquals (test, 0x00BB11AA, resp->update_status);
@@ -4148,9 +4148,9 @@ void cerberus_protocol_master_commands_testing_process_get_fw_ext_update_status 
 	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
-	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.reserved2);
 	CuAssertIntEquals (test, 0, resp->header.integrity_check);
-	CuAssertIntEquals (test, 0, resp->header.seq_num);
+	CuAssertIntEquals (test, 0, resp->header.reserved1);
 	CuAssertIntEquals (test, 0, resp->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_EXT_UPDATE_STATUS, resp->header.command);
 	CuAssertIntEquals (test, update_status, resp->update_status);
@@ -4386,9 +4386,9 @@ void cerberus_protocol_master_commands_testing_process_get_recovery_image_ext_up
 	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
-	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.reserved2);
 	CuAssertIntEquals (test, 0, resp->header.integrity_check);
-	CuAssertIntEquals (test, 0, resp->header.seq_num);
+	CuAssertIntEquals (test, 0, resp->header.reserved1);
 	CuAssertIntEquals (test, 0, resp->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_EXT_UPDATE_STATUS, resp->header.command);
 	CuAssertIntEquals (test, update_status, resp->update_status);
@@ -4447,9 +4447,9 @@ void cerberus_protocol_master_commands_testing_process_get_recovery_image_ext_up
 	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
-	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.reserved2);
 	CuAssertIntEquals (test, 0, resp->header.integrity_check);
-	CuAssertIntEquals (test, 0, resp->header.seq_num);
+	CuAssertIntEquals (test, 0, resp->header.reserved1);
 	CuAssertIntEquals (test, 0, resp->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_EXT_UPDATE_STATUS, resp->header.command);
 	CuAssertIntEquals (test, update_status, resp->update_status);
@@ -4708,9 +4708,9 @@ static void cerberus_protocol_master_commands_test_get_cfm_id_format (CuTest *te
 	CuAssertIntEquals (test, 0x7e, req->header.msg_type);
 	CuAssertIntEquals (test, 0x1314, req->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, req->header.rq);
-	CuAssertIntEquals (test, 0, req->header.d_bit);
+	CuAssertIntEquals (test, 0, req->header.reserved2);
 	CuAssertIntEquals (test, 0, req->header.crypt);
-	CuAssertIntEquals (test, 0x03, req->header.seq_num);
+	CuAssertIntEquals (test, 0x03, req->header.reserved1);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_CFM_ID, req->header.command);
 
 	CuAssertIntEquals (test, 0x01, req->region);
@@ -4721,9 +4721,9 @@ static void cerberus_protocol_master_commands_test_get_cfm_id_format (CuTest *te
 	CuAssertIntEquals (test, 0x7e, resp1->header.msg_type);
 	CuAssertIntEquals (test, 0x1314, resp1->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp1->header.rq);
-	CuAssertIntEquals (test, 0, resp1->header.d_bit);
+	CuAssertIntEquals (test, 0, resp1->header.reserved2);
 	CuAssertIntEquals (test, 0, resp1->header.crypt);
-	CuAssertIntEquals (test, 0x03, resp1->header.seq_num);
+	CuAssertIntEquals (test, 0x03, resp1->header.reserved1);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_CFM_ID, resp1->header.command);
 
 	CuAssertIntEquals (test, 0x03, resp1->valid);
@@ -4734,9 +4734,9 @@ static void cerberus_protocol_master_commands_test_get_cfm_id_format (CuTest *te
 	CuAssertIntEquals (test, 0x7e, resp2->header.msg_type);
 	CuAssertIntEquals (test, 0x1314, resp2->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp2->header.rq);
-	CuAssertIntEquals (test, 0, resp2->header.d_bit);
+	CuAssertIntEquals (test, 0, resp2->header.reserved2);
 	CuAssertIntEquals (test, 0, resp2->header.crypt);
-	CuAssertIntEquals (test, 0x03, resp2->header.seq_num);
+	CuAssertIntEquals (test, 0x03, resp2->header.reserved1);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_CFM_ID, resp2->header.command);
 
 	CuAssertIntEquals (test, 0x08, resp2->valid);
@@ -4761,9 +4761,9 @@ static void cerberus_protocol_master_commands_test_prepare_cfm_update_format (Cu
 	CuAssertIntEquals (test, 0x7e, req->header.msg_type);
 	CuAssertIntEquals (test, 0x1314, req->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, req->header.rq);
-	CuAssertIntEquals (test, 0, req->header.d_bit);
+	CuAssertIntEquals (test, 0, req->header.reserved2);
 	CuAssertIntEquals (test, 0, req->header.crypt);
-	CuAssertIntEquals (test, 0x03, req->header.seq_num);
+	CuAssertIntEquals (test, 0x03, req->header.reserved1);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_INIT_CFM_UPDATE, req->header.command);
 
 	CuAssertIntEquals (test, 0x04030201, req->total_size);
@@ -4784,9 +4784,9 @@ static void cerberus_protocol_master_commands_test_cfm_update_format (CuTest *te
 	CuAssertIntEquals (test, 0x7e, req->header.msg_type);
 	CuAssertIntEquals (test, 0x1314, req->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, req->header.rq);
-	CuAssertIntEquals (test, 0, req->header.d_bit);
+	CuAssertIntEquals (test, 0, req->header.reserved2);
 	CuAssertIntEquals (test, 0, req->header.crypt);
-	CuAssertIntEquals (test, 0x03, req->header.seq_num);
+	CuAssertIntEquals (test, 0x03, req->header.reserved1);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_CFM_UPDATE, req->header.command);
 
 	CuAssertPtrEquals (test, &raw_buffer_req[5], &req->payload);
@@ -4810,9 +4810,9 @@ static void cerberus_protocol_master_commands_test_complete_cfm_update_format (C
 	CuAssertIntEquals (test, 0x7e, req->header.msg_type);
 	CuAssertIntEquals (test, 0x1314, req->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, req->header.rq);
-	CuAssertIntEquals (test, 0, req->header.d_bit);
+	CuAssertIntEquals (test, 0, req->header.reserved2);
 	CuAssertIntEquals (test, 0, req->header.crypt);
-	CuAssertIntEquals (test, 0x03, req->header.seq_num);
+	CuAssertIntEquals (test, 0x03, req->header.reserved1);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_COMPLETE_CFM_UPDATE, req->header.command);
 
 	CuAssertIntEquals (test, 0x01, req->activation);
@@ -4842,9 +4842,9 @@ static void cerberus_protocol_master_commands_test_get_cfm_component_ids_format 
 	CuAssertIntEquals (test, 0x7e, req->header.msg_type);
 	CuAssertIntEquals (test, 0x1314, req->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, req->header.rq);
-	CuAssertIntEquals (test, 0, req->header.d_bit);
+	CuAssertIntEquals (test, 0, req->header.reserved2);
 	CuAssertIntEquals (test, 0, req->header.crypt);
-	CuAssertIntEquals (test, 0x03, req->header.seq_num);
+	CuAssertIntEquals (test, 0x03, req->header.reserved1);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_CFM_SUPPORTED_COMPONENT_IDS,
 		req->header.command);
 
@@ -4856,9 +4856,9 @@ static void cerberus_protocol_master_commands_test_get_cfm_component_ids_format 
 	CuAssertIntEquals (test, 0x7e, resp->header.msg_type);
 	CuAssertIntEquals (test, 0x1314, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.rq);
-	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.reserved2);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
-	CuAssertIntEquals (test, 0x03, resp->header.seq_num);
+	CuAssertIntEquals (test, 0x03, resp->header.reserved1);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_CFM_SUPPORTED_COMPONENT_IDS,
 		resp->header.command);
 
@@ -4897,9 +4897,9 @@ static void cerberus_protocol_master_commands_test_get_pcd_id_format (CuTest *te
 	CuAssertIntEquals (test, 0x7e, req->header.msg_type);
 	CuAssertIntEquals (test, 0x1314, req->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, req->header.rq);
-	CuAssertIntEquals (test, 0, req->header.d_bit);
+	CuAssertIntEquals (test, 0, req->header.reserved2);
 	CuAssertIntEquals (test, 0, req->header.crypt);
-	CuAssertIntEquals (test, 0x03, req->header.seq_num);
+	CuAssertIntEquals (test, 0x03, req->header.reserved1);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_PCD_ID, req->header.command);
 
 	CuAssertIntEquals (test, 0x01, req->id);
@@ -4909,9 +4909,9 @@ static void cerberus_protocol_master_commands_test_get_pcd_id_format (CuTest *te
 	CuAssertIntEquals (test, 0x7e, resp1->header.msg_type);
 	CuAssertIntEquals (test, 0x1314, resp1->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp1->header.rq);
-	CuAssertIntEquals (test, 0, resp1->header.d_bit);
+	CuAssertIntEquals (test, 0, resp1->header.reserved2);
 	CuAssertIntEquals (test, 0, resp1->header.crypt);
-	CuAssertIntEquals (test, 0x03, resp1->header.seq_num);
+	CuAssertIntEquals (test, 0x03, resp1->header.reserved1);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_PCD_ID, resp1->header.command);
 
 	CuAssertIntEquals (test, 0x03, resp1->valid);
@@ -4922,9 +4922,9 @@ static void cerberus_protocol_master_commands_test_get_pcd_id_format (CuTest *te
 	CuAssertIntEquals (test, 0x7e, resp2->header.msg_type);
 	CuAssertIntEquals (test, 0x1314, resp2->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp2->header.rq);
-	CuAssertIntEquals (test, 0, resp2->header.d_bit);
+	CuAssertIntEquals (test, 0, resp2->header.reserved2);
 	CuAssertIntEquals (test, 0, resp2->header.crypt);
-	CuAssertIntEquals (test, 0x03, resp2->header.seq_num);
+	CuAssertIntEquals (test, 0x03, resp2->header.reserved1);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_PCD_ID, resp2->header.command);
 
 	CuAssertIntEquals (test, 0x08, resp2->valid);
@@ -4949,9 +4949,9 @@ static void cerberus_protocol_master_commands_test_prepare_pcd_update_format (Cu
 	CuAssertIntEquals (test, 0x7e, req->header.msg_type);
 	CuAssertIntEquals (test, 0x1314, req->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, req->header.rq);
-	CuAssertIntEquals (test, 0, req->header.d_bit);
+	CuAssertIntEquals (test, 0, req->header.reserved2);
 	CuAssertIntEquals (test, 0, req->header.crypt);
-	CuAssertIntEquals (test, 0x03, req->header.seq_num);
+	CuAssertIntEquals (test, 0x03, req->header.reserved1);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_INIT_PCD_UPDATE, req->header.command);
 
 	CuAssertIntEquals (test, 0x04030201, req->total_size);
@@ -4972,9 +4972,9 @@ static void cerberus_protocol_master_commands_test_pcd_update_format (CuTest *te
 	CuAssertIntEquals (test, 0x7e, req->header.msg_type);
 	CuAssertIntEquals (test, 0x1314, req->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, req->header.rq);
-	CuAssertIntEquals (test, 0, req->header.d_bit);
+	CuAssertIntEquals (test, 0, req->header.reserved2);
 	CuAssertIntEquals (test, 0, req->header.crypt);
-	CuAssertIntEquals (test, 0x03, req->header.seq_num);
+	CuAssertIntEquals (test, 0x03, req->header.reserved1);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_PCD_UPDATE, req->header.command);
 
 	CuAssertPtrEquals (test, &raw_buffer_req[5], &req->payload);
@@ -4997,9 +4997,9 @@ static void cerberus_protocol_master_commands_test_complete_pcd_update_format (C
 	CuAssertIntEquals (test, 0x7e, req->header.msg_type);
 	CuAssertIntEquals (test, 0x1314, req->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, req->header.rq);
-	CuAssertIntEquals (test, 0, req->header.d_bit);
+	CuAssertIntEquals (test, 0, req->header.reserved2);
 	CuAssertIntEquals (test, 0, req->header.crypt);
-	CuAssertIntEquals (test, 0x03, req->header.seq_num);
+	CuAssertIntEquals (test, 0x03, req->header.reserved1);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_COMPLETE_PCD_UPDATE, req->header.command);
 }
 
@@ -5028,9 +5028,9 @@ static void cerberus_protocol_master_commands_test_update_status_format (CuTest 
 	CuAssertIntEquals (test, 0x7e, req->header.msg_type);
 	CuAssertIntEquals (test, 0x1314, req->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, req->header.rq);
-	CuAssertIntEquals (test, 0, req->header.d_bit);
+	CuAssertIntEquals (test, 0, req->header.reserved2);
 	CuAssertIntEquals (test, 0, req->header.crypt);
-	CuAssertIntEquals (test, 0x03, req->header.seq_num);
+	CuAssertIntEquals (test, 0x03, req->header.reserved1);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_UPDATE_STATUS, req->header.command);
 
 	CuAssertIntEquals (test, 0x01, req->update_type);
@@ -5041,9 +5041,9 @@ static void cerberus_protocol_master_commands_test_update_status_format (CuTest 
 	CuAssertIntEquals (test, 0x7e, resp->header.msg_type);
 	CuAssertIntEquals (test, 0x1314, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.rq);
-	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.reserved2);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
-	CuAssertIntEquals (test, 0x03, resp->header.seq_num);
+	CuAssertIntEquals (test, 0x03, resp->header.reserved1);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_UPDATE_STATUS, resp->header.command);
 
 	CuAssertIntEquals (test, 0x06050403, resp->update_status);
@@ -5074,9 +5074,9 @@ static void cerberus_protocol_master_commands_test_extended_update_status_format
 	CuAssertIntEquals (test, 0x7e, req->header.msg_type);
 	CuAssertIntEquals (test, 0x1314, req->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, req->header.rq);
-	CuAssertIntEquals (test, 0, req->header.d_bit);
+	CuAssertIntEquals (test, 0, req->header.reserved2);
 	CuAssertIntEquals (test, 0, req->header.crypt);
-	CuAssertIntEquals (test, 0x03, req->header.seq_num);
+	CuAssertIntEquals (test, 0x03, req->header.reserved1);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_EXT_UPDATE_STATUS, req->header.command);
 
 	CuAssertIntEquals (test, 0x01, req->update_type);
@@ -5087,9 +5087,9 @@ static void cerberus_protocol_master_commands_test_extended_update_status_format
 	CuAssertIntEquals (test, 0x7e, resp->header.msg_type);
 	CuAssertIntEquals (test, 0x1314, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.rq);
-	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.reserved2);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
-	CuAssertIntEquals (test, 0x03, resp->header.seq_num);
+	CuAssertIntEquals (test, 0x03, resp->header.reserved1);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_EXT_UPDATE_STATUS, resp->header.command);
 
 	CuAssertIntEquals (test, 0x06050403, resp->update_status);
@@ -5129,9 +5129,9 @@ static void cerberus_protocol_master_commands_test_get_configuration_ids_format 
 	CuAssertIntEquals (test, 0x7e, req->header.msg_type);
 	CuAssertIntEquals (test, 0x1314, req->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, req->header.rq);
-	CuAssertIntEquals (test, 0, req->header.d_bit);
+	CuAssertIntEquals (test, 0, req->header.reserved2);
 	CuAssertIntEquals (test, 0, req->header.crypt);
-	CuAssertIntEquals (test, 0x03, req->header.seq_num);
+	CuAssertIntEquals (test, 0x03, req->header.reserved1);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_CONFIG_ID, req->header.command);
 
 	CuAssertPtrEquals (test, &raw_buffer_req[5], req->nonce);
@@ -5141,9 +5141,9 @@ static void cerberus_protocol_master_commands_test_get_configuration_ids_format 
 	CuAssertIntEquals (test, 0x7e, resp->header.msg_type);
 	CuAssertIntEquals (test, 0x1314, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.rq);
-	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.reserved2);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
-	CuAssertIntEquals (test, 0x03, resp->header.seq_num);
+	CuAssertIntEquals (test, 0x03, resp->header.reserved1);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_CONFIG_ID, resp->header.command);
 
 	CuAssertPtrEquals (test, &raw_buffer_resp[5], resp->nonce);

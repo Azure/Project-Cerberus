@@ -598,6 +598,43 @@ static void cmd_interface_slave_test_process_error_packet (CuTest *test)
 	complete_cmd_interface_slave_mock_test (test, &cmd);
 }
 
+static void cmd_interface_slave_test_process_reserved_fields_not_zero (CuTest *test)
+{
+	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_request request;
+	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) request.data;
+	int status;
+
+	TEST_START;
+
+	memset (&request, 0, sizeof (request));
+	header->msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	header->pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	header->reserved1 = 1;
+	header->reserved2 = 0;
+
+	request.length = CERBERUS_PROTOCOL_MIN_MSG_LEN;
+	request.source_eid = MCTP_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+
+	setup_cmd_interface_slave_mock_test (test, &cmd);
+
+	request.crypto_timeout = true;
+	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
+	CuAssertIntEquals (test, CMD_HANDLER_RSVD_NOT_ZERO, status);
+	CuAssertIntEquals (test, false, request.crypto_timeout);
+
+	header->reserved1 = 0;
+	header->reserved2 = 1;
+
+	request.crypto_timeout = true;
+	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
+	CuAssertIntEquals (test, CMD_HANDLER_RSVD_NOT_ZERO, status);
+	CuAssertIntEquals (test, false, request.crypto_timeout);
+
+	complete_cmd_interface_slave_mock_test (test, &cmd);
+}
+
 static void cmd_interface_slave_test_process_encrypted_message (CuTest *test)
 {
 	struct cmd_interface_slave_testing cmd;
@@ -705,9 +742,9 @@ static void cmd_interface_slave_test_process_encrypted_message (CuTest *test)
 	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 1, resp->header.crypt);
-	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.reserved2);
 	CuAssertIntEquals (test, 0, resp->header.integrity_check);
-	CuAssertIntEquals (test, 0, resp->header.seq_num);
+	CuAssertIntEquals (test, 0, resp->header.reserved1);
 	CuAssertIntEquals (test, 0, resp->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_RESET_COUNTER, resp->header.command);
 	CuAssertIntEquals (test, encrypted_counter, resp->counter);
@@ -2060,6 +2097,7 @@ CuSuite* get_cmd_interface_slave_suite ()
 	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_unknown_command);
 	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_unknown_device);
 	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_error_packet);
+	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_reserved_fields_not_zero);
 	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_encrypted_message);
 	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_encrypted_message_decrypt_fail);
 	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_encrypted_message_encrypt_fail);
