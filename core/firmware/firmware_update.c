@@ -305,6 +305,7 @@ static int firmware_update_restore_image (struct firmware_update *updater, struc
 int firmware_update_restore_recovery_image (struct firmware_update *updater)
 {
 	int status = FIRMWARE_UPDATE_NO_RECOVERY_IMAGE;
+	struct firmware_header *header = NULL;
 
 	if (updater == NULL) {
 		return FIRMWARE_UPDATE_INVALID_ARGUMENT;
@@ -320,6 +321,14 @@ int firmware_update_restore_recovery_image (struct firmware_update *updater)
 				updater->flash->active_addr);
 			if (status == 0) {
 				updater->recovery_bad = false;
+
+				header = updater->fw->get_firmware_header (updater->fw);
+				if (header == NULL) {
+					firmware_update_set_recovery_revision (updater, -1);
+				}
+				else {
+					firmware_header_get_recovery_revision (header, &updater->recovery_rev);
+				}
 			}
 		}
 		else {
@@ -353,6 +362,22 @@ int firmware_update_restore_active_image (struct firmware_update *updater)
 	}
 
 	return status;
+}
+
+/**
+ * Indicate if the recovery image on flash is currently good.
+ *
+ * @param updater The firmware updater to query.
+ *
+ * @return 1 if the recovery image is good, 0 if the recovery image is bad, or an error code.
+ */
+int firmware_update_is_recovery_good (struct firmware_update *updater)
+{
+	if (updater == NULL) {
+		return FIRMWARE_UPDATE_INVALID_ARGUMENT;
+	}
+
+	return updater->recovery_bad ? 0 : 1;
 }
 
 /**
@@ -435,7 +460,7 @@ static int firmware_update_write_image (struct firmware_update *updater,
 	enum firmware_update_status update_start, enum firmware_update_status update_fail,
 	bool *img_good)
 {
-	int backup_len;
+	int backup_len = 0;
 	uint32_t page;
 	int status;
 
@@ -611,6 +636,9 @@ int firmware_update_run_update (struct firmware_update *updater,
 
 	/* Don't allow the active image to be erased until we have a good recovery image. */
 	if (updater->flash->recovery_flash && updater->recovery_bad) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CERBERUS_FW,
+			FIRMWARE_LOGGING_RECOVERY_UPDATE, 0, 0);
+
 		status = firmware_update_write_image (updater, callback, updater->flash->recovery_flash,
 			updater->flash->recovery_addr, NULL, 0, new_len, UPDATE_STATUS_BACKUP_RECOVERY,
 			UPDATE_STATUS_BACKUP_REC_FAIL, UPDATE_STATUS_UPDATE_RECOVERY,
@@ -670,6 +698,9 @@ int firmware_update_run_update (struct firmware_update *updater,
 			}
 
 			/* Update the recovery image from staging flash. */
+			debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CERBERUS_FW,
+				FIRMWARE_LOGGING_RECOVERY_UPDATE, 0, 0);
+
 			status = firmware_update_write_image (updater, callback, updater->flash->recovery_flash,
 				updater->flash->recovery_addr, backup, backup_addr, new_len,
 				UPDATE_STATUS_BACKUP_RECOVERY, UPDATE_STATUS_BACKUP_REC_FAIL,
