@@ -15,7 +15,7 @@ static int cmd_interface_dual_cmd_set_process_request (struct cmd_interface *int
 	uint8_t command_set;
 	int status;
 
-	status = cmd_interface_process_request (intf, request, &command_id, &command_set, false);
+	status = cmd_interface_process_request (intf, request, &command_id, &command_set, false, false);
 	if (status != 0) {
 		return status;
 	}

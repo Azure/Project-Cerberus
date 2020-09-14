@@ -46,12 +46,14 @@ int cmd_interface_is_request_encrypted (struct cmd_interface *intf,
  * @param request The request being processed.
  * @param command_id Pointer to hold command ID of incoming request.
  * @param command_set Pointer to hold command set of incoming request.
- * @param decrypt Flag indicating whether to decrypt incoming request if encrypted
+ * @param decrypt Flag indicating whether to decrypt incoming request if encrypted.
+ * @param rsvd_zero Flag indicating if the reserved bits must be set to zero.
  * 
  * @return 0 if the request was successfully processed or an error code.
  */
 int cmd_interface_process_request (struct cmd_interface *intf, 
-	struct cmd_interface_request *request, uint8_t *command_id, uint8_t *command_set, bool decrypt)
+	struct cmd_interface_request *request, uint8_t *command_id, uint8_t *command_set, bool decrypt,
+	bool rsvd_zero)
 {
 	struct cerberus_protocol_header *header;
 	int status;
@@ -78,6 +80,12 @@ int cmd_interface_process_request (struct cmd_interface *intf,
 	if ((header->msg_type != (MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF)) || 
 		(header->pci_vendor_id != CERBERUS_PROTOCOL_MSFT_PCI_VID)) {
 		return CMD_HANDLER_UNSUPPORTED_MSG;
+	}
+
+	if (rsvd_zero) {
+		if ((header->reserved1 != 0) || (header->reserved2 != 0)) {
+			return CMD_HANDLER_RSVD_NOT_ZERO;
+		}
 	}
 
 	*command_id = header->command;

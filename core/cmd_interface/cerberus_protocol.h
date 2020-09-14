@@ -114,9 +114,9 @@ struct cerberus_protocol_header {
 	uint8_t msg_type:7;										/**< MCTP message type */
 	uint8_t integrity_check:1;								/**< MCTP message integrity check */
 	uint16_t pci_vendor_id;									/**< PCI vendor ID */
-	uint8_t seq_num:5;										/**< Sequence Number */
+	uint8_t reserved1:5;									/**< Reserved */
 	uint8_t crypt:1;										/**< Message Encryption Bit */
-	uint8_t d_bit:1;										/**< D-bit */
+	uint8_t reserved2:1;									/**< Reserved */
 	uint8_t rq:1;											/**< Request bit */
 	uint8_t command;										/**< Command ID */
 };
