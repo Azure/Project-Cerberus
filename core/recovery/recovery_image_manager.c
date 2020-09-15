@@ -2,13 +2,14 @@
 // Licensed under the MIT license.
 
 #include <string.h>
-#include "recovery_image_manager.h"
+#include "common/common_math.h"
 #include "crypto/ecc.h"
-#include "recovery_image_logging.h"
 #include "flash/flash_util.h"
+#include "host_fw/host_processor_dual.h"
+#include "recovery_image_manager.h"
+#include "recovery_image_logging.h"
 #include "recovery_image_header.h"
 #include "recovery_image_section_header.h"
-#include "host_fw/host_processor_dual.h"
 
 
 /**
@@ -604,24 +605,27 @@ int recovery_image_manager_get_port (struct recovery_image_manager *manager)
  * Get the data used for recovery image measurement.  The recovery image instance must be released
  * with the manager.
  *
- * @param manager The recovery image manager to query.
+ * @param manager The recovery image manager to query
  * @param offset The offset to read data from
  * @param buffer The output buffer to be filled with measured data
- * @param length Maximum length of the buffer.
+ * @param length Maximum length of the buffer
+ * @param total_len Total length of recovery image measurement
  *
  * @return Length of the measured data if successfully retrieved or an error code.
  */
 int recovery_image_manager_get_measured_data (struct recovery_image_manager *manager, size_t offset,
-	uint8_t *buffer, size_t length)
+	uint8_t *buffer, size_t length, uint32_t *total_len)
 {
 	uint8_t hash_out[SHA256_HASH_LENGTH] = {0};
 	int status = 0;
 	struct recovery_image *active;
 	size_t bytes_read;
 
-	if ((buffer == NULL) || (manager == NULL)) {
+	if ((buffer == NULL) || (manager == NULL) || (total_len == NULL)) {
 		return RECOVERY_IMAGE_MANAGER_INVALID_ARGUMENT;
 	}
+
+	*total_len = SHA256_HASH_LENGTH;
 
 	if (offset > (SHA256_HASH_LENGTH - 1)) {
 		return 0;
@@ -636,8 +640,9 @@ int recovery_image_manager_get_measured_data (struct recovery_image_manager *man
 		}
 	}
 
-	bytes_read = ((SHA256_HASH_LENGTH - offset) > length) ? length : (SHA256_HASH_LENGTH - offset);
+	bytes_read = min (SHA256_HASH_LENGTH - offset, length);
 
 	memcpy (buffer, hash_out + offset, bytes_read);
+
 	return bytes_read;
 }

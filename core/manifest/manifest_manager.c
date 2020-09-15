@@ -2,6 +2,7 @@
 // Licensed under the MIT license.
 
 #include <string.h>
+#include "common/common_math.h"
 #include "manifest_manager.h"
 #include "platform.h"
 
@@ -58,24 +59,28 @@ int manifest_manager_get_port (struct manifest_manager *manager)
 /**
  * Get the data used for manifest ID measurement.
  *
- * @param active The manifest to query
- * @param offset The offset to read data from
- * @param buffer The output buffer to be filled with measured data
- * @param length Maximum length of the buffer
+ * @param active The manifest to query.
+ * @param offset The offset to read data from.
+ * @param buffer The output buffer to be filled with measured data.
+ * @param length Maximum length of the buffer.
+ * @param total_len Output buffer with total length of manifest ID measurement. This should
+ * 	contain total length of the measuement even if only partially returned. 
  *
  *@return length of the measured data if successfully retrieved or an error code.
  */
-int manifest_manager_get_id_measured_data (struct manifest *active, size_t offset,
-	uint8_t *buffer, size_t length)
+int manifest_manager_get_id_measured_data (struct manifest *active, size_t offset, uint8_t *buffer, 
+	size_t length, uint32_t *total_len)
 {
 	uint8_t id[5] = {0};
 	size_t id_length = sizeof (id);
 	size_t bytes_read;
 	int status;
 
-	if (buffer == NULL) {
+	if ((buffer == NULL) || (total_len == NULL)) {
 		return MANIFEST_MANAGER_INVALID_ARGUMENT;
 	}
+
+	*total_len = id_length;
 
 	if (offset > (id_length - 1)) {
 		return 0;
@@ -89,7 +94,7 @@ int manifest_manager_get_id_measured_data (struct manifest *active, size_t offse
 		}
 	}
 
-	bytes_read = ((id_length - offset) > length) ? length : (id_length - offset);
+	bytes_read = min (id_length - offset, length);
 
 	memcpy (buffer, id + offset, bytes_read);
 
@@ -103,11 +108,13 @@ int manifest_manager_get_id_measured_data (struct manifest *active, size_t offse
  * @param offset The offset to read data from
  * @param buffer The output buffer to be filled with measured data
  * @param length Maximum length of the buffer
+ * @param total_len Output buffer with total length of platform ID measurement. This should
+ * 	contain total length of the measuement even if only partially returned. 
  *
  *@return length of the measured data if successfully retrieved or an error code.
  */
 int manifest_manager_get_platform_id_measured_data (struct manifest *active, size_t offset,
-	uint8_t *buffer, size_t length)
+	uint8_t *buffer, size_t length, uint32_t *total_len)
 {
 	char *id;
 	size_t id_length;
@@ -115,7 +122,7 @@ int manifest_manager_get_platform_id_measured_data (struct manifest *active, siz
 	char empty_string = '\0';
 	int status;
 
-	if (buffer == NULL) {
+	if ((buffer == NULL) || (total_len == NULL)) {
 		return MANIFEST_MANAGER_INVALID_ARGUMENT;
 	}
 
@@ -132,12 +139,15 @@ int manifest_manager_get_platform_id_measured_data (struct manifest *active, siz
 		id_length = 1;
 	}
 
+	*total_len = id_length;
+
 	if (offset >= id_length) {
 		bytes_read = 0;
 		goto exit;
 	}
 
-	bytes_read = ((id_length - offset) > length) ? length : (id_length - offset);
+	bytes_read = min (id_length - offset, length);
+	
 	memcpy (buffer, id + offset, bytes_read);
 
 exit:
@@ -155,19 +165,23 @@ exit:
  * @param offset The offset to read data from
  * @param buffer The output buffer to be filled with measured data
  * @param length Maximum length of the buffer
+ * @param total_len Output buffer with total length of measured data. This should contain total 
+ * 	length of the measuement even if only partially returned. 
  *
  *@return length of the measured data if successfully retrieved or an error code.
  */
 int manifest_manager_get_manifest_measured_data (struct manifest_manager *manager,
-	struct manifest *active, size_t offset, uint8_t *buffer, size_t length)
+	struct manifest *active, size_t offset, uint8_t *buffer, size_t length, uint32_t *total_len)
 {
 	uint8_t hash_out[SHA256_HASH_LENGTH] = {0};
 	size_t bytes_read;
 	int status;
 
-	if ((buffer == NULL) || (manager == NULL)) {
+	if ((buffer == NULL) || (manager == NULL) || (total_len == NULL)) {
 		return MANIFEST_MANAGER_INVALID_ARGUMENT;
 	}
+	
+	*total_len = SHA256_HASH_LENGTH;
 
 	if (offset > (SHA256_HASH_LENGTH - 1)) {
 		return 0;
@@ -180,7 +194,7 @@ int manifest_manager_get_manifest_measured_data (struct manifest_manager *manage
 		}
 	}
 
-	bytes_read = ((SHA256_HASH_LENGTH - offset) > length) ? length : (SHA256_HASH_LENGTH - offset);
+	bytes_read = min (SHA256_HASH_LENGTH - offset,  length);
 
 	memcpy (buffer, hash_out + offset, bytes_read);
 

@@ -29,6 +29,23 @@
 static const char *SUITE = "cerberus_protocol_optional_commands";
 
 
+/**
+ * Callback function to simulate failed callback to retrieve PCR measurement data.
+ *
+ * @param context The data to return from the callback.  It is assumed to be 4 bytes of data.
+ * @param offset The offset for the requested data.
+ * @param buffer Output buffer for the data.
+ * @param length Size of the output buffer.
+ * @param total_len Total length of measurement data.
+ *
+ * @return The number of bytes returned or error if failed.
+ */
+static int cerberus_protocol_optional_commands_testing_measurement_callback_fail (void *context, 
+	size_t offset, uint8_t *buffer, size_t length, uint32_t *total_len)
+{
+	return PCR_NO_MEMORY;
+}
+
 void cerberus_protocol_optional_commands_testing_process_fw_update_init (CuTest *test,
 	struct cmd_interface *cmd, struct firmware_update_control_mock *update)
 {
@@ -4393,7 +4410,7 @@ void cerberus_protocol_optional_commands_testing_process_log_read_invalid_type (
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_READ_LOG;
 
-	req->log_type = 4;
+	req->log_type = 5;
 	req->offset = offset;
 	request.length = sizeof (struct cerberus_protocol_get_log);
 	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
@@ -4436,6 +4453,171 @@ void cerberus_protocol_optional_commands_testing_process_log_read_invalid_len (C
 	status = cmd->process_request (cmd, &request);
 	CuAssertIntEquals (test, CMD_HANDLER_BAD_LENGTH, status);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
+}
+
+void cerberus_protocol_optional_commands_testing_process_log_read_tcg (CuTest *test,
+	struct cmd_interface *cmd, struct pcr_store *store)
+{
+	uint8_t digests[6][PCR_DIGEST_LENGTH] = {
+		{
+			0xab,0xe6,0xe6,0x4f,0x38,0x13,0x4f,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
+			0x7f,0xe6,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x7f,0x6e
+		},
+		{
+			0xcd,0xe6,0xe6,0x4f,0x38,0x13,0x4f,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
+			0x7f,0xe6,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x7f,0x6e
+		},
+		{
+			0xef,0xe6,0xe6,0x4f,0x38,0x13,0x4f,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
+			0x7f,0xe6,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x7f,0x6e
+		},
+		{
+			0x12,0xe6,0xe6,0x4f,0x38,0x13,0x4f,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
+			0x7f,0xe6,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x7f,0x6e
+		},
+		{
+			0x23,0xe6,0xe6,0x4f,0x38,0x13,0x4f,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
+			0x7f,0xe6,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x7f,0x6e
+		},
+		{
+			0x45,0xe6,0xe6,0x4f,0x38,0x13,0x4f,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
+			0x7f,0xe6,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x7f,0x6e
+		},
+	};
+	struct cmd_interface_request request;
+	struct cerberus_protocol_get_log *req = (struct cerberus_protocol_get_log*) request.data;
+	struct cerberus_protocol_get_log_response *resp =
+		(struct cerberus_protocol_get_log_response*) request.data;
+	struct pcr_tcg_event *v1_event = (struct pcr_tcg_event*) 
+		(request.data + sizeof (struct cerberus_protocol_header));
+	struct pcr_tcg_log_header *header = (struct pcr_tcg_log_header*) 
+		((uint8_t*) v1_event + sizeof (struct pcr_tcg_event)); 
+	struct pcr_tcg_event2 *event = (struct pcr_tcg_event2*) 
+		((uint8_t*) header + sizeof (struct pcr_tcg_log_header));
+	struct pcr_measured_data measurement;
+	uint8_t v1_event_pcr[20] = {0};
+	int i_measurement;
+	int status;
+
+	memset (&request, 0, sizeof (request));
+	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req->header.command = CERBERUS_PROTOCOL_READ_LOG;
+
+	req->log_type = CERBERUS_PROTOCOL_TCG_LOG;
+	req->offset = 0;
+	request.length = sizeof (struct cerberus_protocol_get_log);
+	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	
+	measurement.type = PCR_DATA_TYPE_1BYTE;
+	measurement.data.value_1byte = 0xAA;
+
+	for (i_measurement = 0; i_measurement < 6; ++i_measurement) {
+		status = pcr_store_update_digest (store, PCR_MEASUREMENT (0, i_measurement),
+			digests[i_measurement], PCR_DIGEST_LENGTH);
+		CuAssertIntEquals (test, 0, status);
+		
+		status = pcr_store_update_event_type (store, PCR_MEASUREMENT (0, i_measurement),
+			0x0A + i_measurement);
+		CuAssertIntEquals (test, 0, status);
+
+		status = pcr_store_set_measurement_data (store, PCR_MEASUREMENT (0, i_measurement),
+			&measurement);
+		CuAssertIntEquals (test, 0, status);
+	}
+
+	request.new_request = true;
+	request.crypto_timeout = true;
+	status = cmd->process_request (cmd, &request);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_log_response) + 
+		sizeof (struct pcr_tcg_event) + sizeof (struct pcr_tcg_log_header) + 
+		sizeof (struct pcr_tcg_event2) * 7 + sizeof (uint8_t) * 6, request.length);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
+	CuAssertIntEquals (test, 0, resp->header.crypt);
+	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.integrity_check);
+	CuAssertIntEquals (test, 0, resp->header.seq_num);
+	CuAssertIntEquals (test, 0, resp->header.rq);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_READ_LOG, resp->header.command);
+	CuAssertIntEquals (test, false, request.new_request);
+	CuAssertIntEquals (test, false, request.crypto_timeout);
+
+	CuAssertIntEquals (test, PCR_TCG_EFI_NO_ACTION_EVENT_TYPE, v1_event->event_type);
+	CuAssertIntEquals (test, sizeof (struct pcr_tcg_log_header), v1_event->event_size);
+	CuAssertIntEquals (test, 0, v1_event->pcr_bank);
+
+	status = testing_validate_array (v1_event_pcr, v1_event->pcr, sizeof (v1_event_pcr));
+	CuAssertIntEquals (test, 0, status);
+	
+	status = testing_validate_array ((const uint8_t*) PCR_TCG_LOG_SIGNATURE, header->signature, 
+		sizeof (PCR_TCG_LOG_SIGNATURE));
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, PCR_TCG_SERVER_PLATFORM_CLASS, header->platform_class);
+	CuAssertIntEquals (test, 0, header->spec_version_minor);
+	CuAssertIntEquals (test, 2, header->spec_version_major);
+	CuAssertIntEquals (test, 0, header->spec_errata);
+	CuAssertIntEquals (test, PCR_TCG_UINT_SIZE_32, header->uintn_size);
+	CuAssertIntEquals (test, 1, header->num_algorithms);
+	CuAssertIntEquals (test, PCR_TCG_SHA256_ALG_ID, header->digest_size.digest_algorithm_id);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, header->digest_size.digest_size);
+	CuAssertIntEquals (test, 0, header->vendor_info_size);
+
+	for (i_measurement = 0; i_measurement < 6; ++i_measurement) {
+		CuAssertIntEquals (test, 0, event->pcr_bank);
+		CuAssertIntEquals (test, 0x0A + i_measurement, event->event_type);
+		CuAssertIntEquals (test, 1, event->digest_count);
+		CuAssertIntEquals (test, PCR_TCG_SHA256_ALG_ID, event->digest_algorithm_id);
+		CuAssertIntEquals (test, 1, event->event_size);
+		CuAssertIntEquals (test, 0xAA, 
+			(((uint8_t*) event) + sizeof (struct pcr_tcg_event2))[0]);
+		
+		status = testing_validate_array (digests[i_measurement], event->digest, PCR_DIGEST_LENGTH);
+		CuAssertIntEquals (test, 0, status);
+
+		event = (struct pcr_tcg_event2*) ((uint8_t*) (event + 1) + 1);
+	}
+}
+
+void cerberus_protocol_optional_commands_testing_process_log_read_tcg_fail (CuTest *test,
+	struct cmd_interface *cmd, struct pcr_store *store)
+{
+	struct cmd_interface_request request;
+	struct cerberus_protocol_get_log *req = (struct cerberus_protocol_get_log*) request.data;
+	struct pcr_measured_data measurement;
+	int status;
+
+	memset (&request, 0, sizeof (request));
+	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req->header.command = CERBERUS_PROTOCOL_READ_LOG;
+
+	req->log_type = CERBERUS_PROTOCOL_TCG_LOG;
+	req->offset = 0;
+	request.length = sizeof (struct cerberus_protocol_get_log);
+	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	
+	measurement.type = PCR_DATA_TYPE_CALLBACK;
+	measurement.data.callback.get_data = 
+		cerberus_protocol_optional_commands_testing_measurement_callback_fail;
+	measurement.data.callback.context = NULL;
+
+	status = pcr_store_set_measurement_data (store, PCR_MEASUREMENT (0, 0), &measurement);
+	CuAssertIntEquals (test, 0, status);
+		
+	status = pcr_store_update_event_type (store, PCR_MEASUREMENT (0, 0), 0x0A);
+	CuAssertIntEquals (test, 0, status);
+
+	request.new_request = true;
+	request.crypto_timeout = true;
+	status = cmd->process_request (cmd, &request);
+	CuAssertIntEquals (test, PCR_NO_MEMORY, status);
 }
 
 void cerberus_protocol_optional_commands_testing_process_request_unseal_rsa (CuTest *test,

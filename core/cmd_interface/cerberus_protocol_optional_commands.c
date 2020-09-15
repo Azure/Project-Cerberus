@@ -305,6 +305,10 @@ int cerberus_protocol_log_read (struct pcr_store *pcr_store, struct hash_engine 
 		log_length = pcr_store_get_attestation_log (pcr_store, hash, rq->offset,
 			cerberus_protocol_log_data (rsp), CERBERUS_PROTOCOL_MAX_LOG_DATA (request));
 	}
+	else if (rq->log_type == CERBERUS_PROTOCOL_TCG_LOG) {
+		log_length = pcr_store_get_tcg_log (pcr_store, cerberus_protocol_log_data (rsp), rq->offset, 
+			CERBERUS_PROTOCOL_MAX_LOG_DATA (request));
+	}
 	else {
 		return CMD_HANDLER_UNSUPPORTED_INDEX;
 	}

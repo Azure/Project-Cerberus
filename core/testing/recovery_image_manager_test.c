@@ -16028,6 +16028,7 @@ static void recovery_image_manager_test_get_measured_data (CuTest *test)
 	struct flash_mock flash;
 	uint8_t buffer[SHA256_HASH_LENGTH];
 	size_t length = sizeof (buffer);
+	uint32_t total_len;
 	int status;
 
 	TEST_START;
@@ -16064,8 +16065,9 @@ static void recovery_image_manager_test_get_measured_data (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = recovery_image_manager_get_measured_data (&manager, 0, buffer, length);
+	status = recovery_image_manager_get_measured_data (&manager, 0, buffer, length, &total_len);
 	CuAssertIntEquals (test, RECOVERY_IMAGE_HASH_LEN, status);
+	CuAssertIntEquals (test, RECOVERY_IMAGE_HASH_LEN, total_len);
 
 	status = testing_validate_array (RECOVERY_IMAGE_HASH, buffer, RECOVERY_IMAGE_HASH_LEN);
 	CuAssertIntEquals (test, 0, status);
@@ -16098,6 +16100,7 @@ static void recovery_image_manager_test_get_measured_data_with_offset (CuTest *t
 	uint8_t buffer[SHA256_HASH_LENGTH];
 	size_t length = sizeof (buffer);
 	size_t offset = 2;
+	uint32_t total_len;
 	int status;
 
 	TEST_START;
@@ -16134,10 +16137,13 @@ static void recovery_image_manager_test_get_measured_data_with_offset (CuTest *t
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = recovery_image_manager_get_measured_data (&manager, offset, buffer, length);
+	status = recovery_image_manager_get_measured_data (&manager, offset, buffer, length, 
+		&total_len);
 	CuAssertIntEquals (test, RECOVERY_IMAGE_HASH_LEN - offset, status);
+	CuAssertIntEquals (test, RECOVERY_IMAGE_HASH_LEN, total_len);
 
-	status = testing_validate_array (RECOVERY_IMAGE_HASH + 2, buffer, RECOVERY_IMAGE_HASH_LEN - offset);
+	status = testing_validate_array (RECOVERY_IMAGE_HASH + 2, buffer, 
+		RECOVERY_IMAGE_HASH_LEN - offset);
 	CuAssertIntEquals (test, 0, status);
 
 	status = signature_verification_mock_validate_and_release (&verification);
@@ -16167,6 +16173,7 @@ static void recovery_image_manager_test_get_measured_data_small_buffer (CuTest *
 	struct flash_mock flash;
 	uint8_t buffer[SHA256_HASH_LENGTH];
 	size_t length = sizeof (buffer);
+	uint32_t total_len;
 	int status;
 
 	TEST_START;
@@ -16203,8 +16210,9 @@ static void recovery_image_manager_test_get_measured_data_small_buffer (CuTest *
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = recovery_image_manager_get_measured_data (&manager, 0, buffer, length - 4);
+	status = recovery_image_manager_get_measured_data (&manager, 0, buffer, length - 4, &total_len);
 	CuAssertIntEquals (test, RECOVERY_IMAGE_HASH_LEN - 4, status);
+	CuAssertIntEquals (test, RECOVERY_IMAGE_HASH_LEN, total_len);
 
 	status = testing_validate_array (RECOVERY_IMAGE_HASH, buffer, RECOVERY_IMAGE_HASH_LEN - 4);
 	CuAssertIntEquals (test, 0, status);
@@ -16237,6 +16245,7 @@ static void recovery_image_manager_test_get_measured_data_small_buffer_with_offs
 	uint8_t buffer[SHA256_HASH_LENGTH];
 	size_t length = sizeof (buffer);
 	size_t offset = 2;
+	uint32_t total_len;
 	int status;
 
 	TEST_START;
@@ -16273,8 +16282,10 @@ static void recovery_image_manager_test_get_measured_data_small_buffer_with_offs
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = recovery_image_manager_get_measured_data (&manager, offset, buffer, length - 4);
+	status = recovery_image_manager_get_measured_data (&manager, offset, buffer, length - 4,
+		&total_len);
 	CuAssertIntEquals (test, RECOVERY_IMAGE_HASH_LEN - 4, status);
+	CuAssertIntEquals (test, RECOVERY_IMAGE_HASH_LEN, total_len);
 
 	status = testing_validate_array (RECOVERY_IMAGE_HASH + offset, buffer,
 		RECOVERY_IMAGE_HASH_LEN - 4);
@@ -16308,6 +16319,7 @@ static void recovery_image_manager_test_get_measured_data_no_active (CuTest *tes
 	uint8_t buffer[SHA256_HASH_LENGTH];
 	uint8_t zero[SHA256_HASH_LENGTH] = {0};
 	size_t length = sizeof (buffer);
+	uint32_t total_len;
 	int status;
 
 	TEST_START;
@@ -16338,8 +16350,9 @@ static void recovery_image_manager_test_get_measured_data_no_active (CuTest *tes
 		&verification.base, &pfm_manager.base, RECOVERY_IMAGE_MANAGER_IMAGE_MAX_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = recovery_image_manager_get_measured_data (&manager, 0, buffer, length);
+	status = recovery_image_manager_get_measured_data (&manager, 0, buffer, length, &total_len);
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+	CuAssertIntEquals (test, RECOVERY_IMAGE_HASH_LEN, total_len);
 
 	status = testing_validate_array (zero, buffer, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
@@ -16372,6 +16385,7 @@ static void recovery_image_manager_test_get_measured_data_no_active_with_offset 
 	uint8_t buffer[SHA256_HASH_LENGTH];
 	uint8_t zero[SHA256_HASH_LENGTH] = {0};
 	size_t length = sizeof (buffer);
+	uint32_t total_len;
 	int offset = 2;
 	int status;
 
@@ -16403,8 +16417,10 @@ static void recovery_image_manager_test_get_measured_data_no_active_with_offset 
 		&verification.base, &pfm_manager.base, RECOVERY_IMAGE_MANAGER_IMAGE_MAX_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = recovery_image_manager_get_measured_data (&manager, offset, buffer, length);
+	status = recovery_image_manager_get_measured_data (&manager, offset, buffer, length, 
+		&total_len);
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH - offset, status);
+	CuAssertIntEquals (test, RECOVERY_IMAGE_HASH_LEN, total_len);
 
 	status = testing_validate_array (zero, buffer, SHA256_HASH_LENGTH - offset);
 	CuAssertIntEquals (test, 0, status);
@@ -16437,6 +16453,7 @@ static void recovery_image_manager_test_get_measured_data_no_active_small_buffer
 	uint8_t buffer[SHA256_HASH_LENGTH];
 	uint8_t zero[SHA256_HASH_LENGTH] = {0};
 	size_t length = sizeof (buffer);
+	uint32_t total_len;
 	int status;
 
 	TEST_START;
@@ -16467,8 +16484,9 @@ static void recovery_image_manager_test_get_measured_data_no_active_small_buffer
 		&verification.base, &pfm_manager.base, RECOVERY_IMAGE_MANAGER_IMAGE_MAX_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = recovery_image_manager_get_measured_data (&manager, 0, buffer, length - 2);
+	status = recovery_image_manager_get_measured_data (&manager, 0, buffer, length - 2, &total_len);
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH - 2, status);
+	CuAssertIntEquals (test, RECOVERY_IMAGE_HASH_LEN, total_len);
 
 	status = testing_validate_array (zero, buffer, SHA256_HASH_LENGTH - 2);
 	CuAssertIntEquals (test, 0, status);
@@ -16502,6 +16520,7 @@ static void recovery_image_manager_test_get_measured_data_no_active_small_buffer
 	uint8_t buffer[SHA256_HASH_LENGTH];
 	uint8_t zero[SHA256_HASH_LENGTH] = {0};
 	size_t length = sizeof (buffer);
+	uint32_t total_len;
 	int offset = 2;
 	int status;
 
@@ -16533,11 +16552,76 @@ static void recovery_image_manager_test_get_measured_data_no_active_small_buffer
 		&verification.base, &pfm_manager.base, RECOVERY_IMAGE_MANAGER_IMAGE_MAX_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = recovery_image_manager_get_measured_data (&manager, offset, buffer, length - 4);
+	status = recovery_image_manager_get_measured_data (&manager, offset, buffer, length - 4, 
+		&total_len);
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH - 4, status);
+	CuAssertIntEquals (test, RECOVERY_IMAGE_HASH_LEN, total_len);
 
 	status = testing_validate_array (zero, buffer, SHA256_HASH_LENGTH - 4);
 	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_mock_validate_and_release (&image);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_mock_validate_and_release (&pfm_manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	recovery_image_manager_release (&manager);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void recovery_image_manager_test_get_measured_data_0_bytes_read (CuTest *test)
+{
+	HASH_TESTING_ENGINE hash;
+	struct recovery_image_manager manager;
+	struct recovery_image_mock image;
+	struct signature_verification_mock verification;
+	struct pfm_manager_mock pfm_manager;
+	struct flash_mock flash;
+	uint8_t buffer[SHA256_HASH_LENGTH];
+	size_t length = sizeof (buffer);
+	uint32_t total_len;
+	int status;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_mock_init (&pfm_manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_mock_init (&image);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_mock_init (&verification);
+	CuAssertIntEquals (test, 0, status);
+
+	image.base.flash = &flash.base;
+	image.base.addr = 0x10000;
+
+	status = mock_expect (&image.mock, image.base.verify, &image, 0, MOCK_ARG_NOT_NULL,
+		MOCK_ARG_NOT_NULL, MOCK_ARG ((uintptr_t) NULL), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_manager_init (&manager, &image.base, &hash.base,
+		&verification.base, &pfm_manager.base, RECOVERY_IMAGE_MANAGER_IMAGE_MAX_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_manager_get_measured_data (&manager, RECOVERY_IMAGE_HASH_LEN, buffer, 
+		length, &total_len);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, RECOVERY_IMAGE_HASH_LEN, total_len);
 
 	status = signature_verification_mock_validate_and_release (&verification);
 	CuAssertIntEquals (test, 0, status);
@@ -16566,6 +16650,7 @@ static void recovery_image_manager_test_get_measured_data_invalid_offset (CuTest
 	struct flash_mock flash;
 	uint8_t buffer[SHA256_HASH_LENGTH];
 	size_t length = sizeof (buffer);
+	uint32_t total_len;
 	int status;
 
 	TEST_START;
@@ -16597,8 +16682,9 @@ static void recovery_image_manager_test_get_measured_data_invalid_offset (CuTest
 	CuAssertIntEquals (test, 0, status);
 
 	status = recovery_image_manager_get_measured_data (&manager, SHA256_HASH_LENGTH, buffer,
-		length);
+		length, &total_len);
 	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, RECOVERY_IMAGE_HASH_LEN, total_len);
 
 	status = signature_verification_mock_validate_and_release (&verification);
 	CuAssertIntEquals (test, 0, status);
@@ -16627,6 +16713,7 @@ static void recovery_image_manager_test_get_measured_data_null (CuTest *test)
 	struct flash_mock flash;
 	uint8_t buffer[SHA256_HASH_LENGTH];
 	size_t length = sizeof (buffer);
+	uint32_t total_len;
 	int status;
 
 	TEST_START;
@@ -16658,11 +16745,11 @@ static void recovery_image_manager_test_get_measured_data_null (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = recovery_image_manager_get_measured_data (NULL, SHA256_HASH_LENGTH, buffer,
-		length);
+		length, &total_len);
 	CuAssertIntEquals (test, RECOVERY_IMAGE_MANAGER_INVALID_ARGUMENT, status);
 
 	status = recovery_image_manager_get_measured_data (&manager, SHA256_HASH_LENGTH, NULL,
-		length);
+		length, &total_len);
 	CuAssertIntEquals (test, RECOVERY_IMAGE_MANAGER_INVALID_ARGUMENT, status);
 
 	status = signature_verification_mock_validate_and_release (&verification);
@@ -16688,6 +16775,7 @@ static void recovery_image_manager_test_get_measured_data_fail (CuTest *test)
 	struct recovery_image_mock image;
 	uint8_t buffer[SHA256_HASH_LENGTH];
 	size_t length = sizeof (buffer);
+	uint32_t total_len;
 	int status;
 
 	TEST_START;
@@ -16709,7 +16797,8 @@ static void recovery_image_manager_test_get_measured_data_fail (CuTest *test)
 		MOCK_ARG (manager.base.hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
-	status = recovery_image_manager_get_measured_data (&manager.base, 0, buffer, length);
+	status = recovery_image_manager_get_measured_data (&manager.base, 0, buffer, length, 
+		&total_len);
 	CuAssertIntEquals (test, RECOVERY_IMAGE_GET_HASH_FAILED, status);
 
 	status = recovery_image_mock_validate_and_release (&image);
@@ -17048,6 +17137,7 @@ CuSuite* get_recovery_image_manager_suite ()
 	SUITE_ADD_TEST (suite, recovery_image_manager_test_get_measured_data_no_active_small_buffer);
 	SUITE_ADD_TEST (suite,
 		recovery_image_manager_test_get_measured_data_no_active_small_buffer_with_offset);
+	SUITE_ADD_TEST (suite, recovery_image_manager_test_get_measured_data_0_bytes_read);
 	SUITE_ADD_TEST (suite, recovery_image_manager_test_get_measured_data_invalid_offset);
 	SUITE_ADD_TEST (suite, recovery_image_manager_test_get_measured_data_null);
 	SUITE_ADD_TEST (suite, recovery_image_manager_test_get_measured_data_fail);

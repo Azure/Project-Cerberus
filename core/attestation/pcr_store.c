@@ -318,6 +318,7 @@ int pcr_store_get_measurement_data (struct pcr_store *store, uint16_t measuremen
 {
 	uint8_t pcr_bank = (uint8_t) (measurement_type >> 8);
 	uint8_t measurement_index = (uint8_t) measurement_type;
+	uint32_t total_len;
 
 	if (store == NULL) {
 		return PCR_INVALID_ARGUMENT;
@@ -328,7 +329,7 @@ int pcr_store_get_measurement_data (struct pcr_store *store, uint16_t measuremen
 	}
 
 	return pcr_get_measurement_data (&store->banks[pcr_bank], measurement_index, offset, buffer,
-		length);
+		length, &total_len);
 }
 
 /**
@@ -528,4 +529,95 @@ int pcr_store_get_attestation_log (struct pcr_store *store, struct hash_engine *
 	}
 
 	return contents_offset;
+}
+
+/**
+ * Generate TCG formatted log from PCR banks.
+ *
+ * @param store PCR store to get measurements from.
+ * @param buffer Buffer to populate with requested log contents.
+ * @param offset Offset within the log to start reading data.
+ * @param length Maximum number of bytes to read from the log.
+ *
+ * @return The number of bytes read from the log or an error code.
+ */
+int pcr_store_get_tcg_log (struct pcr_store *store, uint8_t *buffer, size_t offset, size_t length)
+{
+	struct pcr_tcg_log_header header;
+	struct pcr_tcg_event v1_event;
+	size_t num_bytes = 0;
+	size_t total_len;
+	size_t entry_len;
+	size_t i_pcr;
+	int status;
+
+	if ((store == NULL) || (buffer == NULL)) {
+		return PCR_INVALID_ARGUMENT;
+	}
+
+	v1_event.event_type = PCR_TCG_EFI_NO_ACTION_EVENT_TYPE;
+	v1_event.event_size = sizeof (struct pcr_tcg_log_header);
+	v1_event.pcr_bank = 0;
+	
+	memset (v1_event.pcr, 0, sizeof (v1_event.pcr));
+
+	if (offset < sizeof (struct pcr_tcg_event)) {
+		entry_len = min (sizeof (struct pcr_tcg_event) - offset, length);
+
+		memcpy (buffer, ((uint8_t*) &v1_event) + offset, entry_len);
+
+		num_bytes += entry_len;
+		buffer += entry_len;
+		length -= entry_len;
+		offset = 0;
+	}
+	else {
+		offset -= sizeof (struct pcr_tcg_event);
+	}
+
+	memcpy (header.signature, PCR_TCG_LOG_SIGNATURE, sizeof (header.signature));
+	header.signature[15] = '\0';
+
+	header.platform_class = PCR_TCG_SERVER_PLATFORM_CLASS;
+	header.spec_version_minor = 0;
+	header.spec_version_major = 2;
+	header.spec_errata = 0;
+	header.uintn_size = PCR_TCG_UINT_SIZE_32;
+	header.num_algorithms = 1;
+	header.digest_size.digest_algorithm_id = PCR_TCG_SHA256_ALG_ID;
+	header.digest_size.digest_size = SHA256_HASH_LENGTH;
+	header.vendor_info_size = 0;
+
+	if (offset < sizeof (struct pcr_tcg_log_header)) {
+		entry_len = min (sizeof (struct pcr_tcg_log_header) - offset, length);
+
+		memcpy (buffer, ((uint8_t*) &header) + offset, entry_len);
+
+		num_bytes += entry_len;
+		buffer += entry_len;
+		length -= entry_len;
+		offset = 0;
+	}
+	else {
+		offset -= sizeof (struct pcr_tcg_log_header);
+	}
+	
+	for (i_pcr = 0; i_pcr < store->num_pcr_banks; ++i_pcr) {
+		status = pcr_get_tcg_log (&store->banks[i_pcr], i_pcr, buffer, offset, length, &total_len);
+		if (ROT_IS_ERROR (status)) {
+			return status;
+		}
+
+		if (status == 0) {
+			offset -= total_len;
+		}
+		else {
+			num_bytes += status;
+			buffer += status;
+			length -= status;
+			offset = 0;
+		}
+	}
+
+	return num_bytes;
 }

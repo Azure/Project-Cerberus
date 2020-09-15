@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdbool.h>
+#include "common/common_math.h"
 #include "flash/flash.h"
 #include "platform.h"
 #include "pcr.h"
@@ -156,7 +157,7 @@ static int pcr_read_measurement_data_bytes (uint8_t *buffer, size_t buffer_len, 
  * @param pcr_num_measurements The number of measurements to initialize the PCR bank to hold.  If
  * this is set to 0, the bank will hold a single measurement that will be treated as an explicit
  * measurement.  An explicit measurement will not be hashed when computing the bank PCR.
- *
+ * 
  * @return Completion status, 0 if success or an error code
  */
 int pcr_init (struct pcr_bank *pcr, uint8_t pcr_num_measurements)
@@ -478,40 +479,42 @@ int pcr_set_measurement_data (struct pcr_bank *pcr, uint8_t measurement_index,
 }
 
 /**
- * Retrieve the measured data from PCR bank
+ * Internal function to retrieve the measured data from PCR bank
  *
- * @param pcr The PCR bank to get measurement data from
- * @param measurement_index Index of measurement to set
- * @param offset The offset index to read from
- * @param buffer Output buffer containing the measured data
+ * @param pcr The PCR bank to get measurement data from.
+ * @param measurement_index Index of measurement to set.
+ * @param offset The offset index to read from.
+ * @param buffer Output buffer containing the measured data.
  * @param length Maximum length of the buffer.
+ * @param total_len Output buffer containing the total length of the measurement data. This should
+ * 	contain total length of the measured data even if only partially returned. 
  *
  * @return length of the buffer if measured data was retrieved successfully or an error code
  */
-int pcr_get_measurement_data (struct pcr_bank *pcr, uint8_t measurement_index, size_t offset,
-	 uint8_t *buffer, size_t length)
+static int pcr_get_measurement_data_internal (struct pcr_bank *pcr, uint8_t measurement_index, 
+	size_t offset, uint8_t *buffer, size_t length, uint32_t *total_len)
 {
 	struct pcr_measured_data *measured_data;
 	bool include_event;
 	bool include_version;
-	size_t bytes_read;
 	size_t total_bytes = 0;
+	size_t bytes_read;
+	uint32_t data_len;
 	int status = 0;
 
-	if ((pcr == NULL) || (buffer == NULL)) {
+	if ((pcr == NULL) || (buffer == NULL) || (total_len == NULL)) {
 		return PCR_INVALID_ARGUMENT;
 	}
 
 	if (measurement_index >= pcr->num_measurements) {
-		status = PCR_INVALID_INDEX;
-		goto exit;
+		return PCR_INVALID_INDEX;
 	}
 
-	platform_mutex_lock (&pcr->lock);
+	*total_len = 0;
 
 	measured_data = pcr->measurement_list[measurement_index].measured_data;
 	if (measured_data == NULL) {
-		goto exit;
+		return 0;
 	}
 
 	include_event = pcr->measurement_list[measurement_index].measurement_config &
@@ -531,6 +534,8 @@ int pcr_get_measurement_data (struct pcr_bank *pcr, uint8_t measurement_index, s
 		else {
 			offset -= 4;
 		}
+		
+		*total_len += 4;
 	}
 
 	if (include_version) {
@@ -545,6 +550,8 @@ int pcr_get_measurement_data (struct pcr_bank *pcr, uint8_t measurement_index, s
 		else {
 			offset -= 1;
 		}
+			
+		*total_len += 1;
 	}
 
 	switch (measured_data->type) {
@@ -552,30 +559,35 @@ int pcr_get_measurement_data (struct pcr_bank *pcr, uint8_t measurement_index, s
 			bytes_read = pcr_read_measurement_data_bytes (buffer, length,
 				&measured_data->data.value_1byte, 1, offset);
 			status = bytes_read + total_bytes;
+			*total_len += 1;
 			break;
 
 		case PCR_DATA_TYPE_2BYTE:
 			bytes_read = pcr_read_measurement_data_bytes (buffer, length,
 				(uint8_t*) &measured_data->data.value_2byte, 2, offset);
 			status = bytes_read + total_bytes;
+			*total_len += 2;
 			break;
 
 		case PCR_DATA_TYPE_4BYTE:
 			bytes_read = pcr_read_measurement_data_bytes (buffer, length,
 				(uint8_t*) &measured_data->data.value_4byte, 4, offset);
 			status = bytes_read + total_bytes;
+			*total_len += 4;
 			break;
 
 		case PCR_DATA_TYPE_8BYTE:
 			bytes_read = pcr_read_measurement_data_bytes (buffer, length,
 				(uint8_t*) &measured_data->data.value_8byte, 8, offset);
 			status = bytes_read + total_bytes;
+			*total_len += 8;
 			break;
 
 		case PCR_DATA_TYPE_MEMORY:
 			bytes_read = pcr_read_measurement_data_bytes (buffer, length,
 				measured_data->data.memory.buffer, measured_data->data.memory.length, offset);
 			status = bytes_read + total_bytes;
+			*total_len += measured_data->data.memory.length;
 			break;
 
 		case PCR_DATA_TYPE_FLASH: {
@@ -595,15 +607,18 @@ int pcr_get_measurement_data (struct pcr_bank *pcr, uint8_t measurement_index, s
 				status = bytes_read + total_bytes;
 			}
 
+			*total_len += measured_data->data.flash.length;			
 			break;
 		}
 
 		case PCR_DATA_TYPE_CALLBACK: {
 			status = measured_data->data.callback.get_data (measured_data->data.callback.context,
-				offset, buffer, length);
+				offset, buffer, length, &data_len);
 			if (!ROT_IS_ERROR (status)) {
 				status = status + total_bytes;
 			}
+
+			*total_len += data_len;
 
 			break;
 		}
@@ -612,7 +627,36 @@ int pcr_get_measurement_data (struct pcr_bank *pcr, uint8_t measurement_index, s
 			status = PCR_INVALID_DATA_TYPE;
 	}
 
-exit:
+	return status;
+}
+
+/**
+ * Retrieve the measured data from PCR bank
+ *
+ * @param pcr The PCR bank to get measurement data from.
+ * @param measurement_index Index of measurement to set.
+ * @param offset The offset index to read from.
+ * @param buffer Output buffer containing the measured data.
+ * @param length Maximum length of the buffer.
+ * @param total_len Output buffer containing the total length of the measurement data. This should
+ * 	contain total length of the measured data even if only partially returned. 
+ *
+ * @return length of the buffer if measured data was retrieved successfully or an error code
+ */
+int pcr_get_measurement_data (struct pcr_bank *pcr, uint8_t measurement_index, size_t offset,
+	 uint8_t *buffer, size_t length, uint32_t *total_len)
+{
+	int status;
+
+	if (pcr == NULL) {
+		return PCR_INVALID_ARGUMENT;
+	}
+
+	platform_mutex_lock (&pcr->lock);
+
+	status = pcr_get_measurement_data_internal (pcr, measurement_index, offset, buffer, length, 
+		total_len);
+	
 	platform_mutex_unlock (&pcr->lock);
 
 	return status;
@@ -742,5 +786,100 @@ int pcr_unlock (struct pcr_bank *pcr)
 	}
 	else {
 		return PCR_INVALID_ARGUMENT;
+	}
+}
+
+/**
+ * Generate TCG formatted log entries for PCR bank.
+ *
+ * @param pcr PCR bank to utilize.
+ * @param pcr_num PCR bank number. 
+ * @param buffer Buffer to populate with requested log entries.
+ * @param offset Offset within the log to start reading data.
+ * @param length Maximum number of bytes to read from the log.
+ * @param total_len Total length of log entries for PCR bank, only valid if the call is successful 
+ * 	and 0 bytes are read from the log.
+ *
+ * @return The number of bytes read from the log or an error code.
+ */
+int pcr_get_tcg_log (struct pcr_bank *pcr, uint32_t pcr_num, uint8_t *buffer, size_t offset, 
+	size_t length, size_t *total_len)
+{
+	struct pcr_tcg_event2 *entry_ptr = NULL;
+	struct pcr_tcg_event2 entry;
+	size_t num_bytes = 0;
+	size_t i_measurement;
+	size_t entry_len;
+	int status;
+
+	if ((pcr == NULL) || (buffer == NULL) || (total_len == NULL)) {
+		return PCR_INVALID_ARGUMENT;
+	}
+
+	*total_len = 0;
+
+	entry.pcr_bank = pcr_num;
+	entry.digest_count = 1;
+	entry.digest_algorithm_id = PCR_TCG_SHA256_ALG_ID;
+
+	platform_mutex_lock (&pcr->lock);
+
+	for (i_measurement = 0; i_measurement < pcr->num_measurements; ++i_measurement) {
+		entry.event_type = pcr->measurement_list[i_measurement].event_type;
+		
+		memcpy (entry.digest, pcr->measurement_list[i_measurement].digest, 
+			sizeof (pcr->measurement_list[i_measurement].digest));
+		
+		*total_len += sizeof (struct pcr_tcg_event2);
+
+		if (offset >= sizeof (struct pcr_tcg_event2)) {
+			offset -= sizeof (struct pcr_tcg_event2);
+			entry_ptr = NULL;
+		}
+		else if (length > 0) {
+			entry_len = min (sizeof (struct pcr_tcg_event2) - offset, length);
+			entry_ptr = (struct pcr_tcg_event2*) buffer;
+
+			memcpy (buffer, ((uint8_t*) &entry) + offset, entry_len);
+			num_bytes += entry_len;
+			buffer += entry_len;
+			length -= entry_len;
+			offset = 0;
+		}
+		else {
+			goto exit;
+		}
+	
+		status = pcr_get_measurement_data_internal (pcr, i_measurement, offset, buffer, length, 
+			&entry.event_size);
+		if (ROT_IS_ERROR (status)) {
+			goto exit;
+		}
+		
+		if (entry_ptr != NULL) {
+			entry_ptr->event_size = entry.event_size;
+		}
+
+		*total_len += entry.event_size;
+		buffer += status;
+		length -= status;
+		
+		if (status > 0) {
+			offset = 0;
+			num_bytes += status;
+		}
+		else {
+			offset -= entry.event_size;
+		}
+	}
+
+exit:
+	platform_mutex_unlock (&pcr->lock);
+
+	if (ROT_IS_ERROR (status)) {
+		return status;
+	}
+	else {
+		return num_bytes;
 	}
 }

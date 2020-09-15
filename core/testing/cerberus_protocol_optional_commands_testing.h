@@ -226,6 +226,10 @@ void cerberus_protocol_optional_commands_testing_process_log_read_invalid_type (
 	struct cmd_interface *cmd);
 void cerberus_protocol_optional_commands_testing_process_log_read_invalid_len (CuTest *test,
 	struct cmd_interface *cmd);
+void cerberus_protocol_optional_commands_testing_process_log_read_tcg (CuTest *test,
+	struct cmd_interface *cmd, struct pcr_store *store);
+void cerberus_protocol_optional_commands_testing_process_log_read_tcg_fail (CuTest *test,
+	struct cmd_interface *cmd, struct pcr_store *store);
 
 void cerberus_protocol_optional_commands_testing_process_request_unseal_rsa (CuTest *test,
 	struct cmd_interface *cmd, struct cmd_background_mock *background);

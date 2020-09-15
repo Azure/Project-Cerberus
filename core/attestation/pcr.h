@@ -11,11 +11,18 @@
 #include "pcr_data.h"
 
 
-#define PCR_DIGEST_LENGTH 	SHA256_HASH_LENGTH
+#define PCR_DIGEST_LENGTH 									SHA256_HASH_LENGTH
 
 /* PCR flag to include data in measurement calculations */
 #define PCR_MEASUREMENT_FLAG_EVENT							(1U << 0)
 #define PCR_MEASUREMENT_FLAG_VERSION						(1U << 1)
+
+/* TCG log definitions */
+#define PCR_TCG_SHA256_ALG_ID								0x0B
+#define PCR_TCG_EFI_NO_ACTION_EVENT_TYPE					0x03
+#define PCR_TCG_SERVER_PLATFORM_CLASS						0x01
+#define PCR_TCG_UINT_SIZE_32								0x01
+#define PCR_TCG_LOG_SIGNATURE				 				"Spec ID Event03"
 
 /**
  * Container for a PCR measurement
@@ -35,9 +42,58 @@ struct pcr_measurement {
 struct pcr_bank {
 	struct pcr_measurement *measurement_list;				/**< List of measurements */
 	size_t num_measurements;								/**< Number of measurements */
-	bool explicit;											/**< PCR bank contains an explicit measurement. */
+	bool explicit;											/**< PCR bank contains an explicit measurement */
 	platform_mutex lock;									/**< Synchronization lock */
 };
+
+#pragma pack(push, 1)
+/**
+ * TCG event entry.
+ */
+struct pcr_tcg_event2 {
+	uint32_t pcr_bank;										/**< PCR bank */
+	uint32_t event_type;									/**< Type of event */
+	uint32_t digest_count;									/**< Number of digests */
+	uint16_t digest_algorithm_id;							/**< ID of hashing algorithm */
+	uint8_t digest[32];										/**< Digest extended to PCR */
+	uint32_t event_size;									/**< Event size */
+};
+
+/**
+ * TCG event entry - old format.
+ */
+struct pcr_tcg_event {
+	uint32_t pcr_bank;										/**< PCR bank */
+	uint32_t event_type;									/**< Type of event */
+	uint8_t pcr[20];										/**< PCR value */
+	uint32_t event_size;									/**< Event size */
+	//uint8_t event[0];										/**< Event. Commented out since not used by Cerberus */
+};
+
+/**
+ * TCG event log algorithm descriptor.
+ */
+struct pcr_tcg_algorithm {
+	uint16_t digest_algorithm_id;							/**< Algorithm ID */
+	uint16_t digest_size;									/**< Algorithm digest size */
+};
+
+/**
+ * TCG event log header.
+ */
+struct pcr_tcg_log_header {
+	uint8_t signature[16];									/**< The null terminated ASCII string "Spec ID Event03" */
+	uint32_t platform_class;								/**< Platform class as defined in TCG spec */
+	uint8_t spec_version_minor;								/**< Spec minor version number */
+	uint8_t spec_version_major;								/**< Spec major version number */
+	uint8_t spec_errata;									/**< Spec errata supported */
+	uint8_t uintn_size;										/**< Size of uint fields */
+	uint32_t num_algorithms;								/**< Number of hashing algorithms used in log */
+	struct pcr_tcg_algorithm digest_size;					/**< Hashing algorithms descriptors */
+	uint8_t vendor_info_size;								/**< Size of vendorInfo */
+	//uint8_t vendor_info[0];								/**< Vendor-specific extra information. Commented out since not used by Cerberus */
+};
+#pragma pack(pop)
 
 
 int pcr_init (struct pcr_bank *pcr, uint8_t pcr_num_measurements);
@@ -66,7 +122,10 @@ int pcr_invalidate_measurement_index (struct pcr_bank *pcr, uint8_t measurement_
 int pcr_set_measurement_data (struct pcr_bank *pcr, uint8_t measurement_index,
 	struct pcr_measured_data *measurement_data);
 int pcr_get_measurement_data (struct pcr_bank *pcr, uint8_t measurement_index, size_t offset,
-	uint8_t *buffer, size_t length);
+	uint8_t *buffer, size_t length, uint32_t *total_len);
+
+int pcr_get_tcg_log (struct pcr_bank *pcr, uint32_t pcr_num, uint8_t *buffer, size_t offset, 
+	size_t length, size_t *total_len);
 
 int pcr_lock (struct pcr_bank *pcr);
 int pcr_unlock (struct pcr_bank *pcr);

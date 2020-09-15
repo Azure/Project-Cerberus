@@ -77,11 +77,11 @@ void manifest_manager_set_port (struct manifest_manager *manager, int port);
 int manifest_manager_get_port (struct manifest_manager *manager);
 
 int manifest_manager_get_id_measured_data (struct manifest *active, size_t offset,
-	uint8_t *buffer, size_t length);
+	uint8_t *buffer, size_t length, uint32_t *total_len);
 int manifest_manager_get_platform_id_measured_data (struct manifest *active, size_t offset,
-	uint8_t *buffer, size_t length);
+	uint8_t *buffer, size_t length, uint32_t *total_len);
 int manifest_manager_get_manifest_measured_data (struct manifest_manager *manager,
-	struct manifest *active, size_t offset, uint8_t *buffer, size_t length);
+	struct manifest *active, size_t offset, uint8_t *buffer, size_t length, uint32_t *total_len);
 
 
 #define	MANIFEST_MANAGER_ERROR(code)		ROT_ERROR (ROT_MODULE_MANIFEST_MANAGER, code)
