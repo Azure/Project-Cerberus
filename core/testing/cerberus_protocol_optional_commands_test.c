@@ -4538,9 +4538,9 @@ void cerberus_protocol_optional_commands_testing_process_log_read_tcg (CuTest *t
 	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
-	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.reserved2);
 	CuAssertIntEquals (test, 0, resp->header.integrity_check);
-	CuAssertIntEquals (test, 0, resp->header.seq_num);
+	CuAssertIntEquals (test, 0, resp->header.reserved1);
 	CuAssertIntEquals (test, 0, resp->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_READ_LOG, resp->header.command);
 	CuAssertIntEquals (test, false, request.new_request);
