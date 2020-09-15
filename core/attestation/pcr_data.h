@@ -28,11 +28,14 @@ enum pcr_data_type {
  * @param context The context to query for measured data.
  * @param offset The offset to read data from.
  * @param buffer Output buffer to be filled in with measured data.
- * @param length Maximum length of the buffer
+ * @param length Maximum length of the buffer.
+ * @param total_len Output buffer containing the total length of the measurement data. This should
+ * 	contain total length of the measured data even if only partially returned. 
  *
  * @return length of the measured data if successfully read or an error code.
  */
-typedef int (*get_measured_data) (void *context, size_t offset, uint8_t *buffer, size_t length);
+typedef int (*get_measured_data) (void *context, size_t offset, uint8_t *buffer, size_t length, 
+	uint32_t *total_len);
 
 /**
  * Measurement data used for PCR measurement.

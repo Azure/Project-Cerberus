@@ -4092,6 +4092,32 @@ static void cmd_interface_system_test_process_log_read_attestation (CuTest *test
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
+static void cmd_interface_system_test_process_log_read_tcg (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM, true);
+	cerberus_protocol_optional_commands_testing_process_log_read_tcg (test, &cmd.handler.base, 
+		&cmd.store);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_log_read_tcg_fail (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM, true);
+	cerberus_protocol_optional_commands_testing_process_log_read_tcg_fail (test, &cmd.handler.base, 
+		&cmd.store);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
 static void cmd_interface_system_test_process_log_read_attestation_limited_response (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
@@ -7357,6 +7383,8 @@ CuSuite* get_cmd_interface_system_suite ()
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_log_read_debug);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_log_read_debug_limited_response);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_log_read_attestation);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_log_read_tcg);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_log_read_tcg_fail);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_log_read_attestation_limited_response);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_log_read_debug_fail);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_log_read_attestation_fail);
