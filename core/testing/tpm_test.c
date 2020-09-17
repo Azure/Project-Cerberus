@@ -827,7 +827,7 @@ static void tpm_test_set_storage (CuTest *test)
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (storage); i++) {
+	for (i = 0; i < (int) sizeof (storage); i++) {
 		storage[i] = i;
 	}
 
@@ -853,7 +853,7 @@ static void tpm_test_set_storage_not_first (CuTest *test)
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (storage); i++) {
+	for (i = 0; i < (int) sizeof (storage); i++) {
 		storage[i] = i;
 	}
 
@@ -896,7 +896,7 @@ static void tpm_test_set_storage_write_fail (CuTest *test)
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (storage); i++) {
+	for (i = 0; i < (int) sizeof (storage); i++) {
 		storage[i] = i;
 	}
 
@@ -924,7 +924,7 @@ static void tpm_test_get_storage (CuTest *test)
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (exp_storage); i++) {
+	for (i = 0; i < (int) sizeof (exp_storage); i++) {
 		exp_storage[i] = i;
 	}
 
@@ -956,7 +956,7 @@ static void tpm_test_get_storage_mask_errors (CuTest *test)
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (exp_storage); i++) {
+	for (i = 0; i < (int) sizeof (exp_storage); i++) {
 		exp_storage[i] = i;
 	}
 
@@ -988,7 +988,7 @@ static void tpm_test_get_storage_not_first (CuTest *test)
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (exp_storage); i++) {
+	for (i = 0; i < (int) sizeof (exp_storage); i++) {
 		exp_storage[i] = i;
 	}
 
@@ -1042,7 +1042,7 @@ static void tpm_test_get_storage_no_data_mask_errors (CuTest *test)
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (exp_storage); i++) {
+	for (i = 0; i < (int) sizeof (exp_storage); i++) {
 		exp_storage[i] = i;
 	}
 
@@ -1097,7 +1097,7 @@ static void tpm_test_get_storage_corrupt_data_mask_errors (CuTest *test)
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (exp_storage); i++) {
+	for (i = 0; i < (int) sizeof (exp_storage); i++) {
 		exp_storage[i] = i;
 	}
 

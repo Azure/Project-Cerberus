@@ -635,7 +635,7 @@ struct mock_call* mock_allocate_call (void *func, void *instance, size_t args, .
 {
 	struct mock_call *call;
 	va_list arg_list;
-	int i;
+	size_t i;
 
 	call = platform_malloc (sizeof (struct mock_call));
 	if (call == NULL) {
@@ -734,7 +734,8 @@ intptr_t mock_return_from_call (struct mock *mock, struct mock_call *call)
 				if (expected->argv[i].size_arg < 0) {
 					out_len = expected->argv[i].out_len;
 				}
-				else if (expected->argv[i].out_len > call->argv[expected->argv[i].size_arg].value) {
+				else if (expected->argv[i].out_len >
+					(size_t) call->argv[expected->argv[i].size_arg].value) {
 					out_len = call->argv[expected->argv[i].size_arg].value;
 				}
 				else {

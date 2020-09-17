@@ -340,7 +340,7 @@ static int cfm_flash_get_component (struct cfm *cfm, uint32_t component_id,
 						platform_free ((void*) fw[i_fw_free].fw_version_id);
 
 						if (fw[i_fw_free].imgs != NULL) {
-							for (i_img_free = 0; i_img_free < fw[i_fw_free].img_count;
+							for (i_img_free = 0; i_img_free < (int) fw[i_fw_free].img_count;
 								++i_img_free) {
 								platform_free ((void*) fw[i_fw_free].imgs[i_img_free].digest);
 							}
@@ -373,11 +373,11 @@ static void cfm_flash_free_component (struct cfm *cfm, struct cfm_component *com
 	int i_fw, i_img;
 
 	if ((component != NULL) && component->fw != NULL) {
-		for (i_fw = 0; i_fw < component->fw_count; ++i_fw) {
+		for (i_fw = 0; i_fw < (int) component->fw_count; ++i_fw) {
 			platform_free ((void*) component->fw[i_fw].fw_version_id);
 
 			if (component->fw[i_fw].imgs != NULL) {
-				for (i_img = 0; i_img < component->fw[i_fw].img_count; ++i_img) {
+				for (i_img = 0; i_img < (int) component->fw[i_fw].img_count; ++i_img) {
 					platform_free ((void*) component->fw[i_fw].imgs[i_img].digest);
 				}
 

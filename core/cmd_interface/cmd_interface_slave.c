@@ -21,7 +21,7 @@ static int cmd_interface_slave_process_request (struct cmd_interface *intf,
 	int device_num;
 	int status;
 
-	status = cmd_interface_process_request (&interface->base, request, &command_id, &command_set, 
+	status = cmd_interface_process_request (&interface->base, request, &command_id, &command_set,
 		true, true);
 	if (status == CMD_ERROR_MESSAGE_ESCAPE_SEQ) {
 		return CMD_HANDLER_UNKNOWN_COMMAND;
@@ -41,7 +41,7 @@ static int cmd_interface_slave_process_request (struct cmd_interface *intf,
 			break;
 
 		case CERBERUS_PROTOCOL_GET_DIGEST:
-			status = cerberus_protocol_get_certificate_digest (interface->slave_attestation, 
+			status = cerberus_protocol_get_certificate_digest (interface->slave_attestation,
 				interface->base.session, request);
 			break;
 
@@ -50,7 +50,7 @@ static int cmd_interface_slave_process_request (struct cmd_interface *intf,
 			break;
 
 		case CERBERUS_PROTOCOL_ATTESTATION_CHALLENGE:
-			status = cerberus_protocol_get_challenge_response (interface->slave_attestation, 
+			status = cerberus_protocol_get_challenge_response (interface->slave_attestation,
 				interface->base.session, request);
 			break;
 
@@ -64,7 +64,7 @@ static int cmd_interface_slave_process_request (struct cmd_interface *intf,
 			break;
 
 		case CERBERUS_PROTOCOL_IMPORT_CA_SIGNED_CERT:
-			status = cerberus_protocol_import_ca_signed_cert (interface->riot, 
+			status = cerberus_protocol_import_ca_signed_cert (interface->riot,
 				interface->background, request);
 			break;
 
@@ -83,9 +83,9 @@ static int cmd_interface_slave_process_request (struct cmd_interface *intf,
 		case CERBERUS_PROTOCOL_RESET_COUNTER:
 			status = cerberus_protocol_reset_counter (interface->cmd_device, request);
 			break;
-			
+
 		case CERBERUS_PROTOCOL_EXCHANGE_KEYS:
-			status = cerberus_protocol_key_exchange (interface->base.session, request, 
+			status = cerberus_protocol_key_exchange (interface->base.session, request,
 				intf->curr_txn_encrypted);
 			break;
 
@@ -101,7 +101,7 @@ static int cmd_interface_slave_process_request (struct cmd_interface *intf,
 }
 
 int cmd_interface_slave_issue_request (struct cmd_interface *intf, uint8_t command_id,
-	void *request_params, uint8_t *buf, int buf_len)
+	void *request_params, uint8_t *buf, size_t buf_len)
 {
 	return CMD_HANDLER_UNSUPPORTED_OPERATION;
 }
@@ -128,7 +128,7 @@ int cmd_interface_slave_init (struct cmd_interface_slave *intf,
 	struct attestation_slave *slave_attestation, struct device_manager *device_manager,
 	struct cmd_background *background, struct cmd_interface_fw_version *fw_version,
 	struct riot_key_manager *riot, struct cmd_device *cmd_device, uint16_t vendor_id,
-	uint16_t device_id, uint16_t subsystem_vid, uint16_t subsystem_id, 
+	uint16_t device_id, uint16_t subsystem_vid, uint16_t subsystem_id,
 	struct session_manager *session)
 {
 	if ((intf == NULL) || (background == NULL) || (riot == NULL) || (slave_attestation == NULL) ||
@@ -153,7 +153,7 @@ int cmd_interface_slave_init (struct cmd_interface_slave *intf,
 	intf->base.process_request = cmd_interface_slave_process_request;
 	intf->base.issue_request = cmd_interface_slave_issue_request;
 	intf->base.generate_error_packet = cmd_interface_generate_error_packet;
-	
+
 	intf->base.session = session;
 
 	return 0;

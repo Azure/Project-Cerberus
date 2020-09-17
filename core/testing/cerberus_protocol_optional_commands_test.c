@@ -40,7 +40,7 @@ static const char *SUITE = "cerberus_protocol_optional_commands";
  *
  * @return The number of bytes returned or error if failed.
  */
-static int cerberus_protocol_optional_commands_testing_measurement_callback_fail (void *context, 
+static int cerberus_protocol_optional_commands_testing_measurement_callback_fail (void *context,
 	size_t offset, uint8_t *buffer, size_t length, uint32_t *total_len)
 {
 	return PCR_NO_MEMORY;
@@ -4488,11 +4488,11 @@ void cerberus_protocol_optional_commands_testing_process_log_read_tcg (CuTest *t
 	struct cerberus_protocol_get_log *req = (struct cerberus_protocol_get_log*) request.data;
 	struct cerberus_protocol_get_log_response *resp =
 		(struct cerberus_protocol_get_log_response*) request.data;
-	struct pcr_tcg_event *v1_event = (struct pcr_tcg_event*) 
+	struct pcr_tcg_event *v1_event = (struct pcr_tcg_event*)
 		(request.data + sizeof (struct cerberus_protocol_header));
-	struct pcr_tcg_log_header *header = (struct pcr_tcg_log_header*) 
-		((uint8_t*) v1_event + sizeof (struct pcr_tcg_event)); 
-	struct pcr_tcg_event2 *event = (struct pcr_tcg_event2*) 
+	struct pcr_tcg_log_header *header = (struct pcr_tcg_log_header*)
+		((uint8_t*) v1_event + sizeof (struct pcr_tcg_event));
+	struct pcr_tcg_event2 *event = (struct pcr_tcg_event2*)
 		((uint8_t*) header + sizeof (struct pcr_tcg_log_header));
 	struct pcr_measured_data measurement;
 	uint8_t v1_event_pcr[20] = {0};
@@ -4510,7 +4510,7 @@ void cerberus_protocol_optional_commands_testing_process_log_read_tcg (CuTest *t
 	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
 	request.source_eid = MCTP_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
-	
+
 	measurement.type = PCR_DATA_TYPE_1BYTE;
 	measurement.data.value_1byte = 0xAA;
 
@@ -4518,7 +4518,7 @@ void cerberus_protocol_optional_commands_testing_process_log_read_tcg (CuTest *t
 		status = pcr_store_update_digest (store, PCR_MEASUREMENT (0, i_measurement),
 			digests[i_measurement], PCR_DIGEST_LENGTH);
 		CuAssertIntEquals (test, 0, status);
-		
+
 		status = pcr_store_update_event_type (store, PCR_MEASUREMENT (0, i_measurement),
 			0x0A + i_measurement);
 		CuAssertIntEquals (test, 0, status);
@@ -4532,8 +4532,8 @@ void cerberus_protocol_optional_commands_testing_process_log_read_tcg (CuTest *t
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_log_response) + 
-		sizeof (struct pcr_tcg_event) + sizeof (struct pcr_tcg_log_header) + 
+	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_log_response) +
+		sizeof (struct pcr_tcg_event) + sizeof (struct pcr_tcg_log_header) +
 		sizeof (struct pcr_tcg_event2) * 7 + sizeof (uint8_t) * 6, request.length);
 	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
@@ -4552,8 +4552,8 @@ void cerberus_protocol_optional_commands_testing_process_log_read_tcg (CuTest *t
 
 	status = testing_validate_array (v1_event_pcr, v1_event->pcr, sizeof (v1_event_pcr));
 	CuAssertIntEquals (test, 0, status);
-	
-	status = testing_validate_array ((const uint8_t*) PCR_TCG_LOG_SIGNATURE, header->signature, 
+
+	status = testing_validate_array ((const uint8_t*) PCR_TCG_LOG_SIGNATURE, header->signature,
 		sizeof (PCR_TCG_LOG_SIGNATURE));
 	CuAssertIntEquals (test, 0, status);
 
@@ -4573,9 +4573,9 @@ void cerberus_protocol_optional_commands_testing_process_log_read_tcg (CuTest *t
 		CuAssertIntEquals (test, 1, event->digest_count);
 		CuAssertIntEquals (test, PCR_TCG_SHA256_ALG_ID, event->digest_algorithm_id);
 		CuAssertIntEquals (test, 1, event->event_size);
-		CuAssertIntEquals (test, 0xAA, 
+		CuAssertIntEquals (test, 0xAA,
 			(((uint8_t*) event) + sizeof (struct pcr_tcg_event2))[0]);
-		
+
 		status = testing_validate_array (digests[i_measurement], event->digest, PCR_DIGEST_LENGTH);
 		CuAssertIntEquals (test, 0, status);
 
@@ -4602,15 +4602,15 @@ void cerberus_protocol_optional_commands_testing_process_log_read_tcg_fail (CuTe
 	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
 	request.source_eid = MCTP_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
-	
+
 	measurement.type = PCR_DATA_TYPE_CALLBACK;
-	measurement.data.callback.get_data = 
+	measurement.data.callback.get_data =
 		cerberus_protocol_optional_commands_testing_measurement_callback_fail;
 	measurement.data.callback.context = NULL;
 
 	status = pcr_store_set_measurement_data (store, PCR_MEASUREMENT (0, 0), &measurement);
 	CuAssertIntEquals (test, 0, status);
-		
+
 	status = pcr_store_update_event_type (store, PCR_MEASUREMENT (0, 0), 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
@@ -5971,7 +5971,7 @@ void cerberus_protocol_optional_commands_testing_process_reset_bypass_no_nonce_c
 	request.source_eid = MCTP_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
 
-	for (i = 0; i < sizeof (nonce); i++) {
+	for (i = 0; i < (int) sizeof (nonce); i++) {
 		nonce[i] = i;
 	}
 
@@ -6031,7 +6031,7 @@ void cerberus_protocol_optional_commands_testing_process_reset_bypass_no_nonce_m
 	request.source_eid = MCTP_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
 
-	for (i = 0; i < sizeof (nonce); i++) {
+	for (i = 0; i < (int) sizeof (nonce); i++) {
 		nonce[i] = i;
 	}
 
@@ -6114,7 +6114,7 @@ void cerberus_protocol_optional_commands_testing_process_reset_bypass_with_nonce
 	req->header.command = CERBERUS_PROTOCOL_RESET_CONFIG;
 
 	req->type = 0;
-	for (i = 0; i < length; i++) {
+	for (i = 0; i < (int) length; i++) {
 		cerberus_protocol_reset_authorization (req)[i] = i;
 	}
 
@@ -6153,7 +6153,7 @@ void cerberus_protocol_optional_commands_testing_process_reset_bypass_with_nonce
 	req->header.command = CERBERUS_PROTOCOL_RESET_CONFIG;
 
 	req->type = 0;
-	for (i = 0; i < length; i++) {
+	for (i = 0; i < (int) length; i++) {
 		cerberus_protocol_reset_authorization (req)[i] = i;
 	}
 
@@ -6200,7 +6200,7 @@ void cerberus_protocol_optional_commands_testing_process_reset_bypass_no_nonce_i
 	request.source_eid = MCTP_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
 
-	for (i = 0; i < sizeof (nonce); i++) {
+	for (i = 0; i < (int) sizeof (nonce); i++) {
 		nonce[i] = i;
 	}
 
@@ -6243,7 +6243,7 @@ void cerberus_protocol_optional_commands_testing_process_reset_bypass_no_nonce_i
 	request.source_eid = MCTP_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
 
-	for (i = 0; i < sizeof (nonce); i++) {
+	for (i = 0; i < (int) sizeof (nonce); i++) {
 		nonce[i] = i;
 	}
 
@@ -6360,7 +6360,7 @@ void cerberus_protocol_optional_commands_testing_process_restore_defaults_no_non
 	request.source_eid = MCTP_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
 
-	for (i = 0; i < sizeof (nonce); i++) {
+	for (i = 0; i < (int) sizeof (nonce); i++) {
 		nonce[i] = i;
 	}
 
@@ -6420,7 +6420,7 @@ void cerberus_protocol_optional_commands_testing_process_restore_defaults_no_non
 	request.source_eid = MCTP_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
 
-	for (i = 0; i < sizeof (nonce); i++) {
+	for (i = 0; i < (int) sizeof (nonce); i++) {
 		nonce[i] = i;
 	}
 
@@ -6503,7 +6503,7 @@ void cerberus_protocol_optional_commands_testing_process_restore_defaults_with_n
 	req->header.command = CERBERUS_PROTOCOL_RESET_CONFIG;
 
 	req->type = 1;
-	for (i = 0; i < length; i++) {
+	for (i = 0; i < (int) length; i++) {
 		cerberus_protocol_reset_authorization (req)[i] = i;
 	}
 
@@ -6542,7 +6542,7 @@ void cerberus_protocol_optional_commands_testing_process_restore_defaults_with_n
 	req->header.command = CERBERUS_PROTOCOL_RESET_CONFIG;
 
 	req->type = 1;
-	for (i = 0; i < length; i++) {
+	for (i = 0; i < (int) length; i++) {
 		cerberus_protocol_reset_authorization (req)[i] = i;
 	}
 
@@ -6589,7 +6589,7 @@ void cerberus_protocol_optional_commands_testing_process_restore_defaults_no_non
 	request.source_eid = MCTP_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
 
-	for (i = 0; i < sizeof (nonce); i++) {
+	for (i = 0; i < (int) sizeof (nonce); i++) {
 		nonce[i] = i;
 	}
 
@@ -6632,7 +6632,7 @@ void cerberus_protocol_optional_commands_testing_process_restore_defaults_no_non
 	request.source_eid = MCTP_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
 
-	for (i = 0; i < sizeof (nonce); i++) {
+	for (i = 0; i < (int) sizeof (nonce); i++) {
 		nonce[i] = i;
 	}
 

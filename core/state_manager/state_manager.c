@@ -49,13 +49,13 @@ static int state_manager_init_single_byte_state (struct state_manager *manager,
 			manager->nv_state = 0xff00 | nv_state;
 			(*offset)++;
 
-			if (*offset < (sector_size * 2)) {
+			if (*offset < (int) (sector_size * 2)) {
 				status = state_flash->read (state_flash, store_addr + *offset, &nv_state, 1);
 				if (status != 0) {
 					return status;
 				}
 			}
-		} while ((nv_state != 0xff) && (*offset < (sector_size * 2)));
+		} while ((nv_state != 0xff) && (*offset < (int) (sector_size * 2)));
 	} while (*offset == 0);
 
 	manager->nv_state |= MULTI_BYTE_STATE;
@@ -167,7 +167,7 @@ static int state_manager_init_multi_byte_state (struct state_manager *manager,
 			*bit_error = error;
 			(*offset) += 8;
 
-			if (*offset < (sector_size * 2)) {
+			if (*offset < (int) (sector_size * 2)) {
 				status = state_flash->read (state_flash, store_addr + *offset, (uint8_t*) stored,
 					sizeof (stored));
 				if (status != 0) {
@@ -177,7 +177,7 @@ static int state_manager_init_multi_byte_state (struct state_manager *manager,
 				nv_state = state_manager_read_state_bits (stored, &error, refresh_state);
 			}
 		} while ((nv_state != 0xffff) && !(nv_state & SINGLE_BYTE_STATE) &&
-			(*offset < (sector_size * 2)));
+			(*offset < (int) (sector_size * 2)));
 	} while (*offset == 0);
 
 	return 0;

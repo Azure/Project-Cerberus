@@ -32,7 +32,7 @@
 struct mctp_control_set_eid_request_packet {
 	uint8_t reserved:6;										// Reserved
 	uint8_t operation:2;									// Operation
-	uint8_t eid;											// EID	
+	uint8_t eid;											// EID
 };
 
 /**
@@ -68,10 +68,10 @@ struct mctp_control_get_vendor_def_msg_support_response_packet {
 #pragma pack(pop)
 
 
-int mctp_interface_control_process_request (struct mctp_interface *intf, 
+int mctp_interface_control_process_request (struct mctp_interface *intf,
 	struct cmd_interface_request *request, uint8_t source_addr);
-int mctp_interface_control_issue_request (struct mctp_interface *intf, uint8_t command_id, 
-	void *request_params, uint8_t *buf, int buf_len);
+int mctp_interface_control_issue_request (struct mctp_interface *intf, uint8_t command_id,
+	void *request_params, uint8_t *buf, size_t buf_len);
 
 
 #endif /* MCTP_INTERFACE_CONTROL_H_ */

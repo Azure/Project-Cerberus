@@ -7,7 +7,7 @@
 
 
 static int attestation_slave_mock_get_digests (struct attestation_slave *attestation,
-	uint8_t slot_num, uint8_t *buf, int buf_len, uint8_t *num_cert)
+	uint8_t slot_num, uint8_t *buf, size_t buf_len, uint8_t *num_cert)
 {
 	struct attestation_slave_mock *mock = (struct attestation_slave_mock*) attestation;
 
@@ -34,7 +34,7 @@ static int attestation_slave_mock_get_certificate (struct attestation_slave *att
 }
 
 static int attestation_slave_mock_challenge_response (struct attestation_slave *attestation,
-	uint8_t *buf, int buf_len)
+	uint8_t *buf, size_t buf_len)
 {
 	struct attestation_slave_mock *mock = (struct attestation_slave_mock*) attestation;
 

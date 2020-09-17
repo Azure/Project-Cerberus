@@ -82,7 +82,7 @@ static int pcr_test_measurement_data_callback (void *context, size_t offset, uin
 		return 0;
 	}
 
-	bytes = (bytes <= length) ? bytes : length;
+	bytes = (bytes <= (int) length) ? bytes : (int) length;
 	memcpy (buffer, &((uint8_t*) context)[offset], bytes);
 	*total_len = 4;
 
@@ -6454,7 +6454,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_version_with_event
 	CuAssertIntEquals (test, 0, status);
 
 	pcr.measurement_list[2].version = version;
-	
+
 	pcr.measurement_list[2].measurement_config =
 		PCR_MEASUREMENT_FLAG_VERSION | PCR_MEASUREMENT_FLAG_EVENT;
 
@@ -15694,7 +15694,7 @@ void pcr_test_get_tcg_log (CuTest *test)
 	int status;
 
 	TEST_START;
-	
+
 	measurement.type = PCR_DATA_TYPE_1BYTE;
 	measurement.data.value_1byte = 0xAA;
 
@@ -15703,7 +15703,7 @@ void pcr_test_get_tcg_log (CuTest *test)
 	for (i_measurement = 0; i_measurement < 5; ++i_measurement) {
 		status = pcr_update_digest (&pcr, i_measurement, digests[i_measurement], PCR_DIGEST_LENGTH);
 		CuAssertIntEquals (test, 0, status);
-		
+
 		status = pcr_update_event_type (&pcr, i_measurement, 0x0A + i_measurement);
 		CuAssertIntEquals (test, 0, status);
 
@@ -15720,9 +15720,9 @@ void pcr_test_get_tcg_log (CuTest *test)
 		CuAssertIntEquals (test, 1, event->digest_count);
 		CuAssertIntEquals (test, PCR_TCG_SHA256_ALG_ID, event->digest_algorithm_id);
 		CuAssertIntEquals (test, 1, event->event_size);
-		CuAssertIntEquals (test, 0xAA, 
+		CuAssertIntEquals (test, 0xAA,
 			(((uint8_t*) event) + sizeof (struct pcr_tcg_event2))[0]);
-		
+
 		status = testing_validate_array (digests[i_measurement], event->digest, PCR_DIGEST_LENGTH);
 		CuAssertIntEquals (test, 0, status);
 
@@ -15766,7 +15766,7 @@ void pcr_test_get_tcg_log_offset_beginning_of_event (CuTest *test)
 	int status;
 
 	TEST_START;
-	
+
 	measurement.type = PCR_DATA_TYPE_1BYTE;
 	measurement.data.value_1byte = 0xAA;
 
@@ -15775,7 +15775,7 @@ void pcr_test_get_tcg_log_offset_beginning_of_event (CuTest *test)
 	for (i_measurement = 0; i_measurement < 5; ++i_measurement) {
 		status = pcr_update_digest (&pcr, i_measurement, digests[i_measurement], PCR_DIGEST_LENGTH);
 		CuAssertIntEquals (test, 0, status);
-		
+
 		status = pcr_update_event_type (&pcr, i_measurement, 0x0A + i_measurement);
 		CuAssertIntEquals (test, 0, status);
 
@@ -15783,7 +15783,7 @@ void pcr_test_get_tcg_log_offset_beginning_of_event (CuTest *test)
 		CuAssertIntEquals (test, 0, status);
 	}
 
-	status = pcr_get_tcg_log (&pcr, 0, buffer, sizeof (struct pcr_tcg_event2) * 2 + 
+	status = pcr_get_tcg_log (&pcr, 0, buffer, sizeof (struct pcr_tcg_event2) * 2 +
 		sizeof (uint8_t) * 2, sizeof (buffer), &total_len);
 	CuAssertIntEquals (test, sizeof (struct pcr_tcg_event2) * 3 + sizeof (uint8_t) * 3, status);
 
@@ -15793,9 +15793,9 @@ void pcr_test_get_tcg_log_offset_beginning_of_event (CuTest *test)
 		CuAssertIntEquals (test, 1, event->digest_count);
 		CuAssertIntEquals (test, PCR_TCG_SHA256_ALG_ID, event->digest_algorithm_id);
 		CuAssertIntEquals (test, 1, event->event_size);
-		CuAssertIntEquals (test, 0xAA, 
+		CuAssertIntEquals (test, 0xAA,
 			(((uint8_t*) event) + sizeof (struct pcr_tcg_event2))[0]);
-		
+
 		status = testing_validate_array (digests[i_measurement], event->digest, PCR_DIGEST_LENGTH);
 		CuAssertIntEquals (test, 0, status);
 
@@ -15839,7 +15839,7 @@ void pcr_test_get_tcg_log_offset_middle_of_event (CuTest *test)
 	int status;
 
 	TEST_START;
-	
+
 	measurement.type = PCR_DATA_TYPE_1BYTE;
 	measurement.data.value_1byte = 0xAA;
 
@@ -15848,7 +15848,7 @@ void pcr_test_get_tcg_log_offset_middle_of_event (CuTest *test)
 	for (i_measurement = 0; i_measurement < 5; ++i_measurement) {
 		status = pcr_update_digest (&pcr, i_measurement, digests[i_measurement], PCR_DIGEST_LENGTH);
 		CuAssertIntEquals (test, 0, status);
-		
+
 		status = pcr_update_event_type (&pcr, i_measurement, 0x0A + i_measurement);
 		CuAssertIntEquals (test, 0, status);
 
@@ -15856,7 +15856,7 @@ void pcr_test_get_tcg_log_offset_middle_of_event (CuTest *test)
 		CuAssertIntEquals (test, 0, status);
 	}
 
-	status = pcr_get_tcg_log (&pcr, 0, buffer, sizeof (struct pcr_tcg_event2), sizeof (buffer), 
+	status = pcr_get_tcg_log (&pcr, 0, buffer, sizeof (struct pcr_tcg_event2), sizeof (buffer),
 		&total_len);
 	CuAssertIntEquals (test, sizeof (struct pcr_tcg_event2) * 4 + sizeof (uint8_t) * 5, status);
 
@@ -15868,9 +15868,9 @@ void pcr_test_get_tcg_log_offset_middle_of_event (CuTest *test)
 		CuAssertIntEquals (test, 1, event->digest_count);
 		CuAssertIntEquals (test, PCR_TCG_SHA256_ALG_ID, event->digest_algorithm_id);
 		CuAssertIntEquals (test, 1, event->event_size);
-		CuAssertIntEquals (test, 0xAA, 
+		CuAssertIntEquals (test, 0xAA,
 			(((uint8_t*) event) + sizeof (struct pcr_tcg_event2))[0]);
-		
+
 		status = testing_validate_array (digests[i_measurement], event->digest, PCR_DIGEST_LENGTH);
 		CuAssertIntEquals (test, 0, status);
 
@@ -15913,7 +15913,7 @@ void pcr_test_get_tcg_log_0_bytes_read (CuTest *test)
 	int status;
 
 	TEST_START;
-	
+
 	measurement.type = PCR_DATA_TYPE_1BYTE;
 	measurement.data.value_1byte = 0xAA;
 
@@ -15922,7 +15922,7 @@ void pcr_test_get_tcg_log_0_bytes_read (CuTest *test)
 	for (i_measurement = 0; i_measurement < 5; ++i_measurement) {
 		status = pcr_update_digest (&pcr, i_measurement, digests[i_measurement], PCR_DIGEST_LENGTH);
 		CuAssertIntEquals (test, 0, status);
-		
+
 		status = pcr_update_event_type (&pcr, i_measurement, 0x0A + i_measurement);
 		CuAssertIntEquals (test, 0, status);
 
@@ -15930,7 +15930,7 @@ void pcr_test_get_tcg_log_0_bytes_read (CuTest *test)
 		CuAssertIntEquals (test, 0, status);
 	}
 
-	status = pcr_get_tcg_log (&pcr, 0, buffer, sizeof (struct pcr_tcg_event2) * 5 + 
+	status = pcr_get_tcg_log (&pcr, 0, buffer, sizeof (struct pcr_tcg_event2) * 5 +
 		sizeof (uint8_t) * 5, sizeof (buffer), &total_len);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct pcr_tcg_event2) * 5 + sizeof (uint8_t) * 5, total_len);
@@ -15972,7 +15972,7 @@ void pcr_test_get_tcg_log_small_buffer (CuTest *test)
 	int status;
 
 	TEST_START;
-	
+
 	measurement.type = PCR_DATA_TYPE_1BYTE;
 	measurement.data.value_1byte = 0xAA;
 
@@ -15981,7 +15981,7 @@ void pcr_test_get_tcg_log_small_buffer (CuTest *test)
 	for (i_measurement = 0; i_measurement < 5; ++i_measurement) {
 		status = pcr_update_digest (&pcr, i_measurement, digests[i_measurement], PCR_DIGEST_LENGTH);
 		CuAssertIntEquals (test, 0, status);
-		
+
 		status = pcr_update_event_type (&pcr, i_measurement, 0x0A + i_measurement);
 		CuAssertIntEquals (test, 0, status);
 
@@ -15989,7 +15989,7 @@ void pcr_test_get_tcg_log_small_buffer (CuTest *test)
 		CuAssertIntEquals (test, 0, status);
 	}
 
-	status = pcr_get_tcg_log (&pcr, 0, buffer, 0, sizeof (struct pcr_tcg_event2) * 2 + 
+	status = pcr_get_tcg_log (&pcr, 0, buffer, 0, sizeof (struct pcr_tcg_event2) * 2 +
 		sizeof (uint8_t) * 2, &total_len);
 	CuAssertIntEquals (test, sizeof (struct pcr_tcg_event2) * 2 + sizeof (uint8_t) * 2, status);
 
@@ -15999,9 +15999,9 @@ void pcr_test_get_tcg_log_small_buffer (CuTest *test)
 		CuAssertIntEquals (test, 1, event->digest_count);
 		CuAssertIntEquals (test, PCR_TCG_SHA256_ALG_ID, event->digest_algorithm_id);
 		CuAssertIntEquals (test, 1, event->event_size);
-		CuAssertIntEquals (test, 0xAA, 
+		CuAssertIntEquals (test, 0xAA,
 			(((uint8_t*) event) + sizeof (struct pcr_tcg_event2))[0]);
-		
+
 		status = testing_validate_array (digests[i_measurement], event->digest, PCR_DIGEST_LENGTH);
 		CuAssertIntEquals (test, 0, status);
 
@@ -16045,7 +16045,7 @@ void pcr_test_get_tcg_log_small_buffer_with_offset (CuTest *test)
 	int status;
 
 	TEST_START;
-	
+
 	measurement.type = PCR_DATA_TYPE_1BYTE;
 	measurement.data.value_1byte = 0xAA;
 
@@ -16054,15 +16054,15 @@ void pcr_test_get_tcg_log_small_buffer_with_offset (CuTest *test)
 	for (i_measurement = 0; i_measurement < 5; ++i_measurement) {
 		status = pcr_update_digest (&pcr, i_measurement, digests[i_measurement], PCR_DIGEST_LENGTH);
 		CuAssertIntEquals (test, 0, status);
-		
+
 		status = pcr_update_event_type (&pcr, i_measurement, 0x0A + i_measurement);
 		CuAssertIntEquals (test, 0, status);
 
 		status = pcr_set_measurement_data (&pcr, i_measurement, &measurement);
 		CuAssertIntEquals (test, 0, status);
 	}
-	
-	status = pcr_get_tcg_log (&pcr, 0, buffer, sizeof (struct pcr_tcg_event2) + sizeof (uint8_t), 
+
+	status = pcr_get_tcg_log (&pcr, 0, buffer, sizeof (struct pcr_tcg_event2) + sizeof (uint8_t),
 		sizeof (struct pcr_tcg_event2) * 2 + sizeof (uint8_t) * 2, &total_len);
 	CuAssertIntEquals (test, sizeof (struct pcr_tcg_event2) * 2 + sizeof (uint8_t) * 2, status);
 
@@ -16072,9 +16072,9 @@ void pcr_test_get_tcg_log_small_buffer_with_offset (CuTest *test)
 		CuAssertIntEquals (test, 1, event->digest_count);
 		CuAssertIntEquals (test, PCR_TCG_SHA256_ALG_ID, event->digest_algorithm_id);
 		CuAssertIntEquals (test, 1, event->event_size);
-		CuAssertIntEquals (test, 0xAA, 
+		CuAssertIntEquals (test, 0xAA,
 			(((uint8_t*) event) + sizeof (struct pcr_tcg_event2))[0]);
-		
+
 		status = testing_validate_array (digests[i_measurement], event->digest, PCR_DIGEST_LENGTH);
 		CuAssertIntEquals (test, 0, status);
 
@@ -16094,7 +16094,7 @@ void pcr_test_get_tcg_log_get_measured_data_fail (CuTest *test)
 	int status;
 
 	TEST_START;
-	
+
 	measurement.type = PCR_DATA_TYPE_CALLBACK;
 	measurement.data.callback.get_data = pcr_test_measurement_data_callback;
 	measurement.data.callback.context = NULL;

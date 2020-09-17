@@ -5,6 +5,7 @@
 #define ATTESTATION_MASTER_H_
 
 #include <stdint.h>
+#include <stddef.h>
 #include "status/rot_status.h"
 #include "crypto/ecc.h"
 #include "crypto/rsa.h"
@@ -29,7 +30,7 @@ struct attestation_master {
 	 * @return Output length if the challenge was successfully created or an error code.
 	 */
 	int (*issue_challenge) (struct attestation_master *attestation, uint8_t eid, uint8_t slot_num,
-		uint8_t *buf, int buf_len);
+		uint8_t *buf, size_t buf_len);
 
 	/**
 	 * Process received certificate digests, and compare with stored digests.
@@ -57,7 +58,7 @@ struct attestation_master {
 	 * @return 0 if the certificate was stored successfully or an error code.
 	 */
 	int (*store_certificate) (struct attestation_master *attestation, uint8_t eid, uint8_t slot_num,
-		uint8_t cert_num, const uint8_t *buf, int buf_len);
+		uint8_t cert_num, const uint8_t *buf, size_t buf_len);
 
 	/**
 	 * Process received challenge response, and update device authentication status.
@@ -70,7 +71,7 @@ struct attestation_master {
 	 * @return 0 if processing completed successfully or an error code.
 	 */
 	int (*process_challenge_response) (struct attestation_master *attestation, uint8_t *buf,
-		int buf_len, uint8_t eid);
+		size_t buf_len, uint8_t eid);
 
 	struct hash_engine *hash;					   		/**< The hashing engine for attestation authentication operations. */
 	struct ecc_engine *ecc;						  		/**< The ECC engine for attestation authentication operations. */

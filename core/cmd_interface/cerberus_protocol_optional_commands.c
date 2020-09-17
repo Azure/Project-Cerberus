@@ -306,7 +306,7 @@ int cerberus_protocol_log_read (struct pcr_store *pcr_store, struct hash_engine 
 			cerberus_protocol_log_data (rsp), CERBERUS_PROTOCOL_MAX_LOG_DATA (request));
 	}
 	else if (rq->log_type == CERBERUS_PROTOCOL_TCG_LOG) {
-		log_length = pcr_store_get_tcg_log (pcr_store, cerberus_protocol_log_data (rsp), rq->offset, 
+		log_length = pcr_store_get_tcg_log (pcr_store, cerberus_protocol_log_data (rsp), rq->offset,
 			CERBERUS_PROTOCOL_MAX_LOG_DATA (request));
 	}
 	else {
@@ -500,7 +500,7 @@ int cerberus_protocol_get_pfm_fw (struct manifest_cmd_interface *pfm_0,
 		 * directly into the command buffer after 'offset' bytes and stop at the buffer size.  Avoid
 		 * the malloc. */
 
-		for (i = 0; i < supported_ids.count; ++i) {
+		for (i = 0; i < (int) supported_ids.count; ++i) {
 			fw_length += strlen (supported_ids.versions[i].fw_version_id);
 			++fw_length;
 		}
@@ -518,7 +518,7 @@ int cerberus_protocol_get_pfm_fw (struct manifest_cmd_interface *pfm_0,
 
 		out_buf_ptr2 = out_buf_ptr;
 
-		for (i = 0; i < supported_ids.count; ++i, ++out_buf_ptr2) {
+		for (i = 0; i < (int) supported_ids.count; ++i, ++out_buf_ptr2) {
 			strcpy (out_buf_ptr2, supported_ids.versions[i].fw_version_id);
 			out_buf_ptr2 += strlen (supported_ids.versions[i].fw_version_id);
 			*out_buf_ptr2 = '\0';

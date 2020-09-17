@@ -198,7 +198,7 @@ int cerberus_protocol_get_challenge_response (struct attestation_slave *attestat
 	struct session_manager *session, struct cmd_interface_request *request)
 {
 	struct cerberus_protocol_challenge *rq = (struct cerberus_protocol_challenge*) request->data;
-	struct cerberus_protocol_challenge_response *rsp = 
+	struct cerberus_protocol_challenge_response *rsp =
 		(struct cerberus_protocol_challenge_response*) request->data;
 	uint8_t device_nonce[ATTESTATION_NONCE_LEN];
 	int status;
@@ -217,7 +217,7 @@ int cerberus_protocol_get_challenge_response (struct attestation_slave *attestat
 		request->length = CERBERUS_PROTOCOL_MIN_MSG_LEN + status;
 		status = 0;
 
-		if ((session != NULL) && 
+		if ((session != NULL) &&
 			(attestation->key_exchange_algorithm == ATTESTATION_ECDHE_KEY_EXCHANGE)) {
 			session->add_session (session, request->source_eid, device_nonce, rsp->challenge.nonce);
 		}
@@ -297,7 +297,7 @@ int cerberus_protocol_import_ca_signed_cert (struct riot_key_manager *riot,
 		return CMD_HANDLER_BAD_LENGTH;
 	}
 
-	if ((rq->cert_length == 0) || (request->length != (min_length + rq->cert_length))) {
+	if ((rq->cert_length == 0) || ((int) request->length != (min_length + rq->cert_length))) {
 		return CMD_HANDLER_BAD_LENGTH;
 	}
 
@@ -368,7 +368,7 @@ int cerberus_protocol_get_signed_cert_state (struct cmd_background *background,
  * error code.
  */
 int cerberus_protocol_issue_get_device_capabilities (struct device_manager *device_mgr,
-	uint8_t *buf, int buf_len)
+	uint8_t *buf, size_t buf_len)
 {
 	int status;
 

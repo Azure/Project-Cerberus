@@ -86,7 +86,7 @@ struct cmd_interface {
 	 * error code.
 	 */
 	int (*issue_request) (struct cmd_interface *intf, uint8_t command_id, void *request_params,
-		uint8_t *buf, int buf_len);
+		uint8_t *buf, size_t buf_len);
 
 	/**
 	 * Generate a packet containing error message.

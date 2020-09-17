@@ -98,7 +98,7 @@ static int ecc_riot_init_key_pair (struct ecc_engine *engine, const uint8_t *key
 
 	status = DERDECGetPubKeyFromPrivKey (der_pub_key, &der_pub_key_len, key, key_length);
 	if (status != RIOT_SUCCESS) {
-		status = ECC_ENGINE_NOT_PRIVATE_KEY; 
+		status = ECC_ENGINE_NOT_PRIVATE_KEY;
 		goto error;
 	}
 
@@ -328,7 +328,7 @@ static int ecc_riot_sign (struct ecc_engine *engine, struct ecc_private_key *key
 		return ECC_ENGINE_INVALID_ARGUMENT;
 	}
 
-	if (sig_length < ecc_riot_get_signature_max_length (engine, key)) {
+	if ((int) sig_length < ecc_riot_get_signature_max_length (engine, key)) {
 		return ECC_ENGINE_SIG_BUFFER_TOO_SMALL;
 	}
 

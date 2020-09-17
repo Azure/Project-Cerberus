@@ -24,28 +24,23 @@ static void flash_common_test_address_to_int (CuTest *test)
 
 	address = flash_address_to_int (bytes, 3);
 	CuAssertIntEquals (test, 0, address);
-	CuAssertTrue (test, !ROT_IS_ERROR (address));
 
 	bytes[0] = 0x20;
 	address = flash_address_to_int (bytes, 3);
 	CuAssertIntEquals (test, 0x200000, address);
-	CuAssertTrue (test, !ROT_IS_ERROR (address));
 
 	bytes[1] = 0x10;
 	address = flash_address_to_int (bytes, 3);
 	CuAssertIntEquals (test, 0x201000, address);
-	CuAssertTrue (test, !ROT_IS_ERROR (address));
 
 	bytes[2] = 0x30;
 	address = flash_address_to_int (bytes, 3);
 	CuAssertIntEquals (test, 0x201030, address);
-	CuAssertTrue (test, !ROT_IS_ERROR (address));
 
 	address = 0;
 	bytes[3] = 0x40;
 	address = flash_address_to_int (bytes, 3);
 	CuAssertIntEquals (test, 0x201030, address);
-	CuAssertTrue (test, !ROT_IS_ERROR (address));
 }
 
 static void flash_common_test_address_to_int_4bytes (CuTest *test)
@@ -57,28 +52,23 @@ static void flash_common_test_address_to_int_4bytes (CuTest *test)
 
 	address = flash_address_to_int (bytes, 4);
 	CuAssertIntEquals (test, 0, address);
-	CuAssertTrue (test, !ROT_IS_ERROR (address));
 
 	bytes[0] = 0x20;
 	address = flash_address_to_int (bytes, 4);
 	CuAssertIntEquals (test, 0x20000000, address);
-	CuAssertTrue (test, !ROT_IS_ERROR (address));
 
 	bytes[1] = 0x10;
 	address = flash_address_to_int (bytes, 4);
 	CuAssertIntEquals (test, 0x20100000, address);
-	CuAssertTrue (test, !ROT_IS_ERROR (address));
 
 	bytes[2] = 0x30;
 	address = flash_address_to_int (bytes, 4);
 	CuAssertIntEquals (test, 0x20103000, address);
-	CuAssertTrue (test, !ROT_IS_ERROR (address));
 
 	address = 0;
 	bytes[3] = 0x40;
 	address = flash_address_to_int (bytes, 4);
 	CuAssertIntEquals (test, 0x20103040, address);
-	CuAssertTrue (test, !ROT_IS_ERROR (address));
 }
 
 static void flash_common_test_address_to_int_null (CuTest *test)
@@ -89,7 +79,6 @@ static void flash_common_test_address_to_int_null (CuTest *test)
 
 	address = flash_address_to_int (NULL, 3);
 	CuAssertIntEquals (test, FLASH_COMMON_INVALID_ARGUMENT, address);
-	CuAssertTrue (test, ROT_IS_ERROR (address));
 }
 
 static void flash_common_test_address_to_int_bad_length (CuTest *test)
@@ -101,11 +90,9 @@ static void flash_common_test_address_to_int_bad_length (CuTest *test)
 
 	address = flash_address_to_int (bytes, 2);
 	CuAssertIntEquals (test, FLASH_COMMON_INVALID_ARGUMENT, address);
-	CuAssertTrue (test, ROT_IS_ERROR (address));
 
 	address = flash_address_to_int (bytes, 5);
 	CuAssertIntEquals (test, FLASH_COMMON_INVALID_ARGUMENT, address);
-	CuAssertTrue (test, ROT_IS_ERROR (address));
 }
 
 static void flash_common_test_int_to_address (CuTest *test)

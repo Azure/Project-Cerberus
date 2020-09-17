@@ -225,7 +225,7 @@ int flash_updater_write_update_data (struct flash_updater *updater, const uint8_
 	updater->update_size -= status;
 	updater->write_offset += status;
 
-	return (status == length) ? 0 : FLASH_UPDATER_INCOMPLETE_WRITE;
+	return (status == (int) length) ? 0 : FLASH_UPDATER_INCOMPLETE_WRITE;
 }
 
 /**

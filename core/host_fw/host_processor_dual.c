@@ -705,7 +705,7 @@ static int host_processor_dual_soft_reset (struct host_processor *host, struct h
 						if (!host_state_manager_is_pfm_dirty (dual->state)) {
 							status = HOST_PROCESSOR_NOTHING_TO_VERIFY;
 						}
-						/* no break */
+						/* fall through */ /* no break */
 
 					default:
 						prevalidated = false;

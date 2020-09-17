@@ -1368,7 +1368,7 @@ static void cfm_flash_test_get_1st_component (CuTest *test)
 	CuAssertIntEquals (test, 32, component.fw[0].imgs[0].digest_length);
 	CuAssertPtrNotNull (test, component.fw[0].imgs[0].digest);
 
-	for (i = 0; i < sizeof (TEST_DIGEST); ++i) {
+	for (i = 0; i < (int) sizeof (TEST_DIGEST); ++i) {
 		CuAssertIntEquals (test, TEST_DIGEST[i], component.fw[0].imgs[0].digest[i]);
 	}
 
@@ -1469,7 +1469,7 @@ static void cfm_flash_test_get_2nd_component (CuTest *test)
 	CuAssertIntEquals (test, sizeof (TEST_DIGEST), component.fw[0].imgs[0].digest_length);
 	CuAssertPtrNotNull (test, component.fw[0].imgs[0].digest);
 
-	for (i = 0; i < sizeof (TEST_DIGEST); ++i) {
+	for (i = 0; i < (int) sizeof (TEST_DIGEST); ++i) {
 		CuAssertIntEquals (test, TEST_DIGEST[i], component.fw[0].imgs[0].digest[i]);
 	}
 

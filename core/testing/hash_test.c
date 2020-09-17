@@ -92,7 +92,7 @@ static void hash_test_hmac_sha1_incremental_large_key (CuTest *test)
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (key); i++) {
+	for (i = 0; i < (int) sizeof (key); i++) {
 		key[i] = i;
 	}
 
@@ -163,7 +163,7 @@ static void hash_test_hmac_sha256_incremental_large_key (CuTest *test)
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (key); i++) {
+	for (i = 0; i < (int) sizeof (key); i++) {
 		key[i] = i;
 	}
 
@@ -295,7 +295,7 @@ static void hash_test_hmac_init_sha1_large_key_error (CuTest *test)
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (key); i++) {
+	for (i = 0; i < (int) sizeof (key); i++) {
 		key[i] = i;
 	}
 
@@ -324,7 +324,7 @@ static void hash_test_hmac_init_sha256_large_key_error (CuTest *test)
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (key); i++) {
+	for (i = 0; i < (int) sizeof (key); i++) {
 		key[i] = i;
 	}
 
@@ -709,7 +709,7 @@ static void hash_test_hmac_sha1_large_key (CuTest *test)
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (key); i++) {
+	for (i = 0; i < (int) sizeof (key); i++) {
 		key[i] = i;
 	}
 
@@ -768,7 +768,7 @@ static void hash_test_hmac_sha256_large_key (CuTest *test)
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (key); i++) {
+	for (i = 0; i < (int) sizeof (key); i++) {
 		key[i] = i;
 	}
 

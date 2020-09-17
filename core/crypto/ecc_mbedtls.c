@@ -486,7 +486,7 @@ static int ecc_mbedtls_sign (struct ecc_engine *engine, struct ecc_private_key *
 		return ECC_ENGINE_INVALID_ARGUMENT;
 	}
 
-	if (sig_length < ecc_mbedtls_get_signature_max_length (engine, key)) {
+	if ((int) sig_length < ecc_mbedtls_get_signature_max_length (engine, key)) {
 		return ECC_ENGINE_SIG_BUFFER_TOO_SMALL;
 	}
 
@@ -501,13 +501,12 @@ static int ecc_mbedtls_sign (struct ecc_engine *engine, struct ecc_private_key *
 
 	status = mbedtls_pk_sign ((mbedtls_pk_context*) key->context, MBEDTLS_MD_SHA256, digest, length,
 		signature, &sig_length, mbedtls_ctr_drbg_random, &mbedtls->ctr_drbg);
-
 	if (status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
 			CRYPTO_LOG_MSG_MBEDTLS_PK_SIGN_EC, status, 0);
 	}
 
-	return (status == 0) ? sig_length : status;
+	return (status == 0) ? (int) sig_length : status;
 }
 
 static int ecc_mbedtls_verify (struct ecc_engine *engine, struct ecc_public_key *key,

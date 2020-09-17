@@ -261,7 +261,7 @@ exit_error:
 
 static void pfm_flash_free_fw_versions (struct pfm *pfm, struct pfm_firmware_versions *fw)
 {
-	int i;
+	size_t i;
 
 	if ((fw != NULL) && (fw->versions != NULL)) {
 		for (i = 0; i < fw->count; i++) {
@@ -405,7 +405,7 @@ static int pfm_flash_read_region (struct manifest_flash *pfm, uint32_t addr,
 static int pfm_flash_read_multiple_regions (struct manifest_flash *pfm, size_t count,
 	struct flash_region *region_list, uint32_t *addr)
 {
-	int i;
+	size_t i;
 	int status;
 
 	for (i = 0; i < count; i++) {
@@ -602,7 +602,7 @@ exit:
 
 static void pfm_flash_free_firmware_images (struct pfm *pfm, struct pfm_image_list *img_list)
 {
-	int i;
+	size_t i;
 
 	if ((img_list != NULL) && (img_list->images != NULL)) {
 		for (i = 0; i < img_list->count; i++) {

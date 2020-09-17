@@ -373,7 +373,7 @@ static int pcr_store_get_num_measurements (struct pcr_store *store)
 		return PCR_INVALID_ARGUMENT;
 	}
 
-	for (i_bank = 0; i_bank < store->num_pcr_banks; ++i_bank) {
+	for (i_bank = 0; i_bank < (int) store->num_pcr_banks; ++i_bank) {
 		status = pcr_get_num_measurements (&store->banks[i_bank]);
 		if (ROT_IS_ERROR (status)) {
 			return status;
@@ -419,7 +419,7 @@ int pcr_store_get_attestation_log_size (struct pcr_store *store)
  *
  * @return The number of bytes read from the log or an error code.
  */
-int pcr_store_get_attestation_log (struct pcr_store *store, struct hash_engine *hash, 
+int pcr_store_get_attestation_log (struct pcr_store *store, struct hash_engine *hash,
 	uint32_t offset, uint8_t *contents, size_t length)
 {
 	struct pcr_store_attestation_log_entry log_entry;
@@ -430,7 +430,7 @@ int pcr_store_get_attestation_log (struct pcr_store *store, struct hash_engine *
 	uint32_t i_entry = 0;
 	uint8_t i_bank;
 	int starting_measurement;
-	int total_log_size = 0;
+	uint32_t total_log_size = 0;
 	int num_measurements;
 	int i_measurement;
 	int status;
@@ -558,7 +558,7 @@ int pcr_store_get_tcg_log (struct pcr_store *store, uint8_t *buffer, size_t offs
 	v1_event.event_type = PCR_TCG_EFI_NO_ACTION_EVENT_TYPE;
 	v1_event.event_size = sizeof (struct pcr_tcg_log_header);
 	v1_event.pcr_bank = 0;
-	
+
 	memset (v1_event.pcr, 0, sizeof (v1_event.pcr));
 
 	if (offset < sizeof (struct pcr_tcg_event)) {
@@ -570,6 +570,10 @@ int pcr_store_get_tcg_log (struct pcr_store *store, uint8_t *buffer, size_t offs
 		buffer += entry_len;
 		length -= entry_len;
 		offset = 0;
+
+		if (length == 0) {
+			return num_bytes;
+		}
 	}
 	else {
 		offset -= sizeof (struct pcr_tcg_event);
@@ -597,11 +601,15 @@ int pcr_store_get_tcg_log (struct pcr_store *store, uint8_t *buffer, size_t offs
 		buffer += entry_len;
 		length -= entry_len;
 		offset = 0;
+
+		if (length == 0) {
+			return num_bytes;
+		}
 	}
 	else {
 		offset -= sizeof (struct pcr_tcg_log_header);
 	}
-	
+
 	for (i_pcr = 0; i_pcr < store->num_pcr_banks; ++i_pcr) {
 		status = pcr_get_tcg_log (&store->banks[i_pcr], i_pcr, buffer, offset, length, &total_len);
 		if (ROT_IS_ERROR (status)) {
@@ -616,6 +624,10 @@ int pcr_store_get_tcg_log (struct pcr_store *store, uint8_t *buffer, size_t offs
 			buffer += status;
 			length -= status;
 			offset = 0;
+
+			if (length == 0) {
+				break;
+			}
 		}
 	}
 

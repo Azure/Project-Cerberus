@@ -32,7 +32,7 @@ struct logging_flash {
 	int write_remain;							/**< Remaining space in the entry buffer. */
 	bool terminated;							/**< Entry buffer has been terminated. */
 	uint32_t next_entry_id;						/**< Next ID to assign to a log entry. */
-	int flash_used[LOGGING_FLASH_SECTORS];		/**< Number of valid bytes stored in each sector. */
+	uint32_t flash_used[LOGGING_FLASH_SECTORS];	/**< Number of valid bytes stored in each sector. */
 	uint32_t next_addr;							/**< Next flash address to write to. */
 	int log_start;								/**< The sector that contains the first entries. */
 };

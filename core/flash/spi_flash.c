@@ -1426,7 +1426,7 @@ int spi_flash_is_quad_spi_enabled (struct spi_flash *flash)
 
 		case SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_35:
 			reg[1] = reg[0];
-			/* fall through */
+			/* fall through */ /* no break */
 
 		case SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2:
 		case SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_NO_CLR:

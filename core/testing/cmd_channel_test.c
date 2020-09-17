@@ -223,7 +223,7 @@ static void cmd_channel_test_receive_and_process_multi_packet_response (CuTest *
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (payload); i++) {
+	for (i = 0; i < (int) sizeof (payload); i++) {
 		payload[i] = i;
 	}
 
@@ -394,7 +394,7 @@ static void cmd_channel_test_receive_and_process_multi_packet_message (CuTest *t
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (payload); i++) {
+	for (i = 0; i < (int) sizeof (payload); i++) {
 		payload[i] = i;
 	}
 
@@ -544,7 +544,7 @@ static void cmd_channel_test_receive_and_process_multi_packet_message (CuTest *t
 		MOCK_ARG_VALIDATOR (cmd_interface_mock_validate_request, &request, sizeof (request)));
 	status |= mock_expect_output (&cmd.mock, 0, &response, sizeof (response), -1);
 
-	status |= mock_expect (&cmd.mock, cmd.base.generate_error_packet, &cmd, 0, MOCK_ARG_NOT_NULL, 
+	status |= mock_expect (&cmd.mock, cmd.base.generate_error_packet, &cmd, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (CERBERUS_PROTOCOL_NO_ERROR), MOCK_ARG (0), MOCK_ARG (0));
 	status |= mock_expect_output (&cmd.mock, 0, &error_packet, sizeof (error_packet), -1);
 
@@ -971,7 +971,7 @@ static void cmd_channel_test_receive_and_process_null (CuTest *test)
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (payload); i++) {
+	for (i = 0; i < (int) sizeof (payload); i++) {
 		payload[i] = i;
 	}
 
@@ -1133,7 +1133,7 @@ static void cmd_channel_test_receive_and_process_null (CuTest *test)
 		MOCK_ARG_VALIDATOR (cmd_interface_mock_validate_request, &request, sizeof (request)));
 	status |= mock_expect_output (&cmd.mock, 0, &response, sizeof (response), -1);
 
-	status |= mock_expect (&cmd.mock, cmd.base.generate_error_packet, &cmd, 0, MOCK_ARG_NOT_NULL, 
+	status |= mock_expect (&cmd.mock, cmd.base.generate_error_packet, &cmd, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (CERBERUS_PROTOCOL_NO_ERROR), MOCK_ARG (0), MOCK_ARG (0));
 	status |= mock_expect_output (&cmd.mock, 0, &error_packet, sizeof (error_packet), -1);
 
@@ -1175,7 +1175,7 @@ static void cmd_channel_test_receive_and_process_send_failure (CuTest *test)
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (payload); i++) {
+	for (i = 0; i < (int) sizeof (payload); i++) {
 		payload[i] = i;
 	}
 
@@ -1341,7 +1341,7 @@ static void cmd_channel_test_receive_and_process_mctp_fatal_error (CuTest *test)
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (payload); i++) {
+	for (i = 0; i < (int) sizeof (payload); i++) {
 		payload[i] = i;
 	}
 
@@ -1500,7 +1500,7 @@ static void cmd_channel_test_receive_and_process_mctp_fatal_error (CuTest *test)
 		MOCK_ARG_NOT_NULL, MOCK_ARG (-1));
 	status |= mock_expect_output (&channel.mock, 0, &rx_packet[2], sizeof (struct cmd_packet), -1);
 
-	status |= mock_expect (&cmd.mock, cmd.base.generate_error_packet, &cmd, 0, MOCK_ARG_NOT_NULL, 
+	status |= mock_expect (&cmd.mock, cmd.base.generate_error_packet, &cmd, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (CERBERUS_PROTOCOL_ERROR_OUT_OF_ORDER_MSG), MOCK_ARG (0), MOCK_ARG (0));
 	status |= mock_expect_output (&cmd.mock, 0, &error_packet, sizeof (error_packet), -1);
 
@@ -1545,7 +1545,7 @@ static void cmd_channel_test_receive_and_process_receive_failure (CuTest *test)
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (payload); i++) {
+	for (i = 0; i < (int) sizeof (payload); i++) {
 		payload[i] = i;
 	}
 
@@ -1709,7 +1709,7 @@ static void cmd_channel_test_receive_and_process_receive_failure (CuTest *test)
 		MOCK_ARG_VALIDATOR (cmd_interface_mock_validate_request, &request, sizeof (request)));
 	status |= mock_expect_output (&cmd.mock, 0, &response, sizeof (response), -1);
 
-	status |= mock_expect (&cmd.mock, cmd.base.generate_error_packet, &cmd, 0, MOCK_ARG_NOT_NULL, 
+	status |= mock_expect (&cmd.mock, cmd.base.generate_error_packet, &cmd, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (CERBERUS_PROTOCOL_NO_ERROR), MOCK_ARG (0), MOCK_ARG (0));
 	status |= mock_expect_output (&cmd.mock, 0, &error_packet, sizeof (error_packet), -1);
 
@@ -1754,7 +1754,7 @@ static void cmd_channel_test_receive_and_process_receive_timeout (CuTest *test)
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (payload); i++) {
+	for (i = 0; i < (int) sizeof (payload); i++) {
 		payload[i] = i;
 	}
 
@@ -1918,7 +1918,7 @@ static void cmd_channel_test_receive_and_process_receive_timeout (CuTest *test)
 		MOCK_ARG_VALIDATOR (cmd_interface_mock_validate_request, &request, sizeof (request)));
 	status |= mock_expect_output (&cmd.mock, 0, &response, sizeof (response), -1);
 
-	status |= mock_expect (&cmd.mock, cmd.base.generate_error_packet, &cmd, 0, MOCK_ARG_NOT_NULL, 
+	status |= mock_expect (&cmd.mock, cmd.base.generate_error_packet, &cmd, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (CERBERUS_PROTOCOL_NO_ERROR), MOCK_ARG (0), MOCK_ARG (0));
 	status |= mock_expect_output (&cmd.mock, 0, &error_packet, sizeof (error_packet), -1);
 
@@ -1961,7 +1961,7 @@ static void cmd_channel_test_receive_and_process_overflow_packet (CuTest *test)
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (payload); i++) {
+	for (i = 0; i < (int) sizeof (payload); i++) {
 		payload[i] = i;
 	}
 
@@ -2154,7 +2154,7 @@ static void cmd_channel_test_receive_and_process_overflow_packet (CuTest *test)
 		MOCK_ARG_NOT_NULL, MOCK_ARG (-1));
 	status |= mock_expect_output (&channel.mock, 0, &rx_packet[3], sizeof (struct cmd_packet), -1);
 
-	status |= mock_expect (&cmd.mock, cmd.base.generate_error_packet, &cmd, 0, MOCK_ARG_NOT_NULL, 
+	status |= mock_expect (&cmd.mock, cmd.base.generate_error_packet, &cmd, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (CERBERUS_PROTOCOL_ERROR_OUT_OF_ORDER_MSG), MOCK_ARG (0), MOCK_ARG (0));
 	status |= mock_expect_output (&cmd.mock, 0, &error_packet, sizeof (error_packet), -1);
 
@@ -2197,7 +2197,7 @@ static void cmd_channel_test_receive_and_process_multiple_overflow_packet (CuTes
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (payload); i++) {
+	for (i = 0; i < (int) sizeof (payload); i++) {
 		payload[i] = i;
 	}
 
@@ -2412,7 +2412,7 @@ static void cmd_channel_test_receive_and_process_multiple_overflow_packet (CuTes
 		MOCK_ARG_NOT_NULL, MOCK_ARG (-1));
 	status |= mock_expect_output (&channel.mock, 0, &rx_packet[4], sizeof (struct cmd_packet), -1);
 
-	status |= mock_expect (&cmd.mock, cmd.base.generate_error_packet, &cmd, 0, MOCK_ARG_NOT_NULL, 
+	status |= mock_expect (&cmd.mock, cmd.base.generate_error_packet, &cmd, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (CERBERUS_PROTOCOL_ERROR_OUT_OF_ORDER_MSG), MOCK_ARG (0), MOCK_ARG (0));
 	status |= mock_expect_output (&cmd.mock, 0, &error_packet, sizeof (error_packet), -1);
 
