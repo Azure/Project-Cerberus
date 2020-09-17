@@ -41,7 +41,7 @@ void mctp_interface_reset_message_processing (struct mctp_interface *interface);
 
 int mctp_interface_issue_request (struct mctp_interface *interface, uint8_t dest_addr,
 	uint8_t dest_eid, uint8_t src_addr, uint8_t src_eid, uint8_t command_id, void *request_params,
-	uint8_t *buf, int buf_len, uint8_t msg_type);
+	uint8_t *buf, size_t buf_len, uint8_t msg_type);
 
 
 #endif /* MCTP_INTERFACE_H_ */

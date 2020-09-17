@@ -224,7 +224,7 @@ err_free_key:
  */
 static int x509_riot_check_serial_number (const uint8_t *serial_num, size_t serial_length)
 {
-	int i;
+	size_t i;
 	int status;
 
 	if (serial_length > RIOT_X509_SNUM_LEN) {

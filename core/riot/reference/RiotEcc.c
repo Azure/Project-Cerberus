@@ -482,30 +482,39 @@ big_mpyP(bigval_t *tgt, bigval_t const *a, bigval_t const *b,
             switch (8 - (maxj - minj)) {
                 case 0:
                     ACCUM(ap - 8, bp + 8); // j = 8
+                    /* fall through */ /* no break */
 
                 case 1:
                     ACCUM(ap - 7, bp + 7);
+                    /* fall through */ /* no break */
 
                 case 2:
                     ACCUM(ap - 6, bp + 6);
+                    /* fall through */ /* no break */
 
                 case 3:
                     ACCUM(ap - 5, bp + 5);
+                    /* fall through */ /* no break */
 
                 case 4:
                     ACCUM(ap - 4, bp + 4);
+                    /* fall through */ /* no break */
 
                 case 5:
                     ACCUM(ap - 3, bp + 3);
+                    /* fall through */ /* no break */
 
                 case 6:
                     ACCUM(ap - 2, bp + 2);
+                    /* fall through */ /* no break */
 
                 case 7:
                     ACCUM(ap - 1, bp + 1);
+                    /* fall through */ /* no break */
 
                 case 8:
                     ACCUM(ap - 0, bp + 0); // j = 0
+                    /* fall through */ /* no break */
             }
 #endif // SMALL_CODE not defined
 
@@ -561,30 +570,39 @@ big_mpyP(bigval_t *tgt, bigval_t const *a, bigval_t const *b,
             switch (8 - (maxj - minj)) {
                 case 0:
                     ACCUMDBL(ap - 8, bp + 8); // j = 8
+                    /* fall through */ /* no break */
 
                 case 1:
                     ACCUMDBL(ap - 7, bp + 7);
+                    /* fall through */ /* no break */
 
                 case 2:
                     ACCUMDBL(ap - 6, bp + 6);
+                    /* fall through */ /* no break */
 
                 case 3:
                     ACCUMDBL(ap - 5, bp + 5);
+                    /* fall through */ /* no break */
 
                 case 4:
                     ACCUMDBL(ap - 4, bp + 4);
+                    /* fall through */ /* no break */
 
                 case 5:
                     ACCUMDBL(ap - 3, bp + 3);
+                    /* fall through */ /* no break */
 
                 case 6:
                     ACCUMDBL(ap - 2, bp + 2);
+                    /* fall through */ /* no break */
 
                 case 7:
                     ACCUMDBL(ap - 1, bp + 1);
+                    /* fall through */ /* no break */
 
                 case 8:
                     ACCUMDBL(ap - 0, bp + 0); // j = 0
+                    /* fall through */ /* no break */
             }
 
             // Even numbered columns (zero based) have a middle element.
@@ -2046,7 +2064,7 @@ RIOT_STATUS RIOT_DSA_init_key_pair(ecc_keypair *private_key, ecc_keypair *public
 	if (private_key) {
 		ASRT(priv_key_len <= RIOT_ECC_PRIVATE_BYTES);
 		BigIntToBigVal (&private_key->d, der_priv_key, priv_key_len);
-		
+
 		ASRT(pub_key_coord_bytes <= RIOT_ECC_COORD_BYTES);
 		BigIntToBigVal (&private_key->Q.x, &der_pub_key[2], pub_key_coord_bytes);
 		BigIntToBigVal (&private_key->Q.y, &der_pub_key[pub_key_coord_bytes+2], pub_key_coord_bytes);

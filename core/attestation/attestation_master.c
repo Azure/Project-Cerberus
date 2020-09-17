@@ -226,7 +226,7 @@ static int attestation_get_cert_algorithm (struct x509_engine *x509, struct der_
 }
 
 static int attestation_issue_challenge (struct attestation_master *attestation, uint8_t eid,
-	uint8_t slot_num, uint8_t *buf, int buf_len)
+	uint8_t slot_num, uint8_t *buf, size_t buf_len)
 {
 	struct attestation_challenge *challenge = (struct attestation_challenge*)buf;
 	int device_num;
@@ -253,7 +253,7 @@ static int attestation_issue_challenge (struct attestation_master *attestation, 
 
 	challenge->slot_num = slot_num;
 
-	status = attestation->rng->generate_random_buffer (attestation->rng, 
+	status = attestation->rng->generate_random_buffer (attestation->rng,
 		sizeof (challenge->nonce), challenge->nonce);
 	if (status != 0) {
 		return status;
@@ -316,7 +316,7 @@ static int attestation_compare_digests (struct attestation_master *attestation, 
 }
 
 static int attestation_store_certificate (struct attestation_master *attestation, uint8_t eid,
-	uint8_t slot_num, uint8_t cert_num, const uint8_t *buf, int buf_len)
+	uint8_t slot_num, uint8_t cert_num, const uint8_t *buf, size_t buf_len)
 {
 	int device_num;
 
@@ -337,7 +337,7 @@ static int attestation_store_certificate (struct attestation_master *attestation
 }
 
 static int attestation_process_challenge_response (struct attestation_master *attestation,
-	uint8_t *buf, int buf_len, uint8_t eid)
+	uint8_t *buf, size_t buf_len, uint8_t eid)
 {
 	struct ecc_public_key ecc_key;
 	struct rsa_public_key rsa_key;
@@ -378,7 +378,7 @@ static int attestation_process_challenge_response (struct attestation_master *at
 
 	key_type = attestation_get_cert_algorithm (attestation->x509, &chain.cert[chain.num_cert - 1]);
 	if (ROT_IS_ERROR (key_type)) {
-		return key_type;	
+		return key_type;
 	}
 
 	memcpy (&challenge, (uint8_t*)&attestation->challenge[device_num],
@@ -460,12 +460,12 @@ hash_cancel:
  *
  * @return Initialization status, 0 if success or an error code.
  */
-int attestation_master_init (struct attestation_master *attestation, 
-	struct riot_key_manager *riot, struct hash_engine *hash, struct ecc_engine *ecc, 
-	struct rsa_engine *rsa, struct x509_engine *x509, struct rng_engine *rng, 
+int attestation_master_init (struct attestation_master *attestation,
+	struct riot_key_manager *riot, struct hash_engine *hash, struct ecc_engine *ecc,
+	struct rsa_engine *rsa, struct x509_engine *x509, struct rng_engine *rng,
 	struct device_manager *device_manager, uint8_t protocol_version)
 {
-	if ((attestation == NULL) || (riot == NULL) || (hash == NULL) || (x509 == NULL) || 
+	if ((attestation == NULL) || (riot == NULL) || (hash == NULL) || (x509 == NULL) ||
 		(rng == NULL) || (device_manager == NULL) || (ecc == NULL)) {
 		return ATTESTATION_INVALID_ARGUMENT;
 	}

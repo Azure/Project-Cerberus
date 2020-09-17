@@ -53,7 +53,7 @@ static int logging_flash_save_buffer (struct logging_flash *logging)
 		if (ROT_IS_ERROR (status)) {
 			return status;
 		}
-		else if (status != write_len) {
+		else if (status != (int) write_len) {
 			write_len = status;
 			status = LOGGING_INCOMPLETE_FLUSH;
 		}
@@ -65,7 +65,7 @@ static int logging_flash_save_buffer (struct logging_flash *logging)
 		logging->flash_used[curr_sector_num] += write_len;
 
 		if (status == 0) {
-			if (((logging->write_remain < sizeof (struct logging_entry_header)) ||
+			if (((logging->write_remain < (int) sizeof (struct logging_entry_header)) ||
 				logging->terminated) && (FLASH_SECTOR_OFFSET (logging->next_addr) != 0)) {
 				logging->next_addr = FLASH_SECTOR_BASE (logging->next_addr) + FLASH_SECTOR_SIZE;
 			}
@@ -131,10 +131,10 @@ static int logging_flash_create_entry (struct logging *logging, uint8_t *entry, 
 	platform_mutex_lock (&flash_log->lock);
 
 	if (flash_log->terminated ||
-		(flash_log->write_remain < (sizeof (struct logging_entry_header) + length))) {
+		(flash_log->write_remain < (int) (sizeof (struct logging_entry_header) + length))) {
 
 		if (!flash_log->terminated &&
-			(flash_log->write_remain >= sizeof (struct logging_entry_header))) {
+			(flash_log->write_remain >= (int) sizeof (struct logging_entry_header))) {
 			logging_flash_write_header (flash_log, LOGGING_FLASH_TERMINATOR, 0);
 			flash_log->terminated = true;
 		}
@@ -235,8 +235,8 @@ static int logging_flash_read_contents (struct logging *logging, uint32_t offset
 	int bytes_read = 0;
 	int i;
 	int sectors;
-	int read_len;
-	int read_offset;
+	size_t read_len;
+	uint32_t read_offset;
 	int status;
 
 	if ((flash_log == NULL) || (contents == NULL)) {
@@ -332,7 +332,7 @@ int logging_flash_init (struct logging_flash *logging, struct spi_flash *flash, 
 		}
 
 		pos = logging->entry_buffer;
-		while ((end - pos) >= sizeof (struct logging_entry_header)) {
+		while ((end - pos) >= (int) sizeof (struct logging_entry_header)) {
 			struct logging_entry_header *header = (struct logging_entry_header*) pos;
 
 			if (!LOGGING_IS_ENTRY_START (header->log_magic) ||
@@ -366,7 +366,8 @@ int logging_flash_init (struct logging_flash *logging, struct spi_flash *flash, 
 			else {
 				int length = header->length & ~LOGGING_FLASH_TERMINATOR;
 
-				if ((length > (end - pos)) || (length < sizeof (struct logging_entry_header))) {
+				if ((length > (end - pos)) ||
+					(length < (int) sizeof (struct logging_entry_header))) {
 					if (found_next == 0) {
 						flash_addr = FLASH_SECTOR_BASE (flash_addr) + FLASH_SECTOR_SIZE;
 					}

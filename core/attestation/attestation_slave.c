@@ -8,7 +8,7 @@
 
 
 static int attestation_slave_get_digests (struct attestation_slave *attestation, uint8_t slot_num,
-	uint8_t *buf, int buf_len, uint8_t *num_cert)
+	uint8_t *buf, size_t buf_len, uint8_t *num_cert)
 {
 	const struct riot_keys *keys;
 	const struct der_cert *root_ca;
@@ -248,7 +248,7 @@ exit:
 }
 
 static int attestation_slave_challenge_response (struct attestation_slave *attestation,
-	uint8_t *buf, int buf_len)
+	uint8_t *buf, size_t buf_len)
 {
 	struct attestation_challenge *challenge = (struct attestation_challenge*)buf;
 	struct attestation_response *response = (struct attestation_response*)buf;

@@ -341,7 +341,7 @@ static int x509_openssl_create_tcbinfo_extension (const struct x509_dice_tcbinfo
 	RIOT_FWID *riot;
 	int status;
 	uint8_t *tcb_der = NULL;
-	size_t tcb_der_len;
+	int tcb_der_len;
 
 	if (tcb->version == NULL) {
 		return X509_ENGINE_DICE_NO_VERSION;
@@ -441,7 +441,7 @@ static int x509_openssl_create_ueid_extension (const struct x509_dice_ueid *dice
 	int status;
 	uint8_t *ueid_dup;
 	uint8_t *ueid_der = NULL;
-	size_t ueid_der_len;
+	int ueid_der_len;
 
 	if ((dice->ueid == NULL) || (dice->length == 0)) {
 		return X509_ENGINE_DICE_NO_UEID;
@@ -597,7 +597,7 @@ static int x509_openssl_create_csr (struct x509_engine *engine, const uint8_t *p
 
 		status = OBJ_obj2txt (oid_str, sizeof (oid_str), oid, 1);
 		ASN1_OBJECT_free (oid);
-		if (status > sizeof (oid_str)) {
+		if (status > (int) sizeof (oid_str)) {
 			status = X509_ENGINE_LONG_OID;
 			goto err_ext;
 		}
@@ -1130,7 +1130,7 @@ static int x509_openssl_get_serial_number (struct x509_engine *engine,
 		return -ERR_get_error ();
 	}
 
-	if (length < BN_num_bytes (serial)) {
+	if ((int) length < BN_num_bytes (serial)) {
 		bytes = X509_ENGINE_SMALL_SERIAL_BUFFER;
 		goto err_length;
 	}

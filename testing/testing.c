@@ -33,7 +33,7 @@ int testing_validate_array_prefix (const uint8_t *expected, const uint8_t *actua
 	const char *prefix)
 {
 	int failure = 0;
-	int i;
+	unsigned int i;
 
 	if (actual == NULL) {
 		platform_printf ("Null array unexpected" NEWLINE);
@@ -42,7 +42,7 @@ int testing_validate_array_prefix (const uint8_t *expected, const uint8_t *actua
 
 	for (i = 0; i < length; i++) {
 		if (actual[i] != expected[i]) {
-			platform_printf ("%sByte %d unexpected: expected=%x, actual=%x" NEWLINE, prefix, i,
+			platform_printf ("%sByte %u unexpected: expected=%x, actual=%x" NEWLINE, prefix, i,
 				expected[i], actual[i]);
 			failure = 1;
 		}

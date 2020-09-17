@@ -304,7 +304,7 @@ int mctp_interface_control_process_request (struct mctp_interface *intf,
  * error code.
  */
 int mctp_interface_control_issue_request (struct mctp_interface *intf, uint8_t command_id,
-	void *request_params, uint8_t *buf, int buf_len)
+	void *request_params, uint8_t *buf, size_t buf_len)
 {
 	struct mctp_protocol_control_header *header = (struct mctp_protocol_control_header*) buf;
 	int status;

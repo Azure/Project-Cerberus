@@ -62,7 +62,8 @@ target_compile_options(
 		-fdata-sections
 		-Wall
 		-Wextra
- 		-Wno-pedantic
+ 		-Werror
+		-Wno-unused-parameter
 		-g -ggdb3
 	)
 

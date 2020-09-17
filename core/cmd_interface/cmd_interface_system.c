@@ -25,7 +25,7 @@ int cmd_interface_system_process_request (struct cmd_interface *intf,
 	int direction;
 	int status;
 
-	status = cmd_interface_process_request (&interface->base, request, &command_id, &command_set, 
+	status = cmd_interface_process_request (&interface->base, request, &command_id, &command_set,
 		true, true);
 	if (status != 0) {
 		return status;
@@ -100,7 +100,7 @@ int cmd_interface_system_process_request (struct cmd_interface *intf,
 			break;
 
 		case CERBERUS_PROTOCOL_GET_PFM_ID:
-			status = cerberus_protocol_get_pfm_id (interface->pfm_manager_0, 
+			status = cerberus_protocol_get_pfm_id (interface->pfm_manager_0,
 				interface->pfm_manager_1, request);
 			break;
 
@@ -110,7 +110,7 @@ int cmd_interface_system_process_request (struct cmd_interface *intf,
 			break;
 
 		case CERBERUS_PROTOCOL_INIT_PFM_UPDATE:
-			status = cerberus_protocol_pfm_update_init (interface->pfm_0, interface->pfm_1, 
+			status = cerberus_protocol_pfm_update_init (interface->pfm_0, interface->pfm_1,
 				request);
 			break;
 
@@ -206,7 +206,7 @@ int cmd_interface_system_process_request (struct cmd_interface *intf,
 			break;
 
 		case CERBERUS_PROTOCOL_IMPORT_CA_SIGNED_CERT:
-			status = cerberus_protocol_import_ca_signed_cert (interface->riot, 
+			status = cerberus_protocol_import_ca_signed_cert (interface->riot,
 				interface->background, request);
 			break;
 
@@ -215,7 +215,7 @@ int cmd_interface_system_process_request (struct cmd_interface *intf,
 			break;
 
 		case CERBERUS_PROTOCOL_RESET_CONFIG:
-			status = cerberus_protocol_reset_config (interface->auth, interface->background, 
+			status = cerberus_protocol_reset_config (interface->auth, interface->background,
 				request);
 			break;
 
@@ -255,9 +255,9 @@ int cmd_interface_system_process_request (struct cmd_interface *intf,
 		case CERBERUS_PROTOCOL_GET_ATTESTATION_DATA:
 			status = cerberus_protocol_get_attestation_data (interface->pcr_store, request);
 			break;
-			
+
 		case CERBERUS_PROTOCOL_EXCHANGE_KEYS:
-			status = cerberus_protocol_key_exchange (interface->base.session, request, 
+			status = cerberus_protocol_key_exchange (interface->base.session, request,
 				intf->curr_txn_encrypted);
 			break;
 
@@ -301,7 +301,7 @@ int cmd_interface_system_process_request (struct cmd_interface *intf,
 }
 
 int cmd_interface_system_issue_request (struct cmd_interface *intf, uint8_t command_id,
-	void *request_params, uint8_t *buf, int buf_len)
+	void *request_params, uint8_t *buf, size_t buf_len)
 {
 	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) buf;
 	struct cmd_interface_system *interface = (struct cmd_interface_system*) intf;
@@ -404,7 +404,7 @@ int cmd_interface_system_init (struct cmd_interface_system *intf,
 	struct host_control *host_ctrl_1, struct recovery_image_cmd_interface *recovery_cmd_0,
 	struct recovery_image_cmd_interface *recovery_cmd_1,
 	struct recovery_image_manager *recovery_manager_0,
-	struct recovery_image_manager *recovery_manager_1, struct cmd_device *cmd_device, 
+	struct recovery_image_manager *recovery_manager_1, struct cmd_device *cmd_device,
 	uint16_t vendor_id, uint16_t device_id, uint16_t subsystem_vid, uint16_t subsystem_id,
 	struct session_manager *session)
 {
@@ -453,7 +453,7 @@ int cmd_interface_system_init (struct cmd_interface_system *intf,
 	intf->base.process_request = cmd_interface_system_process_request;
 	intf->base.issue_request = cmd_interface_system_issue_request;
 	intf->base.generate_error_packet = cmd_interface_generate_error_packet;
-	
+
 	intf->base.session = session;
 
 	return 0;

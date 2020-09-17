@@ -385,7 +385,7 @@ static int ecc_openssl_sign (struct ecc_engine *engine, struct ecc_private_key *
 		return ECC_ENGINE_INVALID_ARGUMENT;
 	}
 
-	if (sig_length < ecc_openssl_get_signature_max_length (engine, key)) {
+	if ((int) sig_length < ecc_openssl_get_signature_max_length (engine, key)) {
 		return ECC_ENGINE_SIG_BUFFER_TOO_SMALL;
 	}
 
@@ -433,7 +433,7 @@ static int ecc_openssl_compute_shared_secret (struct ecc_engine *engine,
 		return ECC_ENGINE_INVALID_ARGUMENT;
 	}
 
-	if (length < ecc_openssl_get_shared_secret_max_length (engine, priv_key)) {
+	if ((int) length < ecc_openssl_get_shared_secret_max_length (engine, priv_key)) {
 		return ECC_ENGINE_SECRET_BUFFER_TOO_SMALL;
 	}
 

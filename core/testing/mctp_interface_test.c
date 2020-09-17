@@ -3067,7 +3067,7 @@ static void mctp_interface_test_process_packet_max_message (CuTest *test)
 
 	msg_data[0] = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 
-	for (i = 1; i < sizeof (msg_data); i++) {
+	for (i = 1; i < (int) sizeof (msg_data); i++) {
 		msg_data[i] = i;
 	}
 

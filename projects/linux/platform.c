@@ -83,7 +83,7 @@ int platform_increase_timeout (uint32_t msec, platform_clock *timeout)
 
 	timeout->tv_sec += (msec / 1000);
 	timeout->tv_nsec += (msec % 1000) * 1000000ULL;
-	if (timeout->tv_nsec > 999999999ULL) {
+	if (timeout->tv_nsec > 999999999L) {
 		timeout->tv_sec++;
 		timeout->tv_nsec -= 1000000000ULL;
 	}

@@ -2410,7 +2410,7 @@ static void flash_store_encrypted_test_write_fixed_storage (CuTest *test)
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -2468,7 +2468,7 @@ static void flash_store_encrypted_test_write_fixed_storage_last_block (CuTest *t
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -2527,7 +2527,7 @@ static void flash_store_encrypted_test_write_fixed_storage_multiple_sectors (CuT
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -2588,7 +2588,7 @@ static void flash_store_encrypted_test_write_fixed_storage_multiple_sectors_last
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -2648,7 +2648,7 @@ static void flash_store_encrypted_test_write_fixed_storage_extra_sector_for_tag 
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -2708,7 +2708,7 @@ static void flash_store_encrypted_test_write_fixed_storage_extra_sector_for_tag_
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -2766,7 +2766,7 @@ static void flash_store_encrypted_test_write_fixed_storage_decreasing (CuTest *t
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -2824,7 +2824,7 @@ static void flash_store_encrypted_test_write_fixed_storage_decreasing_last_block
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -2884,7 +2884,7 @@ static void flash_store_encrypted_test_write_fixed_storage_decreasing_multiple_s
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -2945,7 +2945,7 @@ static void flash_store_encrypted_test_write_fixed_storage_decreasing_multiple_s
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -3006,7 +3006,7 @@ static void flash_store_encrypted_test_write_fixed_storage_decreasing_extra_sect
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -3066,7 +3066,7 @@ static void flash_store_encrypted_test_write_fixed_storage_decreasing_extra_sect
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -3125,7 +3125,7 @@ static void flash_store_encrypted_test_write_variable_storage (CuTest *test)
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -3191,7 +3191,7 @@ static void flash_store_encrypted_test_write_variable_storage_last_block (CuTest
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -3257,7 +3257,7 @@ static void flash_store_encrypted_test_write_variable_storage_max_length (CuTest
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -3323,7 +3323,7 @@ static void flash_store_encrypted_test_write_variable_storage_old_header (CuTest
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -3392,7 +3392,7 @@ static void flash_store_encrypted_test_write_variable_storage_multiple_sectors (
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -3461,7 +3461,7 @@ static void flash_store_encrypted_test_write_variable_storage_multiple_sectors_l
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -3529,7 +3529,7 @@ static void flash_store_encrypted_test_write_variable_storage_extra_sector_for_h
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -3597,7 +3597,7 @@ static void flash_store_encrypted_test_write_variable_storage_extra_sector_for_h
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -3664,7 +3664,7 @@ static void flash_store_encrypted_test_write_variable_storage_extra_sector_for_t
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -3732,7 +3732,7 @@ static void flash_store_encrypted_test_write_variable_storage_extra_sector_for_t
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -3798,7 +3798,7 @@ static void flash_store_encrypted_test_write_variable_storage_decreasing (CuTest
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -3864,7 +3864,7 @@ static void flash_store_encrypted_test_write_variable_storage_decreasing_last_bl
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -3930,7 +3930,7 @@ static void flash_store_encrypted_test_write_variable_storage_decreasing_max_len
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -3996,7 +3996,7 @@ static void flash_store_encrypted_test_write_variable_storage_decreasing_old_hea
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -4066,7 +4066,7 @@ static void flash_store_encrypted_test_write_variable_storage_decreasing_multipl
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -4135,7 +4135,7 @@ static void flash_store_encrypted_test_write_variable_storage_decreasing_multipl
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -4204,7 +4204,7 @@ static void flash_store_encrypted_test_write_variable_storage_decreasing_extra_s
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -4272,7 +4272,7 @@ static void flash_store_encrypted_test_write_variable_storage_decreasing_extra_s
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -4340,7 +4340,7 @@ static void flash_store_encrypted_test_write_variable_storage_decreasing_extra_s
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -4408,7 +4408,7 @@ static void flash_store_encrypted_test_write_variable_storage_decreasing_extra_s
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -4577,7 +4577,7 @@ static void flash_store_encrypted_test_write_fixed_storage_encrypt_error (CuTest
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 	}
 
@@ -4616,7 +4616,7 @@ static void flash_store_encrypted_test_write_fixed_storage_erase_error (CuTest *
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -4661,7 +4661,7 @@ static void flash_store_encrypted_test_write_fixed_storage_write_error (CuTest *
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -4709,7 +4709,7 @@ static void flash_store_encrypted_test_write_fixed_storage_verify_error (CuTest 
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -4759,7 +4759,7 @@ static void flash_store_encrypted_test_write_fixed_storage_write_tag_error (CuTe
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -4815,7 +4815,7 @@ static void flash_store_encrypted_test_write_fixed_storage_verify_tag_error (CuT
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -4975,7 +4975,7 @@ static void flash_store_encrypted_test_write_variable_storage_encrypt_error (CuT
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 	}
 
@@ -5014,7 +5014,7 @@ static void flash_store_encrypted_test_write_variable_storage_erase_error (CuTes
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 	}
 
@@ -5058,7 +5058,7 @@ static void flash_store_encrypted_test_write_variable_storage_write_error (CuTes
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -5106,7 +5106,7 @@ static void flash_store_encrypted_test_write_variable_storage_verify_error (CuTe
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -5158,7 +5158,7 @@ static void flash_store_encrypted_test_write_variable_storage_write_tag_error (C
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -5216,7 +5216,7 @@ static void flash_store_encrypted_test_write_variable_storage_verify_tag_error (
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -5278,7 +5278,7 @@ static void flash_store_encrypted_test_write_variable_storage_write_header_error
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -5343,7 +5343,7 @@ static void flash_store_encrypted_test_write_variable_storage_verify_header_erro
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -5410,7 +5410,7 @@ static void flash_store_encrypted_test_write_variable_storage_write_old_header_e
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -5477,7 +5477,7 @@ static void flash_store_encrypted_test_write_variable_storage_verify_old_header_
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -5546,7 +5546,7 @@ static void flash_store_encrypted_test_read_fixed_storage (CuTest *test)
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -5600,7 +5600,7 @@ static void flash_store_encrypted_test_read_fixed_storage_last_block (CuTest *te
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -5654,7 +5654,7 @@ static void flash_store_encrypted_test_read_fixed_storage_large_buffer (CuTest *
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -5708,7 +5708,7 @@ static void flash_store_encrypted_test_read_fixed_storage_corrupt_data (CuTest *
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -5760,7 +5760,7 @@ static void flash_store_encrypted_test_read_fixed_storage_multiple_sectors (CuTe
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -5815,7 +5815,7 @@ static void flash_store_encrypted_test_read_fixed_storage_multiple_sectors_last_
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -5870,7 +5870,7 @@ static void flash_store_encrypted_test_read_fixed_storage_extra_sector_for_tag (
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -5926,7 +5926,7 @@ static void flash_store_encrypted_test_read_fixed_storage_extra_sector_for_tag_l
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -5980,7 +5980,7 @@ static void flash_store_encrypted_test_read_fixed_storage_decreasing (CuTest *te
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -6034,7 +6034,7 @@ static void flash_store_encrypted_test_read_fixed_storage_decreasing_last_block 
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -6088,7 +6088,7 @@ static void flash_store_encrypted_test_read_fixed_storage_decreasing_large_buffe
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -6142,7 +6142,7 @@ static void flash_store_encrypted_test_read_fixed_storage_decreasing_corrupt_dat
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -6194,7 +6194,7 @@ static void flash_store_encrypted_test_read_fixed_storage_decreasing_multiple_se
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -6250,7 +6250,7 @@ static void flash_store_encrypted_test_read_fixed_storage_decreasing_multiple_se
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -6306,7 +6306,7 @@ static void flash_store_encrypted_test_read_fixed_storage_decreasing_extra_secto
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -6362,7 +6362,7 @@ static void flash_store_encrypted_test_read_fixed_storage_decreasing_extra_secto
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -6417,7 +6417,7 @@ static void flash_store_encrypted_test_read_variable_storage (CuTest *test)
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -6477,7 +6477,7 @@ static void flash_store_encrypted_test_read_variable_storage_last_block (CuTest 
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -6537,7 +6537,7 @@ static void flash_store_encrypted_test_read_variable_storage_corrupt_data (CuTes
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -6594,7 +6594,7 @@ static void flash_store_encrypted_test_read_variable_storage_max_length (CuTest 
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -6654,7 +6654,7 @@ static void flash_store_encrypted_test_read_variable_storage_min_length (CuTest 
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -6715,7 +6715,7 @@ static void flash_store_encrypted_test_read_variable_storage_multiple_sectors (C
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -6777,7 +6777,7 @@ static void flash_store_encrypted_test_read_variable_storage_multiple_sectors_la
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -6838,7 +6838,7 @@ static void flash_store_encrypted_test_read_variable_storage_extra_sector_for_he
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -6900,7 +6900,7 @@ static void flash_store_encrypted_test_read_variable_storage_extra_sector_for_he
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -6961,7 +6961,7 @@ static void flash_store_encrypted_test_read_variable_storage_extra_sector_for_ta
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -7023,7 +7023,7 @@ static void flash_store_encrypted_test_read_variable_storage_extra_sector_for_ta
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -7083,7 +7083,7 @@ static void flash_store_encrypted_test_read_variable_storage_longer_header (CuTe
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -7143,7 +7143,7 @@ static void flash_store_encrypted_test_read_variable_storage_old_format (CuTest 
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -7203,7 +7203,7 @@ static void flash_store_encrypted_test_read_variable_storage_decreasing (CuTest 
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -7263,7 +7263,7 @@ static void flash_store_encrypted_test_read_variable_storage_decreasing_last_blo
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -7323,7 +7323,7 @@ static void flash_store_encrypted_test_read_variable_storage_decreasing_corrupt_
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -7380,7 +7380,7 @@ static void flash_store_encrypted_test_read_variable_storage_decreasing_max_leng
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -7440,7 +7440,7 @@ static void flash_store_encrypted_test_read_variable_storage_decreasing_min_leng
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -7502,7 +7502,7 @@ static void flash_store_encrypted_test_read_variable_storage_decreasing_multiple
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -7564,7 +7564,7 @@ static void flash_store_encrypted_test_read_variable_storage_decreasing_multiple
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -7626,7 +7626,7 @@ static void flash_store_encrypted_test_read_variable_storage_decreasing_extra_se
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -7688,7 +7688,7 @@ static void flash_store_encrypted_test_read_variable_storage_decreasing_extra_se
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -7750,7 +7750,7 @@ static void flash_store_encrypted_test_read_variable_storage_decreasing_extra_se
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -7812,7 +7812,7 @@ static void flash_store_encrypted_test_read_variable_storage_decreasing_extra_se
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -7872,7 +7872,7 @@ static void flash_store_encrypted_test_read_variable_storage_decreasing_longer_h
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -7932,7 +7932,7 @@ static void flash_store_encrypted_test_read_variable_storage_decreasing_old_form
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (data); i++) {
+	for (i = 0; i < (int) sizeof (data); i++) {
 		data[i] = i;
 		enc[i] = ~i;
 	}
@@ -8084,7 +8084,7 @@ static void flash_store_encrypted_test_read_fixed_storage_read_tag_error (CuTest
 	int status;
 	uint8_t enc[256];
 	uint8_t out[sizeof (enc)] = {0};
-	int i;
+	size_t i;
 
 	TEST_START;
 
@@ -8122,7 +8122,7 @@ static void flash_store_encrypted_test_read_fixed_storage_decrypt_error (CuTest 
 	int status;
 	uint8_t enc[256];
 	uint8_t out[sizeof (enc)] = {0};
-	int i;
+	size_t i;
 	uint8_t tag[FLASH_STORE_ENCRYPTED_TEST_TAG_LEN];
 
 	TEST_START;
@@ -8470,7 +8470,7 @@ static void flash_store_encrypted_test_read_variable_storage_decrypt_error (CuTe
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (enc); i++) {
+	for (i = 0; i < (int) sizeof (enc); i++) {
 		enc[i] = ~i;
 	}
 

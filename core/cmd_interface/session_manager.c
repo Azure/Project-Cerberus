@@ -14,20 +14,20 @@
 
 
 /**
- * Search session manager's active sessions table and find entry for requested EID if it exists. 
+ * Search session manager's active sessions table and find entry for requested EID if it exists.
  *
  * @param session Session manager instance to utilize.
- * @param eid Requested EID for device in session. 
+ * @param eid Requested EID for device in session.
  *
  * @return Requested session container if exists, NULL otherwise.
  */
-struct session_manager_entry* session_manager_get_session (struct session_manager *session, 
+struct session_manager_entry* session_manager_get_session (struct session_manager *session,
 	uint8_t eid)
 {
 	size_t i_session;
 
 	for (i_session = 0; i_session < session->num_sessions; ++i_session) {
-		if ((session->sessions_table[i_session].eid == eid) && 
+		if ((session->sessions_table[i_session].eid == eid) &&
 			(session->sessions_table[i_session].session_state != SESSION_STATE_UNUSED)) {
 			return &session->sessions_table[i_session];
 		}
@@ -37,7 +37,7 @@ struct session_manager_entry* session_manager_get_session (struct session_manage
 }
 
 /**
- * Search session manager's sessions table and find first unused entry. 
+ * Search session manager's sessions table and find first unused entry.
  *
  * @param session Session manager instance to utilize.
  *
@@ -57,17 +57,17 @@ struct session_manager_entry* session_manager_get_free_session (struct session_m
 }
 
 /**
- * Search session manager's pairing devices EID list and find keystore index for requested EID if it 
- * exists. 
+ * Search session manager's pairing devices EID list and find keystore index for requested EID if it
+ * exists.
  *
  * @param session Session manager instance to utilize.
- * @param eid Requested EID for device in session. 
+ * @param eid Requested EID for device in session.
  *
  * @return Requested keystore index if exists, or an error code.
  */
 static int session_manager_get_paired_key_index (struct session_manager *session, uint8_t eid)
 {
-	int i_key;
+	size_t i_key;
 
 	for (i_key = 0; i_key < session->num_pairing_eids; ++i_key) {
 		if (session->pairing_eids[i_key] == eid) {
@@ -99,17 +99,17 @@ static int session_manager_set_key (struct session_manager *session, uint8_t eid
 		return SESSION_MANAGER_SESSION_NOT_ESTABLISHED;
 	}
 
-	status = session->aes->set_key (session->aes, curr_session->session_key, 
+	status = session->aes->set_key (session->aes, curr_session->session_key,
 		sizeof (curr_session->session_key));
-	
+
 	return status;
 }
 
 /**
- * Check if device EID is on an established session. 
+ * Check if device EID is on an established session.
  *
  * @param session Session manager instance to utilize.
- * @param eid Device EID.  
+ * @param eid Device EID.
  *
  * @return 1 if established, 0 if not or an error code.
  */
@@ -130,10 +130,10 @@ int session_manager_is_session_established (struct session_manager *session, uin
 }
 
 /**
- * Check pairing state of session with device. 
+ * Check pairing state of session with device.
  *
  * @param session Session manager instance to utilize.
- * @param eid Device EID.  
+ * @param eid Device EID.
  *
  * @return Pairing state or an error code.
  */
@@ -154,7 +154,7 @@ int session_manager_get_pairing_state (struct session_manager *session, uint8_t 
 		return SESSION_PAIRING_STATE_NOT_SUPPORTED;
 	}
 
-	status = session->store->load_key (session->store, key_id, &pairing_key_buf, 
+	status = session->store->load_key (session->store, key_id, &pairing_key_buf,
 		&pairing_key_len);
 	if (status == KEYSTORE_NO_KEY) {
 		return SESSION_PAIRING_STATE_NOT_INITIALIZED;
@@ -182,7 +182,7 @@ int session_manager_get_pairing_state (struct session_manager *session, uint8_t 
  *
  * @return Completion status, 0 if success or an error code.
  */
-int session_manager_decrypt_message (struct session_manager *session, 
+int session_manager_decrypt_message (struct session_manager *session,
 	struct cmd_interface_request *request)
 {
 	uint8_t *payload;
@@ -194,19 +194,19 @@ int session_manager_decrypt_message (struct session_manager *session,
 		return SESSION_MANAGER_INVALID_ARGUMENT;
 	}
 
-	if (request->length <= (SESSION_MANAGER_TRAILER_LEN + 
+	if (request->length <= (SESSION_MANAGER_TRAILER_LEN +
 		sizeof (struct cerberus_protocol_header))) {
 		return SESSION_MANAGER_MALFORMED_MSG;
 	}
 
-	if ((sizeof (request->data) < (request->length - SESSION_MANAGER_TRAILER_LEN)) || 
-		(request->max_response <= (sizeof (struct cerberus_protocol_header) + 
+	if ((sizeof (request->data) < (request->length - SESSION_MANAGER_TRAILER_LEN)) ||
+		(request->max_response <= (sizeof (struct cerberus_protocol_header) +
 		SESSION_MANAGER_TRAILER_LEN))) {
 		return SESSION_MANAGER_BUF_TOO_SMALL;
 	}
 
 	payload = request->data + sizeof (struct cerberus_protocol_header);
-	payload_len = request->length - sizeof (struct cerberus_protocol_header) - 
+	payload_len = request->length - sizeof (struct cerberus_protocol_header) -
 		SESSION_MANAGER_TRAILER_LEN;
 	buffer_len = sizeof (request->data) - sizeof (struct cerberus_protocol_header);
 
@@ -214,11 +214,11 @@ int session_manager_decrypt_message (struct session_manager *session,
 	if (status != 0) {
 		return status;
 	}
-	
+
 	request->length -= SESSION_MANAGER_TRAILER_LEN;
 
-	return session->aes->decrypt_data (session->aes, payload, payload_len, &payload[payload_len], 
-		&payload[payload_len + CERBERUS_PROTOCOL_AES_GCM_TAG_LEN], CERBERUS_PROTOCOL_AES_IV_LEN, 
+	return session->aes->decrypt_data (session->aes, payload, payload_len, &payload[payload_len],
+		&payload[payload_len + CERBERUS_PROTOCOL_AES_GCM_TAG_LEN], CERBERUS_PROTOCOL_AES_IV_LEN,
 		payload, buffer_len);
 }
 
@@ -230,7 +230,7 @@ int session_manager_decrypt_message (struct session_manager *session,
  *
  * @return Completion status, 0 if success or an error code.
  */
-int session_manager_encrypt_message (struct session_manager *session, 
+int session_manager_encrypt_message (struct session_manager *session,
 	struct cmd_interface_request *request)
 {
 	struct cerberus_protocol_header *header;
@@ -242,16 +242,16 @@ int session_manager_encrypt_message (struct session_manager *session,
 
 	if ((session == NULL) || (request == NULL)) {
 		return SESSION_MANAGER_INVALID_ARGUMENT;
-	} 
+	}
 
 	if (request->length <= sizeof (struct cerberus_protocol_header)) {
 		return 0;
 	}
-		
+
 	if ((request->length + SESSION_MANAGER_TRAILER_LEN) > request->max_response) {
 		return SESSION_MANAGER_BUF_TOO_SMALL;
 	}
-	
+
 	payload = request->data + sizeof (struct cerberus_protocol_header);
 	payload_len = request->length - sizeof (struct cerberus_protocol_header);
 	buffer_len = request->max_response - sizeof (struct cerberus_protocol_header);
@@ -262,15 +262,15 @@ int session_manager_encrypt_message (struct session_manager *session,
 		return status;
 	}
 
-	status = session->rng->generate_random_buffer (session->rng, CERBERUS_PROTOCOL_AES_IV_LEN, 
+	status = session->rng->generate_random_buffer (session->rng, CERBERUS_PROTOCOL_AES_IV_LEN,
 		aes_iv);
 	if (status != 0) {
 		return status;
 	}
 
-	status = session->aes->encrypt_data (session->aes, payload, payload_len, aes_iv, 
-		CERBERUS_PROTOCOL_AES_IV_LEN, payload, buffer_len - SESSION_MANAGER_TRAILER_LEN, 
-		&payload[payload_len], 
+	status = session->aes->encrypt_data (session->aes, payload, payload_len, aes_iv,
+		CERBERUS_PROTOCOL_AES_IV_LEN, payload, buffer_len - SESSION_MANAGER_TRAILER_LEN,
+		&payload[payload_len],
 		CERBERUS_PROTOCOL_AES_GCM_TAG_LEN);
 	if (status != 0) {
 		return status;
@@ -294,7 +294,7 @@ int session_manager_encrypt_message (struct session_manager *session,
  *
  * @return Completion status, 0 if success or an error code.
  */
-int session_manager_add_session (struct session_manager *session, uint8_t eid, 
+int session_manager_add_session (struct session_manager *session, uint8_t eid,
 	const uint8_t *device_nonce, const uint8_t *cerberus_nonce)
 {
 	struct session_manager_entry *curr_session;
@@ -320,10 +320,10 @@ int session_manager_add_session (struct session_manager *session, uint8_t eid,
 }
 
 /**
- * Generate HMAC of data and compare to received HMAC. 
+ * Generate HMAC of data and compare to received HMAC.
  *
  * @param session Session manager instance to utilize.
- * @param hmac_hash_type HMAC hash type to utilize.  
+ * @param hmac_hash_type HMAC hash type to utilize.
  * @param hmac_key HMAC key to utilize.
  * @param hmac_key_len HMAC key length.
  * @param data Data buffer to compute HMAC of.
@@ -333,8 +333,8 @@ int session_manager_add_session (struct session_manager *session, uint8_t eid,
  *
  * @return Completion status, 0 if success or an error code.
  */
-static int session_manager_generate_and_compare_hmac (struct session_manager *session, 
-	enum hmac_hash hmac_hash_type, uint8_t *hmac_key, size_t hmac_key_len, uint8_t *data, 
+static int session_manager_generate_and_compare_hmac (struct session_manager *session,
+	enum hmac_hash hmac_hash_type, uint8_t *hmac_key, size_t hmac_key_len, uint8_t *data,
 	size_t data_len, uint8_t *hmac, size_t hmac_len)
 {
 	uint8_t computed_hmac[SHA256_HASH_LENGTH];
@@ -343,8 +343,8 @@ static int session_manager_generate_and_compare_hmac (struct session_manager *se
 	if (hmac_len != sizeof (computed_hmac)) {
 		return SESSION_MANAGER_OPERATION_UNSUPPORTED;
 	}
-	
-	status = hash_generate_hmac (session->hash, hmac_key, hmac_key_len, data, data_len, 
+
+	status = hash_generate_hmac (session->hash, hmac_key, hmac_key_len, data, data_len,
 		hmac_hash_type, computed_hmac, sizeof (computed_hmac));
 	if (status != 0) {
 		return status;
@@ -353,15 +353,15 @@ static int session_manager_generate_and_compare_hmac (struct session_manager *se
 	if (memcmp (computed_hmac, hmac, sizeof (computed_hmac)) != 0) {
 		return SESSION_MANAGER_OPERATION_NOT_PERMITTED;
 	}
-	
+
 	return 0;
 }
 
 /**
- * Terminate and reset session. 
+ * Terminate and reset session.
  *
  * @param session Session manager instance to utilize.
- * @param eid Device EID.  
+ * @param eid Device EID.
  * @param hmac Optional HMAC provided by device. Set to NULL if not used.
  * @param hmac_len HMAC length.
  *
@@ -383,8 +383,8 @@ int session_manager_reset_session (struct session_manager *session, uint8_t eid,
 	}
 
 	if ((hmac != NULL) && (req_session->session_state >= SESSION_STATE_ESTABLISHED)) {
-		status = session_manager_generate_and_compare_hmac (session, req_session->hmac_hash_type, 
-			req_session->hmac_key, sizeof (req_session->hmac_key), req_session->session_key, 
+		status = session_manager_generate_and_compare_hmac (session, req_session->hmac_hash_type,
+			req_session->hmac_key, sizeof (req_session->hmac_key), req_session->session_key,
 			sizeof (req_session->session_key), hmac, hmac_len);
 		if (status != 0) {
 			return status;
@@ -403,25 +403,25 @@ int session_manager_reset_session (struct session_manager *session, uint8_t eid,
  *
  * @param session Session manager instance to utilize.
  * @param device_key Device session public key.
- * @param device_key_len Device session public key length. 
+ * @param device_key_len Device session public key length.
  * @param session_pub_key Cerberus session public key.
- * @param session_pub_key_len Cerberus session public key length. 
+ * @param session_pub_key_len Cerberus session public key length.
  * @param digest Buffer to store generated digest.
  * @param digest_len Digest buffer length.
  *
  * @return Completion status, 0 if success or an error code.
  */
-int session_manager_generate_keys_digest (struct session_manager *session, 
-	const uint8_t *device_key, size_t device_key_len, const uint8_t *session_pub_key, 
+int session_manager_generate_keys_digest (struct session_manager *session,
+	const uint8_t *device_key, size_t device_key_len, const uint8_t *session_pub_key,
 	size_t session_pub_key_len, uint8_t *digest, size_t digest_len)
 {
 	int status;
 
-	if ((session == NULL) || (device_key == NULL) || (session_pub_key == NULL) || 
+	if ((session == NULL) || (device_key == NULL) || (session_pub_key == NULL) ||
 		(digest == NULL)) {
 		return SESSION_MANAGER_INVALID_ARGUMENT;
 	}
-	
+
 	status = session->hash->start_sha256 (session->hash);
 	if (status != 0) {
 		return status;
@@ -449,17 +449,17 @@ int session_manager_generate_keys_digest (struct session_manager *session,
 }
 
 /**
- * Setup device binding in an established encrypted session. 
+ * Setup device binding in an established encrypted session.
  *
  * @param session Session manager instance to utilize.
  * @param eid Device EID.
  * @param pairing_key_len Length of the pairing key.
  * @param pairing_key_hmac Buffer containing HMAC generated by device for pairing key.
- * @param pairing_key_hmac_len Length of the pairing key HMAC.  
+ * @param pairing_key_hmac_len Length of the pairing key HMAC.
  *
  * @return Completion status, 0 if success or an error code.
  */
-int session_manager_setup_paired_session (struct session_manager *session, uint8_t eid, 
+int session_manager_setup_paired_session (struct session_manager *session, uint8_t eid,
 	size_t pairing_key_len, uint8_t *pairing_key_hmac, size_t pairing_key_hmac_len)
 {
 	struct session_manager_entry *req_session;
@@ -493,11 +493,11 @@ int session_manager_setup_paired_session (struct session_manager *session, uint8
 		return keystore_index;
 	}
 
-	status = session->store->load_key (session->store, keystore_index, &pairing_key_buf, 
+	status = session->store->load_key (session->store, keystore_index, &pairing_key_buf,
 		&pairing_key_len);
 	if (status == KEYSTORE_NO_KEY) {
-		status = kdf_nist800_108_counter_mode (session->hash, req_session->hmac_hash_type, 
-			req_session->session_key, sizeof (req_session->session_key), (const uint8_t*) label_str, 
+		status = kdf_nist800_108_counter_mode (session->hash, req_session->hmac_hash_type,
+			req_session->session_key, sizeof (req_session->session_key), (const uint8_t*) label_str,
 			strlen (label_str), NULL, 0, pairing_key, sizeof (pairing_key));
 		if (status != 0) {
 			return status;
@@ -514,8 +514,8 @@ int session_manager_setup_paired_session (struct session_manager *session, uint8
 		platform_free (pairing_key_buf);
 	}
 
-	status = session_manager_generate_and_compare_hmac (session, req_session->hmac_hash_type, 
-		req_session->hmac_key, sizeof (req_session->hmac_key), pairing_key, sizeof (pairing_key), 
+	status = session_manager_generate_and_compare_hmac (session, req_session->hmac_hash_type,
+		req_session->hmac_key, sizeof (req_session->hmac_key), pairing_key, sizeof (pairing_key),
 		pairing_key_hmac, pairing_key_hmac_len);
 	if (status != 0) {
 		goto exit;
@@ -523,15 +523,15 @@ int session_manager_setup_paired_session (struct session_manager *session, uint8
 
 	memcpy (label, req_session->session_key, sizeof (label));
 
-	status = kdf_nist800_108_counter_mode (session->hash, HMAC_SHA256, pairing_key, 
-		sizeof (pairing_key), label, sizeof (label), NULL, 0, req_session->session_key, 
+	status = kdf_nist800_108_counter_mode (session->hash, HMAC_SHA256, pairing_key,
+		sizeof (pairing_key), label, sizeof (label), NULL, 0, req_session->session_key,
 		sizeof (req_session->session_key));
 	if (status != 0) {
 		goto exit;
 	}
 
 	if (pairing_key_generated) {
-		status = session->store->save_key (session->store, keystore_index, pairing_key, 
+		status = session->store->save_key (session->store, keystore_index, pairing_key,
 			sizeof (pairing_key));
 		if (status != 0) {
 			goto exit;
@@ -549,14 +549,14 @@ exit:
  * Initialize session manager instance
  *
  * @param session Session manager instance to initialize.
- * @param aes AES engine to utilize for packet encryption/decryption. 
- * @param hash Hash engine to utilize for AES key generation. 
+ * @param aes AES engine to utilize for packet encryption/decryption.
+ * @param hash Hash engine to utilize for AES key generation.
  * @param rng RNG engine used to generate IV buffers.
  * @param riot RIoT key manager to utilize to get alias key for AES key generation.
- * @param sessions_table Preallocated table to use to store session manager entries. Set to NULL to 
+ * @param sessions_table Preallocated table to use to store session manager entries. Set to NULL to
  * 	dynamically allocate from heap.
  * @param num_sessions Number of sessions to support.
- * @param pairing_eids List of supported devices for pairing mode. Each element corresponds to a 
+ * @param pairing_eids List of supported devices for pairing mode. Each element corresponds to a
  * 	device EID, with the element index corresponding to the keystore key ID. The keystore needs to
  * 	be initialized to support storing a key for each device in this array.
  * @param num_pairing_eids Total number of supported devices for pairing mode.
@@ -564,9 +564,9 @@ exit:
  *
  * @return Initialization status, 0 if success or an error code.
  */
-int session_manager_init (struct session_manager *session, struct aes_engine *aes, 
-	struct hash_engine *hash, struct rng_engine *rng, struct riot_key_manager *riot, 
-	struct session_manager_entry *sessions_table, size_t num_sessions, const uint8_t *pairing_eids, 
+int session_manager_init (struct session_manager *session, struct aes_engine *aes,
+	struct hash_engine *hash, struct rng_engine *rng, struct riot_key_manager *riot,
+	struct session_manager_entry *sessions_table, size_t num_sessions, const uint8_t *pairing_eids,
 	size_t num_pairing_eids, struct keystore *store)
 {
 	if ((session == NULL) || (aes == NULL) || (hash == NULL) || (rng == NULL) || (riot == NULL)) {

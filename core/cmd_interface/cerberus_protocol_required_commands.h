@@ -325,7 +325,7 @@ int cerberus_protocol_get_signed_cert_state (struct cmd_background *background,
 	struct cmd_interface_request *request);
 
 int cerberus_protocol_issue_get_device_capabilities (struct device_manager *device_mgr,
-	uint8_t *buf, int buf_len);
+	uint8_t *buf, size_t buf_len);
 int cerberus_protocol_get_device_capabilities (struct device_manager *device_mgr,
 	struct cmd_interface_request *request, uint8_t device_num);
 

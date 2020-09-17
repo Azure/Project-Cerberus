@@ -30,11 +30,11 @@
 int config_reset_init (struct config_reset *reset, struct manifest_manager **bypass_config,
 	size_t bypass_count, struct manifest_manager **default_config, size_t default_count,
 	struct state_manager **state, size_t state_count, struct riot_key_manager *riot,
-	struct aux_attestation *aux, struct recovery_image_manager *recovery, 
+	struct aux_attestation *aux, struct recovery_image_manager *recovery,
 	struct keystore **keystores, size_t keystore_count)
 {
 	if ((reset == NULL) || (bypass_count && (bypass_config == NULL)) ||
-		(default_count && (default_config == NULL)) || (state_count && (state == NULL)) || 
+		(default_count && (default_config == NULL)) || (state_count && (state == NULL)) ||
 		(keystore_count && (keystores == NULL))) {
 		return CONFIG_RESET_INVALID_ARGUMENT;
 	}
@@ -83,7 +83,7 @@ void config_reset_release (struct config_reset *reset)
  */
 int config_reset_restore_bypass (struct config_reset *reset)
 {
-	int i;
+	size_t i;
 	int status;
 
 	if (reset == NULL) {
@@ -113,7 +113,7 @@ int config_reset_restore_bypass (struct config_reset *reset)
  */
 int config_reset_restore_defaults (struct config_reset *reset)
 {
-	int i;
+	size_t i;
 	int status = 0;
 
 	if (reset == NULL) {

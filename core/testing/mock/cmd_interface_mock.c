@@ -21,7 +21,7 @@ static int cmd_interface_mock_process_request (struct cmd_interface *intf,
 }
 
 static int cmd_interface_mock_issue_request (struct cmd_interface *intf, uint8_t command_id,
-	void *request_params, uint8_t *buf, int buf_len)
+	void *request_params, uint8_t *buf, size_t buf_len)
 {
 	struct cmd_interface_mock *mock = (struct cmd_interface_mock*) intf;
 
@@ -33,7 +33,7 @@ static int cmd_interface_mock_issue_request (struct cmd_interface *intf, uint8_t
 		MOCK_ARG_CALL (request_params), MOCK_ARG_CALL (buf), MOCK_ARG_CALL (buf_len));
 }
 
-static int cmd_interface_mock_generate_error_packet (struct cmd_interface *intf, 
+static int cmd_interface_mock_generate_error_packet (struct cmd_interface *intf,
 	struct cmd_interface_request *request, uint8_t error_code, uint32_t error_data, uint8_t cmd_set)
 {
 	struct cmd_interface_mock *mock = (struct cmd_interface_mock*) intf;
@@ -42,14 +42,14 @@ static int cmd_interface_mock_generate_error_packet (struct cmd_interface *intf,
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, cmd_interface_mock_generate_error_packet, intf, 
-		MOCK_ARG_CALL (request), MOCK_ARG_CALL (error_code), MOCK_ARG_CALL (error_data), 
+	MOCK_RETURN (&mock->mock, cmd_interface_mock_generate_error_packet, intf,
+		MOCK_ARG_CALL (request), MOCK_ARG_CALL (error_code), MOCK_ARG_CALL (error_data),
 		MOCK_ARG_CALL (cmd_set));
 }
 
 static int cmd_interface_mock_func_arg_count (void *func)
 {
-	if ((func == cmd_interface_mock_issue_request) || 
+	if ((func == cmd_interface_mock_issue_request) ||
 		(func == cmd_interface_mock_generate_error_packet)) {
 		return 4;
 	}

@@ -205,7 +205,7 @@ int aux_attestation_create_certificate (struct aux_attestation *aux, struct x509
 		}
 
 		/* If the RNG gives us all 0's, we want to try again. */
-		for (i = 0; i < sizeof (serial_num); i++) {
+		for (i = 0; i < (int) sizeof (serial_num); i++) {
 			if (serial_num[i] != 0) {
 				break;
 			}
@@ -411,8 +411,8 @@ int aux_attestation_unseal (struct aux_attestation *aux, struct hash_engine *has
 	}
 
 	/* Derive the signing key. */
-	status = kdf_nist800_108_counter_mode (hash, HMAC_SHA256, secret, secret_length, 
-		(const uint8_t*) AUX_ATTESTATION_SIGNING_LABEL, sizeof (AUX_ATTESTATION_SIGNING_LABEL) - 1, 
+	status = kdf_nist800_108_counter_mode (hash, HMAC_SHA256, secret, secret_length,
+		(const uint8_t*) AUX_ATTESTATION_SIGNING_LABEL, sizeof (AUX_ATTESTATION_SIGNING_LABEL) - 1,
 		NULL, 0, signing_key, sizeof (signing_key));
 	if (status != 0) {
 		return status;
@@ -443,7 +443,7 @@ int aux_attestation_unseal (struct aux_attestation *aux, struct hash_engine *has
 		return AUX_ATTESTATION_HMAC_MISMATCH;
 	}
 
-	for (k = 0; k < pcr_count; k++) {
+	for (k = 0; k < (int) pcr_count; k++) {
 		j = 0;
 		bypass = true;
 		while (bypass && (j < 64)) {
@@ -469,8 +469,8 @@ int aux_attestation_unseal (struct aux_attestation *aux, struct hash_engine *has
 	}
 
 	/* Derive the encryption key. */
-	status = kdf_nist800_108_counter_mode (hash, HMAC_SHA256, secret, secret_length, 
-		(const uint8_t*) AUX_ATTESTATION_ENCRYPTION_LABEL, 
+	status = kdf_nist800_108_counter_mode (hash, HMAC_SHA256, secret, secret_length,
+		(const uint8_t*) AUX_ATTESTATION_ENCRYPTION_LABEL,
 		sizeof (AUX_ATTESTATION_ENCRYPTION_LABEL) - 1, NULL, 0, key, SHA256_HASH_LENGTH);
 
 	return status;
@@ -581,7 +581,7 @@ int aux_attestation_generate_ecdh_seed (struct aux_attestation *aux, const uint8
 		goto error;
 	}
 
-	if ((seed_length < status) || (hash && (seed_length < SHA256_HASH_LENGTH))) {
+	if (((int) seed_length < status) || (hash && (seed_length < SHA256_HASH_LENGTH))) {
 		status = AUX_ATTESTATION_BUFFER_TOO_SMALL;
 		goto error;
 	}

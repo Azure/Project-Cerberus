@@ -29,7 +29,7 @@ static int cmd_interface_dual_cmd_set_process_request (struct cmd_interface *int
 }
 
 static int cmd_interface_dual_cmd_set_issue_request (struct cmd_interface *intf, uint8_t command_id,
-	void *request_params, uint8_t *buf, int buf_len)
+	void *request_params, uint8_t *buf, size_t buf_len)
 {
 	struct cmd_interface_dual_cmd_set *interface = (struct cmd_interface_dual_cmd_set*) intf;
 

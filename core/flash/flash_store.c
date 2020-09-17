@@ -277,7 +277,7 @@ static int flash_store_read_no_hash (struct flash_store *flash, int id, uint8_t 
 	size_t length)
 {
 	int status = flash_store_read_common (flash, id, data, length, NULL, 0, &length);
-	return (status == 0) ? length : status;
+	return (status == 0) ? (int) length : status;
 }
 
 static int flash_store_read_with_hash (struct flash_store *flash, int id, uint8_t *data,

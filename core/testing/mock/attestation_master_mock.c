@@ -6,8 +6,8 @@
 #include "attestation_master_mock.h"
 
 
-static int attestation_master_mock_issue_challenge (struct attestation_master *attestation, 
-	uint8_t eid, uint8_t slot_num, uint8_t *buf, int buf_len)
+static int attestation_master_mock_issue_challenge (struct attestation_master *attestation,
+	uint8_t eid, uint8_t slot_num, uint8_t *buf, size_t buf_len)
 {
 	struct attestation_master_mock *mock = (struct attestation_master_mock*) attestation;
 
@@ -15,12 +15,12 @@ static int attestation_master_mock_issue_challenge (struct attestation_master *a
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, attestation_master_mock_issue_challenge, attestation, 
-		MOCK_ARG_CALL (eid), MOCK_ARG_CALL (slot_num), MOCK_ARG_CALL (buf), 
+	MOCK_RETURN (&mock->mock, attestation_master_mock_issue_challenge, attestation,
+		MOCK_ARG_CALL (eid), MOCK_ARG_CALL (slot_num), MOCK_ARG_CALL (buf),
 		MOCK_ARG_CALL (buf_len));
 }
 
-static int attestation_master_mock_compare_digests (struct attestation_master *attestation, 
+static int attestation_master_mock_compare_digests (struct attestation_master *attestation,
 	uint8_t eid, struct attestation_chain_digest *digests)
 {
 	struct attestation_master_mock *mock = (struct attestation_master_mock*) attestation;
@@ -29,12 +29,12 @@ static int attestation_master_mock_compare_digests (struct attestation_master *a
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, attestation_master_mock_compare_digests, attestation, 
+	MOCK_RETURN (&mock->mock, attestation_master_mock_compare_digests, attestation,
 		MOCK_ARG_CALL (eid), MOCK_ARG_CALL (digests));
 }
 
-static int attestation_master_mock_store_certificate (struct attestation_master *attestation, 
-	uint8_t eid, uint8_t slot_num, uint8_t cert_num, const uint8_t *buf, int buf_len)
+static int attestation_master_mock_store_certificate (struct attestation_master *attestation,
+	uint8_t eid, uint8_t slot_num, uint8_t cert_num, const uint8_t *buf, size_t buf_len)
 {
 	struct attestation_master_mock *mock = (struct attestation_master_mock*) attestation;
 
@@ -42,13 +42,13 @@ static int attestation_master_mock_store_certificate (struct attestation_master 
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, attestation_master_mock_store_certificate, attestation, 
-		MOCK_ARG_CALL (eid), MOCK_ARG_CALL (slot_num), MOCK_ARG_CALL (cert_num), 
+	MOCK_RETURN (&mock->mock, attestation_master_mock_store_certificate, attestation,
+		MOCK_ARG_CALL (eid), MOCK_ARG_CALL (slot_num), MOCK_ARG_CALL (cert_num),
 		MOCK_ARG_CALL (buf), MOCK_ARG_CALL (buf_len));
 }
 
 static int attestation_master_mock_process_challenge_response (
-	struct attestation_master *attestation, uint8_t *buf, int buf_len, uint8_t eid)
+	struct attestation_master *attestation, uint8_t *buf, size_t buf_len, uint8_t eid)
 {
 	struct attestation_master_mock *mock = (struct attestation_master_mock*) attestation;
 
@@ -110,7 +110,7 @@ static const char* attestation_master_mock_arg_name_map (void *func, int arg)
 
 			case 2:
 				return "buf";
-			
+
 			case 3:
 				return "buf_len";
 
@@ -140,7 +140,7 @@ static const char* attestation_master_mock_arg_name_map (void *func, int arg)
 
 			case 2:
 				return "cert_num";
-				
+
 			case 3:
 				return "buf";
 

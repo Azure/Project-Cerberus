@@ -32,7 +32,7 @@ struct attestation_slave {
 	 * @return Output length if the digests was successfully computed or an error code.
 	 */
 	int (*get_digests) (struct attestation_slave *attestation, uint8_t slot_num, uint8_t *buf,
-		int buf_len, uint8_t *num_cert);
+		size_t buf_len, uint8_t *num_cert);
 
 	/**
 	 * Get certificate from the attestation manager certificate chain.
@@ -56,7 +56,7 @@ struct attestation_slave {
 	 *
 	 * @return Output length if the challenge was successfully created or an error code.
 	 */
-	int (*challenge_response) (struct attestation_slave *attestation, uint8_t *buf, int buf_len);
+	int (*challenge_response) (struct attestation_slave *attestation, uint8_t *buf, size_t buf_len);
 
 	/**
 	 * Unseal an encryption key for auxiliary attestation flows.

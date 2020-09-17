@@ -899,7 +899,7 @@ static void firmware_update_test_run_update_header_last (CuTest *test)
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (staging_data); i++) {
+	for (i = 0; i < (int) sizeof (staging_data); i++) {
 		staging_data[i] = RSA_PRIVKEY_DER[i % RSA_PRIVKEY_DER_LEN];
 	}
 
@@ -969,7 +969,7 @@ static void firmware_update_test_run_update_header_last_small_page (CuTest *test
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (staging_data); i++) {
+	for (i = 0; i < (int) sizeof (staging_data); i++) {
 		staging_data[i] = RSA_PRIVKEY_DER[i % RSA_PRIVKEY_DER_LEN];
 	}
 
@@ -2179,7 +2179,7 @@ static void firmware_update_test_run_update_write_staging_error_header_last (CuT
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (active_data); i++) {
+	for (i = 0; i < (int) sizeof (active_data); i++) {
 		active_data[i] = RSA_PRIVKEY_DER[i % RSA_PRIVKEY_DER_LEN];
 	}
 
@@ -2242,7 +2242,7 @@ static void firmware_update_test_run_update_write_staging_error_header_last_smal
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (active_data); i++) {
+	for (i = 0; i < (int) sizeof (active_data); i++) {
 		active_data[i] = RSA_PRIVKEY_DER[i % RSA_PRIVKEY_DER_LEN];
 	}
 
@@ -2522,7 +2522,7 @@ static void firmware_update_test_run_update_header_last_header_fail (CuTest *tes
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (staging_data); i++) {
+	for (i = 0; i < (int) sizeof (staging_data); i++) {
 		staging_data[i] = RSA_PRIVKEY_DER[i % RSA_PRIVKEY_DER_LEN];
 	}
 
@@ -3164,7 +3164,7 @@ static void firmware_update_test_run_update_cert_revocation_header_last (CuTest 
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (staging_data); i++) {
+	for (i = 0; i < (int) sizeof (staging_data); i++) {
 		staging_data[i] = RSA_PRIVKEY_DER[i % RSA_PRIVKEY_DER_LEN];
 	}
 
@@ -3259,7 +3259,7 @@ static void firmware_update_test_run_update_cert_revocation_header_last_small_pa
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (staging_data); i++) {
+	for (i = 0; i < (int) sizeof (staging_data); i++) {
 		staging_data[i] = RSA_PRIVKEY_DER[i % RSA_PRIVKEY_DER_LEN];
 	}
 
@@ -4082,7 +4082,7 @@ static void firmware_update_test_run_update_recovery_fail_header_last (CuTest *t
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (recovery_data); i++) {
+	for (i = 0; i < (int) sizeof (recovery_data); i++) {
 		recovery_data[i] = RSA_PRIVKEY_DER[i % RSA_PRIVKEY_DER_LEN];
 	}
 
@@ -4176,7 +4176,7 @@ static void firmware_update_test_run_update_recovery_fail_header_last_small_page
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (recovery_data); i++) {
+	for (i = 0; i < (int) sizeof (recovery_data); i++) {
 		recovery_data[i] = RSA_PRIVKEY_DER[i % RSA_PRIVKEY_DER_LEN];
 	}
 
@@ -4968,7 +4968,7 @@ static void firmware_update_test_run_update_recovery_restore_no_recovery_backup_
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (recovery_data); i++) {
+	for (i = 0; i < (int) sizeof (recovery_data); i++) {
 		recovery_data[i] = RSA_PRIVKEY_DER[i % RSA_PRIVKEY_DER_LEN];
 	}
 
@@ -12010,7 +12010,7 @@ static void firmware_update_test_restore_recovery_image_header_last (CuTest *tes
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (active_data); i++) {
+	for (i = 0; i < (int) sizeof (active_data); i++) {
 		active_data[i] = RSA_PRIVKEY_DER[i % RSA_PRIVKEY_DER_LEN];
 	}
 
@@ -12052,7 +12052,7 @@ static void firmware_update_test_restore_recovery_image_header_last_small_page (
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (active_data); i++) {
+	for (i = 0; i < (int) sizeof (active_data); i++) {
 		active_data[i] = RSA_PRIVKEY_DER[i % RSA_PRIVKEY_DER_LEN];
 	}
 
@@ -12840,7 +12840,7 @@ static void firmware_update_test_restore_active_image_header_last (CuTest *test)
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (active_data); i++) {
+	for (i = 0; i < (int) sizeof (active_data); i++) {
 		active_data[i] = RSA_PRIVKEY_DER[i % RSA_PRIVKEY_DER_LEN];
 	}
 
@@ -12880,7 +12880,7 @@ static void firmware_update_test_restore_active_image_header_last_small_page (Cu
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (active_data); i++) {
+	for (i = 0; i < (int) sizeof (active_data); i++) {
 		active_data[i] = RSA_PRIVKEY_DER[i % RSA_PRIVKEY_DER_LEN];
 	}
 
