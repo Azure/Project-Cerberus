@@ -101,10 +101,14 @@ static int bmc_recovery_on_host_cs1 (struct bmc_recovery *recovery, struct hash_
 			break;
 
 		case BMC_RECOVERY_STATE_IN_RESET:
-		case BMC_RECOVERY_STATE_EXIT_RESET: {
+		case BMC_RECOVERY_STATE_EXIT_RESET:
 			if (platform_has_timeout_expired (&recovery->timeout) == 1) {
 				recovery->num_wdt = 0;
 			}
+
+			debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_HOST_FW,
+				HOST_LOGGING_BMC_RECOVERY_DETECTED, host_processor_get_port (recovery->host),
+				recovery->num_wdt);
 
 			if (recovery->num_wdt < recovery->rec_ctrl.min_wdt) {
 				recovery->control->hold_processor_in_reset (recovery->control, true);
@@ -160,7 +164,6 @@ static int bmc_recovery_on_host_cs1 (struct bmc_recovery *recovery, struct hash_
 			}
 
 			break;
-		}
 	}
 
 	return status;
