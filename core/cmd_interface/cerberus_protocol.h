@@ -72,6 +72,7 @@ enum {
 	CERBERUS_PROTOCOL_GET_CERTIFICATE,							/**< Get certificate */
 	CERBERUS_PROTOCOL_ATTESTATION_CHALLENGE,					/**< Attestation challenge */
 	CERBERUS_PROTOCOL_EXCHANGE_KEYS,							/**< Exchange pre-master session keys */
+	CERBERUS_PROTOCOL_SESSION_SYNC,								/**< Session sync */
 	CERBERUS_PROTOCOL_UPDATE_PMR = 0x86,						/**< Extend a Platform Measurement Register */
 	CERBERUS_PROTOCOL_RESET_COUNTER,							/**< Reset counter */
 	CERBERUS_PROTOCOL_UNSEAL_MESSAGE = 0x89,					/**< Start unsealing message */

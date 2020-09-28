@@ -105,9 +105,22 @@ static int session_manager_mock_setup_paired_session (struct session_manager *se
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, session_manager_mock_setup_paired_session, session, MOCK_ARG_CALL (eid), 
-		MOCK_ARG_CALL (pairing_key_len), MOCK_ARG_CALL (pairing_key_hmac), 
+	MOCK_RETURN (&mock->mock, session_manager_mock_setup_paired_session, session, 
+		MOCK_ARG_CALL (eid), MOCK_ARG_CALL (pairing_key_len), MOCK_ARG_CALL (pairing_key_hmac), 
 		MOCK_ARG_CALL (pairing_key_hmac_len));
+}
+
+static int session_manager_mock_session_sync (struct session_manager *session, uint8_t eid, 
+	uint32_t rn_req, uint8_t *hmac, size_t hmac_len)
+{
+	struct session_manager_mock *mock = (struct session_manager_mock*) session;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, session_manager_mock_session_sync, session, MOCK_ARG_CALL (eid), 
+		MOCK_ARG_CALL (rn_req), MOCK_ARG_CALL (hmac), MOCK_ARG_CALL (hmac_len));
 }
 
 static int session_manager_mock_func_arg_count (void *func)
@@ -120,10 +133,11 @@ static int session_manager_mock_func_arg_count (void *func)
 		return 1;
 	}
 	else if ((func == session_manager_mock_add_session) || 
-			 (func == session_manager_mock_reset_session)) {
+		(func == session_manager_mock_reset_session)) {
 		return 3;
 	}
-	else if (func == session_manager_mock_setup_paired_session) {
+	else if ((func == session_manager_mock_setup_paired_session) || 
+		(func == session_manager_mock_session_sync)) {
 		return 4;
 	}
 	else {
@@ -156,6 +170,9 @@ static const char* session_manager_mock_func_name_map (void *func)
 	}
 	else if (func == session_manager_mock_setup_paired_session) {
 		return "setup_paired_session";
+	}
+	else if (func == session_manager_mock_session_sync) {
+		return "session_sync";
 	}
 	else {
 		return "unknown";
@@ -213,6 +230,18 @@ static const char* session_manager_mock_arg_name_map (void *func, int arg)
 				return "pairing_key_hmac_len";
 		}
 	}
+	else if (func == session_manager_mock_session_sync) {
+		switch (arg) {
+			case 0:
+				return "eid";
+			case 1:
+				return "rn_req";
+			case 2:
+				return "hmac";
+			case 3:
+				return "hmac_len";
+		}
+	}
 
 	return "unknown";
 }
@@ -249,6 +278,7 @@ int session_manager_mock_init (struct session_manager_mock *mock)
 	mock->base.get_pairing_state = session_manager_mock_get_pairing_state;
 	mock->base.reset_session = session_manager_mock_reset_session;
 	mock->base.setup_paired_session = session_manager_mock_setup_paired_session;
+	mock->base.session_sync = session_manager_mock_session_sync;
 
 	mock->mock.func_arg_count = session_manager_mock_func_arg_count;
 	mock->mock.func_name_map = session_manager_mock_func_name_map;

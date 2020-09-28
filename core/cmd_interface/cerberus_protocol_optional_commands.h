@@ -643,7 +643,7 @@ struct cerberus_protocol_get_attestation_data {
 };
 
 /**
- * Cerberus protocol get attestation data request format
+ * Cerberus protocol get attestation data response format
  */
 struct cerberus_protocol_get_attestation_data_response {
 	struct cerberus_protocol_header header;					/**< Message header */
@@ -859,6 +859,46 @@ struct cerberus_protocol_message_unseal_result_completed_response {
  */
 #define	CERBERUS_PROTOCOL_MAX_UNSEAL_KEY_DATA(req)	\
 	((req->max_response - sizeof (struct cerberus_protocol_message_unseal_result_completed_response)) + sizeof (uint8_t))
+
+/**
+ * Cerberus protocol session sync request format
+ */
+struct cerberus_protocol_session_sync {
+	struct cerberus_protocol_header header;					/**< Message header */
+	uint32_t rn_req;										/**< Random number */
+};
+
+/**
+ * Cerberus protocol session sync response format
+ */
+struct cerberus_protocol_session_sync_response {
+	struct cerberus_protocol_header header;					/**< Message header */
+};
+
+/**
+ * Get pointer to the HMAC in a session sync response
+ *
+ * @param req The command request structure containing the message.
+ */
+#define	cerberus_protocol_session_sync_hmac_data(req)	\
+	(((uint8_t*) req) + sizeof (struct cerberus_protocol_session_sync_response))
+
+/**
+ * Get the total message length for a session sync response.
+ *
+ * @param len Length of the HMAC data.
+ */
+#define	cerberus_protocol_session_sync_length(len)	\
+	(len + sizeof (struct cerberus_protocol_session_sync_response))
+
+/**
+ * Maximum length that be used for the HMAC buffer in a session sync response.
+ *
+ * @param req The command request structure containing the message.
+ */
+#define	CERBERUS_PROTOCOL_MAX_SESSION_SYNC_HMAC_LEN(req)	\
+	((req->max_response - sizeof (struct cerberus_protocol_session_sync_response)))
+
 #pragma pack(pop)
 
 
@@ -923,6 +963,8 @@ int cerberus_protocol_get_attestation_data (struct pcr_store *store,
 	struct cmd_interface_request *request);
 
 int cerberus_protocol_key_exchange (struct session_manager *session,
+	struct cmd_interface_request *request, uint8_t encrypted);
+int cerberus_protocol_session_sync (struct session_manager *session, 
 	struct cmd_interface_request *request, uint8_t encrypted);
 
 

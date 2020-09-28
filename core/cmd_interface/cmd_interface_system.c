@@ -261,6 +261,11 @@ int cmd_interface_system_process_request (struct cmd_interface *intf,
 				intf->curr_txn_encrypted);
 			break;
 
+		case CERBERUS_PROTOCOL_SESSION_SYNC:
+			status = cerberus_protocol_session_sync (interface->base.session, request,
+				intf->curr_txn_encrypted);
+			break;
+
 #ifdef ENABLE_DEBUG_COMMANDS
 		case CERBERUS_PROTOCOL_DEBUG_START_ATTESTATION:
 			status = cerberus_protocol_start_attestation (request);

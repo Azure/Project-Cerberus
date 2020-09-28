@@ -546,6 +546,46 @@ exit:
 }
 
 /**
+ * Get session sync hmac. 
+ *
+ * @param session Session manager instance to utilize.
+ * @param eid Device EID.  
+ * @param rn_req Random number provided by device.
+ * @param hmac Buffer to hold generated HMAC.
+ * @param hmac_len Size of provided HMAC buffer.
+ *
+ * @return Size of generated HMAC or an error code.
+ */
+int session_manager_session_sync (struct session_manager *session, uint8_t eid, uint32_t rn_req, 
+	uint8_t *hmac, size_t hmac_len)
+{
+	struct session_manager_entry *req_session;
+	int status;
+
+	if ((session == NULL) || (hmac == NULL)) {
+		return SESSION_MANAGER_INVALID_ARGUMENT;
+	}
+
+	req_session = session_manager_get_session (session, eid);
+	if (req_session == NULL) {
+		return SESSION_MANAGER_UNEXPECTED_EID;
+	}
+
+	if (req_session->session_state < SESSION_STATE_ESTABLISHED) {
+		return SESSION_MANAGER_SESSION_NOT_ESTABLISHED;
+	}
+
+	status = hash_generate_hmac (session->hash, req_session->hmac_key, 
+		sizeof (req_session->hmac_key), (const uint8_t*) &rn_req, sizeof (rn_req), 
+		req_session->hmac_hash_type, hmac, hmac_len);
+	if (status != 0) {
+		return status;
+	}
+
+	return SHA256_HASH_LENGTH;
+}
+
+/**
  * Initialize session manager instance
  *
  * @param session Session manager instance to initialize.

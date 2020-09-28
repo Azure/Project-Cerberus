@@ -6914,6 +6914,76 @@ static void cmd_interface_system_test_process_key_exchange_invalid_len (CuTest *
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
+static void cmd_interface_system_test_process_session_sync (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM, true);
+
+	cerberus_protocol_optional_commands_testing_process_session_sync (test,	&cmd.handler.base,
+		&cmd.session);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_session_sync_no_session_mgr (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM, false);
+
+	cerberus_protocol_optional_commands_testing_process_session_sync_no_session_mgr (test,	
+		&cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_session_sync_fail (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM, true);
+
+	cerberus_protocol_optional_commands_testing_process_session_sync_fail (test, &cmd.handler.base, 
+		&cmd.session);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_session_sync_unencrypted (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM, true);
+
+	cerberus_protocol_optional_commands_testing_process_session_sync_unencrypted (test,
+		&cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_session_sync_invalid_len (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM, true);
+
+	cerberus_protocol_optional_commands_testing_process_session_sync_invalid_len (test,
+		&cmd.handler.base, &cmd.session);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
 static void cmd_interface_system_test_supports_all_required_commands (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
@@ -7637,6 +7707,11 @@ CuSuite* get_cmd_interface_system_suite ()
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_key_exchange_unsupported);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_key_exchange_unsupported_index);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_key_exchange_invalid_len);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_session_sync);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_session_sync_no_session_mgr);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_session_sync_fail);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_session_sync_unencrypted);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_session_sync_invalid_len);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_supports_all_required_commands);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_issue_request_null);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_issue_request_invalid_request);

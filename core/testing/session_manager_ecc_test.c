@@ -53,6 +53,11 @@ static const uint8_t PAIRING_EIDS[] = {
 	0x10,0x11
 };
 
+static const uint8_t HMAC_KEY[] = {
+	0xf1,0x3b,0x43,0x16,0xd5,0xc5,0xc6,0x10,0xad,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x37,
+	0x0e,0x9a,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+};
+
 /**
  * Dependencies for testing the system command interface.
  */
@@ -175,10 +180,6 @@ static void session_manager_ecc_establish_session (CuTest *test,
 		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
 		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
 	};
-	uint8_t hmac_key[] = {
-		0xf1,0x3b,0x43,0x16,0xd5,0xc5,0xc6,0x10,0xad,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x37,
-		0x0e,0x9a,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
-	};
 	uint8_t digest[] = {
 		0xf1,0x3b,0x43,0x16,0x2c,0x0e,0x9a,0x37,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,
 		0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,0xd5,0xc5,0xc6
@@ -200,8 +201,8 @@ static void session_manager_ecc_establish_session (CuTest *test,
 	rq_ptr->common.key_type = CERBERUS_PROTOCOL_SESSION_KEY;
 	rq_ptr->hmac_type = CERBERUS_PROTOCOL_HMAC_SHA256;
 
-	memcpy (((uint8_t*) rq_ptr) + sizeof (struct cerberus_protocol_key_exchange_type_0), ECC_PUBKEY_DER,
-		ECC_PUBKEY_DER_LEN);
+	memcpy (((uint8_t*) rq_ptr) + sizeof (struct cerberus_protocol_key_exchange_type_0), 
+		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
 
 	ecc_cerberus_key = platform_malloc (ECC_PUBKEY2_DER_LEN);
 	CuAssertPtrNotNull (test, ecc_cerberus_key);
@@ -296,14 +297,14 @@ static void session_manager_ecc_establish_session (CuTest *test,
 	status |= mock_expect (&cmd->hash.mock, cmd->hash.base.update, &cmd->hash, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (&L, sizeof (L)), MOCK_ARG (sizeof (L)));
 	status |= hash_mock_expect_hmac_finish (&cmd->hash, SHARED_SECRET, sizeof (SHARED_SECRET),
-		NULL, SHA256_HASH_LENGTH, hmac_key, sizeof (hmac_key));
+		NULL, SHA256_HASH_LENGTH, HMAC_KEY, sizeof (HMAC_KEY));
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_mock_expect_hmac_init (&cmd->hash, hmac_key, sizeof (hmac_key));
+	status = hash_mock_expect_hmac_init (&cmd->hash, HMAC_KEY, sizeof (HMAC_KEY));
 	status |= mock_expect (&cmd->hash.mock, cmd->hash.base.update, &cmd->hash, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_CERT, RIOT_CORE_ALIAS_CERT_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_CERT_LEN));
-	status |= hash_mock_expect_hmac_finish (&cmd->hash, hmac_key, sizeof (hmac_key), NULL,
+	status |= hash_mock_expect_hmac_finish (&cmd->hash, HMAC_KEY, sizeof (HMAC_KEY), NULL,
 		rq.max_response - sizeof (struct cerberus_protocol_key_exchange_response_type_0) -
 		ECC_PUBKEY2_DER_LEN - sizeof (uint16_t)*2 - ECC_SIG_TEST_LEN, hmac, sizeof (hmac));
 	CuAssertIntEquals (test, 0, status);
@@ -381,6 +382,7 @@ static void session_manager_ecc_test_init (CuTest *test)
 	CuAssertPtrNotNull (test, cmd.session.base.encrypt_message);
 	CuAssertPtrNotNull (test, cmd.session.base.reset_session);
 	CuAssertPtrNotNull (test, cmd.session.base.setup_paired_session);
+	CuAssertPtrNotNull (test, cmd.session.base.session_sync);
 
 	release_session_manager_ecc_test (test, &cmd);
 }
@@ -440,6 +442,7 @@ static void session_manager_ecc_test_init_preallocated_table (CuTest *test)
 	CuAssertPtrNotNull (test, cmd.session.base.encrypt_message);
 	CuAssertPtrNotNull (test, cmd.session.base.reset_session);
 	CuAssertPtrNotNull (test, cmd.session.base.setup_paired_session);
+	CuAssertPtrNotNull (test, cmd.session.base.session_sync);
 
 	release_session_manager_ecc_test (test, &cmd);
 }
@@ -4494,6 +4497,129 @@ static void session_manager_ecc_test_setup_paired_session_invalid_arg (CuTest *t
 	release_session_manager_ecc_test (test, &cmd);
 }
 
+static void session_manager_ecc_test_session_sync (CuTest *test)
+{
+	struct session_manager_ecc_testing cmd;
+	uint8_t hmac[SHA256_HASH_LENGTH];
+	uint8_t hmac_expected[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,
+		0xd6,0x41,0x20,0xfa,0x1a,0x0e,0x0a,0x04,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
+	};
+	uint32_t rn_req = 0xaabbccdd;
+	int status;
+
+	TEST_START;
+
+	setup_session_manager_ecc_test (test, &cmd);
+
+	session_manager_ecc_establish_session (test, &cmd, 0x10);
+
+	status = hash_mock_expect_hmac (&cmd.hash, HMAC_KEY, sizeof (HMAC_KEY), 
+		(const uint8_t*) &rn_req, sizeof (rn_req), NULL, sizeof (hmac), hmac_expected, 
+		sizeof (hmac_expected));
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd.session.base.session_sync (&cmd.session.base, 0x10, rn_req, hmac, sizeof (hmac));
+	CuAssertIntEquals (test, sizeof (hmac_expected), status);
+
+	status = testing_validate_array (hmac_expected, hmac, sizeof (hmac_expected));
+	CuAssertIntEquals (test, 0, status);
+
+	release_session_manager_ecc_test (test, &cmd);
+}
+
+static void session_manager_ecc_test_session_sync_unexpected_eid (CuTest *test)
+{
+	struct session_manager_ecc_testing cmd;
+	uint8_t hmac[SHA256_HASH_LENGTH];
+	uint32_t rn_req = 0xaabbccdd;
+	int status;
+
+	TEST_START;
+
+	setup_session_manager_ecc_test (test, &cmd);
+
+	session_manager_ecc_establish_session (test, &cmd, 0x10);
+
+	status = cmd.session.base.session_sync (&cmd.session.base, 0x11, rn_req, hmac, sizeof (hmac));
+	CuAssertIntEquals (test, SESSION_MANAGER_UNEXPECTED_EID, status);
+
+	release_session_manager_ecc_test (test, &cmd);
+}
+
+static void session_manager_ecc_test_session_sync_session_not_established (CuTest *test)
+{
+	struct session_manager_ecc_testing cmd;
+	uint8_t hmac[SHA256_HASH_LENGTH];
+	uint8_t nonce1[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
+	};
+	uint8_t nonce2[] = {
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+	uint32_t rn_req = 0xaabbccdd;
+	int status;
+
+	TEST_START;
+
+	setup_session_manager_ecc_test (test, &cmd);
+
+	status = cmd.session.base.add_session (&cmd.session.base, 0x10, nonce1, nonce2);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd.session.base.session_sync (&cmd.session.base, 0x10, rn_req, hmac, sizeof (hmac));
+	CuAssertIntEquals (test, SESSION_MANAGER_SESSION_NOT_ESTABLISHED, status);
+
+	release_session_manager_ecc_test (test, &cmd);
+}
+
+static void session_manager_ecc_test_session_sync_generate_hmac_fail (CuTest *test)
+{
+	struct session_manager_ecc_testing cmd;
+	uint8_t hmac[SHA256_HASH_LENGTH];
+	uint32_t rn_req = 0xaabbccdd;
+	int status;
+
+	TEST_START;
+
+	setup_session_manager_ecc_test (test, &cmd);
+
+	session_manager_ecc_establish_session (test, &cmd, 0x10);
+
+	status = mock_expect (&cmd.hash.mock, cmd.hash.base.start_sha256, &cmd.hash, 
+		HASH_ENGINE_NO_MEMORY);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd.session.base.session_sync (&cmd.session.base, 0x10, rn_req, hmac, sizeof (hmac));
+	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
+
+	release_session_manager_ecc_test (test, &cmd);
+}
+
+static void session_manager_ecc_test_session_sync_invalid_arg (CuTest *test)
+{
+	struct session_manager_ecc_testing cmd;
+	uint8_t hmac[SHA256_HASH_LENGTH];
+	uint32_t rn_req = 0xaabbccdd;
+	int status;
+
+	TEST_START;
+
+	setup_session_manager_ecc_test (test, &cmd);
+
+	session_manager_ecc_establish_session (test, &cmd, 0x10);
+
+	status = cmd.session.base.session_sync (NULL, 0x11, rn_req, hmac, sizeof (hmac));
+	CuAssertIntEquals (test, SESSION_MANAGER_INVALID_ARGUMENT, status);
+
+	status = cmd.session.base.session_sync (&cmd.session.base, 0x11, rn_req, NULL, sizeof (hmac));
+	CuAssertIntEquals (test, SESSION_MANAGER_INVALID_ARGUMENT, status);
+
+	release_session_manager_ecc_test (test, &cmd);
+}
+
 
 CuSuite* get_session_manager_ecc_suite ()
 {
@@ -4582,6 +4708,12 @@ CuSuite* get_session_manager_ecc_suite ()
 	SUITE_ADD_TEST (suite, session_manager_ecc_test_setup_paired_session_save_pairing_key_fail);
 	SUITE_ADD_TEST (suite, session_manager_ecc_test_setup_paired_session_unsupported);
 	SUITE_ADD_TEST (suite, session_manager_ecc_test_setup_paired_session_invalid_arg);
+	SUITE_ADD_TEST (suite, session_manager_ecc_test_session_sync);
+	SUITE_ADD_TEST (suite, session_manager_ecc_test_session_sync_unexpected_eid);
+	SUITE_ADD_TEST (suite, session_manager_ecc_test_session_sync_session_not_established);
+	SUITE_ADD_TEST (suite, session_manager_ecc_test_session_sync_generate_hmac_fail);
+	SUITE_ADD_TEST (suite, session_manager_ecc_test_session_sync_invalid_arg);
+
 
 	return suite;
 }

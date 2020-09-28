@@ -149,6 +149,20 @@ struct session_manager {
 	 */
 	int (*setup_paired_session) (struct session_manager *session, uint8_t eid, 
 		size_t pairing_key_len, uint8_t *pairing_key_hmac, size_t pairing_key_hmac_len);
+
+	/**
+	 * Get session sync HMAC. 
+	 *
+	 * @param session Session manager instance to utilize.
+	 * @param eid Device EID.  
+	 * @param rn_req Random number provided by device.
+	 * @param hmac Buffer to hold generated HMAC.
+	 * @param hmac_len Size of provided HMAC buffer.
+	 *
+	 * @return Size of generated HMAC or an error code.
+	 */
+	int (*session_sync) (struct session_manager *session, uint8_t eid, uint32_t rn_req, 
+		uint8_t *hmac, size_t hmac_len);
 		
 	struct aes_engine *aes;								/**< AES engine used to encrypt/decrypt session data */
 	struct hash_engine *hash;							/**< Hashing engine used to generate AES shared key */
@@ -184,6 +198,8 @@ int session_manager_setup_paired_session (struct session_manager *session, uint8
 int session_manager_generate_keys_digest (struct session_manager *session, 
 	const uint8_t *device_key, size_t device_key_len, const uint8_t *session_pub_key, 
 	size_t session_pub_key_len, uint8_t *digest, size_t digest_len);
+int session_manager_session_sync (struct session_manager *session, uint8_t eid, uint32_t rn_req, 
+	uint8_t *hmac, size_t hmac_len);
 
 struct session_manager_entry* session_manager_get_session (struct session_manager *session, 
 	uint8_t eid);
@@ -197,7 +213,7 @@ enum {
 	SESSION_MANAGER_INVALID_ARGUMENT = SESSION_MANAGER_ERROR (0x00),  					/**< Input parameter is null or not valid. */
 	SESSION_MANAGER_NO_MEMORY = SESSION_MANAGER_ERROR (0x01),		  					/**< Memory allocation failed. */
 	SESSION_MANAGER_UNEXPECTED_EID = SESSION_MANAGER_ERROR (0x02),  					/**< Device EID unexpected. */
-	SESSION_MANAGER_SESSION_NOT_ESTABLISHED = SESSION_MANAGER_ERROR (0x03), 			/**< Encryption/Decryption attempted without establishing session. */
+	SESSION_MANAGER_SESSION_NOT_ESTABLISHED = SESSION_MANAGER_ERROR (0x03), 			/**< Operation can't be completed without establishing session. */
 	SESSION_MANAGER_INVALID_ORDER = SESSION_MANAGER_ERROR (0x04), 						/**< Invalid order attempted for session establishment. */
 	SESSION_MANAGER_FULL = SESSION_MANAGER_ERROR (0x05),								/**< Session manager at capacity and cannot support more sessions. */
 	SESSION_MANAGER_MALFORMED_MSG = SESSION_MANAGER_ERROR (0x06),						/**< Provided message to decrypt invalid. */

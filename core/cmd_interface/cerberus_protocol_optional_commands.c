@@ -1142,3 +1142,43 @@ int cerberus_protocol_key_exchange (struct session_manager *session,
 
 	return status;
 }
+
+/**
+ * Process a session sync packet.
+ *
+ * @param session Session manager to utilize.
+ * @param request Session sync request to process.
+ * @param encrypted Flag indicating if request was received in an encrypted session.
+ *
+ * @return 0 if request processing completed successfully or an error code.
+ */
+int cerberus_protocol_session_sync (struct session_manager *session,
+	struct cmd_interface_request *request, uint8_t encrypted)
+{
+	struct cerberus_protocol_session_sync *rq =
+		(struct cerberus_protocol_session_sync*) request->data;
+	int status;
+
+	if (session == NULL) {
+		return CMD_HANDLER_UNSUPPORTED_COMMAND;
+	}
+
+	if (!encrypted) {
+		return CMD_HANDLER_CMD_SHOULD_BE_ENCRYPTED;
+	}
+
+	if (request->length != sizeof (struct cerberus_protocol_session_sync)) {
+		return CMD_HANDLER_BAD_LENGTH;
+	}
+
+	status = session->session_sync (session, request->source_eid, rq->rn_req, 
+		cerberus_protocol_session_sync_hmac_data (rq), 
+		CERBERUS_PROTOCOL_MAX_SESSION_SYNC_HMAC_LEN (request));
+	if (ROT_IS_ERROR (status)) {
+		return status;
+	}
+
+	request->length = cerberus_protocol_session_sync_length (status);
+
+	return 0;
+}

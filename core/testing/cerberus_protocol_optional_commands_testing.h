@@ -448,4 +448,16 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_unsupp
 void cerberus_protocol_optional_commands_testing_process_get_key_exchange_invalid_len (
 	CuTest *test, struct cmd_interface *cmd);
 
+void cerberus_protocol_optional_commands_testing_process_session_sync (CuTest *test, 
+	struct cmd_interface *cmd, struct session_manager_mock *session);
+void cerberus_protocol_optional_commands_testing_process_session_sync_no_session_mgr (CuTest *test, 
+	struct cmd_interface *cmd);
+void cerberus_protocol_optional_commands_testing_process_session_sync_fail (CuTest *test, 
+	struct cmd_interface *cmd, struct session_manager_mock *session);
+void cerberus_protocol_optional_commands_testing_process_session_sync_unencrypted (CuTest *test, 
+	struct cmd_interface *cmd);
+void cerberus_protocol_optional_commands_testing_process_session_sync_invalid_len (CuTest *test, 
+	struct cmd_interface *cmd, struct session_manager_mock *session);
+
+
 #endif /* CERBERUS_PROTOCOL_OPTIONAL_COMMANDS_TESTING_H_ */
