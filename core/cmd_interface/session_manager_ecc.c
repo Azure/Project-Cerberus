@@ -251,6 +251,7 @@ int session_manager_ecc_init (struct session_manager_ecc *session, struct aes_en
 		session->base.encrypt_message = session_manager_encrypt_message;
 		session->base.reset_session = session_manager_reset_session;
 		session->base.setup_paired_session = session_manager_setup_paired_session;
+		session->base.session_sync = session_manager_session_sync;
 		session->ecc = ecc;
 	}
 

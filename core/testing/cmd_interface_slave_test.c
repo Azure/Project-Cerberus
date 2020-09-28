@@ -1996,6 +1996,81 @@ static void cmd_interface_slave_test_process_key_exchange_invalid_len (CuTest *t
 	complete_cmd_interface_slave_mock_test (test, &cmd);
 }
 
+static void cmd_interface_slave_test_process_session_sync (CuTest *test)
+{
+	struct cmd_interface_slave_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_slave_mock_test (test, &cmd);
+
+	cerberus_protocol_optional_commands_testing_process_session_sync (test,	&cmd.handler.base,
+		&cmd.session);
+	complete_cmd_interface_slave_mock_test (test, &cmd);
+}
+
+static void cmd_interface_slave_test_process_session_sync_no_session_mgr (CuTest *test)
+{
+	struct cmd_interface_slave_testing cmd;
+	int status;
+
+	TEST_START;
+
+	setup_cmd_interface_slave_mock_test_init (test, &cmd, DEVICE_MANAGER_UPSTREAM);
+
+	setup_cmd_interface_slave_mock_test_init_fw_version (&cmd, CERBERUS_FW_VERSION,
+		RIOT_CORE_VERSION, FW_VERSION_COUNT);
+
+	status = cmd_interface_slave_init (&cmd.handler, &cmd.slave_attestation.base,
+		&cmd.device_manager, &cmd.background.base, &cmd.fw_version, &cmd.riot,
+		&cmd.cmd_device.base, CERBERUS_PROTOCOL_MSFT_PCI_VID, 2, CERBERUS_PROTOCOL_MSFT_PCI_VID,
+		4, NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	cerberus_protocol_optional_commands_testing_process_session_sync_no_session_mgr (test,	
+		&cmd.handler.base);
+	complete_cmd_interface_slave_mock_test (test, &cmd);
+}
+
+static void cmd_interface_slave_test_process_session_sync_fail (CuTest *test)
+{
+	struct cmd_interface_slave_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_slave_mock_test (test, &cmd);
+
+	cerberus_protocol_optional_commands_testing_process_session_sync_fail (test, &cmd.handler.base, 
+		&cmd.session);
+	complete_cmd_interface_slave_mock_test (test, &cmd);
+}
+
+static void cmd_interface_slave_test_process_session_sync_unencrypted (CuTest *test)
+{
+	struct cmd_interface_slave_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_slave_mock_test (test, &cmd);
+
+	cerberus_protocol_optional_commands_testing_process_session_sync_unencrypted (test,
+		&cmd.handler.base);
+	complete_cmd_interface_slave_mock_test (test, &cmd);
+}
+
+static void cmd_interface_slave_test_process_session_sync_invalid_len (CuTest *test)
+{
+	struct cmd_interface_slave_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_slave_mock_test (test, &cmd);
+
+	cerberus_protocol_optional_commands_testing_process_session_sync_invalid_len (test,
+		&cmd.handler.base, &cmd.session);
+	complete_cmd_interface_slave_mock_test (test, &cmd);
+}
+
 static void cmd_interface_slave_test_supports_all_required_commands (CuTest *test)
 {
 	struct cmd_interface_slave_testing cmd;
@@ -2197,6 +2272,11 @@ CuSuite* get_cmd_interface_slave_suite ()
 	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_key_exchange_unsupported);
 	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_key_exchange_unsupported_index);
 	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_key_exchange_invalid_len);
+	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_session_sync);
+	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_session_sync_no_session_mgr);
+	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_session_sync_fail);
+	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_session_sync_unencrypted);
+	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_session_sync_invalid_len);
 	SUITE_ADD_TEST (suite, cmd_interface_slave_test_supports_all_required_commands);
 	SUITE_ADD_TEST (suite, cmd_interface_slave_test_issue_request_unsupported);
 	SUITE_ADD_TEST (suite, cmd_interface_slave_test_generate_error_packet);

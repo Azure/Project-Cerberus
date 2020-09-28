@@ -89,6 +89,11 @@ static int cmd_interface_slave_process_request (struct cmd_interface *intf,
 				intf->curr_txn_encrypted);
 			break;
 
+		case CERBERUS_PROTOCOL_SESSION_SYNC:
+			status = cerberus_protocol_session_sync (interface->base.session, request,
+				intf->curr_txn_encrypted);
+			break;
+
 		default:
 			return CMD_HANDLER_UNKNOWN_COMMAND;
 	}
