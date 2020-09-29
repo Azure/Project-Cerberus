@@ -7,7 +7,8 @@
 #include "host_irq_handler_mock.h"
 
 
-static int host_irq_handler_mock_power_on (struct host_irq_handler *handler, bool allow_unsecure)
+static int host_irq_handler_mock_power_on (struct host_irq_handler *handler, bool allow_unsecure,
+	struct hash_engine *hash)
 {
 	struct host_irq_handler_mock *mock = (struct host_irq_handler_mock*) handler;
 
@@ -16,7 +17,7 @@ static int host_irq_handler_mock_power_on (struct host_irq_handler *handler, boo
 	}
 
 	MOCK_RETURN (&mock->mock, host_irq_handler_mock_power_on, handler,
-		MOCK_ARG_CALL (allow_unsecure));
+		MOCK_ARG_CALL (allow_unsecure), MOCK_ARG_CALL (hash));
 }
 
 static int host_irq_handler_mock_enter_reset (struct host_irq_handler *handler)
@@ -65,6 +66,10 @@ static int host_irq_handler_mock_assert_cs1 (struct host_irq_handler *handler)
 
 static int host_irq_handler_mock_func_arg_count (void *func)
 {
+	if (func == host_irq_handler_mock_power_on) {
+		return 2;
+	}
+
 	return 0;
 }
 
@@ -92,6 +97,16 @@ static const char* host_irq_handler_mock_func_name_map (void *func)
 
 static const char* host_irq_handler_mock_arg_name_map (void *func, int arg)
 {
+	if (func == host_irq_handler_mock_power_on) {
+		switch (arg) {
+			case 0:
+				return "allow_unsecure";
+
+			case 1:
+				return "hash";
+		}
+	}
+
 	return "unknown";
 }
 
