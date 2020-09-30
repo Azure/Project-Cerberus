@@ -46,18 +46,6 @@ set(CERBERUS_C_FLAGS "${CERBERUS_C_FLAGS} -g -ggdb3")
 set(CMAKE_C_FLAGS ${CERBERUS_C_FLAGS})
 
 #
-# Set the debug build compiler flags.
-#
-set(CERBERUS_C_FLAGS_DEBUG "-O0")
-set(CMAKE_C_FLAGS_DEBUG ${CERBERUS_C_FLAGS_DEBUG})
-
-#
-# Set the release build compiler flags.
-#
-set(CERBERUS_C_FLAGS_RELEASE "-Os")
-set(CMAKE_C_FLAGS_RELEASE ${CERBERUS_C_FLAGS_RELEASE})
-
-#
 # Set the linker flags.
 #
 set(CERBERUS_LINKER_FLAGS "-Wl,--gc-sections")
