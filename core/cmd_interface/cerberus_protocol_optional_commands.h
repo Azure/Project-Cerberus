@@ -9,6 +9,7 @@
 #include "cmd_interface/cmd_authorization.h"
 #include "cmd_interface/cmd_background.h"
 #include "cmd_interface/cmd_interface.h"
+#include "cmd_interface/session_manager.h"
 #include "attestation/pcr_store.h"
 #include "attestation/attestation.h"
 #include "crypto/hash.h"
@@ -27,8 +28,9 @@
  */
 enum {
 	CERBERUS_PROTOCOL_DEBUG_LOG = 1,						/**< Debug log type. */
-	CERBERUS_PROTOCOL_TCG_LOG,								/**< TCG log type. */
-	CERBERUS_PROTOCOL_TAMPER_LOG							/**< Tamper log type. */
+	CERBERUS_PROTOCOL_ATTESTATION_LOG,						/**< Attestation log type. */
+	CERBERUS_PROTOCOL_TAMPER_LOG,							/**< Tamper log type. */
+	CERBERUS_PROTOCOL_TCG_LOG,								/**< TCG formatted log type. */
 };
 
 /**
@@ -37,7 +39,16 @@ enum {
 enum {
 	CERBERUS_PROTOCOL_SESSION_KEY = 0,						/**< Exchange session encryption key */
 	CERBERUS_PROTOCOL_PAIRED_KEY_HMAC,						/**< Exchange an HMAC paired key */
-	CERBERUS_PROTOCOL_PAIRED_KEY_ECC						/**< Exchange an ECC paired key */
+	CERBERUS_PROTOCOL_DELETE_SESSION_KEY,					/**< Delete session key */
+};
+
+/**
+ * Identifier for the type of HMAC used in a key exchange.
+ */
+enum {
+	CERBERUS_PROTOCOL_HMAC_SHA256 = 0,						/**< HMAC using SHA256 */
+	CERBERUS_PROTOCOL_HMAC_SHA384,							/**< HMAC using SHA384 */
+	CERBERUS_PROTOCOL_HMAC_SHA512,							/**< HMAC using SHA512 */
 };
 
 /**
@@ -89,10 +100,9 @@ enum {
 	CERBERUS_PROTOCOL_UNSEAL_ECDH_SHA256,					/**< Seed is the SHA256 hash of the ECDH output */
 };
 
+
 /**
  * Maximum number of PMRs that can be used for unsealing.
- *
- *
  */
 #define	CERBERUS_PROTOCOL_MAX_PMR			5
 
@@ -160,6 +170,14 @@ struct cerberus_protocol_get_pfm_id_platform_response {
 	uint8_t valid;											/**< Port contains valid PFM */
 	uint8_t platform;										/**< First byte of the ASCII platform ID */
 };
+
+/**
+ * Get the total response length for a get platform firmware manifest ID response message.
+ *
+ * @param len Length of the platform id string including null terminator
+ */
+#define	cerberus_protocol_get_pfm_id_platform_response_length(len)	\
+	(len + sizeof (struct cerberus_protocol_get_pfm_id_platform_response) - sizeof (uint8_t))
 
 /**
  * Cerberus protocol get platform firmware manifest supported FW request format
@@ -334,8 +352,223 @@ struct cerberus_protocol_update_pmr {
 struct cerberus_protocol_key_exchange {
 	struct cerberus_protocol_header header;					/**< Message header */
 	uint8_t key_type;										/**< Type of key being exchanged */
-	uint8_t key;											/**< First byte of variable key data */
 };
+
+/**
+ * Get the buffer containing the request data in an exchange request
+ *
+ * @param req The command request structure containing the message.
+ */
+#define	cerberus_protocol_key_exchange_data(req)	\
+	(((uint8_t*) req) + sizeof (struct cerberus_protocol_key_exchange))
+
+/**
+ * Get request data length from a key exchange request.
+ *
+ * @param req The command request structure containing the message.
+ */
+#define	cerberus_protocol_key_exchange_data_len(req)	\
+	(req->length - sizeof (struct cerberus_protocol_key_exchange))
+
+/**
+ * Cerberus protocol key exchange response format
+ */
+struct cerberus_protocol_key_exchange_response {
+	struct cerberus_protocol_header header;					/**< Message header */
+	uint8_t key_type;										/**< Type of key being exchanged */
+};
+
+/**
+ * Get the buffer containing the response data in an exchange request
+ *
+ * @param req The command request structure containing the message.
+ */
+#define	cerberus_protocol_key_exchange_response_data(req)	\
+	(((uint8_t*) req) + sizeof (struct cerberus_protocol_key_exchange_response))
+
+/**
+ * Cerberus protocol key exchange type 0 request format
+ */
+struct cerberus_protocol_key_exchange_type_0 {
+	struct cerberus_protocol_key_exchange common;			/**< Common request fields between all key exchange requests */
+	uint8_t hmac_type;										/**< Type of HMAC to be used in this exchange */
+};
+
+/**
+ * Get the buffer containing the ephemeral key data in a type 0 key exchange request
+ *
+ * @param req The command request structure containing the message.
+ */
+#define	cerberus_protocol_key_exchange_type_0_key_data(req)	\
+	(((uint8_t*) req) + sizeof (struct cerberus_protocol_key_exchange_type_0))
+
+/**
+ * Get the total message length for a type 0 key exchange request.
+ *
+ * @param len Length of the key data.
+ */
+#define	cerberus_protocol_key_exchange_type_0_length(len)	\
+	(len + sizeof (struct cerberus_protocol_key_exchange_type_0))
+
+/**
+ * Get the key length from a type 0 key exchange request.
+ *
+ * @param req The command request structure containing the message.
+ */
+#define	cerberus_protocol_key_exchange_type_0_key_len(req)	\
+	(req->length - sizeof (struct cerberus_protocol_key_exchange_type_0))
+
+/**
+ * Cerberus protocol key exchange type 0 response format
+ */
+struct cerberus_protocol_key_exchange_response_type_0 {
+	struct cerberus_protocol_key_exchange common;			/**< Common response fields between all key exchange responses */
+	uint8_t reserved;										/**< Reserved */
+	uint16_t key_len;										/**< Cerberus ephemeral key length */
+};
+
+/**
+ * Get the buffer containing the ephemeral key data in a type 0 key exchange response
+ *
+ * @param req The cerberus_protocol_key_exchange_response_type_0 structure containing the message.
+ */
+#define	cerberus_protocol_key_exchange_type_0_response_key_data(req)	\
+	(((uint8_t*) req) + sizeof (struct cerberus_protocol_key_exchange_response_type_0))
+
+/**
+ * Maximum key length that can be returned in a single request
+ *
+ * @param req The command request structure containing the message.
+ */
+#define	CERBERUS_PROTOCOL_KEY_EXCHANGE_TYPE_0_RESPONSE_MAX_KEY_DATA(req)	\
+	(req->max_response - sizeof (struct cerberus_protocol_key_exchange_response_type_0))
+
+/**
+ * Get the buffer containing the signature length in a type 0 key exchange response
+ *
+ * @param req The cerberus_protocol_key_exchange_response_type_0 structure containing the message.
+ */
+#define	cerberus_protocol_key_exchange_type_0_response_sig_len(req)	\
+	(*((uint16_t*) (cerberus_protocol_key_exchange_type_0_response_key_data (req) + req->key_len)))
+
+/**
+ * Get the buffer containing the signature data in a type 0 key exchange response
+ *
+ * @param req The cerberus_protocol_key_exchange_response_type_0 structure containing the message.
+ */
+#define	cerberus_protocol_key_exchange_type_0_response_sig_data(req)	\
+	(cerberus_protocol_key_exchange_type_0_response_key_data (req) + req->key_len + \
+		sizeof (uint16_t))
+
+/**
+ * Maximum signature length that can be returned in a single request
+ *
+ * @param req The command request structure containing the message.
+ */
+#define	CERBERUS_PROTOCOL_KEY_EXCHANGE_TYPE_0_RESPONSE_MAX_SIG_DATA(req)	\
+	(CERBERUS_PROTOCOL_KEY_EXCHANGE_TYPE_0_RESPONSE_MAX_KEY_DATA (req) - \
+		((struct cerberus_protocol_key_exchange_response_type_0*) (req->data))->key_len - \
+			sizeof (uint16_t))
+
+/**
+ * Get the buffer containing the HMAC length in a type 0 key exchange response
+ *
+ * @param req The cerberus_protocol_key_exchange_response_type_0 structure containing the message.
+ */
+#define	cerberus_protocol_key_exchange_type_0_response_hmac_len(req)	\
+	(*((uint16_t*) (((uint8_t*) cerberus_protocol_key_exchange_type_0_response_sig_data (req)) + \
+		cerberus_protocol_key_exchange_type_0_response_sig_len (req))))
+
+/**
+ * Get the buffer containing the HMAC data in a type 0 key exchange response
+ *
+ * @param req The cerberus_protocol_key_exchange_response_type_0 structure containing the message.
+ */
+#define	cerberus_protocol_key_exchange_type_0_response_hmac_data(req)	\
+	(((uint8_t*)(cerberus_protocol_key_exchange_type_0_response_sig_data (req))) + \
+		sizeof (uint16_t) + cerberus_protocol_key_exchange_type_0_response_sig_len (req))
+
+/**
+ * Maximum signature length that can be returned in a single request
+ *
+ * @param req The command request structure containing the message.
+ */
+#define	CERBERUS_PROTOCOL_KEY_EXCHANGE_TYPE_0_RESPONSE_MAX_HMAC_DATA(req)	\
+	(CERBERUS_PROTOCOL_KEY_EXCHANGE_TYPE_0_RESPONSE_MAX_SIG_DATA (req) - sizeof (uint16_t) - \
+		cerberus_protocol_key_exchange_type_0_response_sig_len ( \
+			((struct cerberus_protocol_key_exchange_response_type_0*)req->data)))
+
+/**
+ * Get the total message length for a type 0 key exchange response.
+ *
+ * @param key_len Length of the key data.
+ */
+#define	cerberus_protocol_key_exchange_type_0_response_length(key_len, sig_len, hmac_len)	\
+	(key_len + sig_len + hmac_len + \
+	sizeof (struct cerberus_protocol_key_exchange_response_type_0) + sizeof (uint16_t) * 2)
+
+/**
+ * Cerberus protocol key exchange type 1 request format
+ */
+struct cerberus_protocol_key_exchange_type_1 {
+	struct cerberus_protocol_key_exchange common;			/**< Common request fields between all key exchange requests */
+	uint16_t pairing_key_len;								/**< Length in bytes of the pairing key */
+};
+
+/**
+ * Get the buffer containing the HMAC in a type 1 key exchange request
+ *
+ * @param req The command request structure containing the message.
+ */
+#define	cerberus_protocol_key_exchange_type_1_hmac_data(req)	\
+	(((uint8_t*) req) + sizeof (struct cerberus_protocol_key_exchange_type_1))
+
+/**
+ * Get the total message length for a type 1 key exchange request.
+ *
+ * @param len Length of the HMAC data.
+ */
+#define	cerberus_protocol_key_exchange_type_1_length(len)	\
+	(len + sizeof (struct cerberus_protocol_key_exchange_type_1))
+
+/**
+ * Get the HMAC length from a type 1 key exchange request.
+ *
+ * @param req The command request structure containing the message.
+ */
+#define	cerberus_protocol_key_exchange_type_1_hmac_len(req)	\
+	(req->length - sizeof (struct cerberus_protocol_key_exchange_type_1))
+
+/**
+ * Cerberus protocol key exchange type 2 request format
+ */
+struct cerberus_protocol_key_exchange_type_2 {
+	struct cerberus_protocol_key_exchange common;			/**< Common request fields between all key exchange requests */
+};
+
+/**
+ * Get the buffer containing the HMAC in a type 2 key exchange request
+ *
+ * @param req The command request structure containing the message.
+ */
+#define	cerberus_protocol_key_exchange_type_2_hmac_data(req)	\
+	(((uint8_t*) req) + sizeof (struct cerberus_protocol_key_exchange_type_2))
+
+/**
+ * Get the total message length for a type 2 key exchange request.
+ *
+ * @param len Length of the HMAC data.
+ */
+#define	cerberus_protocol_key_exchange_type_2_length(len)	\
+	(len + sizeof (struct cerberus_protocol_key_exchange_type_2))
+
+/**
+ * Get the HMAC length from a type 2 key exchange request.
+ *
+ * @param req The command request structure containing the message.
+ */
+#define	cerberus_protocol_key_exchange_type_2_hmac_len(req)	\
+	(req->length - sizeof (struct cerberus_protocol_key_exchange_type_2))
 
 /**
  * Cerberus protocol get log info request format
@@ -410,7 +643,7 @@ struct cerberus_protocol_get_attestation_data {
 };
 
 /**
- * Cerberus protocol get attestation data request format
+ * Cerberus protocol get attestation data response format
  */
 struct cerberus_protocol_get_attestation_data_response {
 	struct cerberus_protocol_header header;					/**< Message header */
@@ -626,6 +859,46 @@ struct cerberus_protocol_message_unseal_result_completed_response {
  */
 #define	CERBERUS_PROTOCOL_MAX_UNSEAL_KEY_DATA(req)	\
 	((req->max_response - sizeof (struct cerberus_protocol_message_unseal_result_completed_response)) + sizeof (uint8_t))
+
+/**
+ * Cerberus protocol session sync request format
+ */
+struct cerberus_protocol_session_sync {
+	struct cerberus_protocol_header header;					/**< Message header */
+	uint32_t rn_req;										/**< Random number */
+};
+
+/**
+ * Cerberus protocol session sync response format
+ */
+struct cerberus_protocol_session_sync_response {
+	struct cerberus_protocol_header header;					/**< Message header */
+};
+
+/**
+ * Get pointer to the HMAC in a session sync response
+ *
+ * @param req The command request structure containing the message.
+ */
+#define	cerberus_protocol_session_sync_hmac_data(req)	\
+	(((uint8_t*) req) + sizeof (struct cerberus_protocol_session_sync_response))
+
+/**
+ * Get the total message length for a session sync response.
+ *
+ * @param len Length of the HMAC data.
+ */
+#define	cerberus_protocol_session_sync_length(len)	\
+	(len + sizeof (struct cerberus_protocol_session_sync_response))
+
+/**
+ * Maximum length that be used for the HMAC buffer in a session sync response.
+ *
+ * @param req The command request structure containing the message.
+ */
+#define	CERBERUS_PROTOCOL_MAX_SESSION_SYNC_HMAC_LEN(req)	\
+	((req->max_response - sizeof (struct cerberus_protocol_session_sync_response)))
+
 #pragma pack(pop)
 
 
@@ -688,6 +961,11 @@ int cerberus_protocol_get_recovery_image_id (struct recovery_image_manager *mana
 
 int cerberus_protocol_get_attestation_data (struct pcr_store *store,
 	struct cmd_interface_request *request);
+
+int cerberus_protocol_key_exchange (struct session_manager *session,
+	struct cmd_interface_request *request, uint8_t encrypted);
+int cerberus_protocol_session_sync (struct session_manager *session, 
+	struct cmd_interface_request *request, uint8_t encrypted);
 
 
 #endif // CERBERUS_PROTOCOL_OPTIONAL_COMMANDS_H_

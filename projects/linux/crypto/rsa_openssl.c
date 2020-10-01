@@ -119,7 +119,7 @@ static int rsa_openssl_init_public_key (struct rsa_engine *engine, struct rsa_pu
 
 	BN_bn2bin (RSA_get0_n (rsa), key->modulus);
 
-	if (BN_num_bytes (RSA_get0_e (rsa)) > sizeof (exp)) {
+	if (BN_num_bytes (RSA_get0_e (rsa)) > (int) sizeof (exp)) {
 		status = RSA_ENGINE_UNSUPPORTED_KEY_LENGTH;
 		goto exit;
 	}
@@ -216,7 +216,7 @@ static int rsa_openssl_decrypt (struct rsa_engine *engine, const struct rsa_priv
 		return RSA_ENGINE_UNSUPPORTED_HASH_TYPE;
 	}
 
-	if (out_length < RSA_size ((RSA*) key->context)) {
+	if ((int) out_length < RSA_size ((RSA*) key->context)) {
 		return RSA_ENGINE_OUT_BUFFER_TOO_SMALL;
 	}
 

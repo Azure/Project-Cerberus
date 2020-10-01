@@ -10,8 +10,10 @@
 #include "attestation/attestation_slave.h"
 #include "cmd_interface.h"
 #include "device_manager.h"
+#include "session_manager.h"
 #include "cmd_background.h"
 #include "cmd_authorization.h"
+#include "session_manager.h"
 #include "crypto/hash.h"
 #include "firmware/firmware_update_control.h"
 #include "manifest/manifest_cmd_interface.h"
@@ -67,24 +69,24 @@ int cmd_interface_system_init (struct cmd_interface_system *intf,
 	struct manifest_cmd_interface *pcd, struct pfm_manager *pfm_manager_0,
 	struct pfm_manager *pfm_manager_1, struct cfm_manager *cfm_manager,
 	struct pcd_manager *pcd_manager,  struct attestation_master *master_attestation,
-	struct attestation_slave *slave_attestation, struct device_manager *device_manager, 
-	struct pcr_store *store, struct hash_engine *hash, struct cmd_background *background, 
+	struct attestation_slave *slave_attestation, struct device_manager *device_manager,
+	struct pcr_store *store, struct hash_engine *hash, struct cmd_background *background,
 	struct host_processor *host_0, struct host_processor *host_1,
 	struct cmd_interface_fw_version *fw_version, struct riot_key_manager *riot,
 	struct cmd_authorization *auth, struct host_control *host_0_ctrl,
 	struct host_control *host_1_ctrl, struct recovery_image_cmd_interface *recovery_cmd_0,
 	struct recovery_image_cmd_interface *recovery_cmd_1,
 	struct recovery_image_manager *recovery_manager_0,
-	struct recovery_image_manager *recovery_manager_1, struct cmd_device *cmd_device, 
-	uint16_t vendor_id, uint16_t device_id, uint16_t subsystem_vid, uint16_t subsystem_id
-);
+	struct recovery_image_manager *recovery_manager_1, struct cmd_device *cmd_device,
+	uint16_t vendor_id, uint16_t device_id, uint16_t subsystem_vid, uint16_t subsystem_id,
+	struct session_manager *session);
 void cmd_interface_system_deinit (struct cmd_interface_system *intf);
 
 /* Internal functions for use by derived types. */
 int cmd_interface_system_process_request (struct cmd_interface *intf,
 	struct cmd_interface_request *request);
 int cmd_interface_system_issue_request (struct cmd_interface *intf, uint8_t command_id,
-	void *request_params, uint8_t *buf, int buf_len);
+	void *request_params, uint8_t *buf, size_t buf_len);
 
 
 #endif /* CMD_INTERFACE_SYSTEM_H_ */

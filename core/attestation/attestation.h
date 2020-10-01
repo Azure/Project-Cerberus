@@ -15,7 +15,7 @@
  * Key exchange algorithms
  */
 enum {
-	ATTESTATION_RSA_KEY_EXCHANGE = 0,			/**< RSA key exchange */
+	ATTESTATION_KEY_EXCHANGE_NONE = 0,			/**< No key exchange requested */
 	ATTESTATION_ECDHE_KEY_EXCHANGE,				/**< ECDHE key exchange */
 	NUM_ATTESTATION_KEY_EXCHANGE_ALGORITHMS		/**< Number of key exchange algorithms */
 };

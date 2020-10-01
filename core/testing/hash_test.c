@@ -8,9 +8,35 @@
 #include "testing.h"
 #include "testing/engines/hash_testing_engine.h"
 #include "testing/mock/hash_mock.h"
+#include "testing/hash_testing.h"
 
 
 static const char *SUITE = "hash";
+
+
+/**
+ * SHA1 hash for testing an empty buffer.
+ */
+const uint8_t SHA1_EMPTY_BUFFER_HASH[] = {
+	0xda,0x39,0xa3,0xee,0x5e,0x6b,0x4b,0x0d,0x32,0x55,0xbf,0xef,0x95,0x60,0x18,0x90,
+	0xaf,0xd8,0x07,0x09
+};
+
+/**
+ * SHA256 hash for testing an empty buffer.
+ */
+const uint8_t SHA256_EMPTY_BUFFER_HASH[] = {
+	0xe3,0xb0,0xc4,0x42,0x98,0xfc,0x1c,0x14,0x9a,0xfb,0xf4,0xc8,0x99,0x6f,0xb9,0x24,
+	0x27,0xae,0x41,0xe4,0x64,0x9b,0x93,0x4c,0xa4,0x95,0x99,0x1b,0x78,0x52,0xb8,0x55
+};
+
+/**
+ * SHA256 hash for testing a 32 byte buffer filled with zeros.
+ */
+const uint8_t SHA256_ZERO_BUFFER_HASH[] = {
+	0x66,0x68,0x7a,0xad,0xf8,0x62,0xbd,0x77,0x6c,0x8f,0xc1,0x8b,0x8e,0x9f,0x8e,0x20,
+	0x08,0x97,0x14,0x85,0x6e,0xe2,0x33,0xb3,0x90,0x2a,0x59,0x1d,0x0d,0x5f,0x29,0x25
+};
 
 
 /*******************
@@ -66,7 +92,7 @@ static void hash_test_hmac_sha1_incremental_large_key (CuTest *test)
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (key); i++) {
+	for (i = 0; i < (int) sizeof (key); i++) {
 		key[i] = i;
 	}
 
@@ -137,7 +163,7 @@ static void hash_test_hmac_sha256_incremental_large_key (CuTest *test)
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (key); i++) {
+	for (i = 0; i < (int) sizeof (key); i++) {
 		key[i] = i;
 	}
 
@@ -269,7 +295,7 @@ static void hash_test_hmac_init_sha1_large_key_error (CuTest *test)
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (key); i++) {
+	for (i = 0; i < (int) sizeof (key); i++) {
 		key[i] = i;
 	}
 
@@ -298,7 +324,7 @@ static void hash_test_hmac_init_sha256_large_key_error (CuTest *test)
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (key); i++) {
+	for (i = 0; i < (int) sizeof (key); i++) {
 		key[i] = i;
 	}
 
@@ -683,7 +709,7 @@ static void hash_test_hmac_sha1_large_key (CuTest *test)
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (key); i++) {
+	for (i = 0; i < (int) sizeof (key); i++) {
 		key[i] = i;
 	}
 
@@ -742,7 +768,7 @@ static void hash_test_hmac_sha256_large_key (CuTest *test)
 
 	TEST_START;
 
-	for (i = 0; i < sizeof (key); i++) {
+	for (i = 0; i < (int) sizeof (key); i++) {
 		key[i] = i;
 	}
 

@@ -298,10 +298,10 @@ static void mctp_interface_control_test_process_get_vendor_def_msg_support (CuTe
 	CuAssertIntEquals (test, 0, header->rq);
 	CuAssertIntEquals (test, 6, header->command_code);
 	CuAssertIntEquals (test, 0, response->completion_code);
-	CuAssertIntEquals (test, 0, response->vid_set_selector);
+	CuAssertIntEquals (test, CERBERUS_VID_SET_RESPONSE, response->vid_set_selector);
 	CuAssertIntEquals (test, 0, response->vid_format);
 	CuAssertIntEquals (test, 0x1414, response->vid);
-	CuAssertIntEquals (test, 0x0300, response->protocol_version);
+	CuAssertIntEquals (test, 0x0400, response->protocol_version);
 	CuAssertIntEquals (test, false, request.new_request);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 
@@ -377,10 +377,10 @@ static void mctp_interface_control_test_process_get_vendor_def_msg_support_vid_e
 	CuAssertIntEquals (test, 0, header->rq);
 	CuAssertIntEquals (test, 6, header->command_code);
 	CuAssertIntEquals (test, 0, response->completion_code);
-	CuAssertIntEquals (test, 0, response->vid_set_selector);
+	CuAssertIntEquals (test, CERBERUS_VID_SET_RESPONSE, response->vid_set_selector);
 	CuAssertIntEquals (test, 0, response->vid_format);
 	CuAssertIntEquals (test, 0xFF00, response->vid);
-	CuAssertIntEquals (test, 0x0300, response->protocol_version);
+	CuAssertIntEquals (test, 0x0400, response->protocol_version);
 	CuAssertIntEquals (test, false, request.new_request);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 

@@ -2,13 +2,14 @@
 // Licensed under the MIT license.
 
 #include <string.h>
-#include "recovery_image_manager.h"
+#include "common/common_math.h"
 #include "crypto/ecc.h"
-#include "recovery_image_logging.h"
 #include "flash/flash_util.h"
+#include "host_fw/host_processor_dual.h"
+#include "recovery_image_manager.h"
+#include "recovery_image_logging.h"
 #include "recovery_image_header.h"
 #include "recovery_image_section_header.h"
-#include "host_fw/host_processor_dual.h"
 
 
 /**
@@ -23,7 +24,7 @@ static struct recovery_image_manager_flash_region* recovery_image_manager_get_re
 	struct recovery_image_manager *manager, bool active)
 {
 	return &manager->region1;
-} 
+}
 
 /**
  * Get the requested recovery image region based on the host state.
@@ -40,12 +41,12 @@ static struct recovery_image_manager_flash_region* recovery_image_manager_get_re
 
 	current = host_state_manager_get_active_recovery_image (manager->state);
 	if (current == RECOVERY_IMAGE_REGION_1) {
-		return (active) ? &manager->region1 : &manager->region2; 
+		return (active) ? &manager->region1 : &manager->region2;
 	}
 	else {
-		return (active) ? &manager->region2 : &manager->region1; 
+		return (active) ? &manager->region2 : &manager->region1;
 	}
-} 
+}
 
 /**
  * Notify all observers of an event for a recovery image.  The recovery image will be released to
@@ -227,7 +228,7 @@ static int recovery_image_manager_clear_recovery_image_region (
 		observable_notify_observers (&manager->observable,
 			offsetof (struct recovery_image_observer, on_recovery_image_deactivated));
 	}
- 
+
 	return status;
 }
 
@@ -256,7 +257,7 @@ static void recovery_image_manager_free_recovery_image (struct recovery_image_ma
 		region->ref_count--;
 	}
 
-	platform_mutex_unlock (&manager->lock);	
+	platform_mutex_unlock (&manager->lock);
 }
 
 static int recovery_image_manager_write_recovery_image_data (struct recovery_image_manager *manager,
@@ -283,7 +284,7 @@ static int recovery_image_manager_activate_recovery_image (struct recovery_image
 		return RECOVERY_IMAGE_MANAGER_INVALID_ARGUMENT;
 	}
 
-	platform_mutex_lock (&manager->lock); 
+	platform_mutex_lock (&manager->lock);
 
 	if (flash_updater_get_remaining_bytes (manager->updating) > 0) {
 		platform_mutex_unlock (&manager->lock);
@@ -318,7 +319,7 @@ exit:
 			manager->get_active_recovery_image (manager),
 			offsetof (struct recovery_image_observer, on_recovery_image_activated));
 	}
-	
+
 	return status;
 }
 
@@ -363,7 +364,7 @@ static int recovery_image_manager_erase_all_recovery_regions (
 		return RECOVERY_IMAGE_MANAGER_INVALID_ARGUMENT;
 	}
 
-	platform_mutex_lock (&manager->lock); 
+	platform_mutex_lock (&manager->lock);
 
 	region1 = manager->internal.get_region (manager, false);
 	prev_valid |= region1->is_valid;
@@ -600,3 +601,48 @@ int recovery_image_manager_get_port (struct recovery_image_manager *manager)
 	}
 }
 
+/**
+ * Get the data used for recovery image measurement.  The recovery image instance must be released
+ * with the manager.
+ *
+ * @param manager The recovery image manager to query
+ * @param offset The offset to read data from
+ * @param buffer The output buffer to be filled with measured data
+ * @param length Maximum length of the buffer
+ * @param total_len Total length of recovery image measurement
+ *
+ * @return Length of the measured data if successfully retrieved or an error code.
+ */
+int recovery_image_manager_get_measured_data (struct recovery_image_manager *manager, size_t offset,
+	uint8_t *buffer, size_t length, uint32_t *total_len)
+{
+	uint8_t hash_out[SHA256_HASH_LENGTH] = {0};
+	int status = 0;
+	struct recovery_image *active;
+	size_t bytes_read;
+
+	if ((buffer == NULL) || (manager == NULL) || (total_len == NULL)) {
+		return RECOVERY_IMAGE_MANAGER_INVALID_ARGUMENT;
+	}
+
+	*total_len = SHA256_HASH_LENGTH;
+
+	if (offset > (SHA256_HASH_LENGTH - 1)) {
+		return 0;
+	}
+
+	active = manager->get_active_recovery_image (manager);
+	if (active) {
+		status = active->get_hash (active, manager->hash, hash_out, sizeof (hash_out));
+		manager->free_recovery_image (manager, active);
+		if (status != 0) {
+			return status;
+		}
+	}
+
+	bytes_read = min (SHA256_HASH_LENGTH - offset, length);
+
+	memcpy (buffer, hash_out + offset, bytes_read);
+
+	return bytes_read;
+}

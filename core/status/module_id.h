@@ -91,6 +91,9 @@ enum {
 	ROT_MODULE_CMD_DEVICE = 0x004f,						/**< Command handler for device-specific workflows. */
 	ROT_MODULE_HOST_PROCESSOR_OBSERVER = 0x0050,		/**< Observers for host processor management. */
 	ROT_MODULE_COUNTER_MANAGER = 0x0051,				/**< Counter operation management. */
+	ROT_MODULE_SESSION_MANAGER = 0x0052,				/**< Encrypted session management. */
+	ROT_MODULE_FLASH_STORE = 0x0053,					/**< Block data storage in flash. */
+	ROT_MODULE_KDF = 0x0054,							/**< Key derivation function. */
 };
 
 

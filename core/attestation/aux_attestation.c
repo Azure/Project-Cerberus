@@ -6,8 +6,9 @@
 #include <string.h>
 #include <stdbool.h>
 #include "platform.h"
-#include "aux_attestation.h"
+#include "crypto/kdf.h"
 #include "riot/riot_core.h"
+#include "aux_attestation.h"
 
 
 /* The size of the auxiliary attestation key. */
@@ -204,7 +205,7 @@ int aux_attestation_create_certificate (struct aux_attestation *aux, struct x509
 		}
 
 		/* If the RNG gives us all 0's, we want to try again. */
-		for (i = 0; i < sizeof (serial_num); i++) {
+		for (i = 0; i < (int) sizeof (serial_num); i++) {
 			if (serial_num[i] != 0) {
 				break;
 			}
@@ -340,15 +341,13 @@ int aux_attestation_unseal (struct aux_attestation *aux, struct hash_engine *has
 	uint8_t secret[AUX_ATTESTATION_KEY_BYTES];
 	int secret_length = 0;
 	struct hmac_engine run_hmac;
-	uint8_t i[4] = {0};
-	uint8_t L[4] = {0};
 	uint8_t signing_key[AUX_ATTESTATION_KEY_256BIT];
 	uint8_t payload_hmac[SHA256_HASH_LENGTH];
 	uint8_t pcr_value[SHA256_HASH_LENGTH];
 	bool bypass;
 	int j;
 	int k;
-	int status;
+	int status = 0;
 
 	if ((aux == NULL) || (hash == NULL) || (pcr == NULL) || (seed == NULL) || (seed_length == 0) ||
 		(hmac == NULL) || (ciphertext == NULL) || (cipher_length == 0) || (sealing == NULL) ||
@@ -371,14 +370,7 @@ int aux_attestation_unseal (struct aux_attestation *aux, struct hash_engine *has
 	/* Get the key derivation seed. */
 	switch (seed_type) {
 		case AUX_ATTESTATION_SEED_RSA: {
-			struct rsa_private_key priv;
-			uint8_t *priv_der;
-			size_t priv_length;
 			enum hash_type padding;
-
-			if (aux->rsa == NULL) {
-				return AUX_ATTESTATION_UNSUPPORTED_CRYPTO;
-			}
 
 			switch (seed_param) {
 				case AUX_ATTESTATION_PARAM_OAEP_SHA1:
@@ -393,116 +385,35 @@ int aux_attestation_unseal (struct aux_attestation *aux, struct hash_engine *has
 					return AUX_ATTESTATION_BAD_SEED_PARAM;
 			}
 
-			status = aux->keystore->load_key (aux->keystore, 0, &priv_der, &priv_length);
-			if (status != 0) {
-				return status;
-			}
-
-			status = aux->rsa->init_private_key (aux->rsa, &priv, priv_der, priv_length);
-			if (status != 0) {
-				goto rsa_init_error;
-			}
-
-			secret_length = aux->rsa->decrypt (aux->rsa, &priv, seed, seed_length, NULL, 0, padding,
+			secret_length = aux_attestation_decrypt (aux, seed, seed_length, NULL, 0, padding,
 				secret, sizeof (secret));
-			if (ROT_IS_ERROR (secret_length)) {
-				status = secret_length;
-			}
-
-			aux->rsa->release_key (aux->rsa, &priv);
-rsa_init_error:
-			riot_core_clear (priv_der, priv_length);
-			platform_free (priv_der);
 			break;
 		}
 
-#ifdef ECC_ENABLE_ECDH
 		case AUX_ATTESTATION_SEED_ECDH: {
-			struct ecc_private_key priv;
-			struct ecc_public_key pub;
-			const struct riot_keys *keys;
-
-			if (aux->ecc == NULL) {
-				return AUX_ATTESTATION_UNSUPPORTED_CRYPTO;
-			}
-
 			if ((seed_param != AUX_ATTESTATION_PARAM_ECDH_RAW) &&
 				(seed_param != AUX_ATTESTATION_PARAM_ECDH_SHA256)) {
 				return AUX_ATTESTATION_BAD_SEED_PARAM;
 			}
 
-			status = aux->ecc->init_public_key (aux->ecc, seed, seed_length, &pub);
-			if (status != 0) {
-				return status;
-			}
-
-			keys = riot_key_manager_get_riot_keys (aux->riot);
-			status = aux->ecc->init_key_pair (aux->ecc, keys->alias_key, keys->alias_key_length,
-				&priv, NULL);
-			riot_key_manager_release_riot_keys (aux->riot, keys);
-			if (status != 0) {
-				goto ecc_init_error;
-			}
-
-			secret_length = aux->ecc->compute_shared_secret (aux->ecc, &priv, &pub, secret,
+			secret_length = aux_attestation_generate_ecdh_seed (aux, seed, seed_length,
+				(seed_param == AUX_ATTESTATION_PARAM_ECDH_SHA256) ? hash : NULL, secret,
 				sizeof (secret));
-			if (ROT_IS_ERROR (secret_length)) {
-				status = secret_length;
-			}
-
-			if (seed_param == AUX_ATTESTATION_PARAM_ECDH_SHA256) {
-				status = hash->calculate_sha256 (hash, secret, secret_length, payload_hmac,
-					sizeof (payload_hmac));
-				if (status == 0) {
-					memcpy (secret, payload_hmac, SHA256_HASH_LENGTH);
-					secret_length = SHA256_HASH_LENGTH;
-				}
-			}
-
-			aux->ecc->release_key_pair (aux->ecc, &priv, NULL);
-ecc_init_error:
-			aux->ecc->release_key_pair (aux->ecc, NULL, &pub);
 			break;
 		}
-#else
-		case AUX_ATTESTATION_SEED_ECDH:
-			return AUX_ATTESTATION_UNSUPPORTED_CRYPTO;
-#endif
 
 		default:
 			return AUX_ATTESTATION_UNKNOWN_SEED;
 	}
 
-	if (status != 0) {
-		return status;
+	if (ROT_IS_ERROR (secret_length)) {
+		return secret_length;
 	}
-
-	i[3] = 1;
-	L[2] = 1;
 
 	/* Derive the signing key. */
-	status = hash_hmac_init (&run_hmac, hash, HMAC_SHA256, secret, secret_length);
-	if (status != 0) {
-		return status;
-	}
-
-	status = hash_hmac_update (&run_hmac, i, sizeof (i));
-	if (status != 0) {
-		goto hmac_error;
-	}
-
-	status = hash_hmac_update (&run_hmac, (const uint8_t*) AUX_ATTESTATION_SIGNING_LABEL,
-		sizeof (AUX_ATTESTATION_SIGNING_LABEL));
-	if (status != 0) {
-		goto hmac_error;
-	}
-
-	status = hash_hmac_update (&run_hmac, L, sizeof (L));
-	if (status != 0) {
-		goto hmac_error;
-	}
-
-	status = hash_hmac_finish (&run_hmac, signing_key, sizeof (signing_key));
+	status = kdf_nist800_108_counter_mode (hash, HMAC_SHA256, secret, secret_length,
+		(const uint8_t*) AUX_ATTESTATION_SIGNING_LABEL, sizeof (AUX_ATTESTATION_SIGNING_LABEL) - 1,
+		NULL, 0, signing_key, sizeof (signing_key));
 	if (status != 0) {
 		return status;
 	}
@@ -532,7 +443,7 @@ ecc_init_error:
 		return AUX_ATTESTATION_HMAC_MISMATCH;
 	}
 
-	for (k = 0; k < pcr_count; k++) {
+	for (k = 0; k < (int) pcr_count; k++) {
 		j = 0;
 		bypass = true;
 		while (bypass && (j < 64)) {
@@ -558,33 +469,11 @@ ecc_init_error:
 	}
 
 	/* Derive the encryption key. */
-	status = hash_hmac_init (&run_hmac, hash, HMAC_SHA256, secret, secret_length);
-	if (status != 0) {
-		return status;
-	}
+	status = kdf_nist800_108_counter_mode (hash, HMAC_SHA256, secret, secret_length,
+		(const uint8_t*) AUX_ATTESTATION_ENCRYPTION_LABEL,
+		sizeof (AUX_ATTESTATION_ENCRYPTION_LABEL) - 1, NULL, 0, key, SHA256_HASH_LENGTH);
 
-	status = hash_hmac_update (&run_hmac, i, sizeof (i));
-	if (status != 0) {
-		goto hmac_error;
-	}
-
-	status = hash_hmac_update (&run_hmac, (const uint8_t*) AUX_ATTESTATION_ENCRYPTION_LABEL,
-		sizeof (AUX_ATTESTATION_ENCRYPTION_LABEL));
-	if (status != 0) {
-		goto hmac_error;
-	}
-
-	status = hash_hmac_update (&run_hmac, L, sizeof (L));
-	if (status != 0) {
-		goto hmac_error;
-	}
-
-	status = hash_hmac_finish (&run_hmac, key, SHA256_HASH_LENGTH);
-	if (status != 0) {
-		return status;
-	}
-
-	return 0;
+	return status;
 
 hmac_error:
 	hash_hmac_cancel (&run_hmac);
@@ -642,4 +531,83 @@ rsa_init_error:
 	platform_free (priv_der);
 
 	return status;
+}
+
+/**
+ * Generate an ECDH seed to be used for auxiliary attestation flows.
+ *
+ * @param aux The attestation handler to run.
+ * @param ecc_key A DER encoded ECC public key to use for seed generation.
+ * @param key_length Length of the ECC public key.
+ * @param hash Optional hash engine.  If provided, the seed will be the SHA256 hash of the ECDH
+ * output.
+ * @param seed Output buffer for the attestation seed.
+ * @param seed_length Length of the seed buffer.
+ *
+ * @return Length of generated seed or an error code.  Use ROT_IS_ERROR to check the return value.
+ */
+int aux_attestation_generate_ecdh_seed (struct aux_attestation *aux, const uint8_t *ecc_key,
+	size_t key_length, struct hash_engine *hash, uint8_t *seed, size_t seed_length)
+{
+#ifdef ECC_ENABLE_ECDH
+	struct ecc_private_key priv;
+	struct ecc_public_key pub;
+	const struct riot_keys *keys;
+	int status;
+
+	if ((aux == NULL) || (ecc_key == NULL) || (key_length == 0) || (seed == NULL)) {
+		return AUX_ATTESTATION_INVALID_ARGUMENT;
+	}
+
+	if (aux->ecc == NULL) {
+		return AUX_ATTESTATION_UNSUPPORTED_CRYPTO;
+	}
+
+	status = aux->ecc->init_public_key (aux->ecc, ecc_key, key_length, &pub);
+	if (status != 0) {
+		return status;
+	}
+
+	keys = riot_key_manager_get_riot_keys (aux->riot);
+	status = aux->ecc->init_key_pair (aux->ecc, keys->alias_key, keys->alias_key_length,
+		&priv, NULL);
+	riot_key_manager_release_riot_keys (aux->riot, keys);
+	if (status != 0) {
+		goto ecc_init_error;
+	}
+
+	status = aux->ecc->get_shared_secret_max_length (aux->ecc, &priv);
+	if (ROT_IS_ERROR (status)) {
+		goto error;
+	}
+
+	if (((int) seed_length < status) || (hash && (seed_length < SHA256_HASH_LENGTH))) {
+		status = AUX_ATTESTATION_BUFFER_TOO_SMALL;
+		goto error;
+	}
+
+	status = aux->ecc->compute_shared_secret (aux->ecc, &priv, &pub, seed, seed_length);
+	if (ROT_IS_ERROR (status)) {
+		goto error;
+	}
+
+	if (hash) {
+		uint8_t secret_hash[SHA256_HASH_LENGTH];
+
+		status = hash->calculate_sha256 (hash, seed, status, secret_hash, sizeof (secret_hash));
+		if (status == 0) {
+			memcpy (seed, secret_hash, SHA256_HASH_LENGTH);
+			status = SHA256_HASH_LENGTH;
+		}
+	}
+
+error:
+	aux->ecc->release_key_pair (aux->ecc, &priv, NULL);
+ecc_init_error:
+	aux->ecc->release_key_pair (aux->ecc, NULL, &pub);
+
+	return status;
+#else
+	return AUX_ATTESTATION_UNSUPPORTED_CRYPTO;
+#endif
 }

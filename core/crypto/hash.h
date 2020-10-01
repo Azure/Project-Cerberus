@@ -34,7 +34,7 @@ enum hash_type {
 
 /**
  * A platform-independent API for calculating hashes.  Hash engine instances are not guaranteed to
- * be thread-safe across different API calls.
+ * be thread-safe.
  */
 struct hash_engine {
 #ifdef HASH_ENABLE_SHA1

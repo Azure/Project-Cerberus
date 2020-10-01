@@ -101,7 +101,6 @@ static int mctp_interface_generate_error_packet (struct mctp_interface *interfac
 	uint8_t src_eid, uint8_t dest_eid, uint8_t msg_tag, uint8_t response_addr, uint8_t source_addr,
 	uint8_t cmd_set)
 {
-	struct cerberus_protocol_error error_msg;
 	int status;
 
 	if (error_code != CERBERUS_PROTOCOL_NO_ERROR) {
@@ -120,19 +119,18 @@ static int mctp_interface_generate_error_packet (struct mctp_interface *interfac
 		return MCTP_PROTOCOL_NO_MEMORY;
 	}
 
-	memset (&error_msg, 0, sizeof (error_msg));
+	mctp_interface_reset_message_processing (interface);
 
-	error_msg.header.rq = cmd_set;
-	error_msg.header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
-	error_msg.header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
-	error_msg.header.command = CERBERUS_PROTOCOL_ERROR;
+	status = interface->cmd_interface->generate_error_packet (interface->cmd_interface,
+		&interface->msg_buffer, error_code, error_data, cmd_set);
+	if (ROT_IS_ERROR (status)) {
+		platform_free (*packets);
+		return status;
+	}
 
-	error_msg.error_code = error_code;
-	error_msg.error_data = error_data;
-
-	status = mctp_protocol_construct ((uint8_t*) &error_msg, sizeof (error_msg), (*packets)[0].data,
-		sizeof ((*packets)[0].data), source_addr, src_eid, dest_eid, true, true, 0, msg_tag,
-		MCTP_PROTOCOL_TO_RESPONSE, response_addr, &interface->msg_type);
+	status = mctp_protocol_construct (interface->msg_buffer.data, interface->msg_buffer.length,
+		(*packets)[0].data, sizeof ((*packets)[0].data), source_addr, src_eid, dest_eid, true, true,
+		0, msg_tag, MCTP_PROTOCOL_TO_RESPONSE, response_addr, &interface->msg_type);
 	if (ROT_IS_ERROR (status)) {
 		platform_free (*packets);
 		return status;
@@ -263,8 +261,8 @@ int mctp_interface_process_packet (struct mctp_interface *interface, struct cmd_
 		return 0;
 	}
 	else {
-		if ((payload_len != interface->start_packet_len) &&
-		   !(eom && (payload_len < interface->start_packet_len))) {
+		if (((int) payload_len != interface->start_packet_len) &&
+		   !(eom && ((int) payload_len < interface->start_packet_len))) {
 			// Can only have different size than SOM if EOM and smaller than SOM
 			return mctp_interface_generate_error_packet (interface, tx_packets, num_packets,
 				CERBERUS_PROTOCOL_ERROR_INVALID_PACKET_LEN, payload_len, src_eid, dest_eid, msg_tag,
@@ -467,7 +465,7 @@ void mctp_interface_reset_message_processing (struct mctp_interface *interface)
  */
 int mctp_interface_issue_request (struct mctp_interface *interface, uint8_t dest_addr,
 	uint8_t dest_eid, uint8_t src_addr, uint8_t src_eid, uint8_t command_id, void *request_params,
-	uint8_t *buf, int buf_len, uint8_t msg_type)
+	uint8_t *buf, size_t buf_len, uint8_t msg_type)
 {
 	uint8_t msg_buffer[MCTP_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	int status;

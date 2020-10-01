@@ -144,13 +144,15 @@ int pcr_store_update_digest (struct pcr_store *store, uint16_t measurement_type,
  * @param measurement_type The type of measurement being updated
  * @param buf Buffer holding data to compute measurement of
  * @param buf_len Length of data buffer
+ * @param include_event Flag that indicates whether to include the event type in measurement
+ * calculations.
  *
  * @return Completion status, 0 if success or an error code
  */
 int pcr_store_update_buffer (struct pcr_store *store, struct hash_engine *hash,
-	uint16_t measurement_type, const uint8_t *buf, size_t buf_len)
+	uint16_t measurement_type, const uint8_t *buf, size_t buf_len, bool include_event)
 {
-	uint8_t pcr_bank = (uint8_t)(measurement_type >> 8);
+	uint8_t pcr_bank = (uint8_t) (measurement_type >> 8);
 	uint8_t measurement_index = (uint8_t) measurement_type;
 
 	if (store == NULL) {
@@ -161,7 +163,41 @@ int pcr_store_update_buffer (struct pcr_store *store, struct hash_engine *hash,
 		return PCR_INVALID_PCR;
 	}
 
-	return pcr_update_buffer (&store->banks[pcr_bank], hash, measurement_index,	buf, buf_len);
+	return pcr_update_buffer (&store->banks[pcr_bank], hash, measurement_index, buf, buf_len,
+		include_event);
+}
+
+/**
+ * Compute digest of the versioned buffer and update the PCR bank's list of measurements
+ *
+ * @param store PCR store containing PCR to be updated
+ * @param hash Hashing engine to utilize in PCR bank operations
+ * @param measurement_type The type of measurement being updated
+ * @param buf Buffer holding data to compute measurement of
+ * @param buf_len Length of data buffer
+ * @param include_event Flag that indicates whether to include the event type in measurement
+ * calculations
+ * @param version The version associated with the measurement data.
+ *
+ * @return Completion status, 0 if success or an error code
+ */
+int pcr_store_update_versioned_buffer (struct pcr_store *store, struct hash_engine *hash,
+	uint16_t measurement_type, const uint8_t *buf, size_t buf_len, bool include_event,
+	uint8_t version)
+{
+	uint8_t pcr_bank = (uint8_t) (measurement_type >> 8);
+	uint8_t measurement_index = (uint8_t) measurement_type;
+
+	if (store == NULL) {
+		return PCR_INVALID_ARGUMENT;
+	}
+
+	if (pcr_bank >= store->num_pcr_banks) {
+		return PCR_INVALID_PCR;
+	}
+
+	return pcr_update_versioned_buffer (&store->banks[pcr_bank], hash, measurement_index, buf,
+		buf_len, include_event, version);
 }
 
 /**
@@ -282,6 +318,7 @@ int pcr_store_get_measurement_data (struct pcr_store *store, uint16_t measuremen
 {
 	uint8_t pcr_bank = (uint8_t) (measurement_type >> 8);
 	uint8_t measurement_index = (uint8_t) measurement_type;
+	uint32_t total_len;
 
 	if (store == NULL) {
 		return PCR_INVALID_ARGUMENT;
@@ -292,7 +329,7 @@ int pcr_store_get_measurement_data (struct pcr_store *store, uint16_t measuremen
 	}
 
 	return pcr_get_measurement_data (&store->banks[pcr_bank], measurement_index, offset, buffer,
-		length);
+		length, &total_len);
 }
 
 /**
@@ -336,7 +373,7 @@ static int pcr_store_get_num_measurements (struct pcr_store *store)
 		return PCR_INVALID_ARGUMENT;
 	}
 
-	for (i_bank = 0; i_bank < store->num_pcr_banks; ++i_bank) {
+	for (i_bank = 0; i_bank < (int) store->num_pcr_banks; ++i_bank) {
 		status = pcr_get_num_measurements (&store->banks[i_bank]);
 		if (ROT_IS_ERROR (status)) {
 			return status;
@@ -349,13 +386,13 @@ static int pcr_store_get_num_measurements (struct pcr_store *store)
 }
 
 /**
- * Get size of TCG log if constructed by PCR store
+ * Get size of attestation log if constructed by PCR store
  *
- * @param store PCR store to get TCG log size from
+ * @param store PCR store to get attestation log size from
  *
- * @return TCG log size or an error code
+ * @return Attestation log size or an error code
  */
-int pcr_store_get_tcg_log_size (struct pcr_store *store)
+int pcr_store_get_attestation_log_size (struct pcr_store *store)
 {
 	int status;
 
@@ -368,11 +405,11 @@ int pcr_store_get_tcg_log_size (struct pcr_store *store)
 		return status;
 	}
 
-	return (status * sizeof (struct pcr_store_tcg_log_entry));
+	return (status * sizeof (struct pcr_store_attestation_log_entry));
 }
 
 /**
- * Generate TCG log from PCR banks.
+ * Generate attestation log from PCR banks.
  *
  * @param store PCR store to get measurements from.
  * @param hash Hashing engine to utilize in PCR bank operations.
@@ -382,10 +419,10 @@ int pcr_store_get_tcg_log_size (struct pcr_store *store)
  *
  * @return The number of bytes read from the log or an error code.
  */
-int pcr_store_get_tcg_log (struct pcr_store *store, struct hash_engine *hash, uint32_t offset,
-	uint8_t *contents, size_t length)
+int pcr_store_get_attestation_log (struct pcr_store *store, struct hash_engine *hash,
+	uint32_t offset, uint8_t *contents, size_t length)
 {
-	struct pcr_store_tcg_log_entry log_entry;
+	struct pcr_store_attestation_log_entry log_entry;
 	const struct pcr_measurement *measurements;
 	uint32_t contents_offset = 0;
 	uint32_t entry_length;
@@ -393,7 +430,7 @@ int pcr_store_get_tcg_log (struct pcr_store *store, struct hash_engine *hash, ui
 	uint32_t i_entry = 0;
 	uint8_t i_bank;
 	int starting_measurement;
-	int total_log_size = 0;
+	uint32_t total_log_size = 0;
 	int num_measurements;
 	int i_measurement;
 	int status;
@@ -433,16 +470,16 @@ int pcr_store_get_tcg_log (struct pcr_store *store, struct hash_engine *hash, ui
 		}
 
 		if (total_log_size >= offset) {
-			total_log_size += num_measurements * sizeof (struct pcr_store_tcg_log_entry);
+			total_log_size += num_measurements * sizeof (struct pcr_store_attestation_log_entry);
 			starting_measurement = 0;
 			entry_offset = 0;
 		}
 		else {
 			starting_measurement = (offset - total_log_size) /
-				sizeof (struct pcr_store_tcg_log_entry);
+				sizeof (struct pcr_store_attestation_log_entry);
 			entry_offset = (offset - total_log_size) - (starting_measurement) *
-				sizeof (struct pcr_store_tcg_log_entry);
-			total_log_size += num_measurements * sizeof (struct pcr_store_tcg_log_entry);
+				sizeof (struct pcr_store_attestation_log_entry);
+			total_log_size += num_measurements * sizeof (struct pcr_store_attestation_log_entry);
 
 			if (total_log_size <= offset) {
 				i_entry += num_measurements;
@@ -459,7 +496,7 @@ int pcr_store_get_tcg_log (struct pcr_store *store, struct hash_engine *hash, ui
 			}
 
 			log_entry.header.log_magic = LOGGING_MAGIC_START;
-			log_entry.header.length = sizeof (struct pcr_store_tcg_log_entry);
+			log_entry.header.length = sizeof (struct pcr_store_attestation_log_entry);
 			log_entry.header.entry_id = i_entry++;
 
 			log_entry.entry.digest_algorithm_id = 0x0B;
@@ -474,7 +511,7 @@ int pcr_store_get_tcg_log (struct pcr_store *store, struct hash_engine *hash, ui
 				sizeof (measurements[i_measurement].measurement));
 
 			entry_length = min (length - contents_offset,
-				sizeof (struct pcr_store_tcg_log_entry) - entry_offset);
+				sizeof (struct pcr_store_attestation_log_entry) - entry_offset);
 
 			memcpy (&contents[contents_offset], ((uint8_t*) &log_entry) + entry_offset,
 				entry_length);
@@ -492,4 +529,107 @@ int pcr_store_get_tcg_log (struct pcr_store *store, struct hash_engine *hash, ui
 	}
 
 	return contents_offset;
+}
+
+/**
+ * Generate TCG formatted log from PCR banks.
+ *
+ * @param store PCR store to get measurements from.
+ * @param buffer Buffer to populate with requested log contents.
+ * @param offset Offset within the log to start reading data.
+ * @param length Maximum number of bytes to read from the log.
+ *
+ * @return The number of bytes read from the log or an error code.
+ */
+int pcr_store_get_tcg_log (struct pcr_store *store, uint8_t *buffer, size_t offset, size_t length)
+{
+	struct pcr_tcg_log_header header;
+	struct pcr_tcg_event v1_event;
+	size_t num_bytes = 0;
+	size_t total_len;
+	size_t entry_len;
+	size_t i_pcr;
+	int status;
+
+	if ((store == NULL) || (buffer == NULL)) {
+		return PCR_INVALID_ARGUMENT;
+	}
+
+	v1_event.event_type = PCR_TCG_EFI_NO_ACTION_EVENT_TYPE;
+	v1_event.event_size = sizeof (struct pcr_tcg_log_header);
+	v1_event.pcr_bank = 0;
+
+	memset (v1_event.pcr, 0, sizeof (v1_event.pcr));
+
+	if (offset < sizeof (struct pcr_tcg_event)) {
+		entry_len = min (sizeof (struct pcr_tcg_event) - offset, length);
+
+		memcpy (buffer, ((uint8_t*) &v1_event) + offset, entry_len);
+
+		num_bytes += entry_len;
+		buffer += entry_len;
+		length -= entry_len;
+		offset = 0;
+
+		if (length == 0) {
+			return num_bytes;
+		}
+	}
+	else {
+		offset -= sizeof (struct pcr_tcg_event);
+	}
+
+	memcpy (header.signature, PCR_TCG_LOG_SIGNATURE, sizeof (header.signature));
+	header.signature[15] = '\0';
+
+	header.platform_class = PCR_TCG_SERVER_PLATFORM_CLASS;
+	header.spec_version_minor = 0;
+	header.spec_version_major = 2;
+	header.spec_errata = 0;
+	header.uintn_size = PCR_TCG_UINT_SIZE_32;
+	header.num_algorithms = 1;
+	header.digest_size.digest_algorithm_id = PCR_TCG_SHA256_ALG_ID;
+	header.digest_size.digest_size = SHA256_HASH_LENGTH;
+	header.vendor_info_size = 0;
+
+	if (offset < sizeof (struct pcr_tcg_log_header)) {
+		entry_len = min (sizeof (struct pcr_tcg_log_header) - offset, length);
+
+		memcpy (buffer, ((uint8_t*) &header) + offset, entry_len);
+
+		num_bytes += entry_len;
+		buffer += entry_len;
+		length -= entry_len;
+		offset = 0;
+
+		if (length == 0) {
+			return num_bytes;
+		}
+	}
+	else {
+		offset -= sizeof (struct pcr_tcg_log_header);
+	}
+
+	for (i_pcr = 0; i_pcr < store->num_pcr_banks; ++i_pcr) {
+		status = pcr_get_tcg_log (&store->banks[i_pcr], i_pcr, buffer, offset, length, &total_len);
+		if (ROT_IS_ERROR (status)) {
+			return status;
+		}
+
+		if (status == 0) {
+			offset -= total_len;
+		}
+		else {
+			num_bytes += status;
+			buffer += status;
+			length -= status;
+			offset = 0;
+
+			if (length == 0) {
+				break;
+			}
+		}
+	}
+
+	return num_bytes;
 }

@@ -152,6 +152,9 @@ int recovery_image_manager_remove_observer (struct recovery_image_manager *manag
 void recovery_image_manager_set_port (struct recovery_image_manager *manager, int port);
 int recovery_image_manager_get_port (struct recovery_image_manager *manager);
 
+int recovery_image_manager_get_measured_data (struct recovery_image_manager *manager, size_t offset,
+	uint8_t *buffer, size_t length, uint32_t *total_len);
+
 
 #define	RECOVERY_IMAGE_MANAGER_ERROR(code)		ROT_ERROR (ROT_MODULE_RECOVERY_IMAGE_MANAGER, code)
 

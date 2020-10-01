@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <string.h>
+#include "keystore/keystore.h"
 #include "config_reset.h"
 
 
@@ -21,16 +22,20 @@
  * @param riot Manager RIoT keys to be cleared.
  * @param aux Attestation handler for keys to be cleared.
  * @param recovery Manager for recovery images to be cleared.
+ * @param keystores Array of keystores to clear keys of.
+ * @param keystore_count Number of keystores in the keystores array.
  *
  * @return 0 if the manager was initialized successfully or an error code.
  */
 int config_reset_init (struct config_reset *reset, struct manifest_manager **bypass_config,
 	size_t bypass_count, struct manifest_manager **default_config, size_t default_count,
 	struct state_manager **state, size_t state_count, struct riot_key_manager *riot,
-	struct aux_attestation *aux, struct recovery_image_manager *recovery)
+	struct aux_attestation *aux, struct recovery_image_manager *recovery,
+	struct keystore **keystores, size_t keystore_count)
 {
 	if ((reset == NULL) || (bypass_count && (bypass_config == NULL)) ||
-		(default_count && (default_config == NULL)) || (state_count && (state == NULL))) {
+		(default_count && (default_config == NULL)) || (state_count && (state == NULL)) ||
+		(keystore_count && (keystores == NULL))) {
 		return CONFIG_RESET_INVALID_ARGUMENT;
 	}
 
@@ -49,6 +54,8 @@ int config_reset_init (struct config_reset *reset, struct manifest_manager **byp
 	reset->riot = riot;
 	reset->aux = aux;
 	reset->recovery = recovery;
+	reset->keystores = keystores;
+	reset->keystore_count = keystore_count;
 
 	return 0;
 }
@@ -76,7 +83,7 @@ void config_reset_release (struct config_reset *reset)
  */
 int config_reset_restore_bypass (struct config_reset *reset)
 {
-	int i;
+	size_t i;
 	int status;
 
 	if (reset == NULL) {
@@ -106,7 +113,7 @@ int config_reset_restore_bypass (struct config_reset *reset)
  */
 int config_reset_restore_defaults (struct config_reset *reset)
 {
-	int i;
+	size_t i;
 	int status = 0;
 
 	if (reset == NULL) {
@@ -147,6 +154,16 @@ int config_reset_restore_defaults (struct config_reset *reset)
 
 	if (reset->recovery) {
 		status = reset->recovery->erase_all_recovery_regions (reset->recovery);
+		if (status != 0) {
+			return status;
+		}
+	}
+
+	for (i = 0; i < reset->keystore_count; ++i) {
+		status = reset->keystores[i]->erase_all_keys (reset->keystores[i]);
+		if (status != 0) {
+			return status;
+		}
 	}
 
 	return status;

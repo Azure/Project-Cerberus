@@ -42,7 +42,7 @@ struct rsa_public_key {
 
 /**
  * A platform-independent API for using RSA key pairs.  RSA engine instances are not guaranteed to
- * be thread-safe across different API calls.
+ * be thread-safe.
  */
 struct rsa_engine {
 	/**

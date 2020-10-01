@@ -12,8 +12,13 @@
 #define CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG				(MCTP_PROTOCOL_MAX_MESSAGE_BODY - CERBERUS_PROTOCOL_MIN_MSG_LEN)
 
 #define CERBERUS_PROTOCOL_MSFT_PCI_VID						0x1414
-#define CERBERUS_PROTOCOL_PROTOCOL_VERSION					3
+#define CERBERUS_PROTOCOL_PROTOCOL_VERSION					4
 
+/**
+ * AES IV and GCM tag lengths defined by protocol.
+ */
+#define CERBERUS_PROTOCOL_AES_GCM_TAG_LEN					16
+#define CERBERUS_PROTOCOL_AES_IV_LEN						12
 
 /**
  * The maximum length of the version string that can be reported by the protocol.
@@ -67,27 +72,31 @@ enum {
 	CERBERUS_PROTOCOL_GET_CERTIFICATE,							/**< Get certificate */
 	CERBERUS_PROTOCOL_ATTESTATION_CHALLENGE,					/**< Attestation challenge */
 	CERBERUS_PROTOCOL_EXCHANGE_KEYS,							/**< Exchange pre-master session keys */
+	CERBERUS_PROTOCOL_SESSION_SYNC,								/**< Session sync */
 	CERBERUS_PROTOCOL_UPDATE_PMR = 0x86,						/**< Extend a Platform Measurement Register */
 	CERBERUS_PROTOCOL_RESET_COUNTER,							/**< Reset counter */
 	CERBERUS_PROTOCOL_UNSEAL_MESSAGE = 0x89,					/**< Start unsealing message */
 	CERBERUS_PROTOCOL_UNSEAL_MESSAGE_RESULT,					/**< Get unsealing result*/
 	CERBERUS_PROTOCOL_GET_CFM_SUPPORTED_COMPONENT_IDS = 0x8D,	/**< Get CFM supported component IDs */
 	CERBERUS_PROTOCOL_GET_EXT_UPDATE_STATUS,					/**< Get extended update status */
+
+	/* Utilize the reserved command space for debugging.  Must be disabled in production. */
 	CERBERUS_PROTOCOL_DEBUG_START_ATTESTATION = 0xF0,			/**< Debug command to start attestation */
 	CERBERUS_PROTOCOL_DEBUG_GET_ATTESTATION_STATE,				/**< Debug command to get attestation status */
 	CERBERUS_PROTOCOL_DEBUG_FILL_LOG,							/**< Debug command to fill up debug log */
 	CERBERUS_PROTOCOL_DEBUG_GET_DEVICE_MANAGER_CERT,			/**< Debug command to retrieve device certificate */
 	CERBERUS_PROTOCOL_DEBUG_GET_DEVICE_MANAGER_CERT_DIGEST,		/**< Debug command to retrieve device certificate digest */
 	CERBERUS_PROTOCOL_DEBUG_GET_DEVICE_MANAGER_CHALLENGE,		/**< Debug command to retrieve device challenge */
+	CERBORUS_PROTOCOL_DEBUG_RESERVED = 0xFF,					/**< Not available to use as a debug command. */
 };
 
 /**
  * Cerberus error codes
  */
 enum {
-	CERBERUS_PROTOCOL_NO_ERROR,								/**< Success */
+	CERBERUS_PROTOCOL_NO_ERROR = 0x00,						/**< Success */
 	CERBERUS_PROTOCOL_ERROR_INVALID_REQ,					/**< Invalid request */
-	CERBERUS_PROTOCOL_ERROR_BUSY = 03,						/**< Device busy */
+	CERBERUS_PROTOCOL_ERROR_BUSY = 0x03,					/**< Device busy */
 	CERBERUS_PROTOCOL_ERROR_UNSPECIFIED,					/**< Unspecified error */
 	CERBERUS_PROTOCOL_ERROR_INVALID_CHECKSUM = 0xF0,		/**< Invalid checksum */
 	CERBERUS_PROTOCOL_ERROR_OUT_OF_ORDER_MSG,				/**< EOM before SOM */
@@ -106,9 +115,9 @@ struct cerberus_protocol_header {
 	uint8_t msg_type:7;										/**< MCTP message type */
 	uint8_t integrity_check:1;								/**< MCTP message integrity check */
 	uint16_t pci_vendor_id;									/**< PCI vendor ID */
-	uint8_t seq_num:5;										/**< Sequence Number */
+	uint8_t reserved1:5;									/**< Reserved */
 	uint8_t crypt:1;										/**< Message Encryption Bit */
-	uint8_t d_bit:1;										/**< D-bit */
+	uint8_t reserved2:1;									/**< Reserved */
 	uint8_t rq:1;											/**< Request bit */
 	uint8_t command;										/**< Command ID */
 };

@@ -84,6 +84,8 @@ int aux_attestation_unseal (struct aux_attestation *aux, struct hash_engine *has
 int aux_attestation_decrypt (struct aux_attestation *aux, const uint8_t *encrypted,
 	size_t len_encrypted, const uint8_t *label, size_t len_label, enum hash_type pad_hash,
 	uint8_t *decrypted, size_t len_decrypted);
+int aux_attestation_generate_ecdh_seed (struct aux_attestation *aux, const uint8_t *ecc_key,
+	size_t key_length, struct hash_engine *hash, uint8_t *seed, size_t seed_length);
 
 
 #define	AUX_ATTESTATION_ERROR(code)		ROT_ERROR (ROT_MODULE_AUX_ATTESTATION, code)

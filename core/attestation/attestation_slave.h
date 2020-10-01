@@ -5,6 +5,7 @@
 #define ATTESTATION_SLAVE_H_
 
 #include <stdint.h>
+#include <stdbool.h>
 #include "status/rot_status.h"
 #include "platform.h"
 #include "crypto/ecc.h"
@@ -31,7 +32,7 @@ struct attestation_slave {
 	 * @return Output length if the digests was successfully computed or an error code.
 	 */
 	int (*get_digests) (struct attestation_slave *attestation, uint8_t slot_num, uint8_t *buf,
-		int buf_len, uint8_t *num_cert);
+		size_t buf_len, uint8_t *num_cert);
 
 	/**
 	 * Get certificate from the attestation manager certificate chain.
@@ -55,7 +56,7 @@ struct attestation_slave {
 	 *
 	 * @return Output length if the challenge was successfully created or an error code.
 	 */
-	int (*challenge_response) (struct attestation_slave *attestation, uint8_t *buf, int buf_len);
+	int (*challenge_response) (struct attestation_slave *attestation, uint8_t *buf, size_t buf_len);
 
 	/**
 	 * Unseal an encryption key for auxiliary attestation flows.
@@ -98,11 +99,28 @@ struct attestation_slave {
 	 * @param decrypted Decrypted payload.
 	 * @param len_decrypted Length of decrypted payload buffer.
 	 *
-	 * @return Decrypted payload length if the decryption was successful or an error code.
+	 * @return Decrypted payload length if the decryption was successful or an error code.  Use
+	 * ROT_IS_ERROR to check the return value.
 	 */
 	int (*aux_decrypt) (struct attestation_slave *attestation, const uint8_t *encrypted,
 		size_t len_encrypted, const uint8_t *label, size_t len_label, enum hash_type pad_hash,
 		uint8_t *decrypted, size_t len_decrypted);
+
+	/**
+	 * Generate an attestation seed using ECDH.
+	 *
+	 * @param attestation The slave attestation manager interface to utilize.
+	 * @param pub_key The DER encoded ECC public key to use for seed generation.
+	 * @param key_length Length of the ECC public key.
+	 * @param hash_seed true to calculate the SHA256 hash of the seed.
+	 * @param seed Output for the generated attestation seed.
+	 * @param seed_length Length of the seed output buffer.
+	 *
+	 * @return Length of the generated seed or an error code.  Use ROT_IS_ERROR to check the return
+	 * value.
+	 */
+	int (*generate_ecdh_seed) (struct attestation_slave *attestation, const uint8_t *pub_key,
+		size_t key_length, bool hash_seed, uint8_t *seed, size_t seed_length);
 
 	struct ecc_private_key ecc_priv_key;	/**< RIoT ECC private key. */
 	struct hash_engine *hash;				/**< The hashing engine for attestation authentication operations. */
@@ -111,16 +129,21 @@ struct attestation_slave {
 	struct riot_key_manager *riot;			/**< The manager for RIoT keys. */
 	struct pcr_store *pcr_store;			/**< Storage for device measurements. */
 	struct aux_attestation *aux;			/**< Auxiliary attestation service handler. */
+	uint8_t key_exchange_algorithm;			/**< Key exchange algorithm requested by caller. */
+	uint8_t min_protocol_version;			/**< Minimum protocol version supported by the device. */
+	uint8_t max_protocol_version;			/**< Maximum protocol version supported by the device. */
 	platform_mutex lock;					/**< Synchronization for shared handlers. */
 };
 
 
 int attestation_slave_init (struct attestation_slave *attestation, struct riot_key_manager *riot,
 	struct hash_engine *hash, struct ecc_engine *ecc, struct rng_engine *rng,
-	struct pcr_store *store, struct aux_attestation *aux);
+	struct pcr_store *store, struct aux_attestation *aux, uint8_t min_protocol_version,
+	uint8_t max_protocol_version);
 int attestation_slave_init_no_aux (struct attestation_slave *attestation,
 	struct riot_key_manager *riot, struct hash_engine *hash, struct ecc_engine *ecc,
-	struct rng_engine *rng, struct pcr_store *store);
+	struct rng_engine *rng, struct pcr_store *store, uint8_t min_protocol_version,
+	uint8_t max_protocol_version);
 
 void attestation_slave_release (struct attestation_slave *attestation);
 

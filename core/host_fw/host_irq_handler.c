@@ -8,15 +8,24 @@
 #include "host_logging.h"
 
 
-int host_irq_handler_power_on (struct host_irq_handler *handler, bool allow_unsecure)
+int host_irq_handler_power_on (struct host_irq_handler *handler, bool allow_unsecure,
+	struct hash_engine *hash)
 {
 	int status;
 	int retries;
 	bool flash_switched = false;
 
+	if (handler == NULL) {
+		return HOST_IRQ_HANDLER_INVALID_ARGUMENT;
+	}
+
+	if (hash == NULL) {
+		hash = handler->hash;
+	}
+
 	retries = 1;
 	do {
-		status = handler->host->power_on_reset (handler->host, handler->hash, handler->rsa);
+		status = handler->host->power_on_reset (handler->host, hash, handler->rsa);
 		if (status != 0) {
 			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_HOST_FW,
 				HOST_LOGGING_POWER_ON_RESET, host_processor_get_port (handler->host), status);
@@ -26,8 +35,7 @@ int host_irq_handler_power_on (struct host_irq_handler *handler, bool allow_unse
 	retries = 2;
 	while ((status != 0) && (status != HOST_PROCESSOR_NO_ROLLBACK) &&
 		(status != HOST_PROCESSOR_ROLLBACK_DIRTY) && (retries--)) {
-		status = handler->host->flash_rollback (handler->host, handler->hash, handler->rsa, true,
-			true);
+		status = handler->host->flash_rollback (handler->host, hash, handler->rsa, true, true);
 		/* Errors logged in the handler. */
 	}
 

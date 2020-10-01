@@ -128,6 +128,15 @@ int flash_master_mock_expect_write_4byte_explicit (struct flash_master_mock *fla
 	uint32_t address, const uint8_t *data, size_t length);
 int flash_master_mock_expect_write_ext (struct flash_master_mock *flash, uint32_t address,
 	const uint8_t *data, size_t length, bool is_tmp, uint8_t addr4);
+int flash_master_mock_expect_verify_copy (struct flash_master_mock *mock_src,
+	struct flash_master_mock *mock_check, uint32_t src_addr, uint32_t check_addr,
+	const uint8_t *data, const uint8_t *check_data, size_t length);
+int flash_master_mock_expect_verify_copy_4byte (struct flash_master_mock *mock_src,
+	struct flash_master_mock *mock_check, uint32_t src_addr, uint32_t check_addr,
+	const uint8_t *data, const uint8_t *check_data, size_t length);
+int flash_master_mock_expect_verify_copy_4byte_explicit (struct flash_master_mock *mock_src,
+	struct flash_master_mock *mock_check, uint32_t src_addr, uint32_t check_addr,
+	const uint8_t *data, const uint8_t *check_data, size_t length);
 
 
 /**

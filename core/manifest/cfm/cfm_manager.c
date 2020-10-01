@@ -48,10 +48,11 @@ int cfm_manager_remove_observer (struct cfm_manager *manager, struct cfm_observe
  * Initialize the base CFM manager.
  *
  * @param manager The manager to initialize.
+ * @param hash The hash engine to generate measurement data.
  *
  * @return 0 if the CFM manager was initialized successfully or an error code.
  */
-int cfm_manager_init (struct cfm_manager *manager)
+int cfm_manager_init (struct cfm_manager *manager, struct hash_engine *hash)
 {
 	int status;
 
@@ -62,7 +63,7 @@ int cfm_manager_init (struct cfm_manager *manager)
 		return status;
 	}
 
-	return 0;
+	return manifest_manager_init (&manager->base, hash);
 }
 
 /**
@@ -136,15 +137,16 @@ void cfm_manager_on_cfm_activated (struct cfm_manager *manager)
  * Get the data used for CFM ID measurement.  The CFM instance must be released with the
  * manager.
  *
- * @param manager The CFM manager to query.
+ * @param manager The CFM manager to query
  * @param offset The offset to read data from
  * @param buffer The output buffer to be filled with measured data
  * @param length Maximum length of the buffer. Updated with actual length
+ * @param total_len Total length of CFM ID measurement
  *
  *@return length of the measured data if successfully retrieved or an error code.
  */
 int cfm_manager_get_id_measured_data (struct cfm_manager *manager, size_t offset, uint8_t *buffer,
-	size_t length)
+	size_t length, uint32_t *total_len)
 {
 	int status;
 	struct cfm *active;
@@ -155,12 +157,13 @@ int cfm_manager_get_id_measured_data (struct cfm_manager *manager, size_t offset
 
 	active = manager->get_active_cfm (manager);
 	if (active == NULL) {
-		return 0;
+		status = manifest_manager_get_id_measured_data (NULL, offset, buffer, length, total_len);
 	}
-
-	status = manifest_manager_get_id_measured_data (&active->base, offset, buffer, length);
-
-	manager->free_cfm (manager, active);
+	else {
+		status = manifest_manager_get_id_measured_data (&active->base, offset, buffer, length,
+			total_len);
+		manager->free_cfm (manager, active);
+	}
 
 	return status;
 }
@@ -169,15 +172,16 @@ int cfm_manager_get_id_measured_data (struct cfm_manager *manager, size_t offset
  * Get the data used for CFM platform ID measurement.  The CFM instance must be released with the
  * manager.
  *
- * @param manager The CFM manager to query.
+ * @param manager The CFM manager to query
  * @param offset The offset to read data from
  * @param buffer The output buffer to be filled with measured data
- * @param length Maximum length of the buffer.
+ * @param length Maximum length of the buffer
+ * @param total_len Total length of manifest platform ID measurement
  *
  * @return Length of the measured data if successfully retrieved or an error code.
  */
 int cfm_manager_get_platform_id_measured_data (struct cfm_manager *manager, size_t offset,
-	uint8_t *buffer, size_t length)
+	uint8_t *buffer, size_t length, uint32_t *total_len)
 {
 	int status;
 	struct cfm *active;
@@ -188,13 +192,50 @@ int cfm_manager_get_platform_id_measured_data (struct cfm_manager *manager, size
 
 	active = manager->get_active_cfm (manager);
 	if (active == NULL) {
-		return 0;
+		status = manifest_manager_get_platform_id_measured_data (NULL, offset, buffer, length, 
+			total_len);
+	}
+	else {
+		status = manifest_manager_get_platform_id_measured_data (&active->base, offset, buffer,
+			length, total_len);
+		manager->free_cfm (manager, active);
 	}
 
-	status = manifest_manager_get_platform_id_measured_data (&active->base, offset, buffer,
-		length);
+	return status;
+}
 
-	manager->free_cfm (manager, active);
+/**
+ * Get the data used for CFM measurement.  The CFM instance must be released with the
+ * manager.
+ *
+ * @param manager The PFM manager to query
+ * @param offset The offset to read data from
+ * @param buffer The output buffer to be filled with measured data
+ * @param length Maximum length of the buffer
+ * @param total_len Total length of measured data
+ *
+ * @return Length of the measured data if successfully retrieved or an error code.
+ */
+int cfm_manager_get_cfm_measured_data (struct cfm_manager *manager, size_t offset, uint8_t *buffer,
+	size_t length, uint32_t *total_len)
+{
+	int status;
+	struct cfm *active;
+
+	if (manager == NULL) {
+		return MANIFEST_MANAGER_INVALID_ARGUMENT;
+	}
+
+	active = manager->get_active_cfm (manager);
+	if (active == NULL) {
+		status = manifest_manager_get_manifest_measured_data (&manager->base, NULL, offset, buffer,
+			length, total_len);
+	}
+	else {
+		status = manifest_manager_get_manifest_measured_data (&manager->base, &active->base, offset,
+			buffer, length, total_len);
+		manager->free_cfm (manager, active);
+	}
 
 	return status;
 }

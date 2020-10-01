@@ -71,63 +71,81 @@ void manifest_pcr_release (struct manifest_pcr *pcr)
 }
 
 /**
- * Record the measurement for the provide manifest.
+ * Record the measurement for the provided manifest.
  *
  * @param pcr The PCR manager that will record the measurement.
  * @param active The manifest to measure.
  */
 void manifest_pcr_record_manifest_measurement (struct manifest_pcr *pcr, struct manifest *active)
 {
-	uint8_t manifest_measurement[SHA256_HASH_LENGTH];
-	uint32_t id;
+	uint8_t manifest_measurement[SHA256_HASH_LENGTH] = {0};
+	uint8_t id[5];
 	char *platform_id = NULL;
+	char empty_string = '\0';
 	int status;
 
-	status = active->get_hash (active, pcr->hash, manifest_measurement,
-		sizeof (manifest_measurement));
-	if (status != 0) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
-			MANIFEST_LOGGING_GET_MEASUREMENT_FAIL, pcr->manifest_measurement, status);
-		return;
+	if (active) {
+		status = active->get_hash (active, pcr->hash, manifest_measurement,
+			sizeof (manifest_measurement));
+		if (status != 0) {
+			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
+				MANIFEST_LOGGING_GET_MEASUREMENT_FAIL, pcr->manifest_measurement, status);
+			return;
+		}
 	}
 
-	status = pcr_store_update_digest (pcr->store, pcr->manifest_measurement, manifest_measurement,
-		SHA256_HASH_LENGTH);
+	status = pcr_store_update_versioned_buffer (pcr->store, pcr->hash, pcr->manifest_measurement,
+		manifest_measurement, SHA256_HASH_LENGTH, true, 0);
 	if (status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
 			MANIFEST_LOGGING_RECORD_MEASUREMENT_FAIL, pcr->manifest_measurement, status);
 		return;
 	}
 
-	status = active->get_id (active, &id);
-	if (status != 0) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
-			MANIFEST_LOGGING_GET_ID_FAIL, pcr->manifest_id_measurement, status);
-		return;
+	if (active == NULL) {
+		memset (id, 0, sizeof (id));
+	}
+	else {
+		id[0] = 1;
+		status = active->get_id (active, (uint32_t*) &id[1]);
+		if (status != 0) {
+			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
+				MANIFEST_LOGGING_GET_ID_FAIL, pcr->manifest_id_measurement, status);
+			return;
+		}
 	}
 
-	status = pcr_store_update_buffer (pcr->store, pcr->hash, pcr->manifest_id_measurement,
-		(uint8_t*) &id, sizeof (id));
+	status = pcr_store_update_versioned_buffer (pcr->store, pcr->hash, pcr->manifest_id_measurement,
+		id, sizeof (id), true, 0);
 	if (status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
 			MANIFEST_LOGGING_RECORD_MEASUREMENT_FAIL, pcr->manifest_id_measurement, status);
 		return;
 	}
 
-	status = active->get_platform_id (active, &platform_id);
-	if (status != 0) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
-			MANIFEST_LOGGING_GET_PLATFORM_ID_FAIL, pcr->manifest_platform_id_measurement, status);
-		return;
+	if (active == NULL) {
+		platform_id = &empty_string;
+	}
+	else {
+		status = active->get_platform_id (active, &platform_id);
+		if (status != 0) {
+			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
+				MANIFEST_LOGGING_GET_PLATFORM_ID_FAIL, pcr->manifest_platform_id_measurement,
+				status);
+			return;
+		}
 	}
 
-	status = pcr_store_update_buffer (pcr->store, pcr->hash, pcr->manifest_platform_id_measurement,
-		(uint8_t*) platform_id, strlen (platform_id));
+	status = pcr_store_update_versioned_buffer (pcr->store, pcr->hash,
+		pcr->manifest_platform_id_measurement, (uint8_t*) platform_id, strlen (platform_id) + 1,
+		true, 0);
 	if (status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
-			MANIFEST_LOGGING_RECORD_MEASUREMENT_FAIL, pcr->manifest_platform_id_measurement, status);
+			MANIFEST_LOGGING_RECORD_MEASUREMENT_FAIL, pcr->manifest_platform_id_measurement,
+			status);
 	}
 
-	platform_free (platform_id);
-
+	if (active != NULL) {
+		platform_free (platform_id);
+	}
 }

@@ -149,7 +149,7 @@ int cfm_manager_flash_init (struct cfm_manager_flash *manager, struct cfm_flash 
 
 	memset (manager, 0, sizeof (struct cfm_manager_flash));
 
-	status = cfm_manager_init (&manager->base);
+	status = cfm_manager_init (&manager->base, hash);
 	if (status != 0) {
 		return status;
 	}

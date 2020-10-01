@@ -33,6 +33,7 @@ enum {
 	APP_CONTEXT_NO_MEMORY = APP_CONTEXT_ERROR (0x01),			/**< Memory allocation failed. */
 	APP_CONTEXT_SAVE_FAILED = APP_CONTEXT_ERROR (0x02),			/**< The running context has not been saved. */
 	APP_CONTEXT_NO_CONTEXT = APP_CONTEXT_ERROR (0x03),			/**< No context is available. */
+	APP_CONTEXT_NO_DATA = APP_CONTEXT_ERROR (0x04),				/**< No data is available. */
 };
 
 

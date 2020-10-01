@@ -207,25 +207,24 @@ void spi_flash_sfdp_release (struct spi_flash_sfdp *sfdp)
  */
 void spi_flash_sfdp_dump_header (struct spi_flash_sfdp *sfdp)
 {
-	struct spi_flash_sfdp_parameter_header optional;
 	struct flash_xfer xfer;
-	uint32_t *sfdp_data;
+	uint32_t sfdp_data[sizeof (struct spi_flash_sfdp_header)];
+	size_t hdr_size = sizeof (struct spi_flash_sfdp_parameter_header);
 	uint32_t i;
 	int status;
 
 	if (sfdp) {
-		sfdp_data = (uint32_t*) &sfdp->sfdp_header;
+		memcpy (sfdp_data, &sfdp->sfdp_header, sizeof (sfdp_data));
 		platform_printf ("Vendor: 0x%x, Device: 0x%x" NEWLINE, sfdp->vendor, sfdp->device);
 		platform_printf ("SFDP Header:   0x%08lx" NEWLINE, (long unsigned int) sfdp_data[0]);
 		platform_printf ("               0x%08lx" NEWLINE, (long unsigned int) sfdp_data[1]);
 		platform_printf ("1st Param Hdr: 0x%08lx" NEWLINE, (long unsigned int) sfdp_data[2]);
 		platform_printf ("               0x%08lx" NEWLINE, (long unsigned int) sfdp_data[3]);
 
-		sfdp_data = (uint32_t*) &optional;
 		for (i = 0; i < sfdp->sfdp_header.header_count; i++) {
 			FLASH_XFER_INIT_READ (xfer, FLASH_CMD_SFDP,
-				sizeof (struct spi_flash_sfdp_header) + (i * sizeof (optional)), 1, 0,
-				(uint8_t*) &optional, sizeof (optional), 0);
+				sizeof (struct spi_flash_sfdp_header) + (i * hdr_size), 1, 0, (uint8_t*) &sfdp_data,
+				hdr_size, 0);
 			status = sfdp->flash->xfer (sfdp->flash, &xfer);
 			if (status != 0) {
 				platform_printf ("Failed to read parameter header: 0x%x" NEWLINE, status);

@@ -269,7 +269,7 @@ int hash_mock_expect_hmac_init (struct hash_engine_mock *mock, const uint8_t *ke
 {
 	int status;
 	uint8_t hmac_key[SHA256_BLOCK_SIZE];
-	int i;
+	size_t i;
 
 	status = mock_expect (&mock->mock, mock->base.start_sha256, mock, 0);
 
@@ -277,6 +277,7 @@ int hash_mock_expect_hmac_init (struct hash_engine_mock *mock, const uint8_t *ke
 	for (i = 0; i < key_length; i++) {
 		hmac_key[i] ^= key[i];
 	}
+
 	status |= mock_expect (&mock->mock, mock->base.update, mock, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (hmac_key, sizeof (hmac_key)), MOCK_ARG (sizeof (hmac_key)));
 
@@ -302,7 +303,7 @@ int hash_mock_expect_hmac_finish (struct hash_engine_mock *mock, const uint8_t *
 {
 	int status;
 	uint8_t hmac_key[SHA256_BLOCK_SIZE];
-	int i;
+	size_t i;
 	int inner = mock_expect_next_save_id (&mock->mock);
 
 	status = mock_expect (&mock->mock, mock->base.finish, mock, 0, MOCK_ARG_NOT_NULL,

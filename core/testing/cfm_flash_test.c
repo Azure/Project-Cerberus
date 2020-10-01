@@ -62,6 +62,14 @@ const uint8_t CFM_HASH[] = {
 };
 
 /**
+ * CFM_DATA hash digest for testing.
+ */
+const uint8_t CFM_HASH_DIGEST[] = {
+	0x69,0x8e,0x6a,0xbd,0x62,0xdd,0xa6,0x16,0x2e,0xaf,0x15,0xc6,0x0a,0x69,0xbe,0x6e,
+	0x3f,0xb9,0xbc,0xad,0xbf,0x61,0xd1,0xba,0xb9,0x9a,0xc1,0x07,0x8d,0x6d,0xab,0x02
+};
+
+/**
  * Length of the test CFM hash.
  */
 const uint32_t CFM_HASH_LEN = sizeof (CFM_HASH);
@@ -85,6 +93,16 @@ const char TEST_VERSION_ID_1[] = "v01.01.01";
 * The FW version identifier in the CFM data.
 */
 const char TEST_VERSION_ID_2[] = "v02.02.02";
+
+/*
+ * The platform identifier in the CFM data
+ */
+const char CFM_PLATFORM_ID[] = "CFM_Test1";
+
+/*
+ * Length of CFM platform ID
+ */
+const size_t CFM_PLATFORM_ID_LEN = sizeof (CFM_PLATFORM_ID) - 1;
 
 /**
  * The length of the CFM signature.
@@ -1350,7 +1368,7 @@ static void cfm_flash_test_get_1st_component (CuTest *test)
 	CuAssertIntEquals (test, 32, component.fw[0].imgs[0].digest_length);
 	CuAssertPtrNotNull (test, component.fw[0].imgs[0].digest);
 
-	for (i = 0; i < sizeof (TEST_DIGEST); ++i) {
+	for (i = 0; i < (int) sizeof (TEST_DIGEST); ++i) {
 		CuAssertIntEquals (test, TEST_DIGEST[i], component.fw[0].imgs[0].digest[i]);
 	}
 
@@ -1451,7 +1469,7 @@ static void cfm_flash_test_get_2nd_component (CuTest *test)
 	CuAssertIntEquals (test, sizeof (TEST_DIGEST), component.fw[0].imgs[0].digest_length);
 	CuAssertPtrNotNull (test, component.fw[0].imgs[0].digest);
 
-	for (i = 0; i < sizeof (TEST_DIGEST); ++i) {
+	for (i = 0; i < (int) sizeof (TEST_DIGEST); ++i) {
 		CuAssertIntEquals (test, TEST_DIGEST[i], component.fw[0].imgs[0].digest[i]);
 	}
 

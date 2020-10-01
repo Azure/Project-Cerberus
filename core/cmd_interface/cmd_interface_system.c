@@ -25,7 +25,8 @@ int cmd_interface_system_process_request (struct cmd_interface *intf,
 	int direction;
 	int status;
 
-	status = cmd_interface_process_request (&interface->base, request, &command_id, &command_set);
+	status = cmd_interface_process_request (&interface->base, request, &command_id, &command_set,
+		true, true);
 	if (status != 0) {
 		return status;
 	}
@@ -42,201 +43,270 @@ int cmd_interface_system_process_request (struct cmd_interface *intf,
 
 	switch (command_id) {
 		case CERBERUS_PROTOCOL_GET_FW_VERSION:
-			return cerberus_protocol_get_fw_version (interface->fw_version, request);
+			status = cerberus_protocol_get_fw_version (interface->fw_version, request);
+			break;
 
 		case CERBERUS_PROTOCOL_GET_DIGEST:
 			if (direction == DEVICE_MANAGER_UPSTREAM) {
-				return cerberus_protocol_get_certificate_digest (interface->slave_attestation,
-					request);
+				status = cerberus_protocol_get_certificate_digest (interface->slave_attestation,
+					interface->base.session, request);
+				break;
 			}
 			else if (direction == DEVICE_MANAGER_DOWNSTREAM) {
-				return cerberus_protocol_process_certificate_digest (interface->master_attestation,
-					request);
+				status = cerberus_protocol_process_certificate_digest (
+					interface->master_attestation, request);
+				break;
 			}
 
 			return CMD_HANDLER_INVALID_DEVICE_MODE;
 
 		case CERBERUS_PROTOCOL_GET_CERTIFICATE:
 			if (direction == DEVICE_MANAGER_UPSTREAM) {
-				return cerberus_protocol_get_certificate (interface->slave_attestation, request);
+				status = cerberus_protocol_get_certificate (interface->slave_attestation, request);
+				break;
 			}
 			if (direction == DEVICE_MANAGER_DOWNSTREAM) {
-				return cerberus_protocol_process_certificate (interface->master_attestation,
+				status = cerberus_protocol_process_certificate (interface->master_attestation,
 					request);
+				break;
 			}
 
 			return CMD_HANDLER_INVALID_DEVICE_MODE;
 
 		case CERBERUS_PROTOCOL_ATTESTATION_CHALLENGE:
 			if (direction == DEVICE_MANAGER_UPSTREAM) {
-				return cerberus_protocol_get_challenge_response (interface->slave_attestation,
-					request);
+				status = cerberus_protocol_get_challenge_response (interface->slave_attestation,
+					interface->base.session, request);
+			break;
 			}
 			if (direction == DEVICE_MANAGER_DOWNSTREAM) {
-				return cerberus_protocol_process_challenge_response (interface->master_attestation,
-					request);
+				status = cerberus_protocol_process_challenge_response (
+					interface->master_attestation, request);
+			break;
 			}
 
 			return CMD_HANDLER_INVALID_DEVICE_MODE;
 
 		case CERBERUS_PROTOCOL_GET_LOG_INFO:
-			return cerberus_protocol_get_log_info (interface->pcr_store, request);
+			status = cerberus_protocol_get_log_info (interface->pcr_store, request);
+			break;
 
 		case CERBERUS_PROTOCOL_READ_LOG:
-			return cerberus_protocol_log_read (interface->pcr_store, interface->hash, request);
+			status = cerberus_protocol_log_read (interface->pcr_store, interface->hash, request);
+			break;
 
 		case CERBERUS_PROTOCOL_CLEAR_LOG:
-			return cerberus_protocol_log_clear (interface->background, request);
+			status = cerberus_protocol_log_clear (interface->background, request);
+			break;
 
 		case CERBERUS_PROTOCOL_GET_PFM_ID:
-			return cerberus_protocol_get_pfm_id (interface->pfm_manager_0, interface->pfm_manager_1,
-				request);
+			status = cerberus_protocol_get_pfm_id (interface->pfm_manager_0,
+				interface->pfm_manager_1, request);
+			break;
 
 		case CERBERUS_PROTOCOL_GET_PFM_SUPPORTED_FW:
-			return cerberus_protocol_get_pfm_fw (interface->pfm_0, interface->pfm_1,
+			status = cerberus_protocol_get_pfm_fw (interface->pfm_0, interface->pfm_1,
 				interface->pfm_manager_0, interface->pfm_manager_1, request);
+			break;
 
 		case CERBERUS_PROTOCOL_INIT_PFM_UPDATE:
-			return cerberus_protocol_pfm_update_init (interface->pfm_0, interface->pfm_1, request);
+			status = cerberus_protocol_pfm_update_init (interface->pfm_0, interface->pfm_1,
+				request);
+			break;
 
 		case CERBERUS_PROTOCOL_PFM_UPDATE:
-			return cerberus_protocol_pfm_update (interface->pfm_0, interface->pfm_1, request);
+			status = cerberus_protocol_pfm_update (interface->pfm_0, interface->pfm_1, request);
+			break;
 
 		case CERBERUS_PROTOCOL_COMPLETE_PFM_UPDATE:
-			return cerberus_protocol_pfm_update_complete (interface->pfm_0, interface->pfm_1,
+			status = cerberus_protocol_pfm_update_complete (interface->pfm_0, interface->pfm_1,
 				request);
+			break;
 
 		case CERBERUS_PROTOCOL_GET_CFM_ID:
-			return cerberus_protocol_get_cfm_id (interface->cfm_manager, request);
+			status = cerberus_protocol_get_cfm_id (interface->cfm_manager, request);
+			break;
 
 		case CERBERUS_PROTOCOL_INIT_CFM_UPDATE:
-			return cerberus_protocol_cfm_update_init (interface->cfm, request);
+			status = cerberus_protocol_cfm_update_init (interface->cfm, request);
+			break;
 
 		case CERBERUS_PROTOCOL_CFM_UPDATE:
-			return cerberus_protocol_cfm_update (interface->cfm, request);
+			status = cerberus_protocol_cfm_update (interface->cfm, request);
+			break;
 
 		case CERBERUS_PROTOCOL_COMPLETE_CFM_UPDATE:
-			return cerberus_protocol_cfm_update_complete (interface->cfm, request);
+			status = cerberus_protocol_cfm_update_complete (interface->cfm, request);
+			break;
 
 		case CERBERUS_PROTOCOL_GET_PCD_ID:
-			return cerberus_protocol_get_pcd_id (interface->pcd_manager, request);
+			status = cerberus_protocol_get_pcd_id (interface->pcd_manager, request);
+			break;
 
 		case CERBERUS_PROTOCOL_INIT_PCD_UPDATE:
-			return cerberus_protocol_pcd_update_init (interface->pcd, request);
+			status = cerberus_protocol_pcd_update_init (interface->pcd, request);
+			break;
 
 		case CERBERUS_PROTOCOL_PCD_UPDATE:
-			return cerberus_protocol_pcd_update (interface->pcd, request);
+			status = cerberus_protocol_pcd_update (interface->pcd, request);
+			break;
 
 		case CERBERUS_PROTOCOL_COMPLETE_PCD_UPDATE:
-			return cerberus_protocol_pcd_update_complete (interface->pcd, request);
+			status = cerberus_protocol_pcd_update_complete (interface->pcd, request);
+			break;
 
 		case CERBERUS_PROTOCOL_GET_CFM_SUPPORTED_COMPONENT_IDS:
-			return cerberus_protocol_get_cfm_component_ids (interface->cfm_manager, request);
+			status = cerberus_protocol_get_cfm_component_ids (interface->cfm_manager, request);
+			break;
 
 		case CERBERUS_PROTOCOL_INIT_FW_UPDATE:
-			return cerberus_protocol_fw_update_init (interface->control, request);
+			status = cerberus_protocol_fw_update_init (interface->control, request);
+			break;
 
 		case CERBERUS_PROTOCOL_FW_UPDATE:
-			return cerberus_protocol_fw_update (interface->control, request);
+			status = cerberus_protocol_fw_update (interface->control, request);
+			break;
 
 		case CERBERUS_PROTOCOL_COMPLETE_FW_UPDATE:
-			return cerberus_protocol_fw_update_start (interface->control, request);
+			status = cerberus_protocol_fw_update_start (interface->control, request);
+			break;
 
 		case CERBERUS_PROTOCOL_GET_UPDATE_STATUS:
-			return cerberus_protocol_get_update_status (interface->control, interface->pfm_0,
+			status = cerberus_protocol_get_update_status (interface->control, interface->pfm_0,
 				interface->pfm_1, interface->cfm, interface->pcd, interface->host_0,
 				interface->host_1, interface->recovery_cmd_0, interface->recovery_cmd_1,
 				interface->background, request);
+			break;
 
 		case CERBERUS_PROTOCOL_GET_EXT_UPDATE_STATUS:
-			return cerberus_protocol_get_extended_update_status (interface->control,
+			status = cerberus_protocol_get_extended_update_status (interface->control,
 				interface->recovery_manager_0, interface->recovery_manager_1,
 				interface->recovery_cmd_0, interface->recovery_cmd_1, request);
+			break;
 
 		case CERBERUS_PROTOCOL_GET_DEVICE_CAPABILITIES:
-			return cerberus_protocol_get_device_capabilities (interface->device_manager,
+			status = cerberus_protocol_get_device_capabilities (interface->device_manager,
 				request, device_num);
+			break;
 
 		case CERBERUS_PROTOCOL_RESET_COUNTER:
-			return cerberus_protocol_reset_counter (interface->cmd_device, request);
+			status = cerberus_protocol_reset_counter (interface->cmd_device, request);
+			break;
 
 		case CERBERUS_PROTOCOL_UNSEAL_MESSAGE:
-			return cerberus_protocol_unseal_message (interface->background, request);
+			status = cerberus_protocol_unseal_message (interface->background, request);
+			break;
 
 		case CERBERUS_PROTOCOL_UNSEAL_MESSAGE_RESULT:
-			return cerberus_protocol_unseal_message_result (interface->background, request);
+			status = cerberus_protocol_unseal_message_result (interface->background, request);
+			break;
 
 		case CERBERUS_PROTOCOL_EXPORT_CSR:
-			return cerberus_protocol_export_csr (interface->riot, request);
+			status = cerberus_protocol_export_csr (interface->riot, request);
+			break;
 
 		case CERBERUS_PROTOCOL_IMPORT_CA_SIGNED_CERT:
-			return cerberus_protocol_import_ca_signed_cert (interface->riot, interface->background,
-				request);
+			status = cerberus_protocol_import_ca_signed_cert (interface->riot,
+				interface->background, request);
+			break;
 
 		case CERBERUS_PROTOCOL_GET_SIGNED_CERT_STATE:
-			return cerberus_protocol_get_signed_cert_state (interface->background, request);
+			status = cerberus_protocol_get_signed_cert_state (interface->background, request);
+			break;
 
 		case CERBERUS_PROTOCOL_RESET_CONFIG:
-			return cerberus_protocol_reset_config (interface->auth, interface->background, request);
+			status = cerberus_protocol_reset_config (interface->auth, interface->background,
+				request);
+			break;
 
 		case CERBERUS_PROTOCOL_PREPARE_RECOVERY_IMAGE:
-			return cerberus_protocol_prepare_recovery_image (interface->recovery_cmd_0,
+			status = cerberus_protocol_prepare_recovery_image (interface->recovery_cmd_0,
 				interface->recovery_cmd_1, request);
+			break;
 
 		case CERBERUS_PROTOCOL_UPDATE_RECOVERY_IMAGE:
-			return cerberus_protocol_update_recovery_image (interface->recovery_cmd_0,
+			status = cerberus_protocol_update_recovery_image (interface->recovery_cmd_0,
 				interface->recovery_cmd_1, request);
+			break;
 
 		case CERBERUS_PROTOCOL_ACTIVATE_RECOVERY_IMAGE:
-			return cerberus_protocol_activate_recovery_image (interface->recovery_cmd_0,
+			status = cerberus_protocol_activate_recovery_image (interface->recovery_cmd_0,
 				interface->recovery_cmd_1, request);
+			break;
 
 		case CERBERUS_PROTOCOL_GET_RECOVERY_IMAGE_VERSION:
-			return cerberus_protocol_get_recovery_image_id (interface->recovery_manager_0,
+			status = cerberus_protocol_get_recovery_image_id (interface->recovery_manager_0,
 				interface->recovery_manager_1, request);
+			break;
 
 		case CERBERUS_PROTOCOL_GET_HOST_STATE:
-			return cerberus_protocol_get_host_reset_status (interface->host_0_ctrl,
+			status = cerberus_protocol_get_host_reset_status (interface->host_0_ctrl,
 				interface->host_1_ctrl, request);
+			break;
 
 		case CERBERUS_PROTOCOL_GET_DEVICE_INFO:
-			return cerberus_protocol_get_device_info (interface->cmd_device, request);
+			status = cerberus_protocol_get_device_info (interface->cmd_device, request);
+			break;
 
 		case CERBERUS_PROTOCOL_GET_DEVICE_ID:
-			return cerberus_protocol_get_device_id (&interface->device_id, request);
+			status = cerberus_protocol_get_device_id (&interface->device_id, request);
+			break;
 
 		case CERBERUS_PROTOCOL_GET_ATTESTATION_DATA:
-			return cerberus_protocol_get_attestation_data (interface->pcr_store, request);
+			status = cerberus_protocol_get_attestation_data (interface->pcr_store, request);
+			break;
+
+		case CERBERUS_PROTOCOL_EXCHANGE_KEYS:
+			status = cerberus_protocol_key_exchange (interface->base.session, request,
+				intf->curr_txn_encrypted);
+			break;
+
+		case CERBERUS_PROTOCOL_SESSION_SYNC:
+			status = cerberus_protocol_session_sync (interface->base.session, request,
+				intf->curr_txn_encrypted);
+			break;
 
 #ifdef ENABLE_DEBUG_COMMANDS
 		case CERBERUS_PROTOCOL_DEBUG_START_ATTESTATION:
-			return cerberus_protocol_start_attestation (request);
+			status = cerberus_protocol_start_attestation (request);
+			break;
 
 		case CERBERUS_PROTOCOL_DEBUG_GET_ATTESTATION_STATE:
-			return cerberus_protocol_get_attestation_state (interface->device_manager, request);
+			status = cerberus_protocol_get_attestation_state (interface->device_manager, request);
+			break;
 
 		case CERBERUS_PROTOCOL_DEBUG_FILL_LOG:
-			return cerberus_protocol_debug_fill_log (interface->background, request);
+			status = cerberus_protocol_debug_fill_log (interface->background, request);
+			break;
 
 		case CERBERUS_PROTOCOL_DEBUG_GET_DEVICE_MANAGER_CERT:
-			return cerberus_protocol_get_device_certificate (interface->device_manager, request);
+			status = cerberus_protocol_get_device_certificate (interface->device_manager, request);
+			break;
 
 		case CERBERUS_PROTOCOL_DEBUG_GET_DEVICE_MANAGER_CERT_DIGEST:
-			return cerberus_protocol_get_device_cert_digest (interface->device_manager,
+			status = cerberus_protocol_get_device_cert_digest (interface->device_manager,
 				interface->hash, request);
+			break;
 
 		case CERBERUS_PROTOCOL_DEBUG_GET_DEVICE_MANAGER_CHALLENGE:
-			return cerberus_protocol_get_device_challenge (interface->device_manager,
+			status = cerberus_protocol_get_device_challenge (interface->device_manager,
 				interface->master_attestation, interface->hash, request);
+			break;
 #endif
 
 		default:
 			return CMD_HANDLER_UNKNOWN_COMMAND;
 	}
+
+	if (status == 0) {
+		status = cmd_interface_process_response (&interface->base, request);
+	}
+
+	return status;
 }
 
 int cmd_interface_system_issue_request (struct cmd_interface *intf, uint8_t command_id,
-	void *request_params, uint8_t *buf, int buf_len)
+	void *request_params, uint8_t *buf, size_t buf_len)
 {
 	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) buf;
 	struct cmd_interface_system *interface = (struct cmd_interface_system*) intf;
@@ -321,6 +391,7 @@ int cmd_interface_system_issue_request (struct cmd_interface *intf, uint8_t comm
  * @param device_id Device ID
  * @param subsystem_vid Subsystem vendor ID
  * @param subsystem_id Subsystem ID
+ * @param session Session manager for channel encryption
  *
  * @return Initialization status, 0 if success or an error code.
  */
@@ -339,7 +410,8 @@ int cmd_interface_system_init (struct cmd_interface_system *intf,
 	struct recovery_image_cmd_interface *recovery_cmd_1,
 	struct recovery_image_manager *recovery_manager_0,
 	struct recovery_image_manager *recovery_manager_1, struct cmd_device *cmd_device,
-	uint16_t vendor_id, uint16_t device_id, uint16_t subsystem_vid, uint16_t subsystem_id)
+	uint16_t vendor_id, uint16_t device_id, uint16_t subsystem_vid, uint16_t subsystem_id,
+	struct session_manager *session)
 {
 	if ((intf == NULL) || (control == NULL) || (store == NULL) || (background == NULL) ||
 		(riot == NULL) || (auth == NULL) || (master_attestation == NULL) ||
@@ -385,6 +457,9 @@ int cmd_interface_system_init (struct cmd_interface_system *intf,
 
 	intf->base.process_request = cmd_interface_system_process_request;
 	intf->base.issue_request = cmd_interface_system_issue_request;
+	intf->base.generate_error_packet = cmd_interface_generate_error_packet;
+
+	intf->base.session = session;
 
 	return 0;
 }

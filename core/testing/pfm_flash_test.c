@@ -92,6 +92,14 @@ const uint8_t PFM_HASH[] = {
 };
 
 /**
+ * PFM_DATA hash digest for testing.
+ */
+const uint8_t PFM_HASH_DIGEST[] = {
+	0xaa,0xaa,0x53,0xe2,0x27,0x6c,0x19,0xaf,0x43,0x08,0x1a,0xdc,0xbf,0x92,0xda,0x65,
+	0x08,0x15,0x0a,0xae,0x98,0xf2,0xf5,0x59,0x4b,0x08,0x8c,0x9f,0x09,0xb8,0x60,0xc8
+};
+
+/**
  * Length of the test PFM hash.
  */
 const uint32_t PFM_HASH_LEN = sizeof (PFM_HASH);
@@ -197,12 +205,12 @@ const size_t PFM_PLATFORM_ID_OFFSET = 0x250;
 /**
  * The platform identifier in the PFM data.
  */
-const char *PFM_PLATFORM_ID = "PFM Test1";
+const char PFM_PLATFORM_ID[] = "PFM Test1";
 
 /**
  * Length of PFM platform ID
  */
- const size_t PFM_PLATFORM_ID_LEN = 9;
+ const size_t PFM_PLATFORM_ID_LEN = sizeof (PFM_PLATFORM_ID) - 1;
 
 
 /*******************

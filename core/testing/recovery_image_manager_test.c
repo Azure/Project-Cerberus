@@ -4,25 +4,26 @@
 #include <string.h>
 #include "testing.h"
 #include "recovery/recovery_image_manager.h"
+#include "recovery/recovery_image_header.h"
+#include "recovery/recovery_image_section_header.h"
+#include "recovery/recovery_image.h"
+#include "crypto/ecc.h"
+#include "host_fw/host_state_manager.h"
+#include "flash/flash_common.h"
+#include "common/image_header.h"
 #include "mock/recovery_image_mock.h"
 #include "mock/recovery_image_manager_mock.h"
 #include "mock/recovery_image_observer_mock.h"
 #include "mock/signature_verification_mock.h"
 #include "mock/flash_mock.h"
 #include "mock/pfm_manager_mock.h"
+#include "mock/pfm_mock.h"
+#include "mock/hash_mock.h"
 #include "engines/hash_testing_engine.h"
-#include "crypto/ecc.h"
 #include "image_header_testing.h"
 #include "recovery_image_testing.h"
 #include "recovery_image_header_testing.h"
-#include "recovery/recovery_image.h"
-#include "mock/pfm_mock.h"
 #include "recovery_image_section_header_testing.h"
-#include "host_fw/host_state_manager.h"
-#include "flash/flash_common.h"
-#include "common/image_header.h"
-#include "recovery/recovery_image_header.h"
-#include "recovery/recovery_image_section_header.h"
 
 
 static const char *SUITE = "recovery_image_manager";
@@ -159,7 +160,8 @@ static void recovery_image_manager_test_init (CuTest *test)
 	status = recovery_image_mock_validate_and_release (&image);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	status = flash_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
@@ -218,7 +220,8 @@ static void recovery_image_manager_test_init_null (CuTest *test)
 	status = recovery_image_mock_validate_and_release (&image);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	HASH_TESTING_ENGINE_RELEASE (&hash);
 }
@@ -270,7 +273,8 @@ static void recovery_image_manager_test_init_bad_signature (CuTest *test)
 	status = recovery_image_mock_validate_and_release (&image);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	status = flash_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
@@ -327,7 +331,8 @@ static void recovery_image_manager_test_init_bad_signature_ecc (CuTest *test)
 	status = recovery_image_mock_validate_and_release (&image);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	status = flash_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
@@ -384,7 +389,8 @@ static void recovery_image_manager_test_init_malformed (CuTest *test)
 	status = recovery_image_mock_validate_and_release (&image);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	status = flash_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
@@ -441,7 +447,8 @@ static void recovery_image_manager_test_init_bad_platform_id (CuTest *test)
 	status = recovery_image_mock_validate_and_release (&image);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -496,7 +503,8 @@ static void recovery_image_manager_test_init_flash_error (CuTest *test)
 	status = recovery_image_mock_validate_and_release (&image);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	status = flash_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
@@ -553,7 +561,8 @@ static void recovery_image_manager_test_init_image_header_too_small (CuTest *tes
 	status = recovery_image_mock_validate_and_release (&image);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -610,7 +619,8 @@ static void recovery_image_manager_test_init_image_header_bad_marker (CuTest *te
 	status = recovery_image_mock_validate_and_release (&image);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -667,7 +677,8 @@ static void recovery_image_manager_test_init_image_header_too_long (CuTest *test
 	status = recovery_image_mock_validate_and_release (&image);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -724,7 +735,8 @@ static void recovery_image_manager_test_init_image_header_bad_format_length (CuT
 	status = recovery_image_mock_validate_and_release (&image);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -781,7 +793,8 @@ static void recovery_image_manager_test_init_image_header_bad_platform_id (CuTes
 	status = recovery_image_mock_validate_and_release (&image);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -838,7 +851,8 @@ static void recovery_image_manager_test_init_image_header_bad_version_id (CuTest
 	status = recovery_image_mock_validate_and_release (&image);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -895,7 +909,8 @@ static void recovery_image_manager_test_init_image_header_bad_image_length (CuTe
 	status = recovery_image_mock_validate_and_release (&image);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -952,7 +967,8 @@ static void recovery_image_manager_test_init_section_header_bad_length (CuTest *
 	status = recovery_image_mock_validate_and_release (&image);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -1009,7 +1025,8 @@ static void recovery_image_manager_test_init_invalid_section_address (CuTest *te
 	status = recovery_image_mock_validate_and_release (&image);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -1126,7 +1143,8 @@ static void recovery_image_manager_test_get_active_recovery_image (CuTest *test)
 	status = recovery_image_mock_validate_and_release (&image);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -1182,7 +1200,8 @@ static void recovery_image_manager_test_get_active_recovery_image_null (CuTest *
 	status = recovery_image_mock_validate_and_release (&image);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -1241,7 +1260,8 @@ static void recovery_image_manager_test_clear_recovery_image_region_null (CuTest
 	status = recovery_image_mock_validate_and_release (&image);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -1301,7 +1321,8 @@ static void recovery_image_manager_test_clear_recovery_image_region_image_too_la
 	status = recovery_image_mock_validate_and_release (&image);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -1367,7 +1388,8 @@ static void recovery_image_manager_test_clear_recovery_image_region (CuTest *tes
 	status = flash_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -1434,7 +1456,8 @@ static void recovery_image_manager_test_clear_recovery_image_region_erase_error 
 	status = flash_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -1505,7 +1528,8 @@ static void recovery_image_manager_test_clear_recovery_image_region_image_in_use
 	status = flash_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -1585,7 +1609,8 @@ static void recovery_image_manager_test_clear_recovery_image_region_image_in_use
 	status = flash_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -1649,7 +1674,8 @@ static void recovery_image_manager_test_clear_recovery_image_region_image_not_in
 	status = flash_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -1728,7 +1754,8 @@ static void recovery_image_manager_test_clear_recovery_image_region_extra_free_c
 	status = flash_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -1788,7 +1815,8 @@ static void recovery_image_manager_test_clear_recovery_image_region_free_null_re
 	status = flash_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -1849,7 +1877,8 @@ static void recovery_image_manager_test_clear_recovery_image_region_free_null_ma
 	status = flash_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -1924,7 +1953,8 @@ static void recovery_image_manager_test_clear_recovery_image_region_in_use_after
 	status = flash_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -2173,7 +2203,8 @@ static void recovery_image_manager_test_write_recovery_image_data_null (CuTest *
 	status = flash_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -2233,7 +2264,8 @@ static void recovery_image_manager_test_write_recovery_image_data_without_clear 
 	status = flash_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -2307,7 +2339,8 @@ static void recovery_image_manager_test_write_recovery_image_data_too_long (CuTe
 	status = flash_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -2378,7 +2411,8 @@ static void recovery_image_manager_test_write_recovery_image_data_write_error (C
 	status = flash_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -2456,7 +2490,8 @@ static void recovery_image_manager_test_write_recovery_image_data_partial_write 
 	status = flash_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -2526,7 +2561,8 @@ static void recovery_image_manager_test_write_recovery_image_data (CuTest *test)
 	status = flash_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -2613,7 +2649,8 @@ static void recovery_image_manager_test_write_recovery_image_data_multiple (CuTe
 	status = flash_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -2690,7 +2727,8 @@ static void recovery_image_manager_test_write_recovery_image_data_block_end (CuT
 	status = flash_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -2777,7 +2815,8 @@ static void recovery_image_manager_test_write_recovery_image_data_write_after_er
 	status = flash_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -2864,7 +2903,8 @@ static void recovery_image_manager_test_write_recovery_image_data_write_after_pa
 	status = flash_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -2956,7 +2996,8 @@ static void recovery_image_manager_test_write_recovery_image_data_restart_write 
 	status = flash_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -3022,7 +3063,8 @@ static void recovery_image_manager_test_write_recovery_image_data_image_in_use (
 	status = flash_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -3085,7 +3127,8 @@ static void recovery_image_manager_test_activate_recovery_image_incomplete_image
 	status = flash_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -3158,7 +3201,8 @@ static void recovery_image_manager_test_activate_recovery_image_write_after_inco
 	status = flash_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -5155,7 +5199,8 @@ static void recovery_image_manager_test_init_two_region (CuTest *test)
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -5230,7 +5275,8 @@ static void recovery_image_manager_test_init_two_region_active_region1 (CuTest *
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -5308,7 +5354,8 @@ static void recovery_image_manager_test_init_two_region_active_region2 (CuTest *
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -5391,7 +5438,8 @@ static void recovery_image_manager_test_init_two_region_null (CuTest *test)
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	host_state_manager_release (&state);
 
@@ -5462,7 +5510,8 @@ static void recovery_image_manager_test_init_two_region_region1_bad_platform_id 
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -5541,7 +5590,8 @@ static void recovery_image_manager_test_init_two_region_region2_bad_platform_id 
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -5615,7 +5665,8 @@ static void recovery_image_manager_test_init_two_region_region1_flash_error (CuT
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -5692,7 +5743,8 @@ static void recovery_image_manager_test_init_two_region_region2_flash_error (CuT
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -5768,7 +5820,8 @@ static void recovery_image_manager_test_init_two_region_region1_bad_signature (C
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -5847,7 +5900,8 @@ static void recovery_image_manager_test_init_two_region_region2_bad_signature (C
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -5923,7 +5977,8 @@ static void recovery_image_manager_test_init_two_region_region1_bad_signature_ec
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -6002,7 +6057,8 @@ static void recovery_image_manager_test_init_two_region_region2_bad_signature_ec
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -6078,7 +6134,8 @@ static void recovery_image_manager_test_init_two_region_region1_malformed (CuTes
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -6157,7 +6214,8 @@ static void recovery_image_manager_test_init_two_region_region2_malformed (CuTes
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -6233,7 +6291,8 @@ static void recovery_image_manager_test_init_two_region_region1_image_header_too
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -6312,7 +6371,8 @@ static void recovery_image_manager_test_init_two_region_region2_image_header_too
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -6388,7 +6448,8 @@ static void recovery_image_manager_test_init_two_region_region1_image_header_bad
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -6467,7 +6528,8 @@ static void recovery_image_manager_test_init_two_region_region2_image_header_bad
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -6543,7 +6605,8 @@ static void recovery_image_manager_test_init_two_region_region1_image_header_too
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -6622,7 +6685,8 @@ static void recovery_image_manager_test_init_two_region_region2_image_header_too
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -6699,7 +6763,8 @@ static void recovery_image_manager_test_init_two_region_region1_image_header_bad
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -6779,7 +6844,8 @@ static void recovery_image_manager_test_init_two_region_region2_image_header_bad
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -6856,7 +6922,8 @@ static void recovery_image_manager_test_init_two_region_region1_image_header_bad
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -6936,7 +7003,8 @@ static void recovery_image_manager_test_init_two_region_region2_image_header_bad
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -7013,7 +7081,8 @@ static void recovery_image_manager_test_init_two_region_region1_image_header_bad
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -7093,7 +7162,8 @@ static void recovery_image_manager_test_init_two_region_region2_image_header_bad
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -7170,7 +7240,8 @@ static void recovery_image_manager_test_init_two_region_region1_image_header_bad
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -7250,7 +7321,8 @@ static void recovery_image_manager_test_init_two_region_region2_image_header_bad
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -7327,7 +7399,8 @@ static void recovery_image_manager_test_init_two_region_region1_image_section_he
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -7407,7 +7480,8 @@ static void recovery_image_manager_test_init_two_region_region2_image_section_he
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -7484,7 +7558,8 @@ static void recovery_image_manager_test_init_two_region_region1_invalid_section_
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -7564,7 +7639,8 @@ static void recovery_image_manager_test_init_two_region_region2_invalid_section_
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -7639,7 +7715,8 @@ static void recovery_image_manager_test_get_active_recovery_image_two_region (Cu
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -7714,7 +7791,8 @@ static void recovery_image_manager_test_get_active_recovery_image_two_region_nul
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -7790,7 +7868,8 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_null (Cu
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -7879,7 +7958,8 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_region1 
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -7965,7 +8045,8 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_region2 
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -8047,7 +8128,8 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_region1_
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -8126,7 +8208,8 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_region2_
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -8221,7 +8304,8 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_erase_er
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -8313,7 +8397,8 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_erase_er
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -8409,7 +8494,8 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_in_use_r
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -8508,7 +8594,8 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_in_use_r
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -8609,7 +8696,8 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_in_use_m
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -8713,7 +8801,8 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_in_use_m
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -8820,7 +8909,8 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_extra_fr
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -8930,7 +9020,8 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_extra_fr
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -9013,7 +9104,8 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_free_nul
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -9099,7 +9191,8 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_free_nul
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -9183,7 +9276,8 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_free_nul
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -9270,7 +9364,8 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_free_nul
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -9382,7 +9477,8 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_in_use_a
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -9496,7 +9592,8 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_in_use_a
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -9581,7 +9678,8 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_not_in_u
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -9670,7 +9768,8 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_not_in_u
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -9785,7 +9884,8 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_notify_o
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -9900,7 +10000,8 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_notify_o
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -10000,7 +10101,8 @@ static void recovery_image_manager_test_write_recovery_image_data_two_region_reg
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -10095,7 +10197,8 @@ static void recovery_image_manager_test_write_recovery_image_data_two_region_reg
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -10175,7 +10278,8 @@ static void recovery_image_manager_test_write_recovery_image_data_two_region_wit
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -10273,7 +10377,8 @@ static void recovery_image_manager_test_write_recovery_image_data_two_region_too
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -10368,7 +10473,8 @@ static void recovery_image_manager_test_write_recovery_image_data_two_region_wri
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -10470,7 +10576,8 @@ static void recovery_image_manager_test_write_recovery_image_data_two_region_par
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -10581,7 +10688,8 @@ static void recovery_image_manager_test_write_recovery_image_data_two_region_mul
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -10683,7 +10791,8 @@ static void recovery_image_manager_test_write_recovery_image_data_two_region_blo
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -10795,7 +10904,8 @@ static void recovery_image_manager_test_write_recovery_image_data_two_region_wri
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -10905,7 +11015,8 @@ static void recovery_image_manager_test_write_recovery_image_data_two_region_wri
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -11020,7 +11131,8 @@ static void recovery_image_manager_test_write_recovery_image_data_two_region_res
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -11108,7 +11220,8 @@ static void recovery_image_manager_test_write_recovery_image_data_two_region_in_
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -11200,7 +11313,8 @@ static void recovery_image_manager_test_write_recovery_image_data_two_region_wri
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -11303,7 +11417,8 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_regio
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -11403,7 +11518,8 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_regio
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -11518,7 +11634,8 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_regio
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -11633,7 +11750,8 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_regio
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -11722,7 +11840,8 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_no_pe
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -11805,7 +11924,8 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_no_pe
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -11898,7 +12018,8 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_no_pe
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -11991,7 +12112,8 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_no_pe
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -12076,7 +12198,8 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_null 
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -12171,7 +12294,8 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_write
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -12263,7 +12387,8 @@ CuTest *test)
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -12349,7 +12474,8 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_after
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -12432,7 +12558,8 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_after
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -12546,7 +12673,8 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_verif
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -12660,7 +12788,8 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_verif
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -12765,7 +12894,8 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_verif
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -12865,7 +12995,8 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_verif
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -12969,7 +13100,8 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_malfo
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -13070,7 +13202,8 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_malfo
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -13183,7 +13316,8 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_extra
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -13293,7 +13427,8 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_extra
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -13404,7 +13539,8 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_verif
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -13515,7 +13651,8 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_verif
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -13616,7 +13753,8 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_write
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -13711,7 +13849,8 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_write
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -13809,7 +13948,8 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_write
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -13904,7 +14044,8 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_write
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -14003,7 +14144,8 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_with_
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -14099,7 +14241,8 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_with_
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -14212,7 +14355,8 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_no_ev
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -14325,7 +14469,8 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_no_ev
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -14420,7 +14565,8 @@ static void recovery_image_manager_test_erase_all_recovery_regions_region1 (CuTe
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -14512,7 +14658,8 @@ static void recovery_image_manager_test_erase_all_recovery_regions_region2 (CuTe
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -14598,7 +14745,8 @@ static void recovery_image_manager_test_erase_all_recovery_regions_null_region1 
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -14684,7 +14832,8 @@ static void recovery_image_manager_test_erase_all_recovery_regions_null_region2 
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -14787,7 +14936,8 @@ static void recovery_image_manager_test_erase_all_recovery_regions_in_use_region
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -14890,7 +15040,8 @@ static void recovery_image_manager_test_erase_all_recovery_regions_in_use_region
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -14985,7 +15136,8 @@ static void recovery_image_manager_test_erase_all_recovery_regions_erase_error_r
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -15080,7 +15232,8 @@ static void recovery_image_manager_test_erase_all_recovery_regions_erase_error_r
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -15182,7 +15335,8 @@ static void recovery_image_manager_test_erase_all_recovery_regions_valid_image_n
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -15286,7 +15440,8 @@ static void recovery_image_manager_test_erase_all_recovery_regions_invalid_image
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -15391,7 +15546,8 @@ static void recovery_image_manager_test_erase_all_recovery_regions_valid_image_n
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -15495,7 +15651,8 @@ static void recovery_image_manager_test_erase_all_recovery_regions_invalid_image
 	status = recovery_image_mock_validate_and_release (&image2);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -15593,7 +15750,8 @@ static void recovery_image_manager_test_get_flash_update_manager (CuTest *test)
 	status = recovery_image_mock_validate_and_release (&image);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -15653,7 +15811,8 @@ static void recovery_image_manager_test_get_flash_update_manager_after_write (Cu
 	status = recovery_image_mock_validate_and_release (&image);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -15723,7 +15882,8 @@ static void recovery_image_manager_test_get_flash_update_manager_after_activate 
 	status = recovery_image_mock_validate_and_release (&image);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -15779,7 +15939,8 @@ static void recovery_image_manager_test_get_flash_update_manager_null (CuTest *t
 	status = recovery_image_mock_validate_and_release (&image);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -15846,7 +16007,8 @@ static void recovery_image_manager_test_get_flash_update_manager_after_activate_
 	status = recovery_image_mock_validate_and_release (&image);
 	CuAssertIntEquals (test, 0, status);
 
-	signature_verification_mock_release (&verification);
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_manager_release (&manager);
 
@@ -15854,6 +16016,796 @@ static void recovery_image_manager_test_get_flash_update_manager_after_activate_
 	CuAssertIntEquals (test, 0, status);
 
 	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void recovery_image_manager_test_get_measured_data (CuTest *test)
+{
+	HASH_TESTING_ENGINE hash;
+	struct recovery_image_manager manager;
+	struct recovery_image_mock image;
+	struct signature_verification_mock verification;
+	struct pfm_manager_mock pfm_manager;
+	struct flash_mock flash;
+	uint8_t buffer[SHA256_HASH_LENGTH];
+	size_t length = sizeof (buffer);
+	uint32_t total_len;
+	int status;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_mock_init (&pfm_manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_mock_init (&image);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_mock_init (&verification);
+	CuAssertIntEquals (test, 0, status);
+
+	image.base.flash = &flash.base;
+	image.base.addr = 0x10000;
+
+	status = mock_expect (&image.mock, image.base.verify, &image, 0, MOCK_ARG_NOT_NULL,
+		MOCK_ARG_NOT_NULL, MOCK_ARG ((uintptr_t) NULL), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_manager_init (&manager, &image.base, &hash.base,
+		&verification.base, &pfm_manager.base, RECOVERY_IMAGE_MANAGER_IMAGE_MAX_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&image.mock, image.base.get_hash, &image, 0, MOCK_ARG (&hash.base),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&image.mock, 1, RECOVERY_IMAGE_HASH, RECOVERY_IMAGE_HASH_LEN, 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_manager_get_measured_data (&manager, 0, buffer, length, &total_len);
+	CuAssertIntEquals (test, RECOVERY_IMAGE_HASH_LEN, status);
+	CuAssertIntEquals (test, RECOVERY_IMAGE_HASH_LEN, total_len);
+
+	status = testing_validate_array (RECOVERY_IMAGE_HASH, buffer, RECOVERY_IMAGE_HASH_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_mock_validate_and_release (&image);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_mock_validate_and_release (&pfm_manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	recovery_image_manager_release (&manager);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void recovery_image_manager_test_get_measured_data_with_offset (CuTest *test)
+{
+	HASH_TESTING_ENGINE hash;
+	struct recovery_image_manager manager;
+	struct recovery_image_mock image;
+	struct signature_verification_mock verification;
+	struct pfm_manager_mock pfm_manager;
+	struct flash_mock flash;
+	uint8_t buffer[SHA256_HASH_LENGTH];
+	size_t length = sizeof (buffer);
+	size_t offset = 2;
+	uint32_t total_len;
+	int status;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_mock_init (&pfm_manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_mock_init (&image);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_mock_init (&verification);
+	CuAssertIntEquals (test, 0, status);
+
+	image.base.flash = &flash.base;
+	image.base.addr = 0x10000;
+
+	status = mock_expect (&image.mock, image.base.verify, &image, 0, MOCK_ARG_NOT_NULL,
+		MOCK_ARG_NOT_NULL, MOCK_ARG ((uintptr_t) NULL), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_manager_init (&manager, &image.base, &hash.base,
+		&verification.base, &pfm_manager.base, RECOVERY_IMAGE_MANAGER_IMAGE_MAX_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&image.mock, image.base.get_hash, &image, 0, MOCK_ARG (&hash.base),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&image.mock, 1, RECOVERY_IMAGE_HASH, RECOVERY_IMAGE_HASH_LEN, 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_manager_get_measured_data (&manager, offset, buffer, length, 
+		&total_len);
+	CuAssertIntEquals (test, RECOVERY_IMAGE_HASH_LEN - offset, status);
+	CuAssertIntEquals (test, RECOVERY_IMAGE_HASH_LEN, total_len);
+
+	status = testing_validate_array (RECOVERY_IMAGE_HASH + 2, buffer, 
+		RECOVERY_IMAGE_HASH_LEN - offset);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_mock_validate_and_release (&image);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_mock_validate_and_release (&pfm_manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	recovery_image_manager_release (&manager);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void recovery_image_manager_test_get_measured_data_small_buffer (CuTest *test)
+{
+	HASH_TESTING_ENGINE hash;
+	struct recovery_image_manager manager;
+	struct recovery_image_mock image;
+	struct signature_verification_mock verification;
+	struct pfm_manager_mock pfm_manager;
+	struct flash_mock flash;
+	uint8_t buffer[SHA256_HASH_LENGTH];
+	size_t length = sizeof (buffer);
+	uint32_t total_len;
+	int status;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_mock_init (&pfm_manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_mock_init (&image);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_mock_init (&verification);
+	CuAssertIntEquals (test, 0, status);
+
+	image.base.flash = &flash.base;
+	image.base.addr = 0x10000;
+
+	status = mock_expect (&image.mock, image.base.verify, &image, 0, MOCK_ARG_NOT_NULL,
+		MOCK_ARG_NOT_NULL, MOCK_ARG ((uintptr_t) NULL), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_manager_init (&manager, &image.base, &hash.base,
+		&verification.base, &pfm_manager.base, RECOVERY_IMAGE_MANAGER_IMAGE_MAX_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&image.mock, image.base.get_hash, &image, 0, MOCK_ARG (&hash.base),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&image.mock, 1, RECOVERY_IMAGE_HASH, RECOVERY_IMAGE_HASH_LEN, 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_manager_get_measured_data (&manager, 0, buffer, length - 4, &total_len);
+	CuAssertIntEquals (test, RECOVERY_IMAGE_HASH_LEN - 4, status);
+	CuAssertIntEquals (test, RECOVERY_IMAGE_HASH_LEN, total_len);
+
+	status = testing_validate_array (RECOVERY_IMAGE_HASH, buffer, RECOVERY_IMAGE_HASH_LEN - 4);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_mock_validate_and_release (&image);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_mock_validate_and_release (&pfm_manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	recovery_image_manager_release (&manager);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void recovery_image_manager_test_get_measured_data_small_buffer_with_offset (CuTest *test)
+{
+	HASH_TESTING_ENGINE hash;
+	struct recovery_image_manager manager;
+	struct recovery_image_mock image;
+	struct signature_verification_mock verification;
+	struct pfm_manager_mock pfm_manager;
+	struct flash_mock flash;
+	uint8_t buffer[SHA256_HASH_LENGTH];
+	size_t length = sizeof (buffer);
+	size_t offset = 2;
+	uint32_t total_len;
+	int status;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_mock_init (&pfm_manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_mock_init (&image);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_mock_init (&verification);
+	CuAssertIntEquals (test, 0, status);
+
+	image.base.flash = &flash.base;
+	image.base.addr = 0x10000;
+
+	status = mock_expect (&image.mock, image.base.verify, &image, 0, MOCK_ARG_NOT_NULL,
+		MOCK_ARG_NOT_NULL, MOCK_ARG ((uintptr_t) NULL), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_manager_init (&manager, &image.base, &hash.base,
+		&verification.base, &pfm_manager.base, RECOVERY_IMAGE_MANAGER_IMAGE_MAX_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&image.mock, image.base.get_hash, &image, 0, MOCK_ARG (&hash.base),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&image.mock, 1, RECOVERY_IMAGE_HASH, RECOVERY_IMAGE_HASH_LEN, 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_manager_get_measured_data (&manager, offset, buffer, length - 4,
+		&total_len);
+	CuAssertIntEquals (test, RECOVERY_IMAGE_HASH_LEN - 4, status);
+	CuAssertIntEquals (test, RECOVERY_IMAGE_HASH_LEN, total_len);
+
+	status = testing_validate_array (RECOVERY_IMAGE_HASH + offset, buffer,
+		RECOVERY_IMAGE_HASH_LEN - 4);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_mock_validate_and_release (&image);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_mock_validate_and_release (&pfm_manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	recovery_image_manager_release (&manager);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void recovery_image_manager_test_get_measured_data_no_active (CuTest *test)
+{
+	HASH_TESTING_ENGINE hash;
+	struct recovery_image_manager manager;
+	struct recovery_image_mock image;
+	struct signature_verification_mock verification;
+	struct pfm_manager_mock pfm_manager;
+	struct flash_mock flash;
+	uint8_t buffer[SHA256_HASH_LENGTH];
+	uint8_t zero[SHA256_HASH_LENGTH] = {0};
+	size_t length = sizeof (buffer);
+	uint32_t total_len;
+	int status;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_mock_init (&pfm_manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_mock_init (&image);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_mock_init (&verification);
+	CuAssertIntEquals (test, 0, status);
+
+	image.base.flash = &flash.base;
+	image.base.addr = 0x10000;
+
+	status = mock_expect (&image.mock, image.base.verify, &image, RSA_ENGINE_BAD_SIGNATURE,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG (NULL), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_manager_init (&manager, &image.base, &hash.base,
+		&verification.base, &pfm_manager.base, RECOVERY_IMAGE_MANAGER_IMAGE_MAX_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_manager_get_measured_data (&manager, 0, buffer, length, &total_len);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+	CuAssertIntEquals (test, RECOVERY_IMAGE_HASH_LEN, total_len);
+
+	status = testing_validate_array (zero, buffer, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_mock_validate_and_release (&image);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_mock_validate_and_release (&pfm_manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	recovery_image_manager_release (&manager);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void recovery_image_manager_test_get_measured_data_no_active_with_offset (CuTest *test)
+{
+	HASH_TESTING_ENGINE hash;
+	struct recovery_image_manager manager;
+	struct recovery_image_mock image;
+	struct signature_verification_mock verification;
+	struct pfm_manager_mock pfm_manager;
+	struct flash_mock flash;
+	uint8_t buffer[SHA256_HASH_LENGTH];
+	uint8_t zero[SHA256_HASH_LENGTH] = {0};
+	size_t length = sizeof (buffer);
+	uint32_t total_len;
+	int offset = 2;
+	int status;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_mock_init (&pfm_manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_mock_init (&image);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_mock_init (&verification);
+	CuAssertIntEquals (test, 0, status);
+
+	image.base.flash = &flash.base;
+	image.base.addr = 0x10000;
+
+	status = mock_expect (&image.mock, image.base.verify, &image, RSA_ENGINE_BAD_SIGNATURE,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG (NULL), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_manager_init (&manager, &image.base, &hash.base,
+		&verification.base, &pfm_manager.base, RECOVERY_IMAGE_MANAGER_IMAGE_MAX_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_manager_get_measured_data (&manager, offset, buffer, length, 
+		&total_len);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH - offset, status);
+	CuAssertIntEquals (test, RECOVERY_IMAGE_HASH_LEN, total_len);
+
+	status = testing_validate_array (zero, buffer, SHA256_HASH_LENGTH - offset);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_mock_validate_and_release (&image);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_mock_validate_and_release (&pfm_manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	recovery_image_manager_release (&manager);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void recovery_image_manager_test_get_measured_data_no_active_small_buffer (CuTest *test)
+{
+	HASH_TESTING_ENGINE hash;
+	struct recovery_image_manager manager;
+	struct recovery_image_mock image;
+	struct signature_verification_mock verification;
+	struct pfm_manager_mock pfm_manager;
+	struct flash_mock flash;
+	uint8_t buffer[SHA256_HASH_LENGTH];
+	uint8_t zero[SHA256_HASH_LENGTH] = {0};
+	size_t length = sizeof (buffer);
+	uint32_t total_len;
+	int status;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_mock_init (&pfm_manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_mock_init (&image);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_mock_init (&verification);
+	CuAssertIntEquals (test, 0, status);
+
+	image.base.flash = &flash.base;
+	image.base.addr = 0x10000;
+
+	status = mock_expect (&image.mock, image.base.verify, &image, RSA_ENGINE_BAD_SIGNATURE,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG (NULL), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_manager_init (&manager, &image.base, &hash.base,
+		&verification.base, &pfm_manager.base, RECOVERY_IMAGE_MANAGER_IMAGE_MAX_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_manager_get_measured_data (&manager, 0, buffer, length - 2, &total_len);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH - 2, status);
+	CuAssertIntEquals (test, RECOVERY_IMAGE_HASH_LEN, total_len);
+
+	status = testing_validate_array (zero, buffer, SHA256_HASH_LENGTH - 2);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_mock_validate_and_release (&image);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_mock_validate_and_release (&pfm_manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	recovery_image_manager_release (&manager);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void recovery_image_manager_test_get_measured_data_no_active_small_buffer_with_offset (
+	CuTest *test)
+{
+	HASH_TESTING_ENGINE hash;
+	struct recovery_image_manager manager;
+	struct recovery_image_mock image;
+	struct signature_verification_mock verification;
+	struct pfm_manager_mock pfm_manager;
+	struct flash_mock flash;
+	uint8_t buffer[SHA256_HASH_LENGTH];
+	uint8_t zero[SHA256_HASH_LENGTH] = {0};
+	size_t length = sizeof (buffer);
+	uint32_t total_len;
+	int offset = 2;
+	int status;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_mock_init (&pfm_manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_mock_init (&image);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_mock_init (&verification);
+	CuAssertIntEquals (test, 0, status);
+
+	image.base.flash = &flash.base;
+	image.base.addr = 0x10000;
+
+	status = mock_expect (&image.mock, image.base.verify, &image, RSA_ENGINE_BAD_SIGNATURE,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG (NULL), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_manager_init (&manager, &image.base, &hash.base,
+		&verification.base, &pfm_manager.base, RECOVERY_IMAGE_MANAGER_IMAGE_MAX_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_manager_get_measured_data (&manager, offset, buffer, length - 4, 
+		&total_len);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH - 4, status);
+	CuAssertIntEquals (test, RECOVERY_IMAGE_HASH_LEN, total_len);
+
+	status = testing_validate_array (zero, buffer, SHA256_HASH_LENGTH - 4);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_mock_validate_and_release (&image);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_mock_validate_and_release (&pfm_manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	recovery_image_manager_release (&manager);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void recovery_image_manager_test_get_measured_data_0_bytes_read (CuTest *test)
+{
+	HASH_TESTING_ENGINE hash;
+	struct recovery_image_manager manager;
+	struct recovery_image_mock image;
+	struct signature_verification_mock verification;
+	struct pfm_manager_mock pfm_manager;
+	struct flash_mock flash;
+	uint8_t buffer[SHA256_HASH_LENGTH];
+	size_t length = sizeof (buffer);
+	uint32_t total_len;
+	int status;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_mock_init (&pfm_manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_mock_init (&image);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_mock_init (&verification);
+	CuAssertIntEquals (test, 0, status);
+
+	image.base.flash = &flash.base;
+	image.base.addr = 0x10000;
+
+	status = mock_expect (&image.mock, image.base.verify, &image, 0, MOCK_ARG_NOT_NULL,
+		MOCK_ARG_NOT_NULL, MOCK_ARG ((uintptr_t) NULL), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_manager_init (&manager, &image.base, &hash.base,
+		&verification.base, &pfm_manager.base, RECOVERY_IMAGE_MANAGER_IMAGE_MAX_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_manager_get_measured_data (&manager, RECOVERY_IMAGE_HASH_LEN, buffer, 
+		length, &total_len);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, RECOVERY_IMAGE_HASH_LEN, total_len);
+
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_mock_validate_and_release (&image);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_mock_validate_and_release (&pfm_manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	recovery_image_manager_release (&manager);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void recovery_image_manager_test_get_measured_data_invalid_offset (CuTest *test)
+{
+	HASH_TESTING_ENGINE hash;
+	struct recovery_image_manager manager;
+	struct recovery_image_mock image;
+	struct signature_verification_mock verification;
+	struct pfm_manager_mock pfm_manager;
+	struct flash_mock flash;
+	uint8_t buffer[SHA256_HASH_LENGTH];
+	size_t length = sizeof (buffer);
+	uint32_t total_len;
+	int status;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_mock_init (&pfm_manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_mock_init (&image);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_mock_init (&verification);
+	CuAssertIntEquals (test, 0, status);
+
+	image.base.flash = &flash.base;
+	image.base.addr = 0x10000;
+
+	status = mock_expect (&image.mock, image.base.verify, &image, 0, MOCK_ARG_NOT_NULL,
+		MOCK_ARG_NOT_NULL, MOCK_ARG ((uintptr_t) NULL), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_manager_init (&manager, &image.base, &hash.base,
+		&verification.base, &pfm_manager.base, RECOVERY_IMAGE_MANAGER_IMAGE_MAX_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_manager_get_measured_data (&manager, SHA256_HASH_LENGTH, buffer,
+		length, &total_len);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, RECOVERY_IMAGE_HASH_LEN, total_len);
+
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_mock_validate_and_release (&image);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_mock_validate_and_release (&pfm_manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	recovery_image_manager_release (&manager);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void recovery_image_manager_test_get_measured_data_null (CuTest *test)
+{
+	HASH_TESTING_ENGINE hash;
+	struct recovery_image_manager manager;
+	struct recovery_image_mock image;
+	struct signature_verification_mock verification;
+	struct pfm_manager_mock pfm_manager;
+	struct flash_mock flash;
+	uint8_t buffer[SHA256_HASH_LENGTH];
+	size_t length = sizeof (buffer);
+	uint32_t total_len;
+	int status;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_mock_init (&pfm_manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_mock_init (&image);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_mock_init (&verification);
+	CuAssertIntEquals (test, 0, status);
+
+	image.base.flash = &flash.base;
+	image.base.addr = 0x10000;
+
+	status = mock_expect (&image.mock, image.base.verify, &image, 0, MOCK_ARG_NOT_NULL,
+		MOCK_ARG_NOT_NULL, MOCK_ARG ((uintptr_t) NULL), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_manager_init (&manager, &image.base, &hash.base,
+		&verification.base, &pfm_manager.base, RECOVERY_IMAGE_MANAGER_IMAGE_MAX_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_manager_get_measured_data (NULL, SHA256_HASH_LENGTH, buffer,
+		length, &total_len);
+	CuAssertIntEquals (test, RECOVERY_IMAGE_MANAGER_INVALID_ARGUMENT, status);
+
+	status = recovery_image_manager_get_measured_data (&manager, SHA256_HASH_LENGTH, NULL,
+		length, &total_len);
+	CuAssertIntEquals (test, RECOVERY_IMAGE_MANAGER_INVALID_ARGUMENT, status);
+
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_mock_validate_and_release (&image);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_mock_validate_and_release (&pfm_manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	recovery_image_manager_release (&manager);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void recovery_image_manager_test_get_measured_data_fail (CuTest *test)
+{
+	struct recovery_image_manager_mock manager;
+	struct recovery_image_mock image;
+	uint8_t buffer[SHA256_HASH_LENGTH];
+	size_t length = sizeof (buffer);
+	uint32_t total_len;
+	int status;
+
+	TEST_START;
+
+	status = recovery_image_manager_mock_init (&manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_mock_init (&image);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.mock, manager.base.get_active_recovery_image, &manager,
+		(intptr_t) &image.base);
+	status |= mock_expect (&manager.mock, manager.base.free_recovery_image, &manager,
+		0, MOCK_ARG (&image.base));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&image.mock, image.base.get_hash, &image, RECOVERY_IMAGE_GET_HASH_FAILED,
+		MOCK_ARG (manager.base.hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_manager_get_measured_data (&manager.base, 0, buffer, length, 
+		&total_len);
+	CuAssertIntEquals (test, RECOVERY_IMAGE_GET_HASH_FAILED, status);
+
+	status = recovery_image_mock_validate_and_release (&image);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_manager_mock_validate_and_release (&manager);
+	CuAssertIntEquals (test, 0, status);
 }
 
 
@@ -15977,24 +16929,42 @@ CuSuite* get_recovery_image_manager_suite ()
 	SUITE_ADD_TEST (suite, recovery_image_manager_test_init_two_region_region2_bad_signature_ecc);
 	SUITE_ADD_TEST (suite, recovery_image_manager_test_init_two_region_region1_malformed);
 	SUITE_ADD_TEST (suite, recovery_image_manager_test_init_two_region_region2_malformed);
-	SUITE_ADD_TEST (suite, recovery_image_manager_test_init_two_region_region1_image_header_too_small);
-	SUITE_ADD_TEST (suite, recovery_image_manager_test_init_two_region_region2_image_header_too_small);
-	SUITE_ADD_TEST (suite, recovery_image_manager_test_init_two_region_region1_image_header_bad_marker);
-	SUITE_ADD_TEST (suite, recovery_image_manager_test_init_two_region_region2_image_header_bad_marker);
-	SUITE_ADD_TEST (suite, recovery_image_manager_test_init_two_region_region1_image_header_too_long);
-	SUITE_ADD_TEST (suite, recovery_image_manager_test_init_two_region_region2_image_header_too_long);
-	SUITE_ADD_TEST (suite, recovery_image_manager_test_init_two_region_region1_image_header_bad_format_length);
-	SUITE_ADD_TEST (suite, recovery_image_manager_test_init_two_region_region2_image_header_bad_format_length);
-	SUITE_ADD_TEST (suite, recovery_image_manager_test_init_two_region_region1_image_header_bad_platform_id);
-	SUITE_ADD_TEST (suite, recovery_image_manager_test_init_two_region_region2_image_header_bad_platform_id);
-	SUITE_ADD_TEST (suite, recovery_image_manager_test_init_two_region_region1_image_header_bad_version_id);
-	SUITE_ADD_TEST (suite, recovery_image_manager_test_init_two_region_region2_image_header_bad_version_id);
-	SUITE_ADD_TEST (suite, recovery_image_manager_test_init_two_region_region1_image_header_bad_image_length);
-	SUITE_ADD_TEST (suite, recovery_image_manager_test_init_two_region_region2_image_header_bad_image_length);
-	SUITE_ADD_TEST (suite, recovery_image_manager_test_init_two_region_region1_image_section_header_bad_length);
-	SUITE_ADD_TEST (suite, recovery_image_manager_test_init_two_region_region2_image_section_header_bad_length);
-	SUITE_ADD_TEST (suite, recovery_image_manager_test_init_two_region_region1_invalid_section_address);
-	SUITE_ADD_TEST (suite, recovery_image_manager_test_init_two_region_region2_invalid_section_address);
+	SUITE_ADD_TEST (suite,
+		recovery_image_manager_test_init_two_region_region1_image_header_too_small);
+	SUITE_ADD_TEST (suite,
+		recovery_image_manager_test_init_two_region_region2_image_header_too_small);
+	SUITE_ADD_TEST (suite,
+		recovery_image_manager_test_init_two_region_region1_image_header_bad_marker);
+	SUITE_ADD_TEST (suite,
+		recovery_image_manager_test_init_two_region_region2_image_header_bad_marker);
+	SUITE_ADD_TEST (suite,
+		recovery_image_manager_test_init_two_region_region1_image_header_too_long);
+	SUITE_ADD_TEST (suite,
+		recovery_image_manager_test_init_two_region_region2_image_header_too_long);
+	SUITE_ADD_TEST (suite,
+		recovery_image_manager_test_init_two_region_region1_image_header_bad_format_length);
+	SUITE_ADD_TEST (suite,
+		recovery_image_manager_test_init_two_region_region2_image_header_bad_format_length);
+	SUITE_ADD_TEST (suite,
+		recovery_image_manager_test_init_two_region_region1_image_header_bad_platform_id);
+	SUITE_ADD_TEST (suite,
+		recovery_image_manager_test_init_two_region_region2_image_header_bad_platform_id);
+	SUITE_ADD_TEST (suite,
+		recovery_image_manager_test_init_two_region_region1_image_header_bad_version_id);
+	SUITE_ADD_TEST (suite,
+		recovery_image_manager_test_init_two_region_region2_image_header_bad_version_id);
+	SUITE_ADD_TEST (suite,
+		recovery_image_manager_test_init_two_region_region1_image_header_bad_image_length);
+	SUITE_ADD_TEST (suite,
+		recovery_image_manager_test_init_two_region_region2_image_header_bad_image_length);
+	SUITE_ADD_TEST (suite,
+		recovery_image_manager_test_init_two_region_region1_image_section_header_bad_length);
+	SUITE_ADD_TEST (suite,
+		recovery_image_manager_test_init_two_region_region2_image_section_header_bad_length);
+	SUITE_ADD_TEST (suite,
+		recovery_image_manager_test_init_two_region_region1_invalid_section_address);
+	SUITE_ADD_TEST (suite,
+		recovery_image_manager_test_init_two_region_region2_invalid_section_address);
 
 	SUITE_ADD_TEST (suite, recovery_image_manager_test_get_active_recovery_image_two_region);
 	SUITE_ADD_TEST (suite, recovery_image_manager_test_get_active_recovery_image_two_region_null);
@@ -16157,6 +17127,20 @@ CuSuite* get_recovery_image_manager_suite ()
 	SUITE_ADD_TEST (suite, recovery_image_manager_test_get_flash_update_manager_after_activate);
 	SUITE_ADD_TEST (suite, recovery_image_manager_test_get_flash_update_manager_null);
 	SUITE_ADD_TEST (suite, recovery_image_manager_test_get_flash_update_manager_after_activate_fail);
+
+	SUITE_ADD_TEST (suite, recovery_image_manager_test_get_measured_data);
+	SUITE_ADD_TEST (suite, recovery_image_manager_test_get_measured_data_with_offset);
+	SUITE_ADD_TEST (suite, recovery_image_manager_test_get_measured_data_small_buffer);
+	SUITE_ADD_TEST (suite, recovery_image_manager_test_get_measured_data_small_buffer_with_offset);
+	SUITE_ADD_TEST (suite, recovery_image_manager_test_get_measured_data_no_active);
+	SUITE_ADD_TEST (suite, recovery_image_manager_test_get_measured_data_no_active_with_offset);
+	SUITE_ADD_TEST (suite, recovery_image_manager_test_get_measured_data_no_active_small_buffer);
+	SUITE_ADD_TEST (suite,
+		recovery_image_manager_test_get_measured_data_no_active_small_buffer_with_offset);
+	SUITE_ADD_TEST (suite, recovery_image_manager_test_get_measured_data_0_bytes_read);
+	SUITE_ADD_TEST (suite, recovery_image_manager_test_get_measured_data_invalid_offset);
+	SUITE_ADD_TEST (suite, recovery_image_manager_test_get_measured_data_null);
+	SUITE_ADD_TEST (suite, recovery_image_manager_test_get_measured_data_fail);
 
 	return suite;
 }

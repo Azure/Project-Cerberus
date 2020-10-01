@@ -34,7 +34,7 @@ static int hash_mbedtls_calculate_sha1 (struct hash_engine *engine, const uint8_
 {
 	struct hash_engine_mbedtls *mbedtls = (struct hash_engine_mbedtls*) engine;
 
-	if ((mbedtls == NULL) || (data == NULL) || (hash == NULL) || (length == 0)) {
+	if ((mbedtls == NULL) || ((data == NULL) && (length != 0)) || (hash == NULL)) {
 		return HASH_ENGINE_INVALID_ARGUMENT;
 	}
 
@@ -70,7 +70,7 @@ static int hash_mbedtls_calculate_sha256 (struct hash_engine *engine, const uint
 {
 	struct hash_engine_mbedtls *mbedtls = (struct hash_engine_mbedtls*) engine;
 
-	if ((mbedtls == NULL) || (data == NULL) || (hash == NULL) || (length == 0)) {
+	if ((mbedtls == NULL) || ((data == NULL) && (length != 0)) || (hash == NULL)) {
 		return HASH_ENGINE_INVALID_ARGUMENT;
 	}
 
@@ -104,7 +104,7 @@ static int hash_mbedtls_update (struct hash_engine *engine, const uint8_t *data,
 {
 	struct hash_engine_mbedtls *mbedtls = (struct hash_engine_mbedtls*) engine;
 
-	if ((mbedtls == NULL) || (data == NULL)) {
+	if ((mbedtls == NULL) || ((data == NULL) && (length != 0))) {
 		return HASH_ENGINE_INVALID_ARGUMENT;
 	}
 

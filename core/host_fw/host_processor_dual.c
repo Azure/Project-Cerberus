@@ -61,7 +61,8 @@ static int host_processor_dual_initial_rot_flash_access (struct host_processor_d
 			(status == MFG_FILTER_HANDLER_UNSUPPORTED_DEVICE) ||
 			(status == HOST_FLASH_MGR_MISMATCH_VENDOR) ||
 			(status == HOST_FLASH_MGR_MISMATCH_DEVICE) ||
-			(status == HOST_FLASH_MGR_MISMATCH_SIZES)) {
+			(status == HOST_FLASH_MGR_MISMATCH_SIZES) ||
+			(status == HOST_FLASH_MGR_MISMATCH_ADDR_MODE)) {
 			host_state_manager_set_unsupported_flash (host->state, true);
 			return status;
 		}
@@ -704,7 +705,7 @@ static int host_processor_dual_soft_reset (struct host_processor *host, struct h
 						if (!host_state_manager_is_pfm_dirty (dual->state)) {
 							status = HOST_PROCESSOR_NOTHING_TO_VERIFY;
 						}
-						/* no break */
+						/* fall through */ /* no break */
 
 					default:
 						prevalidated = false;

@@ -58,6 +58,9 @@ enum {
 	HOST_LOGGING_CLEAR_RW_REGIONS_ERROR,		/**< Error clearing the SPI filter read/write regions. */
 	HOST_LOGGING_CLEAR_RW_REGIONS_RETRIES,		/**< The number of attempts needed to clear the filter regions. */
 	HOST_LOGGING_PCR_UPDATE_ERROR,				/**< Error while updating a PCR entry. */
+	HOST_LOGGING_BACKUP_FIRMWARE_STARTED,		/**< Start backup of active host firmware. */
+	HOST_LOGGING_BACKUP_FIRMWARE_COMPLETED,		/**< Host active firmware backup has completed. */
+	HOST_LOGGING_BMC_RECOVERY_DETECTED,			/**< Detected BMC recovery attempt. */
 };
 
 

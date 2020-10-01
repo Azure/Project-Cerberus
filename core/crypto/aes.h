@@ -12,12 +12,17 @@
 /**
  * The length of AES-GCM authentication tags.
  */
-#define	AES_TAG_LENGTH		16
+#define	AES_TAG_LENGTH			16
+
+/**
+ * The length of an AES 256 key.
+ */
+#define	AES256_KEY_LENGTH		32
 
 
 /**
  * A platform-independent API for encrypting data using AES.  AES engine instances are not
- * guaranteed to be thread-safe across different API calls.
+ * guaranteed to be thread-safe.
  */
 struct aes_engine {
 	/**

@@ -23,7 +23,8 @@ static void pfm_observer_pcr_on_pfm_activated (struct pfm_observer *observer, st
  * @param store The PCR store to update as the PFM changes.
  * @param manifest_measurement The identifier for the manifest measurement in the PCR.
  * @param manifest_id_measurement The identifier for the manifest ID measurement in the PCR.
- * @param platform_id_measurement The identifier for the manifest platform ID measurement in the PCR.
+ * @param platform_id_measurement The identifier for the manifest platform ID measurement in the
+ * PCR.
  *
  * @return 0 if the observer was successfully initialized or an error code.
  */
@@ -72,6 +73,7 @@ void pfm_observer_pcr_record_measurement (struct pfm_observer_pcr *observer,
 	struct pfm_manager *manager)
 {
 	struct pfm *active;
+	struct pfm_observer_pcr *pcr = (struct pfm_observer_pcr*) observer;
 
 	if ((observer == NULL) || (manager == NULL)) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
@@ -81,7 +83,10 @@ void pfm_observer_pcr_record_measurement (struct pfm_observer_pcr *observer,
 
 	active = manager->get_active_pfm (manager);
 	if (active) {
-		pfm_observer_pcr_on_pfm_activated (&observer->base, active);
+		manifest_pcr_record_manifest_measurement (&pcr->pcr, &active->base);
 		manager->free_pfm (manager, active);
+	}
+	else {
+		manifest_pcr_record_manifest_measurement (&pcr->pcr, NULL);
 	}
 }

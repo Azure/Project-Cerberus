@@ -18,7 +18,7 @@
  */
 static int host_fw_find_longest_version_id (const struct pfm_firmware_versions *list)
 {
-	int i;
+	size_t i;
 	int max = 0;
 	int len;
 
@@ -177,7 +177,7 @@ static const struct flash_region* host_fw_find_next_region (uint32_t last_addr,
 	const struct flash_region *regions, size_t count)
 {
 	const struct flash_region *next = NULL;
-	int i;
+	size_t i;
 
 	for (i = 0; i < count; i++) {
 		if (regions[i].start_addr >= last_addr) {
@@ -249,7 +249,7 @@ static bool host_fw_are_regions_different (const struct flash_region *region1, s
 bool host_fw_are_images_different (const struct pfm_image_list *img_list1,
 	const struct pfm_image_list *img_list2)
 {
-	int i;
+	size_t i;
 
 	if ((img_list1 == NULL) || (img_list2 == NULL)) {
 		if ((img_list1 == NULL) && (img_list2 == NULL)) {
@@ -319,7 +319,7 @@ int host_fw_verify_images (struct spi_flash *flash, const struct pfm_image_list 
 int host_fw_verify_offset_images (struct spi_flash *flash, const struct pfm_image_list *img_list,
 	uint32_t offset, struct hash_engine *hash, struct rsa_engine *rsa)
 {
-	int i;
+	size_t i;
 	int status = 0;
 
 	if ((flash == NULL) || (img_list == NULL) || (hash == NULL) || (rsa == NULL)) {
@@ -371,8 +371,8 @@ static const struct flash_region* host_fw_find_next_flash_region (uint32_t last_
 {
 	const struct flash_region *next = NULL;
 	const struct flash_region *rw_next;
-	int i;
-	int j;
+	size_t i;
+	size_t j;
 
 	for (i = 0; i < img_list->count; i++) {
 		for (j = 0; j < img_list->images[i].count; j++) {
@@ -422,7 +422,7 @@ int host_fw_full_flash_verification (struct spi_flash *flash, const struct pfm_i
 	uint32_t flash_size;
 	uint32_t last_addr;
 	int status;
-	int i;
+	size_t i;
 
 	if ((flash == NULL) || (img_list == NULL) || (writable == NULL) || (hash == NULL) ||
 		(rsa == NULL)) {
@@ -584,8 +584,8 @@ int host_fw_restore_flash_device (struct spi_flash *restore, struct spi_flash *f
 	uint32_t last_addr;
 	const struct flash_region *pos;
 	int status;
-	int i;
-	int j;
+	size_t i;
+	size_t j;
 
 	if ((restore == NULL) || (from == NULL) || (img_list == NULL) || (writable == NULL)) {
 		return HOST_FW_UTIL_INVALID_ARGUMENT;
@@ -640,7 +640,7 @@ int host_fw_restore_flash_device (struct spi_flash *restore, struct spi_flash *f
 int host_fw_config_spi_filter_read_write_regions (struct spi_filter_interface *filter,
 	const struct pfm_read_write_regions *writable)
 {
-	int i;
+	size_t i;
 	int status;
 
 	if ((filter == NULL) || (writable == NULL)) {

@@ -21,10 +21,13 @@ struct host_irq_handler {
 	 * @param handler The handler context.
 	 * @param allow_unsecure Flag indicating if the host should be allowed to boot regardless of the
 	 * authentication status.
+	 * @param hash Optional argument to override the hash engine used for power on validation.  If
+	 * this is set to null, the internal hash engine will be used for this validation.
 	 *
 	 * @return 0 if power on processing was successful or an error code.
 	 */
-	int (*power_on) (struct host_irq_handler *handler, bool allow_unsecure);
+	int (*power_on) (struct host_irq_handler *handler, bool allow_unsecure,
+		struct hash_engine *hash);
 
 	/**
 	 * Handler for when the host processor signals that it has been reset.
@@ -73,7 +76,8 @@ void host_irq_handler_release (struct host_irq_handler *handler);
 int host_irq_handler_set_host (struct host_irq_handler *handler, struct host_processor *host);
 
 /* Internal functions for use by derived types. */
-int host_irq_handler_power_on (struct host_irq_handler *handler, bool allow_unsecure);
+int host_irq_handler_power_on (struct host_irq_handler *handler, bool allow_unsecure,
+	struct hash_engine *hash);
 int host_irq_handler_enter_reset (struct host_irq_handler *handler);
 void host_irq_handler_exit_reset (struct host_irq_handler *handler);
 void host_irq_handler_assert_cs0 (struct host_irq_handler *handler);

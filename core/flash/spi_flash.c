@@ -15,6 +15,10 @@
 #define	WINBOND_4BYTE_STATUS		(1U << 0)
 #define	MICRON_4BYTE_STATES			(1U << 0)
 
+/* Config bits indicating address mode on reset. */
+#define	WINBOND_4BYTE_DEFAULT		(1U << 1)
+#define	MICRON_4BYTE_DEFAULT		(1U << 0)
+
 /* Status bits indicating when flash has QSPI enabled. */
 #define	RESET_HOLD_ENABLE			(1U << 4)
 #define	QSPI_ENABLE_BIT1			(1U << 1)
@@ -931,6 +935,115 @@ int spi_flash_deep_power_down (struct spi_flash *flash, uint8_t enable)
 }
 
 /**
+ * Determine if the address mode of the flash device can be changed.
+ *
+ * @param flash The flash to query.
+ *
+ * @return 1 if the address mode of the device is fixed, 0 if it can be changed, or an error code.
+ */
+int spi_flash_is_address_mode_fixed (struct spi_flash *flash)
+{
+	if (flash == NULL) {
+		return SPI_FLASH_INVALID_ARGUMENT;
+	}
+
+	return ((flash->capabilities & (FLASH_CAP_3BYTE_ADDR | FLASH_CAP_4BYTE_ADDR)) !=
+		(FLASH_CAP_3BYTE_ADDR | FLASH_CAP_4BYTE_ADDR));
+}
+
+/**
+ * Determine if the flash device requires Write Enable to be set in order to switch address modes.
+ *
+ * @param flash The flash to query.
+ *
+ * @return 1 if write enable is required, 0 if it is not, or an error code.  If the address mode
+ * cannot be switched, SPI_FLASH_ADDR_MODE_FIXED will be returned.
+ */
+int spi_flash_address_mode_requires_write_enable (struct spi_flash *flash)
+{
+	if (flash == NULL) {
+		return SPI_FLASH_INVALID_ARGUMENT;
+	}
+
+	if (spi_flash_is_address_mode_fixed (flash)) {
+		return SPI_FLASH_ADDR_MODE_FIXED;
+	}
+
+	return (flash->switch_4byte == SPI_FLASH_SFDP_4BYTE_MODE_COMMAND_WRITE_ENABLE);
+}
+
+/**
+ * Determine if the flash device defaults to 4-byte address mode on device resets.
+ *
+ * @param flash The flash to query.
+ *
+ * @return 1 if the device defaults to 4-byte mode, 0 if 3-byte mode is the default, or an error
+ * code.
+ */
+int spi_flash_is_4byte_address_mode_on_reset (struct spi_flash *flash)
+{
+	struct flash_xfer xfer;
+	uint8_t vendor;
+	uint8_t cmd;
+	uint8_t mask;
+	uint8_t reg;
+	int status;
+
+	if (flash == NULL) {
+		return SPI_FLASH_INVALID_ARGUMENT;
+	}
+
+	/* Handle fixed address mode. */
+	switch (flash->capabilities & (FLASH_CAP_3BYTE_ADDR | FLASH_CAP_4BYTE_ADDR)) {
+		case FLASH_CAP_3BYTE_ADDR:
+			return 0;
+
+		case FLASH_CAP_4BYTE_ADDR:
+			return 1;
+	}
+
+	/* Detecting address state on reset is vendor dependent. */
+	status = spi_flash_get_device_id (flash, &vendor, NULL);
+	if (status != 0) {
+		return status;
+	}
+
+	switch (vendor) {
+		case FLASH_ID_MACRONIX:
+			cmd = 0;
+			mask = 0;
+			break;
+
+		case FLASH_ID_WINBOND:
+			cmd = FLASH_CMD_RDSR3;
+			mask = WINBOND_4BYTE_DEFAULT;
+			break;
+
+		case FLASH_ID_MICRON:
+			cmd = FLASH_CMD_RD_NV_CFG;
+			mask = MICRON_4BYTE_DEFAULT;
+			break;
+
+		default:
+			return SPI_FLASH_UNSUPPORTED_DEVICE;
+	}
+
+	if (cmd) {
+		platform_mutex_lock (&flash->lock);
+
+		FLASH_XFER_INIT_READ_REG (xfer, cmd, &reg, 1, 0);
+		status = flash->spi->xfer (flash->spi, &xfer);
+
+		platform_mutex_unlock (&flash->lock);
+		if (status != 0) {
+			return status;
+		}
+	}
+
+	return (vendor == FLASH_ID_MICRON) ? !(reg & mask) : !!(reg & mask);
+}
+
+/**
  * Determine if the requested address mode is supported by the flash device.
  *
  * @param flash The flash to query.
@@ -1313,7 +1426,7 @@ int spi_flash_is_quad_spi_enabled (struct spi_flash *flash)
 
 		case SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_35:
 			reg[1] = reg[0];
-			/* fall through */
+			/* fall through */ /* no break */
 
 		case SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2:
 		case SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_NO_CLR:

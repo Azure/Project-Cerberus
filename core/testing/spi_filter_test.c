@@ -11,6 +11,7 @@
 #include "mock/spi_filter_interface_mock.h"
 #include "mock/logging_mock.h"
 
+
 static const char *SUITE = "spi_filter";
 
 
@@ -38,6 +39,9 @@ static void spi_filter_test_log_configuration_port0 (CuTest *test)
 	bool flag = false;
 	spi_filter_cs ro = SPI_FILTER_CS_1;
 	spi_filter_address_mode addr = SPI_FILTER_ADDRESS_MODE_3;
+	bool addr_fixed = false;
+	spi_filter_address_mode addr_reset = SPI_FILTER_ADDRESS_MODE_3;
+	bool addr_write_en = false;
 	spi_filter_flash_state dirty = SPI_FILTER_FLASH_STATE_DIRTY;
 	spi_filter_bypass_mode bypass = SPI_FILTER_OPERATE;
 	uint32_t region1_start = 0x10000;
@@ -53,7 +57,7 @@ static void spi_filter_test_log_configuration_port0 (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_SPI_FILTER,
 		.msg_index = SPI_FILTER_LOGGING_FILTER_CONFIG,
 		.arg1 = 0,
-		.arg2 = 0xa00
+		.arg2 = 0x00a00
 	};
 	struct debug_log_entry_info entry_region1 = {
 		.format = DEBUG_LOG_ENTRY_FORMAT,
@@ -114,6 +118,18 @@ static void spi_filter_test_log_configuration_port0 (CuTest *test)
 	status |= mock_expect (&filter.mock, filter.base.get_addr_byte_mode, &filter, 0,
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&filter.mock, 0, &addr, sizeof (addr), -1);
+
+	status |= mock_expect (&filter.mock, filter.base.get_fixed_addr_byte_mode, &filter, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&filter.mock, 0, &addr_fixed, sizeof (addr_fixed), -1);
+
+	status |= mock_expect (&filter.mock, filter.base.get_reset_addr_byte_mode, &filter, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&filter.mock, 0, &addr_reset, sizeof (addr_reset), -1);
+
+	status |= mock_expect (&filter.mock, filter.base.get_addr_byte_mode_write_enable_required,
+		&filter, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&filter.mock, 0, &addr_write_en, sizeof (addr_write_en), -1);
 
 	status |= mock_expect (&filter.mock, filter.base.get_flash_dirty_state, &filter, 0,
 		MOCK_ARG_NOT_NULL);
@@ -178,6 +194,9 @@ static void spi_filter_test_log_configuration_port1 (CuTest *test)
 	bool flag = true;
 	spi_filter_cs ro = SPI_FILTER_CS_0;
 	spi_filter_address_mode addr = SPI_FILTER_ADDRESS_MODE_4;
+	bool addr_fixed = true;
+	spi_filter_address_mode addr_reset = SPI_FILTER_ADDRESS_MODE_4;
+	bool addr_write_en = true;
 	spi_filter_flash_state dirty = SPI_FILTER_FLASH_STATE_NORMAL;
 	spi_filter_bypass_mode bypass = SPI_FILTER_BYPASS_CS0;
 	uint32_t region1_start = 0x10000;
@@ -193,7 +212,7 @@ static void spi_filter_test_log_configuration_port1 (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_SPI_FILTER,
 		.msg_index = SPI_FILTER_LOGGING_FILTER_CONFIG,
 		.arg1 = 1,
-		.arg2 = 0x1501
+		.arg2 = 0x39501
 	};
 	struct debug_log_entry_info entry_region1 = {
 		.format = DEBUG_LOG_ENTRY_FORMAT,
@@ -254,6 +273,18 @@ static void spi_filter_test_log_configuration_port1 (CuTest *test)
 	status |= mock_expect (&filter.mock, filter.base.get_addr_byte_mode, &filter, 0,
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&filter.mock, 0, &addr, sizeof (addr), -1);
+
+	status |= mock_expect (&filter.mock, filter.base.get_fixed_addr_byte_mode, &filter, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&filter.mock, 0, &addr_fixed, sizeof (addr_fixed), -1);
+
+	status |= mock_expect (&filter.mock, filter.base.get_reset_addr_byte_mode, &filter, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&filter.mock, 0, &addr_reset, sizeof (addr_reset), -1);
+
+	status |= mock_expect (&filter.mock, filter.base.get_addr_byte_mode_write_enable_required,
+		&filter, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&filter.mock, 0, &addr_write_en, sizeof (addr_write_en), -1);
 
 	status |= mock_expect (&filter.mock, filter.base.get_flash_dirty_state, &filter, 0,
 		MOCK_ARG_NOT_NULL);
@@ -318,6 +349,9 @@ static void spi_filter_test_log_configuration_bypass_cs1 (CuTest *test)
 	bool flag = false;
 	spi_filter_cs ro = SPI_FILTER_CS_1;
 	spi_filter_address_mode addr = SPI_FILTER_ADDRESS_MODE_4;
+	bool addr_fixed = false;
+	spi_filter_address_mode addr_reset = SPI_FILTER_ADDRESS_MODE_4;
+	bool addr_write_en = false;
 	spi_filter_flash_state dirty = SPI_FILTER_FLASH_STATE_DIRTY;
 	spi_filter_bypass_mode bypass = SPI_FILTER_BYPASS_CS1;
 	uint32_t region1_start = 0;
@@ -333,7 +367,7 @@ static void spi_filter_test_log_configuration_bypass_cs1 (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_SPI_FILTER,
 		.msg_index = SPI_FILTER_LOGGING_FILTER_CONFIG,
 		.arg1 = 2,
-		.arg2 = 0x2e02
+		.arg2 = 0x12e02
 	};
 	struct debug_log_entry_info entry_region1 = {
 		.format = DEBUG_LOG_ENTRY_FORMAT,
@@ -394,6 +428,18 @@ static void spi_filter_test_log_configuration_bypass_cs1 (CuTest *test)
 	status |= mock_expect (&filter.mock, filter.base.get_addr_byte_mode, &filter, 0,
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&filter.mock, 0, &addr, sizeof (addr), -1);
+
+	status |= mock_expect (&filter.mock, filter.base.get_fixed_addr_byte_mode, &filter, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&filter.mock, 0, &addr_fixed, sizeof (addr_fixed), -1);
+
+	status |= mock_expect (&filter.mock, filter.base.get_reset_addr_byte_mode, &filter, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&filter.mock, 0, &addr_reset, sizeof (addr_reset), -1);
+
+	status |= mock_expect (&filter.mock, filter.base.get_addr_byte_mode_write_enable_required,
+		&filter, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&filter.mock, 0, &addr_write_en, sizeof (addr_write_en), -1);
 
 	status |= mock_expect (&filter.mock, filter.base.get_flash_dirty_state, &filter, 0,
 		MOCK_ARG_NOT_NULL);
@@ -458,6 +504,9 @@ static void spi_filter_test_log_configuration_full_rw (CuTest *test)
 	bool flag = false;
 	spi_filter_cs ro = SPI_FILTER_CS_1;
 	spi_filter_address_mode addr = SPI_FILTER_ADDRESS_MODE_3;
+	bool addr_fixed = true;
+	spi_filter_address_mode addr_reset = SPI_FILTER_ADDRESS_MODE_3;
+	bool addr_write_en = false;
 	spi_filter_flash_state dirty = SPI_FILTER_FLASH_STATE_DIRTY;
 	spi_filter_bypass_mode bypass = SPI_FILTER_OPERATE;
 	uint32_t region1_start = 0x10000;
@@ -473,7 +522,7 @@ static void spi_filter_test_log_configuration_full_rw (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_SPI_FILTER,
 		.msg_index = SPI_FILTER_LOGGING_FILTER_CONFIG,
 		.arg1 = 0,
-		.arg2 = 0x4a00
+		.arg2 = 0x0ca00
 	};
 	struct debug_log_entry_info entry_region1 = {
 		.format = DEBUG_LOG_ENTRY_FORMAT,
@@ -534,6 +583,168 @@ static void spi_filter_test_log_configuration_full_rw (CuTest *test)
 	status |= mock_expect (&filter.mock, filter.base.get_addr_byte_mode, &filter, 0,
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&filter.mock, 0, &addr, sizeof (addr), -1);
+
+	status |= mock_expect (&filter.mock, filter.base.get_fixed_addr_byte_mode, &filter, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&filter.mock, 0, &addr_fixed, sizeof (addr_fixed), -1);
+
+	status |= mock_expect (&filter.mock, filter.base.get_reset_addr_byte_mode, &filter, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&filter.mock, 0, &addr_reset, sizeof (addr_reset), -1);
+
+	status |= mock_expect (&filter.mock, filter.base.get_addr_byte_mode_write_enable_required,
+		&filter, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&filter.mock, 0, &addr_write_en, sizeof (addr_write_en), -1);
+
+	status |= mock_expect (&filter.mock, filter.base.get_flash_dirty_state, &filter, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&filter.mock, 0, &dirty, sizeof (dirty), -1);
+
+	status |= mock_expect (&filter.mock, filter.base.get_bypass_mode, &filter, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&filter.mock, 0, &bypass, sizeof (bypass), -1);
+
+	status |= mock_expect (&filter.mock, filter.base.get_filter_rw_region, &filter, 0, MOCK_ARG (1),
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&filter.mock, 1, &region1_start, sizeof (region1_start), -1);
+	status |= mock_expect_output (&filter.mock, 2, &region1_end, sizeof (region1_end), -1);
+
+	status |= mock_expect (&filter.mock, filter.base.get_filter_rw_region, &filter, 0, MOCK_ARG (2),
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&filter.mock, 1, &region2_start, sizeof (region2_start), -1);
+	status |= mock_expect_output (&filter.mock, 2, &region2_end, sizeof (region2_end), -1);
+
+	status |= mock_expect (&filter.mock, filter.base.get_filter_rw_region, &filter, 0, MOCK_ARG (3),
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&filter.mock, 1, &region3_start, sizeof (region3_start), -1);
+	status |= mock_expect_output (&filter.mock, 2, &region3_end, sizeof (region3_end), -1);
+
+	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, sizeof (entry)), MOCK_ARG (sizeof (entry)));
+
+	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_size, sizeof (entry_size)),
+		MOCK_ARG (sizeof (entry_size)));
+
+	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region1, sizeof (entry_region1)),
+		MOCK_ARG (sizeof (entry_region1)));
+	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region2, sizeof (entry_region2)),
+		MOCK_ARG (sizeof (entry_region2)));
+	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region3, sizeof (entry_region3)),
+		MOCK_ARG (sizeof (entry_region3)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	debug_log = &log.base;
+	spi_filter_log_configuration (&filter.base);
+	debug_log = NULL;
+
+	status = spi_filter_interface_mock_validate_and_release (&filter);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging_mock_validate_and_release (&log);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void spi_filter_test_log_configuration_unsupported_operations (CuTest *test)
+{
+	struct spi_filter_interface_mock filter;
+	struct logging_mock log;
+	int status;
+	int port = 0;
+	uint8_t mfg = 0;
+	bool flag = false;
+	spi_filter_cs ro = SPI_FILTER_CS_1;
+	spi_filter_address_mode addr = SPI_FILTER_ADDRESS_MODE_3;
+	bool addr_fixed = true;
+	spi_filter_flash_state dirty = SPI_FILTER_FLASH_STATE_DIRTY;
+	spi_filter_bypass_mode bypass = SPI_FILTER_OPERATE;
+	uint32_t region1_start = 0x10000;
+	uint32_t region1_end = 0x20000;
+	uint32_t region2_start = 0x300000;
+	uint32_t region2_end = 0x400000;
+	uint32_t region3_start = 0;
+	uint32_t region3_end = 0xffff0000;
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_SPI_FILTER,
+		.msg_index = SPI_FILTER_LOGGING_FILTER_CONFIG,
+		.arg1 = 0,
+		.arg2 = 0x0ca00
+	};
+	struct debug_log_entry_info entry_region1 = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_SPI_FILTER,
+		.msg_index = SPI_FILTER_LOGGING_FILTER_REGION,
+		.arg1 = 0x100,
+		.arg2 = 0x1000200
+	};
+	struct debug_log_entry_info entry_region2 = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_SPI_FILTER,
+		.msg_index = SPI_FILTER_LOGGING_FILTER_REGION,
+		.arg1 = 0x3000,
+		.arg2 = 0x2004000
+	};
+	struct debug_log_entry_info entry_region3 = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_SPI_FILTER,
+		.msg_index = SPI_FILTER_LOGGING_FILTER_REGION,
+		.arg1 = 0,
+		.arg2 = 0x3ffff00
+	};
+	struct debug_log_entry_info entry_size = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_SPI_FILTER,
+		.msg_index = SPI_FILTER_LOGGING_DEVICE_SIZE,
+		.arg1 = 0,
+		.arg2 = 0
+	};
+
+	TEST_START;
+
+	status = spi_filter_interface_mock_init (&filter);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging_mock_init (&log);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&filter.mock, filter.base.get_port, &filter, port);
+
+	status |= mock_expect (&filter.mock, filter.base.get_mfg_id, &filter, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&filter.mock, 0, &mfg, sizeof (mfg), -1);
+
+	status |= mock_expect (&filter.mock, filter.base.get_flash_size, &filter,
+		SPI_FILTER_UNSUPPORTED_OPERATION, MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&filter.mock, filter.base.get_filter_enabled, &filter, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&filter.mock, 0, &flag, sizeof (flag), -1);
+
+	status |= mock_expect (&filter.mock, filter.base.get_ro_cs, &filter, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&filter.mock, 0, &ro, sizeof (ro), -1);
+
+	status |= mock_expect (&filter.mock, filter.base.get_addr_byte_mode, &filter, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&filter.mock, 0, &addr, sizeof (addr), -1);
+
+	status |= mock_expect (&filter.mock, filter.base.get_fixed_addr_byte_mode, &filter, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&filter.mock, 0, &addr_fixed, sizeof (addr_fixed), -1);
+
+	status |= mock_expect (&filter.mock, filter.base.get_reset_addr_byte_mode, &filter,
+		SPI_FILTER_UNSUPPORTED_OPERATION, MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&filter.mock, filter.base.get_addr_byte_mode_write_enable_required,
+		&filter, SPI_FILTER_UNSUPPORTED_OPERATION, MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&filter.mock, filter.base.get_flash_dirty_state, &filter, 0,
 		MOCK_ARG_NOT_NULL);
@@ -615,6 +826,9 @@ static void spi_filter_test_log_filter_config_port0 (CuTest *test)
 	bool flag = false;
 	spi_filter_cs ro = SPI_FILTER_CS_1;
 	spi_filter_address_mode addr = SPI_FILTER_ADDRESS_MODE_3;
+	bool addr_fixed = false;
+	spi_filter_address_mode addr_reset = SPI_FILTER_ADDRESS_MODE_3;
+	bool addr_write_en = false;
 	spi_filter_flash_state dirty = SPI_FILTER_FLASH_STATE_DIRTY;
 	spi_filter_bypass_mode bypass = SPI_FILTER_OPERATE;
 	uint32_t region_start[3] = {
@@ -630,7 +844,7 @@ static void spi_filter_test_log_filter_config_port0 (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_SPI_FILTER,
 		.msg_index = SPI_FILTER_LOGGING_FILTER_CONFIG,
 		.arg1 = 0,
-		.arg2 = 0xa00
+		.arg2 = 0x00a00
 	};
 	struct debug_log_entry_info entry_region1 = {
 		.format = DEBUG_LOG_ENTRY_FORMAT,
@@ -690,8 +904,8 @@ static void spi_filter_test_log_filter_config_port0 (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	debug_log = &log.base;
-	spi_filter_log_filter_config (port, mfg, flag, ro, addr, dirty, bypass, region_start,
-		region_end, 3, device_size);
+	spi_filter_log_filter_config (port, mfg, flag, ro, addr, addr_fixed, addr_reset, addr_write_en,
+		dirty, bypass, region_start, region_end, 3, device_size);
 	debug_log = NULL;
 
 	status = logging_mock_validate_and_release (&log);
@@ -707,6 +921,9 @@ static void spi_filter_test_log_filter_config_port1 (CuTest *test)
 	bool flag = true;
 	spi_filter_cs ro = SPI_FILTER_CS_0;
 	spi_filter_address_mode addr = SPI_FILTER_ADDRESS_MODE_4;
+	bool addr_fixed = true;
+	spi_filter_address_mode addr_reset = SPI_FILTER_ADDRESS_MODE_4;
+	bool addr_write_en = true;
 	spi_filter_flash_state dirty = SPI_FILTER_FLASH_STATE_NORMAL;
 	spi_filter_bypass_mode bypass = SPI_FILTER_BYPASS_CS0;
 	uint32_t region_start[3] = {
@@ -722,7 +939,7 @@ static void spi_filter_test_log_filter_config_port1 (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_SPI_FILTER,
 		.msg_index = SPI_FILTER_LOGGING_FILTER_CONFIG,
 		.arg1 = 1,
-		.arg2 = 0x1501
+		.arg2 = 0x39501
 	};
 	struct debug_log_entry_info entry_region1 = {
 		.format = DEBUG_LOG_ENTRY_FORMAT,
@@ -782,8 +999,8 @@ static void spi_filter_test_log_filter_config_port1 (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	debug_log = &log.base;
-	spi_filter_log_filter_config (port, mfg, flag, ro, addr, dirty, bypass, region_start,
-		region_end, 3, device_size);
+	spi_filter_log_filter_config (port, mfg, flag, ro, addr, addr_fixed, addr_reset, addr_write_en,
+		dirty, bypass, region_start, region_end, 3, device_size);
 	debug_log = NULL;
 
 	status = logging_mock_validate_and_release (&log);
@@ -799,6 +1016,9 @@ static void spi_filter_test_log_filter_config_bypass_cs1 (CuTest *test)
 	bool flag = false;
 	spi_filter_cs ro = SPI_FILTER_CS_1;
 	spi_filter_address_mode addr = SPI_FILTER_ADDRESS_MODE_4;
+	bool addr_fixed = false;
+	spi_filter_address_mode addr_reset = SPI_FILTER_ADDRESS_MODE_4;
+	bool addr_write_en = false;
 	spi_filter_flash_state dirty = SPI_FILTER_FLASH_STATE_DIRTY;
 	spi_filter_bypass_mode bypass = SPI_FILTER_BYPASS_CS1;
 	uint32_t region_start[3] = {0};
@@ -810,7 +1030,7 @@ static void spi_filter_test_log_filter_config_bypass_cs1 (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_SPI_FILTER,
 		.msg_index = SPI_FILTER_LOGGING_FILTER_CONFIG,
 		.arg1 = 2,
-		.arg2 = 0x2e02
+		.arg2 = 0x12e02
 	};
 	struct debug_log_entry_info entry_region1 = {
 		.format = DEBUG_LOG_ENTRY_FORMAT,
@@ -870,8 +1090,8 @@ static void spi_filter_test_log_filter_config_bypass_cs1 (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	debug_log = &log.base;
-	spi_filter_log_filter_config (port, mfg, flag, ro, addr, dirty, bypass, region_start,
-		region_end, 3, device_size);
+	spi_filter_log_filter_config (port, mfg, flag, ro, addr, addr_fixed, addr_reset, addr_write_en,
+		dirty, bypass, region_start, region_end, 3, device_size);
 	debug_log = NULL;
 
 	status = logging_mock_validate_and_release (&log);
@@ -887,6 +1107,9 @@ static void spi_filter_test_log_filter_config_full_fw (CuTest *test)
 	bool flag = false;
 	spi_filter_cs ro = SPI_FILTER_CS_1;
 	spi_filter_address_mode addr = SPI_FILTER_ADDRESS_MODE_3;
+	bool addr_fixed = true;
+	spi_filter_address_mode addr_reset = SPI_FILTER_ADDRESS_MODE_3;
+	bool addr_write_en = false;
 	spi_filter_flash_state dirty = SPI_FILTER_FLASH_STATE_DIRTY;
 	spi_filter_bypass_mode bypass = SPI_FILTER_OPERATE;
 	uint32_t region_start[3] = {
@@ -902,7 +1125,7 @@ static void spi_filter_test_log_filter_config_full_fw (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_SPI_FILTER,
 		.msg_index = SPI_FILTER_LOGGING_FILTER_CONFIG,
 		.arg1 = 0,
-		.arg2 = 0x4a00
+		.arg2 = 0x0ca00
 	};
 	struct debug_log_entry_info entry_region1 = {
 		.format = DEBUG_LOG_ENTRY_FORMAT,
@@ -962,8 +1185,8 @@ static void spi_filter_test_log_filter_config_full_fw (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	debug_log = &log.base;
-	spi_filter_log_filter_config (port, mfg, flag, ro, addr, dirty, bypass, region_start,
-		region_end, 3, device_size);
+	spi_filter_log_filter_config (port, mfg, flag, ro, addr, addr_fixed, addr_reset, addr_write_en,
+		dirty, bypass, region_start, region_end, 3, device_size);
 	debug_log = NULL;
 
 	status = logging_mock_validate_and_release (&log);
@@ -979,6 +1202,9 @@ static void spi_filter_test_log_filter_config_two_regions (CuTest *test)
 	bool flag = false;
 	spi_filter_cs ro = SPI_FILTER_CS_1;
 	spi_filter_address_mode addr = SPI_FILTER_ADDRESS_MODE_3;
+	bool addr_fixed = false;
+	spi_filter_address_mode addr_reset = SPI_FILTER_ADDRESS_MODE_3;
+	bool addr_write_en = true;
 	spi_filter_flash_state dirty = SPI_FILTER_FLASH_STATE_DIRTY;
 	spi_filter_bypass_mode bypass = SPI_FILTER_OPERATE;
 	uint32_t region_start[2] = {
@@ -994,7 +1220,7 @@ static void spi_filter_test_log_filter_config_two_regions (CuTest *test)
 		.component = DEBUG_LOG_COMPONENT_SPI_FILTER,
 		.msg_index = SPI_FILTER_LOGGING_FILTER_CONFIG,
 		.arg1 = 0,
-		.arg2 = 0xa00
+		.arg2 = 0x20a00
 	};
 	struct debug_log_entry_info entry_region1 = {
 		.format = DEBUG_LOG_ENTRY_FORMAT,
@@ -1043,8 +1269,8 @@ static void spi_filter_test_log_filter_config_two_regions (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	debug_log = &log.base;
-	spi_filter_log_filter_config (port, mfg, flag, ro, addr, dirty, bypass, region_start,
-		region_end, 2, device_size);
+	spi_filter_log_filter_config (port, mfg, flag, ro, addr, addr_fixed, addr_reset, addr_write_en,
+		dirty, bypass, region_start, region_end, 2, device_size);
 	debug_log = NULL;
 
 	status = logging_mock_validate_and_release (&log);
@@ -1061,6 +1287,7 @@ CuSuite* get_spi_filter_suite ()
 	SUITE_ADD_TEST (suite, spi_filter_test_log_configuration_bypass_cs1);
 	SUITE_ADD_TEST (suite, spi_filter_test_log_configuration_null);
 	SUITE_ADD_TEST (suite, spi_filter_test_log_configuration_full_rw);
+	SUITE_ADD_TEST (suite, spi_filter_test_log_configuration_unsupported_operations);
 	SUITE_ADD_TEST (suite, spi_filter_test_log_filter_config_port0);
 	SUITE_ADD_TEST (suite, spi_filter_test_log_filter_config_port1);
 	SUITE_ADD_TEST (suite, spi_filter_test_log_filter_config_bypass_cs1);

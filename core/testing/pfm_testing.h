@@ -31,10 +31,11 @@ extern const size_t PFM_MANIFEST_OFFSET;
 extern const size_t PFM_PLATFORM_HEADER_OFFSET;
 extern const size_t PFM_PLATFORM_ID_OFFSET;
 extern const char *PFM_VERSION_ID;
-extern const char *PFM_PLATFORM_ID;
+extern const char PFM_PLATFORM_ID[];
 extern const size_t PFM_PLATFORM_ID_LEN;
 
 extern const uint8_t PFM_HASH[];
+extern const uint8_t PFM_HASH_DIGEST[];
 extern const uint8_t PFM2_HASH[];
 extern const uint8_t PFM_PLATFORM2_HASH[];
 extern const uint32_t PFM_HASH_LEN;

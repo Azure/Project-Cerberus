@@ -752,7 +752,7 @@ static void host_irq_handler_test_power_on (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = handler.power_on (&handler, false);
+	status = handler.power_on (&handler, false, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_processor_mock_validate_and_release (&host);
@@ -764,6 +764,57 @@ static void host_irq_handler_test_power_on (CuTest *test)
 	host_irq_handler_release (&handler);
 
 	HASH_TESTING_ENGINE_RELEASE (&hash);
+	RSA_TESTING_ENGINE_RELEASE (&rsa);
+}
+
+static void host_irq_handler_test_power_on_alternate_hash (CuTest *test)
+{
+	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE hash2;
+	RSA_TESTING_ENGINE rsa;
+	struct host_processor_mock host;
+	struct bmc_recovery_mock recovery;
+	struct host_irq_handler handler;
+	int status;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = HASH_TESTING_ENGINE_INIT (&hash2);
+	CuAssertIntEquals (test, 0, status);
+
+	status = RSA_TESTING_ENGINE_INIT (&rsa);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_processor_mock_init (&host);
+	CuAssertIntEquals (test, 0, status);
+
+	status = bmc_recovery_mock_init (&recovery);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_irq_handler_init (&handler, &host.base, &hash.base, &rsa.base, &recovery.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&host.mock, host.base.power_on_reset, &host, 0, MOCK_ARG (&hash2),
+		MOCK_ARG (&rsa));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = handler.power_on (&handler, false, &hash2.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_processor_mock_validate_and_release (&host);
+	CuAssertIntEquals (test, 0, status);
+
+	status = bmc_recovery_mock_validate_and_release (&recovery);
+	CuAssertIntEquals (test, 0, status);
+
+	host_irq_handler_release (&handler);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+	HASH_TESTING_ENGINE_RELEASE (&hash2);
 	RSA_TESTING_ENGINE_RELEASE (&rsa);
 }
 
@@ -800,7 +851,7 @@ static void host_irq_handler_test_power_on_validation_fail (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = handler.power_on (&handler, false);
+	status = handler.power_on (&handler, false, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_processor_mock_validate_and_release (&host);
@@ -848,7 +899,7 @@ static void host_irq_handler_test_power_on_blank_fail (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = handler.power_on (&handler, false);
+	status = handler.power_on (&handler, false, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_processor_mock_validate_and_release (&host);
@@ -896,7 +947,7 @@ static void host_irq_handler_test_power_on_unknown_version (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = handler.power_on (&handler, false);
+	status = handler.power_on (&handler, false, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_processor_mock_validate_and_release (&host);
@@ -944,7 +995,7 @@ static void host_irq_handler_test_power_on_error (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = handler.power_on (&handler, false);
+	status = handler.power_on (&handler, false, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_processor_mock_validate_and_release (&host);
@@ -995,7 +1046,7 @@ static void host_irq_handler_test_power_on_flash_rollback (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = handler.power_on (&handler, false);
+	status = handler.power_on (&handler, false, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_processor_mock_validate_and_release (&host);
@@ -1007,6 +1058,62 @@ static void host_irq_handler_test_power_on_flash_rollback (CuTest *test)
 	host_irq_handler_release (&handler);
 
 	HASH_TESTING_ENGINE_RELEASE (&hash);
+	RSA_TESTING_ENGINE_RELEASE (&rsa);
+}
+
+static void host_irq_handler_test_power_on_flash_rollback_alternate_hash (CuTest *test)
+{
+	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE hash2;
+	RSA_TESTING_ENGINE rsa;
+	struct host_processor_mock host;
+	struct bmc_recovery_mock recovery;
+	struct host_irq_handler handler;
+	int status;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = HASH_TESTING_ENGINE_INIT (&hash2);
+	CuAssertIntEquals (test, 0, status);
+
+	status = RSA_TESTING_ENGINE_INIT (&rsa);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_processor_mock_init (&host);
+	CuAssertIntEquals (test, 0, status);
+
+	status = bmc_recovery_mock_init (&recovery);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_irq_handler_init (&handler, &host.base, &hash.base, &rsa.base, &recovery.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&host.mock, host.base.power_on_reset, &host, HOST_PROCESSOR_POR_FAILED,
+		MOCK_ARG (&hash2), MOCK_ARG (&rsa));
+	status |= mock_expect (&host.mock, host.base.power_on_reset, &host, HOST_PROCESSOR_POR_FAILED,
+		MOCK_ARG (&hash2), MOCK_ARG (&rsa));
+
+	status |= mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG (&hash2),
+		MOCK_ARG (&rsa), MOCK_ARG (true), MOCK_ARG (true));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = handler.power_on (&handler, false, &hash2.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_processor_mock_validate_and_release (&host);
+	CuAssertIntEquals (test, 0, status);
+
+	status = bmc_recovery_mock_validate_and_release (&recovery);
+	CuAssertIntEquals (test, 0, status);
+
+	host_irq_handler_release (&handler);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+	HASH_TESTING_ENGINE_RELEASE (&hash2);
 	RSA_TESTING_ENGINE_RELEASE (&rsa);
 }
 
@@ -1048,7 +1155,7 @@ static void host_irq_handler_test_power_on_flash_rollback_validation_fail (CuTes
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = handler.power_on (&handler, false);
+	status = handler.power_on (&handler, false, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_processor_mock_validate_and_release (&host);
@@ -1101,7 +1208,7 @@ static void host_irq_handler_test_power_on_flash_rollback_blank_fail (CuTest *te
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = handler.power_on (&handler, false);
+	status = handler.power_on (&handler, false, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_processor_mock_validate_and_release (&host);
@@ -1155,7 +1262,7 @@ static void host_irq_handler_test_power_on_flash_rollback_unknown_version (CuTes
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = handler.power_on (&handler, false);
+	status = handler.power_on (&handler, false, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_processor_mock_validate_and_release (&host);
@@ -1209,7 +1316,7 @@ static void host_irq_handler_test_power_on_flash_rollback_error (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = handler.power_on (&handler, false);
+	status = handler.power_on (&handler, false, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_processor_mock_validate_and_release (&host);
@@ -1262,7 +1369,7 @@ static void host_irq_handler_test_power_on_flash_rollback_no_rollback (CuTest *t
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = handler.power_on (&handler, false);
+	status = handler.power_on (&handler, false, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_processor_mock_validate_and_release (&host);
@@ -1316,7 +1423,7 @@ static void host_irq_handler_test_power_on_flash_rollback_rollback_dirty (CuTest
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = handler.power_on (&handler, false);
+	status = handler.power_on (&handler, false, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_processor_mock_validate_and_release (&host);
@@ -1373,7 +1480,7 @@ static void host_irq_handler_test_power_on_apply_recovery_image (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = handler.power_on (&handler, false);
+	status = handler.power_on (&handler, false, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_processor_mock_validate_and_release (&host);
@@ -1385,6 +1492,68 @@ static void host_irq_handler_test_power_on_apply_recovery_image (CuTest *test)
 	host_irq_handler_release (&handler);
 
 	HASH_TESTING_ENGINE_RELEASE (&hash);
+	RSA_TESTING_ENGINE_RELEASE (&rsa);
+}
+
+static void host_irq_handler_test_power_on_apply_recovery_image_alternate_hash (CuTest *test)
+{
+	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE hash2;
+	RSA_TESTING_ENGINE rsa;
+	struct host_processor_mock host;
+	struct bmc_recovery_mock recovery;
+	struct host_irq_handler handler;
+	int status;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = HASH_TESTING_ENGINE_INIT (&hash2);
+	CuAssertIntEquals (test, 0, status);
+
+	status = RSA_TESTING_ENGINE_INIT (&rsa);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_processor_mock_init (&host);
+	CuAssertIntEquals (test, 0, status);
+
+	status = bmc_recovery_mock_init (&recovery);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_irq_handler_init (&handler, &host.base, &hash.base, &rsa.base, &recovery.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&host.mock, host.base.power_on_reset, &host, HOST_PROCESSOR_POR_FAILED,
+		MOCK_ARG (&hash2), MOCK_ARG (&rsa));
+	status |= mock_expect (&host.mock, host.base.power_on_reset, &host, HOST_PROCESSOR_POR_FAILED,
+		MOCK_ARG (&hash2), MOCK_ARG (&rsa));
+
+	status |= mock_expect (&host.mock, host.base.flash_rollback, &host,
+		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG (&hash2), MOCK_ARG (&rsa), MOCK_ARG (true),
+		MOCK_ARG (true));
+	status |= mock_expect (&host.mock, host.base.flash_rollback, &host,
+		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG (&hash2), MOCK_ARG (&rsa), MOCK_ARG (true),
+		MOCK_ARG (true));
+
+	status |= mock_expect (&host.mock, host.base.apply_recovery_image, &host, 0, MOCK_ARG (true));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = handler.power_on (&handler, false, &hash2.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_processor_mock_validate_and_release (&host);
+	CuAssertIntEquals (test, 0, status);
+
+	status = bmc_recovery_mock_validate_and_release (&recovery);
+	CuAssertIntEquals (test, 0, status);
+
+	host_irq_handler_release (&handler);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+	HASH_TESTING_ENGINE_RELEASE (&hash2);
 	RSA_TESTING_ENGINE_RELEASE (&rsa);
 }
 
@@ -1432,7 +1601,7 @@ static void host_irq_handler_test_power_on_apply_recovery_image_error (CuTest *t
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = handler.power_on (&handler, false);
+	status = handler.power_on (&handler, false, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_processor_mock_validate_and_release (&host);
@@ -1492,7 +1661,7 @@ static void host_irq_handler_test_power_on_apply_recovery_image_retry_error (CuT
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = handler.power_on (&handler, false);
+	status = handler.power_on (&handler, false, NULL);
 	CuAssertIntEquals (test, HOST_PROCESSOR_RECOVERY_IMG_FAILED, status);
 
 	status = host_processor_mock_validate_and_release (&host);
@@ -1550,7 +1719,7 @@ static void host_irq_handler_test_power_on_apply_recovery_image_unsupported (CuT
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = handler.power_on (&handler, false);
+	status = handler.power_on (&handler, false, NULL);
 	CuAssertIntEquals (test, HOST_PROCESSOR_RECOVERY_UNSUPPORTED, status);
 
 	status = host_processor_mock_validate_and_release (&host);
@@ -1608,7 +1777,7 @@ static void host_irq_handler_test_power_on_apply_recovery_image_no_image (CuTest
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = handler.power_on (&handler, false);
+	status = handler.power_on (&handler, false, NULL);
 	CuAssertIntEquals (test, HOST_PROCESSOR_NO_RECOVERY_IMAGE, status);
 
 	status = host_processor_mock_validate_and_release (&host);
@@ -1669,7 +1838,7 @@ static void host_irq_handler_test_power_on_apply_recovery_image_unsupported_allo
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = handler.power_on (&handler, true);
+	status = handler.power_on (&handler, true, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_processor_mock_validate_and_release (&host);
@@ -1730,7 +1899,7 @@ static void host_irq_handler_test_power_on_apply_recovery_image_no_image_allow_u
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = handler.power_on (&handler, true);
+	status = handler.power_on (&handler, true, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_processor_mock_validate_and_release (&host);
@@ -1792,7 +1961,7 @@ static void host_irq_handler_test_power_on_bypass_mode (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = handler.power_on (&handler, true);
+	status = handler.power_on (&handler, true, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_processor_mock_validate_and_release (&host);
@@ -1856,7 +2025,7 @@ static void host_irq_handler_test_power_on_bypass_mode_error (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = handler.power_on (&handler, true);
+	status = handler.power_on (&handler, true, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_processor_mock_validate_and_release (&host);
@@ -1921,8 +2090,49 @@ static void host_irq_handler_test_power_on_bypass_mode_retry_error (CuTest *test
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = handler.power_on (&handler, true);
+	status = handler.power_on (&handler, true, NULL);
 	CuAssertIntEquals (test, HOST_PROCESSOR_BYPASS_FAILED, status);
+
+	status = host_processor_mock_validate_and_release (&host);
+	CuAssertIntEquals (test, 0, status);
+
+	status = bmc_recovery_mock_validate_and_release (&recovery);
+	CuAssertIntEquals (test, 0, status);
+
+	host_irq_handler_release (&handler);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+	RSA_TESTING_ENGINE_RELEASE (&rsa);
+}
+
+static void host_irq_handler_test_power_on_null (CuTest *test)
+{
+	HASH_TESTING_ENGINE hash;
+	RSA_TESTING_ENGINE rsa;
+	struct host_processor_mock host;
+	struct bmc_recovery_mock recovery;
+	struct host_irq_handler handler;
+	int status;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = RSA_TESTING_ENGINE_INIT (&rsa);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_processor_mock_init (&host);
+	CuAssertIntEquals (test, 0, status);
+
+	status = bmc_recovery_mock_init (&recovery);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_irq_handler_init (&handler, &host.base, &hash.base, &rsa.base, &recovery.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = handler.power_on (NULL, false, NULL);
+	CuAssertIntEquals (test, HOST_IRQ_HANDLER_INVALID_ARGUMENT, status);
 
 	status = host_processor_mock_validate_and_release (&host);
 	CuAssertIntEquals (test, 0, status);
@@ -2069,11 +2279,13 @@ CuSuite* get_host_irq_handler_suite ()
 	SUITE_ADD_TEST (suite, host_irq_handler_test_assert_cs1_null);
 	SUITE_ADD_TEST (suite, host_irq_handler_test_assert_cs1_recovery_error);
 	SUITE_ADD_TEST (suite, host_irq_handler_test_power_on);
+	SUITE_ADD_TEST (suite, host_irq_handler_test_power_on_alternate_hash);
 	SUITE_ADD_TEST (suite, host_irq_handler_test_power_on_validation_fail);
 	SUITE_ADD_TEST (suite, host_irq_handler_test_power_on_blank_fail);
 	SUITE_ADD_TEST (suite, host_irq_handler_test_power_on_unknown_version);
 	SUITE_ADD_TEST (suite, host_irq_handler_test_power_on_error);
 	SUITE_ADD_TEST (suite, host_irq_handler_test_power_on_flash_rollback);
+	SUITE_ADD_TEST (suite, host_irq_handler_test_power_on_flash_rollback_alternate_hash);
 	SUITE_ADD_TEST (suite, host_irq_handler_test_power_on_flash_rollback_validation_fail);
 	SUITE_ADD_TEST (suite, host_irq_handler_test_power_on_flash_rollback_blank_fail);
 	SUITE_ADD_TEST (suite, host_irq_handler_test_power_on_flash_rollback_unknown_version);
@@ -2081,6 +2293,7 @@ CuSuite* get_host_irq_handler_suite ()
 	SUITE_ADD_TEST (suite, host_irq_handler_test_power_on_flash_rollback_no_rollback);
 	SUITE_ADD_TEST (suite, host_irq_handler_test_power_on_flash_rollback_rollback_dirty);
 	SUITE_ADD_TEST (suite, host_irq_handler_test_power_on_apply_recovery_image);
+	SUITE_ADD_TEST (suite, host_irq_handler_test_power_on_apply_recovery_image_alternate_hash);
 	SUITE_ADD_TEST (suite, host_irq_handler_test_power_on_apply_recovery_image_error);
 	SUITE_ADD_TEST (suite, host_irq_handler_test_power_on_apply_recovery_image_retry_error);
 	SUITE_ADD_TEST (suite, host_irq_handler_test_power_on_apply_recovery_image_unsupported);
@@ -2092,6 +2305,7 @@ CuSuite* get_host_irq_handler_suite ()
 	SUITE_ADD_TEST (suite, host_irq_handler_test_power_on_bypass_mode);
 	SUITE_ADD_TEST (suite, host_irq_handler_test_power_on_bypass_mode_error);
 	SUITE_ADD_TEST (suite, host_irq_handler_test_power_on_bypass_mode_retry_error);
+	SUITE_ADD_TEST (suite, host_irq_handler_test_power_on_null);
 	SUITE_ADD_TEST (suite, host_irq_handler_test_set_host);
 	SUITE_ADD_TEST (suite, host_irq_handler_test_set_host_null);
 

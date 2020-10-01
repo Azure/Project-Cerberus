@@ -14,6 +14,7 @@
 #include "mock/keystore_mock.h"
 #include "mock/cmd_background_mock.h"
 #include "mock/cmd_device_mock.h"
+#include "mock/session_manager_mock.h"
 
 
 void cerberus_protocol_required_commands_testing_supports_all_required_commands (CuTest *test,
@@ -21,7 +22,8 @@ void cerberus_protocol_required_commands_testing_supports_all_required_commands 
 	struct attestation_slave_mock *slave_attestation, struct device_manager *device_manager,
 	struct cmd_background_mock *background, struct keystore_mock *keystore,
 	struct cmd_device_mock *cmd_device, const uint8_t* csr, size_t csr_length, uint16_t vendor_id,
-	uint16_t device_id, uint16_t subsystem_vid, uint16_t subsystem_id);
+	uint16_t device_id, uint16_t subsystem_vid, uint16_t subsystem_id, 
+	struct session_manager_mock *session);
 
 void cerberus_protocol_required_commands_testing_process_get_fw_version (CuTest *test,
 	struct cmd_interface *cmd, const char *version);
@@ -37,7 +39,12 @@ void cerberus_protocol_required_commands_testing_process_get_fw_version_bad_coun
 	struct cmd_interface *cmd);
 
 void cerberus_protocol_required_commands_testing_process_get_certificate_digest (CuTest *test,
-	struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation);
+	struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation,
+	struct session_manager_mock *session);
+void cerberus_protocol_required_commands_testing_process_get_certificate_digest_no_key_exchange (
+	CuTest *test, struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation);
+void cerberus_protocol_required_commands_testing_process_get_certificate_digest_in_session (
+	CuTest *test, struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation);
 void cerberus_protocol_required_commands_testing_process_get_certificate_digest_aux_slot (
 	CuTest *test, struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation);
 void cerberus_protocol_required_commands_testing_process_get_certificate_digest_limited_response (
@@ -46,6 +53,8 @@ void cerberus_protocol_required_commands_testing_process_get_certificate_digest_
 	CuTest *test, struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation);
 void cerberus_protocol_required_commands_testing_process_get_certificate_digest_unavailable_cert (
 	CuTest *test, struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation);
+void cerberus_protocol_required_commands_testing_process_get_certificate_digest_encryption_unsupported (
+	CuTest *test, struct cmd_interface *cmd);
 void cerberus_protocol_required_commands_testing_process_get_certificate_digest_invalid_len (
 	CuTest *test, struct cmd_interface *cmd);
 void cerberus_protocol_required_commands_testing_process_get_certificate_digest_unsupported_algo (
@@ -83,8 +92,18 @@ void cerberus_protocol_required_commands_testing_process_get_certificate_fail (
 	CuTest *test, struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation);
 
 void cerberus_protocol_required_commands_testing_process_get_challenge_response (CuTest *test,
-	struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation);
+	struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation, 
+	struct session_manager_mock *session);
+void cerberus_protocol_required_commands_testing_process_get_challenge_response_no_session_mgr (
+	CuTest *test, struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation);
+void cerberus_protocol_required_commands_testing_process_get_challenge_response_key_exchange_not_requested (
+	CuTest *test, struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation);
 void cerberus_protocol_required_commands_testing_process_get_challenge_response_limited_response (
+	CuTest *test, struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation, 
+	struct session_manager_mock *session);
+void cerberus_protocol_required_commands_testing_process_get_challenge_response_limited_response_no_session_mgr (
+	CuTest *test, struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation);
+void cerberus_protocol_required_commands_testing_process_get_challenge_response_limited_response_key_exchange_not_requested (
 	CuTest *test, struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation);
 void cerberus_protocol_required_commands_testing_process_get_challenge_response_fail (
 	CuTest *test, struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation);
@@ -168,6 +187,15 @@ void cerberus_protocol_required_commands_testing_process_reset_counter_invalid_l
 	struct cmd_interface *cmd);
 void cerberus_protocol_required_commands_testing_process_reset_counter_invalid_counter (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_device_mock *cmd_device);
+
+void cerberus_protocol_required_commands_testing_generate_error_packet (CuTest *test,
+	struct cmd_interface *cmd);
+void cerberus_protocol_required_commands_testing_generate_error_packet_encrypted (CuTest *test,
+	struct cmd_interface *cmd, struct session_manager_mock *session);
+void cerberus_protocol_required_commands_testing_generate_error_packet_encrypted_fail (CuTest *test,
+	struct cmd_interface *cmd, struct session_manager_mock *session);
+void cerberus_protocol_required_commands_testing_generate_error_packet_invalid_arg (CuTest *test,
+	struct cmd_interface *cmd);
 
 
 #endif /* CERBERUS_PROTOCOL_REQUIRED_COMMANDS_TESTING_H_ */

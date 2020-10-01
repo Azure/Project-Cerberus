@@ -86,13 +86,38 @@ struct cmd_interface {
 	 * error code.
 	 */
 	int (*issue_request) (struct cmd_interface *intf, uint8_t command_id, void *request_params,
-		uint8_t *buf, int buf_len);
+		uint8_t *buf, size_t buf_len);
+
+	/**
+	 * Generate a packet containing error message.
+	 *
+	 * @param intf The command interface to utilize.
+ 	 * @param request The request container to utilize.
+	 * @param error_code Identifier for the error.
+	 * @param error_data Data for the error condition.
+ 	 * @param cmd_set Command set to respond on.
+	 *
+	 * @return 0 if the packet was generated successfully or an error code.
+	 */
+	int (*generate_error_packet) (struct cmd_interface *intf, struct cmd_interface_request *request,
+		uint8_t error_code, uint32_t error_data, uint8_t cmd_set);
+
+	struct session_manager *session;						/**< Session manager for channel encryption*/
+	bool curr_txn_encrypted;								/**< Current transaction encrypted */
 };
 
 
 /* Internal functions for use by derived types. */
 int cmd_interface_process_request (struct cmd_interface *intf,
-	struct cmd_interface_request *request, uint8_t *command_id, uint8_t *command_set);
+	struct cmd_interface_request *request, uint8_t *command_id, uint8_t *command_set, bool decrypt,
+	bool rsvd_zero);
+int cmd_interface_process_response (struct cmd_interface *intf,
+	struct cmd_interface_request *response);
+int cmd_interface_is_request_encrypted (struct cmd_interface *intf,
+	struct cmd_interface_request *request);
+int cmd_interface_generate_error_packet (struct cmd_interface *intf,
+	struct cmd_interface_request *request, uint8_t error_code, uint32_t error_data,
+	uint8_t cmd_set);
 
 
 #define	CMD_HANDLER_ERROR(code)		ROT_ERROR (ROT_MODULE_CMD_HANDLER, code)
@@ -120,6 +145,9 @@ enum {
 	CMD_HANDLER_UNSUPPORTED_CHANNEL = CMD_HANDLER_ERROR (0x0E),		/**< The command is received on a channel not supported by the device. */
 	CMD_HANDLER_UNSUPPORTED_OPERATION = CMD_HANDLER_ERROR (0x0F),	/**< The requested operation is not supported. */
 	CMD_HANDLER_RESPONSE_TOO_SMALL = CMD_HANDLER_ERROR (0x10),		/**< The maximum allowed response is too small for the output. */
+	CMD_HANDLER_ENCRYPTION_UNSUPPORTED = CMD_HANDLER_ERROR (0x11),	/**< Channel encryption not supported on this interface. */
+	CMD_HANDLER_CMD_SHOULD_BE_ENCRYPTED = CMD_HANDLER_ERROR (0x12),	/**< Secure command received unencrypted after establishing an encrypted channel. */
+	CMD_HANDLER_RSVD_NOT_ZERO = CMD_HANDLER_ERROR (0x13),			/**< Reserved field is non-zero. */
 };
 
 

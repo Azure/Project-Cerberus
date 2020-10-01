@@ -8,7 +8,7 @@
 
 
 static int attestation_slave_get_digests (struct attestation_slave *attestation, uint8_t slot_num,
-	uint8_t *buf, int buf_len, uint8_t *num_cert)
+	uint8_t *buf, size_t buf_len, uint8_t *num_cert)
 {
 	const struct riot_keys *keys;
 	const struct der_cert *root_ca;
@@ -248,7 +248,7 @@ exit:
 }
 
 static int attestation_slave_challenge_response (struct attestation_slave *attestation,
-	uint8_t *buf, int buf_len)
+	uint8_t *buf, size_t buf_len)
 {
 	struct attestation_challenge *challenge = (struct attestation_challenge*)buf;
 	struct attestation_response *response = (struct attestation_response*)buf;
@@ -304,13 +304,13 @@ static int attestation_slave_challenge_response (struct attestation_slave *attes
 
 	response->slot_num = slot_num;
 	response->slot_mask = 1;
-	response->min_protocol_version = 1;
-	response->max_protocol_version = 1;
+	response->min_protocol_version = attestation->min_protocol_version;
+	response->max_protocol_version = attestation->max_protocol_version;
 	response->num_digests = num_measurements;
 	response->digests_size = sizeof (measurement);
 
-	status = attestation->rng->generate_random_buffer (attestation->rng,
-		ATTESTATION_NONCE_LEN, response->nonce);
+	status = attestation->rng->generate_random_buffer (attestation->rng, ATTESTATION_NONCE_LEN,
+		response->nonce);
 	if (status != 0) {
 		goto cleanup;
 	}
@@ -388,6 +388,23 @@ static int attestation_slave_aux_decrypt_unsupported (struct attestation_slave *
 	return ATTESTATION_UNSUPPORTED_OPERATION;
 }
 
+static int attestation_slave_generate_ecdh_seed (struct attestation_slave *attestation,
+	const uint8_t *pub_key, size_t key_length, bool hash_seed, uint8_t *seed, size_t seed_length)
+{
+	if (attestation == NULL) {
+		return ATTESTATION_INVALID_ARGUMENT;
+	}
+
+	return aux_attestation_generate_ecdh_seed (attestation->aux, pub_key, key_length,
+		(hash_seed) ? attestation->hash : NULL, seed, seed_length);
+}
+
+static int attestation_slave_generate_ecdh_seed_unsupported (struct attestation_slave *attestation,
+	const uint8_t *pub_key, size_t key_length, bool hash_seed, uint8_t *seed, size_t seed_length)
+{
+	return ATTESTATION_UNSUPPORTED_OPERATION;
+}
+
 /**
  * Initialize the common components for slave attestation management.
  *
@@ -397,12 +414,15 @@ static int attestation_slave_aux_decrypt_unsupported (struct attestation_slave *
  * @param ecc The ECC engine to utilize.
  * @param rng The RNG engine to utilize.
  * @param store PCR store to utilize.
+ * @param min_protocol_version Minimum protocol version supported by the device.
+ * @param max_protocol_version Maximum protocol version supported by the device.
  *
  * @return Initialization status, 0 if success or an error code.
  */
 static int attestation_slave_init_common (struct attestation_slave *attestation,
 	struct riot_key_manager *riot, struct hash_engine *hash, struct ecc_engine *ecc,
-	struct rng_engine *rng, struct pcr_store *store)
+	struct rng_engine *rng, struct pcr_store *store, uint8_t min_protocol_version,
+	uint8_t max_protocol_version)
 {
 	const struct riot_keys *keys;
 	int status;
@@ -433,6 +453,8 @@ static int attestation_slave_init_common (struct attestation_slave *attestation,
 	attestation->ecc = ecc;
 	attestation->rng = rng;
 	attestation->pcr_store = store;
+	attestation->min_protocol_version = min_protocol_version;
+	attestation->max_protocol_version = max_protocol_version;
 
 	attestation->get_digests = attestation_slave_get_digests;
 	attestation->get_certificate = attestation_slave_get_certificate;
@@ -451,12 +473,15 @@ static int attestation_slave_init_common (struct attestation_slave *attestation,
  * @param rng The RNG engine to utilize.
  * @param store PCR store to utilize.
  * @param aux Aux attestation service handler to utilize.
+ * @param min_protocol_version Minimum protocol version supported by the device.
+ * @param max_protocol_version Maximum protocol version supported by the device.
  *
  * @return Initialization status, 0 if success or an error code.
  */
 int attestation_slave_init (struct attestation_slave *attestation,
 	struct riot_key_manager *riot, struct hash_engine *hash, struct ecc_engine *ecc,
-	struct rng_engine *rng, struct pcr_store *store, struct aux_attestation *aux)
+	struct rng_engine *rng, struct pcr_store *store, struct aux_attestation *aux,
+	uint8_t min_protocol_version, uint8_t max_protocol_version)
 {
 	int status;
 
@@ -464,7 +489,8 @@ int attestation_slave_init (struct attestation_slave *attestation,
 		return ATTESTATION_INVALID_ARGUMENT;
 	}
 
-	status = attestation_slave_init_common (attestation, riot, hash, ecc, rng, store);
+	status = attestation_slave_init_common (attestation, riot, hash, ecc, rng, store,
+		min_protocol_version, max_protocol_version);
 	if (status != 0) {
 		return status;
 	}
@@ -473,6 +499,7 @@ int attestation_slave_init (struct attestation_slave *attestation,
 
 	attestation->aux_attestation_unseal = attestation_slave_aux_attestation_unseal;
 	attestation->aux_decrypt = attestation_slave_aux_decrypt;
+	attestation->generate_ecdh_seed = attestation_slave_generate_ecdh_seed;
 
 	return 0;
 }
@@ -486,22 +513,27 @@ int attestation_slave_init (struct attestation_slave *attestation,
  * @param ecc The ECC engine to utilize.
  * @param rng The RNG engine to utilize.
  * @param store PCR store to utilize.
+ * @param min_protocol_version Minimum protocol version supported by the device.
+ * @param max_protocol_version Maximum protocol version supported by the device.
  *
  * @return Initialization status, 0 if success or an error code.
  */
 int attestation_slave_init_no_aux (struct attestation_slave *attestation,
 	struct riot_key_manager *riot, struct hash_engine *hash, struct ecc_engine *ecc,
-	struct rng_engine *rng, struct pcr_store *store)
+	struct rng_engine *rng, struct pcr_store *store, uint8_t min_protocol_version,
+	uint8_t max_protocol_version)
 {
 	int status;
 
-	status = attestation_slave_init_common (attestation, riot, hash, ecc, rng, store);
+	status = attestation_slave_init_common (attestation, riot, hash, ecc, rng, store,
+		min_protocol_version, max_protocol_version);
 	if (status != 0) {
 		return status;
 	}
 
 	attestation->aux_attestation_unseal = attestation_slave_aux_attestation_unseal_unsupported;
 	attestation->aux_decrypt = attestation_slave_aux_decrypt_unsupported;
+	attestation->generate_ecdh_seed = attestation_slave_generate_ecdh_seed_unsupported;
 
 	return 0;
 }

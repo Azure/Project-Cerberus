@@ -13,6 +13,8 @@ extern const uint8_t KEY_SEED_ENCRYPT_OAEP[];
 extern const size_t KEY_SEED_ENCRYPT_OAEP_LEN;
 extern const uint8_t KEY_SEED_ENCRYPT_OAEP_SHA256[];
 extern const size_t KEY_SEED_ENCRYPT_OAEP_SHA256_LEN;
+extern const uint8_t KEY_SEED_HASH[];
+extern const size_t KEY_SEED_HASH_LEN;
 extern const uint8_t NIST_KEY_DERIVE_I[];
 extern const size_t NIST_KEY_DERIVE_I_LEN;
 extern const uint8_t NIST_KEY_DERIVE_L[];

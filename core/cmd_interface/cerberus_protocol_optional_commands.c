@@ -21,6 +21,7 @@
 #include "cmd_background.h"
 #include "cmd_interface.h"
 #include "device_manager.h"
+#include "session_manager.h"
 #include "recovery/recovery_image.h"
 #include "cerberus_protocol_required_commands.h"
 #include "cerberus_protocol_master_commands.h"
@@ -263,7 +264,7 @@ int cerberus_protocol_get_log_info (struct pcr_store *pcr_store,
 	}
 	rsp->debug_log_length = log_length;
 
-	log_length = pcr_store_get_tcg_log_size (pcr_store);
+	log_length = pcr_store_get_attestation_log_size (pcr_store);
 	if (ROT_IS_ERROR (log_length)) {
 		log_length = 0;
 	}
@@ -300,9 +301,13 @@ int cerberus_protocol_log_read (struct pcr_store *pcr_store, struct hash_engine 
 		log_length = debug_log_read_contents (rq->offset, cerberus_protocol_log_data (rsp),
 			CERBERUS_PROTOCOL_MAX_LOG_DATA (request));
 	}
-	else if (rq->log_type == CERBERUS_PROTOCOL_TCG_LOG) {
-		log_length = pcr_store_get_tcg_log (pcr_store, hash, rq->offset,
+	else if (rq->log_type == CERBERUS_PROTOCOL_ATTESTATION_LOG) {
+		log_length = pcr_store_get_attestation_log (pcr_store, hash, rq->offset,
 			cerberus_protocol_log_data (rsp), CERBERUS_PROTOCOL_MAX_LOG_DATA (request));
+	}
+	else if (rq->log_type == CERBERUS_PROTOCOL_TCG_LOG) {
+		log_length = pcr_store_get_tcg_log (pcr_store, cerberus_protocol_log_data (rsp), rq->offset,
+			CERBERUS_PROTOCOL_MAX_LOG_DATA (request));
 	}
 	else {
 		return CMD_HANDLER_UNSUPPORTED_INDEX;
@@ -338,11 +343,39 @@ int cerberus_protocol_log_clear (struct cmd_background *background,
 	if (rq->log_type == CERBERUS_PROTOCOL_DEBUG_LOG) {
 		return background->debug_log_clear (background);
 	}
-	else if (rq->log_type == CERBERUS_PROTOCOL_TCG_LOG) {
+	else if (rq->log_type == CERBERUS_PROTOCOL_ATTESTATION_LOG) {
 		return 0;
 	}
 
 	return CMD_HANDLER_UNSUPPORTED_INDEX;
+}
+
+/**
+ * Process PFM ID version packet
+ *
+ * @param pfm PFM to query
+ * @param request PFM ID request to process
+ *
+ * @return 0 if request processing completed successfully or an error code.
+ */
+static int cerberus_protocol_get_pfm_id_version (struct pfm *pfm,
+	struct cmd_interface_request *request)
+{
+	return cerberus_protocol_get_manifest_id_version (&pfm->base, request);
+}
+
+/**
+ * Process PFM ID platform packet
+ *
+ * @param pfm PFM to query
+ * @param request PFM ID request to process
+ *
+ * @return 0 if request processing completed successfully or an error code.
+ */
+static int cerberus_protocol_get_pfm_id_platform (struct pfm *pfm,
+	struct cmd_interface_request *request)
+{
+	return cerberus_protocol_get_manifest_id_platform (&pfm->base, request);
 }
 
 /**
@@ -358,10 +391,9 @@ int cerberus_protocol_get_pfm_id (struct pfm_manager *pfm_mgr_0, struct pfm_mana
 	struct cmd_interface_request *request)
 {
 	struct cerberus_protocol_get_pfm_id *rq = (struct cerberus_protocol_get_pfm_id*) request->data;
-	struct cerberus_protocol_get_pfm_id_version_response *rsp =
-		(struct cerberus_protocol_get_pfm_id_version_response*) request->data;
 	struct pfm *curr_pfm = NULL;
 	uint8_t port;
+	uint8_t id;
 	int status = 0;
 
 	if (request->length == (sizeof (struct cerberus_protocol_get_pfm_id) - sizeof (rq->id))) {
@@ -372,31 +404,25 @@ int cerberus_protocol_get_pfm_id (struct pfm_manager *pfm_mgr_0, struct pfm_mana
 	}
 
 	port = rq->port_id;
-	if (port > 1) {
+	id = rq->id;
+	if ((port > 1) || (id > 1)) {
 		return CMD_HANDLER_OUT_OF_RANGE;
 	}
 
 	status = cerberus_protocol_get_curr_pfm (pfm_mgr_0, pfm_mgr_1, port, rq->region, &curr_pfm);
-	if (status != 0) {
+	/* When there's no valid PFM manager, return a success
+	 * with response indicating no valid manifest */
+	if ((status != 0) && (status != CMD_HANDLER_UNSUPPORTED_INDEX)) {
 		return status;
 	}
 
-	if (curr_pfm != NULL) {
-		status = curr_pfm->base.get_id (&curr_pfm->base, &rsp->version);
-		if (status != 0) {
-			goto exit;
-		}
-
-		rsp->valid = 1;
+	if (id == 0) {
+		status = cerberus_protocol_get_pfm_id_version (curr_pfm, request);
 	}
 	else {
-		rsp->valid = 0;
-		rsp->version = 0;
+		status = cerberus_protocol_get_pfm_id_platform (curr_pfm, request);
 	}
 
-	request->length = sizeof (struct cerberus_protocol_get_pfm_id_version_response);
-
-exit:
 	cerberus_protocol_free_pfm (pfm_mgr_0, pfm_mgr_1, port, curr_pfm);
 	return status;
 }
@@ -421,7 +447,7 @@ int cerberus_protocol_get_pfm_fw (struct manifest_cmd_interface *pfm_0,
 	struct cerberus_protocol_get_pfm_supported_fw_response *rsp =
 		(struct cerberus_protocol_get_pfm_supported_fw_response*) request->data;
 	struct pfm_firmware_versions supported_ids;
-	struct pfm *curr_pfm;
+	struct pfm *curr_pfm = NULL;
 	uint32_t fw_length = 0;
 	uint32_t offset;
 	uint32_t port;
@@ -439,14 +465,23 @@ int cerberus_protocol_get_pfm_fw (struct manifest_cmd_interface *pfm_0,
 		return CMD_HANDLER_OUT_OF_RANGE;
 	}
 
+	offset = rq->offset;
+	port = rq->port_id;
+
 	status = cerberus_protocol_get_curr_pfm (pfm_mgr_0, pfm_mgr_1, rq->port_id, rq->region,
 		&curr_pfm);
 	if (status != 0) {
-		return status;
+		if (status == CMD_HANDLER_UNSUPPORTED_INDEX) {
+			status = 0;
+			rsp->valid = 0;
+			rsp->version = 0;
+			request->length = cerberus_protocol_get_pfm_supported_fw_response_length (0);
+			goto exit;
+		}
+		else {
+			return status;
+		}
 	}
-
-	offset = rq->offset;
-	port = rq->port_id;
 
 	if (curr_pfm != NULL) {
 		rsp->valid = 1;
@@ -465,7 +500,7 @@ int cerberus_protocol_get_pfm_fw (struct manifest_cmd_interface *pfm_0,
 		 * directly into the command buffer after 'offset' bytes and stop at the buffer size.  Avoid
 		 * the malloc. */
 
-		for (i = 0; i < supported_ids.count; ++i) {
+		for (i = 0; i < (int) supported_ids.count; ++i) {
 			fw_length += strlen (supported_ids.versions[i].fw_version_id);
 			++fw_length;
 		}
@@ -483,7 +518,7 @@ int cerberus_protocol_get_pfm_fw (struct manifest_cmd_interface *pfm_0,
 
 		out_buf_ptr2 = out_buf_ptr;
 
-		for (i = 0; i < supported_ids.count; ++i, ++out_buf_ptr2) {
+		for (i = 0; i < (int) supported_ids.count; ++i, ++out_buf_ptr2) {
 			strcpy (out_buf_ptr2, supported_ids.versions[i].fw_version_id);
 			out_buf_ptr2 += strlen (supported_ids.versions[i].fw_version_id);
 			*out_buf_ptr2 = '\0';
@@ -1036,6 +1071,114 @@ int cerberus_protocol_get_attestation_data (struct pcr_store *pcr_store,
 	}
 
 	request->length = cerberus_protocol_get_attestation_data_response_length (status);
+
+	return 0;
+}
+
+/**
+ * Process a key exchange packet.
+ *
+ * @param session Session manager to utilize.
+ * @param request Key exchange request to process.
+ * @param encrypted Flag indicating if request was received in an encrypted session.
+ *
+ * @return 0 if request processing completed successfully or an error code.
+ */
+int cerberus_protocol_key_exchange (struct session_manager *session,
+	struct cmd_interface_request *request, uint8_t encrypted)
+{
+	struct cerberus_protocol_key_exchange_type_1 *type1_rq =
+		(struct cerberus_protocol_key_exchange_type_1*) request->data;
+	struct cerberus_protocol_key_exchange_type_2 *type2_rq =
+		(struct cerberus_protocol_key_exchange_type_2*) request->data;
+	int status;
+
+	if (session == NULL) {
+		return CMD_HANDLER_UNSUPPORTED_COMMAND;
+	}
+
+	if (request->length <= sizeof (struct cerberus_protocol_key_exchange)) {
+		return CMD_HANDLER_BAD_LENGTH;
+	}
+
+	switch (type1_rq->common.key_type) {
+		case CERBERUS_PROTOCOL_SESSION_KEY:
+			return session->establish_session (session, request);
+
+		case CERBERUS_PROTOCOL_PAIRED_KEY_HMAC:
+			if (!encrypted) {
+				return CMD_HANDLER_CMD_SHOULD_BE_ENCRYPTED;
+			}
+
+			status = session->setup_paired_session (session, request->source_eid,
+				type1_rq->pairing_key_len,
+				cerberus_protocol_key_exchange_type_1_hmac_data (type1_rq),
+				cerberus_protocol_key_exchange_type_1_hmac_len (request));
+
+			break;
+
+		case CERBERUS_PROTOCOL_DELETE_SESSION_KEY:
+			if (!encrypted) {
+				return CMD_HANDLER_CMD_SHOULD_BE_ENCRYPTED;
+			}
+
+			status = session->reset_session (session, request->source_eid,
+				cerberus_protocol_key_exchange_type_2_hmac_data (type2_rq),
+				cerberus_protocol_key_exchange_type_2_hmac_len (request));
+			if (status == 0) {
+				type2_rq->common.header.crypt = 0;
+			}
+
+			break;
+
+		default:
+			return CMD_HANDLER_UNSUPPORTED_INDEX;
+	}
+
+	if (status == 0) {
+		request->length = sizeof (struct cerberus_protocol_key_exchange_response);
+		request->crypto_timeout = true;
+	}
+
+	return status;
+}
+
+/**
+ * Process a session sync packet.
+ *
+ * @param session Session manager to utilize.
+ * @param request Session sync request to process.
+ * @param encrypted Flag indicating if request was received in an encrypted session.
+ *
+ * @return 0 if request processing completed successfully or an error code.
+ */
+int cerberus_protocol_session_sync (struct session_manager *session,
+	struct cmd_interface_request *request, uint8_t encrypted)
+{
+	struct cerberus_protocol_session_sync *rq =
+		(struct cerberus_protocol_session_sync*) request->data;
+	int status;
+
+	if (session == NULL) {
+		return CMD_HANDLER_UNSUPPORTED_COMMAND;
+	}
+
+	if (!encrypted) {
+		return CMD_HANDLER_CMD_SHOULD_BE_ENCRYPTED;
+	}
+
+	if (request->length != sizeof (struct cerberus_protocol_session_sync)) {
+		return CMD_HANDLER_BAD_LENGTH;
+	}
+
+	status = session->session_sync (session, request->source_eid, rq->rn_req, 
+		cerberus_protocol_session_sync_hmac_data (rq), 
+		CERBERUS_PROTOCOL_MAX_SESSION_SYNC_HMAC_LEN (request));
+	if (ROT_IS_ERROR (status)) {
+		return status;
+	}
+
+	request->length = cerberus_protocol_session_sync_length (status);
 
 	return 0;
 }

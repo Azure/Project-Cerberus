@@ -295,7 +295,7 @@ static void logging_flash_test_init_first_sector_full_unused_bytes (CuTest *test
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty < sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) sizeof (struct logging_entry_header)));
 	CuAssertTrue (test, (entry_empty != 0));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
@@ -366,8 +366,8 @@ static void logging_flash_test_init_first_sector_full_unused_bytes_terminator (C
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= sizeof (struct logging_entry_header)));
-	CuAssertTrue (test, (entry_empty < (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
 	memset (log_full, 0xff, sizeof (log_full));
@@ -443,7 +443,7 @@ static void logging_flash_test_init_first_sector_full_unused_bytes_terminator_la
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
 	memset (log_full, 0xff, sizeof (log_full));
@@ -602,7 +602,7 @@ static void logging_flash_test_init_second_sector_partial_unused_bytes (CuTest *
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty < sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) sizeof (struct logging_entry_header)));
 	CuAssertTrue (test, (entry_empty != 0));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
@@ -685,8 +685,8 @@ static void logging_flash_test_init_second_sector_partial_unused_bytes_terminato
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= sizeof (struct logging_entry_header)));
-	CuAssertTrue (test, (entry_empty < (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
 	memset (log_full, 0xff, sizeof (log_full));
@@ -775,7 +775,7 @@ static void logging_flash_test_init_second_sector_partial_unused_bytes_terminato
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
 	memset (log_full, 0xff, sizeof (log_full));
@@ -930,7 +930,7 @@ static void logging_flash_test_init_all_sectors_full_unused_bytes (CuTest *test)
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty < sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) sizeof (struct logging_entry_header)));
 	CuAssertTrue (test, (entry_empty != 0));
 
 	memset (log_full, 0xff, sizeof (log_full));
@@ -998,8 +998,8 @@ static void logging_flash_test_init_all_sectors_full_unused_bytes_terminator (Cu
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= sizeof (struct logging_entry_header)));
-	CuAssertTrue (test, (entry_empty < (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_full, 0xff, sizeof (log_full));
 
@@ -1072,7 +1072,7 @@ static void logging_flash_test_init_all_sectors_full_unused_bytes_terminator_lar
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_full, 0xff, sizeof (log_full));
 
@@ -1222,7 +1222,7 @@ static void logging_flash_test_init_all_sectors_full_overwrite_unused_bytes (CuT
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty < sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) sizeof (struct logging_entry_header)));
 	CuAssertTrue (test, (entry_empty != 0));
 
 	memset (log_full, 0xff, sizeof (log_full));
@@ -1301,8 +1301,8 @@ static void logging_flash_test_init_all_sectors_full_overwrite_unused_bytes_term
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= sizeof (struct logging_entry_header)));
-	CuAssertTrue (test, (entry_empty < (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_full, 0xff, sizeof (log_full));
 
@@ -1392,7 +1392,7 @@ static void logging_flash_test_init_all_sectors_full_overwrite_unused_bytes_term
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_full, 0xff, sizeof (log_full));
 
@@ -1562,7 +1562,7 @@ static void logging_flash_test_init_all_sectors_partial_overwrite_unused_bytes (
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty < sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) sizeof (struct logging_entry_header)));
 	CuAssertTrue (test, (entry_empty != 0));
 
 	memset (log_full, 0xff, sizeof (log_full));
@@ -1645,8 +1645,8 @@ static void logging_flash_test_init_all_sectors_partial_overwrite_unused_bytes_t
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= sizeof (struct logging_entry_header)));
-	CuAssertTrue (test, (entry_empty < (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_full, 0xff, sizeof (log_full));
 
@@ -1740,7 +1740,7 @@ static void logging_flash_test_init_all_sectors_partial_overwrite_unused_bytes_t
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_full, 0xff, sizeof (log_full));
 
@@ -2897,7 +2897,7 @@ static void logging_flash_test_create_entry_full_buffer_flush_unused_bytes (CuTe
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty < sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) sizeof (struct logging_entry_header)));
 	CuAssertTrue (test, (entry_empty != 0));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
@@ -3015,8 +3015,8 @@ static void logging_flash_test_create_entry_full_buffer_flush_unused_bytes_termi
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= sizeof (struct logging_entry_header)));
-	CuAssertTrue (test, (entry_empty < (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
 
@@ -3141,7 +3141,7 @@ static void logging_flash_test_create_entry_full_buffer_flush_unused_bytes_termi
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
 
@@ -3468,7 +3468,7 @@ static void logging_flash_test_create_entry_second_sector_partial_unused_bytes (
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty < sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) sizeof (struct logging_entry_header)));
 	CuAssertTrue (test, (entry_empty != 0));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
@@ -3584,8 +3584,8 @@ static void logging_flash_test_create_entry_second_sector_partial_unused_bytes_t
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= sizeof (struct logging_entry_header)));
-	CuAssertTrue (test, (entry_empty < (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
 	memset (log_full, 0xff, sizeof (log_full));
@@ -3706,7 +3706,7 @@ static void logging_flash_test_create_entry_second_sector_partial_unused_bytes_t
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
 	memset (log_full, 0xff, sizeof (log_full));
@@ -3956,7 +3956,7 @@ static void logging_flash_test_create_entry_fill_partial_buffer_flush_unused_byt
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty < sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) sizeof (struct logging_entry_header)));
 	CuAssertTrue (test, (entry_empty != 0));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
@@ -4086,8 +4086,8 @@ static void logging_flash_test_create_entry_fill_partial_buffer_flush_unused_byt
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= sizeof (struct logging_entry_header)));
-	CuAssertTrue (test, (entry_empty < (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
 	memset (log_partial, 0xff, sizeof (log_partial));
@@ -4223,7 +4223,7 @@ static void logging_flash_test_create_entry_fill_partial_buffer_flush_unused_byt
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
 	memset (log_partial, 0xff, sizeof (log_partial));
@@ -4453,7 +4453,7 @@ static void logging_flash_test_create_entry_all_sectors_full_unused_bytes (CuTes
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty < sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) sizeof (struct logging_entry_header)));
 	CuAssertTrue (test, (entry_empty != 0));
 
 	memset (log_full, 0xff, sizeof (log_full));
@@ -4551,8 +4551,8 @@ static void logging_flash_test_create_entry_all_sectors_full_unused_bytes_termin
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= sizeof (struct logging_entry_header)));
-	CuAssertTrue (test, (entry_empty < (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_full, 0xff, sizeof (log_full));
 
@@ -4656,7 +4656,7 @@ static void logging_flash_test_create_entry_all_sectors_full_unused_bytes_termin
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_full, 0xff, sizeof (log_full));
 
@@ -4865,7 +4865,7 @@ static void logging_flash_test_create_entry_full_overwrite_middle_unused_bytes (
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty < sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) sizeof (struct logging_entry_header)));
 	CuAssertTrue (test, (entry_empty != 0));
 
 	memset (log_full, 0xff, sizeof (log_full));
@@ -4973,8 +4973,8 @@ static void logging_flash_test_create_entry_full_overwrite_middle_unused_bytes_t
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= sizeof (struct logging_entry_header)));
-	CuAssertTrue (test, (entry_empty < (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_full, 0xff, sizeof (log_full));
 
@@ -5093,7 +5093,7 @@ static void logging_flash_test_create_entry_full_overwrite_middle_unused_bytes_t
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_full, 0xff, sizeof (log_full));
 
@@ -5321,7 +5321,7 @@ static void logging_flash_test_create_entry_full_partial_overwrite_middle_unused
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty < sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) sizeof (struct logging_entry_header)));
 	CuAssertTrue (test, (entry_empty != 0));
 
 	memset (log_full, 0xff, sizeof (log_full));
@@ -5432,8 +5432,8 @@ static void logging_flash_test_create_entry_full_partial_overwrite_middle_unused
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= sizeof (struct logging_entry_header)));
-	CuAssertTrue (test, (entry_empty < (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_full, 0xff, sizeof (log_full));
 
@@ -5554,7 +5554,7 @@ static void logging_flash_test_create_entry_full_partial_overwrite_middle_unused
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_full, 0xff, sizeof (log_full));
 
@@ -5826,7 +5826,7 @@ static void logging_flash_test_create_entry_full_buffer_after_partial_flush_unus
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty < sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) sizeof (struct logging_entry_header)));
 	CuAssertTrue (test, (entry_empty != 0));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
@@ -5977,8 +5977,8 @@ static void logging_flash_test_create_entry_full_buffer_after_partial_flush_unus
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= sizeof (struct logging_entry_header)));
-	CuAssertTrue (test, (entry_empty < (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
 
@@ -6135,7 +6135,7 @@ static void logging_flash_test_create_entry_full_buffer_after_partial_flush_unus
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
 
@@ -6433,7 +6433,7 @@ static void logging_flash_test_create_entry_full_buffer_flush_multiple_unused_by
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty < sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) sizeof (struct logging_entry_header)));
 	CuAssertTrue (test, (entry_empty != 0));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
@@ -6578,8 +6578,8 @@ static void logging_flash_test_create_entry_full_buffer_flush_multiple_unused_by
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= sizeof (struct logging_entry_header)));
-	CuAssertTrue (test, (entry_empty < (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
 
@@ -6729,7 +6729,7 @@ static void logging_flash_test_create_entry_full_buffer_flush_multiple_unused_by
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
 
@@ -7018,7 +7018,7 @@ static void logging_flash_test_create_entry_wrap_to_start_unused_bytes (CuTest *
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty < sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) sizeof (struct logging_entry_header)));
 	CuAssertTrue (test, (entry_empty != 0));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
@@ -7158,8 +7158,8 @@ static void logging_flash_test_create_entry_wrap_to_start_unused_bytes_terminato
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= sizeof (struct logging_entry_header)));
-	CuAssertTrue (test, (entry_empty < (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
 	memset (log_full, 0xff, sizeof (log_full));
@@ -7312,7 +7312,7 @@ static void logging_flash_test_create_entry_wrap_to_start_unused_bytes_terminato
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
 	memset (log_full, 0xff, sizeof (log_full));
@@ -8477,7 +8477,7 @@ static void logging_flash_test_create_entry_after_incomplete_flush_unused_bytes 
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty < sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) sizeof (struct logging_entry_header)));
 	CuAssertTrue (test, (entry_empty != 0));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
@@ -8594,8 +8594,8 @@ static void logging_flash_test_create_entry_after_incomplete_flush_unused_bytes_
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= sizeof (struct logging_entry_header)));
-	CuAssertTrue (test, (entry_empty < (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
 
@@ -8711,7 +8711,7 @@ static void logging_flash_test_create_entry_after_incomplete_flush_unused_bytes_
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
 
@@ -8960,7 +8960,7 @@ static void logging_flash_test_create_entry_full_buffer_flush_after_incomplete_f
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty < sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) sizeof (struct logging_entry_header)));
 	CuAssertTrue (test, (entry_empty != 0));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
@@ -9093,8 +9093,8 @@ static void logging_flash_test_create_entry_full_buffer_flush_after_incomplete_f
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= sizeof (struct logging_entry_header)));
-	CuAssertTrue (test, (entry_empty < (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
 
@@ -9233,7 +9233,7 @@ static void logging_flash_test_create_entry_full_buffer_flush_after_incomplete_f
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
 
@@ -9714,7 +9714,7 @@ static void logging_flash_test_flush_incomplete_write_unused_bytes (CuTest *test
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty < sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) sizeof (struct logging_entry_header)));
 	CuAssertTrue (test, (entry_empty != 0));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
@@ -9811,8 +9811,8 @@ static void logging_flash_test_flush_incomplete_write_unused_bytes_terminator (C
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= sizeof (struct logging_entry_header)));
-	CuAssertTrue (test, (entry_empty < (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
 
@@ -9908,7 +9908,7 @@ static void logging_flash_test_flush_incomplete_write_unused_bytes_terminator_la
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
 
@@ -10110,7 +10110,7 @@ static void logging_flash_test_flush_after_incomplete_write_unused_bytes (CuTest
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty < sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) sizeof (struct logging_entry_header)));
 	CuAssertTrue (test, (entry_empty != 0));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
@@ -10217,7 +10217,7 @@ static void logging_flash_test_flush_after_incomplete_write_unused_bytes_termina
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty >= (int) sizeof (struct logging_entry_header)));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
 
@@ -10324,7 +10324,7 @@ static void logging_flash_test_flush_after_incomplete_write_unused_bytes_termina
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
 
@@ -10704,7 +10704,7 @@ static void logging_flash_test_read_contents_first_sector_full_unused_bytes (CuT
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty < sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) sizeof (struct logging_entry_header)));
 	CuAssertTrue (test, (entry_empty != 0));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
@@ -10787,8 +10787,8 @@ static void logging_flash_test_read_contents_first_sector_full_unused_bytes_term
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= sizeof (struct logging_entry_header)));
-	CuAssertTrue (test, (entry_empty < (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
 	memset (log_full, 0xff, sizeof (log_full));
@@ -10876,7 +10876,7 @@ static void logging_flash_test_read_contents_first_sector_full_unused_bytes_term
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
 	memset (log_full, 0xff, sizeof (log_full));
@@ -11070,7 +11070,7 @@ static void logging_flash_test_read_contents_second_sector_partial_usused_bytes 
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty < sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) sizeof (struct logging_entry_header)));
 	CuAssertTrue (test, (entry_empty != 0));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
@@ -11176,8 +11176,8 @@ static void logging_flash_test_read_contents_second_sector_partial_usused_bytes_
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= sizeof (struct logging_entry_header)));
-	CuAssertTrue (test, (entry_empty < (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
 	memset (log_full, 0xff, sizeof (log_full));
@@ -11289,7 +11289,7 @@ static void logging_flash_test_read_contents_second_sector_partial_usused_bytes_
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
 	memset (log_full, 0xff, sizeof (log_full));
@@ -11488,7 +11488,7 @@ static void logging_flash_test_read_contents_all_sectors_full_unused_bytes (CuTe
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty < sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) sizeof (struct logging_entry_header)));
 	CuAssertTrue (test, (entry_empty != 0));
 
 	memset (log_full, 0xff, sizeof (log_full));
@@ -11577,8 +11577,8 @@ static void logging_flash_test_read_contents_all_sectors_full_unused_bytes_termi
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= sizeof (struct logging_entry_header)));
-	CuAssertTrue (test, (entry_empty < (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_full, 0xff, sizeof (log_full));
 
@@ -11673,7 +11673,7 @@ static void logging_flash_test_read_contents_all_sectors_full_unused_bytes_termi
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_full, 0xff, sizeof (log_full));
 
@@ -11874,7 +11874,7 @@ static void logging_flash_test_read_contents_all_sectors_full_overwrite_unused_b
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty < sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) sizeof (struct logging_entry_header)));
 	CuAssertTrue (test, (entry_empty != 0));
 
 	memset (log_full, 0xff, sizeof (log_full));
@@ -11983,8 +11983,8 @@ static void logging_flash_test_read_contents_all_sectors_full_overwrite_unused_b
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= sizeof (struct logging_entry_header)));
-	CuAssertTrue (test, (entry_empty < (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_full, 0xff, sizeof (log_full));
 
@@ -12104,7 +12104,7 @@ static void logging_flash_test_read_contents_all_sectors_full_overwrite_unused_b
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_full, 0xff, sizeof (log_full));
 
@@ -12341,7 +12341,7 @@ static void logging_flash_test_read_contents_all_sectors_partial_overwrite_unuse
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty < sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) sizeof (struct logging_entry_header)));
 	CuAssertTrue (test, (entry_empty != 0));
 
 	memset (log_full, 0xff, sizeof (log_full));
@@ -12460,8 +12460,8 @@ static void logging_flash_test_read_contents_all_sectors_partial_overwrite_unuse
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= sizeof (struct logging_entry_header)));
-	CuAssertTrue (test, (entry_empty < (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_full, 0xff, sizeof (log_full));
 
@@ -12591,7 +12591,7 @@ static void logging_flash_test_read_contents_all_sectors_partial_overwrite_unuse
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_full, 0xff, sizeof (log_full));
 
@@ -12870,7 +12870,7 @@ static void logging_flash_test_read_contents_after_erase_new_middle_sector_unuse
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty < sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) sizeof (struct logging_entry_header)));
 	CuAssertTrue (test, (entry_empty != 0));
 
 	memset (log_full, 0xff, sizeof (log_full));
@@ -13019,8 +13019,8 @@ static void logging_flash_test_read_contents_after_erase_new_middle_sector_unuse
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= sizeof (struct logging_entry_header)));
-	CuAssertTrue (test, (entry_empty < (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_full, 0xff, sizeof (log_full));
 
@@ -13180,7 +13180,7 @@ static void logging_flash_test_read_contents_after_erase_new_middle_sector_unuse
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_full, 0xff, sizeof (log_full));
 
@@ -14155,7 +14155,7 @@ static void logging_flash_test_read_contents_flash_and_buffered_entries_unused_b
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty < sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) sizeof (struct logging_entry_header)));
 	CuAssertTrue (test, (entry_empty != 0));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
@@ -14263,8 +14263,8 @@ static void logging_flash_test_read_contents_flash_and_buffered_entries_unused_b
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= sizeof (struct logging_entry_header)));
-	CuAssertTrue (test, (entry_empty < (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
 	memset (log_full, 0xff, sizeof (log_full));
@@ -14379,7 +14379,7 @@ static void logging_flash_test_read_contents_flash_and_buffered_entries_unused_b
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
 	memset (log_full, 0xff, sizeof (log_full));
@@ -14615,7 +14615,7 @@ static void logging_flash_test_read_contents_full_log_with_buffered_entries_unus
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty < sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) sizeof (struct logging_entry_header)));
 	CuAssertTrue (test, (entry_empty != 0));
 
 	memset (log_full, 0xff, sizeof (log_full));
@@ -14734,8 +14734,8 @@ static void logging_flash_test_read_contents_full_log_with_buffered_entries_unus
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= sizeof (struct logging_entry_header)));
-	CuAssertTrue (test, (entry_empty < (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_full, 0xff, sizeof (log_full));
 
@@ -14859,7 +14859,7 @@ static void logging_flash_test_read_contents_full_log_with_buffered_entries_unus
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_full, 0xff, sizeof (log_full));
 
@@ -15098,7 +15098,7 @@ static void logging_flash_test_read_contents_full_buffer_flush_after_incomplete_
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty < sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) sizeof (struct logging_entry_header)));
 	CuAssertTrue (test, (entry_empty != 0));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
@@ -15216,8 +15216,8 @@ static void logging_flash_test_read_contents_full_buffer_flush_after_incomplete_
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= sizeof (struct logging_entry_header)));
-	CuAssertTrue (test, (entry_empty < (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
 
@@ -15341,7 +15341,7 @@ static void logging_flash_test_read_contents_full_buffer_flush_after_incomplete_
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
 
@@ -16023,7 +16023,7 @@ static void logging_flash_test_clear_with_entries_then_fill_buffer_unused_bytes 
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty < sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) sizeof (struct logging_entry_header)));
 	CuAssertTrue (test, (entry_empty != 0));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
@@ -16181,8 +16181,8 @@ static void logging_flash_test_clear_with_entries_then_fill_buffer_unused_bytes_
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= sizeof (struct logging_entry_header)));
-	CuAssertTrue (test, (entry_empty < (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
 
@@ -16347,7 +16347,7 @@ static void logging_flash_test_clear_with_entries_then_fill_buffer_unused_bytes_
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
 
@@ -16683,7 +16683,7 @@ static void logging_flash_test_clear_after_partial_flush_then_fill_buffer_unused
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty < sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) sizeof (struct logging_entry_header)));
 	CuAssertTrue (test, (entry_empty != 0));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
@@ -16856,8 +16856,8 @@ static void logging_flash_test_clear_after_partial_flush_then_fill_buffer_unused
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= sizeof (struct logging_entry_header)));
-	CuAssertTrue (test, (entry_empty < (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
 
@@ -17037,7 +17037,7 @@ static void logging_flash_test_clear_after_partial_flush_then_fill_buffer_unused
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
 
@@ -17351,7 +17351,7 @@ static void logging_flash_test_clear_full_overwrite_unused_bytes (CuTest *test)
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty < sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) sizeof (struct logging_entry_header)));
 	CuAssertTrue (test, (entry_empty != 0));
 
 	memset (log_full, 0xff, sizeof (log_full));
@@ -17488,8 +17488,8 @@ static void logging_flash_test_clear_full_overwrite_unused_bytes_terminator (CuT
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= sizeof (struct logging_entry_header)));
-	CuAssertTrue (test, (entry_empty < (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_full, 0xff, sizeof (log_full));
 
@@ -17637,7 +17637,7 @@ static void logging_flash_test_clear_full_overwrite_unused_bytes_terminator_larg
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_full, 0xff, sizeof (log_full));
 
@@ -17922,7 +17922,7 @@ static void logging_flash_test_clear_full_buffer_flush_after_incomplete_flush_un
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty < sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) sizeof (struct logging_entry_header)));
 	CuAssertTrue (test, (entry_empty != 0));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
@@ -18060,8 +18060,8 @@ static void logging_flash_test_clear_full_buffer_flush_after_incomplete_flush_un
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= sizeof (struct logging_entry_header)));
-	CuAssertTrue (test, (entry_empty < (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) sizeof (struct logging_entry_header)));
+	CuAssertTrue (test, (entry_empty < (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
 
@@ -18205,7 +18205,7 @@ static void logging_flash_test_clear_full_buffer_flush_after_incomplete_flush_un
 
 	TEST_START;
 
-	CuAssertTrue (test, (entry_empty >= (sizeof (struct logging_entry_header) * 2)));
+	CuAssertTrue (test, (entry_empty >= (int) (sizeof (struct logging_entry_header) * 2)));
 
 	memset (log_empty, 0xff, sizeof (log_empty));
 

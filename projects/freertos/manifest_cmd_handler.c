@@ -71,6 +71,7 @@ static void manifest_cmd_handler_execute (struct config_cmd_task_handler *handle
 				MANIFEST_LOGGING_VERIFY_FAIL, manifest_manager_get_port (
 				manifest_handler->manifest), status);
 		}
+
 		if (action & MANIFEST_RUN_ACTIVATION_BIT) {
 			if ((status == 0) || (status == MANIFEST_MANAGER_HAS_PENDING) ||
 				(status == MANIFEST_MANAGER_NONE_PENDING)) {

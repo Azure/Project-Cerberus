@@ -5,11 +5,11 @@
 #include <stdint.h>
 #include <string.h>
 #include "testing.h"
-#include "pfm_testing.h"
 #include "manifest/pfm/pfm_manager.h"
 #include "mock/pfm_mock.h"
 #include "mock/pfm_manager_mock.h"
 #include "mock/pfm_observer_mock.h"
+#include "pfm_testing.h"
 
 
 static const char *SUITE = "pfm_manager";
@@ -385,7 +385,8 @@ static void pfm_manager_test_get_id_measured_data (CuTest *test)
 	struct pfm_manager_mock manager;
 	uint8_t buffer[4224];
 	size_t length = sizeof (buffer);
-	uint32_t id = 0x1234;
+	uint8_t id[] = {1, 2, 3, 4, 5};
+	uint32_t total_len;
 	int status;
 
 	TEST_START;
@@ -402,14 +403,15 @@ static void pfm_manager_test_get_id_measured_data (CuTest *test)
 		0, MOCK_ARG (&pfm.base));
 
 	status |= mock_expect (&pfm.mock, pfm.base.base.get_id, &pfm, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 0, &id, sizeof (id), -1);
+	status |= mock_expect_output (&pfm.mock, 0, &id[1], sizeof (id) - 1, -1);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm_manager_get_id_measured_data (&manager.base, 0, buffer, length);
+	status = pfm_manager_get_id_measured_data (&manager.base, 0, buffer, length, &total_len);
 	CuAssertIntEquals (test, sizeof (id), status);
+	CuAssertIntEquals (test, sizeof (id), total_len);
 
-	status = testing_validate_array ((uint8_t*) &id, buffer, sizeof (id));
+	status = testing_validate_array (id, buffer, sizeof (id));
 	CuAssertIntEquals (test, 0, status);
 
 	status = pfm_mock_validate_and_release (&pfm);
@@ -425,7 +427,8 @@ static void pfm_manager_test_get_id_measured_data_offset (CuTest *test)
 	struct pfm_manager_mock manager;
 	uint8_t buffer[4224];
 	size_t length = sizeof (buffer);
-	uint32_t id = 0x1234;
+	uint8_t id[] = {1, 2, 3, 4, 5};
+	uint32_t total_len;
 	int status;
 
 	TEST_START;
@@ -442,14 +445,15 @@ static void pfm_manager_test_get_id_measured_data_offset (CuTest *test)
 		0, MOCK_ARG (&pfm.base));
 
 	status |= mock_expect (&pfm.mock, pfm.base.base.get_id, &pfm, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 0, &id, sizeof (id), -1);
+	status |= mock_expect_output (&pfm.mock, 0, &id[1], sizeof (id) - 1, -1);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm_manager_get_id_measured_data (&manager.base, 2, buffer, length);
+	status = pfm_manager_get_id_measured_data (&manager.base, 2, buffer, length, &total_len);
 	CuAssertIntEquals (test, sizeof (id) - 2, status);
+	CuAssertIntEquals (test, sizeof (id), total_len);
 
-	status = testing_validate_array ((uint8_t*) &id + 2, buffer, sizeof (id) - 2);
+	status = testing_validate_array (id + 2, buffer, sizeof (id) - 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pfm_mock_validate_and_release (&pfm);
@@ -465,7 +469,8 @@ static void pfm_manager_test_get_id_measured_data_small_buffer (CuTest *test)
 	struct pfm_manager_mock manager;
 	uint8_t buffer[3];
 	size_t length = sizeof (buffer);
-	uint32_t id = 0x1234;
+	uint8_t id[] = {1, 2, 3, 4, 5};
+	uint32_t total_len;
 	int status;
 
 	TEST_START;
@@ -482,14 +487,15 @@ static void pfm_manager_test_get_id_measured_data_small_buffer (CuTest *test)
 		0, MOCK_ARG (&pfm.base));
 
 	status |= mock_expect (&pfm.mock, pfm.base.base.get_id, &pfm, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 0, &id, sizeof (id), -1);
+	status |= mock_expect_output (&pfm.mock, 0, &id[1], sizeof (id) - 1, -1);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm_manager_get_id_measured_data (&manager.base, 0, buffer, length);
+	status = pfm_manager_get_id_measured_data (&manager.base, 0, buffer, length, &total_len);
 	CuAssertIntEquals (test, 3, status);
+	CuAssertIntEquals (test, sizeof (id), total_len);
 
-	status = testing_validate_array ((uint8_t*) &id, buffer, 3);
+	status = testing_validate_array (id, buffer, 3);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pfm_mock_validate_and_release (&pfm);
@@ -505,6 +511,8 @@ static void pfm_manager_test_get_id_measured_data_no_active_pfm (CuTest *test)
 	struct pfm_manager_mock manager;
 	uint8_t buffer[4224];
 	size_t length = sizeof (buffer);
+	uint8_t id[5] = {0};
+	uint32_t total_len;
 	int status;
 
 	TEST_START;
@@ -518,8 +526,49 @@ static void pfm_manager_test_get_id_measured_data_no_active_pfm (CuTest *test)
 	status = mock_expect (&manager.mock, manager.base.get_active_pfm, &manager, (intptr_t) NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm_manager_get_id_measured_data (&manager.base, 0, buffer, length);
+	status = pfm_manager_get_id_measured_data (&manager.base, 0, buffer, length, &total_len);
+	CuAssertIntEquals (test, sizeof (id), status);
+	CuAssertIntEquals (test, sizeof (id), total_len);
+
+	status = testing_validate_array (id, buffer, sizeof (id));
 	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_mock_validate_and_release (&pfm);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_mock_validate_and_release (&manager);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void pfm_manager_test_get_id_measured_data_0_bytes_read (CuTest *test)
+{
+	struct pfm_mock pfm;
+	struct pfm_manager_mock manager;
+	uint8_t buffer[4224];
+	uint8_t id[5];
+	size_t length = sizeof (buffer);
+	uint32_t total_len;
+	int status;
+
+	TEST_START;
+
+	status = pfm_mock_init (&pfm);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_mock_init (&manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.mock, manager.base.get_active_pfm, &manager,
+		(intptr_t) &pfm.base);
+	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager,
+		0, MOCK_ARG (&pfm.base));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_get_id_measured_data (&manager.base, sizeof (id), buffer, length, 
+		&total_len);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (id), total_len);
 
 	status = pfm_mock_validate_and_release (&pfm);
 	CuAssertIntEquals (test, 0, status);
@@ -534,6 +583,7 @@ static void pfm_manager_test_get_id_measured_data_null (CuTest *test)
 	struct pfm_manager_mock manager;
 	uint8_t buffer[4224];
 	size_t length = sizeof (buffer);
+	uint32_t total_len;
 	int status;
 
 	TEST_START;
@@ -544,7 +594,7 @@ static void pfm_manager_test_get_id_measured_data_null (CuTest *test)
 	status = pfm_manager_mock_init (&manager);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm_manager_get_id_measured_data (NULL, 0, buffer, length);
+	status = pfm_manager_get_id_measured_data (NULL, 0, buffer, length, &total_len);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
 
 	status = mock_expect (&manager.mock, manager.base.get_active_pfm, &manager,
@@ -554,7 +604,7 @@ static void pfm_manager_test_get_id_measured_data_null (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm_manager_get_id_measured_data (&manager.base, 0, NULL, length);
+	status = pfm_manager_get_id_measured_data (&manager.base, 0, NULL, length, &total_len);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
 
 	status = pfm_mock_validate_and_release (&pfm);
@@ -570,6 +620,7 @@ static void pfm_manager_test_get_id_measured_data_fail (CuTest *test)
 	struct pfm_manager_mock manager;
 	uint8_t buffer[4224];
 	size_t length = sizeof (buffer);
+	uint32_t total_len;
 	int status;
 
 	TEST_START;
@@ -590,7 +641,7 @@ static void pfm_manager_test_get_id_measured_data_fail (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm_manager_get_id_measured_data (&manager.base, 2, buffer, length);
+	status = pfm_manager_get_id_measured_data (&manager.base, 2, buffer, length, &total_len);
 	CuAssertIntEquals (test, MANIFEST_GET_ID_FAILED, status);
 
 	status = pfm_mock_validate_and_release (&pfm);
@@ -608,6 +659,7 @@ static void pfm_manager_test_get_platform_id_measured_data (CuTest *test)
 	size_t length = sizeof (buffer);
 	size_t id_length = PFM_PLATFORM_ID_LEN + 1;
 	char *platform_id;
+	uint32_t total_len;
 	int status;
 
 	TEST_START;
@@ -633,8 +685,10 @@ static void pfm_manager_test_get_platform_id_measured_data (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm_manager_get_platform_id_measured_data (&manager.base, 0, buffer, length);
+	status = pfm_manager_get_platform_id_measured_data (&manager.base, 0, buffer, length, 
+		&total_len);
 	CuAssertIntEquals (test, id_length, status);
+	CuAssertIntEquals (test, id_length, total_len);
 
 	status = testing_validate_array ((uint8_t*) PFM_PLATFORM_ID, buffer, id_length);
 	CuAssertIntEquals (test, 0, status);
@@ -654,6 +708,7 @@ static void pfm_manager_test_get_platform_id_measured_data_offset (CuTest *test)
 	size_t length = sizeof (buffer);
 	size_t id_length = PFM_PLATFORM_ID_LEN + 1;
 	char *platform_id;
+	uint32_t total_len;
 	int status;
 
 	TEST_START;
@@ -679,8 +734,10 @@ static void pfm_manager_test_get_platform_id_measured_data_offset (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm_manager_get_platform_id_measured_data (&manager.base, 2, buffer, length);
+	status = pfm_manager_get_platform_id_measured_data (&manager.base, 2, buffer, length,
+		&total_len);
 	CuAssertIntEquals (test, id_length - 2, status);
+	CuAssertIntEquals (test, id_length, total_len);
 
 	status = testing_validate_array ((uint8_t*) PFM_PLATFORM_ID + 2, buffer, id_length - 2);
 	CuAssertIntEquals (test, 0, status);
@@ -700,6 +757,7 @@ static void pfm_manager_test_get_platform_id_measured_data_small_buffer (CuTest 
 	size_t length = sizeof (buffer);
 	size_t id_length = PFM_PLATFORM_ID_LEN + 1;
 	char *platform_id;
+	uint32_t total_len;
 	int status;
 
 	TEST_START;
@@ -725,8 +783,10 @@ static void pfm_manager_test_get_platform_id_measured_data_small_buffer (CuTest 
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm_manager_get_platform_id_measured_data (&manager.base, 0, buffer, length);
+	status = pfm_manager_get_platform_id_measured_data (&manager.base, 0, buffer, length,
+		&total_len);
 	CuAssertIntEquals (test, length, status);
+	CuAssertIntEquals (test, id_length, total_len);
 
 	status = testing_validate_array ((uint8_t*) PFM_PLATFORM_ID, buffer, length);
 	CuAssertIntEquals (test, 0, status);
@@ -742,8 +802,9 @@ static void pfm_manager_test_get_platform_id_measured_data_no_active_pfm (CuTest
 {
 	struct pfm_mock pfm;
 	struct pfm_manager_mock manager;
-	uint8_t buffer[5];
-	size_t length = sizeof (buffer);
+	uint8_t buffer;
+	char id = '\0';
+	uint32_t total_len;
 	int status;
 
 	TEST_START;
@@ -757,8 +818,58 @@ static void pfm_manager_test_get_platform_id_measured_data_no_active_pfm (CuTest
 	status = mock_expect (&manager.mock, manager.base.get_active_pfm, &manager, (intptr_t) NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm_manager_get_platform_id_measured_data (&manager.base, 0, buffer, length);
+	status = pfm_manager_get_platform_id_measured_data (&manager.base, 0, &buffer, 1, &total_len);
+	CuAssertIntEquals (test, 1, status);
+	CuAssertIntEquals (test, 1, total_len);
+
+	status = testing_validate_array ((uint8_t*) &id, &buffer, 1);
 	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_mock_validate_and_release (&pfm);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_mock_validate_and_release (&manager);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void pfm_manager_test_get_platform_id_measured_data_0_bytes_read (CuTest *test)
+{
+	struct pfm_mock pfm;
+	struct pfm_manager_mock manager;
+	uint8_t buffer[4224];
+	size_t length = sizeof (buffer);
+	size_t id_length = PFM_PLATFORM_ID_LEN + 1;
+	char *platform_id;
+	uint32_t total_len;
+	int status;
+
+	TEST_START;
+
+	platform_id = platform_malloc (id_length);
+	CuAssertPtrNotNull (test, platform_id);
+
+	strcpy (platform_id, PFM_PLATFORM_ID);
+
+	status = pfm_mock_init (&pfm);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_mock_init (&manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.mock, manager.base.get_active_pfm, &manager,
+		(intptr_t) &pfm.base);
+	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager,
+		0, MOCK_ARG (&pfm.base));
+
+	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&pfm.mock, 0, &platform_id, sizeof (platform_id), -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_get_platform_id_measured_data (&manager.base, id_length, buffer, length, 
+		&total_len);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, id_length, total_len);
 
 	status = pfm_mock_validate_and_release (&pfm);
 	CuAssertIntEquals (test, 0, status);
@@ -773,6 +884,7 @@ static void pfm_manager_test_get_platform_id_measured_data_null (CuTest *test)
 	struct pfm_manager_mock manager;
 	uint8_t buffer[4224];
 	size_t length = sizeof (buffer);
+	uint32_t total_len;
 	int status;
 
 	TEST_START;
@@ -783,7 +895,7 @@ static void pfm_manager_test_get_platform_id_measured_data_null (CuTest *test)
 	status = pfm_manager_mock_init (&manager);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm_manager_get_platform_id_measured_data (NULL, 0, buffer, length);
+	status = pfm_manager_get_platform_id_measured_data (NULL, 0, buffer, length, &total_len);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
 
 	status = mock_expect (&manager.mock, manager.base.get_active_pfm, &manager,
@@ -793,7 +905,7 @@ static void pfm_manager_test_get_platform_id_measured_data_null (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm_manager_get_platform_id_measured_data (&manager.base, 0, NULL, length);
+	status = pfm_manager_get_platform_id_measured_data (&manager.base, 0, NULL, length, &total_len);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
 
 	status = pfm_mock_validate_and_release (&pfm);
@@ -809,6 +921,7 @@ static void pfm_manager_test_get_platform_id_measured_data_fail (CuTest *test)
 	struct pfm_manager_mock manager;
 	uint8_t buffer[4224];
 	size_t length = sizeof (buffer);
+	uint32_t total_len;
 	int status;
 
 	TEST_START;
@@ -829,8 +942,258 @@ static void pfm_manager_test_get_platform_id_measured_data_fail (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm_manager_get_platform_id_measured_data (&manager.base, 0, buffer, length);
+	status = pfm_manager_get_platform_id_measured_data (&manager.base, 0, buffer, length, 
+		&total_len);
 	CuAssertIntEquals (test, MANIFEST_GET_ID_FAILED, status);
+
+	status = pfm_mock_validate_and_release (&pfm);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_mock_validate_and_release (&manager);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void pfm_manager_test_get_pfm_measured_data (CuTest *test)
+{
+	struct pfm_mock pfm;
+	struct pfm_manager_mock manager;
+	uint8_t buffer[4224];
+	size_t length = sizeof (buffer);
+	uint32_t total_len;
+	int status;
+
+	TEST_START;
+
+	status = pfm_mock_init (&pfm);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_mock_init (&manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.mock, manager.base.get_active_pfm, &manager,
+		(intptr_t) &pfm.base);
+	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager,
+		0, MOCK_ARG (&pfm.base));
+
+	status |= mock_expect (&pfm.mock, pfm.base.base.get_hash, &pfm, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&pfm.mock, 1, PFM_HASH, PFM_HASH_LEN, 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_get_pfm_measured_data (&manager.base, 0, buffer, length, &total_len);
+	CuAssertIntEquals (test, PFM_HASH_LEN, status);
+	CuAssertIntEquals (test, PFM_HASH_LEN, total_len);
+
+	status = testing_validate_array (PFM_HASH, buffer, PFM_HASH_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_mock_validate_and_release (&pfm);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_mock_validate_and_release (&manager);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void pfm_manager_test_get_pfm_measured_data_offset (CuTest *test)
+{
+	struct pfm_mock pfm;
+	struct pfm_manager_mock manager;
+	uint8_t buffer[4224];
+	size_t length = sizeof (buffer);
+	size_t offset = 2;
+	uint32_t total_len;
+	int status;
+
+	TEST_START;
+
+	status = pfm_mock_init (&pfm);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_mock_init (&manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.mock, manager.base.get_active_pfm, &manager,
+		(intptr_t) &pfm.base);
+	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager,
+		0, MOCK_ARG (&pfm.base));
+
+	status |= mock_expect (&pfm.mock, pfm.base.base.get_hash, &pfm, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&pfm.mock, 1, PFM_HASH, PFM_HASH_LEN, 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_get_pfm_measured_data (&manager.base, offset, buffer, length, &total_len);
+	CuAssertIntEquals (test, PFM_HASH_LEN - offset, status);
+	CuAssertIntEquals (test, PFM_HASH_LEN, total_len);
+
+	status = testing_validate_array (PFM_HASH + 2, buffer, PFM_HASH_LEN - 2);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_mock_validate_and_release (&pfm);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_mock_validate_and_release (&manager);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void pfm_manager_test_get_pfm_measured_data_small_buffer (CuTest *test)
+{
+	struct pfm_mock pfm;
+	struct pfm_manager_mock manager;
+	uint8_t buffer[4224];
+	uint32_t total_len;
+	int status;
+
+	TEST_START;
+
+	status = pfm_mock_init (&pfm);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_mock_init (&manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.mock, manager.base.get_active_pfm, &manager,
+		(intptr_t) &pfm.base);
+	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager,
+		0, MOCK_ARG (&pfm.base));
+
+	status |= mock_expect (&pfm.mock, pfm.base.base.get_hash, &pfm, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&pfm.mock, 1, PFM_HASH, PFM_HASH_LEN, 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_get_pfm_measured_data (&manager.base, 0, buffer,
+		SHA256_HASH_LENGTH - 2, &total_len);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH - 2, status);
+	CuAssertIntEquals (test, PFM_HASH_LEN, total_len);
+
+	status = testing_validate_array (PFM_HASH, buffer, PFM_HASH_LEN - 2);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_mock_validate_and_release (&pfm);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_mock_validate_and_release (&manager);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void pfm_manager_test_get_pfm_measured_data_no_active_pfm (CuTest *test)
+{
+	struct pfm_mock pfm;
+	struct pfm_manager_mock manager;
+	uint8_t buffer[4224];
+	uint8_t zero[SHA256_HASH_LENGTH] = {0};
+	size_t length = sizeof (buffer);
+	uint32_t total_len;
+	int status;
+
+	TEST_START;
+
+	status = pfm_mock_init (&pfm);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_mock_init (&manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.mock, manager.base.get_active_pfm, &manager,
+		(intptr_t) NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_get_pfm_measured_data (&manager.base, 0, buffer, length, &total_len);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+	CuAssertIntEquals (test, PFM_HASH_LEN, total_len);
+
+	status = testing_validate_array (zero, buffer, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_mock_validate_and_release (&pfm);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_mock_validate_and_release (&manager);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void pfm_manager_test_get_pfm_measured_data_0_bytes_read (CuTest *test)
+{
+	struct pfm_mock pfm;
+	struct pfm_manager_mock manager;
+	uint8_t buffer[4224];
+	size_t length = sizeof (buffer);
+	uint32_t total_len;
+	int status;
+
+	TEST_START;
+
+	status = pfm_mock_init (&pfm);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_mock_init (&manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.mock, manager.base.get_active_pfm, &manager,
+		(intptr_t) &pfm.base);
+	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager,
+		0, MOCK_ARG (&pfm.base));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_get_pfm_measured_data (&manager.base, PFM_HASH_LEN, buffer, length, 
+		&total_len);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, PFM_HASH_LEN, total_len);
+
+	status = pfm_mock_validate_and_release (&pfm);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_mock_validate_and_release (&manager);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void pfm_manager_test_get_pfm_measured_data_null (CuTest *test)
+{
+	uint8_t buffer[4224];
+	size_t length = sizeof (buffer);
+	uint32_t total_len;
+	int status;
+
+	TEST_START;
+
+	status = pfm_manager_get_pfm_measured_data (NULL, 0, buffer, length, &total_len);
+	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
+}
+
+static void pfm_manager_test_get_pfm_measured_data_fail (CuTest *test)
+{
+	struct pfm_mock pfm;
+	struct pfm_manager_mock manager;
+	uint8_t buffer[4224];
+	size_t length = sizeof (buffer);
+	uint32_t total_len;
+	int status;
+
+	TEST_START;
+
+	status = pfm_mock_init (&pfm);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_mock_init (&manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.mock, manager.base.get_active_pfm, &manager,
+		(intptr_t) &pfm.base);
+	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager,
+		0, MOCK_ARG (&pfm.base));
+
+	status |= mock_expect (&pfm.mock, pfm.base.base.get_hash, &pfm, MANIFEST_GET_HASH_FAILED,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_get_pfm_measured_data (&manager.base, 0, buffer, length, &total_len);
+	CuAssertIntEquals (test, MANIFEST_GET_HASH_FAILED, status);
 
 	status = pfm_mock_validate_and_release (&pfm);
 	CuAssertIntEquals (test, 0, status);
@@ -860,14 +1223,23 @@ CuSuite* get_pfm_manager_suite ()
 	SUITE_ADD_TEST (suite, pfm_manager_test_get_id_measured_data_offset);
 	SUITE_ADD_TEST (suite, pfm_manager_test_get_id_measured_data_small_buffer);
 	SUITE_ADD_TEST (suite, pfm_manager_test_get_id_measured_data_no_active_pfm);
+	SUITE_ADD_TEST (suite, pfm_manager_test_get_id_measured_data_0_bytes_read);
 	SUITE_ADD_TEST (suite, pfm_manager_test_get_id_measured_data_null);
 	SUITE_ADD_TEST (suite, pfm_manager_test_get_id_measured_data_fail);
 	SUITE_ADD_TEST (suite, pfm_manager_test_get_platform_id_measured_data);
 	SUITE_ADD_TEST (suite, pfm_manager_test_get_platform_id_measured_data_offset);
 	SUITE_ADD_TEST (suite, pfm_manager_test_get_platform_id_measured_data_small_buffer);
 	SUITE_ADD_TEST (suite, pfm_manager_test_get_platform_id_measured_data_no_active_pfm);
+	SUITE_ADD_TEST (suite, pfm_manager_test_get_platform_id_measured_data_0_bytes_read);
 	SUITE_ADD_TEST (suite, pfm_manager_test_get_platform_id_measured_data_null);
 	SUITE_ADD_TEST (suite, pfm_manager_test_get_platform_id_measured_data_fail);
+	SUITE_ADD_TEST (suite, pfm_manager_test_get_pfm_measured_data);
+	SUITE_ADD_TEST (suite, pfm_manager_test_get_pfm_measured_data_offset);
+	SUITE_ADD_TEST (suite, pfm_manager_test_get_pfm_measured_data_small_buffer);
+	SUITE_ADD_TEST (suite, pfm_manager_test_get_pfm_measured_data_no_active_pfm);
+	SUITE_ADD_TEST (suite, pfm_manager_test_get_pfm_measured_data_0_bytes_read);
+	SUITE_ADD_TEST (suite, pfm_manager_test_get_pfm_measured_data_null);
+	SUITE_ADD_TEST (suite, pfm_manager_test_get_pfm_measured_data_fail);
 
 	return suite;
 }

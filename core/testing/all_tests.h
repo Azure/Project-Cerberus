@@ -51,7 +51,6 @@
 //#define	TESTING_RUN_RIOT_CORE_COMMON_SUITE
 //#define	TESTING_RUN_BASE64_MBEDTLS_SUITE
 //#define	TESTING_RUN_KEYSTORE_FLASH_SUITE
-//#define	TESTING_RUN_KEYSTORE_FLASH_ENCRYPTED_SUITE
 //#define	TESTING_RUN_RIOT_KEY_MANAGER_SUITE
 //#define	TESTING_RUN_AUX_ATTESTATION_SUITE
 //#define	TESTING_RUN_FIRMWARE_HEADER_SUITE
@@ -105,6 +104,16 @@
 //#define	TESTING_RUN_MCTP_INTERFACE_CONTROL_SUITE
 //#define	TESTING_RUN_HOST_PROCESSOR_OBSERVER_PCR_SUITE
 //#define	TESTING_RUN_COUNTER_MANAGER_REGISTERS_SUITE
+//#define	TESTING_RUN_SESSION_MANAGER_ECC_SUITE
+//#define	TESTING_RUN_BASE64_THREAD_SAFE_SUITE
+//#define	TESTING_RUN_ECC_THREAD_SAFE_SUITE
+//#define	TESTING_RUN_HASH_THREAD_SAFE_SUITE
+//#define	TESTING_RUN_RNG_THREAD_SAFE_SUITE
+//#define	TESTING_RUN_RSA_THREAD_SAFE_SUITE
+//#define	TESTING_RUN_X509_THREAD_SAFE_SUITE
+//#define	TESTING_RUN_FLASH_STORE_SUITE
+//#define	TESTING_RUN_FLASH_STORE_ENCRYPTED_SUITE
+//#define	TESTING_RUN_KDF_SUITE
 
 
 CuSuite* get_flash_common_suite (void);
@@ -156,7 +165,6 @@ CuSuite* get_debug_log_suite (void);
 CuSuite* get_riot_core_common_suite (void);
 CuSuite* get_base64_mbedtls_suite (void);
 CuSuite* get_keystore_flash_suite (void);
-CuSuite* get_keystore_flash_encrypted_suite (void);
 CuSuite* get_riot_key_manager_suite (void);
 CuSuite* get_aux_attestation_suite (void);
 CuSuite* get_firmware_header_suite (void);
@@ -210,6 +218,16 @@ CuSuite* get_pcd_flash_suite (void);
 CuSuite* get_mctp_interface_control_suite (void);
 CuSuite* get_host_processor_observer_pcr_suite (void);
 CuSuite* get_counter_manager_registers_suite (void);
+CuSuite* get_session_manager_ecc_suite (void);
+CuSuite* get_base64_thread_safe_suite (void);
+CuSuite* get_ecc_thread_safe_suite (void);
+CuSuite* get_hash_thread_safe_suite (void);
+CuSuite* get_rng_thread_safe_suite (void);
+CuSuite* get_rsa_thread_safe_suite (void);
+CuSuite* get_x509_thread_safe_suite (void);
+CuSuite* get_flash_store_suite (void);
+CuSuite* get_flash_store_encrypted_suite (void);
+CuSuite* get_kdf_suite (void);
 
 void add_all_tests (CuSuite *suite)
 {
@@ -347,9 +365,6 @@ void add_all_tests (CuSuite *suite)
 #endif
 #ifdef TESTING_RUN_KEYSTORE_FLASH_SUITE
 	CuSuiteAddSuite (suite, get_keystore_flash_suite ());
-#endif
-#ifdef TESTING_RUN_KEYSTORE_FLASH_ENCRYPTED_SUITE
-	CuSuiteAddSuite (suite, get_keystore_flash_encrypted_suite ());
 #endif
 #ifdef TESTING_RUN_RIOT_KEY_MANAGER_SUITE
 	CuSuiteAddSuite (suite, get_riot_key_manager_suite ());
@@ -509,6 +524,36 @@ void add_all_tests (CuSuite *suite)
 #endif
 #ifdef TESTING_RUN_COUNTER_MANAGER_REGISTERS_SUITE
 	CuSuiteAddSuite (suite, get_counter_manager_registers_suite ());
+#endif
+#ifdef TESTING_RUN_SESSION_MANAGER_ECC_SUITE
+	CuSuiteAddSuite (suite, get_session_manager_ecc_suite ());
+#endif
+#ifdef TESTING_RUN_BASE64_THREAD_SAFE_SUITE
+	CuSuiteAddSuite (suite, get_base64_thread_safe_suite ());
+#endif
+#ifdef TESTING_RUN_ECC_THREAD_SAFE_SUITE
+	CuSuiteAddSuite (suite, get_ecc_thread_safe_suite ());
+#endif
+#ifdef TESTING_RUN_HASH_THREAD_SAFE_SUITE
+	CuSuiteAddSuite (suite, get_hash_thread_safe_suite ());
+#endif
+#ifdef TESTING_RUN_RNG_THREAD_SAFE_SUITE
+	CuSuiteAddSuite (suite, get_rng_thread_safe_suite ());
+#endif
+#ifdef TESTING_RUN_RSA_THREAD_SAFE_SUITE
+	CuSuiteAddSuite (suite, get_rsa_thread_safe_suite ());
+#endif
+#ifdef TESTING_RUN_X509_THREAD_SAFE_SUITE
+	CuSuiteAddSuite (suite, get_x509_thread_safe_suite ());
+#endif
+#ifdef TESTING_RUN_FLASH_STORE_SUITE
+	CuSuiteAddSuite (suite, get_flash_store_suite ());
+#endif
+#ifdef TESTING_RUN_FLASH_STORE_ENCRYPTED_SUITE
+	CuSuiteAddSuite (suite, get_flash_store_encrypted_suite ());
+#endif
+#ifdef TESTING_RUN_KDF_SUITE
+	CuSuiteAddSuite (suite, get_kdf_suite ());
 #endif
 
 	add_all_platform_tests (suite);

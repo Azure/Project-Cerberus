@@ -7,6 +7,7 @@
 #include <string.h>
 #include "testing.h"
 #include "riot/hash_riot.h"
+#include "testing/hash_testing.h"
 
 
 static const char *SUITE = "hash_riot";
@@ -124,6 +125,32 @@ static void hash_riot_test_sha1_incremental_multi (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = testing_validate_array (expected, hash, sizeof (hash));
+	CuAssertIntEquals (test, 0, status);
+
+	hash_riot_release (&engine);
+}
+
+static void hash_riot_test_sha1_incremental_empty_hash_buffer (CuTest *test)
+{
+	struct hash_engine_riot engine;
+	int status;
+	uint8_t hash[SHA1_HASH_LENGTH];
+
+	TEST_START;
+
+	status = hash_riot_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.start_sha1 (&engine.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.update (&engine.base, NULL, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.finish (&engine.base, hash, sizeof (hash));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (SHA1_EMPTY_BUFFER_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
 
 	hash_riot_release (&engine);
@@ -295,7 +322,6 @@ static void hash_riot_test_sha1_finish_small_hash_buffer (CuTest *test)
 	hash_riot_release (&engine);
 }
 
-
 static void hash_riot_test_incremental_cancel_null (CuTest *test)
 {
 	struct hash_engine_riot engine;
@@ -391,6 +417,32 @@ static void hash_riot_test_sha256_incremental_multi (CuTest *test)
 	hash_riot_release (&engine);
 }
 
+static void hash_riot_test_sha256_incremental_empty_hash_buffer (CuTest *test)
+{
+	struct hash_engine_riot engine;
+	int status;
+	uint8_t hash[SHA256_HASH_LENGTH];
+
+	TEST_START;
+
+	status = hash_riot_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.start_sha256 (&engine.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.update (&engine.base, NULL, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.finish (&engine.base, hash, sizeof (hash));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (SHA256_EMPTY_BUFFER_HASH, hash, sizeof (hash));
+	CuAssertIntEquals (test, 0, status);
+
+	hash_riot_release (&engine);
+}
+
 static void hash_riot_test_sha256_start_incremental_null (CuTest *test)
 {
 	struct hash_engine_riot engine;
@@ -470,6 +522,26 @@ static void hash_riot_test_calculate_sha1 (CuTest *test)
 	hash_riot_release (&engine);
 }
 
+static void hash_riot_test_calculate_sha1_empty_hash_buffer (CuTest *test)
+{
+	struct hash_engine_riot engine;
+	int status;
+	uint8_t hash[SHA1_HASH_LENGTH];
+
+	TEST_START;
+
+	status = hash_riot_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.calculate_sha1 (&engine.base, NULL, 0, hash, sizeof (hash));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (SHA1_EMPTY_BUFFER_HASH, hash, sizeof (hash));
+	CuAssertIntEquals (test, 0, status);
+
+	hash_riot_release (&engine);
+}
+
 static void hash_riot_test_calculate_sha1_null (CuTest *test)
 {
 	struct hash_engine_riot engine;
@@ -487,10 +559,6 @@ static void hash_riot_test_calculate_sha1_null (CuTest *test)
 	CuAssertIntEquals (test, HASH_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.calculate_sha1 (&engine.base, NULL, strlen (message), hash,
-		sizeof (hash));
-	CuAssertIntEquals (test, HASH_ENGINE_INVALID_ARGUMENT, status);
-
-	status = engine.base.calculate_sha1 (&engine.base, (uint8_t*) message, 0, hash,
 		sizeof (hash));
 	CuAssertIntEquals (test, HASH_ENGINE_INVALID_ARGUMENT, status);
 
@@ -546,6 +614,26 @@ static void hash_riot_test_calculate_sha256 (CuTest *test)
 	hash_riot_release (&engine);
 }
 
+static void hash_riot_test_calculate_sha256_empty_hash_buffer (CuTest *test)
+{
+	struct hash_engine_riot engine;
+	int status;
+	uint8_t hash[SHA256_HASH_LENGTH];
+
+	TEST_START;
+
+	status = hash_riot_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.calculate_sha256 (&engine.base, NULL, 0, hash, sizeof (hash));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (SHA256_EMPTY_BUFFER_HASH, hash, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	hash_riot_release (&engine);
+}
+
 static void hash_riot_test_calculate_sha256_null (CuTest *test)
 {
 	struct hash_engine_riot engine;
@@ -563,10 +651,6 @@ static void hash_riot_test_calculate_sha256_null (CuTest *test)
 	CuAssertIntEquals (test, HASH_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.calculate_sha256 (&engine.base, NULL, strlen (message), hash,
-		sizeof (hash));
-	CuAssertIntEquals (test, HASH_ENGINE_INVALID_ARGUMENT, status);
-
-	status = engine.base.calculate_sha256 (&engine.base, (uint8_t*) message, 0, hash,
 		sizeof (hash));
 	CuAssertIntEquals (test, HASH_ENGINE_INVALID_ARGUMENT, status);
 
@@ -607,6 +691,7 @@ CuSuite* get_hash_riot_suite ()
 	SUITE_ADD_TEST (suite, hash_riot_test_release_no_init);
 	SUITE_ADD_TEST (suite, hash_riot_test_sha1_incremental);
 	SUITE_ADD_TEST (suite, hash_riot_test_sha1_incremental_multi);
+	SUITE_ADD_TEST (suite, hash_riot_test_sha1_incremental_empty_hash_buffer);
 	SUITE_ADD_TEST (suite, hash_riot_test_incremental_cancel);
 	SUITE_ADD_TEST (suite, hash_riot_test_sha1_start_incremental_null);
 	SUITE_ADD_TEST (suite, hash_riot_test_incremental_update_null);
@@ -618,12 +703,15 @@ CuSuite* get_hash_riot_suite ()
 	SUITE_ADD_TEST (suite, hash_riot_test_incremental_cancel_no_start);
 	SUITE_ADD_TEST (suite, hash_riot_test_sha256_incremental);
 	SUITE_ADD_TEST (suite, hash_riot_test_sha256_incremental_multi);
+	SUITE_ADD_TEST (suite, hash_riot_test_sha256_incremental_empty_hash_buffer);
 	SUITE_ADD_TEST (suite, hash_riot_test_sha256_start_incremental_null);
 	SUITE_ADD_TEST (suite, hash_riot_test_sha256_finish_small_hash_buffer);
 	SUITE_ADD_TEST (suite, hash_riot_test_calculate_sha1);
+	SUITE_ADD_TEST (suite, hash_riot_test_calculate_sha1_empty_hash_buffer);
 	SUITE_ADD_TEST (suite, hash_riot_test_calculate_sha1_null);
 	SUITE_ADD_TEST (suite, hash_riot_test_calculate_sha1_small_hash_buffer);
 	SUITE_ADD_TEST (suite, hash_riot_test_calculate_sha256);
+	SUITE_ADD_TEST (suite, hash_riot_test_calculate_sha256_empty_hash_buffer);
 	SUITE_ADD_TEST (suite, hash_riot_test_calculate_sha256_null);
 	SUITE_ADD_TEST (suite, hash_riot_test_calculate_sha256_small_hash_buffer);
 

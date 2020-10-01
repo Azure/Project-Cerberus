@@ -91,7 +91,7 @@ static int mctp_interface_control_set_eid (struct mctp_interface *intf,
 		response->completion_code = MCTP_PROTOCOL_ERROR_INVALID_LEN;
 	}
 	else if ((rq->reserved != 0) || (rq->operation > MCTP_CONTROL_SET_EID_OPERATION_FORCE_ID) ||
-			 (rq->eid == 0) || (rq->eid == 0xFF)) {
+		(rq->eid == 0) || (rq->eid == 0xFF)) {
 		response->completion_code = MCTP_PROTOCOL_ERROR_INVALID_DATA;
 	}
 	else {
@@ -221,7 +221,7 @@ static int mctp_interface_control_get_vendor_def_msg_support (struct mctp_interf
 	}
 	else {
 		response->completion_code = MCTP_PROTOCOL_SUCCESS;
-		response->vid_set_selector = CERBERUS_VID_SET;
+		response->vid_set_selector = CERBERUS_VID_SET_RESPONSE;
 		response->vid_format = MCTP_PROTOCOL_VID_FORMAT_PCI;
 		response->vid = platform_htons (intf->pci_vendor_id);
 		response->protocol_version = platform_htons (intf->protocol_version);
@@ -304,7 +304,7 @@ int mctp_interface_control_process_request (struct mctp_interface *intf,
  * error code.
  */
 int mctp_interface_control_issue_request (struct mctp_interface *intf, uint8_t command_id,
-	void *request_params, uint8_t *buf, int buf_len)
+	void *request_params, uint8_t *buf, size_t buf_len)
 {
 	struct mctp_protocol_control_header *header = (struct mctp_protocol_control_header*) buf;
 	int status;

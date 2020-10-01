@@ -10,6 +10,7 @@
 #include "cmd_interface/cmd_background.h"
 #include "cmd_interface/device_manager.h"
 #include "cmd_interface/cmd_device.h"
+#include "cmd_interface/session_manager.h"
 #include "attestation/attestation_slave.h"
 #include "riot/riot_key_manager.h"
 
@@ -310,11 +311,11 @@ int cerberus_protocol_get_fw_version (struct cmd_interface_fw_version *fw_versio
 	struct cmd_interface_request *request);
 
 int cerberus_protocol_get_certificate_digest (struct attestation_slave *attestation,
-	struct cmd_interface_request *request);
+	struct session_manager *session, struct cmd_interface_request *request);
 int cerberus_protocol_get_certificate (struct attestation_slave *attestation,
 	struct cmd_interface_request *request);
 int cerberus_protocol_get_challenge_response (struct attestation_slave *attestation,
-	struct cmd_interface_request *request);
+	struct session_manager *session, struct cmd_interface_request *request);
 
 int cerberus_protocol_export_csr (struct riot_key_manager *riot,
 	struct cmd_interface_request *request);
@@ -324,7 +325,7 @@ int cerberus_protocol_get_signed_cert_state (struct cmd_background *background,
 	struct cmd_interface_request *request);
 
 int cerberus_protocol_issue_get_device_capabilities (struct device_manager *device_mgr,
-	uint8_t *buf, int buf_len);
+	uint8_t *buf, size_t buf_len);
 int cerberus_protocol_get_device_capabilities (struct device_manager *device_mgr,
 	struct cmd_interface_request *request, uint8_t device_num);
 

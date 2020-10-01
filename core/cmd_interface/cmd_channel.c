@@ -110,7 +110,7 @@ int cmd_channel_receive_and_process (struct cmd_channel *channel, struct mctp_in
 	if (status == 0) {
 		if (!rx_packet.timeout_valid || !platform_has_timeout_expired (&rx_packet.pkt_timeout)) {
 			i = 0;
-			while ((i < num_packets) && (status == 0)) {
+			while ((i < (int) num_packets) && (status == 0)) {
 				status = channel->send_packet (channel, &tx_packets[i]);
 				if (status != 0) {
 					debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR,

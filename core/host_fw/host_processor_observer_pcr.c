@@ -21,8 +21,8 @@ static void host_processor_observer_pcr_update (struct host_processor_observer *
 	int status;
 
 	*host->state = event;
-	status = pcr_store_update_buffer (host->store, host->hash, host->pcr, (uint8_t*) host->state,
-		sizeof (uint32_t));
+	status = pcr_store_update_versioned_buffer (host->store, host->hash, host->pcr,
+		(uint8_t*) host->state, sizeof (uint32_t), true, 0);
 	if (status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_HOST_FW,
 			HOST_LOGGING_PCR_UPDATE_ERROR, host->pcr, status);
@@ -66,7 +66,8 @@ int host_processor_observer_pcr_init (struct host_processor_observer_pcr *host,
 		return HOST_PROCESSOR_OBSERVER_INVALID_ARGUMENT;
 	}
 
-	status = pcr_store_update_buffer (store, hash, pcr, (uint8_t*) init_state, sizeof (uint32_t));
+	status = pcr_store_update_versioned_buffer (store, hash, pcr, (uint8_t*) init_state,
+		sizeof (uint32_t), true, 0);
 	if (status != 0) {
 		return status;
 	}

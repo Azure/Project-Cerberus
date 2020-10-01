@@ -20,8 +20,11 @@ extern const uint32_t CFM2_DATA_LEN;
 extern const uint8_t *CFM2_SIGNATURE;
 
 extern const uint8_t CFM_HASH[];
+extern const uint8_t CFM_HASH_DIGEST[];
 extern const uint8_t CFM2_HASH[];
 extern const uint32_t CFM_HASH_LEN;
+extern const char CFM_PLATFORM_ID[];
+extern const size_t CFM_PLATFORM_ID_LEN;
 
 /*
  * Constant CFM sizes.

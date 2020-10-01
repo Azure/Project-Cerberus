@@ -7,7 +7,7 @@
 
 
 static int attestation_slave_mock_get_digests (struct attestation_slave *attestation,
-	uint8_t slot_num, uint8_t *buf, int buf_len, uint8_t *num_cert)
+	uint8_t slot_num, uint8_t *buf, size_t buf_len, uint8_t *num_cert)
 {
 	struct attestation_slave_mock *mock = (struct attestation_slave_mock*) attestation;
 
@@ -34,7 +34,7 @@ static int attestation_slave_mock_get_certificate (struct attestation_slave *att
 }
 
 static int attestation_slave_mock_challenge_response (struct attestation_slave *attestation,
-	uint8_t *buf, int buf_len)
+	uint8_t *buf, size_t buf_len)
 {
 	struct attestation_slave_mock *mock = (struct attestation_slave_mock*) attestation;
 
@@ -83,6 +83,20 @@ static int attestation_slave_mock_aux_decrypt (struct attestation_slave *attesta
 		MOCK_ARG_CALL (len_decrypted));
 }
 
+static int attestation_slave_mock_generate_ecdh_seed (struct attestation_slave *attestation,
+	const uint8_t *pub_key, size_t key_length, bool hash_seed, uint8_t *seed, size_t seed_length)
+{
+	struct attestation_slave_mock *mock = (struct attestation_slave_mock*) attestation;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, attestation_slave_mock_generate_ecdh_seed, attestation,
+		MOCK_ARG_CALL (pub_key), MOCK_ARG_CALL (key_length), MOCK_ARG_CALL (hash_seed),
+		MOCK_ARG_CALL (seed), MOCK_ARG_CALL (seed_length));
+}
+
 static int attestation_slave_mock_func_arg_count (void *func)
 {
 	if (func == attestation_slave_mock_aux_attestation_unseal) {
@@ -90,6 +104,9 @@ static int attestation_slave_mock_func_arg_count (void *func)
 	}
 	else if (func == attestation_slave_mock_aux_decrypt) {
 		return 7;
+	}
+	else if (func == attestation_slave_mock_generate_ecdh_seed) {
+		return 5;
 	}
 	else if (func == attestation_slave_mock_get_digests) {
 		return 4;
@@ -121,6 +138,9 @@ static const char* attestation_slave_mock_func_name_map (void *func)
 	}
 	else if (func == attestation_slave_mock_aux_decrypt) {
 		return "aux_decrypt";
+	}
+	else if (func == attestation_slave_mock_generate_ecdh_seed) {
+		return "generate_ecdh_seed";
 	}
 	else {
 		return "unknown";
@@ -249,6 +269,27 @@ static const char* attestation_slave_mock_arg_name_map (void *func, int arg)
 				return "unknown";
 		}
 	}
+	else if (func == attestation_slave_mock_generate_ecdh_seed) {
+		switch (arg) {
+			case 0:
+				return "pub_key";
+
+			case 1:
+				return "key_length";
+
+			case 2:
+				return "hash_seed";
+
+			case 3:
+				return "seed";
+
+			case 4:
+				return "seed_length";
+
+			default:
+				return "unknown";
+		}
+	}
 	else {
 		return "unknown";
 	}
@@ -284,6 +325,7 @@ int attestation_slave_mock_init (struct attestation_slave_mock *mock)
 	mock->base.challenge_response = attestation_slave_mock_challenge_response;
 	mock->base.aux_attestation_unseal = attestation_slave_mock_aux_attestation_unseal;
 	mock->base.aux_decrypt = attestation_slave_mock_aux_decrypt;
+	mock->base.generate_ecdh_seed = attestation_slave_mock_generate_ecdh_seed;
 
 	mock->mock.func_arg_count = attestation_slave_mock_func_arg_count;
 	mock->mock.func_name_map = attestation_slave_mock_func_name_map;
