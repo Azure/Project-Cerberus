@@ -141,6 +141,45 @@ int platform_has_timeout_expired (platform_clock *timeout)
 	}
 }
 
+/**
+ * Get the duration between two clock instances.  These are expected to be initialized with
+ * {@link platform_init_current_tick}.
+ *
+ * This is intended to measure small durations.  Very long durations may not be accurately
+ * calculated due value limitations/overflow.
+ *
+ * @param start The start time for the time duration.
+ * @param end The end time for the time duration.
+ *
+ * @return The elapsed time, in milliseconds.  If either clock is null, the elapsed time will be 0.
+ */
+uint32_t platform_get_duration (const platform_clock *start, const platform_clock *end)
+{
+	if ((end == NULL) || (start == NULL)) {
+		return 0;
+	}
+
+	if (start->tv_sec > end->tv_sec) {
+		return 0;
+	}
+	else if (start->tv_sec == end->tv_sec) {
+		if (start->tv_nsec > end->tv_nsec) {
+			return 0;
+		}
+		else {
+			return (end->tv_nsec - start->tv_nsec) / 1000000ULL;
+		}
+	}
+	else {
+		uint32_t duration = end->tv_nsec / 1000000ULL;
+
+		duration += (1000000000ULL - start->tv_nsec) / 1000000ULL;
+		duration += (end->tv_sec - start->tv_sec) * 1000;
+
+		return duration;
+	}
+}
+
 
 #define	PLATFORM_MUTEX_ERROR(code)		ROT_ERROR (ROT_MODULE_PLATFORM_MUTEX, code)
 
