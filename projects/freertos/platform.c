@@ -112,7 +112,7 @@ int platform_increase_timeout (uint32_t msec, platform_clock *timeout)
  *
  * @param currtime The platform_clock type to initialize.
  *
- * @return 0 if the current tickcount was initialized successfully or an error code.
+ * @return 0 if the current tick count was initialized successfully or an error code.
  */
 int platform_init_current_tick (platform_clock *currtime)
 {
@@ -158,6 +158,33 @@ int platform_has_timeout_expired (platform_clock *timeout)
 		else {
 			return 0;
 		}
+	}
+}
+
+/**
+ * Get the duration between two clock instances.  These are expected to be initialized with
+ * {@link platform_init_current_tick}.
+ *
+ * This is intended to measure small durations.  Very long durations may not be accurately
+ * calculated due value limitations/overflow.
+ *
+ * @param start The start time for the time duration.
+ * @param end The end time for the time duration.
+ *
+ * @return The elapsed time, in milliseconds.  If either clock is null, the elapsed time will be 0.
+ */
+uint32_t platform_get_duration (const platform_clock *start, const platform_clock *end)
+{
+	if ((end == NULL) || (start == NULL)) {
+		return 0;
+	}
+
+	if (start->ticks <= end->ticks) {
+		return (end->ticks - start->ticks) * portTICK_PERIOD_MS;
+	}
+	else {
+		/* The ticks have wrapped. */
+		return ((portMAX_DELAY - start->ticks) + end->ticks) * portTICK_PERIOD_MS;
 	}
 }
 
