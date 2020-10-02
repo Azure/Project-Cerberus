@@ -10,40 +10,50 @@ fi
 
 cert=$3
 key=`mktemp -p .`
-openssl x509 -inform DER -outform PEM -noout -pubkey -in $cert -out $key
+openssl x509 -inform DER -outform PEM -noout -pubkey -in $cert > $key
 if [ $? -ne 0 ]; then
 	rm -f $key
 	exit 1
 fi
 
 if [ "$1" = "1" ]; then
+	ecc=`mktemp -p .`
 	if [ $# -lt 4 ]; then
-		echo "No private key provided"
-		rm -f $key
-		exit 1
+		openssl ecparam -name prime256v1 -genkey -noout -out $ecc
+		if [ $? -ne 0 ]; then
+			rm -f $key $ecc
+			exit 1
+		fi
+	else
+		cp -f $4 $ecc
+		if [ $? -ne 0 ]; then
+			rm -f $key $ecc
+			exit 1
+		fi
 	fi
 
 	seed=`mktemp -p .`
-	openssl pkeyutl -derive -inkey $4 -peerkey $key -out $seed
+	openssl pkeyutl -derive -inkey $ecc -peerkey $key -out $seed
 	if [ $? -ne 0 ]; then
-		rm -f $key $seed
+		rm -f $key $ecc $seed
 		exit 1
 	fi
 
 	if [ "$2" = "1" ]; then
 		cat $seed | openssl dgst -sha256 -binary -out $seed
 		if [ $? -ne 0 ]; then
-			rm -f $key $seed
+			rm -f $key $ecc $seed
 			exit 1
 		fi
 	fi
 
-	openssl ec -pubout -outform DER -in $4 -out seed.bin
+	openssl ec -pubout -outform DER -in $ecc -out seed.bin
 	if [ $? -ne 0 ]; then
-		rm -f $key $seed
+		rm -f $key $ecc $seed
 		exit 1
 	fi
 else
+	ecc=''
 	seed=`mktemp -p .`
 	head -c 32 /dev/random > $seed
 
@@ -60,7 +70,7 @@ else
 	fi
 fi
 
-rm -f $key
+rm -f $key $ecc
 
 seed_hex=`cat $seed | xxd -p | tr -d '\n'`
 echo "Seed: $seed_hex"
