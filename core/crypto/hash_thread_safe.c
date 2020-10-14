@@ -79,6 +79,76 @@ static int hash_thread_safe_start_sha256 (struct hash_engine *engine)
 	return status;
 }
 
+static int hash_thread_safe_calculate_sha384 (struct hash_engine *engine, const uint8_t *data,
+	size_t length, uint8_t *hash, size_t hash_length)
+{
+	struct hash_engine_thread_safe *sha = (struct hash_engine_thread_safe*) engine;
+	int status;
+
+	if (sha == NULL) {
+		return HASH_ENGINE_INVALID_ARGUMENT;
+	}
+
+	platform_mutex_lock (&sha->lock);
+	status = sha->engine->calculate_sha384 (sha->engine, data, length, hash, hash_length);
+	platform_mutex_unlock (&sha->lock);
+
+	return status;
+}
+
+static int hash_thread_safe_start_sha384 (struct hash_engine *engine)
+{
+	struct hash_engine_thread_safe *sha = (struct hash_engine_thread_safe*) engine;
+	int status;
+
+	if (sha == NULL) {
+		return HASH_ENGINE_INVALID_ARGUMENT;
+	}
+
+	platform_mutex_lock (&sha->lock);
+	status = sha->engine->start_sha384 (sha->engine);
+	if (status != 0) {
+		platform_mutex_unlock (&sha->lock);
+	}
+
+	return status;
+}
+
+static int hash_thread_safe_calculate_sha512 (struct hash_engine *engine, const uint8_t *data,
+	size_t length, uint8_t *hash, size_t hash_length)
+{
+	struct hash_engine_thread_safe *sha = (struct hash_engine_thread_safe*) engine;
+	int status;
+
+	if (sha == NULL) {
+		return HASH_ENGINE_INVALID_ARGUMENT;
+	}
+
+	platform_mutex_lock (&sha->lock);
+	status = sha->engine->calculate_sha512 (sha->engine, data, length, hash, hash_length);
+	platform_mutex_unlock (&sha->lock);
+
+	return status;
+}
+
+static int hash_thread_safe_start_sha512 (struct hash_engine *engine)
+{
+	struct hash_engine_thread_safe *sha = (struct hash_engine_thread_safe*) engine;
+	int status;
+
+	if (sha == NULL) {
+		return HASH_ENGINE_INVALID_ARGUMENT;
+	}
+
+	platform_mutex_lock (&sha->lock);
+	status = sha->engine->start_sha512 (sha->engine);
+	if (status != 0) {
+		platform_mutex_unlock (&sha->lock);
+	}
+
+	return status;
+}
+
 static int hash_thread_safe_update (struct hash_engine *engine, const uint8_t *data, size_t length)
 {
 	struct hash_engine_thread_safe *sha = (struct hash_engine_thread_safe*) engine;
@@ -143,6 +213,10 @@ int hash_thread_safe_init (struct hash_engine_thread_safe *engine, struct hash_e
 #endif
 	engine->base.calculate_sha256 = hash_thread_safe_calculate_sha256;
 	engine->base.start_sha256 = hash_thread_safe_start_sha256;
+	engine->base.calculate_sha384 = hash_thread_safe_calculate_sha384;
+	engine->base.start_sha384 = hash_thread_safe_start_sha384;
+	engine->base.calculate_sha512 = hash_thread_safe_calculate_sha512;
+	engine->base.start_sha512 = hash_thread_safe_start_sha512;
 	engine->base.update = hash_thread_safe_update;
 	engine->base.finish = hash_thread_safe_finish;
 	engine->base.cancel = hash_thread_safe_cancel;

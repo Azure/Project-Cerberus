@@ -201,7 +201,7 @@ static void session_manager_ecc_establish_session (CuTest *test,
 	rq_ptr->common.key_type = CERBERUS_PROTOCOL_SESSION_KEY;
 	rq_ptr->hmac_type = CERBERUS_PROTOCOL_HMAC_SHA256;
 
-	memcpy (((uint8_t*) rq_ptr) + sizeof (struct cerberus_protocol_key_exchange_type_0), 
+	memcpy (((uint8_t*) rq_ptr) + sizeof (struct cerberus_protocol_key_exchange_type_0),
 		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
 
 	ecc_cerberus_key = platform_malloc (ECC_PUBKEY2_DER_LEN);
@@ -4250,7 +4250,7 @@ static void session_manager_ecc_test_setup_paired_session_generate_hmac_finish_f
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (pairing_key, sizeof (pairing_key)), MOCK_ARG (sizeof (pairing_key)));
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.finish, &cmd.hash, HASH_ENGINE_NO_MEMORY,
-		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.cancel, &cmd.hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
@@ -4514,8 +4514,8 @@ static void session_manager_ecc_test_session_sync (CuTest *test)
 
 	session_manager_ecc_establish_session (test, &cmd, 0x10);
 
-	status = hash_mock_expect_hmac (&cmd.hash, HMAC_KEY, sizeof (HMAC_KEY), 
-		(const uint8_t*) &rn_req, sizeof (rn_req), NULL, sizeof (hmac), hmac_expected, 
+	status = hash_mock_expect_hmac (&cmd.hash, HMAC_KEY, sizeof (HMAC_KEY),
+		(const uint8_t*) &rn_req, sizeof (rn_req), NULL, sizeof (hmac), hmac_expected,
 		sizeof (hmac_expected));
 	CuAssertIntEquals (test, 0, status);
 
@@ -4588,7 +4588,7 @@ static void session_manager_ecc_test_session_sync_generate_hmac_fail (CuTest *te
 
 	session_manager_ecc_establish_session (test, &cmd, 0x10);
 
-	status = mock_expect (&cmd.hash.mock, cmd.hash.base.start_sha256, &cmd.hash, 
+	status = mock_expect (&cmd.hash.mock, cmd.hash.base.start_sha256, &cmd.hash,
 		HASH_ENGINE_NO_MEMORY);
 	CuAssertIntEquals (test, 0, status);
 

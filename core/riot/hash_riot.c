@@ -72,6 +72,28 @@ static int hash_riot_start_sha256 (struct hash_engine *engine)
 	return 0;
 }
 
+static int hash_riot_calculate_sha384 (struct hash_engine *engine, const uint8_t *data,
+	size_t length, uint8_t *hash, size_t hash_length)
+{
+	return HASH_ENGINE_UNSUPPORTED_HASH;
+}
+
+static int hash_riot_start_sha384 (struct hash_engine *engine)
+{
+	return HASH_ENGINE_UNSUPPORTED_HASH;
+}
+
+static int hash_riot_calculate_sha512 (struct hash_engine *engine, const uint8_t *data,
+	size_t length, uint8_t *hash, size_t hash_length)
+{
+	return HASH_ENGINE_UNSUPPORTED_HASH;
+}
+
+static int hash_riot_start_sha512 (struct hash_engine *engine)
+{
+	return HASH_ENGINE_UNSUPPORTED_HASH;
+}
+
 static int hash_riot_update (struct hash_engine *engine, const uint8_t *data, size_t length)
 {
 	struct hash_engine_riot *riot = (struct hash_engine_riot*) engine;
@@ -163,6 +185,10 @@ int hash_riot_init (struct hash_engine_riot *engine)
 #endif
 	engine->base.calculate_sha256 = hash_riot_calculate_sha256;
 	engine->base.start_sha256 = hash_riot_start_sha256;
+	engine->base.calculate_sha384 = hash_riot_calculate_sha384;
+	engine->base.start_sha384 = hash_riot_start_sha384;
+	engine->base.calculate_sha512 = hash_riot_calculate_sha512;
+	engine->base.start_sha512 = hash_riot_start_sha512;
 	engine->base.update = hash_riot_update;
 	engine->base.finish = hash_riot_finish;
 	engine->base.cancel = hash_riot_cancel;

@@ -20,6 +20,17 @@ static int hash_mock_calculate_sha1 (struct hash_engine *engine, const uint8_t *
 		MOCK_ARG_CALL (length), MOCK_ARG_CALL (hash), MOCK_ARG_CALL (hash_length));
 }
 
+static int hash_mock_start_sha1 (struct hash_engine *engine)
+{
+	struct hash_engine_mock *mock = (struct hash_engine_mock*) engine;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN_NO_ARGS (&mock->mock, hash_mock_start_sha1, engine);
+}
+
 static int hash_mock_calculate_sha256 (struct hash_engine *engine, const uint8_t *data,
 	size_t length, uint8_t *hash, size_t hash_length)
 {
@@ -33,17 +44,6 @@ static int hash_mock_calculate_sha256 (struct hash_engine *engine, const uint8_t
 		MOCK_ARG_CALL (length), MOCK_ARG_CALL (hash), MOCK_ARG_CALL (hash_length));
 }
 
-static int hash_mock_start_sha1 (struct hash_engine *engine)
-{
-	struct hash_engine_mock *mock = (struct hash_engine_mock*) engine;
-
-	if (mock == NULL) {
-		return MOCK_INVALID_ARGUMENT;
-	}
-
-	MOCK_RETURN_NO_ARGS (&mock->mock, hash_mock_start_sha1, engine);
-}
-
 static int hash_mock_start_sha256 (struct hash_engine *engine)
 {
 	struct hash_engine_mock *mock = (struct hash_engine_mock*) engine;
@@ -53,6 +53,54 @@ static int hash_mock_start_sha256 (struct hash_engine *engine)
 	}
 
 	MOCK_RETURN_NO_ARGS (&mock->mock, hash_mock_start_sha256, engine);
+}
+
+static int hash_mock_calculate_sha384 (struct hash_engine *engine, const uint8_t *data,
+	size_t length, uint8_t *hash, size_t hash_length)
+{
+	struct hash_engine_mock *mock = (struct hash_engine_mock*) engine;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, hash_mock_calculate_sha384, engine, MOCK_ARG_CALL (data),
+		MOCK_ARG_CALL (length), MOCK_ARG_CALL (hash), MOCK_ARG_CALL (hash_length));
+}
+
+static int hash_mock_start_sha384 (struct hash_engine *engine)
+{
+	struct hash_engine_mock *mock = (struct hash_engine_mock*) engine;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN_NO_ARGS (&mock->mock, hash_mock_start_sha384, engine);
+}
+
+static int hash_mock_calculate_sha512 (struct hash_engine *engine, const uint8_t *data,
+	size_t length, uint8_t *hash, size_t hash_length)
+{
+	struct hash_engine_mock *mock = (struct hash_engine_mock*) engine;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, hash_mock_calculate_sha512, engine, MOCK_ARG_CALL (data),
+		MOCK_ARG_CALL (length), MOCK_ARG_CALL (hash), MOCK_ARG_CALL (hash_length));
+}
+
+static int hash_mock_start_sha512 (struct hash_engine *engine)
+{
+	struct hash_engine_mock *mock = (struct hash_engine_mock*) engine;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN_NO_ARGS (&mock->mock, hash_mock_start_sha512, engine);
 }
 
 static int hash_mock_update (struct hash_engine *engine, const uint8_t *data, size_t length)
@@ -92,7 +140,8 @@ static void hash_mock_cancel (struct hash_engine *engine)
 
 static int hash_mock_func_arg_count (void *func)
 {
-	if ((func == hash_mock_calculate_sha1) || (func == hash_mock_calculate_sha256)) {
+	if ((func == hash_mock_calculate_sha1) || (func == hash_mock_calculate_sha256) ||
+		(func == hash_mock_calculate_sha384) || (func == hash_mock_calculate_sha512)) {
 		return 4;
 	}
 	else if ((func == hash_mock_update) || (func == hash_mock_finish)) {
@@ -108,14 +157,26 @@ static const char* hash_mock_func_name_map (void *func)
 	if (func == hash_mock_calculate_sha1) {
 		return "calculate_sha1";
 	}
-	else if (func == hash_mock_calculate_sha256) {
-		return "calculate_sha256";
-	}
 	else if (func == hash_mock_start_sha1) {
 		return "start_sha1";
 	}
+	else if (func == hash_mock_calculate_sha256) {
+		return "calculate_sha256";
+	}
 	else if (func == hash_mock_start_sha256) {
 		return "start_sha256";
+	}
+	else if (func == hash_mock_calculate_sha384) {
+		return "calculate_sha384";
+	}
+	else if (func == hash_mock_start_sha384) {
+		return "start_sha384";
+	}
+	else if (func == hash_mock_calculate_sha512) {
+		return "calculate_sha512";
+	}
+	else if (func == hash_mock_start_sha512) {
+		return "start_sha512";
 	}
 	else if (func == hash_mock_update) {
 		return "update";
@@ -149,6 +210,36 @@ static const char* hash_mock_arg_name_map (void *func, int arg)
 		}
 	}
 	else if (func == hash_mock_calculate_sha256) {
+		switch (arg) {
+			case 0:
+				return "data";
+
+			case 1:
+				return "length";
+
+			case 2:
+				return "hash";
+
+			case 3:
+				return "hash_length";
+		}
+	}
+	else if (func == hash_mock_calculate_sha384) {
+		switch (arg) {
+			case 0:
+				return "data";
+
+			case 1:
+				return "length";
+
+			case 2:
+				return "hash";
+
+			case 3:
+				return "hash_length";
+		}
+	}
+	else if (func == hash_mock_calculate_sha512) {
 		switch (arg) {
 			case 0:
 				return "data";
@@ -210,9 +301,13 @@ int hash_mock_init (struct hash_engine_mock *mock)
 	mock_set_name (&mock->mock, "hash");
 
 	mock->base.calculate_sha1 = hash_mock_calculate_sha1;
-	mock->base.calculate_sha256 = hash_mock_calculate_sha256;
 	mock->base.start_sha1 = hash_mock_start_sha1;
+	mock->base.calculate_sha256 = hash_mock_calculate_sha256;
 	mock->base.start_sha256 = hash_mock_start_sha256;
+	mock->base.calculate_sha384 = hash_mock_calculate_sha384;
+	mock->base.start_sha384 = hash_mock_start_sha384;
+	mock->base.calculate_sha512 = hash_mock_calculate_sha512;
+	mock->base.start_sha512 = hash_mock_start_sha512;
 	mock->base.update = hash_mock_update;
 	mock->base.finish = hash_mock_finish;
 	mock->base.cancel = hash_mock_cancel;
@@ -307,7 +402,7 @@ int hash_mock_expect_hmac_finish (struct hash_engine_mock *mock, const uint8_t *
 	int inner = mock_expect_next_save_id (&mock->mock);
 
 	status = mock_expect (&mock->mock, mock->base.finish, mock, 0, MOCK_ARG_NOT_NULL,
-		MOCK_ARG (SHA256_HASH_LENGTH));
+		MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_save_arg (&mock->mock, 0, inner);
 
 	status |= mock_expect (&mock->mock, mock->base.start_sha256, mock, 0);

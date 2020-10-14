@@ -73,6 +73,70 @@ static int hash_openssl_start_sha256 (struct hash_engine *engine)
 	}
 }
 
+static int hash_openssl_calculate_sha384 (struct hash_engine *engine, const uint8_t *data,
+	size_t length, uint8_t *hash, size_t hash_length)
+{
+	if ((engine == NULL) || ((data == NULL)  && (length != 0)) || (hash == NULL)) {
+		return HASH_ENGINE_INVALID_ARGUMENT;
+	}
+
+	if (hash_length < SHA384_HASH_LENGTH) {
+		return HASH_ENGINE_HASH_BUFFER_TOO_SMALL;
+	}
+
+	SHA384 (data, length, hash);
+	return 0;
+}
+
+static int hash_openssl_start_sha384 (struct hash_engine *engine)
+{
+	struct hash_engine_openssl *openssl = (struct hash_engine_openssl*) engine;
+
+	if (openssl == NULL) {
+		return HASH_ENGINE_INVALID_ARGUMENT;
+	}
+
+	if (SHA384_Init (&openssl->sha512) == 1) {
+		openssl->active = HASH_ACTIVE_SHA384;
+		return 0;
+	}
+	else {
+		return HASH_ENGINE_START_SHA384_FAILED;
+	}
+}
+
+static int hash_openssl_calculate_sha512 (struct hash_engine *engine, const uint8_t *data,
+	size_t length, uint8_t *hash, size_t hash_length)
+{
+	if ((engine == NULL) || ((data == NULL)  && (length != 0)) || (hash == NULL)) {
+		return HASH_ENGINE_INVALID_ARGUMENT;
+	}
+
+	if (hash_length < SHA512_HASH_LENGTH) {
+		return HASH_ENGINE_HASH_BUFFER_TOO_SMALL;
+	}
+
+	SHA512 (data, length, hash);
+	return 0;
+}
+
+static int hash_openssl_start_sha512 (struct hash_engine *engine)
+{
+	struct hash_engine_openssl *openssl = (struct hash_engine_openssl*) engine;
+
+	if (openssl == NULL) {
+		return HASH_ENGINE_INVALID_ARGUMENT;
+	}
+
+	if (SHA512_Init (&openssl->sha512) == 1) {
+		openssl->active = HASH_ACTIVE_SHA512;
+		return 0;
+	}
+	else {
+		return HASH_ENGINE_START_SHA384_FAILED;
+	}
+}
+
 static int hash_openssl_update (struct hash_engine *engine, const uint8_t *data, size_t length)
 {
 	struct hash_engine_openssl *openssl = (struct hash_engine_openssl*) engine;
@@ -85,30 +149,33 @@ static int hash_openssl_update (struct hash_engine *engine, const uint8_t *data,
 	switch (openssl->active) {
 #ifdef HASH_ENABLE_SHA1
 		case HASH_ACTIVE_SHA1:
-			if (SHA1_Update (&openssl->sha1, data, length) == 1) {
-				status = 0;
-			}
-			else {
-				status = HASH_ENGINE_UPDATE_FAILED;
-			}
+			status = SHA1_Update (&openssl->sha1, data, length);
 			break;
 #endif
 
 		case HASH_ACTIVE_SHA256:
-			if (SHA256_Update (&openssl->sha256, data, length) == 1) {
-				status = 0;
-			}
-			else {
-				status = HASH_ENGINE_UPDATE_FAILED;
-			}
+			status = SHA256_Update (&openssl->sha256, data, length);
+			break;
+
+		case HASH_ACTIVE_SHA384:
+			status = SHA384_Update (&openssl->sha512, data, length);
+			break;
+
+		case HASH_ACTIVE_SHA512:
+			status = SHA512_Update (&openssl->sha512, data, length);
 			break;
 
 		default:
-			status = HASH_ENGINE_NO_ACTIVE_HASH;
+			return HASH_ENGINE_NO_ACTIVE_HASH;
 			break;
 	}
 
-	return status;
+	if (status == 1) {
+		return 0;
+	}
+	else {
+		return HASH_ENGINE_UPDATE_FAILED;
+	}
 }
 
 static int hash_openssl_finish (struct hash_engine *engine, uint8_t *hash, size_t hash_length)
@@ -124,12 +191,7 @@ static int hash_openssl_finish (struct hash_engine *engine, uint8_t *hash, size_
 #ifdef HASH_ENABLE_SHA1
 		case HASH_ACTIVE_SHA1:
 			if (hash_length >= SHA1_HASH_LENGTH) {
-				if (SHA1_Final (hash, &openssl->sha1) == 1) {
-					status = 0;
-				}
-				else {
-					status = HASH_ENGINE_FINISH_FAILED;
-				}
+				status = SHA1_Final (hash, &openssl->sha1);
 			}
 			else {
 				status = HASH_ENGINE_HASH_BUFFER_TOO_SMALL;
@@ -139,12 +201,25 @@ static int hash_openssl_finish (struct hash_engine *engine, uint8_t *hash, size_
 
 		case HASH_ACTIVE_SHA256:
 			if (hash_length >= SHA256_HASH_LENGTH) {
-				if (SHA256_Final (hash, &openssl->sha256) == 1) {
-					status = 0;
-				}
-				else {
-					status = HASH_ENGINE_FINISH_FAILED;
-				}
+				status = SHA256_Final (hash, &openssl->sha256);
+			}
+			else {
+				status = HASH_ENGINE_HASH_BUFFER_TOO_SMALL;
+			}
+			break;
+
+		case HASH_ACTIVE_SHA384:
+			if (hash_length >= SHA384_HASH_LENGTH) {
+				status = SHA384_Final (hash, &openssl->sha512);
+			}
+			else {
+				status = HASH_ENGINE_HASH_BUFFER_TOO_SMALL;
+			}
+			break;
+
+		case HASH_ACTIVE_SHA512:
+			if (hash_length >= SHA512_HASH_LENGTH) {
+				status = SHA512_Final (hash, &openssl->sha512);
 			}
 			else {
 				status = HASH_ENGINE_HASH_BUFFER_TOO_SMALL;
@@ -155,9 +230,14 @@ static int hash_openssl_finish (struct hash_engine *engine, uint8_t *hash, size_
 			status = HASH_ENGINE_NO_ACTIVE_HASH;
 	}
 
-	if (status == 0) {
+	if (status == 1) {
 		openssl->active = HASH_ACTIVE_NONE;
+		status = 0;
 	}
+	else if (status == 0) {
+		status = HASH_ENGINE_FINISH_FAILED;
+	}
+
 	return status;
 }
 
@@ -191,6 +271,10 @@ int hash_openssl_init (struct hash_engine_openssl *engine)
 #endif
 	engine->base.calculate_sha256 = hash_openssl_calculate_sha256;
 	engine->base.start_sha256 = hash_openssl_start_sha256;
+	engine->base.calculate_sha384 = hash_openssl_calculate_sha384;
+	engine->base.start_sha384 = hash_openssl_start_sha384;
+	engine->base.calculate_sha512 = hash_openssl_calculate_sha512;
+	engine->base.start_sha512 = hash_openssl_start_sha512;
 	engine->base.update = hash_openssl_update;
 	engine->base.finish = hash_openssl_finish;
 	engine->base.cancel = hash_openssl_cancel;

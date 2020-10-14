@@ -12,15 +12,21 @@
 /* Hash lengths */
 #define	SHA1_HASH_LENGTH	(160 / 8)
 #define SHA256_HASH_LENGTH	(256 / 8)
+#define	SHA384_HASH_LENGTH	(384 / 8)
+#define	SHA512_HASH_LENGTH	(512 / 8)
 
 #define	SHA1_BLOCK_SIZE		(512 / 8)
 #define	SHA256_BLOCK_SIZE	(512 / 8)
+#define	SHA384_BLOCK_SIZE	(1024 / 8)
+#define	SHA512_BLOCK_SIZE	(1024 / 8)
 
 /* Definitions of hash engine state for internal implementation use, as necessary. */
 enum {
 	HASH_ACTIVE_NONE = 0,	/**< No hash context is active. */
 	HASH_ACTIVE_SHA1,		/**< SHA-1 context is active. */
 	HASH_ACTIVE_SHA256,		/**< SHA-256 context is active. */
+	HASH_ACTIVE_SHA384,		/**< SHA-384 context is active. */
+	HASH_ACTIVE_SHA512,		/**< SHA-512 context is active. */
 };
 
 
@@ -29,7 +35,9 @@ enum {
  */
 enum hash_type {
 	HASH_TYPE_SHA1,			/**< SHA-1 hash */
-	HASH_TYPE_SHA256		/**< SHA-256 hash */
+	HASH_TYPE_SHA256,		/**< SHA-256 hash */
+	HASH_TYPE_SHA384,		/**< SHA-384 hash */
+	HASH_TYPE_SHA512,		/**< SHA-512 hash */
 };
 
 /**
@@ -98,6 +106,64 @@ struct hash_engine {
 	int (*start_sha256) (struct hash_engine *engine);
 
 	/**
+	 * Calculate a SHA-384 hash on a complete set of data.
+	 *
+	 * @param engine The hash engine to use to calculate the hash.
+	 * @param data The data to hash.
+	 * @param length The length of the data.
+	 * @param hash The buffer that will contain the generated hash.  It must be large enough to hold
+	 * at least SHA384_HASH_LENGTH bytes.
+	 * @param hash_length The size of the hash buffer.
+	 *
+	 * @return 0 if the hash calculated successfully or an error code.
+	 */
+	int (*calculate_sha384) (struct hash_engine *engine, const uint8_t *data, size_t length,
+		uint8_t *hash, size_t hash_length);
+
+	/**
+	 * Configure the hash engine to process independent blocks of data to calculate a SHA-384 hash
+	 * the aggregated data.
+	 *
+	 * Calling this function will reset any active hashing operation.
+	 *
+	 * Every call to start MUST be followed by either a call to finish or cancel.
+	 *
+	 * @param engine The hash engine to configure.
+	 *
+	 * @return 0 if the hash engine was configured successfully or an error code.
+	 */
+	int (*start_sha384) (struct hash_engine *engine);
+
+	/**
+	 * Calculate a SHA-512 hash on a complete set of data.
+	 *
+	 * @param engine The hash engine to use to calculate the hash.
+	 * @param data The data to hash.
+	 * @param length The length of the data.
+	 * @param hash The buffer that will contain the generated hash.  It must be large enough to hold
+	 * at least SHA512_HASH_LENGTH bytes.
+	 * @param hash_length The size of the hash buffer.
+	 *
+	 * @return 0 if the hash calculated successfully or an error code.
+	 */
+	int (*calculate_sha512) (struct hash_engine *engine, const uint8_t *data, size_t length,
+		uint8_t *hash, size_t hash_length);
+
+	/**
+	 * Configure the hash engine to process independent blocks of data to calculate a SHA-512 hash
+	 * the aggregated data.
+	 *
+	 * Calling this function will reset any active hashing operation.
+	 *
+	 * Every call to start MUST be followed by either a call to finish or cancel.
+	 *
+	 * @param engine The hash engine to configure.
+	 *
+	 * @return 0 if the hash engine was configured successfully or an error code.
+	 */
+	int (*start_sha512) (struct hash_engine *engine);
+
+	/**
 	 * Update the current hash operation with a block of data.
 	 *
 	 * @param engine The hash engine to update.
@@ -133,6 +199,8 @@ struct hash_engine {
 
 
 int hash_start_new_hash (struct hash_engine *engine, enum hash_type type);
+int hash_calculate (struct hash_engine *engine, enum hash_type type, const uint8_t *data,
+	size_t length, uint8_t *hash, size_t hash_length);
 
 
 /* HMAC functions */
@@ -143,6 +211,8 @@ int hash_start_new_hash (struct hash_engine *engine, enum hash_type type);
 enum hmac_hash {
 	HMAC_SHA1 = HASH_TYPE_SHA1,			/**< HMAC with SHA-1 hash. */
 	HMAC_SHA256 = HASH_TYPE_SHA256,		/**< HMAC with SHA-256 hash. */
+	HMAC_SHA384 = HASH_TYPE_SHA384,		/**< HMAC with SHA-384 hash. */
+	HMAC_SHA512 = HASH_TYPE_SHA512,		/**< HMAC with SHA-512 hash. */
 };
 
 /**
@@ -151,7 +221,7 @@ enum hmac_hash {
 struct hmac_engine {
 	struct hash_engine *hash;			/**< The hash engine to use when generating the HMAC. */
 	enum hmac_hash type;				/**< The type of hash being used for the HMAC. */
-	uint8_t key[SHA256_BLOCK_SIZE];		/**< The key for the HMAC operation. */
+	uint8_t key[SHA512_BLOCK_SIZE];		/**< The key for the HMAC operation. */
 	uint8_t block_size;					/**< The block size for the hash algorithm. */
 	uint8_t hash_length;				/**< The digest length for the hash algorithm. */
 };
@@ -185,6 +255,11 @@ enum {
 	HASH_ENGINE_NO_ACTIVE_HASH = HASH_ENGINE_ERROR (0x09),			/**< No hash has been started for calculation. */
 	HASH_ENGINE_UNSUPPORTED_HASH = HASH_ENGINE_ERROR (0x0a),		/**< The hash is not supported by the engine. */
 	HASH_ENGINE_HW_NOT_INIT = HASH_ENGINE_ERROR (0x0b),				/**< The hash hardware has not been initialized. */
+	HASH_ENGINE_SHA384_FAILED = HASH_ENGINE_ERROR (0x0c),			/**< The SHA-384 hash was not calculated. */
+	HASH_ENGINE_SHA512_FAILED = HASH_ENGINE_ERROR (0x0d),			/**< The SHA-512 hash was not calculated. */
+	HASH_ENGINE_START_SHA384_FAILED = HASH_ENGINE_ERROR (0x0e),		/**< The engine has not been initialized for SHA-384. */
+	HASH_ENGINE_START_SHA512_FAILED = HASH_ENGINE_ERROR (0x0f),		/**< The engine has not been initialized for SHA-512. */
+	HASH_ENGINE_UNKNOWN_HASH = HASH_ENGINE_ERROR (0x10),			/**< An unknown hash type was requested. */
 };
 
 

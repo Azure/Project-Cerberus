@@ -7,6 +7,8 @@
 
 extern const uint8_t SHA1_EMPTY_BUFFER_HASH[];
 extern const uint8_t SHA256_EMPTY_BUFFER_HASH[];
+extern const uint8_t SHA384_EMPTY_BUFFER_HASH[];
+extern const uint8_t SHA512_EMPTY_BUFFER_HASH[];
 
 extern const uint8_t SHA256_ZERO_BUFFER_HASH[];
 

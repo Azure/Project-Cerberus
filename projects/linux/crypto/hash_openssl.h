@@ -17,6 +17,7 @@ struct hash_engine_openssl {
 	SHA_CTX	sha1;				/**< The context for calculating SHA1 incremental hashes. */
 #endif
 	SHA256_CTX sha256;			/**< The context for calculating SHA256 incremental hashes. */
+	SHA512_CTX sha512;			/**< The context for calculating SHA384/SHA512 incremental hashes. */
 	int active;					/**< The type of initialized context. */
 };
 

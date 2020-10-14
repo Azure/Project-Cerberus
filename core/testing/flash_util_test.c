@@ -120,7 +120,7 @@ static void flash_hash_contents_test_unknown (CuTest *test)
 
 	status = flash_hash_contents (&flash.base, 0x1122, 4, &hash.base, (enum hash_type) 10,
 		hash_actual, sizeof (hash_actual));
-	CuAssertIntEquals (test, HASH_ENGINE_UNSUPPORTED_HASH, status);
+	CuAssertIntEquals (test, HASH_ENGINE_UNKNOWN_HASH, status);
 
 	status = flash_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
@@ -6920,7 +6920,7 @@ static void flash_hash_noncontiguous_contents_test_unknown (CuTest *test)
 
 	status = flash_hash_noncontiguous_contents (&flash.base, &regions, 1, &hash.base,
 		(enum hash_type) 10, hash_actual, sizeof (hash_actual));
-	CuAssertIntEquals (test, HASH_ENGINE_UNSUPPORTED_HASH, status);
+	CuAssertIntEquals (test, HASH_ENGINE_UNKNOWN_HASH, status);
 
 	status = flash_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
@@ -14016,7 +14016,7 @@ static void flash_hash_noncontiguous_contents_at_offset_test_unknown (CuTest *te
 
 	status = flash_hash_noncontiguous_contents_at_offset (&flash.base, 0x10000, &regions, 1,
 		&hash.base, (enum hash_type) 10, hash_actual, sizeof (hash_actual));
-	CuAssertIntEquals (test, HASH_ENGINE_UNSUPPORTED_HASH, status);
+	CuAssertIntEquals (test, HASH_ENGINE_UNKNOWN_HASH, status);
 
 	status = flash_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
