@@ -41,7 +41,7 @@ struct cerberus_protocol_device_capabilities_response {
 };
 
 /**
- * Certificate digest requset descriptor
+ * Certificate digest request descriptor
  */
 struct cerberus_protocol_digest_info {
 	uint8_t slot_num;										/**< Slot number of target chain */

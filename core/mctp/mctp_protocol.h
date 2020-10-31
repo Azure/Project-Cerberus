@@ -37,10 +37,18 @@
 #error "Improperly configured MCTP message/packet lengths."
 #endif
 
+#define	MCTP_PROTOCOL_PACKETS_IN_MESSAGE(msg, pkt)	((msg + pkt - 1) / pkt)
+
 #define SMBUS_CMD_CODE_MCTP							0x0F
 
 #define MCTP_PROTOCOL_PACKET_OVERHEAD				(sizeof (struct mctp_protocol_transport_header) + 1)
+#define	MCTP_PROTOCOL_MIN_PACKET_LEN				(MCTP_PROTOCOL_MIN_TRANSMISSION_UNIT + MCTP_PROTOCOL_PACKET_OVERHEAD)
 #define MCTP_PROTOCOL_MAX_PACKET_LEN				(MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT + MCTP_PROTOCOL_PACKET_OVERHEAD)
+#define	MCTP_PROTOCOL_MIN_MESSAGE_LEN				MCTP_PROTOCOL_MIN_PACKET_LEN
+#define	MCTP_PROTOCOL_MAX_MESSAGE_LEN				\
+	(MCTP_PROTOCOL_PACKETS_IN_MESSAGE (MCTP_PROTOCOL_MAX_MESSAGE_BODY, MCTP_PROTOCOL_MIN_TRANSMISSION_UNIT) * MCTP_PROTOCOL_MIN_PACKET_LEN)
+#define	MCTP_PROTOCOL_MAX_PACKET_PER_MESSAGE		\
+	((MCTP_PROTOCOL_MAX_MESSAGE_BODY + MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT - 1) / MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT)
 
 #define MCTP_PROTOCOL_MIN_CONTROL_MSG_LEN			(sizeof (struct mctp_protocol_control_header))
 
@@ -158,6 +166,7 @@ enum {
 	MCTP_PROTOCOL_BUF_TOO_SMALL = MCTP_PROTOCOL_ERROR (0x0a),		/**< Provided buffer too small for output. */
 	MCTP_PROTOCOL_UNSUPPORTED_MSG = MCTP_PROTOCOL_ERROR (0x0b),		/**< Received packet format not supported. */
 	MCTP_PROTOCOL_INVALID_EID = MCTP_PROTOCOL_ERROR (0x0c),			/**< Received packet from device using incorrect EID. */
+	MCTP_PROTOCOL_BUILD_UNSUPPORTED = MCTP_PROTOCOL_ERROR (0x0d),	/**< Failed to construct a packet for an unsupported message type. */
 };
 
 

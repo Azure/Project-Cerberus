@@ -842,6 +842,8 @@ int cerberus_protocol_get_update_status (struct firmware_update_control *control
 	struct recovery_image_cmd_interface *recovery_1, struct cmd_background *background,
 	struct cmd_interface_request *request)
 {
+	struct cerberus_protocol_update_status *req =
+		(struct cerberus_protocol_update_status*) request->data;
 	struct cerberus_protocol_update_status_response *rsp =
 		(struct cerberus_protocol_update_status_response*) request->data;
 	int status;
@@ -850,7 +852,7 @@ int cerberus_protocol_get_update_status (struct firmware_update_control *control
 		return CMD_HANDLER_BAD_LENGTH;
 	}
 
-	switch (request->data[CERBERUS_PROTOCOL_MIN_MSG_LEN]) {
+	switch (req->update_type) {
 		case CERBERUS_PROTOCOL_FW_UPDATE_STATUS:
 			status = cerberus_protocol_get_fw_update_status (control, rsp);
 			break;

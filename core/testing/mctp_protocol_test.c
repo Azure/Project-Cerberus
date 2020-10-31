@@ -574,6 +574,79 @@ static void mctp_protocol_test_construct_control_message (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 }
 
+static void mctp_protocol_test_construct_control_message_overlapping_buffer (CuTest *test)
+{
+	int status;
+	uint8_t msg_type;
+	uint8_t buf[6];
+	uint8_t out_buf[MCTP_PROTOCOL_MAX_PACKET_LEN];
+
+	TEST_START;
+
+	buf[0] = MCTP_PROTOCOL_MSG_TYPE_CONTROL_MSG;
+	buf[1] = 0xAA;
+	buf[2] = 0xBB;
+	buf[3] = 0xCC;
+	buf[4] = 0xDD;
+	buf[5] = 0xEE;
+
+	memcpy (&out_buf[8], buf, sizeof (buf));
+
+	status = mctp_protocol_construct (&out_buf[8], sizeof (buf), out_buf, sizeof (out_buf), 0x55,
+		0x0A, 0x0B, true, false, 1, 2, MCTP_PROTOCOL_TO_RESPONSE, 0x5D, &msg_type);
+	CuAssertIntEquals (test, sizeof (struct mctp_protocol_transport_header) + sizeof (buf), status);
+	CuAssertIntEquals (test, SMBUS_CMD_CODE_MCTP, out_buf[0]);
+	CuAssertIntEquals (test, sizeof (struct mctp_protocol_transport_header) + sizeof (buf) - 2,
+		out_buf[1]);
+	CuAssertIntEquals (test, 0xAB, out_buf[2]);
+	CuAssertIntEquals (test, 0x01, out_buf[3]);
+	CuAssertIntEquals (test, 0x0A, out_buf[4]);
+	CuAssertIntEquals (test, 0x0B, out_buf[5]);
+	CuAssertIntEquals (test, 0x92, out_buf[6]);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_CONTROL_MSG, msg_type);
+
+	status = testing_validate_array (buf, &out_buf[7], sizeof (buf));
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void mctp_protocol_test_construct_control_message_overlapping_buffer_at_beginning (
+	CuTest *test)
+{
+	int status;
+	uint8_t msg_type;
+	uint8_t buf[8];
+	uint8_t out_buf[MCTP_PROTOCOL_MAX_PACKET_LEN];
+
+	TEST_START;
+
+	buf[0] = MCTP_PROTOCOL_MSG_TYPE_CONTROL_MSG;
+	buf[1] = 0xAA;
+	buf[2] = 0xBB;
+	buf[3] = 0xCC;
+	buf[4] = 0xDD;
+	buf[5] = 0xEE;
+	buf[6] = 0xFF;
+	buf[7] = 0x11;
+
+	memcpy (out_buf, buf, sizeof (buf));
+
+	status = mctp_protocol_construct (out_buf, sizeof (buf), out_buf, sizeof (out_buf), 0x55, 0x0A,
+		0x0B, true, false, 1, 2, MCTP_PROTOCOL_TO_RESPONSE, 0x5D, &msg_type);
+	CuAssertIntEquals (test, sizeof (struct mctp_protocol_transport_header) + sizeof (buf), status);
+	CuAssertIntEquals (test, SMBUS_CMD_CODE_MCTP, out_buf[0]);
+	CuAssertIntEquals (test, sizeof (struct mctp_protocol_transport_header) + sizeof (buf) - 2,
+		out_buf[1]);
+	CuAssertIntEquals (test, 0xAB, out_buf[2]);
+	CuAssertIntEquals (test, 0x01, out_buf[3]);
+	CuAssertIntEquals (test, 0x0A, out_buf[4]);
+	CuAssertIntEquals (test, 0x0B, out_buf[5]);
+	CuAssertIntEquals (test, 0x92, out_buf[6]);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_CONTROL_MSG, msg_type);
+
+	status = testing_validate_array (buf, &out_buf[7], sizeof (buf));
+	CuAssertIntEquals (test, 0, status);
+}
+
 static void mctp_protocol_test_construct_control_message_not_som (CuTest *test)
 {
 	int status;
@@ -624,6 +697,81 @@ static void mctp_protocol_test_construct_vendor_defined_message (CuTest *test)
 	buf[5] = 0xEE;
 
 	status = mctp_protocol_construct (buf, sizeof (buf), out_buf, sizeof (out_buf), 0x55, 0x0A,
+		0x0B, true, false, 1, 2, MCTP_PROTOCOL_TO_RESPONSE, 0x5D, &msg_type);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_PACKET_OVERHEAD + sizeof (buf), status);
+	CuAssertIntEquals (test, SMBUS_CMD_CODE_MCTP, out_buf[0]);
+	CuAssertIntEquals (test, sizeof (struct mctp_protocol_transport_header) + sizeof (buf) - 2,
+		out_buf[1]);
+	CuAssertIntEquals (test, 0xAB, out_buf[2]);
+	CuAssertIntEquals (test, 0x01, out_buf[3]);
+	CuAssertIntEquals (test, 0x0A, out_buf[4]);
+	CuAssertIntEquals (test, 0x0B, out_buf[5]);
+	CuAssertIntEquals (test, 0x92, out_buf[6]);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, msg_type);
+	CuAssertIntEquals (test, checksum_crc8 (0xBA, out_buf, status - 1), out_buf[status - 1]);
+
+	status = testing_validate_array (buf, &out_buf[7], sizeof (buf));
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void mctp_protocol_test_construct_vendor_defined_message_overlapping_buffer (CuTest *test)
+{
+	int status;
+	uint8_t msg_type;
+	uint8_t buf[6];
+	uint8_t out_buf[MCTP_PROTOCOL_MAX_PACKET_LEN];
+
+	TEST_START;
+
+	buf[0] = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	buf[1] = 0xAA;
+	buf[2] = 0xBB;
+	buf[3] = 0xCC;
+	buf[4] = 0xDD;
+	buf[5] = 0xEE;
+
+	memcpy (&out_buf[8], buf, sizeof (buf));
+
+	status = mctp_protocol_construct (&out_buf[8], sizeof (buf), out_buf, sizeof (out_buf), 0x55,
+		0x0A, 0x0B, true, false, 1, 2, MCTP_PROTOCOL_TO_RESPONSE, 0x5D, &msg_type);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_PACKET_OVERHEAD + sizeof (buf), status);
+	CuAssertIntEquals (test, SMBUS_CMD_CODE_MCTP, out_buf[0]);
+	CuAssertIntEquals (test, sizeof (struct mctp_protocol_transport_header) + sizeof (buf) - 2,
+		out_buf[1]);
+	CuAssertIntEquals (test, 0xAB, out_buf[2]);
+	CuAssertIntEquals (test, 0x01, out_buf[3]);
+	CuAssertIntEquals (test, 0x0A, out_buf[4]);
+	CuAssertIntEquals (test, 0x0B, out_buf[5]);
+	CuAssertIntEquals (test, 0x92, out_buf[6]);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, msg_type);
+	CuAssertIntEquals (test, checksum_crc8 (0xBA, out_buf, status - 1), out_buf[status - 1]);
+
+	status = testing_validate_array (buf, &out_buf[7], sizeof (buf));
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void mctp_protocol_test_construct_vendor_defined_message_overlapping_buffer_at_beginning (
+	CuTest *test)
+{
+	int status;
+	uint8_t msg_type;
+	uint8_t buf[8];
+	uint8_t out_buf[MCTP_PROTOCOL_MAX_PACKET_LEN];
+
+	TEST_START;
+
+	buf[0] = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	buf[1] = 0xAA;
+	buf[2] = 0xBB;
+	buf[3] = 0xCC;
+	buf[4] = 0xDD;
+	buf[5] = 0xEE;
+	buf[6] = 0xFF;
+	buf[7] = 0x11;
+
+	memcpy (out_buf, buf, sizeof (buf));
+
+	status = mctp_protocol_construct (out_buf, sizeof (buf), out_buf, sizeof (out_buf), 0x55, 0x0A,
 		0x0B, true, false, 1, 2, MCTP_PROTOCOL_TO_RESPONSE, 0x5D, &msg_type);
 	CuAssertIntEquals (test, MCTP_PROTOCOL_PACKET_OVERHEAD + sizeof (buf), status);
 	CuAssertIntEquals (test, SMBUS_CMD_CODE_MCTP, out_buf[0]);
@@ -760,7 +908,7 @@ static void mctp_protocol_test_construct_unsupported_message (CuTest *test)
 
 	status = mctp_protocol_construct (buf, sizeof (buf), out_buf, sizeof (out_buf), 0x55, 0x0A,
 		0x0B, true, false, 1, 2, MCTP_PROTOCOL_TO_REQUEST, 0x5D, &msg_type);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_UNSUPPORTED_MSG, status);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_BUILD_UNSUPPORTED, status);
 }
 
 static void mctp_protocol_test_construct_control_message_buf_too_small (CuTest *test)
@@ -858,8 +1006,14 @@ CuSuite* get_mctp_protocol_suite ()
 	SUITE_ADD_TEST (suite, mctp_protocol_test_interpret_invalid_header_version);
 	SUITE_ADD_TEST (suite, mctp_protocol_test_interpret_invalid_crc);
 	SUITE_ADD_TEST (suite, mctp_protocol_test_construct_control_message);
+	SUITE_ADD_TEST (suite, mctp_protocol_test_construct_control_message_overlapping_buffer);
+	SUITE_ADD_TEST (suite,
+		mctp_protocol_test_construct_control_message_overlapping_buffer_at_beginning);
 	SUITE_ADD_TEST (suite, mctp_protocol_test_construct_control_message_not_som);
 	SUITE_ADD_TEST (suite, mctp_protocol_test_construct_vendor_defined_message);
+	SUITE_ADD_TEST (suite, mctp_protocol_test_construct_vendor_defined_message_overlapping_buffer);
+	SUITE_ADD_TEST (suite,
+		mctp_protocol_test_construct_vendor_defined_message_overlapping_buffer_at_beginning);
 	SUITE_ADD_TEST (suite, mctp_protocol_test_construct_vendor_defined_message_not_som);
 	SUITE_ADD_TEST (suite, mctp_protocol_test_construct_control_request);
 	SUITE_ADD_TEST (suite, mctp_protocol_test_construct_vendor_defined_request);

@@ -79,6 +79,7 @@ static int hash_thread_safe_start_sha256 (struct hash_engine *engine)
 	return status;
 }
 
+#ifdef HASH_ENABLE_SHA384
 static int hash_thread_safe_calculate_sha384 (struct hash_engine *engine, const uint8_t *data,
 	size_t length, uint8_t *hash, size_t hash_length)
 {
@@ -113,7 +114,9 @@ static int hash_thread_safe_start_sha384 (struct hash_engine *engine)
 
 	return status;
 }
+#endif
 
+#ifdef HASH_ENABLE_SHA512
 static int hash_thread_safe_calculate_sha512 (struct hash_engine *engine, const uint8_t *data,
 	size_t length, uint8_t *hash, size_t hash_length)
 {
@@ -148,6 +151,7 @@ static int hash_thread_safe_start_sha512 (struct hash_engine *engine)
 
 	return status;
 }
+#endif
 
 static int hash_thread_safe_update (struct hash_engine *engine, const uint8_t *data, size_t length)
 {
@@ -213,10 +217,14 @@ int hash_thread_safe_init (struct hash_engine_thread_safe *engine, struct hash_e
 #endif
 	engine->base.calculate_sha256 = hash_thread_safe_calculate_sha256;
 	engine->base.start_sha256 = hash_thread_safe_start_sha256;
+#ifdef HASH_ENABLE_SHA384
 	engine->base.calculate_sha384 = hash_thread_safe_calculate_sha384;
 	engine->base.start_sha384 = hash_thread_safe_start_sha384;
+#endif
+#ifdef HASH_ENABLE_SHA512
 	engine->base.calculate_sha512 = hash_thread_safe_calculate_sha512;
 	engine->base.start_sha512 = hash_thread_safe_start_sha512;
+#endif
 	engine->base.update = hash_thread_safe_update;
 	engine->base.finish = hash_thread_safe_finish;
 	engine->base.cancel = hash_thread_safe_cancel;

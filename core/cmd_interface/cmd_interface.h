@@ -12,18 +12,11 @@
 
 
 /**
- * Escape sequence to intitiate transaction with slave device instead of responding to system.
- */
-#define CMD_ERROR_MESSAGE_ESCAPE_SEQ 			0xDDFF
-
-
-/**
  * Container for request data.
  */
 struct cmd_interface_request {
-	/** The raw request data buffer.  This contains the request to process and will be updated with
-	 * any response data. */
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t *data;					/**< The raw request data buffer.  This contains the request to
+										process and will be updated with any response data. */
 	size_t length;					/**< Length of the request/response data. */
 	size_t max_response;			/**< Maximum length allowed for a response. */
 	uint8_t source_eid;				/**< Endpoint ID that generated the request. */
@@ -74,7 +67,7 @@ struct cmd_interface {
 	int (*process_request) (struct cmd_interface *intf, struct cmd_interface_request *request);
 
 	/**
-	 * Construct request.
+	 * Construct a request message.
 	 *
 	 * @param intf The command interface that will construct the request.
 	 * @param command_id Command ID of request to generate.
@@ -82,14 +75,14 @@ struct cmd_interface {
 	 * @param buf The buffer containing the generated request.
 	 * @param buf_len Maximum size of buffer.
 	 *
-	 * @return Length of the generated packet if the request was successfully constructed or an
+	 * @return Length of the generated message if the request was successfully constructed or an
 	 * error code.
 	 */
 	int (*issue_request) (struct cmd_interface *intf, uint8_t command_id, void *request_params,
 		uint8_t *buf, size_t buf_len);
 
 	/**
-	 * Generate a packet containing error message.
+	 * Generate a request containing an error message.
 	 *
 	 * @param intf The command interface to utilize.
  	 * @param request The request container to utilize.
@@ -102,8 +95,8 @@ struct cmd_interface {
 	int (*generate_error_packet) (struct cmd_interface *intf, struct cmd_interface_request *request,
 		uint8_t error_code, uint32_t error_data, uint8_t cmd_set);
 
-	struct session_manager *session;						/**< Session manager for channel encryption*/
-	bool curr_txn_encrypted;								/**< Current transaction encrypted */
+	struct session_manager *session;				/**< Session manager for channel encryption */
+	bool curr_txn_encrypted;						/**< Current transaction encrypted */
 };
 
 
@@ -148,6 +141,9 @@ enum {
 	CMD_HANDLER_ENCRYPTION_UNSUPPORTED = CMD_HANDLER_ERROR (0x11),	/**< Channel encryption not supported on this interface. */
 	CMD_HANDLER_CMD_SHOULD_BE_ENCRYPTED = CMD_HANDLER_ERROR (0x12),	/**< Secure command received unencrypted after establishing an encrypted channel. */
 	CMD_HANDLER_RSVD_NOT_ZERO = CMD_HANDLER_ERROR (0x13),			/**< Reserved field is non-zero. */
+	CMD_HANDLER_ERROR_MESSAGE = CMD_HANDLER_ERROR (0x14),			/**< The handler received an error message for processing. */
+	CMD_HANDLER_ISSUE_FAILED = CMD_HANDLER_ERROR (0x15),			/**< Failed to generate the request message. */
+	CMD_HANDLER_ERROR_MSG_FAILED = CMD_HANDLER_ERROR (0x16),		/**< Failed to generate an error message. */
 };
 
 

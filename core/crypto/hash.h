@@ -105,6 +105,7 @@ struct hash_engine {
 	 */
 	int (*start_sha256) (struct hash_engine *engine);
 
+#ifdef HASH_ENABLE_SHA384
 	/**
 	 * Calculate a SHA-384 hash on a complete set of data.
 	 *
@@ -133,7 +134,9 @@ struct hash_engine {
 	 * @return 0 if the hash engine was configured successfully or an error code.
 	 */
 	int (*start_sha384) (struct hash_engine *engine);
+#endif
 
+#ifdef HASH_ENABLE_SHA512
 	/**
 	 * Calculate a SHA-512 hash on a complete set of data.
 	 *
@@ -162,6 +165,7 @@ struct hash_engine {
 	 * @return 0 if the hash engine was configured successfully or an error code.
 	 */
 	int (*start_sha512) (struct hash_engine *engine);
+#endif
 
 	/**
 	 * Update the current hash operation with a block of data.

@@ -236,3 +236,104 @@ int cmd_interface_mock_validate_request (const char *arg_info, void *expected, v
 
 	return fail;
 }
+
+/**
+ * Allocate memory and perform a deep copy of the command request structure for validation.
+ *
+ * @param expected The expectation context for the argument to save.
+ * @param call The calling context for the argument to save.
+ */
+void cmd_interface_mock_save_request (const struct mock_arg *expected, struct mock_arg *call)
+{
+	struct cmd_interface_request *req_orig;
+	struct cmd_interface_request *req_copy;
+
+	call->ptr_value = platform_malloc (expected->ptr_value_len);
+
+	if (call->ptr_value != NULL) {
+		call->ptr_value_len = expected->ptr_value_len;
+		memcpy (call->ptr_value, (void*) call->value, call->ptr_value_len);
+
+		req_orig = (struct cmd_interface_request*) call->value;
+		req_copy = (struct cmd_interface_request*) call->ptr_value;
+
+		req_copy->data = platform_malloc (req_orig->length);
+		if (req_copy->data != NULL) {
+			memcpy (req_copy->data, req_orig->data, req_orig->length);
+		}
+	}
+}
+
+/**
+ * Free a copied request structure.
+ *
+ * @param arg The request structure to free.
+ */
+void cmd_interface_mock_free_request (void *arg)
+{
+	struct cmd_interface_request *req = arg;
+
+	if (req) {
+		platform_free (req->data);
+		platform_free (req);
+	}
+}
+
+/**
+ * Deep copy request data into an output parameter.
+ *
+ * @param expected The expectation context for the argument to copy.
+ * @param call The calling context to copy into.
+ * @param out_len Buffer space available in the function argument.
+ *
+ */
+void cmd_interface_mock_copy_request (const struct mock_arg *expected, struct mock_arg *call,
+	size_t out_len)
+{
+	const struct cmd_interface_request *req_orig = expected->out_data;
+	struct cmd_interface_request *req_copy = (struct cmd_interface_request*) call->value;
+	void *data_tmp = req_copy->data;
+
+	memcpy ((void*) call->value, expected->out_data, out_len);
+
+	req_copy->data = data_tmp;
+	memcpy (req_copy->data, req_orig->data, req_orig->length);
+}
+
+/**
+ * Allocate memory and deep copy data for an expectation argument.
+ *
+ * @param arg_data The data to copy into the expectation argument.
+ * @param arg_length The length of the data to copy.
+ * @param arg_save The argument buffer to copy the data to.
+ *
+ * @return 0 if the data was successfully copied or an error code.
+ */
+int cmd_interface_mock_duplicate_request (const void *arg_data, size_t arg_length, void **arg_save)
+{
+	const struct cmd_interface_request *req_orig = arg_data;
+	struct cmd_interface_request *req_copy;
+
+	if (arg_length != sizeof (struct cmd_interface_request)) {
+		return MOCK_BAD_ARG_LENGTH;
+	}
+
+	*arg_save = platform_malloc (arg_length);
+	if (*arg_save == NULL) {
+		return MOCK_NO_MEMORY;
+	}
+
+	memcpy (*arg_save, arg_data, arg_length);
+
+	req_copy = (struct cmd_interface_request*) *arg_save;
+	req_copy->data = platform_malloc (req_orig->length);
+	if (req_copy->data == NULL) {
+		platform_free (*arg_save);
+		*arg_save = NULL;
+
+		return MOCK_NO_MEMORY;
+	}
+
+	memcpy (req_copy->data, req_orig->data, req_orig->length);
+	return 0;
+}

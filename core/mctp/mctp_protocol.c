@@ -99,7 +99,8 @@ int mctp_protocol_interpret (uint8_t *buf, size_t buf_len, uint8_t dest_addr, ui
  *
  * @param buf Payload for the packet.
  * @param buf_len Length of the payload.
- * @param out_buf Output for the constructed packet.
+ * @param out_buf Output for the constructed packet.  It is allowed to have the output buffer
+ * overlap the input buffer.
  * @param out_buf_len Maximum constructed packet length.
  * @param source_addr Source SMBus address.
  * @param dest_eid Destination EID for the packet.
@@ -145,7 +146,7 @@ int mctp_protocol_construct (uint8_t *buf, size_t buf_len, uint8_t *out_buf, siz
 		crc = true;
 	}
 	else {
-		return MCTP_PROTOCOL_UNSUPPORTED_MSG;
+		return MCTP_PROTOCOL_BUILD_UNSUPPORTED;
 	}
 
 	out_len = msg_offset + buf_len + crc;
@@ -154,6 +155,7 @@ int mctp_protocol_construct (uint8_t *buf, size_t buf_len, uint8_t *out_buf, siz
 		return MCTP_PROTOCOL_BUF_TOO_SMALL;
 	}
 
+	memmove (&out_buf[msg_offset], buf, buf_len);
 	memset (header, 0, sizeof (struct mctp_protocol_transport_header));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
@@ -168,7 +170,6 @@ int mctp_protocol_construct (uint8_t *buf, size_t buf_len, uint8_t *out_buf, siz
 	header->msg_tag = msg_tag;
 	header->tag_owner = tag_owner;
 
-	memcpy (&out_buf[msg_offset], buf, buf_len);
 	if (crc) {
 		out_buf[msg_offset + buf_len] = checksum_crc8 ((dest_addr << 1), out_buf, out_len - 1);
 	}

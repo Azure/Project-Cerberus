@@ -14,6 +14,56 @@
 
 
 /**
+ * Default allocation routine for saving pointer argument data.
+ *
+ * @param expected The expectation context for the argument to save.
+ * @param call The calling context for the argument to save.
+ */
+static void mock_alloc_and_copy (const struct mock_arg *expected, struct mock_arg *call)
+{
+	call->ptr_value = platform_malloc (expected->ptr_value_len);
+
+	if (call->ptr_value != NULL) {
+		call->ptr_value_len = expected->ptr_value_len;
+		memcpy (call->ptr_value, (void*) call->value, call->ptr_value_len);
+	}
+}
+
+/**
+ * Default allocation routine for making internal copies of expectation argument data.
+ *
+ * @param arg_data The data to copy into the expectation argument.
+ * @param arg_length The length of the data to copy.
+ * @param arg_save The argument buffer to copy the data to.
+ *
+ * @return 0 if the data was successfully copied or an error code.
+ */
+static int mock_alloc_and_copy_arg_data (const void *arg_data, size_t arg_length,
+	void **arg_save)
+{
+	*arg_save = platform_malloc (arg_length);
+	if (*arg_save == NULL) {
+		return MOCK_NO_MEMORY;
+	}
+
+	memcpy (*arg_save, arg_data, arg_length);
+	return 0;
+}
+
+/**
+ * Default copy routine for performing a shallow copy of data into an output parameter.
+ *
+ * @param expected The expectation context for the argument to copy.
+ * @param call The calling context to copy into.
+ * @param out_len Buffer space available in the function argument.
+ */
+static void mock_copy_output_data (const struct mock_arg *expected, struct mock_arg *call,
+	size_t out_len)
+{
+	memcpy ((void*) call->value, expected->out_data, out_len);
+}
+
+/**
  * Free a single expected call instance.
  *
  * @param call The instance to free.
@@ -25,15 +75,15 @@ static void mock_free_call (struct mock_call *call)
 	if (call->argv != NULL) {
 		for (i = 0; i < call->argc; i++) {
 			if (call->argv[i].ptr_value != NULL) {
-				platform_free (call->argv[i].ptr_value);
+				call->argv[i].free (call->argv[i].ptr_value);
 			}
 
 			if (call->argv[i].flags & MOCK_ARG_FLAG_ALLOCATED) {
-				platform_free ((void*) call->argv[i].value);
+				call->argv[i].free ((void*) call->argv[i].value);
 			}
 
 			if (call->argv[i].flags & MOCK_ARG_FLAG_OUT_ALLOCATED) {
-				platform_free ((void*) call->argv[i].out_data);
+				call->argv[i].out_free ((void*) call->argv[i].out_data);
 			}
 		}
 
@@ -60,6 +110,7 @@ int mock_expect (struct mock *mock, void *func_call, void *instance, intptr_t re
 	struct mock_expect_arg arg;
 	va_list args;
 	int i;
+	int status;
 
 	if ((mock == NULL) || (func_call == NULL)) {
 		return MOCK_INVALID_ARGUMENT;
@@ -89,14 +140,33 @@ int mock_expect (struct mock *mock, void *func_call, void *instance, intptr_t re
 	for (i = 0; i < expectation->argc; i++) {
 		arg = va_arg (args, struct mock_expect_arg);
 
-		if (arg.flags & MOCK_ARG_FLAG_ALLOCATED) {
-			expectation->argv[i].value = (intptr_t) (platform_malloc (arg.ptr_value_len));
-			if (expectation->argv[i].value == 0) {
-				mock_free_call (expectation);
-				return MOCK_NO_MEMORY;
-			}
+		if (arg.alloc == NULL) {
+			expectation->argv[i].alloc = mock_alloc_and_copy;
+		}
+		else {
+			expectation->argv[i].alloc = arg.alloc;
+		}
 
-			memcpy ((void*) expectation->argv[i].value, (void*) arg.value, arg.ptr_value_len);
+		if (arg.free == NULL) {
+			expectation->argv[i].free = platform_free;
+		}
+		else {
+			expectation->argv[i].free = arg.free;
+		}
+
+		if (arg.flags & MOCK_ARG_FLAG_ALLOCATED) {
+			if (arg.copy != NULL) {
+				status = arg.copy ((void*) arg.value, arg.ptr_value_len,
+					(void**) &expectation->argv[i].value);
+			}
+			else {
+				status = mock_alloc_and_copy_arg_data ((void*) arg.value, arg.ptr_value_len,
+					(void**) &expectation->argv[i].value);
+			}
+			if (status != 0) {
+				mock_free_call (expectation);
+				return status;
+			}
 		}
 		else {
 			expectation->argv[i].value = arg.value;
@@ -104,6 +174,7 @@ int mock_expect (struct mock *mock, void *func_call, void *instance, intptr_t re
 		expectation->argv[i].ptr_value_len = arg.ptr_value_len;
 		expectation->argv[i].validate = arg.validate;
 		expectation->argv[i].flags = arg.flags;
+
 		if (arg.flags & MOCK_ARG_FLAG_SAVED_VALUE) {
 			expectation->argv[i].save_arg = arg.save_arg;
 		}
@@ -130,6 +201,65 @@ int mock_expect (struct mock *mock, void *func_call, void *instance, intptr_t re
 }
 
 /**
+ * Base handler for adding output paramater data to an expectation.
+ *
+ * @param mock The mock instance to update.
+ * @param arg The argument index to set as an output parameter.
+ * @param out_data The data to use to fill the paramater when called.
+ * @param out_length The length of the output data provided.
+ * @param length_arg The argument index for dynamically sized buffers.
+ * @param is_temp Flag indicating if the output data should be copied or held by reference.
+ * @param copy The function to use to copy the data into the parameter.
+ * @param out_dup The function to use for creating a copy of the output data.
+ * @param free The fuction to use to free the copied output data.
+ *
+ * @return 0 if the mock was updated successfully or an error code.
+ */
+static int mock_expect_output_common (struct mock *mock, int arg, const void *out_data,
+	size_t out_length, int length_arg, bool is_temp, mock_arg_copy copy,
+	mock_arg_alloc_expect out_dup, mock_arg_free free)
+{
+	int status;
+
+	if ((mock == NULL) || (out_data == NULL) || (arg < 0)) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	if (mock->exp_tail == NULL) {
+		return MOCK_NO_EXPECTATION;
+	}
+
+	if ((arg >= mock->exp_tail->argc) || (length_arg >= mock->exp_tail->argc)) {
+		return MOCK_BAD_ARG_INDEX;
+	}
+
+	if (is_temp) {
+		status = out_dup (out_data, out_length, (void**) &mock->exp_tail->argv[arg].out_data);
+		if (status != 0) {
+			return status;
+		}
+
+		mock->exp_tail->argv[arg].out_free = free;
+		mock->exp_tail->argv[arg].flags |= MOCK_ARG_FLAG_OUT_ALLOCATED;
+	}
+	else {
+		mock->exp_tail->argv[arg].out_data = out_data;
+	}
+
+	mock->exp_tail->argv[arg].out_len = out_length;
+	mock->exp_tail->argv[arg].size_arg = length_arg;
+
+	if (copy == NULL) {
+		mock->exp_tail->argv[arg].copy = mock_copy_output_data;
+	}
+	else {
+		mock->exp_tail->argv[arg].copy = copy;
+	}
+
+	return 0;
+}
+
+/**
  * Indicate that a parameter to a mock expectation should be treated as an output parameter.  This
  * will only update the last expectation that was added to the mock.
  *
@@ -146,23 +276,8 @@ int mock_expect (struct mock *mock, void *func_call, void *instance, intptr_t re
 int mock_expect_output (struct mock *mock, int arg, const void *out_data, size_t out_length,
 	int length_arg)
 {
-	if ((mock == NULL) || (out_data == NULL) || (arg < 0)) {
-		return MOCK_INVALID_ARGUMENT;
-	}
-
-	if (mock->exp_tail == NULL) {
-		return MOCK_NO_EXPECTATION;
-	}
-
-	if ((arg >= mock->exp_tail->argc) || (length_arg >= mock->exp_tail->argc)) {
-		return MOCK_BAD_ARG_INDEX;
-	}
-
-	mock->exp_tail->argv[arg].out_data = out_data;
-	mock->exp_tail->argv[arg].out_len = out_length;
-	mock->exp_tail->argv[arg].size_arg = length_arg;
-
-	return 0;
+	return mock_expect_output_common (mock, arg, out_data, out_length, length_arg, false, NULL,
+		NULL, NULL);
 }
 
 /**
@@ -184,29 +299,57 @@ int mock_expect_output (struct mock *mock, int arg, const void *out_data, size_t
 int mock_expect_output_tmp (struct mock *mock, int arg, const void *out_data, size_t out_length,
 	int length_arg)
 {
-	if ((mock == NULL) || (out_data == NULL) || (arg < 0)) {
-		return MOCK_INVALID_ARGUMENT;
-	}
+	return mock_expect_output_common (mock, arg, out_data, out_length, length_arg, true, NULL,
+		mock_alloc_and_copy_arg_data, platform_free);
+}
 
-	if (mock->exp_tail == NULL) {
-		return MOCK_NO_EXPECTATION;
-	}
+/**
+ * Indicate that a parameter to a mock expectation should be treated as an output parameter.  The
+ * expectation can perform a deep copy of the output data in the case of nested structures.  This
+ * will only update the last expectation that was added to the mock.
+ *
+ * @param mock The mock instance to update.
+ * @param arg The argument index to set as an output parameter.  This is a zero-based index based
+ * on the variable argument list in the expectation.
+ * @param out_data The data to use to fill the parameter when called.  This is stored by reference.
+ * @param out_length The length of the output data provided.
+ * @param copy The function to use to copy the data into the output parameter.  Set this to null to
+ * use the default copy mechanism, which is a shallow copy.
+ *
+ * @return 0 if the mock was updated successfully or an error code.
+ */
+int mock_expect_output_deep_copy (struct mock *mock, int arg, const void *out_data,
+	size_t out_length, mock_arg_copy copy)
+{
+	return mock_expect_output_common (mock, arg, out_data, out_length, -1, false, copy, NULL, NULL);
+}
 
-	if ((arg >= mock->exp_tail->argc) || (length_arg >= mock->exp_tail->argc)) {
-		return MOCK_BAD_ARG_INDEX;
-	}
-
-	mock->exp_tail->argv[arg].out_data = platform_malloc (out_length);
-	if (mock->exp_tail->argv[arg].out_data == NULL) {
-		return MOCK_NO_MEMORY;
-	}
-
-	memcpy ((void*) mock->exp_tail->argv[arg].out_data, out_data, out_length);
-	mock->exp_tail->argv[arg].out_len = out_length;
-	mock->exp_tail->argv[arg].size_arg = length_arg;
-	mock->exp_tail->argv[arg].flags |= MOCK_ARG_FLAG_OUT_ALLOCATED;
-
-	return 0;
+/**
+ * Indicate that a parameter to a mock expectation should be treated as an output parameter.  The
+ * expectation can perform a deep copy of the output data in the case of nested structures.  This
+ * will only update the last expectation that was added to the mock.
+ *
+ * This call allows temporary variables to be used for output data.
+ *
+ * @param mock The mock instance to update.
+ * @param arg The argument index to set as an output parameter.  This is a zero-based index based
+ * on the variable argument list in the expectation.
+ * @param out_data The data to use to fill the parameter when called.  This data is copied.
+ * @param out_length The length of the output data provided.
+ * @param copy The function to use to copy the data into the output parameter.  Set this to null to
+ * use the default copy mechanism, which is a shallow copy.
+ * @param out_dup The function to use to create a copy of the output data.  Set this to null to use
+ * the default copy mechanism, which is a shallow copy.
+ * @param free The function to use to free the local copy of output data.  Set this to null to use
+ * the default free function.
+ *
+ * @return 0 if the mock was updated successfully or an error code.
+ */
+int mock_expect_output_deep_copy_tmp (struct mock *mock, int arg, const void *out_data,
+	size_t out_length, mock_arg_copy copy, mock_arg_alloc_expect out_dup, mock_arg_free free)
+{
+	return mock_expect_output_common (mock, arg, out_data, out_length, -1, true, copy, out_dup,
+		free);
 }
 
 /**
@@ -720,13 +863,8 @@ intptr_t mock_return_from_call (struct mock *mock, struct mock_call *call)
 
 			/* Save the contents of a pointer parameter. */
 			if ((expected->argv[i].ptr_value_len != 0) && (call->argv[i].value != 0)) {
-				call->argv[i].ptr_value = platform_malloc (expected->argv[i].ptr_value_len);
-
-				if (call->argv[i].ptr_value != NULL) {
-					call->argv[i].ptr_value_len = expected->argv[i].ptr_value_len;
-					memcpy (call->argv[i].ptr_value, (void*) call->argv[i].value,
-						call->argv[i].ptr_value_len);
-				}
+				expected->argv[i].alloc (&expected->argv[i], &call->argv[i]);
+				call->argv[i].free = expected->argv[i].free;
 			}
 
 			/* Fill an output parameter with data. */
@@ -742,7 +880,7 @@ intptr_t mock_return_from_call (struct mock *mock, struct mock_call *call)
 					out_len = expected->argv[i].out_len;
 				}
 
-				memcpy ((void*) call->argv[i].value, expected->argv[i].out_data, out_len);
+				expected->argv[i].copy (&expected->argv[i], &call->argv[i], out_len);
 			}
 
 			/* Save argument values. */

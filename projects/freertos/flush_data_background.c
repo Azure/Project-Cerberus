@@ -64,12 +64,13 @@ static void flush_data_background_task (struct flush_data_background *flush_data
  * @param system_state The manager for system state to persist.
  * @param host_state_0 The manager for host state to persist for port 0.
  * @param host_state_1 The manager for host state to persist for port 1.
+ * @param priority The priority level for running the persistance task.
  *
  * @return 0 if the persistence task was initialized or an error code.
  */
 int flush_data_background_init (struct flush_data_background *flush_data,
 	struct logging *logger, struct state_manager *system_state, struct state_manager *host_state_0,
-	struct state_manager *host_state_1)
+	struct state_manager *host_state_1, int priority)
 {
 	int status;
 
@@ -90,7 +91,7 @@ int flush_data_background_init (struct flush_data_background *flush_data,
 	}
 
 	status = xTaskCreate ((TaskFunction_t) flush_data_background_task, "Flush", 1 * 256, flush_data,
-		CERBERUS_PRIORITY_BACKGROUND, &flush_data->task);
+		priority, &flush_data->task);
 	if (status != pdPASS) {
 		vSemaphoreDelete (flush_data->lock);
 		return LOGGING_NO_MEMORY;

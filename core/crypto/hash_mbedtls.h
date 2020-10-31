@@ -20,7 +20,9 @@ struct hash_engine_mbedtls {
 		mbedtls_sha1_context sha1;		/**< Context for SHA1 hashes. */
 #endif
 		mbedtls_sha256_context sha256;	/**< Context for SHA256 hashes. */
+#if defined HASH_ENABLE_SHA384 || defined HASH_ENABLE_SHA512
 		mbedtls_sha512_context sha512;	/**< Context for SHA512 hashes. */
+#endif
 	} context;							/**< The hashing contexts. */
 	uint8_t active;						/**< The active hash context. */
 };

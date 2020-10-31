@@ -53,7 +53,18 @@ static void cmd_background_task_handler (struct cmd_background_task *task)
 		op_status =  &task->config.config_status;
 		xTaskNotifyWait (pdFALSE, ULONG_MAX, &notification, portMAX_DELAY);
 
-		if (notification & CMD_BACKGROUND_RUN_UNSEAL) {
+		if (notification & CMD_BACKGROUND_EXTERNAL_HANDLER) {
+			op_status = &status;
+			if (task->ext_handler) {
+				task->ext_handler (task, notification);
+			}
+			else {
+				debug_log_create_entry (DEBUG_LOG_SEVERITY_WARNING,
+					DEBUG_LOG_COMPONENT_CMD_INTERFACE, CMD_LOGGING_NO_BACKGROUND_HANDELR,
+					notification, 0);
+			}
+		}
+		else if (notification & CMD_BACKGROUND_RUN_UNSEAL) {
 			struct cerberus_protocol_message_unseal *unseal =
 				(struct cerberus_protocol_message_unseal*) task->attestation.unseal_request;
 			enum aux_attestation_seed_param seed_param;
