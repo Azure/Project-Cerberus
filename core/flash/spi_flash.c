@@ -790,6 +790,7 @@ int spi_flash_get_device_size (struct spi_flash *flash, uint32_t *bytes)
 int spi_flash_reset_device (struct spi_flash *flash)
 {
 	int status;
+	uint16_t rst_addr_mode;
 
 	if (flash == NULL) {
 		return SPI_FLASH_INVALID_ARGUMENT;
@@ -797,6 +798,24 @@ int spi_flash_reset_device (struct spi_flash *flash)
 
 	if (!flash->command.reset) {
 		return SPI_FLASH_RESET_NOT_SUPPORTED;
+	}
+
+	if (flash->reset_3byte) {
+		/* If 4-byte address mode is cleared on reset, check device settings to see if this
+		 * property has been overriden. */
+		status = spi_flash_is_4byte_address_mode_on_reset (flash);
+		if ((status == 0) || (status == SPI_FLASH_UNSUPPORTED_DEVICE)) {
+			rst_addr_mode = 0;
+		}
+		else if (status == 1) {
+			rst_addr_mode = FLASH_FLAG_4BYTE_ADDRESS;
+		}
+		else {
+			return status;
+		}
+	}
+	else {
+		rst_addr_mode = flash->addr_mode;
 	}
 
 	platform_mutex_lock (&flash->lock);
@@ -816,9 +835,7 @@ int spi_flash_reset_device (struct spi_flash *flash)
 
 	status = spi_flash_simple_command (flash, flash->command.reset);
 	if (status == 0) {
-		if (flash->reset_3byte) {
-			flash->addr_mode = 0;
-		}
+		flash->addr_mode = rst_addr_mode;
 
 		platform_msleep (100);
 	}
