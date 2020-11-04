@@ -33,6 +33,8 @@ enum {
 	CMD_LOGGING_NO_CERT,					/**< No certificate was avaialble for a request. */
 	CMD_LOGGING_CHANNEL_PACKET_ERROR,		/**< There was a receive error on a command channel. */
 	CMD_LOGGING_NO_BACKGROUND_HANDELR,		/**< No background task handler provided for an event. */
+	CMD_LOGGING_AUX_KEY,					/**< Done generating auxiliary attestation key. */
+	CMD_LOGGING_GENERATE_AUX_KEY,			/**< Generating auxiliary attestation key. */
 };
 
 

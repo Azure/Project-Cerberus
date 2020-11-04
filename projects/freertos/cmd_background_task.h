@@ -51,6 +51,7 @@ struct cmd_background_task {
 	struct cmd_background_attestation attestation;	/**< Attestation command context. */
 	struct cmd_background_config config;			/**< Configuration reset context. */
 	struct cmd_background_riot riot;				/**< RIoT key context. */
+	void *arg;										/**< Opaque argument for command handling. */
 
 	/**
 	 * Internal handler that can be called before processing base events.  This allows the task to
@@ -67,6 +68,9 @@ int cmd_background_task_init (struct cmd_background_task *task,
 	struct attestation_slave *attestation, struct hash_engine *hash, struct config_reset *reset,
 	struct riot_key_manager *riot);
 int cmd_background_task_start (struct cmd_background_task *task);
+
+int cmd_background_task_generate_aux_key (struct cmd_background_task *task,
+	struct aux_attestation *aux);
 
 /* Internal definitions for use by derived types. */
 #define	CMD_BACKGROUND_EXTERNAL_HANDLER			(1U << 31)
