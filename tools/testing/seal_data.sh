@@ -8,6 +8,13 @@ if [ $# -lt 3 ]; then
 	exit 1
 fi
 
+if [ "x$4" = "xkeep" ]; then
+	keep_ecc=1
+else
+	keep_ecc=0
+	privkey=$4
+fi
+
 cert=$3
 key=`mktemp -p .`
 openssl x509 -inform DER -outform PEM -noout -pubkey -in $cert > $key
@@ -18,7 +25,7 @@ fi
 
 if [ "$1" = "1" ]; then
 	ecc=`mktemp -p .`
-	if [ $# -lt 4 ]; then
+	if [ -z "$privkey" ]; then
 		openssl ecparam -name prime256v1 -genkey -noout -out $ecc
 		if [ $? -ne 0 ]; then
 			rm -f $key $ecc
@@ -40,11 +47,14 @@ if [ "$1" = "1" ]; then
 	fi
 
 	if [ "$2" = "1" ]; then
-		cat $seed | openssl dgst -sha256 -binary -out $seed
+		hash=`mktemp -p .`
+		cat $seed | openssl dgst -sha256 -binary -out $hash
 		if [ $? -ne 0 ]; then
-			rm -f $key $ecc $seed
+			rm -f $key $ecc $seed $hash
 			exit 1
 		fi
+
+		mv -f $hash $seed
 	fi
 
 	openssl ec -pubout -outform DER -in $ecc -out seed.bin
@@ -70,7 +80,12 @@ else
 	fi
 fi
 
-rm -f $key $ecc
+rm -f $key
+if [ $keep_ecc -eq 0 ]; then
+	rm -f $ecc
+else
+	echo "Private Key: $ecc"
+fi
 
 seed_hex=`cat $seed | xxd -p | tr -d '\n'`
 echo "Seed: $seed_hex"
@@ -121,7 +136,6 @@ if [ $? -ne 0 ]; then
 	rm -f $sign_key $seed $payload
 	exit
 fi
-
 
 label=`echo -n "encryption key" | xxd -p`
 enc_nist="00000001${label}0000000100"
