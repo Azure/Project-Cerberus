@@ -61,6 +61,7 @@ enum {
 	HOST_LOGGING_BACKUP_FIRMWARE_STARTED,		/**< Start backup of active host firmware. */
 	HOST_LOGGING_BACKUP_FIRMWARE_COMPLETED,		/**< Host active firmware backup has completed. */
 	HOST_LOGGING_BMC_RECOVERY_DETECTED,			/**< Detected BMC recovery attempt. */
+    HOST_LOGGING_RESET_COUNTER_UPDATE_FAILED,   /**< Reset counter update failed. */
 };
 
 
