@@ -9,6 +9,16 @@
  * will use the default value. */
 
 
+/*******************
+ * Attestation
+ *******************/
+
+/**
+ * The key bit length to use for auxiliary attestation.
+ */
+// #define	AUX_ATTESTATION_KEY_BITS			3072
+
+
 /*************
  * Crypto
  *************/

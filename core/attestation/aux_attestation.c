@@ -11,10 +11,6 @@
 #include "aux_attestation.h"
 
 
-/* The size of the auxiliary attestation key. */
-#define	AUX_ATTESTATION_KEY_BITS			3072
-#define	AUX_ATTESTATION_KEY_BYTES			(AUX_ATTESTATION_KEY_BITS / 8)
-
 /**
  * The label to use when deriving the encryption key.
  */
