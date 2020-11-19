@@ -190,7 +190,6 @@ static int logging_flash_clear (struct logging *logging)
 	}
 
 	memset (flash_log->flash_used, 0, sizeof (flash_log->flash_used));
-	flash_log->next_entry_id = 0;
 	flash_log->log_start = 0;
 
 	flash_log->next_addr = flash_log->base_addr;
