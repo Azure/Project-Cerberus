@@ -6,6 +6,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "cmd_interface/cerberus_protocol.h"
 #include "cmd_interface/cmd_authorization.h"
 #include "cmd_interface/cmd_background.h"
 #include "cmd_interface/cmd_interface.h"
@@ -898,7 +899,6 @@ struct cerberus_protocol_session_sync_response {
  */
 #define	CERBERUS_PROTOCOL_MAX_SESSION_SYNC_HMAC_LEN(req)	\
 	((req->max_response - sizeof (struct cerberus_protocol_session_sync_response)))
-
 #pragma pack(pop)
 
 
@@ -964,7 +964,7 @@ int cerberus_protocol_get_attestation_data (struct pcr_store *store,
 
 int cerberus_protocol_key_exchange (struct session_manager *session,
 	struct cmd_interface_request *request, uint8_t encrypted);
-int cerberus_protocol_session_sync (struct session_manager *session, 
+int cerberus_protocol_session_sync (struct session_manager *session,
 	struct cmd_interface_request *request, uint8_t encrypted);
 
 

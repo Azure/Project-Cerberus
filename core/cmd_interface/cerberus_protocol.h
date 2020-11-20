@@ -80,6 +80,9 @@ enum {
 	CERBERUS_PROTOCOL_GET_CFM_SUPPORTED_COMPONENT_IDS = 0x8D,	/**< Get CFM supported component IDs */
 	CERBERUS_PROTOCOL_GET_EXT_UPDATE_STATUS,					/**< Get extended update status */
 
+	/* Special diagnostic commands to query for device health or other debug information. */
+	CERBERUS_PROTOCOL_DIAG_HEAP_USAGE = 0xD0,					/**< Diagnostic command to get heap usage */
+
 	/* Utilize the reserved command space for debugging.  Must be disabled in production. */
 	CERBERUS_PROTOCOL_DEBUG_START_ATTESTATION = 0xF0,			/**< Debug command to start attestation */
 	CERBERUS_PROTOCOL_DEBUG_GET_ATTESTATION_STATE,				/**< Debug command to get attestation status */
