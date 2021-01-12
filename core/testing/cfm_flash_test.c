@@ -7,6 +7,7 @@
 #include "testing.h"
 #include "manifest/cfm/cfm_flash.h"
 #include "manifest/cfm/cfm_format.h"
+#include "flash/spi_flash.h"
 #include "mock/flash_master_mock.h"
 #include "mock/signature_verification_mock.h"
 #include "engines/hash_testing_engine.h"
@@ -175,108 +176,266 @@ const uint8_t *CFM_SIGNATURE = CFM_DATA + (sizeof (CFM_DATA) - 256);
 #define	CFM_1ST_COMPONENT_SIGNED_IMG_DIGEST_OFFSET	(CFM_1ST_COMPONENT_SIGNED_IMG_HDR_OFFSET + CFM_IMG_HEADER_SIZE)
 
 
+/**
+ * Dependencies for testing CFMs.
+ */
+struct cfm_flash_testing {
+	HASH_TESTING_ENGINE hash;							/**< Hashing engine for validation. */
+	struct signature_verification_mock verification;	/**< CFM signature verification. */
+	struct flash_master_mock flash_mock;				/**< Flash master for the CFM flash. */
+	struct spi_flash flash;								/**< Flash where the CFM is stored. */
+	uint32_t addr;										/**< Base address of the CFM. */
+	uint8_t signature[256];								/**< Buffer for the manifest signature. */
+	uint8_t platform_id[256];							/**< Cache for the platform ID. */
+	struct cfm_flash test;								/**< CFM instance under test. */
+};
+
+
+/**
+ * Initialize common CFM testing dependencies.
+ *
+ * @param test The testing framework.
+ * @param cfm The testing components to initialize.
+ * @param address The base address for the CFM data.
+ */
+static void cfm_flash_testing_init_dependencies (CuTest *test, struct cfm_flash_testing *cfm,
+	uint32_t address)
+{
+	int status;
+
+	status = HASH_TESTING_ENGINE_INIT (&cfm->hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_mock_init (&cfm->verification);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&cfm->flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&cfm->flash, &cfm->flash_mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&cfm->flash, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	cfm->addr = address;
+}
+
+/**
+ * Release test dependencies and validate all mocks.
+ *
+ * @param test The testing framework.
+ * @param cfm The testing components to release.
+ */
+void cfm_flash_testing_validate_and_release_dependencies (CuTest *test,
+	struct cfm_flash_testing *cfm)
+{
+	int status;
+
+	status = flash_master_mock_validate_and_release (&cfm->flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_mock_validate_and_release (&cfm->verification);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&cfm->flash);
+	HASH_TESTING_ENGINE_RELEASE (&cfm->hash);
+}
+
+/**
+ * Initialize CFM for testing.
+ *
+ * @param test The testing framework.
+ * @param cfm The testing components to initialize.
+ * @param address The base address for the CFM data.
+ */
+static void cfm_flash_testing_init (CuTest *test, struct cfm_flash_testing *cfm, uint32_t address)
+{
+	int status;
+
+	cfm_flash_testing_init_dependencies (test, cfm, address);
+
+	status = cfm_flash_init (&cfm->test, &cfm->flash.base, address, cfm->signature,
+		sizeof (cfm->signature), cfm->platform_id, sizeof (cfm->platform_id));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&cfm->flash_mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&cfm->verification.mock);
+	CuAssertIntEquals (test, 0, status);
+}
+
+/**
+ * Release a test instance and validate all mocks.
+ *
+ * @param test The testing framework.
+ * @param cfm The testing components to release.
+ */
+static void cfm_flash_testing_validate_and_release (CuTest *test, struct cfm_flash_testing *cfm)
+{
+	cfm_flash_release (&cfm->test);
+
+	cfm_flash_testing_validate_and_release_dependencies (test, cfm);
+}
+
+/**
+ * Set up expectations for verifying a CFM on flash.
+ *
+ * @param test The testing framework.
+ * @param cfm The testing components.
+ * @param data The CFM data to read.
+ * @param length The length of the CFM data.
+ * @param hash The CFM hash.  Null to skip hash checking.
+ * @param signature The CFM signature.
+ * @param sig_offset Offset of the CFM signature.
+ * @param sig_result Result of the signature verification call.
+ */
+static void cfm_flash_testing_verify_cfm (CuTest *test, struct cfm_flash_testing *cfm,
+	const uint8_t *data, size_t length, const uint8_t *hash, const uint8_t *signature,
+	uint32_t sig_offset, int sig_result)
+{
+	int status;
+
+	status = flash_master_mock_expect_rx_xfer (&cfm->flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&cfm->flash_mock, 0, data, CFM_HEADER_SIZE,
+		FLASH_EXP_READ_CMD (0x03, cfm->addr, 0, -1, CFM_HEADER_SIZE));
+
+	status = flash_master_mock_expect_rx_xfer (&cfm->flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&cfm->flash_mock, 0, signature, CFM_SIGNATURE_LEN,
+		FLASH_EXP_READ_CMD (0x03, cfm->addr + sig_offset, 0, -1, CFM_SIGNATURE_LEN));
+
+	status |= flash_master_mock_expect_verify_flash (&cfm->flash_mock, cfm->addr, data,
+		length - CFM_SIGNATURE_LEN);
+
+	if (hash) {
+		status |= mock_expect (&cfm->verification.mock, cfm->verification.base.verify_signature,
+			&cfm->verification, sig_result, MOCK_ARG_PTR_CONTAINS (hash, CFM_HASH_LEN),
+			MOCK_ARG (CFM_HASH_LEN), MOCK_ARG_PTR_CONTAINS (signature, CFM_SIGNATURE_LEN),
+			MOCK_ARG (CFM_SIGNATURE_LEN));
+	}
+	else {
+		status |= mock_expect (&cfm->verification.mock, cfm->verification.base.verify_signature,
+			&cfm->verification, sig_result, MOCK_ARG_NOT_NULL, MOCK_ARG (CFM_HASH_LEN),
+			MOCK_ARG_PTR_CONTAINS (signature, CFM_SIGNATURE_LEN), MOCK_ARG (CFM_SIGNATURE_LEN));
+	}
+
+	CuAssertIntEquals (test, 0, status);
+}
+
+/**
+ * Initialize a CFM for testing.  Run verification to load the CFM information.
+ *
+ * @param test The testing framework.
+ * @param cfm The testing components to initialize.
+ * @param address The base address for the CFM data.
+ * @param data The CFM data to read.
+ * @param length The length of the CFM data.
+ * @param hash The CFM hash.
+ * @param signature The CFM signature.
+ * @param sig_offset Offset of the CFM signature.
+ * @param sig_result Result of the signature verification call.
+ */
+static void cfm_flash_testing_init_and_verify (CuTest *test, struct cfm_flash_testing *cfm,
+	uint32_t address, const uint8_t *data, size_t length, const uint8_t *hash,
+	const uint8_t *signature, uint32_t sig_offset, int sig_result)
+{
+	int status;
+
+	cfm_flash_testing_init (test, cfm, address);
+	cfm_flash_testing_verify_cfm (test, cfm, data, length, hash, signature, sig_offset, sig_result);
+
+	status = cfm->test.base.base.verify (&cfm->test.base.base, &cfm->hash.base,
+		&cfm->verification.base, NULL, 0);
+	CuAssertIntEquals (test, sig_result, status);
+
+	status = mock_validate (&cfm->flash_mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&cfm->verification.mock);
+	CuAssertIntEquals (test, 0, status);
+}
+
+
 /*******************
  * Test cases
  *******************/
 
 static void cfm_flash_test_init (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct cfm_flash cfm;
+	struct cfm_flash_testing cfm;
 	int status;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
+	cfm_flash_testing_init_dependencies (test, &cfm, 0x10000);
+
+	status = cfm_flash_init (&cfm.test, &cfm.flash.base, 0x10000, cfm.signature,
+		sizeof (cfm.signature), cfm.platform_id, sizeof (cfm.platform_id));
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, cfm.test.base.base.verify);
+	CuAssertPtrNotNull (test, cfm.test.base.base.get_id);
+	CuAssertPtrNotNull (test, cfm.test.base.base.get_platform_id);
+	CuAssertPtrNotNull (test, cfm.test.base.base.free_platform_id);
+	CuAssertPtrNotNull (test, cfm.test.base.base.get_hash);
+	CuAssertPtrNotNull (test, cfm.test.base.base.get_signature);
 
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, cfm.test.base.get_supported_component_ids);
+	CuAssertPtrNotNull (test, cfm.test.base.free_component_ids);
+	CuAssertPtrNotNull (test, cfm.test.base.get_component);
+	CuAssertPtrNotNull (test, cfm.test.base.free_component);
 
-	status = cfm_flash_init (&cfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0x10000, manifest_flash_get_addr (&cfm.test.base_flash));
+	CuAssertPtrEquals (test, &cfm.flash, manifest_flash_get_flash (&cfm.test.base_flash));
 
-	CuAssertPtrNotNull (test, cfm.base.base.verify);
-	CuAssertPtrNotNull (test, cfm.base.base.get_id);
-	CuAssertPtrNotNull (test, cfm.base.base.get_platform_id);
-	CuAssertPtrNotNull (test, cfm.base.base.get_hash);
-	CuAssertPtrNotNull (test, cfm.base.base.get_signature);
-	CuAssertPtrNotNull (test, cfm.base.get_supported_component_ids);
-	CuAssertPtrNotNull (test, cfm.base.free_component_ids);
-	CuAssertPtrNotNull (test, cfm.base.get_component);
-	CuAssertPtrNotNull (test, cfm.base.free_component);
-
-	CuAssertIntEquals (test, 0x10000, cfm_flash_get_addr (&cfm));
-	CuAssertPtrEquals (test, &flash, cfm_flash_get_flash (&cfm));
-
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	cfm_flash_release (&cfm);
-	spi_flash_release (&flash);
+	cfm_flash_testing_validate_and_release (test, &cfm);
 }
 
 static void cfm_flash_test_init_null (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct cfm_flash cfm;
+	struct cfm_flash_testing cfm;
 	int status;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	cfm_flash_testing_init_dependencies (test, &cfm, 0x10000);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm_flash_init (NULL, &flash, 0x10000);
+	status = cfm_flash_init (NULL, &cfm.flash.base, 0x10000, cfm.signature,
+		sizeof (cfm.signature), cfm.platform_id, sizeof (cfm.platform_id));
 	CuAssertIntEquals (test, CFM_INVALID_ARGUMENT, status);
 
-	status = cfm_flash_init (&cfm, NULL, 0x10000);
+	status = cfm_flash_init (&cfm.test, NULL, 0x10000, cfm.signature,
+		sizeof (cfm.signature), cfm.platform_id, sizeof (cfm.platform_id));
+	CuAssertIntEquals (test, MANIFEST_INVALID_ARGUMENT, status);
+
+	status = cfm_flash_init (&cfm.test, &cfm.flash.base, 0x10000, NULL,
+		sizeof (cfm.signature), cfm.platform_id, sizeof (cfm.platform_id));
 	CuAssertIntEquals (test, CFM_INVALID_ARGUMENT, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	status = cfm_flash_init (&cfm.test, &cfm.flash.base, 0x10000, cfm.signature,
+		sizeof (cfm.signature), NULL, sizeof (cfm.platform_id));
+	CuAssertIntEquals (test, CFM_INVALID_ARGUMENT, status);
 
-	cfm_flash_release (&cfm);
-
-	spi_flash_release (&flash);
+	cfm_flash_testing_validate_and_release_dependencies (test, &cfm);
 }
 
 static void cfm_flash_test_init_not_block_aligned (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct cfm_flash cfm;
+	struct cfm_flash_testing cfm;
 	int status;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	cfm_flash_testing_init_dependencies (test, &cfm, 0x10000);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm_flash_init (&cfm, &flash, 0x10001);
+	status = cfm_flash_init (&cfm.test, &cfm.flash.base, 0x10001, cfm.signature,
+		sizeof (cfm.signature), cfm.platform_id, sizeof (cfm.platform_id));
 	CuAssertIntEquals (test, MANIFEST_STORAGE_NOT_ALIGNED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	spi_flash_release (&flash);
+	cfm_flash_testing_validate_and_release_dependencies (test, &cfm);
 }
 
 static void cfm_flash_test_release_null (CuTest *test)
@@ -286,151 +445,70 @@ static void cfm_flash_test_release_null (CuTest *test)
 	cfm_flash_release (NULL);
 }
 
-static void cfm_flash_test_release_no_init (CuTest *test)
-{
-	struct cfm_flash manifest;
-
-	TEST_START;
-
-	memset (&manifest, 0, sizeof (manifest));
-
-	cfm_flash_release (&manifest);
-}
-
-static void cfm_flash_test_get_addr_null (CuTest *test)
-{
-	TEST_START;
-
-	CuAssertIntEquals (test, 0, cfm_flash_get_addr (NULL));
-}
-
-static void cfm_flash_test_get_flash_null (CuTest *test)
-{
-	TEST_START;
-
-	CuAssertPtrEquals (test, NULL, cfm_flash_get_flash (NULL));
-}
-
 static void cfm_flash_test_verify (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct cfm_flash cfm;
+	struct cfm_flash_testing cfm;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	cfm_flash_testing_init (test, &cfm, 0x10000);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm_flash_init (&cfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, CFM_DATA, CFM_DATA_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, CFM_DATA, CFM_DATA_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, CFM_HEADER_SIZE));
 
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, CFM_SIGNATURE, CFM_SIGNATURE_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, CFM_SIGNATURE,
+		CFM_SIGNATURE_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + CFM_SIGNATURE_OFFSET, 0, -1, CFM_SIGNATURE_LEN));
 
-	status |= flash_master_mock_expect_verify_flash (&flash_mock, 0x10000, CFM_DATA,
+	status |= flash_master_mock_expect_verify_flash (&cfm.flash_mock, 0x10000, CFM_DATA,
 		CFM_DATA_LEN - CFM_SIGNATURE_LEN);
 
-	status |= mock_expect (&verification.mock, verification.base.verify_signature, &verification, 0,
-		MOCK_ARG_PTR_CONTAINS (CFM_HASH, CFM_HASH_LEN), MOCK_ARG (CFM_HASH_LEN),
-		MOCK_ARG_PTR_CONTAINS (CFM_SIGNATURE, CFM_SIGNATURE_LEN), MOCK_ARG (CFM_SIGNATURE_LEN));
+	status |= mock_expect (&cfm.verification.mock, cfm.verification.base.verify_signature,
+		&cfm.verification, 0, MOCK_ARG_PTR_CONTAINS (CFM_HASH, CFM_HASH_LEN),
+		MOCK_ARG (CFM_HASH_LEN), MOCK_ARG_PTR_CONTAINS (CFM_SIGNATURE, CFM_SIGNATURE_LEN),
+		MOCK_ARG (CFM_SIGNATURE_LEN));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.base.base.verify (&cfm.base.base, &hash.base, &verification.base, NULL, 0);
+	status = cfm.test.base.base.verify (&cfm.test.base.base, &cfm.hash.base, &cfm.verification.base,
+		NULL, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	cfm_flash_release (&cfm);
-
-	spi_flash_release (&flash);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	cfm_flash_testing_validate_and_release (test, &cfm);
 }
 
 static void cfm_flash_test_verify_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct cfm_flash cfm;
+	struct cfm_flash_testing cfm;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	cfm_flash_testing_init (test, &cfm, 0x10000);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm_flash_init (&cfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm.base.base.verify (NULL, &hash.base, &verification.base, NULL, 0);
+	status = cfm.test.base.base.verify (NULL, &cfm.hash.base, &cfm.verification.base,
+		NULL, 0);
 	CuAssertIntEquals (test, CFM_INVALID_ARGUMENT, status);
 
-	status = cfm.base.base.verify (&cfm.base.base, NULL, &verification.base, NULL, 0);
+	status = cfm.test.base.base.verify (&cfm.test.base.base, NULL, &cfm.verification.base,
+		NULL, 0);
 	CuAssertIntEquals (test, MANIFEST_INVALID_ARGUMENT, status);
 
-	status = cfm.base.base.verify (&cfm.base.base, &hash.base, NULL, NULL, 0);
+	status = cfm.test.base.base.verify (&cfm.test.base.base, &cfm.hash.base, NULL,
+		NULL, 0);
 	CuAssertIntEquals (test, MANIFEST_INVALID_ARGUMENT, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	cfm_flash_release (&cfm);
-
-	spi_flash_release (&flash);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	cfm_flash_testing_validate_and_release (test, &cfm);
 }
 
 static void cfm_flash_test_verify_bad_magic_number (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct cfm_flash cfm;
+	struct cfm_flash_testing cfm;
 	int status;
 	uint8_t cfm_bad_data[CFM_SIGNATURE_OFFSET];
 
@@ -439,334 +517,154 @@ static void cfm_flash_test_verify_bad_magic_number (CuTest *test)
 	memcpy (cfm_bad_data, CFM_DATA, sizeof (cfm_bad_data));
 	cfm_bad_data[2] ^= 0x55;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	cfm_flash_testing_init (test, &cfm, 0x10000);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm_flash_init (&cfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, cfm_bad_data, sizeof (cfm_bad_data),
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, cfm_bad_data,
+		sizeof (cfm_bad_data),
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, CFM_HEADER_SIZE));
 
-	status = cfm.base.base.verify (&cfm.base.base, &hash.base, &verification.base, NULL, 0);
+	status = cfm.test.base.base.verify (&cfm.test.base.base, &cfm.hash.base, &cfm.verification.base,
+		NULL, 0);
 	CuAssertIntEquals (test, MANIFEST_BAD_MAGIC_NUMBER, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	cfm_flash_release (&cfm);
-
-	spi_flash_release (&flash);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	cfm_flash_testing_validate_and_release (test, &cfm);
 }
 
 static void cfm_flash_test_get_id (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct cfm_flash cfm;
+	struct cfm_flash_testing cfm;
 	int status;
 	uint32_t id;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
+		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm_flash_init (&cfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, CFM_DATA, CFM_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, CFM_HEADER_SIZE));
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm.base.base.get_id (&cfm.base.base, &id);
+	status = cfm.test.base.base.get_id (&cfm.test.base.base, &id);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, id);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	cfm_flash_release (&cfm);
-	spi_flash_release (&flash);
+	cfm_flash_testing_validate_and_release (test, &cfm);
 }
 
 static void cfm_flash_test_get_id_null (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct cfm_flash cfm;
+	struct cfm_flash_testing cfm;
 	int status;
 	uint32_t id;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
+		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm_flash_init (&cfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm.base.base.get_id (NULL, &id);
+	status = cfm.test.base.base.get_id (NULL, &id);
 	CuAssertIntEquals (test, CFM_INVALID_ARGUMENT, status);
 
-	status = cfm.base.base.get_id (&cfm.base.base, NULL);
+	status = cfm.test.base.base.get_id (&cfm.test.base.base, NULL);
 	CuAssertIntEquals (test, MANIFEST_INVALID_ARGUMENT, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	cfm_flash_release (&cfm);
-
-	spi_flash_release (&flash);
+	cfm_flash_testing_validate_and_release (test, &cfm);
 }
 
-static void cfm_flash_test_get_id_bad_magic_num (CuTest *test)
+static void cfm_flash_test_get_id_verify_never_run (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct cfm_flash cfm;
+	struct cfm_flash_testing cfm;
 	int status;
 	uint32_t id;
-	uint8_t cfm_bad_data[CFM_SIGNATURE_OFFSET];
 
 	TEST_START;
 
-	memcpy (cfm_bad_data, CFM_DATA, sizeof (cfm_bad_data));
-	cfm_bad_data[2] ^= 0x55;
+	cfm_flash_testing_init (test, &cfm, 0x10000);
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	status = cfm.test.base.base.get_id (&cfm.test.base.base, &id);
+	CuAssertIntEquals (test, MANIFEST_NO_MANIFEST, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm_flash_init (&cfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, cfm_bad_data, sizeof (cfm_bad_data),
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, CFM_HEADER_SIZE));
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm.base.base.get_id (&cfm.base.base, &id);
-	CuAssertIntEquals (test, MANIFEST_BAD_MAGIC_NUMBER, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	cfm_flash_release (&cfm);
-
-	spi_flash_release (&flash);
+	cfm_flash_testing_validate_and_release (test, &cfm);
 }
 
 static void cfm_flash_test_get_hash (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct cfm_flash cfm;
+	struct cfm_flash_testing cfm;
 	uint8_t hash_out[SHA256_HASH_LENGTH];
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	cfm_flash_testing_init (test, &cfm, 0x10000);
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm_flash_init (&cfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, CFM_DATA, CFM_HEADER_SIZE,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, CFM_DATA, CFM_HEADER_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, CFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_verify_flash (&flash_mock, 0x10000, CFM_DATA,
+	status |= flash_master_mock_expect_verify_flash (&cfm.flash_mock, 0x10000, CFM_DATA,
 		CFM_DATA_LEN - CFM_SIGNATURE_LEN);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.base.base.get_hash (&cfm.base.base, &hash.base, hash_out, sizeof (hash_out));
-	CuAssertIntEquals (test, 0, status);
+	status = cfm.test.base.base.get_hash (&cfm.test.base.base, &cfm.hash.base, hash_out,
+		sizeof (hash_out));
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	status = testing_validate_array (CFM_HASH, hash_out, CFM_HASH_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	cfm_flash_release (&cfm);
-
-	spi_flash_release (&flash);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	cfm_flash_testing_validate_and_release (test, &cfm);
 }
 
 static void cfm_flash_test_get_hash_after_verify (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct cfm_flash cfm;
+	struct cfm_flash_testing cfm;
 	uint8_t hash_out[SHA256_HASH_LENGTH];
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
+		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm_flash_init (&cfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, CFM_DATA, CFM_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, CFM_HEADER_SIZE));
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, CFM_SIGNATURE, CFM_SIGNATURE_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + CFM_SIGNATURE_OFFSET, 0, -1, CFM_SIGNATURE_LEN));
-
-	status |= flash_master_mock_expect_verify_flash (&flash_mock, 0x10000, CFM_DATA,
-		CFM_DATA_LEN - CFM_SIGNATURE_LEN);
-
-	status |= mock_expect (&verification.mock, verification.base.verify_signature, &verification, 0,
-		MOCK_ARG_PTR_CONTAINS (CFM_HASH, CFM_HASH_LEN), MOCK_ARG (CFM_HASH_LEN),
-		MOCK_ARG_PTR_CONTAINS (CFM_SIGNATURE, CFM_SIGNATURE_LEN), MOCK_ARG (CFM_SIGNATURE_LEN));
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm.base.base.verify (&cfm.base.base, &hash.base, &verification.base, NULL, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm.base.base.get_hash (&cfm.base.base, &hash.base, hash_out, sizeof (hash_out));
-	CuAssertIntEquals (test, 0, status);
+	status = cfm.test.base.base.get_hash (&cfm.test.base.base, &cfm.hash.base, hash_out,
+		sizeof (hash_out));
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	status = testing_validate_array (CFM_HASH, hash_out, CFM_HASH_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	cfm_flash_release (&cfm);
-
-	spi_flash_release (&flash);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	cfm_flash_testing_validate_and_release (test, &cfm);
 }
 
 static void cfm_flash_test_get_hash_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct cfm_flash cfm;
+	struct cfm_flash_testing cfm;
 	uint8_t hash_out[SHA256_HASH_LENGTH];
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	cfm_flash_testing_init (test, &cfm, 0x10000);
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm_flash_init (&cfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm.base.base.get_hash (NULL, &hash.base, hash_out, sizeof (hash_out));
+	status = cfm.test.base.base.get_hash (NULL, &cfm.hash.base, hash_out,
+		sizeof (hash_out));
 	CuAssertIntEquals (test, CFM_INVALID_ARGUMENT, status);
 
-	status = cfm.base.base.get_hash (&cfm.base.base, NULL, hash_out, sizeof (hash_out));
+	status = cfm.test.base.base.get_hash (&cfm.test.base.base, NULL, hash_out,
+		sizeof (hash_out));
 	CuAssertIntEquals (test, MANIFEST_INVALID_ARGUMENT, status);
 
-	status = cfm.base.base.get_hash (&cfm.base.base, &hash.base, NULL, sizeof (hash_out));
+	status = cfm.test.base.base.get_hash (&cfm.test.base.base, &cfm.hash.base, NULL,
+		sizeof (hash_out));
 	CuAssertIntEquals (test, MANIFEST_INVALID_ARGUMENT, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	cfm_flash_release (&cfm);
-
-	spi_flash_release (&flash);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	cfm_flash_testing_validate_and_release (test, &cfm);
 }
 
 static void cfm_flash_test_get_hash_bad_magic_num (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct cfm_flash cfm;
+	struct cfm_flash_testing cfm;
 	uint8_t hash_out[SHA256_HASH_LENGTH];
 	int status;
 	uint8_t cfm_bad_data[CFM_SIGNATURE_OFFSET];
@@ -776,129 +674,96 @@ static void cfm_flash_test_get_hash_bad_magic_num (CuTest *test)
 	memcpy (cfm_bad_data, CFM_DATA, sizeof (cfm_bad_data));
 	cfm_bad_data[2] ^= 0x55;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	cfm_flash_testing_init (test, &cfm, 0x10000);
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm_flash_init (&cfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, cfm_bad_data, sizeof (cfm_bad_data),
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, CFM_HEADER_SIZE));
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, cfm_bad_data,
+		sizeof (cfm_bad_data), FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, CFM_HEADER_SIZE));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.base.base.get_hash (&cfm.base.base, &hash.base, hash_out, sizeof (hash_out));
+	status = cfm.test.base.base.get_hash (&cfm.test.base.base, &cfm.hash.base, hash_out,
+		sizeof (hash_out));
 	CuAssertIntEquals (test, MANIFEST_BAD_MAGIC_NUMBER, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	cfm_flash_release (&cfm);
-
-	spi_flash_release (&flash);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	cfm_flash_testing_validate_and_release (test, &cfm);
 }
 
 static void cfm_flash_test_get_signature (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct cfm_flash cfm;
+	struct cfm_flash_testing cfm;
 	uint8_t sig_out[CFM_SIGNATURE_LEN];
 	int status;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	cfm_flash_testing_init (test, &cfm, 0x10000);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm_flash_init (&cfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, CFM_DATA, CFM_HEADER_SIZE,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, CFM_DATA, CFM_HEADER_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, CFM_HEADER_SIZE));
 
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, CFM_SIGNATURE, CFM_SIGNATURE_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, CFM_SIGNATURE,
+		CFM_SIGNATURE_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + CFM_SIGNATURE_OFFSET, 0, -1, CFM_SIGNATURE_LEN));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.base.base.get_signature (&cfm.base.base, sig_out, sizeof (sig_out));
+	status = cfm.test.base.base.get_signature (&cfm.test.base.base, sig_out, sizeof (sig_out));
 	CuAssertIntEquals (test, CFM_SIGNATURE_LEN, status);
 
 	status = testing_validate_array (CFM_SIGNATURE, sig_out, CFM_SIGNATURE_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
+	cfm_flash_testing_validate_and_release (test, &cfm);
+}
+
+static void cfm_flash_test_get_signature_after_verify (CuTest *test)
+{
+	struct cfm_flash_testing cfm;
+	uint8_t sig_out[CFM_SIGNATURE_LEN];
+	int status;
+
+	TEST_START;
+
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
+		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0);
+
+	status = cfm.test.base.base.get_signature (&cfm.test.base.base, sig_out, sizeof (sig_out));
+	CuAssertIntEquals (test, CFM_SIGNATURE_LEN, status);
+
+	status = testing_validate_array (CFM_SIGNATURE, sig_out, CFM_SIGNATURE_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	cfm_flash_release (&cfm);
-
-	spi_flash_release (&flash);
+	cfm_flash_testing_validate_and_release (test, &cfm);
 }
 
 static void cfm_flash_test_get_signature_null (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct cfm_flash cfm;
+	struct cfm_flash_testing cfm;
 	uint8_t sig_out[SHA256_HASH_LENGTH];
 	int status;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	cfm_flash_testing_init (test, &cfm, 0x10000);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm_flash_init (&cfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm.base.base.get_signature (NULL, sig_out, sizeof (sig_out));
+	status = cfm.test.base.base.get_signature (NULL, sig_out, sizeof (sig_out));
 	CuAssertIntEquals (test, CFM_INVALID_ARGUMENT, status);
 
-	status = cfm.base.base.get_signature (&cfm.base.base, NULL, sizeof (sig_out));
+	status = cfm.test.base.base.get_signature (&cfm.test.base.base, NULL, sizeof (sig_out));
 	CuAssertIntEquals (test, MANIFEST_INVALID_ARGUMENT, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	cfm_flash_release (&cfm);
-
-	spi_flash_release (&flash);
+	cfm_flash_testing_validate_and_release (test, &cfm);
 }
 
 static void cfm_flash_test_get_signature_bad_magic_number (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct cfm_flash cfm;
+	struct cfm_flash_testing cfm;
 	uint8_t sig_out[SHA256_HASH_LENGTH];
 	int status;
 	uint8_t cfm_bad_data[CFM_SIGNATURE_OFFSET];
@@ -908,445 +773,310 @@ static void cfm_flash_test_get_signature_bad_magic_number (CuTest *test)
 	memcpy (cfm_bad_data, CFM_DATA, sizeof (cfm_bad_data));
 	cfm_bad_data[2] ^= 0x55;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	cfm_flash_testing_init (test, &cfm, 0x10000);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm_flash_init (&cfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, cfm_bad_data, sizeof (cfm_bad_data),
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, CFM_HEADER_SIZE));
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, cfm_bad_data,
+		sizeof (cfm_bad_data), FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, CFM_HEADER_SIZE));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.base.base.get_signature (&cfm.base.base, sig_out, sizeof (sig_out));
+	status = cfm.test.base.base.get_signature (&cfm.test.base.base, sig_out, sizeof (sig_out));
 	CuAssertIntEquals (test, MANIFEST_BAD_MAGIC_NUMBER, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	cfm_flash_release (&cfm);
-
-	spi_flash_release (&flash);
+	cfm_flash_testing_validate_and_release (test, &cfm);
 }
 
 static void cfm_flash_test_get_supported_component_ids (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct cfm_flash cfm;
+	struct cfm_flash_testing cfm;
 	struct cfm_component_ids ids;
 	int status;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
+		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm_flash_init (&cfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, CFM_DATA, CFM_DATA_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, CFM_DATA, CFM_DATA_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, CFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0,
 		CFM_DATA + CFM_COMPONENTS_HDR_OFFSET, CFM_DATA_LEN - CFM_COMPONENTS_HDR_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + CFM_COMPONENTS_HDR_OFFSET, 0, -1,
 			CFM_COMPONENTS_HDR_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0,
 		CFM_DATA + CFM_2ND_COMPONENT_HDR_OFFSET, CFM_DATA_LEN - CFM_2ND_COMPONENT_HDR_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + CFM_2ND_COMPONENT_HDR_OFFSET, 0, -1,
 			CFM_COMPONENT_HDR_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0,
 		CFM_DATA + CFM_1ST_COMPONENT_HDR_OFFSET, CFM_DATA_LEN - CFM_1ST_COMPONENT_HDR_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + CFM_1ST_COMPONENT_HDR_OFFSET, 0, -1,
 			CFM_COMPONENT_HDR_SIZE));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.base.get_supported_component_ids (&cfm.base, &ids);
+	status = cfm.test.base.get_supported_component_ids (&cfm.test.base, &ids);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 2, ids.count);
 	CuAssertPtrNotNull (test, ids.ids);
 	CuAssertIntEquals (test, 2, ids.ids[0]);
 	CuAssertIntEquals (test, 1, ids.ids[1]);
 
-	cfm.base.free_component_ids (&cfm.base, &ids);
+	cfm.test.base.free_component_ids (&cfm.test.base, &ids);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	cfm_flash_release (&cfm);
-	spi_flash_release (&flash);
+	cfm_flash_testing_validate_and_release (test, &cfm);
 }
 
 static void cfm_flash_test_get_supported_component_ids_null (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct cfm_flash cfm;
+	struct cfm_flash_testing cfm;
 	struct cfm_component_ids ids = {0};
 	int status;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
+		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm_flash_init (&cfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm.base.get_supported_component_ids (NULL, &ids);
+	status = cfm.test.base.get_supported_component_ids (NULL, &ids);
 	CuAssertIntEquals (test, CFM_INVALID_ARGUMENT, status);
 
-	status = cfm.base.get_supported_component_ids (&cfm.base, NULL);
+	status = cfm.test.base.get_supported_component_ids (&cfm.test.base, NULL);
 	CuAssertIntEquals (test, CFM_INVALID_ARGUMENT, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	cfm_flash_release (&cfm);
-	spi_flash_release (&flash);
+	cfm_flash_testing_validate_and_release (test, &cfm);
 }
 
+static void cfm_flash_test_get_supported_component_ids_verify_never_run (CuTest *test)
+{
+	struct cfm_flash_testing cfm;
+	struct cfm_component_ids ids = {0};
+	int status;
+
+	TEST_START;
+
+	cfm_flash_testing_init (test, &cfm, 0x10000);
+
+	status = cfm.test.base.get_supported_component_ids (&cfm.test.base, &ids);
+	CuAssertIntEquals (test, MANIFEST_NO_MANIFEST, status);
+
+	cfm_flash_testing_validate_and_release (test, &cfm);
+}
 
 static void cfm_flash_test_get_supported_component_ids_manifest_header_read_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct cfm_flash cfm;
+	struct cfm_flash_testing cfm;
 	struct cfm_component_ids ids;
 	int status;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
+		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm_flash_init (&cfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
+	status = flash_master_mock_expect_xfer (&cfm.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.base.get_supported_component_ids (&cfm.base, &ids);
+	status = cfm.test.base.get_supported_component_ids (&cfm.test.base, &ids);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	cfm_flash_release (&cfm);
-	spi_flash_release (&flash);
+	cfm_flash_testing_validate_and_release (test, &cfm);
 }
 
 static void cfm_flash_test_get_supported_component_ids_components_header_read_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct cfm_flash cfm;
+	struct cfm_flash_testing cfm;
 	struct cfm_component_ids ids;
 	int status;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
+		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm_flash_init (&cfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, CFM_DATA, CFM_DATA_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, CFM_DATA, CFM_DATA_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, CFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
+	status |= flash_master_mock_expect_xfer (&cfm.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.base.get_supported_component_ids (&cfm.base, &ids);
+	status = cfm.test.base.get_supported_component_ids (&cfm.test.base, &ids);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	cfm_flash_release (&cfm);
-	spi_flash_release (&flash);
+	cfm_flash_testing_validate_and_release (test, &cfm);
 }
 
 static void cfm_flash_test_get_supported_component_ids_component_header_read_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct cfm_flash cfm;
+	struct cfm_flash_testing cfm;
 	struct cfm_component_ids ids;
 	int status;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
+		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm_flash_init (&cfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, CFM_DATA, CFM_DATA_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, CFM_DATA, CFM_DATA_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, CFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0,
 		CFM_DATA + CFM_COMPONENTS_HDR_OFFSET, CFM_DATA_LEN - CFM_COMPONENTS_HDR_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + CFM_COMPONENTS_HDR_OFFSET, 0, -1,
 			CFM_COMPONENTS_HDR_SIZE));
 
-	status |= flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
+	status |= flash_master_mock_expect_xfer (&cfm.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.base.get_supported_component_ids (&cfm.base, &ids);
+	status = cfm.test.base.get_supported_component_ids (&cfm.test.base, &ids);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	cfm_flash_release (&cfm);
-	spi_flash_release (&flash);
+	cfm_flash_testing_validate_and_release (test, &cfm);
 }
 
 static void cfm_flash_test_get_supported_component_ids_bad_magic_number (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct cfm_flash cfm;
+	struct cfm_flash_testing cfm;
 	struct cfm_component_ids ids;
 	uint8_t cfm_bad_data[CFM_SIGNATURE_OFFSET];
 	int status;
 
+	TEST_START;
+
 	memcpy (cfm_bad_data, CFM_DATA, sizeof (cfm_bad_data));
 	cfm_bad_data[2] ^= 0x55;
 
-	TEST_START;
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
+		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0);
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm_flash_init (&cfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, cfm_bad_data, sizeof (cfm_bad_data),
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, CFM_HEADER_SIZE));
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, cfm_bad_data,
+		sizeof (cfm_bad_data), FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, CFM_HEADER_SIZE));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.base.get_supported_component_ids (&cfm.base, &ids);
+	status = cfm.test.base.get_supported_component_ids (&cfm.test.base, &ids);
 	CuAssertIntEquals (test, MANIFEST_BAD_MAGIC_NUMBER, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	cfm_flash_release (&cfm);
-	spi_flash_release (&flash);
+	cfm_flash_testing_validate_and_release (test, &cfm);
 }
 
 static void cfm_flash_test_free_component_ids_null (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct cfm_flash cfm;
-	int status;
+	struct cfm_flash_testing cfm;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	cfm_flash_testing_init (test, &cfm, 0x10000);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
+	cfm.test.base.free_component_ids (&cfm.test.base, NULL);
 
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm_flash_init (&cfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	cfm.base.free_component_ids (&cfm.base, NULL);
-
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	cfm_flash_release (&cfm);
-	spi_flash_release (&flash);
+	cfm_flash_testing_validate_and_release (test, &cfm);
 }
 
 static void cfm_flash_test_free_component_ids_null_list (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct cfm_flash cfm;
+	struct cfm_flash_testing cfm;
 	struct cfm_component_ids ids;
-	int status;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm_flash_init (&cfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
+	cfm_flash_testing_init (test, &cfm, 0x10000);
 
 	ids.count = 1;
 	ids.ids = NULL;
-	cfm.base.free_component_ids (&cfm.base, &ids);
+	cfm.test.base.free_component_ids (&cfm.test.base, &ids);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	cfm_flash_release (&cfm);
-	spi_flash_release (&flash);
+	cfm_flash_testing_validate_and_release (test, &cfm);
 }
 
 static void cfm_flash_test_get_1st_component (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct cfm_flash cfm;
+	struct cfm_flash_testing cfm;
 	struct cfm_component component = {0};
 	int i;
 	int status;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
+		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm_flash_init (&cfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, CFM_DATA, CFM_DATA_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, CFM_DATA, CFM_DATA_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, CFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0,
 		CFM_DATA + CFM_COMPONENTS_HDR_OFFSET, CFM_DATA_LEN - CFM_COMPONENTS_HDR_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + CFM_COMPONENTS_HDR_OFFSET, 0, -1,
 			CFM_COMPONENTS_HDR_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0,
 		CFM_DATA + CFM_2ND_COMPONENT_HDR_OFFSET, CFM_DATA_LEN - CFM_2ND_COMPONENT_HDR_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + CFM_2ND_COMPONENT_HDR_OFFSET, 0, -1,
 			CFM_COMPONENT_HDR_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0,
 		CFM_DATA + CFM_1ST_COMPONENT_HDR_OFFSET, CFM_DATA_LEN - CFM_1ST_COMPONENT_HDR_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + CFM_1ST_COMPONENT_HDR_OFFSET, 0, -1,
 			CFM_COMPONENT_HDR_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0,
 		CFM_DATA + CFM_1ST_COMPONENT_FW_HDR_OFFSET, CFM_DATA_LEN - CFM_1ST_COMPONENT_FW_HDR_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + CFM_1ST_COMPONENT_FW_HDR_OFFSET, 0, -1,
 			CFM_FW_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0,
 		CFM_DATA + CFM_1ST_COMPONENT_FW_VERSION_ID_OFFSET,
 		CFM_DATA_LEN - CFM_1ST_COMPONENT_FW_VERSION_ID_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + CFM_1ST_COMPONENT_FW_VERSION_ID_OFFSET, 0, -1, 9));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0,
 		CFM_DATA + CFM_1ST_COMPONENT_SIGNED_IMG_HDR_OFFSET,
 		CFM_DATA_LEN - CFM_1ST_COMPONENT_SIGNED_IMG_HDR_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + CFM_1ST_COMPONENT_SIGNED_IMG_HDR_OFFSET, 0, -1,
 			CFM_IMG_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0,
 		CFM_DATA + CFM_1ST_COMPONENT_SIGNED_IMG_DIGEST_OFFSET,
 		CFM_DATA_LEN - CFM_1ST_COMPONENT_SIGNED_IMG_DIGEST_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + CFM_1ST_COMPONENT_SIGNED_IMG_DIGEST_OFFSET, 0, -1,
@@ -1354,7 +1084,7 @@ static void cfm_flash_test_get_1st_component (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.base.get_component (&cfm.base, 1, &component);
+	status = cfm.test.base.get_component (&cfm.test.base, 1, &component);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, component.component_id);
 	CuAssertIntEquals (test, 1, component.fw_count);
@@ -1372,82 +1102,67 @@ static void cfm_flash_test_get_1st_component (CuTest *test)
 		CuAssertIntEquals (test, TEST_DIGEST[i], component.fw[0].imgs[0].digest[i]);
 	}
 
-	cfm.base.free_component (&cfm.base, &component);
+	cfm.test.base.free_component (&cfm.test.base, &component);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	cfm_flash_release (&cfm);
-	spi_flash_release (&flash);
+	cfm_flash_testing_validate_and_release (test, &cfm);
 }
 
 static void cfm_flash_test_get_2nd_component (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct cfm_flash cfm;
+	struct cfm_flash_testing cfm;
 	struct cfm_component component = {0};
 	int i;
 	int status;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
+		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm_flash_init (&cfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, CFM_DATA, CFM_DATA_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, CFM_DATA, CFM_DATA_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, CFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0,
 		CFM_DATA + CFM_COMPONENTS_HDR_OFFSET, CFM_DATA_LEN - CFM_COMPONENTS_HDR_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + CFM_COMPONENTS_HDR_OFFSET, 0, -1,
 			CFM_COMPONENTS_HDR_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0,
 		CFM_DATA + CFM_2ND_COMPONENT_HDR_OFFSET, CFM_DATA_LEN - CFM_2ND_COMPONENT_HDR_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + CFM_2ND_COMPONENT_HDR_OFFSET, 0, -1,
 			CFM_COMPONENT_HDR_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0,
 		CFM_DATA + CFM_2ND_COMPONENT_FW_HDR_OFFSET, CFM_DATA_LEN - CFM_2ND_COMPONENT_FW_HDR_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + CFM_2ND_COMPONENT_FW_HDR_OFFSET, 0, -1,
 			CFM_FW_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0,
 		CFM_DATA + CFM_2ND_COMPONENT_FW_VERSION_ID_OFFSET,
 		CFM_DATA_LEN - CFM_2ND_COMPONENT_FW_VERSION_ID_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + CFM_2ND_COMPONENT_FW_VERSION_ID_OFFSET, 0, -1, 9));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0,
 		CFM_DATA + CFM_2ND_COMPONENT_SIGNED_IMG_HDR_OFFSET,
 		CFM_DATA_LEN - CFM_2ND_COMPONENT_SIGNED_IMG_HDR_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + CFM_2ND_COMPONENT_SIGNED_IMG_HDR_OFFSET, 0, -1,
 			CFM_IMG_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0,
 		CFM_DATA + CFM_2ND_COMPONENT_SIGNED_IMG_DIGEST_OFFSET,
 		CFM_DATA_LEN - CFM_2ND_COMPONENT_SIGNED_IMG_DIGEST_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + CFM_2ND_COMPONENT_SIGNED_IMG_DIGEST_OFFSET, 0, -1,
@@ -1455,7 +1170,7 @@ static void cfm_flash_test_get_2nd_component (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.base.get_component (&cfm.base, 2, &component);
+	status = cfm.test.base.get_component (&cfm.test.base, 2, &component);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 2, component.component_id);
 	CuAssertIntEquals (test, 1, component.fw_count);
@@ -1473,554 +1188,439 @@ static void cfm_flash_test_get_2nd_component (CuTest *test)
 		CuAssertIntEquals (test, TEST_DIGEST[i], component.fw[0].imgs[0].digest[i]);
 	}
 
-	cfm.base.free_component (&cfm.base, &component);
+	cfm.test.base.free_component (&cfm.test.base, &component);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	cfm_flash_release (&cfm);
-	spi_flash_release (&flash);
+	cfm_flash_testing_validate_and_release (test, &cfm);
 }
 
 static void cfm_flash_test_get_component_null (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct cfm_flash cfm;
+	struct cfm_flash_testing cfm;
 	struct cfm_component component = {0};
 	int status;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
+		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm_flash_init (&cfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm.base.get_component (NULL, 2, &component);
+	status = cfm.test.base.get_component (NULL, 2, &component);
 	CuAssertIntEquals (test, CFM_INVALID_ARGUMENT, status);
 
-	status = cfm.base.get_component (&cfm.base, 2, NULL);
+	status = cfm.test.base.get_component (&cfm.test.base, 2, NULL);
 	CuAssertIntEquals (test, CFM_INVALID_ARGUMENT, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	cfm_flash_testing_validate_and_release (test, &cfm);
+}
 
-	cfm_flash_release (&cfm);
-	spi_flash_release (&flash);
+static void cfm_flash_test_get_component_verify_never_run (CuTest *test)
+{
+	struct cfm_flash_testing cfm;
+	struct cfm_component component = {0};
+	int status;
+
+	TEST_START;
+
+	cfm_flash_testing_init (test, &cfm, 0x10000);
+
+	status = cfm.test.base.get_component (&cfm.test.base, 2, &component);
+	CuAssertIntEquals (test, MANIFEST_NO_MANIFEST, status);
+
+	cfm_flash_testing_validate_and_release (test, &cfm);
 }
 
 static void cfm_flash_test_get_component_manifest_header_read_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct cfm_flash cfm;
+	struct cfm_flash_testing cfm;
 	struct cfm_component component = {0};
 	int status;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
+		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm_flash_init (&cfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
+	status = flash_master_mock_expect_xfer (&cfm.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.base.get_component (&cfm.base, 2, &component);
+	status = cfm.test.base.get_component (&cfm.test.base, 2, &component);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	cfm_flash_release (&cfm);
-	spi_flash_release (&flash);
+	cfm_flash_testing_validate_and_release (test, &cfm);
 }
 
 static void cfm_flash_test_get_component_components_header_read_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct cfm_flash cfm;
+	struct cfm_flash_testing cfm;
 	struct cfm_component component = {0};
 	int status;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
+		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm_flash_init (&cfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, CFM_DATA, CFM_DATA_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, CFM_DATA, CFM_DATA_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, CFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
+	status |= flash_master_mock_expect_xfer (&cfm.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.base.get_component (&cfm.base, 2, &component);
+	status = cfm.test.base.get_component (&cfm.test.base, 2, &component);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	cfm_flash_release (&cfm);
-	spi_flash_release (&flash);
+	cfm_flash_testing_validate_and_release (test, &cfm);
 }
 
 static void cfm_flash_test_get_component_component_header_read_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct cfm_flash cfm;
+	struct cfm_flash_testing cfm;
 	struct cfm_component component = {0};
 	int status;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
+		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm_flash_init (&cfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, CFM_DATA, CFM_DATA_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, CFM_DATA, CFM_DATA_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, CFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0,
 		CFM_DATA + CFM_COMPONENTS_HDR_OFFSET, CFM_DATA_LEN - CFM_COMPONENTS_HDR_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + CFM_COMPONENTS_HDR_OFFSET, 0, -1,
 			CFM_COMPONENTS_HDR_SIZE));
 
-	status |= flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
+	status |= flash_master_mock_expect_xfer (&cfm.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.base.get_component (&cfm.base, 2, &component);
+	status = cfm.test.base.get_component (&cfm.test.base, 2, &component);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	cfm_flash_release (&cfm);
-	spi_flash_release (&flash);
+	cfm_flash_testing_validate_and_release (test, &cfm);
 }
 
 static void cfm_flash_test_get_component_fw_header_read_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct cfm_flash cfm;
+	struct cfm_flash_testing cfm;
 	struct cfm_component component = {0};
 	int status;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
+		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm_flash_init (&cfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, CFM_DATA, CFM_DATA_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, CFM_DATA, CFM_DATA_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, CFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0,
 		CFM_DATA + CFM_COMPONENTS_HDR_OFFSET, CFM_DATA_LEN - CFM_COMPONENTS_HDR_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + CFM_COMPONENTS_HDR_OFFSET, 0, -1,
 			CFM_COMPONENTS_HDR_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0,
 		CFM_DATA + CFM_2ND_COMPONENT_HDR_OFFSET, CFM_DATA_LEN - CFM_2ND_COMPONENT_HDR_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + CFM_2ND_COMPONENT_HDR_OFFSET, 0, -1,
 			CFM_COMPONENT_HDR_SIZE));
-	status |= flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
+	status |= flash_master_mock_expect_xfer (&cfm.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.base.get_component (&cfm.base, 2, &component);
+	status = cfm.test.base.get_component (&cfm.test.base, 2, &component);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	cfm_flash_release (&cfm);
-	spi_flash_release (&flash);
+	cfm_flash_testing_validate_and_release (test, &cfm);
 }
 
 static void cfm_flash_test_get_component_fw_version_id_read_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct cfm_flash cfm;
+	struct cfm_flash_testing cfm;
 	struct cfm_component component = {0};
 	int status;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
+		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm_flash_init (&cfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, CFM_DATA, CFM_DATA_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, CFM_DATA, CFM_DATA_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, CFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0,
 		CFM_DATA + CFM_COMPONENTS_HDR_OFFSET, CFM_DATA_LEN - CFM_COMPONENTS_HDR_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + CFM_COMPONENTS_HDR_OFFSET, 0, -1,
 			CFM_COMPONENTS_HDR_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0,
 		CFM_DATA + CFM_2ND_COMPONENT_HDR_OFFSET, CFM_DATA_LEN - CFM_2ND_COMPONENT_HDR_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + CFM_2ND_COMPONENT_HDR_OFFSET, 0, -1,
 			CFM_COMPONENT_HDR_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0,
 		CFM_DATA + CFM_2ND_COMPONENT_FW_HDR_OFFSET, CFM_DATA_LEN - CFM_2ND_COMPONENT_FW_HDR_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + CFM_2ND_COMPONENT_FW_HDR_OFFSET, 0, -1,
 			CFM_FW_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
+	status |= flash_master_mock_expect_xfer (&cfm.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.base.get_component (&cfm.base, 2, &component);
+	status = cfm.test.base.get_component (&cfm.test.base, 2, &component);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	cfm_flash_release (&cfm);
-	spi_flash_release (&flash);
+	cfm_flash_testing_validate_and_release (test, &cfm);
 }
 
 static void cfm_flash_test_get_component_img_header_read_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct cfm_flash cfm;
+	struct cfm_flash_testing cfm;
 	struct cfm_component component = {0};
 	int status;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
+		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm_flash_init (&cfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, CFM_DATA, CFM_DATA_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, CFM_DATA, CFM_DATA_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, CFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0,
 		CFM_DATA + CFM_COMPONENTS_HDR_OFFSET, CFM_DATA_LEN - CFM_COMPONENTS_HDR_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + CFM_COMPONENTS_HDR_OFFSET, 0, -1,
 			CFM_COMPONENTS_HDR_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0,
 		CFM_DATA + CFM_2ND_COMPONENT_HDR_OFFSET, CFM_DATA_LEN - CFM_2ND_COMPONENT_HDR_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + CFM_2ND_COMPONENT_HDR_OFFSET, 0, -1,
 			CFM_COMPONENT_HDR_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0,
 		CFM_DATA + CFM_2ND_COMPONENT_FW_HDR_OFFSET, CFM_DATA_LEN - CFM_2ND_COMPONENT_FW_HDR_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + CFM_2ND_COMPONENT_FW_HDR_OFFSET, 0, -1,
 			CFM_FW_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0,
 		CFM_DATA + CFM_2ND_COMPONENT_FW_VERSION_ID_OFFSET,
 		CFM_DATA_LEN - CFM_2ND_COMPONENT_FW_VERSION_ID_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + CFM_2ND_COMPONENT_FW_VERSION_ID_OFFSET, 0, -1, 9));
 
-	status |= flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
+	status |= flash_master_mock_expect_xfer (&cfm.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.base.get_component (&cfm.base, 2, &component);
+	status = cfm.test.base.get_component (&cfm.test.base, 2, &component);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	cfm_flash_release (&cfm);
-	spi_flash_release (&flash);
+	cfm_flash_testing_validate_and_release (test, &cfm);
 }
 
 static void cfm_flash_test_get_component_img_digest_read_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct cfm_flash cfm;
+	struct cfm_flash_testing cfm;
 	struct cfm_component component = {0};
 	int status;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
+		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm_flash_init (&cfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, CFM_DATA, CFM_DATA_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, CFM_DATA, CFM_DATA_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, CFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0,
 		CFM_DATA + CFM_COMPONENTS_HDR_OFFSET, CFM_DATA_LEN - CFM_COMPONENTS_HDR_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + CFM_COMPONENTS_HDR_OFFSET, 0, -1,
 			CFM_COMPONENTS_HDR_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0,
 		CFM_DATA + CFM_2ND_COMPONENT_HDR_OFFSET, CFM_DATA_LEN - CFM_2ND_COMPONENT_HDR_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + CFM_2ND_COMPONENT_HDR_OFFSET, 0, -1,
 			CFM_COMPONENT_HDR_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0,
 		CFM_DATA + CFM_2ND_COMPONENT_FW_HDR_OFFSET, CFM_DATA_LEN - CFM_2ND_COMPONENT_FW_HDR_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + CFM_2ND_COMPONENT_FW_HDR_OFFSET, 0, -1,
 			CFM_FW_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0,
 		CFM_DATA + CFM_2ND_COMPONENT_FW_VERSION_ID_OFFSET,
 		CFM_DATA_LEN - CFM_2ND_COMPONENT_FW_VERSION_ID_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + CFM_2ND_COMPONENT_FW_VERSION_ID_OFFSET, 0, -1, 9));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0,
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0,
 		CFM_DATA + CFM_2ND_COMPONENT_SIGNED_IMG_HDR_OFFSET,
 		CFM_DATA_LEN - CFM_2ND_COMPONENT_SIGNED_IMG_HDR_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + CFM_2ND_COMPONENT_SIGNED_IMG_HDR_OFFSET, 0, -1,
 			CFM_IMG_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
+	status |= flash_master_mock_expect_xfer (&cfm.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.base.get_component (&cfm.base, 2, &component);
+	status = cfm.test.base.get_component (&cfm.test.base, 2, &component);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	cfm_flash_release (&cfm);
-	spi_flash_release (&flash);
+	cfm_flash_testing_validate_and_release (test, &cfm);
 }
 
 static void cfm_flash_test_get_component_bad_magic_number (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct cfm_flash cfm;
+	struct cfm_flash_testing cfm;
 	struct cfm_component component;
 	uint8_t cfm_bad_data[CFM_SIGNATURE_OFFSET];
 	int status;
 
+	TEST_START;
+
 	memcpy (cfm_bad_data, CFM_DATA, sizeof (cfm_bad_data));
 	cfm_bad_data[2] ^= 0x55;
 
-	TEST_START;
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
+		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0);
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm_flash_init (&cfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, cfm_bad_data, sizeof (cfm_bad_data),
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, CFM_HEADER_SIZE));
+	status |= flash_master_mock_expect_rx_xfer (&cfm.flash_mock, 0, cfm_bad_data,
+		sizeof (cfm_bad_data), FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, CFM_HEADER_SIZE));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.base.get_component (&cfm.base, 2, &component);
+	status = cfm.test.base.get_component (&cfm.test.base, 2, &component);
 	CuAssertIntEquals (test, MANIFEST_BAD_MAGIC_NUMBER, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	cfm_flash_release (&cfm);
-	spi_flash_release (&flash);
+	cfm_flash_testing_validate_and_release (test, &cfm);
 }
 
 static void cfm_flash_test_get_platform_id (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct cfm_flash cfm;
+	struct cfm_flash_testing cfm;
 	int status;
-	char *id;
+	char buffer[32];
+	char *id = buffer;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
+		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = cfm.test.base.base.get_platform_id (&cfm.test.base.base, &id, sizeof (buffer));
 	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm_flash_init (&cfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm.base.base.get_platform_id (&cfm.base.base, &id);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrEquals (test, buffer, id);
 	CuAssertStrEquals (test, "", id);
 
-	platform_free (id);
+	cfm_flash_testing_validate_and_release (test, &cfm);
+}
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
+static void cfm_flash_test_get_platform_id_manifest_allocation (CuTest *test)
+{
+	struct cfm_flash_testing cfm;
+	int status;
+	char *id = NULL;
+
+	TEST_START;
+
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
+		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0);
+
+	status = cfm.test.base.base.get_platform_id (&cfm.test.base.base, &id, 0);
 	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, id);
+	CuAssertStrEquals (test, "", id);
 
-	cfm_flash_release (&cfm);
-	spi_flash_release (&flash);
+	cfm.test.base.base.free_platform_id (&cfm.test.base.base, id);
+
+	cfm_flash_testing_validate_and_release (test, &cfm);
 }
 
 static void cfm_flash_test_get_platform_id_null (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct cfm_flash cfm;
+	struct cfm_flash_testing cfm;
 	int status;
-	char *id;
+	char *id = NULL;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
+		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm_flash_init (&cfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm.base.base.get_platform_id (NULL, &id);
+	status = cfm.test.base.base.get_platform_id (NULL, &id, 0);
 	CuAssertIntEquals (test, CFM_INVALID_ARGUMENT, status);
 
-	status = cfm.base.base.get_platform_id (&cfm.base.base, NULL);
-	CuAssertIntEquals (test, CFM_INVALID_ARGUMENT, status);
+	status = cfm.test.base.base.get_platform_id (&cfm.test.base.base, NULL, 0);
+	CuAssertIntEquals (test, MANIFEST_INVALID_ARGUMENT, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	cfm_flash_testing_validate_and_release (test, &cfm);
+}
 
-	cfm_flash_release (&cfm);
-	spi_flash_release (&flash);
+static void cfm_flash_test_get_platform_id_verify_never_run (CuTest *test)
+{
+	struct cfm_flash_testing cfm;
+	int status;
+	char buffer[32];
+	char *id = buffer;
+
+	TEST_START;
+
+	cfm_flash_testing_init (test, &cfm, 0x10000);
+
+	status = cfm.test.base.base.get_platform_id (&cfm.test.base.base, &id, sizeof (buffer));
+	CuAssertIntEquals (test, MANIFEST_NO_MANIFEST, status);
+
+	cfm_flash_testing_validate_and_release (test, &cfm);
 }
 
 
@@ -2032,24 +1632,23 @@ CuSuite* get_cfm_flash_suite ()
 	SUITE_ADD_TEST (suite, cfm_flash_test_init_null);
 	SUITE_ADD_TEST (suite, cfm_flash_test_init_not_block_aligned);
 	SUITE_ADD_TEST (suite, cfm_flash_test_release_null);
-	SUITE_ADD_TEST (suite, cfm_flash_test_release_no_init);
-	SUITE_ADD_TEST (suite, cfm_flash_test_get_addr_null);
-	SUITE_ADD_TEST (suite, cfm_flash_test_get_flash_null);
 	SUITE_ADD_TEST (suite, cfm_flash_test_verify);
 	SUITE_ADD_TEST (suite, cfm_flash_test_verify_null);
 	SUITE_ADD_TEST (suite, cfm_flash_test_verify_bad_magic_number);
 	SUITE_ADD_TEST (suite, cfm_flash_test_get_id);
 	SUITE_ADD_TEST (suite, cfm_flash_test_get_id_null);
-	SUITE_ADD_TEST (suite, cfm_flash_test_get_id_bad_magic_num);
+	SUITE_ADD_TEST (suite, cfm_flash_test_get_id_verify_never_run);
 	SUITE_ADD_TEST (suite, cfm_flash_test_get_hash);
 	SUITE_ADD_TEST (suite, cfm_flash_test_get_hash_after_verify);
 	SUITE_ADD_TEST (suite, cfm_flash_test_get_hash_null);
 	SUITE_ADD_TEST (suite, cfm_flash_test_get_hash_bad_magic_num);
 	SUITE_ADD_TEST (suite, cfm_flash_test_get_signature);
+	SUITE_ADD_TEST (suite, cfm_flash_test_get_signature_after_verify);
 	SUITE_ADD_TEST (suite, cfm_flash_test_get_signature_null);
 	SUITE_ADD_TEST (suite, cfm_flash_test_get_signature_bad_magic_number);
 	SUITE_ADD_TEST (suite, cfm_flash_test_get_supported_component_ids);
 	SUITE_ADD_TEST (suite, cfm_flash_test_get_supported_component_ids_null);
+	SUITE_ADD_TEST (suite, cfm_flash_test_get_supported_component_ids_verify_never_run);
 	SUITE_ADD_TEST (suite, cfm_flash_test_get_supported_component_ids_manifest_header_read_error);
 	SUITE_ADD_TEST (suite, cfm_flash_test_get_supported_component_ids_components_header_read_error);
 	SUITE_ADD_TEST (suite, cfm_flash_test_get_supported_component_ids_component_header_read_error);
@@ -2059,6 +1658,7 @@ CuSuite* get_cfm_flash_suite ()
 	SUITE_ADD_TEST (suite, cfm_flash_test_get_1st_component);
 	SUITE_ADD_TEST (suite, cfm_flash_test_get_2nd_component);
 	SUITE_ADD_TEST (suite, cfm_flash_test_get_component_null);
+	SUITE_ADD_TEST (suite, cfm_flash_test_get_component_verify_never_run);
 	SUITE_ADD_TEST (suite, cfm_flash_test_get_component_manifest_header_read_error);
 	SUITE_ADD_TEST (suite, cfm_flash_test_get_component_components_header_read_error);
 	SUITE_ADD_TEST (suite, cfm_flash_test_get_component_component_header_read_error);
@@ -2068,7 +1668,9 @@ CuSuite* get_cfm_flash_suite ()
 	SUITE_ADD_TEST (suite, cfm_flash_test_get_component_img_digest_read_error);
 	SUITE_ADD_TEST (suite, cfm_flash_test_get_component_bad_magic_number);
 	SUITE_ADD_TEST (suite, cfm_flash_test_get_platform_id);
+	SUITE_ADD_TEST (suite, cfm_flash_test_get_platform_id_manifest_allocation);
 	SUITE_ADD_TEST (suite, cfm_flash_test_get_platform_id_null);
+	SUITE_ADD_TEST (suite, cfm_flash_test_get_platform_id_verify_never_run);
 
 	return suite;
 }

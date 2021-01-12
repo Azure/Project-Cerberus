@@ -7,7 +7,7 @@
 #include <stdint.h>
 #include "cfm.h"
 #include "manifest/manifest_flash.h"
-#include "flash/spi_flash.h"
+#include "flash/flash.h"
 
 
 /**
@@ -19,11 +19,10 @@ struct cfm_flash {
 };
 
 
-int cfm_flash_init (struct cfm_flash *cfm, struct spi_flash *flash, uint32_t base_addr);
+int cfm_flash_init (struct cfm_flash *cfm, struct flash *flash, uint32_t base_addr,
+	uint8_t *signature_cache, size_t max_signature, uint8_t *platform_id_cache,
+	size_t max_platform_id);
 void cfm_flash_release (struct cfm_flash *cfm);
-
-uint32_t cfm_flash_get_addr (struct cfm_flash *cfm);
-struct spi_flash* cfm_flash_get_flash (struct cfm_flash *cfm);
 
 
 #endif //CFM_FLASH_H

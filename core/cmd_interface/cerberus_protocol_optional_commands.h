@@ -181,6 +181,14 @@ struct cerberus_protocol_get_pfm_id_platform_response {
 	(len + sizeof (struct cerberus_protocol_get_pfm_id_platform_response) - sizeof (uint8_t))
 
 /**
+ * Maximum amount of platform firmware manifest platform ID data that can be returned
+ *
+ * @param req The command request structure containing the message.
+ */
+#define	CERBERUS_PROTOCOL_MAX_PFM_ID_PLATFORM(req)	\
+	((req->max_response - sizeof (struct cerberus_protocol_get_pfm_id_platform_response)) + sizeof (uint8_t))
+
+/**
  * Cerberus protocol get platform firmware manifest supported FW request format
  */
 struct cerberus_protocol_get_pfm_supported_fw {

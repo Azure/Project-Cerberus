@@ -143,8 +143,7 @@ int cerberus_protocol_issue_challenge (struct attestation_master *attestation,
 		return CMD_HANDLER_INVALID_ARGUMENT;
 	}
 
-	return attestation->issue_challenge (attestation, params->eid, params->slot_num,
-		buf, buf_len);
+	return attestation->issue_challenge (attestation, params->eid, params->slot_num, buf, buf_len);
 }
 
 /**
@@ -158,6 +157,7 @@ int cerberus_protocol_issue_challenge (struct attestation_master *attestation,
 static int cerberus_protocol_manifest_update_init (
 	struct manifest_cmd_interface *manifest_interface, struct cmd_interface_request *request)
 {
+	/* Just use the CFM structures since they are the same for all manifests. */
 	struct cerberus_protocol_prepare_cfm_update *rq =
 		(struct cerberus_protocol_prepare_cfm_update*) request->data;
 
@@ -184,6 +184,7 @@ static int cerberus_protocol_manifest_update_init (
 static int cerberus_protocol_manifest_update (struct manifest_cmd_interface *manifest_interface,
 	struct cmd_interface_request *request)
 {
+	/* Just use the CFM structures since they are the same for all manifests. */
 	struct cerberus_protocol_cfm_update *rq = (struct cerberus_protocol_cfm_update*) request->data;
 	int status;
 
@@ -215,6 +216,7 @@ static int cerberus_protocol_manifest_update_complete (
 	struct manifest_cmd_interface *manifest_interface, struct cmd_interface_request *request,
 	bool delayed_activation_allowed)
 {
+	/* Just use the CFM structures since they are the same for all manifests. */
 	struct cerberus_protocol_complete_cfm_update *rq =
 		(struct cerberus_protocol_complete_cfm_update*) request->data;
 
@@ -289,6 +291,7 @@ int cerberus_protocol_cfm_update_complete (struct manifest_cmd_interface *cfm_in
 int cerberus_protocol_get_manifest_id_version (struct manifest *manifest,
 	struct cmd_interface_request *request)
 {
+	/* Just use the CFM structures since they are the same for all manifests. */
 	struct cerberus_protocol_get_cfm_id_version_response *rsp =
 		(struct cerberus_protocol_get_cfm_id_version_response*) request->data;
 	int status = 0;
@@ -322,20 +325,21 @@ int cerberus_protocol_get_manifest_id_version (struct manifest *manifest,
 int cerberus_protocol_get_manifest_id_platform (struct manifest *manifest,
 	struct cmd_interface_request *request)
 {
+	/* Just use the CFM structures since the same same for all manifests. */
 	struct cerberus_protocol_get_cfm_id_platform_response *rsp =
 		(struct cerberus_protocol_get_cfm_id_platform_response*) request->data;
-	char *platform_id = NULL;
+	char *platform_id = (char*) &rsp->platform;
 	size_t platform_id_len;
 	int status = 0;
 
 	if (manifest != NULL) {
-		status = manifest->get_platform_id (manifest, &platform_id);
+		status = manifest->get_platform_id (manifest, &platform_id,
+			CERBERUS_PROTOCOL_MAX_CFM_ID_PLATFORM (request));
 		if (status != 0) {
 			return status;
 		}
 
 		rsp->valid = 1;
-		strcpy ((char*) &rsp->platform, platform_id);
 		platform_id_len = strlen (platform_id) + 1;
 	}
 	else {
@@ -345,10 +349,6 @@ int cerberus_protocol_get_manifest_id_platform (struct manifest *manifest,
 	}
 
 	request->length = cerberus_protocol_get_cfm_id_platform_response_length (platform_id_len);
-
-	if (platform_id != NULL) {
-		platform_free (platform_id);
-	}
 
 	return status;
 }
@@ -410,8 +410,8 @@ int cerberus_protocol_get_cfm_id (struct cfm_manager *cfm_mgr,
 	}
 
 	status = cerberus_protocol_get_curr_cfm (cfm_mgr, rq->region, &curr_cfm);
-	/* When there's no valid CFM manager, return a success
-	* with response indicating no valid manifest */
+	/* When there's no valid CFM manager, return a success with response indicating no valid
+	 * manifest. */
 	if ((status != 0) && (status != CMD_HANDLER_UNSUPPORTED_COMMAND)) {
 		return status;
 	}

@@ -658,6 +658,24 @@ int flash_mock_expect_erase_copy_verify (struct flash_mock *mock_dest, struct fl
 int flash_mock_expect_verify_flash (struct flash_mock *mock, uint32_t start, const uint8_t *data,
 	size_t length)
 {
+	return flash_mock_expect_verify_flash_and_hash (mock, NULL, start, data, length);
+}
+
+/**
+ * Set up expectations for successfully reading chunks of flash for verification.  The flash chucks
+ * will optionally be hashed.
+ *
+ * @param mock The mock for the flash being verified.
+ * @param hash The mock for hashing the flash data.  Set to null to skip hash mocking.
+ * @param start The address to start verification.
+ * @param data The data that should be returned from the flash.
+ * @param length The length of data being verified.
+ *
+ * @return 0 if the expectations were added successfully or non-zero if not.
+ */
+int flash_mock_expect_verify_flash_and_hash (struct flash_mock *mock, struct hash_engine_mock *hash,
+	uint32_t start, const uint8_t *data, size_t length)
+{
 	int status = 0;
 	size_t read_len;
 
@@ -667,6 +685,11 @@ int flash_mock_expect_verify_flash (struct flash_mock *mock, uint32_t start, con
 		status |= mock_expect (&mock->mock, mock->base.read, mock, 0, MOCK_ARG (start),
 			MOCK_ARG_NOT_NULL, MOCK_ARG (read_len));
 		status |= mock_expect_output (&mock->mock, 1, data, length, 2);
+
+		if (hash) {
+			status |= mock_expect (&hash->mock, hash->base.update, hash, 0,
+				MOCK_ARG_PTR_CONTAINS (data, read_len), MOCK_ARG (read_len));
+		}
 
 		start += read_len;
 		data += read_len;

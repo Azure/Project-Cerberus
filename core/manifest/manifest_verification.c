@@ -42,9 +42,10 @@ exit:
 static void manifest_verification_on_manifest_activated (struct pfm_observer *observer,
 	struct manifest *active)
 {
-	struct manifest_verification *manifest = TO_DERIVED_TYPE (observer,
-		struct manifest_verification, base_observer);
-	uint8_t digest[SHA256_HASH_LENGTH];
+	struct manifest_verification *manifest =
+		TO_DERIVED_TYPE (observer, struct manifest_verification, base_observer);
+	uint8_t digest[SHA512_HASH_LENGTH];
+	int digest_length;
 	uint8_t signature[RSA_MAX_KEY_LENGTH];
 	int status;
 
@@ -56,8 +57,9 @@ static void manifest_verification_on_manifest_activated (struct pfm_observer *ob
 	platform_mutex_lock (&manifest->lock);
 
 	if (manifest->stored_key && manifest->default_key) {
-		status = active->get_hash (active, manifest->hash, digest, sizeof (digest));
-		if (status != 0) {
+		digest_length = active->get_hash (active, manifest->hash, digest, sizeof (digest));
+		if (ROT_IS_ERROR (digest_length)) {
+			status = digest_length;
 			goto error;
 		}
 
@@ -67,7 +69,7 @@ static void manifest_verification_on_manifest_activated (struct pfm_observer *ob
 		}
 
 		status = manifest->rsa->sig_verify (manifest->rsa, &manifest->default_key->key, signature,
-			status, digest, SHA256_HASH_LENGTH);
+			status, digest, digest_length);
 		if (status == 0) {
 			status = manifest->keystore->save_key (manifest->keystore, manifest->key_id,
 				(const uint8_t*) manifest->default_key, sizeof (struct manifest_verification_key));
@@ -104,8 +106,8 @@ error:
 static void manifest_verification_on_update_start (struct firmware_update_observer *observer,
 	int *update_allowed)
 {
-	struct manifest_verification *manifest = TO_DERIVED_TYPE (observer,
-		struct manifest_verification, base_update);
+	struct manifest_verification *manifest =
+		TO_DERIVED_TYPE (observer, struct manifest_verification, base_update);
 	int status;
 
 	/* Block firmware updates if the active verification key has not been successfully saved to the

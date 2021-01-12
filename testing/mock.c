@@ -209,6 +209,8 @@ int mock_expect (struct mock *mock, void *func_call, void *instance, intptr_t re
  * @param out_length The length of the output data provided.
  * @param length_arg The argument index for dynamically sized buffers.
  * @param is_temp Flag indicating if the output data should be copied or held by reference.
+ * @param is_ptr Flag indicating if the output data should be stored at a location referenced by the
+ * parameter value.
  * @param copy The function to use to copy the data into the parameter.
  * @param out_dup The function to use for creating a copy of the output data.
  * @param free The fuction to use to free the copied output data.
@@ -216,7 +218,7 @@ int mock_expect (struct mock *mock, void *func_call, void *instance, intptr_t re
  * @return 0 if the mock was updated successfully or an error code.
  */
 static int mock_expect_output_common (struct mock *mock, int arg, const void *out_data,
-	size_t out_length, int length_arg, bool is_temp, mock_arg_copy copy,
+	size_t out_length, int length_arg, bool is_temp, bool is_ptr, mock_arg_copy copy,
 	mock_arg_alloc_expect out_dup, mock_arg_free free)
 {
 	int status;
@@ -231,6 +233,10 @@ static int mock_expect_output_common (struct mock *mock, int arg, const void *ou
 
 	if ((arg >= mock->exp_tail->argc) || (length_arg >= mock->exp_tail->argc)) {
 		return MOCK_BAD_ARG_INDEX;
+	}
+
+	if (is_ptr) {
+		mock->exp_tail->argv[arg].flags |= MOCK_ARG_FLAG_OUT_PTR_PTR;
 	}
 
 	if (is_temp) {
@@ -276,8 +282,8 @@ static int mock_expect_output_common (struct mock *mock, int arg, const void *ou
 int mock_expect_output (struct mock *mock, int arg, const void *out_data, size_t out_length,
 	int length_arg)
 {
-	return mock_expect_output_common (mock, arg, out_data, out_length, length_arg, false, NULL,
-		NULL, NULL);
+	return mock_expect_output_common (mock, arg, out_data, out_length, length_arg, false, false,
+		NULL, NULL, NULL);
 }
 
 /**
@@ -299,8 +305,54 @@ int mock_expect_output (struct mock *mock, int arg, const void *out_data, size_t
 int mock_expect_output_tmp (struct mock *mock, int arg, const void *out_data, size_t out_length,
 	int length_arg)
 {
-	return mock_expect_output_common (mock, arg, out_data, out_length, length_arg, true, NULL,
-		mock_alloc_and_copy_arg_data, platform_free);
+	return mock_expect_output_common (mock, arg, out_data, out_length, length_arg, true, false,
+		NULL, mock_alloc_and_copy_arg_data, platform_free);
+}
+
+/**
+ * Indicate that a parameter to a mock expectation should be treated as an output parameter.  The
+ * parameter is a pointer to another pointer that will hold the output data.  This will only update
+ * the last expectation that was added to the mock.
+ *
+ * @param mock The mock instance to update.
+ * @param arg The argument index to set as an output parameter.  This is a zero-based index based
+ * on the variable argument list in the expectation.
+ * @param out_data The data to use to fill the parameter when called.  This is stored by reference.
+ * @param out_length The length of the output data provided.
+ * @param length_arg If the output size is dynamic, this is the argument index that specifies the
+ * size of the output buffer provided to the function.  Set this to -1 if the length is fixed.
+ *
+ * @return 0 if the mock was updated successfully or an error code.
+ */
+int mock_expect_output_ptr (struct mock *mock, int arg, const void *out_data, size_t out_length,
+	int length_arg)
+{
+	return mock_expect_output_common (mock, arg, out_data, out_length, length_arg, false, true,
+		NULL, NULL, NULL);
+}
+
+/**
+ * Indicate that a parameter to a mock expectation should be treated as an output parameter.  The
+ * parameter is a pointer to another pointer that will hold the output data.  This will only update
+ * the last expectation that was added to the mock.
+ *
+ * This call allows temporary variables to be used for output data.
+ *
+ * @param mock The mock instance to update.
+ * @param arg The argument index to set as an output parameter.  This is a zero-based index based
+ * on the variable argument list in the expectation.
+ * @param out_data The data to use to fill the parameter when called.  This is stored by reference.
+ * @param out_length The length of the output data provided.
+ * @param length_arg If the output size is dynamic, this is the argument index that specifies the
+ * size of the output buffer provided to the function.  Set this to -1 if the length is fixed.
+ *
+ * @return 0 if the mock was updated successfully or an error code.
+ */
+int mock_expect_output_ptr_tmp (struct mock *mock, int arg, const void *out_data, size_t out_length,
+	int length_arg)
+{
+	return mock_expect_output_common (mock, arg, out_data, out_length, length_arg, true, true,
+		NULL, mock_alloc_and_copy_arg_data, platform_free);
 }
 
 /**
@@ -321,7 +373,8 @@ int mock_expect_output_tmp (struct mock *mock, int arg, const void *out_data, si
 int mock_expect_output_deep_copy (struct mock *mock, int arg, const void *out_data,
 	size_t out_length, mock_arg_copy copy)
 {
-	return mock_expect_output_common (mock, arg, out_data, out_length, -1, false, copy, NULL, NULL);
+	return mock_expect_output_common (mock, arg, out_data, out_length, -1, false, false, copy, NULL,
+		NULL);
 }
 
 /**
@@ -348,8 +401,8 @@ int mock_expect_output_deep_copy (struct mock *mock, int arg, const void *out_da
 int mock_expect_output_deep_copy_tmp (struct mock *mock, int arg, const void *out_data,
 	size_t out_length, mock_arg_copy copy, mock_arg_alloc_expect out_dup, mock_arg_free free)
 {
-	return mock_expect_output_common (mock, arg, out_data, out_length, -1, true, copy, out_dup,
-		free);
+	return mock_expect_output_common (mock, arg, out_data, out_length, -1, true, false, copy,
+		out_dup, free);
 }
 
 /**
@@ -513,39 +566,55 @@ static int mock_validate_arg (struct mock *mock, int cur_exp, const char *arg_na
 	int fail = 0;
 
 	if (!(expected->flags & MOCK_ARG_FLAG_ANY_VALUE)) {
-		if (expected->flags & MOCK_ARG_FLAG_NOT_NULL) {
-			if (actual->value == 0) {
-				if (!(expected->flags & MOCK_ARG_FLAG_PTR_PTR) ||
-					(actual->flags & MOCK_ARG_FLAG_PTR_PTR)) {
-					platform_printf ("(%s, %d) Unexpected NULL argument: name=%s" NEWLINE,
-						mock->name, cur_exp, arg_name);
-				}
-				else {
-					platform_printf ("(%s, %d) Unexpected NULL pointer to pointer: name=%s" NEWLINE,
-						mock->name, cur_exp, arg_name);
-				}
-				fail = 1;
-			}
+		if ((expected->flags & MOCK_ARG_FLAG_PTR_PTR) && !(actual->flags & MOCK_ARG_FLAG_PTR_PTR)) {
+			platform_printf ("(%s, %d) Unexpected NULL argument: name=%s" NEWLINE,
+				mock->name, cur_exp, arg_name);
+			/* No point to check anything else.  The argument was null. */
+			return 1;
+		}
 
-			if (expected->ptr_value_len) {
-				if (actual->ptr_value == NULL) {
-					platform_printf ("(%s, %d) No pointer contents to validate: name=%s" NEWLINE,
-						mock->name, cur_exp, arg_name);
+		if (expected->flags & MOCK_ARG_FLAG_NOT_NULL) {
+			if ((expected->flags & MOCK_ARG_FLAG_PTR_PTR) &&
+				!(expected->flags & MOCK_ARG_FLAG_PTR_PTR_NOT_NULL)) {
+				if (expected->value != actual->value) {
+					platform_printf ("(%s, %d) Unexpected pointer argument: name=%s, expected=0x%lx, actual=0x%lx"
+						NEWLINE, mock->name, cur_exp, arg_name, expected->value, actual->value);
 					fail = 1;
 				}
-				else {
-					char prefix[100];
-
-					snprintf (prefix, sizeof (prefix), "(%s, %d, arg=%s) ", mock->name, cur_exp,
-						arg_name);
-
-					if (expected->validate) {
-						fail |= expected->validate (prefix, (void*) expected->value,
-							actual->ptr_value);
+			}
+			else {
+				if (actual->value == 0) {
+					if (expected->flags & MOCK_ARG_FLAG_PTR_PTR_NOT_NULL) {
+						platform_printf ("(%s, %d) Unexpected pointer to NULL pointer: name=%s"
+							NEWLINE, mock->name, cur_exp, arg_name);
 					}
 					else {
-						fail |= testing_validate_array_prefix ((void*) expected->value,
-							actual->ptr_value, expected->ptr_value_len, prefix);
+						platform_printf ("(%s, %d) Unexpected NULL argument: name=%s" NEWLINE,
+							mock->name, cur_exp, arg_name);
+					}
+					fail = 1;
+				}
+
+				if (expected->ptr_value_len) {
+					if (actual->ptr_value == NULL) {
+						platform_printf ("(%s, %d) No pointer contents to validate: name=%s"
+							NEWLINE, mock->name, cur_exp, arg_name);
+						fail = 1;
+					}
+					else {
+						char prefix[100];
+
+						snprintf (prefix, sizeof (prefix), "(%s, %d, arg=%s) ", mock->name, cur_exp,
+							arg_name);
+
+						if (expected->validate) {
+							fail |= expected->validate (prefix, (void*) expected->value,
+								actual->ptr_value);
+						}
+						else {
+							fail |= testing_validate_array_prefix ((void*) expected->value,
+								actual->ptr_value, expected->ptr_value_len, prefix);
+						}
 					}
 				}
 			}
@@ -841,6 +910,9 @@ intptr_t mock_return_from_call (struct mock *mock, struct mock_call *call)
 	intptr_t status = 0;
 	int i;
 	size_t out_len;
+	intptr_t value_ptr;
+	bool update_value;
+
 
 	if (call == NULL) {
 		return MOCK_NO_MEMORY;
@@ -855,10 +927,20 @@ intptr_t mock_return_from_call (struct mock *mock, struct mock_call *call)
 
 	if (expected != NULL) {
 		for (i = 0; i < expected->argc; i++) {
+			update_value = false;
+
 			/* Dereference pointer parameters. */
 			if ((call->argv[i].value != 0) && (expected->argv[i].flags & MOCK_ARG_FLAG_PTR_PTR)) {
-				call->argv[i].value = (intptr_t) (*((int**) call->argv[i].value));
-				call->argv[i].flags |= MOCK_ARG_FLAG_PTR_PTR;
+				value_ptr = (intptr_t) (*((int**) call->argv[i].value));
+
+				if ((expected->argv[i].out_data == NULL) ||
+					(expected->argv[i].flags & MOCK_ARG_FLAG_OUT_PTR_PTR)) {
+					call->argv[i].value = value_ptr;
+					call->argv[i].flags |= MOCK_ARG_FLAG_PTR_PTR;
+				}
+				else {
+					update_value = true;
+				}
 			}
 
 			/* Save the contents of a pointer parameter. */
@@ -895,6 +977,12 @@ intptr_t mock_return_from_call (struct mock *mock, struct mock_call *call)
 						save->shared->saved = true;
 					}
 				}
+			}
+
+			/* We are done with the argument that was passed.  Store the dereferenced pointer. */
+			if (update_value) {
+				call->argv[i].value = value_ptr;
+				call->argv[i].flags |= MOCK_ARG_FLAG_PTR_PTR;
 			}
 		}
 

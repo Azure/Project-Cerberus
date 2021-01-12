@@ -31,7 +31,7 @@ static int cfm_mock_get_id (struct manifest *cfm, uint32_t *id)
 	MOCK_RETURN (&mock->mock, cfm_mock_get_id, cfm, MOCK_ARG_CALL (id));
 }
 
-static int cfm_mock_get_platform_id (struct manifest *cfm, char **id)
+static int cfm_mock_get_platform_id (struct manifest *cfm, char **id, size_t length)
 {
 	struct cfm_mock *mock = (struct cfm_mock*) cfm;
 
@@ -39,7 +39,19 @@ static int cfm_mock_get_platform_id (struct manifest *cfm, char **id)
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, cfm_mock_get_platform_id, cfm, MOCK_ARG_CALL (id));
+	MOCK_RETURN (&mock->mock, cfm_mock_get_platform_id, cfm, MOCK_ARG_CALL (id),
+		MOCK_ARG_CALL (length));
+}
+
+static void cfm_mock_free_platform_id (struct manifest *cfm, char *id)
+{
+	struct cfm_mock *mock = (struct cfm_mock*) cfm;
+
+	if (mock == NULL) {
+		return;
+	}
+
+	MOCK_VOID_RETURN (&mock->mock, cfm_mock_free_platform_id, cfm, MOCK_ARG_CALL (id));
 }
 
 static int cfm_mock_get_hash (struct manifest *cfm, struct hash_engine *hash, uint8_t *hash_out,
@@ -121,12 +133,13 @@ static int cfm_mock_func_arg_count (void *func)
 	else if (func == cfm_mock_get_hash) {
 		return 3;
 	}
-	else if ((func == cfm_mock_get_component) || (func == cfm_mock_get_signature)) {
+	else if ((func == cfm_mock_get_platform_id) || (func == cfm_mock_get_component) ||
+		(func == cfm_mock_get_signature)) {
 		return 2;
 	}
-	else if ((func == cfm_mock_get_id) || (func == cfm_mock_get_supported_component_ids) ||
-		(func == cfm_mock_free_component_ids) || (func == cfm_mock_free_component) ||
-		(func == cfm_mock_get_platform_id)) {
+	else if ((func == cfm_mock_get_id) || (func == cfm_mock_free_platform_id) ||
+		(func == cfm_mock_get_supported_component_ids) || (func == cfm_mock_free_component_ids) ||
+		(func == cfm_mock_free_component)) {
 		return 1;
 	}
 	else {
@@ -144,6 +157,9 @@ static const char* cfm_mock_func_name_map (void *func)
 	}
 	else if (func == cfm_mock_get_platform_id) {
 		return "get_platform_id";
+	}
+	else if (func == cfm_mock_free_platform_id) {
+		return "free_platform_id";
 	}
 	else if (func == cfm_mock_get_hash) {
 		return "get_hash";
@@ -185,7 +201,22 @@ static const char* cfm_mock_arg_name_map (void *func, int arg)
 				return "hash_length";
 		}
 	}
-	else if ((func == cfm_mock_get_id) || (func == cfm_mock_get_platform_id)) {
+	else if (func == cfm_mock_get_id) {
+		switch (arg) {
+			case 0:
+				return "id";
+		}
+	}
+	else if (func == cfm_mock_get_platform_id) {
+		switch (arg) {
+			case 0:
+				return "id";
+
+			case 1:
+				return "length";
+		}
+	}
+	else if (func == cfm_mock_free_platform_id) {
 		switch (arg) {
 			case 0:
 				return "id";
@@ -269,6 +300,7 @@ int cfm_mock_init (struct cfm_mock *mock)
 	mock->base.base.verify = cfm_mock_verify;
 	mock->base.base.get_id = cfm_mock_get_id;
 	mock->base.base.get_platform_id = cfm_mock_get_platform_id;
+	mock->base.base.free_platform_id = cfm_mock_free_platform_id;
 	mock->base.base.get_hash = cfm_mock_get_hash;
 	mock->base.base.get_signature = cfm_mock_get_signature;
 

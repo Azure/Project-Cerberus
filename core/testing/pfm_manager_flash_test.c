@@ -7,6 +7,7 @@
 #include "testing.h"
 #include "manifest/pfm/pfm_manager_flash.h"
 #include "manifest/pfm/pfm_format.h"
+#include "flash/spi_flash.h"
 #include "host_fw/host_state_manager.h"
 #include "mock/flash_master_mock.h"
 #include "mock/pfm_observer_mock.h"
@@ -180,51 +181,153 @@ const uint8_t PFM_PLATFORM2_HASH[] = {
 
 
 /**
+ * Dependencies for testing the PFM manager.
+ */
+struct pfm_manager_flash_testing {
+	HASH_TESTING_ENGINE hash;							/**< Hashing engine for validation. */
+	struct signature_verification_mock verification;	/**< PFM signature verification. */
+	struct flash_master_mock flash_mock;				/**< Flash master for PFM flash. */
+	struct flash_master_mock flash_mock_state;			/**< Flash master for host state flash. */
+	struct spi_flash flash;								/**< Flash containing the PFM data. */
+	struct spi_flash flash_state;						/**< Flash containing the host state. */
+	struct state_manager state_mgr;						/**< Manager for host state. */
+	struct pfm_flash pfm1;								/**< The first PFM. */
+	uint8_t signature1[256];							/**< Buffer for the first manifest signature. */
+	uint8_t platform_id1[256];							/**< Cache for the first platform ID. */
+	uint32_t pfm1_addr;									/**< Base address of the first PFM. */
+	struct pfm_flash pfm2;								/**< The second PFM. */
+	uint8_t signature2[256];							/**< Buffer for the second manifest signature. */
+	uint8_t platform_id2[256];							/**< Cache for the second platform ID. */
+	uint32_t pfm2_addr;									/**< Base address of the second PFM. */
+	struct pfm_observer_mock observer;					/**< Observer of manager events. */
+	struct pfm_manager_flash test;						/**< Manager instance under test. */
+};
+
+
+/**
  * Initialize the host state manager for testing.
  *
  * @param test The testing framework.
- * @param state The host state instance to initialize.
- * @param flash_mock The mock for the flash state storage.
- * @param flash The flash device to initialize for state.
+ * @param manager The testing components being initialized.
  */
 static void pfm_manager_flash_testing_init_host_state (CuTest *test,
-	struct state_manager *state, struct flash_master_mock *flash_mock, struct spi_flash *flash)
+	struct pfm_manager_flash_testing *manager)
 {
 	int status;
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
 
-	status = flash_master_mock_init (flash_mock);
+	status = flash_master_mock_init (&manager->flash_mock_state);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (flash, &flash_mock->base);
+	status = spi_flash_init (&manager->flash_state, &manager->flash_mock_state.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_set_device_size (flash, 0x1000000);
+	status = spi_flash_set_device_size (&manager->flash_state, 0x1000000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_expect_rx_xfer (flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&manager->flash_mock_state, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (flash_mock, 0, (uint8_t*) end, sizeof (end),
+	status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock_state, 0, (uint8_t*) end,
+		sizeof (end),
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, 8));
 
-	status |= flash_master_mock_expect_rx_xfer (flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock_state, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (flash_mock, 0, (uint8_t*) end, sizeof (end),
+	status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock_state, 0, (uint8_t*) end,
+		sizeof (end),
 		FLASH_EXP_READ_CMD (0x03, 0x11000, 0, -1, 8));
 
-	status |= flash_master_mock_expect_erase_flash_sector_verify (flash_mock, 0x10000, 0x1000);
+	status |= flash_master_mock_expect_erase_flash_sector_verify (&manager->flash_mock_state,
+		0x10000, 0x1000);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_state_manager_init (state, &flash->base, 0x10000);
+	status = host_state_manager_init (&manager->state_mgr, &manager->flash_state.base, 0x10000);
 	CuAssertIntEquals (test, 0, status);
+}
+
+/**
+ * Initialize common PFM manager testing dependencies.
+ *
+ * @param test The testing framework.
+ * @param manager The testing components to initialize.
+ * @param addr1 Base address of the first PFM.
+ * @param addr2 Base address of the second PFM.
+ */
+static void pfm_manager_flash_testing_init_dependencies (CuTest *test,
+	struct pfm_manager_flash_testing *manager, uint32_t addr1, uint32_t addr2)
+{
+	int status;
+
+	status = HASH_TESTING_ENGINE_INIT (&manager->hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_mock_init (&manager->verification);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&manager->flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&manager->flash, &manager->flash_mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&manager->flash, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	pfm_manager_flash_testing_init_host_state (test, manager);
+
+	status = pfm_flash_init (&manager->pfm1, &manager->flash.base, &manager->hash.base, addr1,
+		manager->signature1, sizeof (manager->signature1), manager->platform_id1,
+		sizeof (manager->platform_id1));
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_flash_init (&manager->pfm2, &manager->flash.base, &manager->hash.base, addr2,
+		manager->signature2, sizeof (manager->signature2), manager->platform_id2,
+		sizeof (manager->platform_id2));
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_observer_mock_init (&manager->observer);
+	CuAssertIntEquals (test, 0, status);
+
+	manager->pfm1_addr = addr1;
+	manager->pfm2_addr = addr2;
+}
+
+/**
+ * Release test dependencies and validate all mocks.
+ *
+ * @param test The testing framework.
+ * @param pfm The testing components to release.
+ */
+void pfm_manager_flash_testing_validate_and_release_dependencies (CuTest *test,
+	struct pfm_manager_flash_testing *manager)
+{
+	int status;
+
+	status = flash_master_mock_validate_and_release (&manager->flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&manager->flash_mock_state);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_mock_validate_and_release (&manager->verification);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_observer_mock_validate_and_release (&manager->observer);
+	CuAssertIntEquals (test, 0, status);
+
+	host_state_manager_release (&manager->state_mgr);
+	pfm_flash_release (&manager->pfm1);
+	pfm_flash_release (&manager->pfm2);
+	spi_flash_release (&manager->flash);
+	spi_flash_release (&manager->flash_state);
+	HASH_TESTING_ENGINE_RELEASE (&manager->hash);
 }
 
 /**
  * Set up expectations for verifying a PFM on flash.
  *
- * @param flash_mock The mock for the PFM flash storage.
- * @param verification The mock for PFM verification.
+ * @param manager The testing components.
  * @param pfm The PFM data to read.
  * @param length The length of the PFM data.
  * @param hash The PFM hash.
@@ -233,52 +336,57 @@ static void pfm_manager_flash_testing_init_host_state (CuTest *test,
  *
  * @return 0 if the expectations were set up successfully or an error code.
  */
-static int pfm_manager_flash_testing_verify_pfm (struct flash_master_mock *flash_mock,
-	struct signature_verification_mock *verification, const uint8_t *pfm, size_t length,
-	const uint8_t *hash, const uint8_t *signature, uint32_t address)
+static int pfm_manager_flash_testing_verify_pfm (struct pfm_manager_flash_testing *manager,
+	const uint8_t *pfm, size_t length, const uint8_t *hash, const uint8_t *signature,
+	uint32_t address)
 {
 	int status;
 
-	status = flash_master_mock_expect_rx_xfer (flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&manager->flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (flash_mock, 0, pfm, length,
+	status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock, 0, pfm, length,
 		FLASH_EXP_READ_CMD (0x03, address, 0, -1, PFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (flash_mock, 0, signature, PFM_SIGNATURE_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock, 0, signature,
+		PFM_SIGNATURE_LEN,
 		FLASH_EXP_READ_CMD (0x03, address + PFM_SIGNATURE_OFFSET, 0, -1, PFM_SIGNATURE_LEN));
 
-	status |= flash_master_mock_expect_verify_flash (flash_mock, address, pfm,
+	status |= flash_master_mock_expect_verify_flash (&manager->flash_mock, address, pfm,
 		length - PFM_SIGNATURE_LEN);
 
-	status |= mock_expect (&verification->mock, verification->base.verify_signature, verification,
-		0, MOCK_ARG_PTR_CONTAINS (hash, PFM_HASH_LEN), MOCK_ARG (PFM_HASH_LEN),
-		MOCK_ARG_PTR_CONTAINS (signature, PFM_SIGNATURE_LEN), MOCK_ARG (PFM_SIGNATURE_LEN));
+	status |= mock_expect (&manager->verification.mock, manager->verification.base.verify_signature,
+		&manager->verification, 0, MOCK_ARG_PTR_CONTAINS (hash, PFM_HASH_LEN),
+		MOCK_ARG (PFM_HASH_LEN), MOCK_ARG_PTR_CONTAINS (signature, PFM_SIGNATURE_LEN),
+		MOCK_ARG (PFM_SIGNATURE_LEN));
 
-	status |= flash_master_mock_expect_rx_xfer (flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (flash_mock, 0, pfm, length,
-		FLASH_EXP_READ_CMD (0x03, address, 0, -1, PFM_HEADER_SIZE));
+	status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock, 0,
+		pfm + PFM_ALLOWED_HDR_OFFSET, length - PFM_ALLOWED_HDR_OFFSET,
+		FLASH_EXP_READ_CMD (0x03, address + PFM_ALLOWED_HDR_OFFSET, 0, -1,
+			PFM_ALLOWED_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (flash_mock, 0, pfm + PFM_ALLOWED_HDR_OFFSET,
-		length - PFM_ALLOWED_HDR_OFFSET,
-		FLASH_EXP_READ_CMD (0x03, address + PFM_ALLOWED_HDR_OFFSET, 0, -1, PFM_ALLOWED_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (flash_mock, 0, pfm + PFM_MANIFEST_OFFSET,
+	status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock, 0, pfm + PFM_MANIFEST_OFFSET,
 		length - PFM_MANIFEST_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, address + PFM_MANIFEST_OFFSET, 0, -1, PFM_MANIFEST_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (flash_mock, 0,
+	status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock, 0,
 		pfm + PFM_PLATFORM_HEADER_OFFSET, length - PFM_PLATFORM_HEADER_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, address + PFM_PLATFORM_HEADER_OFFSET, 0, -1,
 			PFM_PLATFORM_HEADER_SIZE));
+
+	status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock, 0, &WIP_STATUS, 1,
+			FLASH_EXP_READ_STATUS_REG);
+		status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock, 0,
+			pfm + PFM_PLATFORM_ID_OFFSET, length - PFM_PLATFORM_ID_OFFSET,
+			FLASH_EXP_READ_CMD (0x03, address + PFM_PLATFORM_ID_OFFSET, 0, -1,
+				PFM_PLATFORM_ID_LEN));
 
 	return status;
 }
@@ -286,8 +394,7 @@ static int pfm_manager_flash_testing_verify_pfm (struct flash_master_mock *flash
 /**
  * Set up expectations for verifying an empty PFM on flash.
  *
- * @param flash_mock The mock for the PFM flash storage.
- * @param verification The mock for PFM verification.
+ * @param manager The testing components.
  * @param pfm The PFM data to read.
  * @param length The length of the PFM data.
  * @param man_offset Offset of the key manifest section.
@@ -297,99 +404,54 @@ static int pfm_manager_flash_testing_verify_pfm (struct flash_master_mock *flash
  *
  * @return 0 if the expectations were set up successfully or an error code.
  */
-static int pfm_manager_flash_testing_verify_empty_pfm (struct flash_master_mock *flash_mock,
-	struct signature_verification_mock *verification, const uint8_t *pfm, size_t length,
-	int man_offset, int plat_offset, int sig_offset, uint32_t address)
+static int pfm_manager_flash_testing_verify_empty_pfm (struct pfm_manager_flash_testing *manager,
+	const uint8_t *pfm, size_t length, int man_offset, int plat_offset,int sig_offset,
+	uint32_t address)
 {
+	uint32_t plat_id_offset = plat_offset + PFM_PLATFORM_HEADER_SIZE;
 	int status;
 
-	status = flash_master_mock_expect_rx_xfer (flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&manager->flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (flash_mock, 0, pfm, length,
+	status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock, 0, pfm, length,
 		FLASH_EXP_READ_CMD (0x03, address, 0, -1, PFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (flash_mock, 0, &pfm[sig_offset], PFM_SIGNATURE_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock, 0, &pfm[sig_offset],
+		PFM_SIGNATURE_LEN,
 		FLASH_EXP_READ_CMD (0x03, address + sig_offset, 0, -1, PFM_SIGNATURE_LEN));
 
-	status |= flash_master_mock_expect_verify_flash (flash_mock, address, pfm,
+	status |= flash_master_mock_expect_verify_flash (&manager->flash_mock, address, pfm,
 		length - PFM_SIGNATURE_LEN);
 
-	status |= mock_expect (&verification->mock, verification->base.verify_signature, verification,
-		0, MOCK_ARG_ANY, MOCK_ARG (PFM_HASH_LEN), MOCK_ARG_ANY, MOCK_ARG (PFM_SIGNATURE_LEN));
+	status |= mock_expect (&manager->verification.mock, manager->verification.base.verify_signature,
+		&manager->verification, 0, MOCK_ARG_ANY, MOCK_ARG (PFM_HASH_LEN), MOCK_ARG_ANY,
+		MOCK_ARG (PFM_SIGNATURE_LEN));
 
-	status |= flash_master_mock_expect_rx_xfer (flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (flash_mock, 0, pfm, length,
-		FLASH_EXP_READ_CMD (0x03, address, 0, -1, PFM_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (flash_mock, 0, pfm + PFM_HEADER_SIZE,
+	status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock, 0, pfm + PFM_HEADER_SIZE,
 		length - PFM_HEADER_SIZE,
 		FLASH_EXP_READ_CMD (0x03, address + PFM_HEADER_SIZE, 0, -1, PFM_ALLOWED_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (flash_mock, 0, pfm + man_offset,
+	status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock, 0, pfm + man_offset,
 		length - man_offset,
 		FLASH_EXP_READ_CMD (0x03, address + man_offset, 0, -1, PFM_MANIFEST_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (flash_mock, 0, pfm + plat_offset,
+	status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock, 0, pfm + plat_offset,
 		length - plat_offset,
 		FLASH_EXP_READ_CMD (0x03, address + plat_offset, 0, -1, PFM_PLATFORM_HEADER_SIZE));
 
-	return status;
-}
-
-/**
- * Set up expectations for reading the platform ID.
- *
- * @param flash_mock The mock for the PFM flash storage.
- * @param pfm The PFM data to read.
- * @param length The length of the PFM data.
- * @param address The base address of the PFM.
- *
- * @return 0 if the expectations were set up successfully or an error code.
- */
-static int pfm_manager_flash_testing_read_platform_id (struct flash_master_mock *flash_mock,
-	const uint8_t *pfm, size_t length, uint32_t address)
-{
-	int status;
-
-	status = flash_master_mock_expect_rx_xfer (flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (flash_mock, 0, pfm, length,
-		FLASH_EXP_READ_CMD (0x03, address, 0, -1, PFM_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (flash_mock, 0, pfm + PFM_ALLOWED_HDR_OFFSET,
-		length - PFM_ALLOWED_HDR_OFFSET,
-		FLASH_EXP_READ_CMD (0x03, address + PFM_ALLOWED_HDR_OFFSET, 0, -1, PFM_ALLOWED_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (flash_mock, 0, pfm + PFM_MANIFEST_OFFSET,
-		length - PFM_MANIFEST_OFFSET,
-		FLASH_EXP_READ_CMD (0x03, address + PFM_MANIFEST_OFFSET, 0, -1, PFM_MANIFEST_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (flash_mock, 0,
-		pfm + PFM_PLATFORM_HEADER_OFFSET, length - PFM_PLATFORM_HEADER_OFFSET,
-		FLASH_EXP_READ_CMD (0x03, address + PFM_PLATFORM_HEADER_OFFSET, 0, -1,
-			PFM_PLATFORM_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (flash_mock, 0, pfm + PFM_PLATFORM_ID_OFFSET,
-		length - PFM_PLATFORM_ID_OFFSET,
-		FLASH_EXP_READ_CMD (0x03, address + PFM_PLATFORM_ID_OFFSET, 0, -1,
-			strlen (PFM_PLATFORM_ID)));
+	status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock, 0, pfm + plat_id_offset,
+		length - plat_id_offset,
+		FLASH_EXP_READ_CMD (0x03, address + plat_id_offset, 0, -1, PFM_PLATFORM_ID_LEN));
 
 	return status;
 }
@@ -397,8 +459,7 @@ static int pfm_manager_flash_testing_read_platform_id (struct flash_master_mock 
 /**
  * Set up expectations for verifying the PFMs during initialization.
  *
- * @param flash_mock The mock for the PFM flash storage.
- * @param verification The mock for PFM verification.
+ * @param manager The testing components.
  * @param pfm1 The PFM data to read in region 1.
  * @param length1 The length of the PFM data in region 1.
  * @param hash1 The PFM hash in region 1.
@@ -411,95 +472,70 @@ static int pfm_manager_flash_testing_read_platform_id (struct flash_master_mock 
  *
  * @return 0 if the expectations were set up successfully or an error code.
  */
-static int pfm_manager_flash_testing_initial_pfm_validation (struct flash_master_mock *flash_mock,
-	struct signature_verification_mock *verification, const uint8_t *pfm1, size_t length1,
-	const uint8_t *hash1, const uint8_t *signature1, const uint8_t* pfm2, size_t length2,
+static int pfm_manager_flash_testing_initial_pfm_validation (
+	struct pfm_manager_flash_testing *manager, const uint8_t *pfm1, size_t length1,
+	const uint8_t *hash1, const uint8_t *signature1, const uint8_t *pfm2, size_t length2,
 	const uint8_t *hash2, const uint8_t *signature2, bool pfm1_active)
 {
-	const uint8_t *active;
-	size_t active_len;
-	uint32_t active_addr;
 	const uint8_t *pending;
 	size_t pending_len;
 	uint32_t pending_addr;
 	int status;
 
 	if (pfm1_active) {
-		active = pfm1;
-		active_len = length1;
-		active_addr = 0x10000;
 		pending = pfm2;
 		pending_len = length2;
-		pending_addr = 0x20000;
+		pending_addr = manager->pfm2_addr;
 	}
 	else {
-		active = pfm2;
-		active_len = length2;
-		active_addr = 0x20000;
 		pending = pfm1;
 		pending_len = length1;
-		pending_addr = 0x10000;
+		pending_addr = manager->pfm1_addr;
 	}
 
 	/* Base PFM verification.  Use blank check to simulate empty PFM regions. */
 	if (pfm1) {
-		status = pfm_manager_flash_testing_verify_pfm (flash_mock, verification, pfm1, length1,
-			hash1, signature1, 0x10000);
+		status = pfm_manager_flash_testing_verify_pfm (manager, pfm1, length1, hash1, signature1,
+			manager->pfm1_addr);
 	}
 	else {
-		status = flash_master_mock_expect_blank_check (flash_mock, 0x10000, PFM_HEADER_SIZE);
+		status = flash_master_mock_expect_blank_check (&manager->flash_mock, manager->pfm1_addr,
+			PFM_HEADER_SIZE);
 	}
 	if (pfm2) {
-		status |= pfm_manager_flash_testing_verify_pfm (flash_mock, verification, pfm2, length2,
-			hash2, signature2, 0x20000);
+		status |= pfm_manager_flash_testing_verify_pfm (manager, pfm2, length2, hash2, signature2,
+			manager->pfm2_addr);
 	}
 	else {
-		status |= flash_master_mock_expect_blank_check (flash_mock, 0x20000, PFM_HEADER_SIZE);
-	}
-
-	if (pfm1 && pfm2) {
-		/* Check PFM IDs. */
-		status |= flash_master_mock_expect_rx_xfer (flash_mock, 0, &WIP_STATUS, 1,
-			FLASH_EXP_READ_STATUS_REG);
-		status |= flash_master_mock_expect_rx_xfer (flash_mock, 0, active, active_len,
-			FLASH_EXP_READ_CMD (0x03, active_addr, 0, -1, PFM_HEADER_SIZE));
-		status |= flash_master_mock_expect_rx_xfer (flash_mock, 0, &WIP_STATUS, 1,
-			FLASH_EXP_READ_STATUS_REG);
-		status |= flash_master_mock_expect_rx_xfer (flash_mock, 0, pending, pending_len,
-			FLASH_EXP_READ_CMD (0x03, pending_addr, 0, -1, PFM_HEADER_SIZE));
-
-		/* Compare platform IDs. */
-		status |= pfm_manager_flash_testing_read_platform_id (flash_mock, active, active_len,
-			active_addr);
-		status |= pfm_manager_flash_testing_read_platform_id (flash_mock, pending, pending_len,
-			pending_addr);
+		status |= flash_master_mock_expect_blank_check (&manager->flash_mock, manager->pfm2_addr,
+			PFM_HEADER_SIZE);
 	}
 
 	if (pending) {
 		/* Get versions list. */
-		status |= flash_master_mock_expect_rx_xfer (flash_mock, 0, &WIP_STATUS, 1,
+		status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock, 0, &WIP_STATUS, 1,
 			FLASH_EXP_READ_STATUS_REG);
-		status |= flash_master_mock_expect_rx_xfer (flash_mock, 0, pending, pending_len,
+		status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock, 0, pending, pending_len,
 			FLASH_EXP_READ_CMD (0x03, pending_addr, 0, -1, PFM_HEADER_SIZE));
 
-		status |= flash_master_mock_expect_rx_xfer (flash_mock, 0, &WIP_STATUS, 1,
+		status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock, 0, &WIP_STATUS, 1,
 			FLASH_EXP_READ_STATUS_REG);
-		status |= flash_master_mock_expect_rx_xfer (flash_mock, 0, pending + PFM_HEADER_SIZE,
-			pending_len - PFM_HEADER_SIZE,
+		status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock, 0,
+			pending + PFM_HEADER_SIZE, pending_len - PFM_HEADER_SIZE,
 			FLASH_EXP_READ_CMD (0x03, pending_addr + PFM_HEADER_SIZE, 0, -1,
 				PFM_ALLOWED_HEADER_SIZE));
 
-		status |= flash_master_mock_expect_rx_xfer (flash_mock, 0, &WIP_STATUS, 1,
+		status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock, 0, &WIP_STATUS, 1,
 			FLASH_EXP_READ_STATUS_REG);
-		status |= flash_master_mock_expect_rx_xfer (flash_mock, 0, pending + PFM_FW_HEADER_OFFSET,
-			pending_len - PFM_FW_HEADER_OFFSET,
+		status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock, 0,
+			pending + PFM_FW_HEADER_OFFSET, pending_len - PFM_FW_HEADER_OFFSET,
 			FLASH_EXP_READ_CMD (0x03, pending_addr + PFM_FW_HEADER_OFFSET, 0, -1,
 				PFM_FW_HEADER_SIZE));
 
-		status |= flash_master_mock_expect_rx_xfer (flash_mock, 0, &WIP_STATUS, 1,
+		status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock, 0, &WIP_STATUS, 1,
 			FLASH_EXP_READ_STATUS_REG);
-		status |= flash_master_mock_expect_rx_xfer (flash_mock, 0, pending + PFM_VERSION_OFFSET,
-			pending_len - PFM_VERSION_OFFSET,
+		status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock, 0,
+			pending + PFM_VERSION_OFFSET, pending_len - PFM_VERSION_OFFSET,
 			FLASH_EXP_READ_CMD (0x03, pending_addr + PFM_VERSION_OFFSET, 0, -1,
 				strlen (PFM_VERSION_ID)));
 	}
@@ -508,38 +544,102 @@ static int pfm_manager_flash_testing_initial_pfm_validation (struct flash_master
 }
 
 /**
+ * Initialize PFM manager for testing.
+ *
+ * @param test The testing framework.
+ * @param manager The testing components to initialize.
+ * @param addr1 The base address for the first PFM.
+ * @param addr2 The base address for the second PFM.
+ * @param pfm1 The PFM data to read in region 1.
+ * @param length1 The length of the PFM data in region 1.
+ * @param hash1 The PFM hash in region 1.
+ * @param signature1 The PFM signature in region 1.
+ * @param pfm2 The PFM data to read in region 2.
+ * @param length2 The length of the PFM data in region 2.
+ * @param hash2 The PFM hash in region 2.
+ * @param signature2 The PFM signature in region 2.
+ * @param pfm1_active Flag indicating if region 1 is active.
+ */
+static void pfm_manager_flash_testing_init (CuTest *test, struct pfm_manager_flash_testing *manager,
+	uint32_t addr1, uint32_t addr2, const uint8_t *pfm1, size_t length1, const uint8_t *hash1,
+	const uint8_t *signature1, const uint8_t *pfm2, size_t length2, const uint8_t *hash2,
+	const uint8_t *signature2, bool pfm1_active)
+{
+	int status;
+
+	pfm_manager_flash_testing_init_dependencies (test, manager, addr1, addr2);
+
+	if (!pfm1_active) {
+		status = manager->state_mgr.save_active_manifest (&manager->state_mgr, 0,
+			MANIFEST_REGION_2);
+		CuAssertIntEquals (test, 0, status);
+	}
+
+	status = pfm_manager_flash_testing_initial_pfm_validation (manager, pfm1, length1, hash1,
+		signature1, pfm2, length2, hash2, signature2, pfm1_active);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_flash_init (&manager->test, &manager->pfm1, &manager->pfm2,
+		&manager->state_mgr, &manager->hash.base, &manager->verification.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&manager->flash_mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&manager->flash_mock_state.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&manager->verification.mock);
+	CuAssertIntEquals (test, 0, status);
+}
+
+/**
+ * Release a test instance and validate all mocks.
+ *
+ * @param test The testing framework.
+ * @param manager The testing components to release.
+ */
+static void pfm_manager_flash_testing_validate_and_release (CuTest *test,
+	struct pfm_manager_flash_testing *manager)
+{
+	pfm_manager_flash_release (&manager->test);
+
+	pfm_manager_flash_testing_validate_and_release_dependencies (test, manager);
+}
+
+/**
  * Write complete PFM data to the manager to enable pending PFM verification.
  *
  * @param test The test framework.
- * @param manager The manager to use for writing PFM data.
- * @param flash_mock The mock for PFM flash storage.
+ * @param manager The manager testing components.
  * @param addr The expected address of PFM writes.
  *
  * @return The number of PFM bytes written.
  */
-static int pfm_manager_flash_testing_write_new_pfm (CuTest *test, struct pfm_manager_flash *manager,
-	struct flash_master_mock *flash_mock, uint32_t addr)
+static int pfm_manager_flash_testing_write_new_pfm (CuTest *test,
+	struct pfm_manager_flash_testing *manager, uint32_t addr)
 {
 	int status;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
 
-	status = flash_master_mock_expect_erase_flash_verify (flash_mock, addr, 0x10000);
-	status |= flash_master_mock_expect_write_ext (flash_mock, addr, data, sizeof (data), true, 0);
+	status = flash_master_mock_expect_erase_flash_verify (&manager->flash_mock, addr, 0x10000);
+	status |= flash_master_mock_expect_write_ext (&manager->flash_mock, addr, data, sizeof (data),
+		true, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager->base.base.clear_pending_region (&manager->base.base, sizeof (data));
+	status = manager->test.base.base.clear_pending_region (&manager->test.base.base, sizeof (data));
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager->base.base.write_pending_data (&manager->base.base, data, sizeof (data));
+	status = manager->test.base.base.write_pending_data (&manager->test.base.base, data,
+		sizeof (data));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_validate (&flash_mock->mock);
+	status = mock_validate (&manager->flash_mock.mock);
 	CuAssertIntEquals (test, 0, status);
 
 	return sizeof (data);
 }
-
 
 /*******************
  * Test cases
@@ -547,901 +647,294 @@ static int pfm_manager_flash_testing_write_new_pfm (CuTest *test, struct pfm_man
 
 static void pfm_manager_flash_test_init (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
+	pfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
+
+	status = pfm_manager_flash_testing_initial_pfm_validation (&manager, NULL, 0, NULL, NULL, NULL,
+		0, NULL, NULL, true);
 	CuAssertIntEquals (test, 0, status);
 
-	status = signature_verification_mock_init (&verification);
+	status = pfm_manager_flash_init (&manager.test, &manager.pfm1, &manager.pfm2,
+		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_init (&flash_mock);
+	status = manifest_manager_get_port (&manager.test.base.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, manager.test.base.get_active_pfm);
+	CuAssertPtrNotNull (test, manager.test.base.get_pending_pfm);
+	CuAssertPtrNotNull (test, manager.test.base.free_pfm);
 
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, manager.test.base.base.activate_pending_manifest);
+	CuAssertPtrNotNull (test, manager.test.base.base.clear_pending_region);
+	CuAssertPtrNotNull (test, manager.test.base.base.write_pending_data);
+	CuAssertPtrNotNull (test, manager.test.base.base.verify_pending_manifest);
+	CuAssertPtrNotNull (test, manager.test.base.base.clear_all_manifests);
 
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, NULL,
-		0, NULL, NULL, NULL, 0, NULL, NULL, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_get_port (&manager.base.base);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrNotNull (test, manager.base.get_active_pfm);
-	CuAssertPtrNotNull (test, manager.base.get_pending_pfm);
-	CuAssertPtrNotNull (test, manager.base.free_pfm);
-	CuAssertPtrNotNull (test, manager.base.base.activate_pending_manifest);
-	CuAssertPtrNotNull (test, manager.base.base.clear_pending_region);
-	CuAssertPtrNotNull (test, manager.base.base.write_pending_data);
-	CuAssertPtrNotNull (test, manager.base.base.verify_pending_manifest);
-	CuAssertPtrNotNull (test, manager.base.base.clear_all_manifests);
-
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
-
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	manager.base.get_active_pfm (&manager.base);
+	manager.test.base.get_active_pfm (&manager.test.base);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_init_only_active_region1 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM_DATA, PFM_DATA_LEN,
+		PFM_HASH, PFM_SIGNATURE, NULL, 0, NULL, NULL, true);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrEquals (test, &manager.pfm1, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, NULL, 0, NULL, NULL, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, &pfm1, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
-
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_init_only_active_region2 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, NULL, 0, NULL, NULL, PFM_DATA,
+		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, false);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrEquals (test, &manager.pfm2, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = state_mgr.save_active_manifest (&state_mgr, 0, MANIFEST_REGION_2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, NULL, 0,
-		NULL, NULL, PFM_DATA, PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, false);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, &pfm2, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
-
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_init_only_pending_region2 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, NULL, 0, NULL, NULL, PFM_DATA,
+		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, true);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, &manager.pfm2, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, NULL, 0,
-		NULL, NULL, PFM_DATA, PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, &pfm2, manager.base.get_pending_pfm (&manager.base));
-
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_init_only_pending_region1 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM_DATA, PFM_DATA_LEN,
+		PFM_HASH, PFM_SIGNATURE, NULL, 0, NULL, NULL, false);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, &manager.pfm1, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = state_mgr.save_active_manifest (&state_mgr, 0, MANIFEST_REGION_2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, NULL, 0, NULL, NULL, false);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, &pfm1, manager.base.get_pending_pfm (&manager.base));
-
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_init_active_and_pending (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM_DATA, PFM_DATA_LEN,
+		PFM_HASH, PFM_SIGNATURE, PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH, PFM2_SIGNATURE, true);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrEquals (test, &manager.pfm1, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, &manager.pfm2, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH,
-		PFM2_SIGNATURE, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, &pfm1, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, &pfm2, manager.base.get_pending_pfm (&manager.base));
-
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_init_region2_pending_lower_id (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_verify_pfm (&flash_mock, &verification, PFM2_DATA,
-		PFM2_DATA_LEN, PFM2_HASH, PFM2_SIGNATURE, 0x10000);
-	status |= pfm_manager_flash_testing_verify_pfm (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, 0x20000);
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM2_DATA, PFM2_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x20000, 0, -1, PFM_HEADER_SIZE));
+	status = pfm_manager_flash_testing_verify_pfm (&manager, PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH,
+		PFM2_SIGNATURE, 0x10000);
+	status |= pfm_manager_flash_testing_verify_pfm (&manager, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, 0x20000);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
+	status = pfm_manager_flash_init (&manager.test, &manager.pfm1, &manager.pfm2,
+		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertPtrEquals (test, &pfm1, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, &manager.pfm1, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_init_region2_pending_same_id (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_verify_pfm (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, 0x10000);
-	status |= pfm_manager_flash_testing_verify_pfm (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, 0x20000);
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x20000, 0, -1, PFM_HEADER_SIZE));
+	status = pfm_manager_flash_testing_verify_pfm (&manager, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, 0x10000);
+	status |= pfm_manager_flash_testing_verify_pfm (&manager, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, 0x20000);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
+	status = pfm_manager_flash_init (&manager.test, &manager.pfm1, &manager.pfm2,
+		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertPtrEquals (test, &pfm1, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, &manager.pfm1, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_init_region2_pending_different_platform_id (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_verify_pfm (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, 0x10000);
-	status |= pfm_manager_flash_testing_verify_pfm (&flash_mock, &verification, PFM_PLATFORM2_DATA,
+	status = pfm_manager_flash_testing_verify_pfm (&manager, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, 0x10000);
+	status |= pfm_manager_flash_testing_verify_pfm (&manager, PFM_PLATFORM2_DATA,
 		PFM_PLATFORM2_DATA_LEN, PFM_PLATFORM2_HASH, PFM_PLATFORM2_SIGNATURE, 0x20000);
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_PLATFORM2_DATA,
-		PFM_PLATFORM2_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x20000, 0, -1, PFM_HEADER_SIZE));
-
-	status |= pfm_manager_flash_testing_read_platform_id (&flash_mock, PFM_DATA, PFM_DATA_LEN,
-		0x10000);
-	status |= pfm_manager_flash_testing_read_platform_id (&flash_mock, PFM_PLATFORM2_DATA,
-		PFM_PLATFORM2_DATA_LEN, 0x20000);
-
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
+	status = pfm_manager_flash_init (&manager.test, &manager.pfm1, &manager.pfm2,
+		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertPtrEquals (test, &pfm1, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, &manager.pfm1, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_init_region1_pending_lower_id (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
+	pfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
+
+	status = manager.state_mgr.save_active_manifest (&manager.state_mgr, 0, MANIFEST_REGION_2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = state_mgr.save_active_manifest (&state_mgr, 0, MANIFEST_REGION_2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_verify_pfm (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, 0x10000);
-	status |= pfm_manager_flash_testing_verify_pfm (&flash_mock, &verification, PFM2_DATA,
-		PFM2_DATA_LEN, PFM2_HASH, PFM2_SIGNATURE, 0x20000);
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM2_DATA, PFM2_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x20000, 0, -1, PFM_HEADER_SIZE));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
+	status = pfm_manager_flash_testing_verify_pfm (&manager, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, 0x10000);
+	status |= pfm_manager_flash_testing_verify_pfm (&manager, PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH,
+		PFM2_SIGNATURE, 0x20000);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
+	status = pfm_manager_flash_init (&manager.test, &manager.pfm1, &manager.pfm2,
+		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertPtrEquals (test, &pfm2, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, &manager.pfm2, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_init_region1_pending_same_id (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
+	pfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
+
+	status = manager.state_mgr.save_active_manifest (&manager.state_mgr, 0, MANIFEST_REGION_2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = state_mgr.save_active_manifest (&state_mgr, 0, MANIFEST_REGION_2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_verify_pfm (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, 0x10000);
-	status |= pfm_manager_flash_testing_verify_pfm (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, 0x20000);
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x20000, 0, -1, PFM_HEADER_SIZE));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
+	status = pfm_manager_flash_testing_verify_pfm (&manager, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, 0x10000);
+	status |= pfm_manager_flash_testing_verify_pfm (&manager, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, 0x20000);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
+	status = pfm_manager_flash_init (&manager.test, &manager.pfm1, &manager.pfm2,
+		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertPtrEquals (test, &pfm2, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, &manager.pfm2, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_init_only_pending_region2_empty_manifest (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 	struct manifest_header *header;
 	struct pfm_allowable_firmware_header *allowed_header;
@@ -1476,94 +969,48 @@ static void pfm_manager_flash_test_init_only_pending_region2_empty_manifest (CuT
 	memcpy (&pfm[plat_offset + PFM_PLATFORM_HEADER_SIZE], PFM_PLATFORM_ID,
 		strlen (PFM_PLATFORM_ID));
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
 	/* Use blank check to simulate empty PFM regions. */
-	status = flash_master_mock_expect_blank_check (&flash_mock, 0x10000, PFM_HEADER_SIZE);
+	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000, PFM_HEADER_SIZE);
 
-	status |= pfm_manager_flash_testing_verify_empty_pfm (&flash_mock, &verification, pfm, length,
-		man_offset, plat_offset, sig_offset, 0x20000);
+	status |= pfm_manager_flash_testing_verify_empty_pfm (&manager, pfm, length, man_offset,
+		plat_offset, sig_offset, 0x20000);
 
 	/* Get versions list. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm, sizeof (pfm),
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, pfm, length,
 		FLASH_EXP_READ_CMD (0x03, 0x20000, 0, -1, PFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm + PFM_HEADER_SIZE,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, pfm + PFM_HEADER_SIZE,
 		length - PFM_HEADER_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x20000 + PFM_HEADER_SIZE, 0, -1, PFM_ALLOWED_HEADER_SIZE));
 
 	/* Erase manifest regions. */
-	status |= flash_master_mock_expect_erase_flash (&flash_mock, 0x20000);
-	status |= flash_master_mock_expect_erase_flash (&flash_mock, 0x10000);
+	status |= flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x20000);
+	status |= flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x10000);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
+	status = pfm_manager_flash_init (&manager.test, &manager.pfm1, &manager.pfm2,
+		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_init_only_pending_region1_empty_manifest (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 	struct manifest_header *header;
 	struct pfm_allowable_firmware_header *allowed_header;
@@ -1598,97 +1045,51 @@ static void pfm_manager_flash_test_init_only_pending_region1_empty_manifest (CuT
 	memcpy (&pfm[plat_offset + PFM_PLATFORM_HEADER_SIZE], PFM_PLATFORM_ID,
 		strlen (PFM_PLATFORM_ID));
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
+	pfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
+
+	status = manager.state_mgr.save_active_manifest (&manager.state_mgr, 0, MANIFEST_REGION_2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = state_mgr.save_active_manifest (&state_mgr, 0, MANIFEST_REGION_2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_verify_empty_pfm (&flash_mock, &verification, pfm, length,
-		man_offset, plat_offset, sig_offset, 0x10000);
+	status = pfm_manager_flash_testing_verify_empty_pfm (&manager, pfm, length, man_offset,
+		plat_offset, sig_offset, 0x10000);
 
 	/* Use blank check to simulate empty PFM regions. */
-	status |= flash_master_mock_expect_blank_check (&flash_mock, 0x20000, PFM_HEADER_SIZE);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, PFM_HEADER_SIZE);
 
 	/* Get versions list. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm, sizeof (pfm),
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, pfm, length,
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm + PFM_HEADER_SIZE,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, pfm + PFM_HEADER_SIZE,
 		length - PFM_HEADER_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_HEADER_SIZE, 0, -1, PFM_ALLOWED_HEADER_SIZE));
 
 	/* Erase manifest regions. */
-	status |= flash_master_mock_expect_erase_flash (&flash_mock, 0x10000);
-	status |= flash_master_mock_expect_erase_flash (&flash_mock, 0x20000);
+	status |= flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x10000);
+	status |= flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x20000);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
+	status = pfm_manager_flash_init (&manager.test, &manager.pfm1, &manager.pfm2,
+		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_init_active_and_pending_empty_manifest (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	struct manifest_header *header;
@@ -1725,535 +1126,227 @@ static void pfm_manager_flash_test_init_active_and_pending_empty_manifest (CuTes
 	platform_header->id_length = strlen (PFM_PLATFORM_ID);
 	memcpy (&pfm[id_offset], PFM_PLATFORM_ID, strlen (PFM_PLATFORM_ID));
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_verify_pfm (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, 0x10000);
-	status |= pfm_manager_flash_testing_verify_empty_pfm (&flash_mock, &verification, pfm, length,
-		man_offset, plat_offset, sig_offset, 0x20000);
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm, length,
-		FLASH_EXP_READ_CMD (0x03, 0x20000, 0, -1, PFM_HEADER_SIZE));
-
-	status |= pfm_manager_flash_testing_read_platform_id (&flash_mock, PFM_DATA, PFM_DATA_LEN,
-		0x10000);
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm, length,
-		FLASH_EXP_READ_CMD (0x03, 0x20000, 0, -1, PFM_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm + PFM_HEADER_SIZE,
-		length - PFM_HEADER_SIZE,
-		FLASH_EXP_READ_CMD (0x03, 0x20000 + PFM_HEADER_SIZE, 0, -1, PFM_ALLOWED_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm + man_offset,
-		length - man_offset,
-		FLASH_EXP_READ_CMD (0x03, 0x20000 + man_offset, 0, -1, PFM_MANIFEST_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm + plat_offset,
-		length - plat_offset,
-		FLASH_EXP_READ_CMD (0x03, 0x20000 + plat_offset, 0, -1, PFM_PLATFORM_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm + id_offset, length - id_offset,
-		FLASH_EXP_READ_CMD (0x03, 0x20000 + id_offset, 0, -1, strlen (PFM_PLATFORM_ID)));
+	status = pfm_manager_flash_testing_verify_pfm (&manager, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, 0x10000);
+	status |= pfm_manager_flash_testing_verify_empty_pfm (&manager, pfm, length, man_offset,
+		plat_offset, sig_offset, 0x20000);
 
 	/* Get versions list. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm, sizeof (pfm),
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, pfm, length,
 		FLASH_EXP_READ_CMD (0x03, 0x20000, 0, -1, PFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm + PFM_HEADER_SIZE,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, pfm + PFM_HEADER_SIZE,
 		length - PFM_HEADER_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x20000 + PFM_HEADER_SIZE, 0, -1, PFM_ALLOWED_HEADER_SIZE));
 
 	/* Erase manifest regions. */
-	status |= flash_master_mock_expect_erase_flash (&flash_mock, 0x20000);
-	status |= flash_master_mock_expect_erase_flash (&flash_mock, 0x10000);
+	status |= flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x20000);
+	status |= flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x10000);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
+	status = pfm_manager_flash_init (&manager.test, &manager.pfm1, &manager.pfm2,
+		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_init_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (NULL, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
+	status = pfm_manager_flash_init (NULL, &manager.pfm1, &manager.pfm2,
+		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
 
-	status = pfm_manager_flash_init (&manager, NULL, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
+	status = pfm_manager_flash_init (&manager.test, NULL, &manager.pfm2,
+		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
 
-	status = pfm_manager_flash_init (&manager, &pfm1, NULL, &state_mgr, &hash.base,
-		&verification.base);
+	status = pfm_manager_flash_init (&manager.test, &manager.pfm1, NULL,
+		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
 
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, NULL, &hash.base,
-		&verification.base);
+	status = pfm_manager_flash_init (&manager.test, &manager.pfm1, &manager.pfm2,
+		NULL, &manager.hash.base, &manager.verification.base);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
 
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, NULL,
-		&verification.base);
+	status = pfm_manager_flash_init (&manager.test, &manager.pfm1, &manager.pfm2,
+		&manager.state_mgr, NULL, &manager.verification.base);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
 
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		NULL);
+	status = pfm_manager_flash_init (&manager.test, &manager.pfm1, &manager.pfm2,
+		&manager.state_mgr, &manager.hash.base, NULL);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release_dependencies (test, &manager);
 }
 
 static void pfm_manager_flash_test_init_region1_flash_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
+	status = flash_master_mock_expect_xfer (&manager.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
+	status = pfm_manager_flash_init (&manager.test, &manager.pfm1, &manager.pfm2,
+		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release_dependencies (test, &manager);
 }
 
 static void pfm_manager_flash_test_init_region2_flash_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
 	/* Use blank check to simulate empty PFM regions. */
-	status = flash_master_mock_expect_blank_check (&flash_mock, 0x10000, PFM_HEADER_SIZE);
+	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000, PFM_HEADER_SIZE);
 
-	status |= flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
+	status = pfm_manager_flash_init (&manager.test, &manager.pfm1, &manager.pfm2,
+		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release_dependencies (test, &manager);
 }
 
 static void pfm_manager_flash_test_init_pfm_bad_signature (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_SIGNATURE, PFM_SIGNATURE_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, PFM_SIGNATURE,
+		PFM_SIGNATURE_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_SIGNATURE_OFFSET, 0, -1, PFM_SIGNATURE_LEN));
 
-	status |= flash_master_mock_expect_verify_flash (&flash_mock, 0x10000, PFM_DATA,
+	status |= flash_master_mock_expect_verify_flash (&manager.flash_mock, 0x10000, PFM_DATA,
 		PFM_DATA_LEN - PFM_SIGNATURE_LEN);
 
-	status |= mock_expect (&verification.mock, verification.base.verify_signature, &verification,
-		RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_NOT_NULL, MOCK_ARG (PFM_HASH_LEN), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (PFM_SIGNATURE_LEN));
+	status |= mock_expect (&manager.verification.mock, manager.verification.base.verify_signature,
+		&manager.verification, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_NOT_NULL, MOCK_ARG (PFM_HASH_LEN),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (PFM_SIGNATURE_LEN));
 
 	/* Use blank check to simulate empty PFM regions. */
-	status |= flash_master_mock_expect_blank_check (&flash_mock, 0x20000, PFM_HEADER_SIZE);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, PFM_HEADER_SIZE);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
+	status = pfm_manager_flash_init (&manager.test, &manager.pfm1, &manager.pfm2,
+		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_init_pfm_bad_signature_ecc (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_SIGNATURE, PFM_SIGNATURE_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, PFM_SIGNATURE,
+		PFM_SIGNATURE_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_SIGNATURE_OFFSET, 0, -1, PFM_SIGNATURE_LEN));
 
-	status |= flash_master_mock_expect_verify_flash (&flash_mock, 0x10000, PFM_DATA,
+	status |= flash_master_mock_expect_verify_flash (&manager.flash_mock, 0x10000, PFM_DATA,
 		PFM_DATA_LEN - PFM_SIGNATURE_LEN);
 
-	status |= mock_expect (&verification.mock, verification.base.verify_signature, &verification,
-		ECC_ENGINE_BAD_SIGNATURE, MOCK_ARG_NOT_NULL, MOCK_ARG (PFM_HASH_LEN), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (PFM_SIGNATURE_LEN));
+	status |= mock_expect (&manager.verification.mock, manager.verification.base.verify_signature,
+		&manager.verification, ECC_ENGINE_BAD_SIGNATURE, MOCK_ARG_NOT_NULL, MOCK_ARG (PFM_HASH_LEN),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (PFM_SIGNATURE_LEN));
 
 	/* Use blank check to simulate empty PFM regions. */
-	status |= flash_master_mock_expect_blank_check (&flash_mock, 0x20000, PFM_HEADER_SIZE);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, PFM_HEADER_SIZE);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
+	status = pfm_manager_flash_init (&manager.test, &manager.pfm1, &manager.pfm2,
+		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_init_bad_length (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 	uint8_t pfm_bad_data[PFM_SIGNATURE_OFFSET];
 
@@ -2262,80 +1355,35 @@ static void pfm_manager_flash_test_init_bad_length (CuTest *test)
 	memcpy (pfm_bad_data, PFM_DATA, sizeof (pfm_bad_data));
 	pfm_bad_data[9] = 0xff;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_bad_data, sizeof (pfm_bad_data),
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, pfm_bad_data,
+		sizeof (pfm_bad_data),
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
 	/* Use blank check to simulate empty PFM regions. */
-	status |= flash_master_mock_expect_blank_check (&flash_mock, 0x20000, PFM_HEADER_SIZE);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, PFM_HEADER_SIZE);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
+	status = pfm_manager_flash_init (&manager.test, &manager.pfm1, &manager.pfm2,
+		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_init_bad_magic_number (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 	uint8_t pfm_bad_data[PFM_SIGNATURE_OFFSET];
 
@@ -2344,80 +1392,35 @@ static void pfm_manager_flash_test_init_bad_magic_number (CuTest *test)
 	memcpy (pfm_bad_data, PFM_DATA, sizeof (pfm_bad_data));
 	pfm_bad_data[2] ^= 0x55;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_bad_data, sizeof (pfm_bad_data),
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, pfm_bad_data,
+		sizeof (pfm_bad_data),
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
 	/* Use blank check to simulate empty PFM regions. */
-	status |= flash_master_mock_expect_blank_check (&flash_mock, 0x20000, PFM_HEADER_SIZE);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, PFM_HEADER_SIZE);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
+	status = pfm_manager_flash_init (&manager.test, &manager.pfm1, &manager.pfm2,
+		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_init_malformed (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 	const char *version1 = "V1";
 	struct manifest_header *header;
@@ -2483,520 +1486,95 @@ static void pfm_manager_flash_test_init_malformed (CuTest *test)
 		RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, &pfm_data[sig_offset], PFM_SIGNATURE_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data, sizeof (pfm_data),
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, pfm_data, sizeof (pfm_data),
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &pfm_data[sig_offset],
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &pfm_data[sig_offset],
 		PFM_SIGNATURE_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + sig_offset, 0, -1, PFM_SIGNATURE_LEN));
 
-	status |= flash_master_mock_expect_verify_flash (&flash_mock, 0x10000, pfm_data,
+	status |= flash_master_mock_expect_verify_flash (&manager.flash_mock, 0x10000, pfm_data,
 		sizeof (pfm_data) - PFM_SIGNATURE_LEN);
 
-	status |= mock_expect (&verification.mock, verification.base.verify_signature, &verification,
-		0, MOCK_ARG_NOT_NULL, MOCK_ARG (PFM_HASH_LEN),
+	status |= mock_expect (&manager.verification.mock, manager.verification.base.verify_signature,
+		&manager.verification, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (PFM_HASH_LEN),
 		MOCK_ARG_PTR_CONTAINS (&pfm_data[sig_offset], PFM_SIGNATURE_LEN),
 		MOCK_ARG (PFM_SIGNATURE_LEN));
 
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data, sizeof (pfm_data),
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) allowed_header,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, (uint8_t*) allowed_header,
 		allowed_header->length,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_HEADER_SIZE, 0, -1, PFM_ALLOWED_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) manifest_header,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, (uint8_t*) manifest_header,
 		manifest_header->length,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + man_offset, 0, -1, PFM_MANIFEST_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &pfm_data[sig_offset],
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &pfm_data[sig_offset],
 		PFM_SIGNATURE_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + sig_offset, 0, -1, PFM_PLATFORM_HEADER_SIZE));
 
 	/* Use blank check to simulate empty PFM regions. */
-	status |= flash_master_mock_expect_blank_check (&flash_mock, 0x20000, PFM_HEADER_SIZE);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, PFM_HEADER_SIZE);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
+	status = pfm_manager_flash_init (&manager.test, &manager.pfm1, &manager.pfm2,
+		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
-}
-
-static void pfm_manager_flash_test_init_region1_id_error (CuTest *test)
-{
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
-	int status;
-
-	TEST_START;
-
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_verify_pfm (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, 0x10000);
-	status |= pfm_manager_flash_testing_verify_pfm (&flash_mock, &verification, PFM2_DATA,
-		PFM2_DATA_LEN, PFM2_HASH, PFM2_SIGNATURE, 0x20000);
-
-	status |= flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
-		FLASH_EXP_READ_STATUS_REG);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
-
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
-	CuAssertIntEquals (test, true, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
-}
-
-static void pfm_manager_flash_test_init_region2_id_error (CuTest *test)
-{
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
-	int status;
-
-	TEST_START;
-
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_verify_pfm (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, 0x10000);
-	status |= pfm_manager_flash_testing_verify_pfm (&flash_mock, &verification, PFM2_DATA,
-		PFM2_DATA_LEN, PFM2_HASH, PFM2_SIGNATURE, 0x20000);
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
-	status |= flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
-		FLASH_EXP_READ_STATUS_REG);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
-
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
-	CuAssertIntEquals (test, true, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
-}
-
-static void pfm_manager_flash_test_init_region1_platform_id_error (CuTest *test)
-{
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
-	int status;
-
-	TEST_START;
-
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_verify_pfm (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, 0x10000);
-	status |= pfm_manager_flash_testing_verify_pfm (&flash_mock, &verification, PFM2_DATA,
-		PFM2_DATA_LEN, PFM2_HASH, PFM2_SIGNATURE, 0x20000);
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM2_DATA, PFM2_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x20000, 0, -1, PFM_HEADER_SIZE));
-
-	status = flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
-		FLASH_EXP_READ_STATUS_REG);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
-
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
-	CuAssertIntEquals (test, true, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
-}
-
-static void pfm_manager_flash_test_init_region2_platform_id_error (CuTest *test)
-{
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
-	int status;
-
-	TEST_START;
-
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_verify_pfm (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, 0x10000);
-	status |= pfm_manager_flash_testing_verify_pfm (&flash_mock, &verification, PFM2_DATA,
-		PFM2_DATA_LEN, PFM2_HASH, PFM2_SIGNATURE, 0x20000);
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM2_DATA, PFM2_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x20000, 0, -1, PFM_HEADER_SIZE));
-
-	status |= pfm_manager_flash_testing_read_platform_id (&flash_mock, PFM_DATA, PFM_DATA_LEN,
-		0x10000);
-	status = flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
-		FLASH_EXP_READ_STATUS_REG);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
-
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
-	CuAssertIntEquals (test, true, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_init_pending_versions_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
+	status = pfm_manager_flash_testing_verify_pfm (&manager, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, 0x10000);
+	status |= pfm_manager_flash_testing_verify_pfm (&manager, PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH,
+		PFM2_SIGNATURE, 0x20000);
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_verify_pfm (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, 0x10000);
-	status |= pfm_manager_flash_testing_verify_pfm (&flash_mock, &verification, PFM2_DATA,
-		PFM2_DATA_LEN, PFM2_HASH, PFM2_SIGNATURE, 0x20000);
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM2_DATA, PFM2_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x20000, 0, -1, PFM_HEADER_SIZE));
-
-	status |= pfm_manager_flash_testing_read_platform_id (&flash_mock, PFM_DATA, PFM_DATA_LEN,
-		0x10000);
-	status |= pfm_manager_flash_testing_read_platform_id (&flash_mock, PFM2_DATA, PFM2_DATA_LEN,
-		0x20000);
-
-	status |= flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
+	status = pfm_manager_flash_init (&manager.test, &manager.pfm1, &manager.pfm2,
+		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release_dependencies (test, &manager);
 }
 
 static void pfm_manager_flash_test_init_empty_manifest_pending_erase_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 	struct manifest_header *header;
 	struct pfm_allowable_firmware_header *allowed_header;
@@ -3031,89 +1609,45 @@ static void pfm_manager_flash_test_init_empty_manifest_pending_erase_error (CuTe
 	memcpy (&pfm[plat_offset + PFM_PLATFORM_HEADER_SIZE], PFM_PLATFORM_ID,
 		strlen (PFM_PLATFORM_ID));
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
 	/* Use blank check to simulate empty PFM regions. */
-	status = flash_master_mock_expect_blank_check (&flash_mock, 0x10000, PFM_HEADER_SIZE);
+	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000, PFM_HEADER_SIZE);
 
-	status |= pfm_manager_flash_testing_verify_empty_pfm (&flash_mock, &verification, pfm, length,
-		man_offset, plat_offset, sig_offset, 0x20000);
+	status |= pfm_manager_flash_testing_verify_empty_pfm (&manager, pfm, length, man_offset,
+		plat_offset, sig_offset, 0x20000);
 
 	/* Get versions list. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm, sizeof (pfm),
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, pfm, length,
 		FLASH_EXP_READ_CMD (0x03, 0x20000, 0, -1, PFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm + PFM_HEADER_SIZE,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, pfm + PFM_HEADER_SIZE,
 		length - PFM_HEADER_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x20000 + PFM_HEADER_SIZE, 0, -1, PFM_ALLOWED_HEADER_SIZE));
 
 	/* Erase manifest regions. */
-	status |= flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
+	status = pfm_manager_flash_init (&manager.test, &manager.pfm1, &manager.pfm2,
+		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release_dependencies (test, &manager);
 }
 
 static void pfm_manager_flash_test_init_empty_manifest_active_erase_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 	struct manifest_header *header;
 	struct pfm_allowable_firmware_header *allowed_header;
@@ -3148,331 +1682,162 @@ static void pfm_manager_flash_test_init_empty_manifest_active_erase_error (CuTes
 	memcpy (&pfm[plat_offset + PFM_PLATFORM_HEADER_SIZE], PFM_PLATFORM_ID,
 		strlen (PFM_PLATFORM_ID));
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
 	/* Use blank check to simulate empty PFM regions. */
-	status = flash_master_mock_expect_blank_check (&flash_mock, 0x10000, PFM_HEADER_SIZE);
+	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000, PFM_HEADER_SIZE);
 
-	status |= pfm_manager_flash_testing_verify_empty_pfm (&flash_mock, &verification, pfm, length,
-		man_offset, plat_offset, sig_offset, 0x20000);
+	status |= pfm_manager_flash_testing_verify_empty_pfm (&manager, pfm, length, man_offset,
+		plat_offset, sig_offset, 0x20000);
 
 	/* Get versions list. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm, sizeof (pfm),
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, pfm, length,
 		FLASH_EXP_READ_CMD (0x03, 0x20000, 0, -1, PFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm + PFM_HEADER_SIZE,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, pfm + PFM_HEADER_SIZE,
 		length - PFM_HEADER_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x20000 + PFM_HEADER_SIZE, 0, -1, PFM_ALLOWED_HEADER_SIZE));
 
 	/* Erase manifest regions. */
-	status |= flash_master_mock_expect_erase_flash (&flash_mock, 0x20000);
-	status |= flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
+	status |= flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x20000);
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
+	status = pfm_manager_flash_init (&manager.test, &manager.pfm1, &manager.pfm2,
+		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release_dependencies (test, &manager);
 }
 
 static void pfm_manager_flash_test_init_port (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
+	pfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
+
+	status = pfm_manager_flash_testing_initial_pfm_validation (&manager, NULL, 0, NULL, NULL, NULL,
+		0, NULL, NULL, true);
 	CuAssertIntEquals (test, 0, status);
 
-	status = signature_verification_mock_init (&verification);
+	status = pfm_manager_flash_init_port (&manager.test, &manager.pfm1, &manager.pfm2,
+		&manager.state_mgr, &manager.hash.base, &manager.verification.base, 1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, NULL,
-		0, NULL, NULL, NULL, 0, NULL, NULL, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init_port (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base, 1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manifest_manager_get_port (&manager.base.base);
+	status = manifest_manager_get_port (&manager.test.base.base);
 	CuAssertIntEquals (test, 1, status);
 
-	CuAssertPtrNotNull (test, manager.base.get_active_pfm);
-	CuAssertPtrNotNull (test, manager.base.get_pending_pfm);
-	CuAssertPtrNotNull (test, manager.base.free_pfm);
-	CuAssertPtrNotNull (test, manager.base.base.activate_pending_manifest);
-	CuAssertPtrNotNull (test, manager.base.base.clear_pending_region);
-	CuAssertPtrNotNull (test, manager.base.base.write_pending_data);
-	CuAssertPtrNotNull (test, manager.base.base.verify_pending_manifest);
-	CuAssertPtrNotNull (test, manager.base.base.clear_all_manifests);
+	CuAssertPtrNotNull (test, manager.test.base.get_active_pfm);
+	CuAssertPtrNotNull (test, manager.test.base.get_pending_pfm);
+	CuAssertPtrNotNull (test, manager.test.base.free_pfm);
 
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrNotNull (test, manager.test.base.base.activate_pending_manifest);
+	CuAssertPtrNotNull (test, manager.test.base.base.clear_pending_region);
+	CuAssertPtrNotNull (test, manager.test.base.base.write_pending_data);
+	CuAssertPtrNotNull (test, manager.test.base.base.verify_pending_manifest);
+	CuAssertPtrNotNull (test, manager.test.base.base.clear_all_manifests);
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
+
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	manager.base.get_active_pfm (&manager.base);
+	manager.test.base.get_active_pfm (&manager.test.base);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_init_port_negative (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, NULL,
+	status = pfm_manager_flash_testing_initial_pfm_validation (&manager, NULL,
 		0, NULL, NULL, NULL, 0, NULL, NULL, true);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm_manager_flash_init_port (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base, -1);
+	status = pfm_manager_flash_init_port (&manager.test, &manager.pfm1, &manager.pfm2,
+		&manager.state_mgr, &manager.hash.base, &manager.verification.base, -1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manifest_manager_get_port (&manager.base.base);
+	status = manifest_manager_get_port (&manager.test.base.base);
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertPtrNotNull (test, manager.base.get_active_pfm);
-	CuAssertPtrNotNull (test, manager.base.get_pending_pfm);
-	CuAssertPtrNotNull (test, manager.base.free_pfm);
-	CuAssertPtrNotNull (test, manager.base.base.activate_pending_manifest);
-	CuAssertPtrNotNull (test, manager.base.base.clear_pending_region);
-	CuAssertPtrNotNull (test, manager.base.base.write_pending_data);
-	CuAssertPtrNotNull (test, manager.base.base.verify_pending_manifest);
-	CuAssertPtrNotNull (test, manager.base.base.clear_all_manifests);
+	CuAssertPtrNotNull (test, manager.test.base.get_active_pfm);
+	CuAssertPtrNotNull (test, manager.test.base.get_pending_pfm);
+	CuAssertPtrNotNull (test, manager.test.base.free_pfm);
 
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrNotNull (test, manager.test.base.base.activate_pending_manifest);
+	CuAssertPtrNotNull (test, manager.test.base.base.clear_pending_region);
+	CuAssertPtrNotNull (test, manager.test.base.base.write_pending_data);
+	CuAssertPtrNotNull (test, manager.test.base.base.verify_pending_manifest);
+	CuAssertPtrNotNull (test, manager.test.base.base.clear_all_manifests);
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
+
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	manager.base.get_active_pfm (&manager.base);
+	manager.test.base.get_active_pfm (&manager.test.base);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_init_port_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init_port (NULL, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base, 1);
+	status = pfm_manager_flash_init_port (NULL, &manager.pfm1, &manager.pfm2,
+		&manager.state_mgr, &manager.hash.base, &manager.verification.base, 1);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
 
-	status = pfm_manager_flash_init_port (&manager, NULL, &pfm2, &state_mgr, &hash.base,
-		&verification.base, 1);
+	status = pfm_manager_flash_init_port (&manager.test, NULL, &manager.pfm2,
+		&manager.state_mgr, &manager.hash.base, &manager.verification.base, 1);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
 
-	status = pfm_manager_flash_init_port (&manager, &pfm1, NULL, &state_mgr, &hash.base,
-		&verification.base, 1);
+	status = pfm_manager_flash_init_port (&manager.test, &manager.pfm1, NULL,
+		&manager.state_mgr, &manager.hash.base, &manager.verification.base, 1);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
 
-	status = pfm_manager_flash_init_port (&manager, &pfm1, &pfm2, NULL, &hash.base,
-		&verification.base, 1);
+	status = pfm_manager_flash_init_port (&manager.test, &manager.pfm1, &manager.pfm2,
+		NULL, &manager.hash.base, &manager.verification.base, 1);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
 
-	status = pfm_manager_flash_init_port (&manager, &pfm1, &pfm2, &state_mgr, NULL,
-		&verification.base, 1);
+	status = pfm_manager_flash_init_port (&manager.test, &manager.pfm1, &manager.pfm2,
+		&manager.state_mgr, NULL, &manager.verification.base, 1);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
 
-	status = pfm_manager_flash_init_port (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		NULL, 1);
+	status = pfm_manager_flash_init_port (&manager.test, &manager.pfm1, &manager.pfm2,
+		&manager.state_mgr, &manager.hash.base, NULL, 1);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release_dependencies (test, &manager);
 }
 
 static void pfm_manager_flash_test_release_null (CuTest *test)
@@ -3484,2783 +1849,913 @@ static void pfm_manager_flash_test_release_null (CuTest *test)
 
 static void pfm_manager_flash_test_get_active_pfm_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
-	int status;
+	struct pfm_manager_flash_testing manager;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM_DATA, PFM_DATA_LEN,
+		PFM_HASH, PFM_SIGNATURE, NULL, 0, NULL, NULL, true);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (NULL));
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, NULL, 0, NULL, NULL, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (NULL));
-
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
-
-
 
 static void pfm_manager_flash_test_get_pending_pfm_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
-	int status;
+	struct pfm_manager_flash_testing manager;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM_DATA, PFM_DATA_LEN,
+		PFM_HASH, PFM_SIGNATURE, NULL, 0, NULL, NULL, false);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (NULL));
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = state_mgr.save_active_manifest (&state_mgr, 0, MANIFEST_REGION_2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, NULL, 0, NULL, NULL, false);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (NULL));
-
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_activate_pending_pfm_region2 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 	enum manifest_region active;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM_DATA, PFM_DATA_LEN,
+		PFM_HASH, PFM_SIGNATURE, PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH, PFM2_SIGNATURE, true);
+
+	host_state_manager_set_pfm_dirty (&manager.state_mgr, true);
+
+	status = manager.test.base.base.activate_pending_manifest (&manager.test.base.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrEquals (test, &manager.pfm2, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH,
-		PFM2_SIGNATURE, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	host_state_manager_set_pfm_dirty (&state_mgr, true);
-
-	status = manager.base.base.activate_pending_manifest (&manager.base.base);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, &pfm2, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
-
-	active = state_mgr.get_active_manifest (&state_mgr, 0);
+	active = manager.state_mgr.get_active_manifest (&manager.state_mgr, 0);
 	CuAssertIntEquals (test, MANIFEST_REGION_2, active);
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, false, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_activate_pending_pfm_region1 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 	enum manifest_region active;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM2_DATA, PFM2_DATA_LEN,
+		PFM2_HASH, PFM2_SIGNATURE, PFM_DATA, PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, false);
+
+	host_state_manager_set_pfm_dirty (&manager.state_mgr, true);
+
+	status = manager.test.base.base.activate_pending_manifest (&manager.test.base.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrEquals (test, &manager.pfm1, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = state_mgr.save_active_manifest (&state_mgr, 0, MANIFEST_REGION_2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification,
-		PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH, PFM2_SIGNATURE, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
-		PFM_SIGNATURE, false);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	host_state_manager_set_pfm_dirty (&state_mgr, true);
-
-	status = manager.base.base.activate_pending_manifest (&manager.base.base);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, &pfm1, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
-
-	active = state_mgr.get_active_manifest (&state_mgr, 0);
+	active = manager.state_mgr.get_active_manifest (&manager.state_mgr, 0);
 	CuAssertIntEquals (test, MANIFEST_REGION_1, active);
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, false, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_activate_pending_pfm_region2_notify_observers (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
-	struct pfm_observer_mock observer;
+	struct pfm_manager_flash_testing manager;
 	int status;
 	enum manifest_region active;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_observer_mock_init (&observer);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, PFM_DATA,
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM_DATA,
 		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH,
 		PFM2_SIGNATURE, true);
+
+	status = pfm_manager_add_observer (&manager.test.base, &manager.observer.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
+	status = mock_expect (&manager.observer.mock, manager.observer.base.on_pfm_activated,
+		&manager.observer, 0, MOCK_ARG (&manager.pfm2));
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm_manager_add_observer (&manager.base, &observer.base);
+	host_state_manager_set_pfm_dirty (&manager.state_mgr, true);
+
+	status = manager.test.base.base.activate_pending_manifest (&manager.test.base.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&observer.mock, observer.base.on_pfm_activated, &observer, 0,
-		MOCK_ARG (&pfm2));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrEquals (test, &manager.pfm2, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	host_state_manager_set_pfm_dirty (&state_mgr, true);
-
-	status = manager.base.base.activate_pending_manifest (&manager.base.base);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, &pfm2, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
-
-	active = state_mgr.get_active_manifest (&state_mgr, 0);
+	active = manager.state_mgr.get_active_manifest (&manager.state_mgr, 0);
 	CuAssertIntEquals (test, MANIFEST_REGION_2, active);
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, false, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_observer_mock_validate_and_release (&observer);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_activate_pending_pfm_region1_notify_observers (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
-	struct pfm_observer_mock observer;
+	struct pfm_manager_flash_testing manager;
 	int status;
 	enum manifest_region active;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM2_DATA, PFM2_DATA_LEN,
+		PFM2_HASH, PFM2_SIGNATURE, PFM_DATA, PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, false);
+
+	status = pfm_manager_add_observer (&manager.test.base, &manager.observer.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = signature_verification_mock_init (&verification);
+	status = mock_expect (&manager.observer.mock, manager.observer.base.on_pfm_activated,
+		&manager.observer, 0, MOCK_ARG (&manager.pfm1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_init (&flash_mock);
+	host_state_manager_set_pfm_dirty (&manager.state_mgr, true);
+
+	status = manager.test.base.base.activate_pending_manifest (&manager.test.base.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrEquals (test, &manager.pfm1, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = state_mgr.save_active_manifest (&state_mgr, 0, MANIFEST_REGION_2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_observer_mock_init (&observer);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification,
-		PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH, PFM2_SIGNATURE, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
-		PFM_SIGNATURE, false);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_add_observer (&manager.base, &observer.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&observer.mock, observer.base.on_pfm_activated, &observer, 0,
-		MOCK_ARG (&pfm1));
-	CuAssertIntEquals (test, 0, status);
-
-	host_state_manager_set_pfm_dirty (&state_mgr, true);
-
-	status = manager.base.base.activate_pending_manifest (&manager.base.base);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, &pfm1, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
-
-	active = state_mgr.get_active_manifest (&state_mgr, 0);
+	active = manager.state_mgr.get_active_manifest (&manager.state_mgr, 0);
 	CuAssertIntEquals (test, MANIFEST_REGION_1, active);
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, false, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_observer_mock_validate_and_release (&observer);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_activate_pending_pfm_no_pending_region2 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM_DATA, PFM_DATA_LEN,
+		PFM_HASH, PFM_SIGNATURE, NULL, 0, NULL, NULL, true);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
+	host_state_manager_set_pfm_dirty (&manager.state_mgr, true);
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, NULL, 0, NULL, NULL, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	host_state_manager_set_pfm_dirty (&state_mgr, true);
-
-	status = manager.base.base.activate_pending_manifest (&manager.base.base);
+	status = manager.test.base.base.activate_pending_manifest (&manager.test.base.base);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_NONE_PENDING, status);
 
-	CuAssertPtrEquals (test, &pfm1, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, &manager.pfm1, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_activate_pending_pfm_no_pending_region1 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, NULL, 0, NULL, NULL, PFM_DATA,
+		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, false);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
+	host_state_manager_set_pfm_dirty (&manager.state_mgr, true);
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = state_mgr.save_active_manifest (&state_mgr, 0, MANIFEST_REGION_2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, NULL, 0,
-		NULL, NULL, PFM_DATA, PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, false);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	host_state_manager_set_pfm_dirty (&state_mgr, true);
-
-	status = manager.base.base.activate_pending_manifest (&manager.base.base);
+	status = manager.test.base.base.activate_pending_manifest (&manager.test.base.base);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_NONE_PENDING, status);
 
-	CuAssertPtrEquals (test, &pfm2, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, &manager.pfm2, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_activate_pending_pfm_no_pending_notify_observers (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
-	struct pfm_observer_mock observer;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM_DATA, PFM_DATA_LEN,
+		PFM_HASH, PFM_SIGNATURE, NULL, 0, NULL, NULL, true);
+
+	status = pfm_manager_add_observer (&manager.test.base, &manager.observer.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
+	host_state_manager_set_pfm_dirty (&manager.state_mgr, true);
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_observer_mock_init (&observer);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, NULL, 0, NULL, NULL, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_add_observer (&manager.base, &observer.base);
-	CuAssertIntEquals (test, 0, status);
-
-	host_state_manager_set_pfm_dirty (&state_mgr, true);
-
-	status = manager.base.base.activate_pending_manifest (&manager.base.base);
+	status = manager.test.base.base.activate_pending_manifest (&manager.test.base.base);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_NONE_PENDING, status);
 
-	CuAssertPtrEquals (test, &pfm1, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, &manager.pfm1, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_observer_mock_validate_and_release (&observer);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_activate_pending_pfm_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM_DATA, PFM_DATA_LEN,
+		PFM_HASH, PFM_SIGNATURE, PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH, PFM2_SIGNATURE, true);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
+	host_state_manager_set_pfm_dirty (&manager.state_mgr, true);
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH,
-		PFM2_SIGNATURE, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	host_state_manager_set_pfm_dirty (&state_mgr, true);
-
-	status = manager.base.base.activate_pending_manifest (NULL);
+	status = manager.test.base.base.activate_pending_manifest (NULL);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_clear_pending_region_region2 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, NULL, 0, NULL, NULL, NULL, 0,
+		NULL, NULL, true);
+
+	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock, 0x20000, 0x10000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = signature_verification_mock_init (&verification);
+	status = manager.test.base.base.clear_pending_region (&manager.test.base.base, 1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, NULL,
-		0, NULL, NULL, NULL, 0, NULL, NULL, true);
-
-	status |= flash_master_mock_expect_erase_flash_verify (&flash_mock, 0x20000, 0x10000);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manager.base.base.clear_pending_region (&manager.base.base, 1);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
-
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_clear_pending_region_region1 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, NULL, 0, NULL, NULL, NULL, 0,
+		NULL, NULL, false);
+
+	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock, 0x10000, 0x10000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = signature_verification_mock_init (&verification);
+	status = manager.test.base.base.clear_pending_region (&manager.test.base.base, 1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = state_mgr.save_active_manifest (&state_mgr, 0, MANIFEST_REGION_2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, NULL,
-		0, NULL, NULL, NULL, 0, NULL, NULL, true);
-
-	status |= flash_master_mock_expect_erase_flash_verify (&flash_mock, 0x10000, 0x10000);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manager.base.base.clear_pending_region (&manager.base.base, 1);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
-
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_clear_pending_region_invalidate_pending_region2 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM_DATA, PFM_DATA_LEN,
+		PFM_HASH, PFM_SIGNATURE, PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH, PFM2_SIGNATURE, true);
+
+	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock, 0x20000, 0x10000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = signature_verification_mock_init (&verification);
+	status = manager.test.base.base.clear_pending_region (&manager.test.base.base, 1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrEquals (test, &manager.pfm1, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH,
-		PFM2_SIGNATURE, true);
-	status |= flash_master_mock_expect_erase_flash_verify (&flash_mock, 0x20000, 0x10000);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manager.base.base.clear_pending_region (&manager.base.base, 1);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, &pfm1, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
-
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_clear_pending_region_invalidate_pending_region1 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM2_DATA, PFM2_DATA_LEN,
+		PFM2_HASH, PFM2_SIGNATURE, PFM_DATA, PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, false);
+
+	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock, 0x10000, 0x10000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = signature_verification_mock_init (&verification);
+	status = manager.test.base.base.clear_pending_region (&manager.test.base.base, 1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrEquals (test, &manager.pfm2, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = state_mgr.save_active_manifest (&state_mgr, 0, MANIFEST_REGION_2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification,
-		PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH, PFM2_SIGNATURE, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
-		PFM_SIGNATURE, false);
-
-	status |= flash_master_mock_expect_erase_flash_verify (&flash_mock, 0x10000, 0x10000);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manager.base.base.clear_pending_region (&manager.base.base, 1);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, &pfm2, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
-
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_clear_pending_region_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, NULL, 0, NULL, NULL, NULL, 0,
+		NULL, NULL, true);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, NULL,
-		0, NULL, NULL, NULL, 0, NULL, NULL, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manager.base.base.clear_pending_region (NULL, 1);
+	status = manager.test.base.base.clear_pending_region (NULL, 1);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_clear_pending_region_manifest_too_large (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, NULL, 0, NULL, NULL, NULL, 0,
+		NULL, NULL, true);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, NULL,
-		0, NULL, NULL, NULL, 0, NULL, NULL, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manager.base.base.clear_pending_region (&manager.base.base, FLASH_BLOCK_SIZE + 1);
+	status = manager.test.base.base.clear_pending_region (&manager.test.base.base,
+		FLASH_BLOCK_SIZE + 1);
 	CuAssertIntEquals (test, FLASH_UPDATER_TOO_LARGE, status);
 
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_clear_pending_region_manifest_too_large_with_pending (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM_DATA, PFM_DATA_LEN,
+		PFM_HASH, PFM_SIGNATURE, PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH, PFM2_SIGNATURE, true);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH,
-		PFM2_SIGNATURE, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manager.base.base.clear_pending_region (&manager.base.base, FLASH_BLOCK_SIZE + 1);
+	status = manager.test.base.base.clear_pending_region (&manager.test.base.base,
+		FLASH_BLOCK_SIZE + 1);
 	CuAssertIntEquals (test, FLASH_UPDATER_TOO_LARGE, status);
 
-	CuAssertPtrEquals (test, &pfm1, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, &pfm2, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, &manager.pfm1, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, &manager.pfm2, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_clear_pending_region_erase_error_region2 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM_DATA, PFM_DATA_LEN,
+		PFM_HASH, PFM_SIGNATURE, PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH, PFM2_SIGNATURE, true);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH,
-		PFM2_SIGNATURE, true);
-
-	status |= flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
+	status = flash_master_mock_expect_xfer (&manager.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
-
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manager.base.base.clear_pending_region (&manager.base.base, 1);
+	status = manager.test.base.base.clear_pending_region (&manager.test.base.base, 1);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	CuAssertPtrEquals (test, &pfm1, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, &manager.pfm1, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_clear_pending_region_erase_error_region1 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM2_DATA, PFM2_DATA_LEN,
+		PFM2_HASH, PFM2_SIGNATURE, PFM_DATA, PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, false);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = state_mgr.save_active_manifest (&state_mgr, 0, MANIFEST_REGION_2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification,
-		PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH, PFM2_SIGNATURE, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
-		PFM_SIGNATURE, false);
-
-	status |= flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
+	status = flash_master_mock_expect_xfer (&manager.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
-
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manager.base.base.clear_pending_region (&manager.base.base, 1);
+	status = manager.test.base.base.clear_pending_region (&manager.test.base.base, 1);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	CuAssertPtrEquals (test, &pfm2, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, &manager.pfm2, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_clear_pending_region_pfm_in_use_region2 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 	struct pfm *pending;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM_DATA, PFM_DATA_LEN,
+		PFM_HASH, PFM_SIGNATURE, PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH, PFM2_SIGNATURE, true);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
+	pending = manager.test.base.get_pending_pfm (&manager.test.base);
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH,
-		PFM2_SIGNATURE, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_validate (&flash_mock.mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pending = manager.base.get_pending_pfm (&manager.base);
-
-	status = manager.base.base.clear_pending_region (&manager.base.base, 1);
+	status = manager.test.base.base.clear_pending_region (&manager.test.base.base, 1);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_PENDING_IN_USE, status);
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = mock_validate (&flash_mock.mock);
+	status = mock_validate (&manager.flash_mock.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	manager.base.free_pfm (&manager.base, pending);
+	manager.test.base.free_pfm (&manager.test.base, pending);
 
-	status = flash_master_mock_expect_erase_flash_verify (&flash_mock, 0x20000, 0x10000);
+	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock, 0x20000, 0x10000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.base.base.clear_pending_region (&manager.base.base, 1);
+	status = manager.test.base.base.clear_pending_region (&manager.test.base.base, 1);
 	CuAssertIntEquals (test, 0, status);
 
-	manager.base.get_pending_pfm (&manager.base);
+	manager.test.base.get_pending_pfm (&manager.test.base);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_clear_pending_region_pfm_in_use_region1 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 	struct pfm *pending;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM2_DATA, PFM2_DATA_LEN,
+		PFM2_HASH, PFM2_SIGNATURE, PFM_DATA, PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, false);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
+	pending = manager.test.base.get_pending_pfm (&manager.test.base);
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = state_mgr.save_active_manifest (&state_mgr, 0, MANIFEST_REGION_2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification,
-		PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH, PFM2_SIGNATURE, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
-		PFM_SIGNATURE, false);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_validate (&flash_mock.mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pending = manager.base.get_pending_pfm (&manager.base);
-
-	status = manager.base.base.clear_pending_region (&manager.base.base, 1);
+	status = manager.test.base.base.clear_pending_region (&manager.test.base.base, 1);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_PENDING_IN_USE, status);
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = mock_validate (&flash_mock.mock);
+	status = mock_validate (&manager.flash_mock.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	manager.base.free_pfm (&manager.base, pending);
+	manager.test.base.free_pfm (&manager.test.base, pending);
 
-	status = flash_master_mock_expect_erase_flash_verify (&flash_mock, 0x10000, 0x10000);
+	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock, 0x10000, 0x10000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.base.base.clear_pending_region (&manager.base.base, 1);
+	status = manager.test.base.base.clear_pending_region (&manager.test.base.base, 1);
 	CuAssertIntEquals (test, 0, status);
 
-	manager.base.get_pending_pfm (&manager.base);
+	manager.test.base.get_pending_pfm (&manager.test.base);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_clear_pending_region_pfm_in_use_multiple_region2 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 	struct pfm *pending1;
 	struct pfm *pending2;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM_DATA, PFM_DATA_LEN,
+		PFM_HASH, PFM_SIGNATURE, PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH, PFM2_SIGNATURE, true);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
+	pending1 = manager.test.base.get_pending_pfm (&manager.test.base);
+	pending2 = manager.test.base.get_pending_pfm (&manager.test.base);
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH,
-		PFM2_SIGNATURE, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_validate (&flash_mock.mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pending1 = manager.base.get_pending_pfm (&manager.base);
-	pending2 = manager.base.get_pending_pfm (&manager.base);
-
-	status = manager.base.base.clear_pending_region (&manager.base.base, 1);
+	status = manager.test.base.base.clear_pending_region (&manager.test.base.base, 1);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_PENDING_IN_USE, status);
 
-	status = mock_validate (&flash_mock.mock);
+	status = mock_validate (&manager.flash_mock.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	manager.base.free_pfm (&manager.base, pending1);
+	manager.test.base.free_pfm (&manager.test.base, pending1);
 
-	status = manager.base.base.clear_pending_region (&manager.base.base, 1);
+	status = manager.test.base.base.clear_pending_region (&manager.test.base.base, 1);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_PENDING_IN_USE, status);
 
-	status = mock_validate (&flash_mock.mock);
+	status = mock_validate (&manager.flash_mock.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	manager.base.free_pfm (&manager.base, pending2);
+	manager.test.base.free_pfm (&manager.test.base, pending2);
 
-	status = flash_master_mock_expect_erase_flash_verify (&flash_mock, 0x20000, 0x10000);
+	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock, 0x20000, 0x10000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.base.base.clear_pending_region (&manager.base.base, 1);
+	status = manager.test.base.base.clear_pending_region (&manager.test.base.base, 1);
 	CuAssertIntEquals (test, 0, status);
 
-	manager.base.get_pending_pfm (&manager.base);
+	manager.test.base.get_pending_pfm (&manager.test.base);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_clear_pending_region_pfm_in_use_multiple_region1 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 	struct pfm *pending1;
 	struct pfm *pending2;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM2_DATA, PFM2_DATA_LEN,
+		PFM2_HASH, PFM2_SIGNATURE, PFM_DATA, PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, false);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
+	pending1 = manager.test.base.get_pending_pfm (&manager.test.base);
+	pending2 = manager.test.base.get_pending_pfm (&manager.test.base);
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = state_mgr.save_active_manifest (&state_mgr, 0, MANIFEST_REGION_2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification,
-		PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH, PFM2_SIGNATURE, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
-		PFM_SIGNATURE, false);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_validate (&flash_mock.mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pending1 = manager.base.get_pending_pfm (&manager.base);
-	pending2 = manager.base.get_pending_pfm (&manager.base);
-
-	status = manager.base.base.clear_pending_region (&manager.base.base, 1);
+	status = manager.test.base.base.clear_pending_region (&manager.test.base.base, 1);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_PENDING_IN_USE, status);
 
-	status = mock_validate (&flash_mock.mock);
+	status = mock_validate (&manager.flash_mock.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	manager.base.free_pfm (&manager.base, pending1);
+	manager.test.base.free_pfm (&manager.test.base, pending1);
 
-	status = manager.base.base.clear_pending_region (&manager.base.base, 1);
+	status = manager.test.base.base.clear_pending_region (&manager.test.base.base, 1);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_PENDING_IN_USE, status);
 
-	status = mock_validate (&flash_mock.mock);
+	status = mock_validate (&manager.flash_mock.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	manager.base.free_pfm (&manager.base, pending2);
+	manager.test.base.free_pfm (&manager.test.base, pending2);
 
-	status = flash_master_mock_expect_erase_flash_verify (&flash_mock, 0x10000, 0x10000);
+	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock, 0x10000, 0x10000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.base.base.clear_pending_region (&manager.base.base, 1);
+	status = manager.test.base.base.clear_pending_region (&manager.test.base.base, 1);
 	CuAssertIntEquals (test, 0, status);
 
-	manager.base.get_pending_pfm (&manager.base);
+	manager.test.base.get_pending_pfm (&manager.test.base);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_clear_pending_region_in_use_after_activate_region2 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 	struct pfm *active;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM_DATA, PFM_DATA_LEN,
+		PFM_HASH, PFM_SIGNATURE, PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH, PFM2_SIGNATURE, true);
+
+	active = manager.test.base.get_active_pfm (&manager.test.base);
+
+	status = manager.test.base.base.activate_pending_manifest (&manager.test.base.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH,
-		PFM2_SIGNATURE, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_validate (&flash_mock.mock);
-	CuAssertIntEquals (test, 0, status);
-
-	active = manager.base.get_active_pfm (&manager.base);
-
-	status = manager.base.base.activate_pending_manifest (&manager.base.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manager.base.base.clear_pending_region (&manager.base.base, 1);
+	status = manager.test.base.base.clear_pending_region (&manager.test.base.base, 1);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_PENDING_IN_USE, status);
 
-	status = mock_validate (&flash_mock.mock);
+	status = mock_validate (&manager.flash_mock.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	manager.base.free_pfm (&manager.base, active);
+	manager.test.base.free_pfm (&manager.test.base, active);
 
-	status = flash_master_mock_expect_erase_flash_verify (&flash_mock, 0x10000, 0x10000);
+	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock, 0x10000, 0x10000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.base.base.clear_pending_region (&manager.base.base, 1);
+	status = manager.test.base.base.clear_pending_region (&manager.test.base.base, 1);
 	CuAssertIntEquals (test, 0, status);
 
-	manager.base.get_pending_pfm (&manager.base);
+	manager.test.base.get_pending_pfm (&manager.test.base);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_clear_pending_region_in_use_after_activate_region1 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 	struct pfm *active;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM2_DATA, PFM2_DATA_LEN,
+		PFM2_HASH, PFM2_SIGNATURE, PFM_DATA, PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, false);
+
+	active = manager.test.base.get_active_pfm (&manager.test.base);
+
+	status = manager.test.base.base.activate_pending_manifest (&manager.test.base.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = state_mgr.save_active_manifest (&state_mgr, 0, MANIFEST_REGION_2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification,
-		PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH, PFM2_SIGNATURE, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
-		PFM_SIGNATURE, false);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_validate (&flash_mock.mock);
-	CuAssertIntEquals (test, 0, status);
-
-	active = manager.base.get_active_pfm (&manager.base);
-
-	status = manager.base.base.activate_pending_manifest (&manager.base.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manager.base.base.clear_pending_region (&manager.base.base, 1);
+	status = manager.test.base.base.clear_pending_region (&manager.test.base.base, 1);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_PENDING_IN_USE, status);
 
-	status = mock_validate (&flash_mock.mock);
+	status = mock_validate (&manager.flash_mock.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	manager.base.free_pfm (&manager.base, active);
+	manager.test.base.free_pfm (&manager.test.base, active);
 
-	status = flash_master_mock_expect_erase_flash_verify (&flash_mock, 0x20000, 0x10000);
+	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock, 0x20000, 0x10000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.base.base.clear_pending_region (&manager.base.base, 1);
+	status = manager.test.base.base.clear_pending_region (&manager.test.base.base, 1);
 	CuAssertIntEquals (test, 0, status);
 
-	manager.base.get_pending_pfm (&manager.base);
+	manager.test.base.get_pending_pfm (&manager.test.base);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_clear_pending_no_pending_in_use_region2 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM_DATA, PFM_DATA_LEN,
+		PFM_HASH, PFM_SIGNATURE, NULL, 0, NULL, NULL, true);
+
+	manager.test.base.get_pending_pfm (&manager.test.base);
+
+	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock, 0x20000, 0x10000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = signature_verification_mock_init (&verification);
+	status = manager.test.base.base.clear_pending_region (&manager.test.base.base, 1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, NULL, 0, NULL, NULL, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_validate (&flash_mock.mock);
-	CuAssertIntEquals (test, 0, status);
-
-	manager.base.get_pending_pfm (&manager.base);
-
-	status = flash_master_mock_expect_erase_flash_verify (&flash_mock, 0x20000, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manager.base.base.clear_pending_region (&manager.base.base, 1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_clear_pending_no_pending_in_use_region1 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, NULL, 0, NULL, NULL, PFM_DATA,
+		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, false);
+
+	manager.test.base.get_pending_pfm (&manager.test.base);
+
+	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock, 0x10000, 0x10000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = signature_verification_mock_init (&verification);
+	status = manager.test.base.base.clear_pending_region (&manager.test.base.base, 1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = state_mgr.save_active_manifest (&state_mgr, 0, MANIFEST_REGION_2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, NULL, 0,
-		NULL, NULL, PFM_DATA, PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, false);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_validate (&flash_mock.mock);
-	CuAssertIntEquals (test, 0, status);
-
-	manager.base.get_pending_pfm (&manager.base);
-
-	status = flash_master_mock_expect_erase_flash_verify (&flash_mock, 0x10000, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manager.base.base.clear_pending_region (&manager.base.base, 1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_clear_pending_region_extra_free_call (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 	struct pfm *pending;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM_DATA, PFM_DATA_LEN,
+		PFM_HASH, PFM_SIGNATURE, PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH, PFM2_SIGNATURE, true);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
+	pending = manager.test.base.get_pending_pfm (&manager.test.base);
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH,
-		PFM2_SIGNATURE, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_validate (&flash_mock.mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pending = manager.base.get_pending_pfm (&manager.base);
-
-	status = manager.base.base.clear_pending_region (&manager.base.base, 1);
+	status = manager.test.base.base.clear_pending_region (&manager.test.base.base, 1);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_PENDING_IN_USE, status);
 
-	status = mock_validate (&flash_mock.mock);
+	status = mock_validate (&manager.flash_mock.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	manager.base.free_pfm (&manager.base, pending);
-	manager.base.free_pfm (&manager.base, pending);
+	manager.test.base.free_pfm (&manager.test.base, pending);
+	manager.test.base.free_pfm (&manager.test.base, pending);
 
-	pending = manager.base.get_pending_pfm (&manager.base);
+	pending = manager.test.base.get_pending_pfm (&manager.test.base);
 
-	status = manager.base.base.clear_pending_region (&manager.base.base, 1);
+	status = manager.test.base.base.clear_pending_region (&manager.test.base.base, 1);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_PENDING_IN_USE, status);
 
-	status = mock_validate (&flash_mock.mock);
+	status = mock_validate (&manager.flash_mock.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	manager.base.free_pfm (&manager.base, pending);
+	manager.test.base.free_pfm (&manager.test.base, pending);
 
-	status = flash_master_mock_expect_erase_flash_verify (&flash_mock, 0x20000, 0x10000);
+	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock, 0x20000, 0x10000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.base.base.clear_pending_region (&manager.base.base, 1);
+	status = manager.test.base.base.clear_pending_region (&manager.test.base.base, 1);
 	CuAssertIntEquals (test, 0, status);
 
-	manager.base.get_pending_pfm (&manager.base);
+	manager.test.base.get_pending_pfm (&manager.test.base);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_clear_pending_region_free_null_region2 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM_DATA, PFM_DATA_LEN,
+		PFM_HASH, PFM_SIGNATURE, PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH, PFM2_SIGNATURE, true);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
+	manager.test.base.get_pending_pfm (&manager.test.base);
+	manager.test.base.free_pfm (&manager.test.base, NULL);
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH,
-		PFM2_SIGNATURE, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_validate (&flash_mock.mock);
-	CuAssertIntEquals (test, 0, status);
-
-	manager.base.get_pending_pfm (&manager.base);
-	manager.base.free_pfm (&manager.base, NULL);
-
-	status = manager.base.base.clear_pending_region (&manager.base.base, 1);
+	status = manager.test.base.base.clear_pending_region (&manager.test.base.base, 1);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_PENDING_IN_USE, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_clear_pending_region_free_null_region1 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM2_DATA, PFM2_DATA_LEN,
+		PFM2_HASH, PFM2_SIGNATURE, PFM_DATA, PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, false);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
+	manager.test.base.get_pending_pfm (&manager.test.base);
+	manager.test.base.free_pfm (&manager.test.base, NULL);
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = state_mgr.save_active_manifest (&state_mgr, 0, MANIFEST_REGION_2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification,
-		PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH, PFM2_SIGNATURE, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
-		PFM_SIGNATURE, false);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_validate (&flash_mock.mock);
-	CuAssertIntEquals (test, 0, status);
-
-	manager.base.get_pending_pfm (&manager.base);
-	manager.base.free_pfm (&manager.base, NULL);
-
-	status = manager.base.base.clear_pending_region (&manager.base.base, 1);
+	status = manager.test.base.base.clear_pending_region (&manager.test.base.base, 1);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_PENDING_IN_USE, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_clear_pending_region_free_null_manager (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 	struct pfm *pending;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM_DATA, PFM_DATA_LEN,
+		PFM_HASH, PFM_SIGNATURE, PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH, PFM2_SIGNATURE, true);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
+	pending = manager.test.base.get_pending_pfm (&manager.test.base);
+	manager.test.base.free_pfm (NULL, pending);
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH,
-		PFM2_SIGNATURE, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_validate (&flash_mock.mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pending = manager.base.get_pending_pfm (&manager.base);
-	manager.base.free_pfm (NULL, pending);
-
-	status = manager.base.base.clear_pending_region (&manager.base.base, 1);
+	status = manager.test.base.base.clear_pending_region (&manager.test.base.base, 1);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_PENDING_IN_USE, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_write_pending_data_region2 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, NULL, 0, NULL, NULL, NULL, 0,
+		NULL, NULL, true);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, NULL,
-		0, NULL, NULL, NULL, 0, NULL, NULL, true);
-
-	status |= flash_master_mock_expect_erase_flash_verify (&flash_mock, 0x20000, 0x10000);
-	status |= flash_master_mock_expect_write (&flash_mock, 0x20000, data, sizeof (data));
+	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock, 0x20000, 0x10000);
+	status |= flash_master_mock_expect_write (&manager.flash_mock, 0x20000, data, sizeof (data));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
+	status = manager.test.base.base.clear_pending_region (&manager.test.base.base, 1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.base.base.clear_pending_region (&manager.base.base, 1);
+	status = manager.test.base.base.write_pending_data (&manager.test.base.base, data,
+		sizeof (data));
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.base.base.write_pending_data (&manager.base.base, data, sizeof (data));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
-
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_write_pending_data_region1 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, NULL, 0, NULL, NULL, NULL, 0,
+		NULL, NULL, false);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = state_mgr.save_active_manifest (&state_mgr, 0, MANIFEST_REGION_2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, NULL,
-		0, NULL, NULL, NULL, 0, NULL, NULL, true);
-
-	status |= flash_master_mock_expect_erase_flash_verify (&flash_mock, 0x10000, 0x10000);
-	status |= flash_master_mock_expect_write (&flash_mock, 0x10000, data, sizeof (data));
+	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock, 0x10000, 0x10000);
+	status |= flash_master_mock_expect_write (&manager.flash_mock, 0x10000, data, sizeof (data));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
+	status = manager.test.base.base.clear_pending_region (&manager.test.base.base, 1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.base.base.clear_pending_region (&manager.base.base, 1);
+	status = manager.test.base.base.write_pending_data (&manager.test.base.base, data,
+		sizeof (data));
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.base.base.write_pending_data (&manager.base.base, data, sizeof (data));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
-
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_write_pending_data_multiple (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 	uint8_t data1[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t data2[] = {0x05, 0x06, 0x07, 0x08, 0x09};
@@ -6268,351 +2763,150 @@ static void pfm_manager_flash_test_write_pending_data_multiple (CuTest *test)
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, NULL, 0, NULL, NULL, NULL, 0,
+		NULL, NULL, true);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
+	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock, 0x20000, 0x10000);
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, NULL,
-		0, NULL, NULL, NULL, 0, NULL, NULL, true);
-
-	status |= flash_master_mock_expect_erase_flash_verify (&flash_mock, 0x20000, 0x10000);
-
-	status |= flash_master_mock_expect_write (&flash_mock, 0x20000, data1, 4);
-	status |= flash_master_mock_expect_write (&flash_mock, 0x20004, data2, 5);
-	status |= flash_master_mock_expect_write (&flash_mock, 0x20009, data3, 3);
+	status |= flash_master_mock_expect_write (&manager.flash_mock, 0x20000, data1, 4);
+	status |= flash_master_mock_expect_write (&manager.flash_mock, 0x20004, data2, 5);
+	status |= flash_master_mock_expect_write (&manager.flash_mock, 0x20009, data3, 3);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
+	status = manager.test.base.base.clear_pending_region (&manager.test.base.base, 1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.base.base.clear_pending_region (&manager.base.base, 1);
+	status = manager.test.base.base.write_pending_data (&manager.test.base.base, data1,
+		sizeof (data1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.base.base.write_pending_data (&manager.base.base, data1, sizeof (data1));
+	status = manager.test.base.base.write_pending_data (&manager.test.base.base, data2,
+		sizeof (data2));
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.base.base.write_pending_data (&manager.base.base, data2, sizeof (data2));
+	status = manager.test.base.base.write_pending_data (&manager.test.base.base, data3,
+		sizeof (data3));
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.base.base.write_pending_data (&manager.base.base, data3, sizeof (data3));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
-
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_write_pending_data_block_end (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t fill[FLASH_BLOCK_SIZE - sizeof (data)] = {0};
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, NULL, 0, NULL, NULL, NULL, 0,
+		NULL, NULL, true);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, NULL,
-		0, NULL, NULL, NULL, 0, NULL, NULL, true);
-
-	status |= flash_master_mock_expect_erase_flash_verify (&flash_mock, 0x20000, 0x10000);
-	status |= flash_master_mock_expect_write (&flash_mock, 0x20000, fill, sizeof (fill));
-	status |= flash_master_mock_expect_write (&flash_mock, 0x2fffc, data, sizeof (data));
+	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock, 0x20000, 0x10000);
+	status |= flash_master_mock_expect_write (&manager.flash_mock, 0x20000, fill, sizeof (fill));
+	status |= flash_master_mock_expect_write (&manager.flash_mock, 0x2fffc, data, sizeof (data));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manager.base.base.clear_pending_region (&manager.base.base, 1);
+	status = manager.test.base.base.clear_pending_region (&manager.test.base.base, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	/* Fill with data to write at the end of the flash block. */
-	status = manager.base.base.write_pending_data (&manager.base.base, fill, sizeof (fill));
+	status = manager.test.base.base.write_pending_data (&manager.test.base.base, fill,
+		sizeof (fill));
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.base.base.write_pending_data (&manager.base.base, data, sizeof (data));
+	status = manager.test.base.base.write_pending_data (&manager.test.base.base, data,
+		sizeof (data));
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_write_pending_data_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, NULL, 0, NULL, NULL, NULL, 0,
+		NULL, NULL, true);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, NULL,
-		0, NULL, NULL, NULL, 0, NULL, NULL, true);
-
-	status |= flash_master_mock_expect_erase_flash_verify (&flash_mock, 0x20000, 0x10000);
+	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock, 0x20000, 0x10000);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
+	status = manager.test.base.base.clear_pending_region (&manager.test.base.base, 1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.base.base.clear_pending_region (&manager.base.base, 1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manager.base.base.write_pending_data (NULL, data, sizeof (data));
+	status = manager.test.base.base.write_pending_data (NULL, data, sizeof (data));
 	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
 
-	status = manager.base.base.write_pending_data (&manager.base.base, NULL, sizeof (data));
+	status = manager.test.base.base.write_pending_data (&manager.test.base.base, NULL,
+		sizeof (data));
 	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
 
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_write_pending_data_write_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, NULL, 0, NULL, NULL, NULL, 0,
+		NULL, NULL, true);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, NULL,
-		0, NULL, NULL, NULL, 0, NULL, NULL, true);
-
-	status |= flash_master_mock_expect_erase_flash_verify (&flash_mock, 0x20000, 0x10000);
-	status |= flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
+	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock, 0x20000, 0x10000);
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
+	status = manager.test.base.base.clear_pending_region (&manager.test.base.base, 1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.base.base.clear_pending_region (&manager.base.base, 1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manager.base.base.write_pending_data (&manager.base.base, data, sizeof (data));
+	status = manager.test.base.base.write_pending_data (&manager.test.base.base, data,
+		sizeof (data));
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_write_pending_data_write_after_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 	uint8_t data1[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t data2[] = {0x05, 0x06, 0x07, 0x08, 0x09};
@@ -6620,192 +2914,93 @@ static void pfm_manager_flash_test_write_pending_data_write_after_error (CuTest 
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, NULL, 0, NULL, NULL, NULL, 0,
+		NULL, NULL, true);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
+	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock, 0x20000, 0x10000);
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, NULL,
-		0, NULL, NULL, NULL, 0, NULL, NULL, true);
-
-	status |= flash_master_mock_expect_erase_flash_verify (&flash_mock, 0x20000, 0x10000);
-
-	status |= flash_master_mock_expect_write (&flash_mock, 0x20000, data1, 4);
-	status |= flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
+	status |= flash_master_mock_expect_write (&manager.flash_mock, 0x20000, data1, 4);
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_write (&flash_mock, 0x20004, data3, 3);
+	status |= flash_master_mock_expect_write (&manager.flash_mock, 0x20004, data3, 3);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
+	status = manager.test.base.base.clear_pending_region (&manager.test.base.base, 1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.base.base.clear_pending_region (&manager.base.base, 1);
+	status = manager.test.base.base.write_pending_data (&manager.test.base.base, data1,
+		sizeof (data1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.base.base.write_pending_data (&manager.base.base, data1, sizeof (data1));
-	CuAssertIntEquals (test, 0, status);
-
-	status = manager.base.base.write_pending_data (&manager.base.base, data2, sizeof (data2));
+	status = manager.test.base.base.write_pending_data (&manager.test.base.base, data2,
+		sizeof (data2));
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = manager.base.base.write_pending_data (&manager.base.base, data3, sizeof (data3));
+	status = manager.test.base.base.write_pending_data (&manager.test.base.base, data3,
+		sizeof (data3));
 	CuAssertIntEquals (test, 0, status);
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_write_pending_data_partial_write (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t fill[FLASH_PAGE_SIZE - 1] = {0};
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, NULL, 0, NULL, NULL, NULL, 0,
+		NULL, NULL, true);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
+	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock, 0x20000, 0x10000);
+	status |= flash_master_mock_expect_write (&manager.flash_mock, 0x20000, fill, sizeof (fill));
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, NULL,
-		0, NULL, NULL, NULL, 0, NULL, NULL, true);
-
-	status |= flash_master_mock_expect_erase_flash_verify (&flash_mock, 0x20000, 0x10000);
-	status |= flash_master_mock_expect_write (&flash_mock, 0x20000, fill, sizeof (fill));
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_xfer (&flash_mock, 0, FLASH_EXP_WRITE_ENABLE);
-	status |= flash_master_mock_expect_tx_xfer (&flash_mock, 0,
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock, 0, FLASH_EXP_WRITE_ENABLE);
+	status |= flash_master_mock_expect_tx_xfer (&manager.flash_mock, 0,
 		FLASH_EXP_WRITE_CMD (0x02, 0x200ff, 0, data, 1));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
-	status |= flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_WRITE_ENABLE);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manager.base.base.clear_pending_region (&manager.base.base, 1);
+	status = manager.test.base.base.clear_pending_region (&manager.test.base.base, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	/* Partially fill the page to force a write across pages. */
-	status = manager.base.base.write_pending_data (&manager.base.base, fill, sizeof (fill));
+	status = manager.test.base.base.write_pending_data (&manager.test.base.base, fill,
+		sizeof (fill));
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.base.base.write_pending_data (&manager.base.base, data, sizeof (data));
+	status = manager.test.base.base.write_pending_data (&manager.test.base.base, data,
+		sizeof (data));
 	CuAssertIntEquals (test, FLASH_UPDATER_INCOMPLETE_WRITE, status);
 
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_write_pending_data_write_after_partial_write (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 	uint8_t data1[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t data2[] = {0x05, 0x06, 0x07, 0x08, 0x09};
@@ -6813,180 +3008,79 @@ static void pfm_manager_flash_test_write_pending_data_write_after_partial_write 
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, NULL, 0, NULL, NULL, NULL, 0,
+		NULL, NULL, true);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
+	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock, 0x20000, 0x10000);
+	status |= flash_master_mock_expect_write (&manager.flash_mock, 0x20000, fill, sizeof (fill));
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, NULL,
-		0, NULL, NULL, NULL, 0, NULL, NULL, true);
-
-	status |= flash_master_mock_expect_erase_flash_verify (&flash_mock, 0x20000, 0x10000);
-	status |= flash_master_mock_expect_write (&flash_mock, 0x20000, fill, sizeof (fill));
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_xfer (&flash_mock, 0, FLASH_EXP_WRITE_ENABLE);
-	status |= flash_master_mock_expect_tx_xfer (&flash_mock, 0,
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock, 0, FLASH_EXP_WRITE_ENABLE);
+	status |= flash_master_mock_expect_tx_xfer (&manager.flash_mock, 0,
 		FLASH_EXP_WRITE_CMD (0x02, 0x200ff, 0, data1, 1));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
-	status |= flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_WRITE_ENABLE);
 
-	status |= flash_master_mock_expect_write (&flash_mock, 0x20100, data2, 5);
+	status |= flash_master_mock_expect_write (&manager.flash_mock, 0x20100, data2, 5);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manager.base.base.clear_pending_region (&manager.base.base, 1);
+	status = manager.test.base.base.clear_pending_region (&manager.test.base.base, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	/* Partially fill the page to force a write across pages. */
-	status = manager.base.base.write_pending_data (&manager.base.base, fill, sizeof (fill));
+	status = manager.test.base.base.write_pending_data (&manager.test.base.base, fill,
+		sizeof (fill));
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.base.base.write_pending_data (&manager.base.base, data1, sizeof (data1));
+	status = manager.test.base.base.write_pending_data (&manager.test.base.base, data1,
+		sizeof (data1));
 	CuAssertIntEquals (test, FLASH_UPDATER_INCOMPLETE_WRITE, status);
 
-	status = manager.base.base.write_pending_data (&manager.base.base, data2, sizeof (data2));
+	status = manager.test.base.base.write_pending_data (&manager.test.base.base, data2,
+		sizeof (data2));
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_write_pending_data_without_clear (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, NULL, 0, NULL, NULL, NULL, 0,
+		NULL, NULL, true);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, NULL,
-		0, NULL, NULL, NULL, 0, NULL, NULL, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manager.base.base.write_pending_data (&manager.base.base, data, sizeof (data));
+	status = manager.test.base.base.write_pending_data (&manager.test.base.base, data,
+		sizeof (data));
 	CuAssertIntEquals (test, MANIFEST_MANAGER_NOT_CLEARED, status);
 
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_write_pending_data_restart_write (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 	uint8_t data1[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t data2[] = {0x05, 0x06, 0x07, 0x08, 0x09};
@@ -6994,4816 +3088,1573 @@ static void pfm_manager_flash_test_write_pending_data_restart_write (CuTest *tes
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, NULL, 0, NULL, NULL, NULL, 0,
+		NULL, NULL, true);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
+	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock, 0x20000, 0x10000);
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	status |= flash_master_mock_expect_write (&manager.flash_mock, 0x20000, data1, 4);
+	status |= flash_master_mock_expect_write (&manager.flash_mock, 0x20004, data2, 5);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
+	status |= flash_master_mock_expect_erase_flash_verify (&manager.flash_mock, 0x20000, 0x10000);
 
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, NULL,
-		0, NULL, NULL, NULL, 0, NULL, NULL, true);
-
-	status |= flash_master_mock_expect_erase_flash_verify (&flash_mock, 0x20000, 0x10000);
-
-	status |= flash_master_mock_expect_write (&flash_mock, 0x20000, data1, 4);
-	status |= flash_master_mock_expect_write (&flash_mock, 0x20004, data2, 5);
-
-	status |= flash_master_mock_expect_erase_flash_verify (&flash_mock, 0x20000, 0x10000);
-
-	status |= flash_master_mock_expect_write (&flash_mock, 0x20000, data3, 3);
+	status |= flash_master_mock_expect_write (&manager.flash_mock, 0x20000, data3, 3);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
+	status = manager.test.base.base.clear_pending_region (&manager.test.base.base, 1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.base.base.clear_pending_region (&manager.base.base, 1);
+	status = manager.test.base.base.write_pending_data (&manager.test.base.base, data1,
+		sizeof (data1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.base.base.write_pending_data (&manager.base.base, data1, sizeof (data1));
+	status = manager.test.base.base.write_pending_data (&manager.test.base.base, data2,
+		sizeof (data2));
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.base.base.write_pending_data (&manager.base.base, data2, sizeof (data2));
+	status = manager.test.base.base.clear_pending_region (&manager.test.base.base, 1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.base.base.clear_pending_region (&manager.base.base, 1);
+	status = manager.test.base.base.write_pending_data (&manager.test.base.base, data3,
+		sizeof (data3));
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.base.base.write_pending_data (&manager.base.base, data3, sizeof (data3));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
-
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_write_pending_data_too_long (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t fill[FLASH_BLOCK_SIZE - sizeof (data) + 1] = {0};
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, NULL, 0, NULL, NULL, NULL, 0,
+		NULL, NULL, true);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, NULL,
-		0, NULL, NULL, NULL, 0, NULL, NULL, true);
-
-	status |= flash_master_mock_expect_erase_flash_verify (&flash_mock, 0x20000, 0x10000);
-	status |= flash_master_mock_expect_write (&flash_mock, 0x20000, fill, sizeof (fill));
+	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock, 0x20000, 0x10000);
+	status |= flash_master_mock_expect_write (&manager.flash_mock, 0x20000, fill, sizeof (fill));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manager.base.base.clear_pending_region (&manager.base.base, 1);
+	status = manager.test.base.base.clear_pending_region (&manager.test.base.base, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	/* Fill with data to write at the end of the flash block. */
-	status = manager.base.base.write_pending_data (&manager.base.base, fill, sizeof (fill));
+	status = manager.test.base.base.write_pending_data (&manager.test.base.base, fill,
+		sizeof (fill));
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.base.base.write_pending_data (&manager.base.base, data, sizeof (data));
+	status = manager.test.base.base.write_pending_data (&manager.test.base.base, data,
+		sizeof (data));
 	CuAssertIntEquals (test, FLASH_UPDATER_OUT_OF_SPACE, status);
 
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_write_pending_data_pfm_in_use (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 	struct pfm *pending;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM_DATA, PFM_DATA_LEN,
+		PFM_HASH, PFM_SIGNATURE, PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH, PFM2_SIGNATURE, true);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
+	pending = manager.test.base.get_pending_pfm (&manager.test.base);
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH,
-		PFM2_SIGNATURE, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_validate (&flash_mock.mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pending = manager.base.get_pending_pfm (&manager.base);
-
-	status = manager.base.base.clear_pending_region (&manager.base.base, 1);
+	status = manager.test.base.base.clear_pending_region (&manager.test.base.base, 1);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_PENDING_IN_USE, status);
 
-	status = mock_validate (&flash_mock.mock);
+	status = mock_validate (&manager.flash_mock.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.base.base.write_pending_data (&manager.base.base, data, sizeof (data));
+	status = manager.test.base.base.write_pending_data (&manager.test.base.base, data,
+		sizeof (data));
 	CuAssertIntEquals (test, MANIFEST_MANAGER_NOT_CLEARED, status);
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	manager.base.free_pfm (&manager.base, pending);
+	manager.test.base.free_pfm (&manager.test.base, pending);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_verify_pending_pfm_region2 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, NULL, 0, NULL, NULL, NULL, 0,
+		NULL, NULL, true);
+
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
+
+	pfm_manager_flash_testing_write_new_pfm (test, &manager, 0x20000);
+
+	status = pfm_manager_flash_testing_verify_pfm (&manager, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, 0x20000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = signature_verification_mock_init (&verification);
+	host_state_manager_set_pfm_dirty (&manager.state_mgr, false);
+
+	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, &manager.pfm2, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, NULL,
-		0, NULL, NULL, NULL, 0, NULL, NULL, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
-
-	pfm_manager_flash_testing_write_new_pfm (test, &manager, &flash_mock, 0x20000);
-
-	status = pfm_manager_flash_testing_verify_pfm (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	host_state_manager_set_pfm_dirty (&state_mgr, false);
-
-	status = manager.base.base.verify_pending_manifest (&manager.base.base);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, &pfm2, manager.base.get_pending_pfm (&manager.base));
-
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_verify_pending_pfm_region1 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, NULL, 0, NULL, NULL, NULL, 0,
+		NULL, NULL, false);
+
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
+
+	pfm_manager_flash_testing_write_new_pfm (test, &manager, 0x10000);
+
+	status = pfm_manager_flash_testing_verify_pfm (&manager, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, 0x10000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = signature_verification_mock_init (&verification);
+	host_state_manager_set_pfm_dirty (&manager.state_mgr, false);
+
+	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, &manager.pfm1, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = state_mgr.save_active_manifest (&state_mgr, 0, MANIFEST_REGION_2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, NULL,
-		0, NULL, NULL, NULL, 0, NULL, NULL, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
-
-	pfm_manager_flash_testing_write_new_pfm (test, &manager, &flash_mock, 0x10000);
-
-	status |= pfm_manager_flash_testing_verify_pfm (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	host_state_manager_set_pfm_dirty (&state_mgr, false);
-
-	status = manager.base.base.verify_pending_manifest (&manager.base.base);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, &pfm1, manager.base.get_pending_pfm (&manager.base));
-
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_verify_pending_pfm_region2_notify_observers (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
-	struct pfm_observer_mock observer;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, NULL, 0, NULL, NULL, NULL, 0,
+		NULL, NULL, true);
+
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
+
+	pfm_manager_flash_testing_write_new_pfm (test, &manager, 0x20000);
+
+	status = pfm_manager_add_observer (&manager.test.base, &manager.observer.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_observer_mock_init (&observer);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, NULL,
-		0, NULL, NULL, NULL, 0, NULL, NULL, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
-
-	pfm_manager_flash_testing_write_new_pfm (test, &manager, &flash_mock, 0x20000);
-
-	status = pfm_manager_add_observer (&manager.base, &observer.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_verify_pfm (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, 0x20000);
-	status |= mock_expect (&observer.mock, observer.base.on_pfm_verified, &observer, 0,
-		MOCK_ARG (&pfm2));
+	status = pfm_manager_flash_testing_verify_pfm (&manager, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, 0x20000);
+	status |= mock_expect (&manager.observer.mock, manager.observer.base.on_pfm_verified,
+		&manager.observer, 0, MOCK_ARG (&manager.pfm2));
 
 	CuAssertIntEquals (test, 0, status);
 
-	host_state_manager_set_pfm_dirty (&state_mgr, false);
+	host_state_manager_set_pfm_dirty (&manager.state_mgr, false);
 
-	status = manager.base.base.verify_pending_manifest (&manager.base.base);
+	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, &pfm2, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, &manager.pfm2, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_observer_mock_validate_and_release (&observer);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_verify_pending_pfm_region1_notify_observers (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
-	struct pfm_observer_mock observer;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, NULL, 0, NULL, NULL, NULL, 0,
+		NULL, NULL, false);
+
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
+
+	pfm_manager_flash_testing_write_new_pfm (test, &manager, 0x10000);
+
+	status = pfm_manager_add_observer (&manager.test.base, &manager.observer.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = state_mgr.save_active_manifest (&state_mgr, 0, MANIFEST_REGION_2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_observer_mock_init (&observer);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, NULL,
-		0, NULL, NULL, NULL, 0, NULL, NULL, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
-
-	pfm_manager_flash_testing_write_new_pfm (test, &manager, &flash_mock, 0x10000);
-
-	status = pfm_manager_add_observer (&manager.base, &observer.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_verify_pfm (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, 0x10000);
-	status |= mock_expect (&observer.mock, observer.base.on_pfm_verified, &observer, 0,
-		MOCK_ARG (&pfm1));
+	status = pfm_manager_flash_testing_verify_pfm (&manager, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, 0x10000);
+	status |= mock_expect (&manager.observer.mock, manager.observer.base.on_pfm_verified,
+		&manager.observer, 0, MOCK_ARG (&manager.pfm1));
 
 	CuAssertIntEquals (test, 0, status);
 
-	host_state_manager_set_pfm_dirty (&state_mgr, false);
+	host_state_manager_set_pfm_dirty (&manager.state_mgr, false);
 
-	status = manager.base.base.verify_pending_manifest (&manager.base.base);
+	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, &pfm1, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, &manager.pfm1, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_observer_mock_validate_and_release (&observer);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_verify_pending_pfm_already_valid_region2 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, NULL, 0, NULL, NULL, PFM_DATA,
+		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, true);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, &manager.pfm2, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	host_state_manager_set_pfm_dirty (&manager.state_mgr, false);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, NULL, 0,
-		NULL, NULL, PFM_DATA, PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, &pfm2, manager.base.get_pending_pfm (&manager.base));
-
-	host_state_manager_set_pfm_dirty (&state_mgr, false);
-
-	status = manager.base.base.verify_pending_manifest (&manager.base.base);
+	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_HAS_PENDING, status);
 
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, &pfm2, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, &manager.pfm2, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, false, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_verify_pending_pfm_already_valid_region1 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM_DATA, PFM_DATA_LEN,
+		PFM_HASH, PFM_SIGNATURE, NULL, 0, NULL, NULL, false);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, &manager.pfm1, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	host_state_manager_set_pfm_dirty (&manager.state_mgr, false);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = state_mgr.save_active_manifest (&state_mgr, 0, MANIFEST_REGION_2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, NULL, 0, NULL, NULL, false);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, &pfm1, manager.base.get_pending_pfm (&manager.base));
-
-	host_state_manager_set_pfm_dirty (&state_mgr, false);
-
-	status = manager.base.base.verify_pending_manifest (&manager.base.base);
+	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_HAS_PENDING, status);
 
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, &pfm1, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, &manager.pfm1, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, false, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_verify_pending_pfm_already_valid_notify_observers (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
-	struct pfm_observer_mock observer;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, NULL, 0, NULL, NULL, PFM_DATA,
+		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, true);
+
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, &manager.pfm2, manager.test.base.get_pending_pfm (&manager.test.base));
+
+	status = pfm_manager_add_observer (&manager.test.base, &manager.observer.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
+	host_state_manager_set_pfm_dirty (&manager.state_mgr, false);
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_observer_mock_init (&observer);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, NULL, 0,
-		NULL, NULL, PFM_DATA, PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, &pfm2, manager.base.get_pending_pfm (&manager.base));
-
-	status = pfm_manager_add_observer (&manager.base, &observer.base);
-	CuAssertIntEquals (test, 0, status);
-
-	host_state_manager_set_pfm_dirty (&state_mgr, false);
-
-	status = manager.base.base.verify_pending_manifest (&manager.base.base);
+	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_HAS_PENDING, status);
 
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, &pfm2, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, &manager.pfm2, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, false, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_observer_mock_validate_and_release (&observer);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_verify_pending_pfm_with_active (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM_DATA, PFM_DATA_LEN,
+		PFM_HASH, PFM_SIGNATURE, NULL, 0, NULL, NULL, true);
+
+	CuAssertPtrEquals (test, &manager.pfm1, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
+
+	pfm_manager_flash_testing_write_new_pfm (test, &manager, 0x20000);
+
+	status = pfm_manager_flash_testing_verify_pfm (&manager, PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH,
+		PFM2_SIGNATURE, 0x20000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = signature_verification_mock_init (&verification);
+	host_state_manager_set_pfm_dirty (&manager.state_mgr, false);
+
+	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrEquals (test, &manager.pfm1, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, &manager.pfm2, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, NULL, 0, NULL, NULL, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, &pfm1, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
-
-	pfm_manager_flash_testing_write_new_pfm (test, &manager, &flash_mock, 0x20000);
-
-	status = pfm_manager_flash_testing_verify_pfm (&flash_mock, &verification, PFM2_DATA,
-		PFM2_DATA_LEN, PFM2_HASH, PFM2_SIGNATURE, 0x20000);
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM2_DATA, PFM2_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x20000, 0, -1, PFM_HEADER_SIZE));
-
-	status |= pfm_manager_flash_testing_read_platform_id (&flash_mock, PFM_DATA, PFM_DATA_LEN,
-		0x10000);
-	status |= pfm_manager_flash_testing_read_platform_id (&flash_mock, PFM2_DATA, PFM2_DATA_LEN,
-		0x20000);
-
-	CuAssertIntEquals (test, 0, status);
-
-	host_state_manager_set_pfm_dirty (&state_mgr, false);
-
-	status = manager.base.base.verify_pending_manifest (&manager.base.base);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, &pfm1, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, &pfm2, manager.base.get_pending_pfm (&manager.base));
-
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_verify_pending_pfm_already_valid_with_active (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM_DATA, PFM_DATA_LEN,
+		PFM_HASH, PFM_SIGNATURE, PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH, PFM2_SIGNATURE, true);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrEquals (test, &manager.pfm1, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, &manager.pfm2, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	host_state_manager_set_pfm_dirty (&manager.state_mgr, false);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH,
-		PFM2_SIGNATURE, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, &pfm1, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, &pfm2, manager.base.get_pending_pfm (&manager.base));
-
-	host_state_manager_set_pfm_dirty (&state_mgr, false);
-
-	status = manager.base.base.verify_pending_manifest (&manager.base.base);
+	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_HAS_PENDING, status);
 
-	CuAssertPtrEquals (test, &pfm1, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, &pfm2, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, &manager.pfm1, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, &manager.pfm2, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, false, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_verify_pending_pfm_lower_id (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM2_DATA, PFM2_DATA_LEN,
+		PFM2_HASH, PFM2_SIGNATURE, NULL, 0, NULL, NULL, true);
+
+	CuAssertPtrEquals (test, &manager.pfm1, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
+
+	pfm_manager_flash_testing_write_new_pfm (test, &manager, 0x20000);
+
+	status = pfm_manager_flash_testing_verify_pfm (&manager, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, 0x20000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
+	host_state_manager_set_pfm_dirty (&manager.state_mgr, false);
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification,
-		PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH, PFM2_SIGNATURE, NULL, 0, NULL, NULL, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, &pfm1, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
-
-	pfm_manager_flash_testing_write_new_pfm (test, &manager, &flash_mock, 0x20000);
-
-	status = pfm_manager_flash_testing_verify_pfm (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, 0x20000);
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM2_DATA, PFM2_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x20000, 0, -1, PFM_HEADER_SIZE));
-
-	CuAssertIntEquals (test, 0, status);
-
-	host_state_manager_set_pfm_dirty (&state_mgr, false);
-
-	status = manager.base.base.verify_pending_manifest (&manager.base.base);
+	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ID, status);
 
-	CuAssertPtrEquals (test, &pfm1, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, &manager.pfm1, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, false, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_verify_pending_pfm_same_id (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM_DATA, PFM_DATA_LEN,
+		PFM_HASH, PFM_SIGNATURE, NULL, 0, NULL, NULL, true);
+
+	CuAssertPtrEquals (test, &manager.pfm1, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
+
+	pfm_manager_flash_testing_write_new_pfm (test, &manager, 0x20000);
+
+	status = pfm_manager_flash_testing_verify_pfm (&manager, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, 0x20000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
+	host_state_manager_set_pfm_dirty (&manager.state_mgr, false);
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, NULL, 0, NULL, NULL, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, &pfm1, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
-
-	pfm_manager_flash_testing_write_new_pfm (test, &manager, &flash_mock, 0x20000);
-
-	status = pfm_manager_flash_testing_verify_pfm (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, 0x20000);
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x20000, 0, -1, PFM_HEADER_SIZE));
-
-	CuAssertIntEquals (test, 0, status);
-
-	host_state_manager_set_pfm_dirty (&state_mgr, false);
-
-	status = manager.base.base.verify_pending_manifest (&manager.base.base);
+	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ID, status);
 
-	CuAssertPtrEquals (test, &pfm1, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, &manager.pfm1, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, false, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_verify_pending_pfm_different_platform_id (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM_DATA, PFM_DATA_LEN,
+		PFM_HASH, PFM_SIGNATURE, NULL, 0, NULL, NULL, true);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrEquals (test, &manager.pfm1, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_write_new_pfm (test, &manager, 0x20000);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, NULL, 0, NULL, NULL, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, &pfm1, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
-
-	pfm_manager_flash_testing_write_new_pfm (test, &manager, &flash_mock, 0x20000);
-
-	status = pfm_manager_flash_testing_verify_pfm (&flash_mock, &verification, PFM_PLATFORM2_DATA,
+	status = pfm_manager_flash_testing_verify_pfm (&manager, PFM_PLATFORM2_DATA,
 		PFM_PLATFORM2_DATA_LEN, PFM_PLATFORM2_HASH, PFM_PLATFORM2_SIGNATURE, 0x20000);
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_PLATFORM2_DATA,
-		PFM_PLATFORM2_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x20000, 0, -1, PFM_HEADER_SIZE));
-
-	status |= pfm_manager_flash_testing_read_platform_id (&flash_mock, PFM_DATA, PFM_DATA_LEN,
-		0x10000);
-	status |= pfm_manager_flash_testing_read_platform_id (&flash_mock, PFM_PLATFORM2_DATA,
-		PFM_PLATFORM2_DATA_LEN, 0x20000);
-
 	CuAssertIntEquals (test, 0, status);
 
-	host_state_manager_set_pfm_dirty (&state_mgr, false);
+	host_state_manager_set_pfm_dirty (&manager.state_mgr, false);
 
-	status = manager.base.base.verify_pending_manifest (&manager.base.base);
+	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_INCOMPATIBLE, status);
 
-	CuAssertPtrEquals (test, &pfm1, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, &manager.pfm1, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, false, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_verify_pending_pfm_no_clear_region2 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, NULL, 0, NULL, NULL, NULL, 0,
+		NULL, NULL, true);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	host_state_manager_set_pfm_dirty (&manager.state_mgr, false);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, NULL,
-		0, NULL, NULL, NULL, 0, NULL, NULL, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
-
-	host_state_manager_set_pfm_dirty (&state_mgr, false);
-
-	status = manager.base.base.verify_pending_manifest (&manager.base.base);
+	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_NONE_PENDING, status);
 
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, false, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_verify_pending_pfm_no_clear_region1 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, NULL, 0, NULL, NULL, NULL, 0,
+		NULL, NULL, false);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	host_state_manager_set_pfm_dirty (&manager.state_mgr, false);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = state_mgr.save_active_manifest (&state_mgr, 0, MANIFEST_REGION_2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, NULL,
-		0, NULL, NULL, NULL, 0, NULL, NULL, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
-
-	host_state_manager_set_pfm_dirty (&state_mgr, false);
-
-	status = manager.base.base.verify_pending_manifest (&manager.base.base);
+	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_NONE_PENDING, status);
 
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, false, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_verify_pending_pfm_extra_data_written (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
 	int offset;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, NULL, 0, NULL, NULL, NULL, 0,
+		NULL, NULL, true);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
+	offset = pfm_manager_flash_testing_write_new_pfm (test, &manager, 0x20000);
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	status = flash_master_mock_expect_write (&manager.flash_mock, 0x20000 + offset, data,
+		sizeof (data));
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, NULL,
-		0, NULL, NULL, NULL, 0, NULL, NULL, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	offset = pfm_manager_flash_testing_write_new_pfm (test, &manager, &flash_mock, 0x20000);
-
-	status = flash_master_mock_expect_write (&flash_mock, 0x20000 + offset, data, sizeof (data));
-
-	status |= pfm_manager_flash_testing_verify_pfm (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, 0x20000);
+	status |= pfm_manager_flash_testing_verify_pfm (&manager, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, 0x20000);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.base.base.write_pending_data (&manager.base.base, data, sizeof (data));
+	status = manager.test.base.base.write_pending_data (&manager.test.base.base, data,
+		sizeof (data));
 	CuAssertIntEquals (test, 0, status);
 
-	host_state_manager_set_pfm_dirty (&state_mgr, false);
+	host_state_manager_set_pfm_dirty (&manager.state_mgr, false);
 
-	status = manager.base.base.verify_pending_manifest (&manager.base.base);
+	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, &pfm2, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, &manager.pfm2, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_verify_pending_pfm_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, NULL, 0, NULL, NULL, NULL, 0,
+		NULL, NULL, true);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_write_new_pfm (test, &manager, 0x20000);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
+	host_state_manager_set_pfm_dirty (&manager.state_mgr, false);
 
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, NULL,
-		0, NULL, NULL, NULL, 0, NULL, NULL, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
-
-	pfm_manager_flash_testing_write_new_pfm (test, &manager, &flash_mock, 0x20000);
-
-	host_state_manager_set_pfm_dirty (&state_mgr, false);
-
-	status = manager.base.base.verify_pending_manifest (NULL);
+	status = manager.test.base.base.verify_pending_manifest (NULL);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
 
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, false, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_verify_pending_pfm_verify_error_region2 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, NULL, 0, NULL, NULL, NULL, 0,
+		NULL, NULL, true);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_write_new_pfm (test, &manager, 0x20000);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, NULL,
-		0, NULL, NULL, NULL, 0, NULL, NULL, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
-
-	pfm_manager_flash_testing_write_new_pfm (test, &manager, &flash_mock, 0x20000);
-
-	status = flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
+	status = flash_master_mock_expect_xfer (&manager.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 	CuAssertIntEquals (test, 0, status);
 
-	host_state_manager_set_pfm_dirty (&state_mgr, false);
+	host_state_manager_set_pfm_dirty (&manager.state_mgr, false);
 
-	status = manager.base.base.verify_pending_manifest (&manager.base.base);
+	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, false, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_verify_pending_pfm_verify_error_region1 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, NULL, 0, NULL, NULL, NULL, 0,
+		NULL, NULL, false);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_write_new_pfm (test, &manager, 0x10000);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = state_mgr.save_active_manifest (&state_mgr, 0, MANIFEST_REGION_2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, NULL,
-		0, NULL, NULL, NULL, 0, NULL, NULL, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
-
-	pfm_manager_flash_testing_write_new_pfm (test, &manager, &flash_mock, 0x10000);
-
-	status = flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
+	status = flash_master_mock_expect_xfer (&manager.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 	CuAssertIntEquals (test, 0, status);
 
-	host_state_manager_set_pfm_dirty (&state_mgr, false);
+	host_state_manager_set_pfm_dirty (&manager.state_mgr, false);
 
-	status = manager.base.base.verify_pending_manifest (&manager.base.base);
+	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, false, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_verify_pending_pfm_verify_error_notify_observers (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
-	struct pfm_observer_mock observer;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, NULL, 0, NULL, NULL, NULL, 0,
+		NULL, NULL, true);
+
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
+
+	pfm_manager_flash_testing_write_new_pfm (test, &manager, 0x20000);
+
+	status = pfm_manager_add_observer (&manager.test.base, &manager.observer.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_observer_mock_init (&observer);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, NULL,
-		0, NULL, NULL, NULL, 0, NULL, NULL, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
-
-	pfm_manager_flash_testing_write_new_pfm (test, &manager, &flash_mock, 0x20000);
-
-	status = pfm_manager_add_observer (&manager.base, &observer.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
+	status = flash_master_mock_expect_xfer (&manager.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 	CuAssertIntEquals (test, 0, status);
 
-	host_state_manager_set_pfm_dirty (&state_mgr, false);
+	host_state_manager_set_pfm_dirty (&manager.state_mgr, false);
 
-	status = manager.base.base.verify_pending_manifest (&manager.base.base);
+	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, false, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_observer_mock_validate_and_release (&observer);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_verify_pending_pfm_verify_fail_region2 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, NULL, 0, NULL, NULL, NULL, 0,
+		NULL, NULL, true);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_write_new_pfm (test, &manager, 0x20000);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, NULL,
-		0, NULL, NULL, NULL, 0, NULL, NULL, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
-
-	pfm_manager_flash_testing_write_new_pfm (test, &manager, &flash_mock, 0x20000);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x20000, 0, -1, PFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM2_SIGNATURE, PFM_SIGNATURE_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, PFM2_SIGNATURE,
+		PFM_SIGNATURE_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x20000 + PFM_SIGNATURE_OFFSET, 0, -1, PFM_SIGNATURE_LEN));
 
-	status |= flash_master_mock_expect_verify_flash (&flash_mock, 0x20000, PFM_DATA,
+	status |= flash_master_mock_expect_verify_flash (&manager.flash_mock, 0x20000, PFM_DATA,
 		PFM_DATA_LEN - PFM_SIGNATURE_LEN);
 
-	status |= mock_expect (&verification.mock, verification.base.verify_signature, &verification,
-		RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_NOT_NULL, MOCK_ARG (PFM_HASH_LEN), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (PFM_SIGNATURE_LEN));
+	status |= mock_expect (&manager.verification.mock, manager.verification.base.verify_signature,
+		&manager.verification, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_NOT_NULL, MOCK_ARG (PFM_HASH_LEN),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (PFM_SIGNATURE_LEN));
 
 	CuAssertIntEquals (test, 0, status);
 
-	host_state_manager_set_pfm_dirty (&state_mgr, false);
+	host_state_manager_set_pfm_dirty (&manager.state_mgr, false);
 
-	status = manager.base.base.verify_pending_manifest (&manager.base.base);
+	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
 	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
 
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, false, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_verify_pending_pfm_verify_fail_region1 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, NULL, 0, NULL, NULL, NULL, 0,
+		NULL, NULL, false);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_write_new_pfm (test, &manager, 0x10000);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = state_mgr.save_active_manifest (&state_mgr, 0, MANIFEST_REGION_2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, NULL,
-		0, NULL, NULL, NULL, 0, NULL, NULL, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
-
-	pfm_manager_flash_testing_write_new_pfm (test, &manager, &flash_mock, 0x10000);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM2_SIGNATURE, PFM_SIGNATURE_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, PFM2_SIGNATURE,
+		PFM_SIGNATURE_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_SIGNATURE_OFFSET, 0, -1, PFM_SIGNATURE_LEN));
 
-	status |= flash_master_mock_expect_verify_flash (&flash_mock, 0x10000, PFM_DATA,
+	status |= flash_master_mock_expect_verify_flash (&manager.flash_mock, 0x10000, PFM_DATA,
 		PFM_DATA_LEN - PFM_SIGNATURE_LEN);
 
-	status |= mock_expect (&verification.mock, verification.base.verify_signature, &verification,
-		RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_NOT_NULL, MOCK_ARG (PFM_HASH_LEN), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (PFM_SIGNATURE_LEN));
+	status |= mock_expect (&manager.verification.mock, manager.verification.base.verify_signature,
+		&manager.verification, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_NOT_NULL, MOCK_ARG (PFM_HASH_LEN),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (PFM_SIGNATURE_LEN));
 
 	CuAssertIntEquals (test, 0, status);
 
-	host_state_manager_set_pfm_dirty (&state_mgr, false);
+	host_state_manager_set_pfm_dirty (&manager.state_mgr, false);
 
-	status = manager.base.base.verify_pending_manifest (&manager.base.base);
+	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
 	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
 
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, false, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_verify_pending_pfm_verify_fail_ecc_region2 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, NULL, 0, NULL, NULL, NULL, 0,
+		NULL, NULL, true);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_write_new_pfm (test, &manager, 0x20000);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, NULL,
-		0, NULL, NULL, NULL, 0, NULL, NULL, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
-
-	pfm_manager_flash_testing_write_new_pfm (test, &manager, &flash_mock, 0x20000);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x20000, 0, -1, PFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM2_SIGNATURE, PFM_SIGNATURE_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, PFM2_SIGNATURE,
+		PFM_SIGNATURE_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x20000 + PFM_SIGNATURE_OFFSET, 0, -1, PFM_SIGNATURE_LEN));
 
-	status |= flash_master_mock_expect_verify_flash (&flash_mock, 0x20000, PFM_DATA,
+	status |= flash_master_mock_expect_verify_flash (&manager.flash_mock, 0x20000, PFM_DATA,
 		PFM_DATA_LEN - PFM_SIGNATURE_LEN);
 
-	status |= mock_expect (&verification.mock, verification.base.verify_signature, &verification,
-		ECC_ENGINE_BAD_SIGNATURE, MOCK_ARG_NOT_NULL, MOCK_ARG (PFM_HASH_LEN), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (PFM_SIGNATURE_LEN));
+	status |= mock_expect (&manager.verification.mock, manager.verification.base.verify_signature,
+		&manager.verification, ECC_ENGINE_BAD_SIGNATURE, MOCK_ARG_NOT_NULL, MOCK_ARG (PFM_HASH_LEN),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (PFM_SIGNATURE_LEN));
 
 	CuAssertIntEquals (test, 0, status);
 
-	host_state_manager_set_pfm_dirty (&state_mgr, false);
+	host_state_manager_set_pfm_dirty (&manager.state_mgr, false);
 
-	status = manager.base.base.verify_pending_manifest (&manager.base.base);
+	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
 	CuAssertIntEquals (test, ECC_ENGINE_BAD_SIGNATURE, status);
 
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, false, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_verify_pending_pfm_verify_fail_ecc_region1 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, NULL, 0, NULL, NULL, NULL, 0,
+		NULL, NULL, false);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_write_new_pfm (test, &manager, 0x10000);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = state_mgr.save_active_manifest (&state_mgr, 0, MANIFEST_REGION_2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, NULL,
-		0, NULL, NULL, NULL, 0, NULL, NULL, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
-
-	pfm_manager_flash_testing_write_new_pfm (test, &manager, &flash_mock, 0x10000);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM2_SIGNATURE, PFM_SIGNATURE_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, PFM2_SIGNATURE,
+		PFM_SIGNATURE_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_SIGNATURE_OFFSET, 0, -1, PFM_SIGNATURE_LEN));
 
-	status |= flash_master_mock_expect_verify_flash (&flash_mock, 0x10000, PFM_DATA,
+	status |= flash_master_mock_expect_verify_flash (&manager.flash_mock, 0x10000, PFM_DATA,
 		PFM_DATA_LEN - PFM_SIGNATURE_LEN);
 
-	status |= mock_expect (&verification.mock, verification.base.verify_signature, &verification,
-		ECC_ENGINE_BAD_SIGNATURE, MOCK_ARG_NOT_NULL, MOCK_ARG (PFM_HASH_LEN), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (PFM_SIGNATURE_LEN));
+	status |= mock_expect (&manager.verification.mock, manager.verification.base.verify_signature,
+		&manager.verification, ECC_ENGINE_BAD_SIGNATURE, MOCK_ARG_NOT_NULL, MOCK_ARG (PFM_HASH_LEN),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (PFM_SIGNATURE_LEN));
 
 	CuAssertIntEquals (test, 0, status);
 
-	host_state_manager_set_pfm_dirty (&state_mgr, false);
+	host_state_manager_set_pfm_dirty (&manager.state_mgr, false);
 
-	status = manager.base.base.verify_pending_manifest (&manager.base.base);
+	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
 	CuAssertIntEquals (test, ECC_ENGINE_BAD_SIGNATURE, status);
 
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, false, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_verify_pending_pfm_verify_after_verify_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, NULL, 0, NULL, NULL, NULL, 0,
+		NULL, NULL, true);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_write_new_pfm (test, &manager, 0x20000);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, NULL,
-		0, NULL, NULL, NULL, 0, NULL, NULL, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
-
-	pfm_manager_flash_testing_write_new_pfm (test, &manager, &flash_mock, 0x20000);
-
-	status = flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
+	status = flash_master_mock_expect_xfer (&manager.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 	CuAssertIntEquals (test, 0, status);
 
-	host_state_manager_set_pfm_dirty (&state_mgr, false);
+	host_state_manager_set_pfm_dirty (&manager.state_mgr, false);
 
-	status = manager.base.base.verify_pending_manifest (&manager.base.base);
+	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, false, status);
 
-	status = manager.base.base.verify_pending_manifest (&manager.base.base);
+	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_NONE_PENDING, status);
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, false, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_verify_pending_pfm_verify_after_verify_fail (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, NULL, 0, NULL, NULL, NULL, 0,
+		NULL, NULL, true);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_write_new_pfm (test, &manager, 0x20000);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, NULL,
-		0, NULL, NULL, NULL, 0, NULL, NULL, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
-
-	pfm_manager_flash_testing_write_new_pfm (test, &manager, &flash_mock, 0x20000);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x20000, 0, -1, PFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM2_SIGNATURE, PFM_SIGNATURE_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, PFM2_SIGNATURE,
+		PFM_SIGNATURE_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x20000 + PFM_SIGNATURE_OFFSET, 0, -1, PFM_SIGNATURE_LEN));
 
-	status |= flash_master_mock_expect_verify_flash (&flash_mock, 0x20000, PFM_DATA,
+	status |= flash_master_mock_expect_verify_flash (&manager.flash_mock, 0x20000, PFM_DATA,
 		PFM_DATA_LEN - PFM_SIGNATURE_LEN);
 
-	status |= mock_expect (&verification.mock, verification.base.verify_signature, &verification,
-		RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_NOT_NULL, MOCK_ARG (PFM_HASH_LEN), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (PFM_SIGNATURE_LEN));
+	status |= mock_expect (&manager.verification.mock, manager.verification.base.verify_signature,
+		&manager.verification, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_NOT_NULL, MOCK_ARG (PFM_HASH_LEN),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (PFM_SIGNATURE_LEN));
 
 	CuAssertIntEquals (test, 0, status);
 
-	host_state_manager_set_pfm_dirty (&state_mgr, false);
+	host_state_manager_set_pfm_dirty (&manager.state_mgr, false);
 
-	status = manager.base.base.verify_pending_manifest (&manager.base.base);
+	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
 	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
 
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, false, status);
 
-	status = manager.base.base.verify_pending_manifest (&manager.base.base);
+	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_NONE_PENDING, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_verify_pending_pfm_write_after_verify (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, NULL, 0, NULL, NULL, NULL, 0,
+		NULL, NULL, true);
+
+	pfm_manager_flash_testing_write_new_pfm (test, &manager, 0x20000);
+
+	status = pfm_manager_flash_testing_verify_pfm (&manager, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, 0x20000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = signature_verification_mock_init (&verification);
+	host_state_manager_set_pfm_dirty (&manager.state_mgr, false);
+
+	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, &manager.pfm2, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, NULL,
-		0, NULL, NULL, NULL, 0, NULL, NULL, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_write_new_pfm (test, &manager, &flash_mock, 0x20000);
-
-	status = pfm_manager_flash_testing_verify_pfm (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	host_state_manager_set_pfm_dirty (&state_mgr, false);
-
-	status = manager.base.base.verify_pending_manifest (&manager.base.base);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, &pfm2, manager.base.get_pending_pfm (&manager.base));
-
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = manager.base.base.write_pending_data (&manager.base.base, data, sizeof (data));
+	status = manager.test.base.base.write_pending_data (&manager.test.base.base, data,
+		sizeof (data));
 	CuAssertIntEquals (test, MANIFEST_MANAGER_NOT_CLEARED, status);
 
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, &pfm2, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, &manager.pfm2, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_verify_pending_pfm_write_after_verify_with_active (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM_DATA, PFM_DATA_LEN,
+		PFM_HASH, PFM_SIGNATURE, NULL, 0, NULL, NULL, true);
+
+	pfm_manager_flash_testing_write_new_pfm (test, &manager, 0x20000);
+
+	status = pfm_manager_flash_testing_verify_pfm (&manager, PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH,
+		PFM2_SIGNATURE, 0x20000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = signature_verification_mock_init (&verification);
+	host_state_manager_set_pfm_dirty (&manager.state_mgr, false);
+
+	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrEquals (test, &manager.pfm1, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, &manager.pfm2, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, NULL, 0, NULL, NULL, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_write_new_pfm (test, &manager, &flash_mock, 0x20000);
-
-	status = pfm_manager_flash_testing_verify_pfm (&flash_mock, &verification, PFM2_DATA,
-		PFM2_DATA_LEN, PFM2_HASH, PFM2_SIGNATURE, 0x20000);
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM2_DATA, PFM2_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x20000, 0, -1, PFM_HEADER_SIZE));
-
-	status |= pfm_manager_flash_testing_read_platform_id (&flash_mock, PFM_DATA, PFM_DATA_LEN,
-		0x10000);
-	status |= pfm_manager_flash_testing_read_platform_id (&flash_mock, PFM2_DATA, PFM2_DATA_LEN,
-		0x20000);
-
-	CuAssertIntEquals (test, 0, status);
-
-	host_state_manager_set_pfm_dirty (&state_mgr, false);
-
-	status = manager.base.base.verify_pending_manifest (&manager.base.base);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, &pfm1, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, &pfm2, manager.base.get_pending_pfm (&manager.base));
-
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = manager.base.base.write_pending_data (&manager.base.base, data, sizeof (data));
+	status = manager.test.base.base.write_pending_data (&manager.test.base.base, data,
+		sizeof (data));
 	CuAssertIntEquals (test, MANIFEST_MANAGER_NOT_CLEARED, status);
 
-	CuAssertPtrEquals (test, &pfm1, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, &pfm2, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, &manager.pfm1, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, &manager.pfm2, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_verify_pending_pfm_write_after_verify_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, NULL, 0, NULL, NULL, NULL, 0,
+		NULL, NULL, true);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_write_new_pfm (test, &manager, 0x20000);
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, NULL,
-		0, NULL, NULL, NULL, 0, NULL, NULL, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_write_new_pfm (test, &manager, &flash_mock, 0x20000);
-
-	status = flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
+	status = flash_master_mock_expect_xfer (&manager.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
 	CuAssertIntEquals (test, 0, status);
 
-	host_state_manager_set_pfm_dirty (&state_mgr, false);
+	host_state_manager_set_pfm_dirty (&manager.state_mgr, false);
 
-	status = manager.base.base.verify_pending_manifest (&manager.base.base);
+	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, false, status);
 
-	status = manager.base.base.write_pending_data (&manager.base.base, data, sizeof (data));
+	status = manager.test.base.base.write_pending_data (&manager.test.base.base, data,
+		sizeof (data));
 	CuAssertIntEquals (test, MANIFEST_MANAGER_NOT_CLEARED, status);
 
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
-}
-
-static void pfm_manager_flash_test_verify_pending_pfm_with_active_id2_error_region2 (CuTest *test)
-{
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
-	int status;
-
-	TEST_START;
-
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, NULL, 0, NULL, NULL, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, &pfm1, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
-
-	pfm_manager_flash_testing_write_new_pfm (test, &manager, &flash_mock, 0x20000);
-
-	status = pfm_manager_flash_testing_verify_pfm (&flash_mock, &verification, PFM2_DATA,
-		PFM2_DATA_LEN, PFM2_HASH, PFM2_SIGNATURE, 0x20000);
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
-	status |= flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
-		FLASH_EXP_READ_STATUS_REG);
-
-	CuAssertIntEquals (test, 0, status);
-
-	host_state_manager_set_pfm_dirty (&state_mgr, false);
-
-	status = manager.base.base.verify_pending_manifest (&manager.base.base);
-	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
-
-	CuAssertPtrEquals (test, &pfm1, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
-
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
-	CuAssertIntEquals (test, false, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
-}
-
-static void pfm_manager_flash_test_verify_pending_pfm_with_active_id2_error_region1 (CuTest *test)
-{
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
-	int status;
-
-	TEST_START;
-
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = state_mgr.save_active_manifest (&state_mgr, 0, MANIFEST_REGION_2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, NULL, 0,
-		NULL, NULL, PFM_DATA, PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, false);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, &pfm2, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
-
-	pfm_manager_flash_testing_write_new_pfm (test, &manager, &flash_mock, 0x10000);
-
-	status = pfm_manager_flash_testing_verify_pfm (&flash_mock, &verification, PFM2_DATA,
-		PFM2_DATA_LEN, PFM2_HASH, PFM2_SIGNATURE, 0x10000);
-
-	status |= flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
-		FLASH_EXP_READ_STATUS_REG);
-
-	CuAssertIntEquals (test, 0, status);
-
-	host_state_manager_set_pfm_dirty (&state_mgr, false);
-
-	status = manager.base.base.verify_pending_manifest (&manager.base.base);
-	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
-
-	CuAssertPtrEquals (test, &pfm2, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
-
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
-	CuAssertIntEquals (test, false, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
-}
-
-static void pfm_manager_flash_test_verify_pending_pfm_with_active_id1_error (CuTest *test)
-{
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
-	int status;
-
-	TEST_START;
-
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, NULL, 0, NULL, NULL, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, &pfm1, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
-
-	pfm_manager_flash_testing_write_new_pfm (test, &manager, &flash_mock, 0x20000);
-
-	status = pfm_manager_flash_testing_verify_pfm (&flash_mock, &verification, PFM2_DATA,
-		PFM2_DATA_LEN, PFM2_HASH, PFM2_SIGNATURE, 0x20000);
-
-	status |= flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
-		FLASH_EXP_READ_STATUS_REG);
-
-	CuAssertIntEquals (test, 0, status);
-
-	host_state_manager_set_pfm_dirty (&state_mgr, false);
-
-	status = manager.base.base.verify_pending_manifest (&manager.base.base);
-	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
-
-	CuAssertPtrEquals (test, &pfm1, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
-
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
-	CuAssertIntEquals (test, false, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
-}
-
-static void pfm_manager_flash_test_verify_pending_pfm_write_after_id_error (CuTest *test)
-{
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
-	int status;
-	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
-
-	TEST_START;
-
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, NULL, 0, NULL, NULL, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_write_new_pfm (test, &manager, &flash_mock, 0x20000);
-
-	status = pfm_manager_flash_testing_verify_pfm (&flash_mock, &verification, PFM2_DATA,
-		PFM2_DATA_LEN, PFM2_HASH, PFM2_SIGNATURE, 0x20000);
-
-	status |= flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
-		FLASH_EXP_READ_STATUS_REG);
-
-	CuAssertIntEquals (test, 0, status);
-
-	host_state_manager_set_pfm_dirty (&state_mgr, false);
-
-	status = manager.base.base.verify_pending_manifest (&manager.base.base);
-	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
-
-	CuAssertPtrEquals (test, &pfm1, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
-
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
-	CuAssertIntEquals (test, false, status);
-
-	status = manager.base.base.write_pending_data (&manager.base.base, data, sizeof (data));
-	CuAssertIntEquals (test, MANIFEST_MANAGER_NOT_CLEARED, status);
-
-	CuAssertPtrEquals (test, &pfm1, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
-
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
-}
-
-static void pfm_manager_flash_test_verify_pending_pfm_platform_id2_error_region2 (CuTest *test)
-{
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
-	int status;
-
-	TEST_START;
-
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, NULL, 0, NULL, NULL, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, &pfm1, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
-
-	pfm_manager_flash_testing_write_new_pfm (test, &manager, &flash_mock, 0x20000);
-
-	status = pfm_manager_flash_testing_verify_pfm (&flash_mock, &verification, PFM2_DATA,
-		PFM2_DATA_LEN, PFM2_HASH, PFM2_SIGNATURE, 0x20000);
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM2_DATA, PFM2_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x20000, 0, -1, PFM_HEADER_SIZE));
-
-	status |= pfm_manager_flash_testing_read_platform_id (&flash_mock, PFM_DATA, PFM_DATA_LEN,
-		0x10000);
-	status |= flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
-		FLASH_EXP_READ_STATUS_REG);
-
-	CuAssertIntEquals (test, 0, status);
-
-	host_state_manager_set_pfm_dirty (&state_mgr, false);
-
-	status = manager.base.base.verify_pending_manifest (&manager.base.base);
-	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
-
-	CuAssertPtrEquals (test, &pfm1, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
-
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
-	CuAssertIntEquals (test, false, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
-}
-
-static void pfm_manager_flash_test_verify_pending_pfm_platform_id2_error_region1 (CuTest *test)
-{
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
-	int status;
-
-	TEST_START;
-
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = state_mgr.save_active_manifest (&state_mgr, 0, MANIFEST_REGION_2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, NULL, 0,
-		NULL, NULL, PFM_DATA, PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, false);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, &pfm2, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
-
-	pfm_manager_flash_testing_write_new_pfm (test, &manager, &flash_mock, 0x10000);
-
-	status = pfm_manager_flash_testing_verify_pfm (&flash_mock, &verification, PFM2_DATA,
-		PFM2_DATA_LEN, PFM2_HASH, PFM2_SIGNATURE, 0x10000);
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x20000, 0, -1, PFM_HEADER_SIZE));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM2_DATA, PFM2_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
-		FLASH_EXP_READ_STATUS_REG);
-
-	CuAssertIntEquals (test, 0, status);
-
-	host_state_manager_set_pfm_dirty (&state_mgr, false);
-
-	status = manager.base.base.verify_pending_manifest (&manager.base.base);
-	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
-
-	CuAssertPtrEquals (test, &pfm2, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
-
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
-	CuAssertIntEquals (test, false, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
-}
-
-static void pfm_manager_flash_test_verify_pending_pfm_platform_id1_error (CuTest *test)
-{
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
-	int status;
-
-	TEST_START;
-
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, NULL, 0, NULL, NULL, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, &pfm1, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
-
-	pfm_manager_flash_testing_write_new_pfm (test, &manager, &flash_mock, 0x20000);
-
-	status |= pfm_manager_flash_testing_verify_pfm (&flash_mock, &verification, PFM2_DATA,
-		PFM2_DATA_LEN, PFM2_HASH, PFM2_SIGNATURE, 0x20000);
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM2_DATA, PFM2_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x20000, 0, -1, PFM_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
-		FLASH_EXP_READ_STATUS_REG);
-
-	CuAssertIntEquals (test, 0, status);
-
-	host_state_manager_set_pfm_dirty (&state_mgr, false);
-
-	status = manager.base.base.verify_pending_manifest (&manager.base.base);
-	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
-
-	CuAssertPtrEquals (test, &pfm1, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
-
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
-	CuAssertIntEquals (test, false, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
-}
-
-static void pfm_manager_flash_test_verify_pending_pfm_write_after_platform_id_error (CuTest *test)
-{
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
-	int status;
-	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
-
-	TEST_START;
-
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, NULL, 0, NULL, NULL, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_write_new_pfm (test, &manager, &flash_mock, 0x20000);
-
-	status = pfm_manager_flash_testing_verify_pfm (&flash_mock, &verification, PFM2_DATA,
-		PFM2_DATA_LEN, PFM2_HASH, PFM2_SIGNATURE, 0x20000);
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM2_DATA, PFM2_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x20000, 0, -1, PFM_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
-		FLASH_EXP_READ_STATUS_REG);
-
-	CuAssertIntEquals (test, 0, status);
-
-	host_state_manager_set_pfm_dirty (&state_mgr, false);
-
-	status = manager.base.base.verify_pending_manifest (&manager.base.base);
-	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
-
-	CuAssertPtrEquals (test, &pfm1, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
-
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
-	CuAssertIntEquals (test, false, status);
-
-	status = manager.base.base.write_pending_data (&manager.base.base, data, sizeof (data));
-	CuAssertIntEquals (test, MANIFEST_MANAGER_NOT_CLEARED, status);
-
-	CuAssertPtrEquals (test, &pfm1, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
-
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_verify_pending_pfm_incomplete_pfm (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM_DATA, PFM_DATA_LEN,
+		PFM_HASH, PFM_SIGNATURE, NULL, 0, NULL, NULL, true);
+
+	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock, 0x20000, 0x10000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = signature_verification_mock_init (&verification);
+	status = manager.test.base.base.clear_pending_region (&manager.test.base.base, 2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	host_state_manager_set_pfm_dirty (&manager.state_mgr, false);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, NULL, 0, NULL, NULL, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status |= flash_master_mock_expect_erase_flash_verify (&flash_mock, 0x20000, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manager.base.base.clear_pending_region (&manager.base.base, 2);
-	CuAssertIntEquals (test, 0, status);
-
-	host_state_manager_set_pfm_dirty (&state_mgr, false);
-
-	status = manager.base.base.verify_pending_manifest (&manager.base.base);
+	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_INCOMPLETE_UPDATE, status);
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, false, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_verify_pending_pfm_write_after_incomplete_pfm (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM_DATA, PFM_DATA_LEN,
+		PFM_HASH, PFM_SIGNATURE, NULL, 0, NULL, NULL, true);
+
+	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock, 0x20000, 0x10000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = signature_verification_mock_init (&verification);
+	status = manager.test.base.base.clear_pending_region (&manager.test.base.base, 2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	host_state_manager_set_pfm_dirty (&manager.state_mgr, false);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, NULL, 0, NULL, NULL, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status |= flash_master_mock_expect_erase_flash_verify (&flash_mock, 0x20000, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manager.base.base.clear_pending_region (&manager.base.base, 2);
-	CuAssertIntEquals (test, 0, status);
-
-	host_state_manager_set_pfm_dirty (&state_mgr, false);
-
-	status = manager.base.base.verify_pending_manifest (&manager.base.base);
+	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_INCOMPLETE_UPDATE, status);
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, false, status);
 
-	status = manager.base.base.write_pending_data (&manager.base.base, data, sizeof (data));
+	status = manager.test.base.base.write_pending_data (&manager.test.base.base, data,
+		sizeof (data));
 	CuAssertIntEquals (test, MANIFEST_MANAGER_NOT_CLEARED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_clear_all_manifests_region1 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM_DATA, PFM_DATA_LEN,
+		PFM_HASH, PFM_SIGNATURE, PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH, PFM2_SIGNATURE, true);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH,
-		PFM2_SIGNATURE, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = mock_validate (&flash_mock.mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_erase_flash (&flash_mock, 0x20000);
-	status |= flash_master_mock_expect_erase_flash (&flash_mock, 0x10000);
+	status = flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x20000);
+	status |= flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x10000);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.base.base.clear_all_manifests (&manager.base.base);
+	status = manager.test.base.base.clear_all_manifests (&manager.test.base.base);
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_clear_all_manifests_region2 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM2_DATA, PFM2_DATA_LEN,
+		PFM2_HASH, PFM2_SIGNATURE, PFM_DATA, PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, false);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = state_mgr.save_active_manifest (&state_mgr, 0, MANIFEST_REGION_2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification,
-		PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH, PFM2_SIGNATURE, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
-		PFM_SIGNATURE, false);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = mock_validate (&flash_mock.mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_erase_flash (&flash_mock, 0x10000);
-	status |= flash_master_mock_expect_erase_flash (&flash_mock, 0x20000);
+	status = flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x10000);
+	status |= flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x20000);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.base.base.clear_all_manifests (&manager.base.base);
+	status = manager.test.base.base.clear_all_manifests (&manager.test.base.base);
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_clear_all_manifests_only_active (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM_DATA, PFM_DATA_LEN,
+		PFM_HASH, PFM_SIGNATURE, NULL, 0, NULL, NULL, true);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, NULL, 0, NULL, NULL, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = mock_validate (&flash_mock.mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_erase_flash (&flash_mock, 0x20000);
-	status |= flash_master_mock_expect_erase_flash (&flash_mock, 0x10000);
+	status = flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x20000);
+	status |= flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x10000);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.base.base.clear_all_manifests (&manager.base.base);
+	status = manager.test.base.base.clear_all_manifests (&manager.test.base.base);
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_clear_all_manifests_only_pending (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, NULL, 0, NULL, NULL, PFM_DATA,
+		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, true);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, NULL, 0,
-		NULL, NULL, PFM_DATA, PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = mock_validate (&flash_mock.mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_erase_flash (&flash_mock, 0x20000);
-	status |= flash_master_mock_expect_erase_flash (&flash_mock, 0x10000);
+	status = flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x20000);
+	status |= flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x10000);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.base.base.clear_all_manifests (&manager.base.base);
+	status = manager.test.base.base.clear_all_manifests (&manager.test.base.base);
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_clear_all_manifests_no_pfms (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, NULL, 0, NULL, NULL, NULL, 0,
+		NULL, NULL, true);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, NULL,
-		0, NULL, NULL, NULL, 0, NULL, NULL, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = mock_validate (&flash_mock.mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_erase_flash (&flash_mock, 0x20000);
-	status |= flash_master_mock_expect_erase_flash (&flash_mock, 0x10000);
+	status = flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x20000);
+	status |= flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x10000);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.base.base.clear_all_manifests (&manager.base.base);
+	status = manager.test.base.base.clear_all_manifests (&manager.test.base.base);
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_clear_all_manifests_pending_in_use (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 	struct pfm *pending;
 	struct pfm *active;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM_DATA, PFM_DATA_LEN,
+		PFM_HASH, PFM_SIGNATURE, PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH, PFM2_SIGNATURE, true);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH,
-		PFM2_SIGNATURE, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = mock_validate (&flash_mock.mock);
-	CuAssertIntEquals (test, 0, status);
+	pending = manager.test.base.get_pending_pfm (&manager.test.base);
 
-	pending = manager.base.get_pending_pfm (&manager.base);
-
-	status = manager.base.base.clear_all_manifests (&manager.base.base);
+	status = manager.test.base.base.clear_all_manifests (&manager.test.base.base);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_PENDING_IN_USE, status);
 
-	manager.base.free_pfm (&manager.base, pending);
+	manager.test.base.free_pfm (&manager.test.base, pending);
 
-	active = manager.base.get_active_pfm (&manager.base);
-	CuAssertPtrEquals (test, &pfm1, active);
-	manager.base.free_pfm (&manager.base, active);
+	active = manager.test.base.get_active_pfm (&manager.test.base);
+	CuAssertPtrEquals (test, &manager.pfm1, active);
+	manager.test.base.free_pfm (&manager.test.base, active);
 
-	pending = manager.base.get_pending_pfm (&manager.base);
-	CuAssertPtrEquals (test, &pfm2, pending);
-	manager.base.free_pfm (&manager.base, pending);
+	pending = manager.test.base.get_pending_pfm (&manager.test.base);
+	CuAssertPtrEquals (test, &manager.pfm2, pending);
+	manager.test.base.free_pfm (&manager.test.base, pending);
 
-	status = mock_validate (&flash_mock.mock);
+	status = mock_validate (&manager.flash_mock.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_expect_erase_flash (&flash_mock, 0x20000);
-	status |= flash_master_mock_expect_erase_flash (&flash_mock, 0x10000);
+	status = flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x20000);
+	status |= flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x10000);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.base.base.clear_all_manifests (&manager.base.base);
+	status = manager.test.base.base.clear_all_manifests (&manager.test.base.base);
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_clear_all_manifests_active_in_use (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 	struct pfm *pending;
 	struct pfm *active;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM_DATA, PFM_DATA_LEN,
+		PFM_HASH, PFM_SIGNATURE, PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH, PFM2_SIGNATURE, true);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH,
-		PFM2_SIGNATURE, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = mock_validate (&flash_mock.mock);
-	CuAssertIntEquals (test, 0, status);
+	active = manager.test.base.get_active_pfm (&manager.test.base);
 
-	active = manager.base.get_active_pfm (&manager.base);
-
-	status = flash_master_mock_expect_erase_flash (&flash_mock, 0x20000);
+	status = flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x20000);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.base.base.clear_all_manifests (&manager.base.base);
+	status = manager.test.base.base.clear_all_manifests (&manager.test.base.base);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_ACTIVE_IN_USE, status);
 
-	manager.base.free_pfm (&manager.base, active);
+	manager.test.base.free_pfm (&manager.test.base, active);
 
-	active = manager.base.get_active_pfm (&manager.base);
-	CuAssertPtrEquals (test, &pfm1, active);
-	manager.base.free_pfm (&manager.base, active);
+	active = manager.test.base.get_active_pfm (&manager.test.base);
+	CuAssertPtrEquals (test, &manager.pfm1, active);
+	manager.test.base.free_pfm (&manager.test.base, active);
 
-	pending = manager.base.get_pending_pfm (&manager.base);
+	pending = manager.test.base.get_pending_pfm (&manager.test.base);
 	CuAssertPtrEquals (test, NULL, pending);
-	manager.base.free_pfm (&manager.base, pending);
+	manager.test.base.free_pfm (&manager.test.base, pending);
 
-	status = mock_validate (&flash_mock.mock);
+	status = mock_validate (&manager.flash_mock.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_expect_erase_flash (&flash_mock, 0x20000);
-	status |= flash_master_mock_expect_erase_flash (&flash_mock, 0x10000);
+	status = flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x20000);
+	status |= flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x10000);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.base.base.clear_all_manifests (&manager.base.base);
+	status = manager.test.base.base.clear_all_manifests (&manager.test.base.base);
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_clear_all_manifests_during_update (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM_DATA, PFM_DATA_LEN,
+		PFM_HASH, PFM_SIGNATURE, PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH, PFM2_SIGNATURE, true);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH,
-		PFM2_SIGNATURE, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = mock_validate (&flash_mock.mock);
+	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock, 0x20000, 0x10000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_expect_erase_flash_verify (&flash_mock, 0x20000, 0x10000);
+	status = manager.test.base.base.clear_pending_region (&manager.test.base.base, 1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.base.base.clear_pending_region (&manager.base.base, 1);
+	status = mock_validate (&manager.flash_mock.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_validate (&flash_mock.mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_erase_flash (&flash_mock, 0x20000);
-	status |= flash_master_mock_expect_erase_flash (&flash_mock, 0x10000);
+	status = flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x20000);
+	status |= flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x10000);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.base.base.clear_all_manifests (&manager.base.base);
+	status = manager.test.base.base.clear_all_manifests (&manager.test.base.base);
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = manager.base.base.write_pending_data (&manager.base.base, data, sizeof (data));
+	status = manager.test.base.base.write_pending_data (&manager.test.base.base, data,
+		sizeof (data));
 	CuAssertIntEquals (test, MANIFEST_MANAGER_NOT_CLEARED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_clear_all_manifests_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM_DATA, PFM_DATA_LEN,
+		PFM_HASH, PFM_SIGNATURE, PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH, PFM2_SIGNATURE, true);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH,
-		PFM2_SIGNATURE, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = mock_validate (&flash_mock.mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manager.base.base.clear_all_manifests (NULL);
+	status = manager.test.base.base.clear_all_manifests (NULL);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
 
-	CuAssertPtrEquals (test, &pfm1, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, &pfm2, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, &manager.pfm1, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, &manager.pfm2, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_clear_all_manifests_erase_pending_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM_DATA, PFM_DATA_LEN,
+		PFM_HASH, PFM_SIGNATURE, PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH, PFM2_SIGNATURE, true);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH,
-		PFM2_SIGNATURE, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = mock_validate (&flash_mock.mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
+	status = flash_master_mock_expect_xfer (&manager.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.base.base.clear_all_manifests (&manager.base.base);
+	status = manager.test.base.base.clear_all_manifests (&manager.test.base.base);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	CuAssertPtrEquals (test, &pfm1, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, &manager.pfm1, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 static void pfm_manager_flash_test_clear_all_manifests_erase_active_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash;
-	struct spi_flash flash_state;
-	struct state_manager state_mgr;
-	struct pfm_flash pfm1;
-	struct pfm_flash pfm2;
-	struct pfm_manager_flash manager;
+	struct pfm_manager_flash_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM_DATA, PFM_DATA_LEN,
+		PFM_HASH, PFM_SIGNATURE, PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH, PFM2_SIGNATURE, true);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_testing_init_host_state (test, &state_mgr, &flash_mock_state, &flash_state);
-
-	status = pfm_flash_init (&pfm1, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm2, &flash, 0x20000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_testing_initial_pfm_validation (&flash_mock, &verification, PFM_DATA,
-		PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH,
-		PFM2_SIGNATURE, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager, &pfm1, &pfm2, &state_mgr, &hash.base,
-		&verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = mock_validate (&flash_mock.mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_erase_flash (&flash_mock, 0x20000);
-	status |= flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
+	status = flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x20000);
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.base.base.clear_all_manifests (&manager.base.base);
+	status = manager.test.base.base.clear_all_manifests (&manager.test.base.base);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	CuAssertPtrEquals (test, NULL, manager.base.get_active_pfm (&manager.base));
-	CuAssertPtrEquals (test, NULL, manager.base.get_pending_pfm (&manager.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	status = host_state_manager_is_pfm_dirty (&state_mgr);
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
 	CuAssertIntEquals (test, true, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_manager_flash_release (&manager);
-
-	host_state_manager_release (&state_mgr);
-	pfm_flash_release (&pfm1);
-	pfm_flash_release (&pfm2);
-	spi_flash_release (&flash);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
 
@@ -11833,10 +4684,6 @@ CuSuite* get_pfm_manager_flash_suite ()
 	SUITE_ADD_TEST (suite, pfm_manager_flash_test_init_bad_length);
 	SUITE_ADD_TEST (suite, pfm_manager_flash_test_init_bad_magic_number);
 	SUITE_ADD_TEST (suite, pfm_manager_flash_test_init_malformed);
-	SUITE_ADD_TEST (suite, pfm_manager_flash_test_init_region1_id_error);
-	SUITE_ADD_TEST (suite, pfm_manager_flash_test_init_region2_id_error);
-	SUITE_ADD_TEST (suite, pfm_manager_flash_test_init_region1_platform_id_error);
-	SUITE_ADD_TEST (suite, pfm_manager_flash_test_init_region2_platform_id_error);
 	SUITE_ADD_TEST (suite, pfm_manager_flash_test_init_pending_versions_error);
 	SUITE_ADD_TEST (suite, pfm_manager_flash_test_init_empty_manifest_pending_erase_error);
 	SUITE_ADD_TEST (suite, pfm_manager_flash_test_init_empty_manifest_active_erase_error);
@@ -11921,14 +4768,6 @@ CuSuite* get_pfm_manager_flash_suite ()
 	SUITE_ADD_TEST (suite,
 		pfm_manager_flash_test_verify_pending_pfm_write_after_verify_with_active);
 	SUITE_ADD_TEST (suite, pfm_manager_flash_test_verify_pending_pfm_write_after_verify_error);
-	SUITE_ADD_TEST (suite, pfm_manager_flash_test_verify_pending_pfm_with_active_id2_error_region2);
-	SUITE_ADD_TEST (suite, pfm_manager_flash_test_verify_pending_pfm_with_active_id2_error_region1);
-	SUITE_ADD_TEST (suite, pfm_manager_flash_test_verify_pending_pfm_with_active_id1_error);
-	SUITE_ADD_TEST (suite, pfm_manager_flash_test_verify_pending_pfm_write_after_id_error);
-	SUITE_ADD_TEST (suite, pfm_manager_flash_test_verify_pending_pfm_platform_id2_error_region2);
-	SUITE_ADD_TEST (suite, pfm_manager_flash_test_verify_pending_pfm_platform_id2_error_region1);
-	SUITE_ADD_TEST (suite, pfm_manager_flash_test_verify_pending_pfm_platform_id1_error);
-	SUITE_ADD_TEST (suite, pfm_manager_flash_test_verify_pending_pfm_write_after_platform_id_error);
 	SUITE_ADD_TEST (suite, pfm_manager_flash_test_verify_pending_pfm_incomplete_pfm);
 	SUITE_ADD_TEST (suite, pfm_manager_flash_test_verify_pending_pfm_write_after_incomplete_pfm);
 	SUITE_ADD_TEST (suite, pfm_manager_flash_test_clear_all_manifests_region1);

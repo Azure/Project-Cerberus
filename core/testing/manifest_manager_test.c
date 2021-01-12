@@ -105,8 +105,8 @@ static void manifest_manager_test_get_manifest_measured_data (CuTest *test)
 	status = manifest_mock_init (&manifest);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&manifest.mock, manifest.base.get_hash, &manifest, 0,
-		MOCK_ARG (&hash.base), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+	status = mock_expect (&manifest.mock, manifest.base.get_hash, &manifest, PFM_HASH_LEN,
+		MOCK_ARG (&hash.base), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&manifest.mock, 1, PFM_HASH, PFM_HASH_LEN, 2);
 
 	CuAssertIntEquals (test, 0, status);
@@ -117,6 +117,94 @@ static void manifest_manager_test_get_manifest_measured_data (CuTest *test)
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH, total_len);
 
 	status = testing_validate_array (PFM_HASH, buffer, PFM_HASH_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_mock_validate_and_release (&manifest);
+	CuAssertIntEquals (test, 0, status);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void manifest_manager_test_get_manifest_measured_data_sha384 (CuTest *test)
+{
+	HASH_TESTING_ENGINE hash;
+	struct manifest_manager manager;
+	struct manifest_mock manifest;
+	uint8_t buffer[SHA384_HASH_LENGTH];
+	size_t length = sizeof (buffer);
+	uint32_t total_len;
+	uint8_t hash_out[SHA384_HASH_LENGTH];
+	int status;
+
+	TEST_START;
+
+	memset (hash_out, 0x55, sizeof (hash_out));
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_manager_init (&manager, &hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_mock_init (&manifest);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manifest.mock, manifest.base.get_hash, &manifest, sizeof (hash_out),
+		MOCK_ARG (&hash.base), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+	status |= mock_expect_output (&manifest.mock, 1, hash_out, sizeof (hash_out), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_manager_get_manifest_measured_data (&manager, &manifest.base, 0, buffer,
+		length, &total_len);
+	CuAssertIntEquals (test, sizeof (hash_out), status);
+	CuAssertIntEquals (test, sizeof (hash_out), total_len);
+
+	status = testing_validate_array (hash_out, buffer, status);
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_mock_validate_and_release (&manifest);
+	CuAssertIntEquals (test, 0, status);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void manifest_manager_test_get_manifest_measured_data_sha512 (CuTest *test)
+{
+	HASH_TESTING_ENGINE hash;
+	struct manifest_manager manager;
+	struct manifest_mock manifest;
+	uint8_t buffer[SHA512_HASH_LENGTH];
+	size_t length = sizeof (buffer);
+	uint32_t total_len;
+	uint8_t hash_out[SHA512_HASH_LENGTH];
+	int status;
+
+	TEST_START;
+
+	memset (hash_out, 0x55, sizeof (hash_out));
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_manager_init (&manager, &hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_mock_init (&manifest);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manifest.mock, manifest.base.get_hash, &manifest, sizeof (hash_out),
+		MOCK_ARG (&hash.base), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+	status |= mock_expect_output (&manifest.mock, 1, hash_out, sizeof (hash_out), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_manager_get_manifest_measured_data (&manager, &manifest.base, 0, buffer,
+		length, &total_len);
+	CuAssertIntEquals (test, sizeof (hash_out), status);
+	CuAssertIntEquals (test, sizeof (hash_out), total_len);
+
+	status = testing_validate_array (hash_out, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	status = manifest_mock_validate_and_release (&manifest);
@@ -147,8 +235,8 @@ static void manifest_manager_test_get_manifest_measured_data_with_offset (CuTest
 	status = manifest_mock_init (&manifest);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&manifest.mock, manifest.base.get_hash, &manifest, 0,
-		MOCK_ARG (&hash.base), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+	status = mock_expect (&manifest.mock, manifest.base.get_hash, &manifest, PFM_HASH_LEN,
+		MOCK_ARG (&hash.base), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&manifest.mock, 1, PFM_HASH, PFM_HASH_LEN, 2);
 
 	CuAssertIntEquals (test, 0, status);
@@ -159,6 +247,50 @@ static void manifest_manager_test_get_manifest_measured_data_with_offset (CuTest
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH, total_len);
 
 	status = testing_validate_array (PFM_HASH + offset, buffer, PFM_HASH_LEN - offset);
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_mock_validate_and_release (&manifest);
+	CuAssertIntEquals (test, 0, status);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void manifest_manager_test_get_manifest_measured_data_sha384_offest_sha256_len (CuTest *test)
+{
+	HASH_TESTING_ENGINE hash;
+	struct manifest_manager manager;
+	struct manifest_mock manifest;
+	uint8_t buffer[SHA384_HASH_LENGTH];
+	size_t length = sizeof (buffer);
+	uint32_t total_len;
+	uint8_t hash_out[SHA384_HASH_LENGTH];
+	int status;
+
+	TEST_START;
+
+	memset (hash_out, 0x55, sizeof (hash_out));
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_manager_init (&manager, &hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_mock_init (&manifest);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manifest.mock, manifest.base.get_hash, &manifest, sizeof (hash_out),
+		MOCK_ARG (&hash.base), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+	status |= mock_expect_output (&manifest.mock, 1, hash_out, sizeof (hash_out), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_manager_get_manifest_measured_data (&manager, &manifest.base,
+		SHA256_HASH_LENGTH, buffer, length, &total_len);
+	CuAssertIntEquals (test, sizeof (hash_out) - SHA256_HASH_LENGTH, status);
+	CuAssertIntEquals (test, sizeof (hash_out), total_len);
+
+	status = testing_validate_array (hash_out + SHA256_HASH_LENGTH, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	status = manifest_mock_validate_and_release (&manifest);
@@ -189,8 +321,8 @@ static void manifest_manager_test_get_manifest_measured_data_small_buffer (CuTes
 	status = manifest_mock_init (&manifest);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&manifest.mock, manifest.base.get_hash, &manifest, 0,
-		MOCK_ARG (&hash.base), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+	status = mock_expect (&manifest.mock, manifest.base.get_hash, &manifest, PFM_HASH_LEN,
+		MOCK_ARG (&hash.base), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&manifest.mock, 1, PFM_HASH, PFM_HASH_LEN, 2);
 
 	CuAssertIntEquals (test, 0, status);
@@ -235,8 +367,8 @@ static void manifest_manager_test_get_manifest_measured_data_small_buffer_with_o
 	status = manifest_mock_init (&manifest);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&manifest.mock, manifest.base.get_hash, &manifest, 0,
-		MOCK_ARG (&hash.base), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+	status = mock_expect (&manifest.mock, manifest.base.get_hash, &manifest, PFM_HASH_LEN,
+		MOCK_ARG (&hash.base), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&manifest.mock, 1, PFM_HASH, PFM_HASH_LEN, 2);
 
 	CuAssertIntEquals (test, 0, status);
@@ -276,7 +408,7 @@ static void manifest_manager_test_get_manifest_measured_data_no_active (CuTest *
 	status = manifest_manager_init (&manager, &hash.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manifest_manager_get_manifest_measured_data (&manager, NULL, 0, buffer, length, 
+	status = manifest_manager_get_manifest_measured_data (&manager, NULL, 0, buffer, length,
 		&total_len);
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH, total_len);
@@ -306,7 +438,7 @@ static void manifest_manager_test_get_manifest_measured_data_no_active_with_offs
 	status = manifest_manager_init (&manager, &hash.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manifest_manager_get_manifest_measured_data (&manager, NULL, offset, buffer, length, 
+	status = manifest_manager_get_manifest_measured_data (&manager, NULL, offset, buffer, length,
 		&total_len);
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH - offset, status);
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH, total_len);
@@ -335,7 +467,7 @@ static void manifest_manager_test_get_manifest_measured_data_no_active_small_buf
 	status = manifest_manager_init (&manager, &hash.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manifest_manager_get_manifest_measured_data (&manager, NULL, 0, buffer, length - 2, 
+	status = manifest_manager_get_manifest_measured_data (&manager, NULL, 0, buffer, length - 2,
 		&total_len);
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH - 2, status);
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH, total_len);
@@ -398,13 +530,83 @@ static void manifest_manager_test_get_manifest_measured_data_0_bytes_read (CuTes
 	status = manifest_mock_init (&manifest);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manifest_manager_get_manifest_measured_data (&manager, &manifest.base, PFM_HASH_LEN, 
+	status = mock_expect (&manifest.mock, manifest.base.get_hash, &manifest, PFM_HASH_LEN,
+		MOCK_ARG (&hash.base), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+	status |= mock_expect_output (&manifest.mock, 1, PFM_HASH, PFM_HASH_LEN, 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_manager_get_manifest_measured_data (&manager, &manifest.base, PFM_HASH_LEN,
 		buffer, length, &total_len);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH, total_len);
 
 	status = manifest_mock_validate_and_release (&manifest);
 	CuAssertIntEquals (test, 0, status);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void manifest_manager_test_get_manifest_measured_data_0_bytes_read_sha384 (CuTest *test)
+{
+	HASH_TESTING_ENGINE hash;
+	struct manifest_manager manager;
+	struct manifest_mock manifest;
+	uint8_t buffer[SHA256_HASH_LENGTH];
+	size_t length = sizeof (buffer);
+	uint32_t total_len;
+	uint8_t hash_out[SHA384_HASH_LENGTH];
+	int status;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_manager_init (&manager, &hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_mock_init (&manifest);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manifest.mock, manifest.base.get_hash, &manifest, sizeof (hash_out),
+		MOCK_ARG (&hash.base), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+	status |= mock_expect_output (&manifest.mock, 1, hash_out, sizeof (hash_out), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_manager_get_manifest_measured_data (&manager, &manifest.base,
+		sizeof (hash_out), buffer, length, &total_len);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (hash_out), total_len);
+
+	status = manifest_mock_validate_and_release (&manifest);
+	CuAssertIntEquals (test, 0, status);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void manifest_manager_test_get_manifest_measured_data_no_active_0_bytes_read (CuTest *test)
+{
+	HASH_TESTING_ENGINE hash;
+	struct manifest_manager manager;
+	uint8_t buffer[SHA256_HASH_LENGTH];
+	size_t length = sizeof (buffer);
+	uint32_t total_len;
+	int status;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_manager_init (&manager, &hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_manager_get_manifest_measured_data (&manager, NULL, SHA256_HASH_LENGTH,
+		buffer, length, &total_len);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, total_len);
 
 	HASH_TESTING_ENGINE_RELEASE (&hash);
 }
@@ -430,10 +632,57 @@ static void manifest_manager_test_get_manifest_measured_data_invalid_offset (CuT
 	status = manifest_mock_init (&manifest);
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&manifest.mock, manifest.base.get_hash, &manifest, PFM_HASH_LEN,
+		MOCK_ARG (&hash.base), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+	status |= mock_expect_output (&manifest.mock, 1, PFM_HASH, PFM_HASH_LEN, 2);
+
+	CuAssertIntEquals (test, 0, status);
+
 	status = manifest_manager_get_manifest_measured_data (&manager, &manifest.base,
-		SHA256_HASH_LENGTH, buffer, length, &total_len);
+		PFM_HASH_LEN + 1, buffer, length, &total_len);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH, total_len);
+
+	status = manifest_mock_validate_and_release (&manifest);
+	CuAssertIntEquals (test, 0, status);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void manifest_manager_test_get_manifest_measured_data_invalid_offset_sha384 (CuTest *test)
+{
+	HASH_TESTING_ENGINE hash;
+	struct manifest_manager manager;
+	struct manifest_mock manifest;
+	uint8_t buffer[SHA384_HASH_LENGTH];
+	size_t length = sizeof (buffer);
+	uint32_t total_len;
+	uint8_t hash_out[SHA384_HASH_LENGTH];
+	int status;
+
+	TEST_START;
+
+	memset (hash_out, 0x55, sizeof (hash_out));
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_manager_init (&manager, &hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_mock_init (&manifest);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manifest.mock, manifest.base.get_hash, &manifest, sizeof (hash_out),
+		MOCK_ARG (&hash.base), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+	status |= mock_expect_output (&manifest.mock, 1, hash_out, sizeof (hash_out), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_manager_get_manifest_measured_data (&manager, &manifest.base,
+		sizeof (hash_out) + 1, buffer, length, &total_len);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (hash_out), total_len);
 
 	status = manifest_mock_validate_and_release (&manifest);
 	CuAssertIntEquals (test, 0, status);
@@ -458,7 +707,7 @@ static void manifest_manager_test_get_manifest_measured_data_no_active_invalid_o
 	status = manifest_manager_init (&manager, &hash.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manifest_manager_get_manifest_measured_data (&manager, NULL, SHA256_HASH_LENGTH,
+	status = manifest_manager_get_manifest_measured_data (&manager, NULL, SHA256_HASH_LENGTH + 1,
 		buffer, length, &total_len);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH, total_len);
@@ -528,7 +777,7 @@ static void manifest_manager_test_get_manifest_measured_data_fail (CuTest *test)
 
 	status = mock_expect (&manifest.mock, manifest.base.get_hash, &manifest,
 		MANIFEST_GET_HASH_FAILED, MOCK_ARG (&hash.base), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (SHA256_HASH_LENGTH));
+		MOCK_ARG (SHA512_HASH_LENGTH));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -780,7 +1029,7 @@ static void manifest_manager_test_get_manifest_id_measured_data_0_bytes_read (Cu
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manifest_manager_get_id_measured_data (&manifest.base, sizeof (id), buffer, length, 
+	status = manifest_manager_get_id_measured_data (&manifest.base, sizeof (id), buffer, length,
 		&total_len);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (id), total_len);
@@ -887,27 +1136,24 @@ static void manifest_manager_test_get_manifest_platform_id_measured_data (CuTest
 	char *id = "Manifest Test";
 	uint8_t buffer[14];
 	size_t length = sizeof (buffer);
-	char *platform_id;
 	uint32_t total_len;
 	int status;
 
 	TEST_START;
 
-	platform_id = platform_malloc (strlen (id) + 1);
-	CuAssertPtrNotNull (test, platform_id);
-
-	strcpy (platform_id, id);
-
 	status = manifest_mock_init (&manifest);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&manifest.mock, manifest.base.get_platform_id, &manifest, 0,
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&manifest.mock, 0, &platform_id, sizeof (platform_id), -1);
+		MOCK_ARG_PTR_PTR (NULL), MOCK_ARG_ANY);
+	status |= mock_expect_output (&manifest.mock, 0, &id, sizeof (id), -1);
+
+	status |= mock_expect (&manifest.mock, manifest.base.free_platform_id, &manifest, 0,
+		MOCK_ARG (id));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manifest_manager_get_platform_id_measured_data (&manifest.base, 0, buffer, length, 
+	status = manifest_manager_get_platform_id_measured_data (&manifest.base, 0, buffer, length,
 		&total_len);
 	CuAssertIntEquals (test, strlen (id) + 1, status);
 	CuAssertIntEquals (test, strlen (id) + 1, total_len);
@@ -926,23 +1172,20 @@ static void manifest_manager_test_get_manifest_platform_id_measured_data_offset 
 	uint8_t buffer[14];
 	size_t length = sizeof (buffer);
 	size_t id_length = strlen (id) + 1;
-	char *platform_id;
 	uint32_t total_len;
 	int status;
 
 	TEST_START;
 
-	platform_id = platform_malloc (strlen (id) + 1);
-	CuAssertPtrNotNull (test, platform_id);
-
-	strcpy (platform_id, id);
-
 	status = manifest_mock_init (&manifest);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&manifest.mock, manifest.base.get_platform_id, &manifest, 0,
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&manifest.mock, 0, &platform_id, sizeof (platform_id), -1);
+		MOCK_ARG_PTR_PTR (NULL), MOCK_ARG_ANY);
+	status |= mock_expect_output (&manifest.mock, 0, &id, sizeof (id), -1);
+
+	status |= mock_expect (&manifest.mock, manifest.base.free_platform_id, &manifest, 0,
+		MOCK_ARG (id));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -965,23 +1208,20 @@ static void manifest_manager_test_get_manifest_platform_id_measured_data_small_b
 	char *id = "Manifest Test";
 	uint8_t buffer[13];
 	size_t length = sizeof (buffer);
-	char *platform_id;
 	uint32_t total_len;
 	int status;
 
 	TEST_START;
 
-	platform_id = platform_malloc (strlen (id) + 1);
-	CuAssertPtrNotNull (test, platform_id);
-
-	strcpy (platform_id, id);
-
 	status = manifest_mock_init (&manifest);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&manifest.mock, manifest.base.get_platform_id, &manifest, 0,
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&manifest.mock, 0, &platform_id, sizeof (platform_id), -1);
+		MOCK_ARG_PTR_PTR (NULL), MOCK_ARG_ANY);
+	status |= mock_expect_output (&manifest.mock, 0, &id, sizeof (id), -1);
+
+	status |= mock_expect (&manifest.mock, manifest.base.free_platform_id, &manifest, 0,
+		MOCK_ARG (id));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1004,27 +1244,24 @@ static void manifest_manager_test_get_manifest_platform_id_measured_data_small_b
 	char *id = "Manifest Test";
 	uint8_t buffer[10];
 	size_t length = sizeof (buffer);
-	char *platform_id;
 	uint32_t total_len;
 	int status;
 
 	TEST_START;
 
-	platform_id = platform_malloc (strlen (id) + 1);
-	CuAssertPtrNotNull (test, platform_id);
-
-	strcpy (platform_id, id);
-
 	status = manifest_mock_init (&manifest);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&manifest.mock, manifest.base.get_platform_id, &manifest, 0,
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&manifest.mock, 0, &platform_id, sizeof (platform_id), -1);
+		MOCK_ARG_PTR_PTR (NULL), MOCK_ARG_ANY);
+	status |= mock_expect_output (&manifest.mock, 0, &id, sizeof (id), -1);
+
+	status |= mock_expect (&manifest.mock, manifest.base.free_platform_id, &manifest, 0,
+		MOCK_ARG (id));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manifest_manager_get_platform_id_measured_data (&manifest.base, 2, buffer, length, 
+	status = manifest_manager_get_platform_id_measured_data (&manifest.base, 2, buffer, length,
 		&total_len);
 	CuAssertIntEquals (test, length, status);
 	CuAssertIntEquals (test, strlen (id) + 1, total_len);
@@ -1066,27 +1303,24 @@ static void manifest_manager_test_get_manifest_platform_id_measured_data_0_bytes
 	char *id = "Manifest Test";
 	uint8_t buffer[14];
 	size_t length = sizeof (buffer);
-	char *platform_id;
 	uint32_t total_len;
 	int status;
 
 	TEST_START;
 
-	platform_id = platform_malloc (strlen (id) + 1);
-	CuAssertPtrNotNull (test, platform_id);
-
-	strcpy (platform_id, id);
-
 	status = manifest_mock_init (&manifest);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&manifest.mock, manifest.base.get_platform_id, &manifest, 0,
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&manifest.mock, 0, &platform_id, sizeof (platform_id), -1);
+		MOCK_ARG_PTR_PTR (NULL), MOCK_ARG_ANY);
+	status |= mock_expect_output (&manifest.mock, 0, &id, sizeof (id), -1);
+
+	status |= mock_expect (&manifest.mock, manifest.base.free_platform_id, &manifest, 0,
+		MOCK_ARG (id));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manifest_manager_get_platform_id_measured_data (&manifest.base, strlen (id) + 1, 
+	status = manifest_manager_get_platform_id_measured_data (&manifest.base, strlen (id) + 1,
 		buffer, length, &total_len);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, strlen (id) + 1, total_len);
@@ -1125,23 +1359,20 @@ static void manifest_manager_test_get_manifest_platform_id_measured_data_invalid
 	uint8_t buffer[14];
 	size_t length = sizeof (buffer);
 	size_t id_length = strlen (id) + 1;
-	char *platform_id;
 	uint32_t total_len;
 	int status;
 
 	TEST_START;
 
-	platform_id = platform_malloc (strlen (id) + 1);
-	CuAssertPtrNotNull (test, platform_id);
-
-	strcpy (platform_id, id);
-
 	status = manifest_mock_init (&manifest);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&manifest.mock, manifest.base.get_platform_id, &manifest, 0,
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&manifest.mock, 0, &platform_id, sizeof (platform_id), -1);
+		MOCK_ARG_PTR_PTR (NULL), MOCK_ARG_ANY);
+	status |= mock_expect_output (&manifest.mock, 0, &id, sizeof (id), -1);
+
+	status |= mock_expect (&manifest.mock, manifest.base.free_platform_id, &manifest, 0,
+		MOCK_ARG (id));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1167,11 +1398,11 @@ static void manifest_manager_test_get_manifest_platform_id_measured_data_null (C
 	status = manifest_mock_init (&manifest);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manifest_manager_get_platform_id_measured_data (&manifest.base, 0, NULL, length, 
+	status = manifest_manager_get_platform_id_measured_data (&manifest.base, 0, NULL, length,
 		&total_len);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
 
-	status = manifest_manager_get_platform_id_measured_data (&manifest.base, 0, buffer, length, 
+	status = manifest_manager_get_platform_id_measured_data (&manifest.base, 0, buffer, length,
 		NULL);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
 
@@ -1194,10 +1425,10 @@ static void manifest_manager_test_get_manifest_platform_id_measured_data_fail (
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&manifest.mock, manifest.base.get_platform_id, &manifest,
-		MANIFEST_GET_ID_FAILED, MOCK_ARG_NOT_NULL);
+		MANIFEST_GET_ID_FAILED, MOCK_ARG_PTR_PTR (NULL), MOCK_ARG_ANY);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manifest_manager_get_platform_id_measured_data (&manifest.base, 0, buffer, length, 
+	status = manifest_manager_get_platform_id_measured_data (&manifest.base, 0, buffer, length,
 		&total_len);
 	CuAssertIntEquals (test, MANIFEST_GET_ID_FAILED, status);
 
@@ -1216,7 +1447,11 @@ CuSuite* get_manifest_manager_suite ()
 	SUITE_ADD_TEST (suite, manifest_manager_test_set_port_null);
 	SUITE_ADD_TEST (suite, manifest_manager_test_get_port_null);
 	SUITE_ADD_TEST (suite, manifest_manager_test_get_manifest_measured_data);
+	SUITE_ADD_TEST (suite, manifest_manager_test_get_manifest_measured_data_sha384);
+	SUITE_ADD_TEST (suite, manifest_manager_test_get_manifest_measured_data_sha512);
 	SUITE_ADD_TEST (suite, manifest_manager_test_get_manifest_measured_data_with_offset);
+	SUITE_ADD_TEST (suite,
+		manifest_manager_test_get_manifest_measured_data_sha384_offest_sha256_len);
 	SUITE_ADD_TEST (suite, manifest_manager_test_get_manifest_measured_data_small_buffer);
 	SUITE_ADD_TEST (suite,
 		manifest_manager_test_get_manifest_measured_data_small_buffer_with_offset);
@@ -1226,7 +1461,10 @@ CuSuite* get_manifest_manager_suite ()
 	SUITE_ADD_TEST (suite,
 		manifest_manager_test_get_manifest_measured_data_no_active_small_buffer_with_offset);
 	SUITE_ADD_TEST (suite, manifest_manager_test_get_manifest_measured_data_0_bytes_read);
+	SUITE_ADD_TEST (suite, manifest_manager_test_get_manifest_measured_data_0_bytes_read_sha384);
+	SUITE_ADD_TEST (suite, manifest_manager_test_get_manifest_measured_data_no_active_0_bytes_read);
 	SUITE_ADD_TEST (suite, manifest_manager_test_get_manifest_measured_data_invalid_offset);
+	SUITE_ADD_TEST (suite, manifest_manager_test_get_manifest_measured_data_invalid_offset_sha384);
 	SUITE_ADD_TEST (suite,
 		manifest_manager_test_get_manifest_measured_data_no_active_invalid_offset);
 	SUITE_ADD_TEST (suite, manifest_manager_test_get_manifest_measured_data_null);
@@ -1255,7 +1493,7 @@ CuSuite* get_manifest_manager_suite ()
 	SUITE_ADD_TEST (suite,
 		manifest_manager_test_get_manifest_platform_id_measured_data_small_buffer_offset);
 	SUITE_ADD_TEST (suite, manifest_manager_test_get_manifest_platform_id_measured_data_no_active);
-	SUITE_ADD_TEST (suite, 
+	SUITE_ADD_TEST (suite,
 		manifest_manager_test_get_manifest_platform_id_measured_data_0_bytes_read);
 	SUITE_ADD_TEST (suite,
 		manifest_manager_test_get_manifest_platform_id_measured_data_no_active_invalid_offset);

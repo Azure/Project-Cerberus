@@ -17,7 +17,7 @@
 /**
  * Boolean macro to determine if a status code represents a validation failure of flash.
  */
-#define	IS_VALIDATION_FAILURE(x)	((x == RSA_ENGINE_BAD_SIGNATURE) || (x == FLASH_UTIL_UNEXPECTED_VALUE) || (x == HOST_FW_UTIL_UNSUPPORTED_VERSION))
+#define	IS_VALIDATION_FAILURE(x)	((x == RSA_ENGINE_BAD_SIGNATURE) || (x == HOST_FW_UTIL_BAD_IMAGE_HASH) || (x == FLASH_UTIL_UNEXPECTED_VALUE) || (x == HOST_FW_UTIL_UNSUPPORTED_VERSION))
 
 
 /**

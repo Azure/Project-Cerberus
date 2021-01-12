@@ -5,11 +5,96 @@
 #define PFM_FORMAT_H_
 
 #include <stdint.h>
+#include "manifest/pfm/pfm.h"
 #include "manifest/manifest_format.h"
+
+/**
+ * Type identifiers for PFM v2 elements.
+ */
+enum pfm_element_type {
+	PFM_FLASH_DEVICE = 0x10,				/**< Global information about the flash device. */
+	PFM_FIRMWARE = 0x11,					/**< A single type of firmware stored on the flash. */
+	PFM_FIRMWARE_VERSION = 0x12,			/**< A single version of firmware. */
+};
+
+/**
+ * The PFM flash device element structure.
+ */
+struct pfm_flash_device_element {
+	uint8_t blank_byte;						/**< The byte used to fill unused flash. */
+	uint8_t fw_count;						/**< The number of firmware components on the flash device. */
+	uint16_t reserved;						/**< Unused. */
+};
+
+/**
+ * Flags for a firmware component.
+ */
+enum pfm_firmware_flags {
+	PFM_FIRMWARE_RUNTIME_UPDATE = 0x01,		/**< Firmware updates can take effect at run-time. */
+};
+
+/**
+ * The PFM firmware element structure.  This represents the maximum size of the element.
+ */
+struct pfm_firmware_element {
+	uint8_t version_count;					/**< The number of allowable firmware versions contained in the PFM. */
+	uint8_t id_length;						/**< Length of the firmware identifier. */
+	uint8_t flags;							/**< Flags for the firmware component. */
+	uint8_t reserved;						/**< Unused. */
+	uint8_t id[MANIFEST_MAX_STRING];		/**< The identifier for the firmware. */
+};
+
+/**
+ * The PFM firmware version element structure.  This represents the maximum size of the element up
+ * to the end of the version identifier string.  The variable length region and image lists are not
+ * included.
+ */
+struct pfm_firmware_version_element {
+	uint8_t img_count;						/**< The number of firmware images for the version. */
+	uint8_t rw_count;						/**< The number of defined read/write regions for the version. */
+	uint8_t version_length;					/**< The length of the version identifier. */
+	uint8_t reserved;						/**< Unused. */
+	uint32_t version_addr;					/**< The address in flash where the version identifier is stored. */
+	uint8_t version[MANIFEST_MAX_STRING];	/**< The firmware version identifier. */
+};
+
+/**
+ * A region of flash defined in the PFM.
+ */
+struct pfm_flash_region {
+	uint32_t start_addr;					/**< The first address in the region. */
+	uint32_t end_addr;						/**< The last address in the region. */
+};
+
+/**
+ * A single read/write region defined within a firmware version element.
+ */
+struct pfm_fw_version_element_rw_region {
+	uint8_t flags;							/**< Flags for the read/write region. */
+	uint8_t reserved[3];					/**< Unused. */
+	struct pfm_flash_region region;			/**< The flash region that contains read/write data. */
+};
+
+/**
+ * Get the operation to perform on a read/write region after an authentication failure.
+ *
+ * @param rw Pointer to a R/W region structure.
+ */
+#define	pfm_get_rw_operation_on_failure(rw)	(enum pfm_read_write_management) (((rw)->flags) & 0x3)
+
+/**
+ * A single authenticated image defined within a firmware version element.
+ */
+struct pfm_fw_version_element_image {
+	uint8_t hash_type;						/**< The hashing algorithm used to generate the image hash. */
+	uint8_t region_count;					/**< The number of flash regions that make up the image. */
+	uint8_t flags;							/**< Flags for the authenticated image. */
+	uint8_t reserved;						/**< Unused. */
+};
 
 
 /**
- * The PFM is a variable length structure that has the following format:
+ * The PFM v1 is a variable length structure that has the following format:
  *
  * struct {
  * 		struct manifest_header
@@ -100,14 +185,6 @@ struct pfm_image_header {
 	uint8_t	key_id;			/**< The ID of the public key used to sign the image. */
 	uint8_t region_count;	/**< The number of flash regions that make up the image. */
 	uint16_t sig_length;	/**< The length of the signature for the image. */
-};
-
-/**
- * A region of flash defined in the PFM.
- */
-struct pfm_flash_region {
-	uint32_t start_addr;	/**< The first address in the region. */
-	uint32_t end_addr;		/**< The last address in the region. */
 };
 
 /**

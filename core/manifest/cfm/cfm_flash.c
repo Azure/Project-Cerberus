@@ -20,6 +20,10 @@ static int cfm_flash_verify (struct manifest *cfm, struct hash_engine *hash,
 		return CFM_INVALID_ARGUMENT;
 	}
 
+	/* This is a just place holder as CFM currently do not include platform ID.  It will be
+	 * updated to return the actual platform ID once CFMs are updated to v2 */
+	memset (cfm_flash->base_flash.platform_id, 0, cfm_flash->base_flash.max_platform_id);
+
 	return manifest_flash_verify (&cfm_flash->base_flash, hash, verification, hash_out,
 		hash_length);
 }
@@ -35,28 +39,20 @@ static int cfm_flash_get_id (struct manifest *cfm, uint32_t *id)
 	return manifest_flash_get_id (&cfm_flash->base_flash, id);
 }
 
-static int cfm_flash_get_platform_id (struct manifest *cfm, char **id)
+static int cfm_flash_get_platform_id (struct manifest *cfm, char **id, size_t length)
 {
-	char *curr_id = NULL;
 	struct cfm_flash *cfm_flash = (struct cfm_flash*) cfm;
 
-	if ((cfm_flash == NULL) || (id == NULL)) {
+	if (cfm_flash == NULL) {
 		return CFM_INVALID_ARGUMENT;
 	}
 
-	curr_id = platform_malloc (2);
-	if (curr_id == NULL) {
-		return CFM_NO_MEMORY;
-	}
+	return manifest_flash_get_platform_id (&cfm_flash->base_flash, id, length);
+}
 
-	/* This is a just place holder as CFM currently do not include platform ID.  It should be
-	 * updated to return actual platform_id once CFM header is updated to include platform ID.
-	 */
-	strcpy (curr_id, "");
-
-	*id = curr_id;
-
-	return 0;
+static void cfm_flash_free_platform_id (struct manifest *manifest, char *id)
+{
+	/* Don't need to do anything.  Manifest allocated buffers use the internal static buffer. */
 }
 
 static int cfm_flash_get_hash (struct manifest *cfm, struct hash_engine *hash, uint8_t *hash_out,
@@ -86,6 +82,7 @@ static int cfm_flash_get_supported_component_ids (struct cfm *cfm,
 	struct cfm_component_ids *id_list)
 {
 	struct cfm_flash *cfm_flash = (struct cfm_flash*) cfm;
+	struct flash *flash;
 	struct manifest_header header;
 	struct cfm_components_header components_header;
 	struct cfm_component_header component_header;
@@ -98,11 +95,14 @@ static int cfm_flash_get_supported_component_ids (struct cfm *cfm,
 		return CFM_INVALID_ARGUMENT;
 	}
 
+	if (!cfm_flash->base_flash.manifest_valid) {
+		return MANIFEST_NO_MANIFEST;
+	}
+
+	flash = cfm_flash->base_flash.flash;
 	memset (id_list, 0, sizeof (struct cfm_component_ids));
 
-	status = spi_flash_read (cfm_flash->base_flash.flash, cfm_flash->base_flash.addr,
-		(uint8_t*) &header, sizeof (header));
-
+	status = flash->read (flash, cfm_flash->base_flash.addr, (uint8_t*) &header, sizeof (header));
 	if (status != 0) {
 		return status;
 	}
@@ -111,16 +111,13 @@ static int cfm_flash_get_supported_component_ids (struct cfm *cfm,
 		return MANIFEST_BAD_MAGIC_NUMBER;
 	}
 
-	status = spi_flash_read (cfm_flash->base_flash.flash,
-		cfm_flash->base_flash.addr + sizeof (header), (uint8_t*) &components_header,
-		sizeof (components_header));
-
+	status = flash->read (flash, cfm_flash->base_flash.addr + sizeof (header),
+		(uint8_t*) &components_header, sizeof (components_header));
 	if (status != 0) {
 		return status;
 	}
 
 	ids = platform_calloc (components_header.components_count, sizeof (uint32_t));
-
 	if (ids == NULL) {
 		return CFM_NO_MEMORY;
 	}
@@ -128,9 +125,8 @@ static int cfm_flash_get_supported_component_ids (struct cfm *cfm,
 	next_addr = cfm_flash->base_flash.addr + sizeof (header) + sizeof (components_header);
 
 	for (i = 0; i < components_header.components_count; ++i, next_addr += component_header.length) {
-		status = spi_flash_read (cfm_flash->base_flash.flash, next_addr,
-			(uint8_t*) &component_header, sizeof (component_header));
-
+		status = flash->read (flash, next_addr, (uint8_t*) &component_header,
+			sizeof (component_header));
 		if (status != 0) {
 			platform_free (ids);
 			return status;
@@ -168,23 +164,21 @@ static int cfm_flash_process_signed_img (struct manifest_flash *cfm_flash, uint3
 	struct cfm_img_header img_header;
 	int status;
 
-	status = spi_flash_read (cfm_flash->flash, *addr, (uint8_t*) &img_header,
+	status = cfm_flash->flash->read (cfm_flash->flash, *addr, (uint8_t*) &img_header,
 		sizeof (img_header));
-
 	if (status != 0) {
 		return status;
 	}
 
 	digest = platform_calloc (img_header.digest_length, sizeof (uint8_t));
-
 	if (digest == NULL) {
 		return CFM_NO_MEMORY;
 	}
 
 	*addr += sizeof (img_header);
 
-	status = spi_flash_read (cfm_flash->flash, *addr, (uint8_t*) digest, img_header.digest_length);
-
+	status = cfm_flash->flash->read (cfm_flash->flash, *addr, (uint8_t*) digest,
+		img_header.digest_length);
 	if (status != 0) {
 		platform_free (digest);
 		return status;
@@ -218,21 +212,19 @@ static int cfm_flash_process_fw (struct manifest_flash *cfm_flash, uint32_t *add
 	int i_img;
 	int status;
 
-	status = spi_flash_read (cfm_flash->flash, *addr, (uint8_t*) &fw_header, sizeof (fw_header));
-
+	status = cfm_flash->flash->read (cfm_flash->flash, *addr, (uint8_t*) &fw_header,
+		sizeof (fw_header));
 	if (status != 0) {
 		return status;
 	}
 
 	fw_version_id = platform_calloc (fw_header.version_length + 1, sizeof (char));
-
 	if (fw_version_id == NULL) {
 		status = CFM_NO_MEMORY;
 		goto cleanup;
 	}
 
 	imgs = platform_calloc (fw_header.img_count, sizeof (struct cfm_component_signed_img));
-
 	if (imgs == NULL) {
 		status = CFM_NO_MEMORY;
 		goto cleanup;
@@ -240,9 +232,8 @@ static int cfm_flash_process_fw (struct manifest_flash *cfm_flash, uint32_t *add
 
 	*addr += sizeof (fw_header);
 
-	status = spi_flash_read (cfm_flash->flash, *addr, (uint8_t*) fw_version_id,
+	status = cfm_flash->flash->read (cfm_flash->flash, *addr, (uint8_t*) fw_version_id,
 		fw_header.version_length);
-
 	if (status != 0) {
 		goto cleanup;
 	}
@@ -280,6 +271,7 @@ static int cfm_flash_get_component (struct cfm *cfm, uint32_t component_id,
 	struct cfm_component *component)
 {
 	struct cfm_flash *cfm_flash = (struct cfm_flash*) cfm;
+	struct flash *flash;
 	struct manifest_header manifest_header;
 	struct cfm_components_header components_header;
 	struct cfm_component_header component_header;
@@ -292,12 +284,15 @@ static int cfm_flash_get_component (struct cfm *cfm, uint32_t component_id,
 		return CFM_INVALID_ARGUMENT;
 	}
 
+	if (!cfm_flash->base_flash.manifest_valid) {
+		return MANIFEST_NO_MANIFEST;
+	}
+
+	flash = cfm_flash->base_flash.flash;
 	memset (component, 0, sizeof (struct cfm_component));
 
 	addr = cfm_flash->base_flash.addr;
-
-	status = spi_flash_read (cfm_flash->base_flash.flash, addr, (uint8_t*) &manifest_header,
-		sizeof (manifest_header));
+	status = flash->read (flash, addr, (uint8_t*) &manifest_header, sizeof (manifest_header));
 	if (status != 0) {
 		return status;
 	}
@@ -307,9 +302,7 @@ static int cfm_flash_get_component (struct cfm *cfm, uint32_t component_id,
 	}
 
 	addr += sizeof (manifest_header);
-
-	status = spi_flash_read (cfm_flash->base_flash.flash, addr, (uint8_t*) &components_header,
-		sizeof (components_header));
+	status = flash->read (flash, addr, (uint8_t*) &components_header, sizeof (components_header));
 	if (status != 0) {
 		return status;
 	}
@@ -317,8 +310,7 @@ static int cfm_flash_get_component (struct cfm *cfm, uint32_t component_id,
 	addr += sizeof (components_header);
 
 	for (i_component = 0; i_component < components_header.components_count; ++i_component) {
-		status = spi_flash_read (cfm_flash->base_flash.flash, addr, (uint8_t*) &component_header,
-			sizeof (component_header));
+		status = flash->read (flash, addr, (uint8_t*) &component_header, sizeof (component_header));
 		if (status != 0) {
 			return status;
 		}
@@ -395,20 +387,27 @@ static void cfm_flash_free_component (struct cfm *cfm, struct cfm_component *com
  * @param cfm The CFM instance to initialize.
  * @param flash The flash device that contains the CFM.
  * @param base_addr The starting address of the CFM storage location.
+ * @param signature_cache Buffer to hold the manifest signature.
+ * @param max_signature The maximum supported length for a manifest signature.
+ * @param platform_id_cache Buffer to hold the manifest platform ID.
+ * @param max_platform_id The maximum platform ID length supported, including the NULL terminator.
  *
  * @return 0 if the CFM instance was initialized successfully or an error code.
  */
-int cfm_flash_init (struct cfm_flash *cfm, struct spi_flash *flash, uint32_t base_addr)
+int cfm_flash_init (struct cfm_flash *cfm, struct flash *flash, uint32_t base_addr,
+	uint8_t *signature_cache, size_t max_signature, uint8_t *platform_id_cache,
+	size_t max_platform_id)
 {
 	int status;
 
-	if ((cfm == NULL) || (flash == NULL)) {
+	if ((cfm == NULL) || (signature_cache == NULL) || (platform_id_cache == NULL)) {
 		return CFM_INVALID_ARGUMENT;
 	}
 
 	memset (cfm, 0, sizeof (struct cfm_flash));
 
-	status = manifest_flash_init (&cfm->base_flash, flash, base_addr, CFM_MAGIC_NUM);
+	status = manifest_flash_v2_init (&cfm->base_flash, flash, NULL, base_addr, CFM_MAGIC_NUM,
+		CFM_V2_MAGIC_NUM, signature_cache, max_signature, platform_id_cache, max_platform_id);
 	if (status != 0) {
 		return status;
 	}
@@ -416,6 +415,7 @@ int cfm_flash_init (struct cfm_flash *cfm, struct spi_flash *flash, uint32_t bas
 	cfm->base.base.verify = cfm_flash_verify;
 	cfm->base.base.get_id = cfm_flash_get_id;
 	cfm->base.base.get_platform_id = cfm_flash_get_platform_id;
+	cfm->base.base.free_platform_id = cfm_flash_free_platform_id;
 	cfm->base.base.get_hash = cfm_flash_get_hash;
 	cfm->base.base.get_signature = cfm_flash_get_signature;
 
@@ -434,39 +434,7 @@ int cfm_flash_init (struct cfm_flash *cfm, struct spi_flash *flash, uint32_t bas
  */
 void cfm_flash_release (struct cfm_flash *cfm)
 {
-
-}
-
-/**
- * Get the starting flash address of the CFM.
- *
- * @param cfm The CFM to query.
- *
- * @return The CFM flash address.
- */
-uint32_t cfm_flash_get_addr (struct cfm_flash *cfm)
-{
-	if (cfm) {
-		return cfm->base_flash.addr;
-	}
-	else {
-		return 0;
-	}
-}
-
-/**
- * Get the flash device that is used to store the CFM.
- *
- * @param cfm The CFM to query.
- *
- * @return The flash device for the CFM.
- */
-struct spi_flash* cfm_flash_get_flash (struct cfm_flash *cfm)
-{
-	if (cfm) {
-		return cfm->base_flash.flash;
-	}
-	else {
-		return NULL;
+	if (cfm != NULL) {
+		manifest_flash_release (&cfm->base_flash);
 	}
 }

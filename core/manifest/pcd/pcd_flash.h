@@ -7,7 +7,7 @@
 #include <stdint.h>
 #include "pcd.h"
 #include "manifest/manifest_flash.h"
-#include "flash/spi_flash.h"
+#include "flash/flash.h"
 
 
 /**
@@ -19,11 +19,10 @@ struct pcd_flash {
 };
 
 
-int pcd_flash_init (struct pcd_flash *pcd, struct spi_flash *flash, uint32_t base_addr);
+int pcd_flash_init (struct pcd_flash *pcd, struct flash *flash, uint32_t base_addr,
+	uint8_t *signature_cache, size_t max_signature, uint8_t *platform_id_cache,
+	size_t max_platform_id);
 void pcd_flash_release (struct pcd_flash *pcd);
-
-uint32_t pcd_flash_get_addr (struct pcd_flash *pcd);
-struct spi_flash* pcd_flash_get_flash (struct pcd_flash *pcd);
 
 
 #endif //PCD_FLASH_H

@@ -54,6 +54,7 @@ enum {
 	HOST_FW_UTIL_DIFF_REGION_COUNT = HOST_FW_UTIL_ERROR (0x03),		/**< Data migration with a different number of regions. */
 	HOST_FW_UTIL_DIFF_REGION_ADDR = HOST_FW_UTIL_ERROR (0x04),		/**< Data migration with different region addresses. */
 	HOST_FW_UTIL_DIFF_REGION_SIZE = HOST_FW_UTIL_ERROR (0x05),		/**< Data migration with different region sizes. */
+	HOST_FW_UTIL_BAD_IMAGE_HASH = HOST_FW_UTIL_ERROR (0x06),		/**< A host firmware image on flash has an invalid hash. */
 };
 
 

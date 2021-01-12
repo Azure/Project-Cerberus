@@ -31,6 +31,29 @@ static int pfm_mock_get_id (struct manifest *pfm, uint32_t *id)
 	MOCK_RETURN (&mock->mock, pfm_mock_get_id, pfm, MOCK_ARG_CALL (id));
 }
 
+static int pfm_mock_get_platform_id (struct manifest *pfm, char **id, size_t length)
+{
+	struct pfm_mock *mock = (struct pfm_mock*) pfm;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, pfm_mock_get_platform_id, pfm, MOCK_ARG_CALL (id),
+		MOCK_ARG_CALL (length));
+}
+
+static void pfm_mock_free_platform_id (struct manifest *pfm, char *id)
+{
+	struct pfm_mock *mock = (struct pfm_mock*) pfm;
+
+	if (mock == NULL) {
+		return;
+	}
+
+	MOCK_VOID_RETURN (&mock->mock, pfm_mock_free_platform_id, pfm, MOCK_ARG_CALL (id));
+}
+
 static int pfm_mock_get_hash (struct manifest *pfm, struct hash_engine *hash, uint8_t *hash_out,
 	size_t hash_length)
 {
@@ -56,7 +79,7 @@ static int pfm_mock_get_signature (struct manifest *pfm, uint8_t *signature, siz
 		MOCK_ARG_CALL (length));
 }
 
-static int pfm_mock_get_platform_id (struct manifest *pfm, char **id)
+static int pfm_mock_get_firmware (struct pfm *pfm, struct pfm_firmware *fw)
 {
 	struct pfm_mock *mock = (struct pfm_mock*) pfm;
 
@@ -64,21 +87,10 @@ static int pfm_mock_get_platform_id (struct manifest *pfm, char **id)
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, pfm_mock_get_platform_id, pfm, MOCK_ARG_CALL (id));
+	MOCK_RETURN (&mock->mock, pfm_mock_get_firmware, pfm, MOCK_ARG_CALL (fw));
 }
 
-static int pfm_mock_get_supported_versions (struct pfm *pfm, struct pfm_firmware_versions *fw)
-{
-	struct pfm_mock *mock = (struct pfm_mock*) pfm;
-
-	if (mock == NULL) {
-		return MOCK_INVALID_ARGUMENT;
-	}
-
-	MOCK_RETURN (&mock->mock, pfm_mock_get_supported_versions, pfm, MOCK_ARG_CALL (fw));
-}
-
-static void pfm_mock_free_fw_versions (struct pfm *pfm, struct pfm_firmware_versions *fw)
+static void pfm_mock_free_firmware (struct pfm *pfm, struct pfm_firmware *fw)
 {
 	struct pfm_mock *mock = (struct pfm_mock*) pfm;
 
@@ -86,10 +98,34 @@ static void pfm_mock_free_fw_versions (struct pfm *pfm, struct pfm_firmware_vers
 		return;
 	}
 
-	MOCK_VOID_RETURN (&mock->mock, pfm_mock_free_fw_versions, pfm, MOCK_ARG_CALL (fw));
+	MOCK_VOID_RETURN (&mock->mock, pfm_mock_free_firmware, pfm, MOCK_ARG_CALL (fw));
 }
 
-static int pfm_mock_get_read_write_regions (struct pfm *pfm, const char *version,
+static int pfm_mock_get_supported_versions (struct pfm *pfm, const char *fw,
+	struct pfm_firmware_versions *ver_list)
+{
+	struct pfm_mock *mock = (struct pfm_mock*) pfm;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, pfm_mock_get_supported_versions, pfm, MOCK_ARG_CALL (fw),
+		MOCK_ARG_CALL (ver_list));
+}
+
+static void pfm_mock_free_fw_versions (struct pfm *pfm, struct pfm_firmware_versions *ver_list)
+{
+	struct pfm_mock *mock = (struct pfm_mock*) pfm;
+
+	if (mock == NULL) {
+		return;
+	}
+
+	MOCK_VOID_RETURN (&mock->mock, pfm_mock_free_fw_versions, pfm, MOCK_ARG_CALL (ver_list));
+}
+
+static int pfm_mock_get_read_write_regions (struct pfm *pfm, const char *fw, const char *version,
 	struct pfm_read_write_regions *writable)
 {
 	struct pfm_mock *mock = (struct pfm_mock*) pfm;
@@ -98,8 +134,8 @@ static int pfm_mock_get_read_write_regions (struct pfm *pfm, const char *version
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, pfm_mock_get_read_write_regions, pfm, MOCK_ARG_CALL (version),
-		MOCK_ARG_CALL (writable));
+	MOCK_RETURN (&mock->mock, pfm_mock_get_read_write_regions, pfm, MOCK_ARG_CALL (fw),
+		MOCK_ARG_CALL (version), MOCK_ARG_CALL (writable));
 }
 
 static void pfm_mock_free_read_write_regions (struct pfm *pfm,
@@ -114,7 +150,7 @@ static void pfm_mock_free_read_write_regions (struct pfm *pfm,
 	MOCK_VOID_RETURN (&mock->mock, pfm_mock_free_read_write_regions, pfm, MOCK_ARG_CALL (writable));
 }
 
-static int pfm_mock_get_firmware_images (struct pfm *pfm, const char *version,
+static int pfm_mock_get_firmware_images (struct pfm *pfm, const char *fw, const char *version,
 	struct pfm_image_list *img_list)
 {
 	struct pfm_mock *mock = (struct pfm_mock*) pfm;
@@ -123,8 +159,8 @@ static int pfm_mock_get_firmware_images (struct pfm *pfm, const char *version,
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, pfm_mock_get_firmware_images, pfm, MOCK_ARG_CALL (version),
-		MOCK_ARG_CALL (img_list));
+	MOCK_RETURN (&mock->mock, pfm_mock_get_firmware_images, pfm, MOCK_ARG_CALL (fw),
+		MOCK_ARG_CALL (version), MOCK_ARG_CALL (img_list));
 }
 
 static void pfm_mock_free_firmware_images (struct pfm *pfm, struct pfm_image_list *img_list)
@@ -143,16 +179,18 @@ static int pfm_mock_func_arg_count (void *func)
 	if (func == pfm_mock_verify) {
 		return 4;
 	}
-	else if (func == pfm_mock_get_hash) {
+	else if ((func == pfm_mock_get_hash) || (func == pfm_mock_get_read_write_regions) ||
+		(func == pfm_mock_get_firmware_images)) {
 		return 3;
 	}
-	else if ((func == pfm_mock_get_read_write_regions) || (func == pfm_mock_get_firmware_images) ||
-		(func == pfm_mock_get_signature)) {
+	else if ((func == pfm_mock_get_platform_id) || (func == pfm_mock_get_signature) ||
+		(func == pfm_mock_get_supported_versions)) {
 		return 2;
 	}
-	else if ((func == pfm_mock_get_supported_versions) || (func == pfm_mock_free_fw_versions) ||
-		(func == pfm_mock_free_read_write_regions) || (func == pfm_mock_free_firmware_images) ||
-		(func == pfm_mock_get_id) || (func == pfm_mock_get_platform_id)) {
+	else if ((func == pfm_mock_get_id) || (func == pfm_mock_free_platform_id) ||
+		(func == pfm_mock_get_firmware) || (func == pfm_mock_free_firmware) ||
+		(func == pfm_mock_free_fw_versions) || (func == pfm_mock_free_read_write_regions) ||
+		(func == pfm_mock_free_firmware_images)) {
 		return 1;
 	}
 	else {
@@ -168,14 +206,23 @@ static const char* pfm_mock_func_name_map (void *func)
 	else if (func == pfm_mock_get_id) {
 		return "get_id";
 	}
+	else if (func == pfm_mock_get_platform_id) {
+		return "get_platform_id";
+	}
+	else if (func == pfm_mock_free_platform_id) {
+		return "free_platform_id";
+	}
 	else if (func == pfm_mock_get_hash) {
 		return "get_hash";
 	}
 	else if (func == pfm_mock_get_signature) {
 		return "get_signature";
 	}
-	else if (func == pfm_mock_get_platform_id) {
-		return "get_platform_id";
+	else if (func == pfm_mock_get_firmware) {
+		return "get_firmware";
+	}
+	else if (func == pfm_mock_free_firmware) {
+		return "free_firmware";
 	}
 	else if (func == pfm_mock_get_supported_versions) {
 		return "get_supported_versions";
@@ -223,6 +270,21 @@ static const char* pfm_mock_arg_name_map (void *func, int arg)
 				return "id";
 		}
 	}
+	else if (func == pfm_mock_get_platform_id) {
+		switch (arg) {
+			case 0:
+				return "id";
+
+			case 1:
+				return "length";
+		}
+	}
+	else if (func == pfm_mock_free_platform_id) {
+		switch (arg) {
+			case 0:
+				return "id";
+		}
+	}
 	else if (func == pfm_mock_get_hash) {
 		switch (arg) {
 			case 0:
@@ -244,30 +306,42 @@ static const char* pfm_mock_arg_name_map (void *func, int arg)
 				return "length";
 		}
 	}
-	else if (func == pfm_mock_get_platform_id) {
+	else if (func == pfm_mock_get_firmware) {
 		switch (arg) {
 			case 0:
-				return "id";
+				return "fw";
+		}
+	}
+	else if (func == pfm_mock_free_firmware) {
+		switch (arg) {
+			case 0:
+				return "fw";
 		}
 	}
 	else if (func == pfm_mock_get_supported_versions) {
 		switch (arg) {
 			case 0:
 				return "fw";
+
+			case 1:
+				return "ver_list";
 		}
 	}
 	else if (func == pfm_mock_free_fw_versions) {
 		switch (arg) {
 			case 0:
-				return "fw";
+				return "ver_list";
 		}
 	}
 	else if (func == pfm_mock_get_read_write_regions) {
 		switch (arg) {
 			case 0:
-				return "version";
+				return "fw";
 
 			case 1:
+				return "version";
+
+			case 2:
 				return "writable";
 		}
 	}
@@ -280,9 +354,12 @@ static const char* pfm_mock_arg_name_map (void *func, int arg)
 	else if (func == pfm_mock_get_firmware_images) {
 		switch (arg) {
 			case 0:
-				return "version";
+				return "fw";
 
 			case 1:
+				return "version";
+
+			case 2:
 				return "img_list";
 		}
 	}
@@ -322,10 +399,13 @@ int pfm_mock_init (struct pfm_mock *mock)
 
 	mock->base.base.verify = pfm_mock_verify;
 	mock->base.base.get_id = pfm_mock_get_id;
+	mock->base.base.get_platform_id = pfm_mock_get_platform_id;
+	mock->base.base.free_platform_id = pfm_mock_free_platform_id;
 	mock->base.base.get_hash = pfm_mock_get_hash;
 	mock->base.base.get_signature = pfm_mock_get_signature;
-	mock->base.base.get_platform_id = pfm_mock_get_platform_id;
 
+	mock->base.get_firmware = pfm_mock_get_firmware;
+	mock->base.free_firmware = pfm_mock_free_firmware;
 	mock->base.get_supported_versions = pfm_mock_get_supported_versions;
 	mock->base.free_fw_versions = pfm_mock_free_fw_versions;
 	mock->base.get_read_write_regions = pfm_mock_get_read_write_regions;

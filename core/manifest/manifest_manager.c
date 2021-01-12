@@ -64,11 +64,11 @@ int manifest_manager_get_port (struct manifest_manager *manager)
  * @param buffer The output buffer to be filled with measured data.
  * @param length Maximum length of the buffer.
  * @param total_len Output buffer with total length of manifest ID measurement. This should
- * 	contain total length of the measuement even if only partially returned. 
+ * 	contain total length of the measuement even if only partially returned.
  *
  *@return length of the measured data if successfully retrieved or an error code.
  */
-int manifest_manager_get_id_measured_data (struct manifest *active, size_t offset, uint8_t *buffer, 
+int manifest_manager_get_id_measured_data (struct manifest *active, size_t offset, uint8_t *buffer,
 	size_t length, uint32_t *total_len)
 {
 	uint8_t id[5] = {0};
@@ -95,7 +95,6 @@ int manifest_manager_get_id_measured_data (struct manifest *active, size_t offse
 	}
 
 	bytes_read = min (id_length - offset, length);
-
 	memcpy (buffer, id + offset, bytes_read);
 
 	return bytes_read;
@@ -109,14 +108,14 @@ int manifest_manager_get_id_measured_data (struct manifest *active, size_t offse
  * @param buffer The output buffer to be filled with measured data
  * @param length Maximum length of the buffer
  * @param total_len Output buffer with total length of platform ID measurement. This should
- * 	contain total length of the measuement even if only partially returned. 
+ * 	contain total length of the measuement even if only partially returned.
  *
  *@return length of the measured data if successfully retrieved or an error code.
  */
 int manifest_manager_get_platform_id_measured_data (struct manifest *active, size_t offset,
 	uint8_t *buffer, size_t length, uint32_t *total_len)
 {
-	char *id;
+	char *id = NULL;
 	size_t id_length;
 	size_t bytes_read;
 	char empty_string = '\0';
@@ -127,7 +126,7 @@ int manifest_manager_get_platform_id_measured_data (struct manifest *active, siz
 	}
 
 	if (active) {
-		status = active->get_platform_id (active, &id);
+		status = active->get_platform_id (active, &id, 0);
 		if (status != 0) {
 			return status;
 		}
@@ -147,12 +146,11 @@ int manifest_manager_get_platform_id_measured_data (struct manifest *active, siz
 	}
 
 	bytes_read = min (id_length - offset, length);
-	
 	memcpy (buffer, id + offset, bytes_read);
 
 exit:
 	if (active) {
-		platform_free (id);
+		active->free_platform_id (active, id);
 	}
 	return bytes_read;
 }
@@ -165,37 +163,35 @@ exit:
  * @param offset The offset to read data from
  * @param buffer The output buffer to be filled with measured data
  * @param length Maximum length of the buffer
- * @param total_len Output buffer with total length of measured data. This should contain total 
- * 	length of the measuement even if only partially returned. 
+ * @param total_len Output buffer with total length of measured data. This should contain total
+ * 	length of the measuement even if only partially returned.
  *
  *@return length of the measured data if successfully retrieved or an error code.
  */
 int manifest_manager_get_manifest_measured_data (struct manifest_manager *manager,
 	struct manifest *active, size_t offset, uint8_t *buffer, size_t length, uint32_t *total_len)
 {
-	uint8_t hash_out[SHA256_HASH_LENGTH] = {0};
+	uint8_t hash_out[SHA512_HASH_LENGTH] = {0};
 	size_t bytes_read;
-	int status;
+	int hash_length = SHA256_HASH_LENGTH;
 
 	if ((buffer == NULL) || (manager == NULL) || (total_len == NULL)) {
 		return MANIFEST_MANAGER_INVALID_ARGUMENT;
 	}
-	
-	*total_len = SHA256_HASH_LENGTH;
-
-	if (offset > (SHA256_HASH_LENGTH - 1)) {
-		return 0;
-	}
 
 	if (active) {
-		status = active->get_hash (active, manager->hash, hash_out, SHA256_HASH_LENGTH);
-		if (status != 0) {
-			return status;
+		hash_length = active->get_hash (active, manager->hash, hash_out, sizeof (hash_out));
+		if (ROT_IS_ERROR (hash_length)) {
+			return hash_length;
 		}
 	}
 
-	bytes_read = min (SHA256_HASH_LENGTH - offset,  length);
+	*total_len = hash_length;
+	if (offset > (size_t) (hash_length - 1)) {
+		return 0;
+	}
 
+	bytes_read = min (hash_length - offset,  length);
 	memcpy (buffer, hash_out + offset, bytes_read);
 
 	return bytes_read;

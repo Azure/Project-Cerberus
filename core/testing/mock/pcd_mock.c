@@ -31,7 +31,7 @@ static int pcd_mock_get_id (struct manifest *pcd, uint32_t *id)
 	MOCK_RETURN (&mock->mock, pcd_mock_get_id, pcd, MOCK_ARG_CALL (id));
 }
 
-static int pcd_mock_get_platform_id (struct manifest *pcd, char **id)
+static int pcd_mock_get_platform_id (struct manifest *pcd, char **id, size_t length)
 {
 	struct pcd_mock *mock = (struct pcd_mock*) pcd;
 
@@ -39,7 +39,19 @@ static int pcd_mock_get_platform_id (struct manifest *pcd, char **id)
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, pcd_mock_get_platform_id, pcd, MOCK_ARG_CALL (id));
+	MOCK_RETURN (&mock->mock, pcd_mock_get_platform_id, pcd, MOCK_ARG_CALL (id),
+		MOCK_ARG_CALL (length));
+}
+
+static void pcd_mock_free_platform_id (struct manifest *pcd, char *id)
+{
+	struct pcd_mock *mock = (struct pcd_mock*) pcd;
+
+	if (mock == NULL) {
+		return;
+	}
+
+	MOCK_VOID_RETURN (&mock->mock, pcd_mock_free_platform_id, pcd, MOCK_ARG_CALL (id));
 }
 
 static int pcd_mock_get_hash (struct manifest *pcd, struct hash_engine *hash, uint8_t *hash_out,
@@ -75,10 +87,10 @@ static int pcd_mock_func_arg_count (void *func)
 	else if (func == pcd_mock_get_hash) {
 		return 3;
 	}
-	else if (func == pcd_mock_get_signature) {
+	else if ((func == pcd_mock_get_platform_id) || (func == pcd_mock_get_signature)) {
 		return 2;
 	}
-	else if ((func == pcd_mock_get_id) || (func == pcd_mock_get_platform_id)) {
+	else if ((func == pcd_mock_get_id) || (func == pcd_mock_free_platform_id)) {
 		return 1;
 	}
 	else {
@@ -94,11 +106,14 @@ static const char* pcd_mock_func_name_map (void *func)
 	else if (func == pcd_mock_get_id) {
 		return "get_id";
 	}
-	else if (func == pcd_mock_get_hash) {
-		return "get_hash";
-	}
 	else if (func == pcd_mock_get_platform_id) {
 		return "get_platform_id";
+	}
+	else if (func == pcd_mock_free_platform_id) {
+		return "free_platform_id";
+	}
+	else if (func == pcd_mock_get_hash) {
+		return "get_hash";
 	}
 	else if (func == pcd_mock_get_signature) {
 		return "get_signature";
@@ -125,7 +140,22 @@ static const char* pcd_mock_arg_name_map (void *func, int arg)
 				return "hash_length";
 		}
 	}
-	else if ((func == pcd_mock_get_id) || (func == pcd_mock_get_platform_id)) {
+	else if (func == pcd_mock_get_id) {
+		switch (arg) {
+			case 0:
+				return "id";
+		}
+	}
+	else if (func == pcd_mock_get_platform_id) {
+		switch (arg) {
+			case 0:
+				return "id";
+
+			case 1:
+				return "length";
+		}
+	}
+	else if (func == pcd_mock_free_platform_id) {
 		switch (arg) {
 			case 0:
 				return "id";
@@ -183,6 +213,7 @@ int pcd_mock_init (struct pcd_mock *mock)
 	mock->base.base.verify = pcd_mock_verify;
 	mock->base.base.get_id = pcd_mock_get_id;
 	mock->base.base.get_platform_id = pcd_mock_get_platform_id;
+	mock->base.base.free_platform_id = pcd_mock_free_platform_id;
 	mock->base.base.get_hash = pcd_mock_get_hash;
 	mock->base.base.get_signature = pcd_mock_get_signature;
 

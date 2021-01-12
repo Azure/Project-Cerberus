@@ -7,6 +7,7 @@
 #include "flash/flash.h"
 #include "flash/flash_util.h"
 #include "mock.h"
+#include "hash_mock.h"
 
 
 /**
@@ -55,6 +56,8 @@ int flash_mock_expect_erase_copy_verify (struct flash_mock *mock_dest, struct fl
 
 int flash_mock_expect_verify_flash (struct flash_mock *mock, uint32_t start, const uint8_t *data,
 	size_t length);
+int flash_mock_expect_verify_flash_and_hash (struct flash_mock *mock, struct hash_engine_mock *hash,
+	uint32_t start, const uint8_t *data, size_t length);
 int flash_mock_expect_verify_copy (struct flash_mock *mock1, uint32_t start1, const uint8_t *data1,
 	struct flash_mock *mock2, uint32_t start2, const uint8_t *data2, size_t length);
 

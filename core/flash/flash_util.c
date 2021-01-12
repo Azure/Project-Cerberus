@@ -308,9 +308,8 @@ int flash_hash_noncontiguous_contents (struct flash *flash, const struct flash_r
 }
 
 /**
- * Generate a hash for a group of noncontiguous blocks of data stored in a flash device.
- *
- * All regions will be hashed starting at a fixed offset in flash.
+ * Generate a hash for a group of noncontiguous blocks of data stored in a flash device.  All
+ * regions will be hashed starting at a fixed offset in flash.
  *
  * @param flash The flash device that contains the data to hash.
  * @param offset An offset to apply to each region address.
@@ -327,11 +326,6 @@ int flash_hash_noncontiguous_contents_at_offset (struct flash *flash, uint32_t o
 	const struct flash_region *regions, size_t count, struct hash_engine *hash, enum hash_type type,
 	uint8_t *hash_out, size_t hash_length)
 {
-	uint8_t data[FLASH_VERIFICATION_BLOCK];
-	size_t next_read;
-	uint32_t current_addr;
-	size_t remaining;
-	size_t i;
 	int status;
 
 	if ((flash == NULL) || (regions == NULL) || (hash == NULL) || (hash_out == NULL) ||
@@ -342,6 +336,100 @@ int flash_hash_noncontiguous_contents_at_offset (struct flash *flash, uint32_t o
 	status = hash_start_new_hash (hash, type);
 	if (status != 0) {
 		return status;
+	}
+
+	status = flash_hash_update_noncontiguous_contents_at_offset (flash, offset, regions, count,
+		hash);
+	if (status != 0) {
+		goto fail;
+	}
+
+	status = hash->finish (hash, hash_out, hash_length);
+	if (status != 0) {
+		goto fail;
+	}
+
+return 0;
+
+fail:
+	hash->cancel (hash);
+	return status;
+}
+
+/**
+ * Update a hash for a contiguous block of data stored in a flash device.
+ *
+ * The hash context must already be started prior to this call.  The hashing context will not be
+ * canceled on failure.
+ *
+ * @param flash The flash device that contains the data to hash.
+ * @param start_addr The first address of the data that should be hashed.
+ * @param length The number of bytes to hash.
+ * @param hash The hashing engine to use to generate the hash.
+ *
+ * @return 0 if the hash was updated successfully or an error code.
+ */
+int flash_hash_update_contents (struct flash *flash, uint32_t start_addr, size_t length,
+	struct hash_engine *hash)
+{
+	struct flash_region region;
+
+	if (length == 0) {
+		return 0;
+	}
+
+	region.start_addr = start_addr;
+	region.length = length;
+
+	return flash_hash_update_noncontiguous_contents (flash, &region, 1, hash);
+}
+
+/**
+ * Update a hash for a group of noncontiguous blocks of data stored in a flash device.
+ *
+ * The hash context must already be started prior to this call.  The hashing context will not be
+ * canceled on failure.
+ *
+ * @param flash The flash device that contains the data to hash.
+ * @param regions The group of regions that should be hashed as a single region.
+ * @param count The number of regions defined in the group.
+ * @param hash The hashing engine to use to generate the hash.
+ *
+ * @return 0 if the hash was updated successfully or an error code.
+ */
+int flash_hash_update_noncontiguous_contents (struct flash *flash,
+	const struct flash_region *regions, size_t count, struct hash_engine *hash)
+{
+	return flash_hash_update_noncontiguous_contents_at_offset (flash, 0, regions, count, hash);
+}
+
+/**
+ * Update a hash for a group of noncontiguous blocks of data stored in a flash device.  All regions
+ * will be hashed starting at a fixed offset in flash.
+ *
+ * The hash context must already be started prior to this call.  The hashing context will not be
+ * canceled on failure.
+ *
+ * @param flash The flash device that contains the data to hash.
+ * @param offset An offset to apply to each region address.
+ * @param regions The group of regions that should be hashed as a single region.
+ * @param count The number of regions defined in the group.
+ * @param hash The hashing engine to use to generate the hash.
+ *
+ * @return 0 if the hash was updated successfully or an error code.
+ */
+int flash_hash_update_noncontiguous_contents_at_offset (struct flash *flash, uint32_t offset,
+	const struct flash_region *regions, size_t count, struct hash_engine *hash)
+{
+	uint8_t data[FLASH_VERIFICATION_BLOCK];
+	size_t next_read;
+	uint32_t current_addr;
+	size_t remaining;
+	size_t i;
+	int status;
+
+	if ((flash == NULL) || (regions == NULL) || (count == 0) || (hash == NULL)) {
+		return FLASH_UTIL_INVALID_ARGUMENT;
 	}
 
 	for (i = 0; i < count; i++) {
@@ -359,7 +447,7 @@ int flash_hash_noncontiguous_contents_at_offset (struct flash *flash, uint32_t o
 
 			status = hash->update (hash, data, next_read);
 			if (status != 0) {
-				goto fail;
+				return status;
 			}
 
 			remaining -= next_read;
@@ -367,16 +455,7 @@ int flash_hash_noncontiguous_contents_at_offset (struct flash *flash, uint32_t o
 		}
 	}
 
-	status = hash->finish (hash, hash_out, hash_length);
-	if (status != 0) {
-		goto fail;
-	}
-
-return 0;
-
-fail:
-	hash->cancel (hash);
-	return status;
+	return 0;
 }
 
 /**

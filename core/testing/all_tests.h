@@ -127,7 +127,9 @@ CuSuite* get_app_image_suite (void);
 CuSuite* get_firmware_update_suite (void);
 CuSuite* get_host_fw_util_suite (void);
 CuSuite* get_manifest_flash_suite (void);
+CuSuite* get_manifest_flash_v2_suite (void);
 CuSuite* get_pfm_flash_suite (void);
+CuSuite* get_pfm_flash_v2_suite (void);
 CuSuite* get_cfm_flash_suite (void);
 CuSuite* get_cerberus_protocol_required_commands_suite (void);
 CuSuite* get_cerberus_protocol_master_commands_suite (void);
@@ -262,9 +264,11 @@ void add_all_tests (CuSuite *suite)
 #endif
 #ifdef TESTING_RUN_MANIFEST_FLASH_SUITE
 	CuSuiteAddSuite (suite, get_manifest_flash_suite ());
+	CuSuiteAddSuite (suite, get_manifest_flash_v2_suite ());
 #endif
 #ifdef TESTING_RUN_PFM_FLASH_SUITE
 	CuSuiteAddSuite (suite, get_pfm_flash_suite ());
+	CuSuiteAddSuite (suite, get_pfm_flash_v2_suite ());
 #endif
 #ifdef TESTING_RUN_CFM_FLASH_SUITE
 	CuSuiteAddSuite (suite, get_cfm_flash_suite ());

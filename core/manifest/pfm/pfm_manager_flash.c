@@ -20,13 +20,11 @@ static struct pfm* pfm_manager_flash_get_pfm (struct pfm_manager_flash *manager,
 	}
 
 	region = manifest_manager_flash_get_manifest_region (&manager->manifest_manager, active);
-
 	if (region == NULL) {
 		return NULL;
 	}
 
 	flash = (struct pfm_flash*) region->manifest;
-
 	return &flash->base;
 }
 
@@ -126,53 +124,6 @@ static int pfm_manager_flash_clear_all_manifests (struct manifest_manager *manag
 }
 
 /**
- * If there is both an active and pending PFM, check that the platform identifier of the pending
- * PFM matches the active.  If not, mark the pending PFM as invalid.
- *
- * @param manager The PFM manager to update.
- *
- * @return 0 if the check completed successfully or an error code.
- */
-static int pfm_manager_flash_check_pending_platform_id (struct manifest_manager_flash *manager)
-{
-	struct manifest_manager_flash_region *active;
-	struct manifest_manager_flash_region *pending;
-	struct pfm_flash *active_pfm;
-	struct pfm_flash *pending_pfm;
-	char *active_id = NULL;
-	char *pending_id = NULL;
-	int status = 0;
-
-	active = manifest_manager_flash_get_region (manager, true);
-	pending = manifest_manager_flash_get_region (manager, false);
-
-	if (active->is_valid && pending->is_valid) {
-		active_pfm = (struct pfm_flash*) active->manifest;
-		pending_pfm = (struct pfm_flash*) pending->manifest;
-
-		status = active_pfm->base.base.get_platform_id (&active_pfm->base.base, &active_id);
-		if (status == 0) {
-			status = pending_pfm->base.base.get_platform_id (&pending_pfm->base.base, &pending_id);
-		}
-
-		if (status == 0) {
-			if (strcmp (active_id, pending_id) != 0) {
-				pending->is_valid = false;
-				status = MANIFEST_MANAGER_INCOMPATIBLE;
-			}
-		}
-		else {
-			pending->is_valid = false;
-		}
-
-		platform_free (active_id);
-		platform_free (pending_id);
-	}
-
-	return status;
-}
-
-/**
  * If the pending PFM does not support any FW versions, clear the manifests.
  *
  * @param manager The PFM manager to update.
@@ -191,7 +142,7 @@ static int pfm_manager_flash_check_supported_versions (struct pfm_manager_flash 
 	if (pending->is_valid) {
 		pending_pfm = (struct pfm_flash*) pending->manifest;
 
-		status = pending_pfm->base.get_supported_versions (&pending_pfm->base, &fw);
+		status = pending_pfm->base.get_supported_versions (&pending_pfm->base, NULL, &fw);
 		if (status != 0) {
 			return status;
 		}
@@ -271,16 +222,10 @@ int pfm_manager_flash_init_port (struct pfm_manager_flash *manager, struct pfm_f
 	}
 
 	status = manifest_manager_flash_init (&manager->manifest_manager, &pfm_region1->base.base,
-		&pfm_region2->base.base, state, hash, verification, pfm_flash_get_flash (pfm_region1),
-		pfm_flash_get_addr (pfm_region1), pfm_flash_get_flash (pfm_region2),
-		pfm_flash_get_addr (pfm_region2), 0);
+		&pfm_region2->base.base, &pfm_region1->base_flash, &pfm_region2->base_flash, state, hash,
+		verification, 0);
 	if (status != 0) {
 		goto manifest_base_error;
-	}
-
-	status = pfm_manager_flash_check_pending_platform_id (&manager->manifest_manager);
-	if ((status != 0) && (status != MANIFEST_MANAGER_INCOMPATIBLE)) {
-		goto platform_id_error;
 	}
 
 	status = pfm_manager_flash_check_supported_versions (manager);
@@ -291,13 +236,12 @@ int pfm_manager_flash_init_port (struct pfm_manager_flash *manager, struct pfm_f
 	manager->base.get_active_pfm = pfm_manager_flash_get_active_pfm;
 	manager->base.get_pending_pfm = pfm_manager_flash_get_pending_pfm;
 	manager->base.free_pfm = pfm_manager_flash_free_pfm;
+
 	manager->base.base.activate_pending_manifest = pfm_manager_flash_activate_pending_pfm;
 	manager->base.base.clear_pending_region = pfm_manager_flash_clear_pending_region;
 	manager->base.base.write_pending_data = pfm_manager_flash_write_pending_data;
 	manager->base.base.verify_pending_manifest = pfm_manager_flash_verify_pending_pfm;
 	manager->base.base.clear_all_manifests = pfm_manager_flash_clear_all_manifests;
-
-	manager->manifest_manager.post_verify = pfm_manager_flash_check_pending_platform_id;
 
 	return 0;
 

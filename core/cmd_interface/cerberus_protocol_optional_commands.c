@@ -491,7 +491,7 @@ int cerberus_protocol_get_pfm_fw (struct manifest_cmd_interface *pfm_0,
 			goto exit;
 		}
 
-		status = curr_pfm->get_supported_versions (curr_pfm, &supported_ids);
+		status = curr_pfm->get_supported_versions (curr_pfm, NULL, &supported_ids);
 		if (status != 0) {
 			goto exit;
 		}

@@ -7,6 +7,7 @@
 #include "testing.h"
 #include "manifest/pfm/pfm_flash.h"
 #include "manifest/pfm/pfm_format.h"
+#include "flash/spi_flash.h"
 #include "mock/flash_master_mock.h"
 #include "mock/signature_verification_mock.h"
 #include "engines/hash_testing_engine.h"
@@ -213,111 +214,315 @@ const char PFM_PLATFORM_ID[] = "PFM Test1";
  const size_t PFM_PLATFORM_ID_LEN = sizeof (PFM_PLATFORM_ID) - 1;
 
 
+/**
+ * Dependencies for testing PFMs.
+ */
+struct pfm_flash_testing {
+	HASH_TESTING_ENGINE hash;							/**< Hashing engine for validation. */
+	struct signature_verification_mock verification;	/**< PFM signature verification. */
+	struct flash_master_mock flash_mock;				/**< Flash master for the PFM flash. */
+	struct spi_flash flash;								/**< Flash where the PFM is stored. */
+	uint32_t addr;										/**< Base address of the PFM. */
+	uint8_t signature[256];								/**< Buffer for the manifest signature. */
+	uint8_t platform_id[256];							/**< Cache for the platform ID. */
+	struct pfm_flash test;								/**< PFM instance under test. */
+};
+
+
+/**
+ * Initialize common PFM testing dependencies.
+ *
+ * @param test The testing framework.
+ * @param pfm The testing components to initialize.
+ * @param address The base address for the PFM data.
+ */
+static void pfm_flash_testing_init_dependencies (CuTest *test, struct pfm_flash_testing *pfm,
+	uint32_t address)
+{
+	int status;
+
+	status = HASH_TESTING_ENGINE_INIT (&pfm->hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_mock_init (&pfm->verification);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&pfm->flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&pfm->flash, &pfm->flash_mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&pfm->flash, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	pfm->addr = address;
+}
+
+/**
+ * Release test dependencies and validate all mocks.
+ *
+ * @param test The testing framework.
+ * @param pfm The testing components to release.
+ */
+void pfm_flash_testing_validate_and_release_dependencies (CuTest *test,
+	struct pfm_flash_testing *pfm)
+{
+	int status;
+
+	status = flash_master_mock_validate_and_release (&pfm->flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_mock_validate_and_release (&pfm->verification);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&pfm->flash);
+	HASH_TESTING_ENGINE_RELEASE (&pfm->hash);
+}
+
+/**
+ * Initialize PFM for testing.
+ *
+ * @param test The testing framework.
+ * @param pfm The testing components to initialize.
+ * @param address The base address for the PFM data.
+ */
+static void pfm_flash_testing_init (CuTest *test, struct pfm_flash_testing *pfm, uint32_t address)
+{
+	int status;
+
+	pfm_flash_testing_init_dependencies (test, pfm, address);
+
+	status = pfm_flash_init (&pfm->test, &pfm->flash.base, &pfm->hash.base, address, pfm->signature,
+		sizeof (pfm->signature), pfm->platform_id, sizeof (pfm->platform_id));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&pfm->flash_mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&pfm->verification.mock);
+	CuAssertIntEquals (test, 0, status);
+}
+
+/**
+ * Release a test instance and validate all mocks.
+ *
+ * @param test The testing framework.
+ * @param pfm The testing components to release.
+ */
+static void pfm_flash_testing_validate_and_release (CuTest *test, struct pfm_flash_testing *pfm)
+{
+	pfm_flash_release (&pfm->test);
+
+	pfm_flash_testing_validate_and_release_dependencies (test, pfm);
+}
+
+/**
+ * Set up expectations for verifying a PFM on flash.
+ *
+ * @param test The testing framework.
+ * @param pfm The testing components.
+ * @param data The PFM data to read.
+ * @param length The length of the PFM data.
+ * @param hash The PFM hash.  Null to skip hash checking.
+ * @param signature The PFM signature.
+ * @param sig_offset Offset of the PFM signature.
+ * @param allowed_hdr Offset of the allow versions header.
+ * @param key_manifest Offset of the key manifest.
+ * @param plat_id_hdr Offset of the platform ID header.
+ * @param plat_id Offset of the platform ID string.
+ * @param plat_id_len Length of the platform ID string.
+ * @param sig_result Result of the signature verification call.
+ */
+static void pfm_flash_testing_verify_pfm (CuTest *test, struct pfm_flash_testing *pfm,
+	const uint8_t *data, size_t length, const uint8_t *hash, const uint8_t *signature,
+	uint32_t sig_offset, uint32_t allowed_hdr, uint32_t key_manifest, uint32_t plat_id_hdr,
+	uint32_t plat_id, size_t plat_id_len, int sig_result)
+{
+	int status;
+
+	status = flash_master_mock_expect_rx_xfer (&pfm->flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&pfm->flash_mock, 0, data, PFM_HEADER_SIZE,
+		FLASH_EXP_READ_CMD (0x03, pfm->addr, 0, -1, PFM_HEADER_SIZE));
+
+	status = flash_master_mock_expect_rx_xfer (&pfm->flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&pfm->flash_mock, 0, signature, PFM_SIGNATURE_LEN,
+		FLASH_EXP_READ_CMD (0x03, pfm->addr + sig_offset, 0, -1, PFM_SIGNATURE_LEN));
+
+	status |= flash_master_mock_expect_verify_flash (&pfm->flash_mock, pfm->addr, data,
+		length - PFM_SIGNATURE_LEN);
+
+	if (hash) {
+		status |= mock_expect (&pfm->verification.mock, pfm->verification.base.verify_signature,
+			&pfm->verification, sig_result, MOCK_ARG_PTR_CONTAINS (hash, PFM_HASH_LEN),
+			MOCK_ARG (PFM_HASH_LEN), MOCK_ARG_PTR_CONTAINS (signature, PFM_SIGNATURE_LEN),
+			MOCK_ARG (PFM_SIGNATURE_LEN));
+	}
+	else {
+		status |= mock_expect (&pfm->verification.mock, pfm->verification.base.verify_signature,
+			&pfm->verification, sig_result, MOCK_ARG_NOT_NULL, MOCK_ARG (PFM_HASH_LEN),
+			MOCK_ARG_PTR_CONTAINS (signature, PFM_SIGNATURE_LEN), MOCK_ARG (PFM_SIGNATURE_LEN));
+	}
+
+	CuAssertIntEquals (test, 0, status);
+
+	if (sig_result == 0) {
+		/* Structure verification. */
+		status = flash_master_mock_expect_rx_xfer (&pfm->flash_mock, 0, &WIP_STATUS, 1,
+			FLASH_EXP_READ_STATUS_REG);
+		status |= flash_master_mock_expect_rx_xfer (&pfm->flash_mock, 0, data + allowed_hdr,
+			length - allowed_hdr,
+			FLASH_EXP_READ_CMD (0x03, pfm->addr + allowed_hdr, 0, -1, PFM_ALLOWED_HEADER_SIZE));
+
+		status |= flash_master_mock_expect_rx_xfer (&pfm->flash_mock, 0, &WIP_STATUS, 1,
+			FLASH_EXP_READ_STATUS_REG);
+		status |= flash_master_mock_expect_rx_xfer (&pfm->flash_mock, 0, data + key_manifest,
+			length - key_manifest,
+			FLASH_EXP_READ_CMD (0x03, pfm->addr + key_manifest, 0, -1, PFM_MANIFEST_HEADER_SIZE));
+
+		status |= flash_master_mock_expect_rx_xfer (&pfm->flash_mock, 0, &WIP_STATUS, 1,
+			FLASH_EXP_READ_STATUS_REG);
+		status |= flash_master_mock_expect_rx_xfer (&pfm->flash_mock, 0, data + plat_id_hdr,
+			length - plat_id_hdr,
+			FLASH_EXP_READ_CMD (0x03, pfm->addr + plat_id_hdr, 0, -1, PFM_PLATFORM_HEADER_SIZE));
+
+		status |= flash_master_mock_expect_rx_xfer (&pfm->flash_mock, 0, &WIP_STATUS, 1,
+			FLASH_EXP_READ_STATUS_REG);
+		status |= flash_master_mock_expect_rx_xfer (&pfm->flash_mock, 0, data + plat_id,
+			length - plat_id,
+			FLASH_EXP_READ_CMD (0x03, pfm->addr + plat_id, 0, -1, plat_id_len));
+
+		CuAssertIntEquals (test, 0, status);
+	}
+}
+
+/**
+ * Initialize a PFM for testing.  Run verification to load the PFM information.
+ *
+ * @param test The testing framework.
+ * @param pfm The testing components to initialize.
+ * @param address The base address for the PFM data.
+ * @param data The PFM data to read.
+ * @param length The length of the PFM data.
+ * @param hash The PFM hash.
+ * @param signature The PFM signature.
+ * @param sig_offset Offset of the PFM signature.
+ * @param allowed_hdr Offset of the allow versions header.
+ * @param key_manifest Offset of the key manifest.
+ * @param plat_id_hdr Offset of the platform ID header.
+ * @param plat_id Offset of the platform ID string.
+ * @param plat_id_len Length of the platform ID string.
+ * @param sig_result Result of the signature verification call.
+ */
+static void pfm_flash_testing_init_and_verify (CuTest *test, struct pfm_flash_testing *pfm,
+	uint32_t address, const uint8_t *data, size_t length, const uint8_t *hash,
+	const uint8_t *signature, uint32_t sig_offset, uint32_t allowed_hdr, uint32_t key_manifest,
+	uint32_t plat_id_hdr, uint32_t plat_id, size_t plat_id_len, int sig_result)
+{
+	int status;
+
+	pfm_flash_testing_init (test, pfm, address);
+	pfm_flash_testing_verify_pfm (test, pfm, data, length, hash, signature, sig_offset, allowed_hdr,
+		key_manifest, plat_id_hdr, plat_id, plat_id_len, sig_result);
+
+	status = pfm->test.base.base.verify (&pfm->test.base.base, &pfm->hash.base,
+		&pfm->verification.base, NULL, 0);
+	CuAssertIntEquals (test, sig_result, status);
+
+	status = mock_validate (&pfm->flash_mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&pfm->verification.mock);
+	CuAssertIntEquals (test, 0, status);
+}
+
 /*******************
  * Test cases
  *******************/
 
 static void pfm_flash_test_init (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
+	pfm_flash_testing_init_dependencies (test, &pfm, 0x10000);
+
+	status = pfm_flash_init (&pfm.test, &pfm.flash.base, &pfm.hash.base, 0x10000, pfm.signature,
+		sizeof (pfm.signature), pfm.platform_id, sizeof (pfm.platform_id));
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, pfm.test.base.base.verify);
+	CuAssertPtrNotNull (test, pfm.test.base.base.get_id);
+	CuAssertPtrNotNull (test, pfm.test.base.base.get_platform_id);
+	CuAssertPtrNotNull (test, pfm.test.base.base.free_platform_id);
+	CuAssertPtrNotNull (test, pfm.test.base.base.get_hash);
+	CuAssertPtrNotNull (test, pfm.test.base.base.get_signature);
 
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, pfm.test.base.get_firmware);
+	CuAssertPtrNotNull (test, pfm.test.base.free_firmware);
+	CuAssertPtrNotNull (test, pfm.test.base.get_supported_versions);
+	CuAssertPtrNotNull (test, pfm.test.base.free_fw_versions);
+	CuAssertPtrNotNull (test, pfm.test.base.get_read_write_regions);
+	CuAssertPtrNotNull (test, pfm.test.base.free_read_write_regions);
+	CuAssertPtrNotNull (test, pfm.test.base.get_firmware_images);
+	CuAssertPtrNotNull (test, pfm.test.base.free_firmware_images);
 
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0x10000, manifest_flash_get_addr (&pfm.test.base_flash));
+	CuAssertPtrEquals (test, &pfm.flash, manifest_flash_get_flash (&pfm.test.base_flash));
 
-	CuAssertPtrNotNull (test, pfm.base.base.verify);
-	CuAssertPtrNotNull (test, pfm.base.base.get_id);
-	CuAssertPtrNotNull (test, pfm.base.base.get_hash);
-	CuAssertPtrNotNull (test, pfm.base.base.get_signature);
-	CuAssertPtrNotNull (test, pfm.base.base.get_platform_id);
-	CuAssertPtrNotNull (test, pfm.base.get_supported_versions);
-	CuAssertPtrNotNull (test, pfm.base.free_fw_versions);
-	CuAssertPtrNotNull (test, pfm.base.get_read_write_regions);
-	CuAssertPtrNotNull (test, pfm.base.free_read_write_regions);
-	CuAssertPtrNotNull (test, pfm.base.get_firmware_images);
-	CuAssertPtrNotNull (test, pfm.base.free_firmware_images);
-
-	CuAssertIntEquals (test, 0x10000, pfm_flash_get_addr (&pfm));
-	CuAssertPtrEquals (test, &flash, pfm_flash_get_flash (&pfm));
-
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_init_null (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_dependencies (test, &pfm, 0x10000);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (NULL, &flash, 0x10000);
+	status = pfm_flash_init (NULL, &pfm.flash.base, &pfm.hash.base, 0x10000, pfm.signature,
+		sizeof (pfm.signature), pfm.platform_id, sizeof (pfm.platform_id));
 	CuAssertIntEquals (test, PFM_INVALID_ARGUMENT, status);
 
-	status = pfm_flash_init (&pfm, NULL, 0x10000);
-	CuAssertIntEquals (test, PFM_INVALID_ARGUMENT, status);
+	status = pfm_flash_init (&pfm.test, NULL, &pfm.hash.base, 0x10000, pfm.signature,
+		sizeof (pfm.signature), pfm.platform_id, sizeof (pfm.platform_id));
+	CuAssertIntEquals (test, MANIFEST_INVALID_ARGUMENT, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	status = pfm_flash_init (&pfm.test, &pfm.flash.base, NULL, 0x10000, pfm.signature,
+		sizeof (pfm.signature), pfm.platform_id, sizeof (pfm.platform_id));
+	CuAssertIntEquals (test, MANIFEST_INVALID_ARGUMENT, status);
 
-	pfm_flash_release (&pfm);
+	status = pfm_flash_init (&pfm.test, &pfm.flash.base, &pfm.hash.base, 0x10000, NULL,
+		sizeof (pfm.signature), pfm.platform_id, sizeof (pfm.platform_id));
+	CuAssertIntEquals (test, MANIFEST_INVALID_ARGUMENT, status);
 
-	spi_flash_release (&flash);
+	status = pfm_flash_init (&pfm.test, &pfm.flash.base, &pfm.hash.base, 0x10000, pfm.signature,
+		sizeof (pfm.signature), NULL, sizeof (pfm.platform_id));
+	CuAssertIntEquals (test, MANIFEST_INVALID_ARGUMENT, status);
+
+	pfm_flash_testing_validate_and_release_dependencies (test, &pfm);
 }
 
 static void pfm_flash_test_init_not_block_aligned (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_dependencies (test, &pfm, 0x10001);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10001);
+	status = pfm_flash_init (&pfm.test, &pfm.flash.base, &pfm.hash.base, 0x10001, pfm.signature,
+		sizeof (pfm.signature), pfm.platform_id, sizeof (pfm.platform_id));
 	CuAssertIntEquals (test, MANIFEST_STORAGE_NOT_ALIGNED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	spi_flash_release (&flash);
+	pfm_flash_testing_validate_and_release_dependencies (test, &pfm);
 }
 
 static void pfm_flash_test_release_null (CuTest *test)
@@ -327,126 +532,29 @@ static void pfm_flash_test_release_null (CuTest *test)
 	pfm_flash_release (NULL);
 }
 
-static void pfm_flash_test_release_no_init (CuTest *test)
-{
-	struct pfm_flash pfm;
-
-	TEST_START;
-
-	memset (&pfm, 0, sizeof (pfm));
-
-	pfm_flash_release (&pfm);
-}
-
-static void pfm_flash_test_get_addr_null (CuTest *test)
-{
-	TEST_START;
-
-	CuAssertIntEquals (test, 0, pfm_flash_get_addr (NULL));
-}
-
-static void pfm_flash_test_get_flash_null (CuTest *test)
-{
-	TEST_START;
-
-	CuAssertPtrEquals (test, NULL, pfm_flash_get_flash (NULL));
-}
-
 static void pfm_flash_test_verify (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
+	pfm_flash_testing_init (test, &pfm, 0x10000);
+
+	pfm_flash_testing_verify_pfm (test, &pfm, PFM_DATA, PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE,
+		PFM_SIGNATURE_OFFSET, PFM_ALLOWED_HDR_OFFSET, PFM_MANIFEST_OFFSET,
+		PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_ID_OFFSET, strlen (PFM_PLATFORM_ID), 0);
+
+	status = pfm.test.base.base.verify (&pfm.test.base.base, &pfm.hash.base, &pfm.verification.base,
+		NULL, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_SIGNATURE, PFM_SIGNATURE_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_SIGNATURE_OFFSET, 0, -1, PFM_SIGNATURE_LEN));
-	status |= flash_master_mock_expect_verify_flash (&flash_mock, 0x10000, PFM_DATA,
-		PFM_DATA_LEN - PFM_SIGNATURE_LEN);
-
-	status |= mock_expect (&verification.mock, verification.base.verify_signature, &verification, 0,
-		MOCK_ARG_PTR_CONTAINS (PFM_HASH, PFM_HASH_LEN), MOCK_ARG (PFM_HASH_LEN),
-		MOCK_ARG_PTR_CONTAINS (PFM_SIGNATURE, PFM_SIGNATURE_LEN), MOCK_ARG (PFM_SIGNATURE_LEN));
-
-	CuAssertIntEquals (test, 0, status);
-
-	/* Structure verification. */
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_ALLOWED_HDR_OFFSET,
-		PFM_DATA_LEN - PFM_ALLOWED_HDR_OFFSET,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_ALLOWED_HDR_OFFSET, 0, -1, PFM_ALLOWED_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_MANIFEST_OFFSET,
-		PFM_DATA_LEN - PFM_MANIFEST_OFFSET,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_MANIFEST_OFFSET, 0, -1, PFM_MANIFEST_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0,
-		PFM_DATA + PFM_PLATFORM_HEADER_OFFSET, PFM_DATA_LEN - PFM_PLATFORM_HEADER_OFFSET,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_PLATFORM_HEADER_OFFSET, 0, -1,
-			PFM_PLATFORM_HEADER_SIZE));
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm.base.base.verify (&pfm.base.base, &hash.base, &verification.base, NULL, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_verify_empty_manifest (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
 	const char *platform_id = "Platform";
 	struct manifest_header *header;
@@ -484,141 +592,73 @@ static void pfm_flash_test_verify_empty_manifest (CuTest *test)
 		RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, &pfm_data[sig_offset], PFM_SIGNATURE_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
+	pfm_flash_testing_init (test, &pfm, 0x10000);
+
+	pfm_flash_testing_verify_pfm (test, &pfm, pfm_data, sizeof (pfm_data), NULL,
+		&pfm_data[sig_offset], sig_offset, PFM_HEADER_SIZE, man_offset, plat_offset,
+		plat_offset + PFM_PLATFORM_HEADER_SIZE, strlen (platform_id), 0);
+
+	status = pfm.test.base.base.verify (&pfm.test.base.base, &pfm.hash.base, &pfm.verification.base,
+		NULL, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data, sizeof (pfm_data),
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &pfm_data[sig_offset],
-		PFM_SIGNATURE_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + sig_offset, 0, -1, PFM_SIGNATURE_LEN));
-	status |= flash_master_mock_expect_verify_flash (&flash_mock, 0x10000, pfm_data,
-		sizeof (pfm_data) - PFM_SIGNATURE_LEN);
-
-	status |= mock_expect (&verification.mock, verification.base.verify_signature, &verification, 0,
-		MOCK_ARG_NOT_NULL, MOCK_ARG (PFM_HASH_LEN),
-		MOCK_ARG_PTR_CONTAINS (&pfm_data[sig_offset], PFM_SIGNATURE_LEN),
-		MOCK_ARG (PFM_SIGNATURE_LEN));
-
-	CuAssertIntEquals (test, 0, status);
-
-	/* Structure verification. */
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data, sizeof (pfm_data),
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) allowed_header,
-		allowed_header->length,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_HEADER_SIZE, 0, -1, PFM_ALLOWED_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) manifest_header,
-		manifest_header->length,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + man_offset, 0, -1, PFM_MANIFEST_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) platform_header,
-		platform_header->length,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + plat_offset, 0, -1, PFM_PLATFORM_HEADER_SIZE));
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm.base.base.verify (&pfm.base.base, &hash.base, &verification.base, NULL, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
-static void pfm_flash_test_verify_null (CuTest *test)
+static void pfm_flash_test_verify_minimum_platform_id_buffer_length (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
+	pfm_flash_testing_init_dependencies (test, &pfm, 0x10000);
+
+	status = pfm_flash_init (&pfm.test, &pfm.flash.base, &pfm.hash.base, 0x10000, pfm.signature,
+		sizeof (pfm.signature), pfm.platform_id, strlen (PFM_PLATFORM_ID) + 1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = signature_verification_mock_init (&verification);
+	status = mock_validate (&pfm.flash_mock.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_init (&flash_mock);
+	status = mock_validate (&pfm.verification.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	pfm_flash_testing_verify_pfm (test, &pfm, PFM_DATA, PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE,
+		PFM_SIGNATURE_OFFSET, PFM_ALLOWED_HDR_OFFSET, PFM_MANIFEST_OFFSET,
+		PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_ID_OFFSET, strlen (PFM_PLATFORM_ID), 0);
+
+	status = pfm.test.base.base.verify (&pfm.test.base.base, &pfm.hash.base, &pfm.verification.base,
+		NULL, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_validate_and_release (test, &pfm);
+}
 
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
+static void pfm_flash_test_verify_null (CuTest *test)
+{
+	struct pfm_flash_testing pfm;
+	int status;
 
-	status = pfm.base.base.verify (NULL, &hash.base, &verification.base, NULL, 0);
+	TEST_START;
+
+	pfm_flash_testing_init (test, &pfm, 0x10000);
+
+	status = pfm.test.base.base.verify (NULL, &pfm.hash.base, &pfm.verification.base, NULL, 0);
 	CuAssertIntEquals (test, PFM_INVALID_ARGUMENT, status);
 
-	status = pfm.base.base.verify (&pfm.base.base, NULL, &verification.base, NULL, 0);
+	status = pfm.test.base.base.verify (&pfm.test.base.base, NULL, &pfm.verification.base, NULL, 0);
 	CuAssertIntEquals (test, MANIFEST_INVALID_ARGUMENT, status);
 
-	status = pfm.base.base.verify (&pfm.base.base, &hash.base, NULL, NULL, 0);
+	status = pfm.test.base.base.verify (&pfm.test.base.base, &pfm.hash.base, NULL, NULL, 0);
 	CuAssertIntEquals (test, MANIFEST_INVALID_ARGUMENT, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_verify_bad_magic_number (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
 	uint8_t pfm_bad_data[PFM_SIGNATURE_OFFSET];
 
@@ -627,354 +667,292 @@ static void pfm_flash_test_verify_bad_magic_number (CuTest *test)
 	memcpy (pfm_bad_data, PFM_DATA, sizeof (pfm_bad_data));
 	pfm_bad_data[2] ^= 0x55;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init (test, &pfm, 0x10000);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_bad_data, sizeof (pfm_bad_data),
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_bad_data,
+		sizeof (pfm_bad_data),
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm.base.base.verify (&pfm.base.base, &hash.base, &verification.base, NULL, 0);
+	status = pfm.test.base.base.verify (&pfm.test.base.base, &pfm.hash.base, &pfm.verification.base,
+		NULL, 0);
 	CuAssertIntEquals (test, MANIFEST_BAD_MAGIC_NUMBER, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
-}
-
-static void pfm_flash_test_verify_header_read_error (CuTest *test)
-{
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
-	int status;
-
-	TEST_START;
-
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_SIGNATURE, PFM_SIGNATURE_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_SIGNATURE_OFFSET, 0, -1, PFM_SIGNATURE_LEN));
-	status |= flash_master_mock_expect_verify_flash (&flash_mock, 0x10000, PFM_DATA,
-		PFM_DATA_LEN - PFM_SIGNATURE_LEN);
-
-	status |= mock_expect (&verification.mock, verification.base.verify_signature, &verification, 0,
-		MOCK_ARG_PTR_CONTAINS (PFM_HASH, PFM_HASH_LEN), MOCK_ARG (PFM_HASH_LEN),
-		MOCK_ARG_PTR_CONTAINS (PFM_SIGNATURE, PFM_SIGNATURE_LEN), MOCK_ARG (PFM_SIGNATURE_LEN));
-
-	CuAssertIntEquals (test, 0, status);
-
-	/* Structure verification. */
-	status = flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
-		FLASH_EXP_READ_STATUS_REG);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm.base.base.verify (&pfm.base.base, &hash.base, &verification.base, NULL, 0);
-	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_verify_allowable_header_read_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init (test, &pfm, 0x10000);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_SIGNATURE, PFM_SIGNATURE_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_SIGNATURE,
+		PFM_SIGNATURE_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_SIGNATURE_OFFSET, 0, -1, PFM_SIGNATURE_LEN));
-	status |= flash_master_mock_expect_verify_flash (&flash_mock, 0x10000, PFM_DATA,
+	status |= flash_master_mock_expect_verify_flash (&pfm.flash_mock, 0x10000, PFM_DATA,
 		PFM_DATA_LEN - PFM_SIGNATURE_LEN);
 
-	status |= mock_expect (&verification.mock, verification.base.verify_signature, &verification, 0,
-		MOCK_ARG_PTR_CONTAINS (PFM_HASH, PFM_HASH_LEN), MOCK_ARG (PFM_HASH_LEN),
-		MOCK_ARG_PTR_CONTAINS (PFM_SIGNATURE, PFM_SIGNATURE_LEN), MOCK_ARG (PFM_SIGNATURE_LEN));
+	status |= mock_expect (&pfm.verification.mock, pfm.verification.base.verify_signature,
+		&pfm.verification, 0, MOCK_ARG_PTR_CONTAINS (PFM_HASH, PFM_HASH_LEN),
+		MOCK_ARG (PFM_HASH_LEN), MOCK_ARG_PTR_CONTAINS (PFM_SIGNATURE, PFM_SIGNATURE_LEN),
+		MOCK_ARG (PFM_SIGNATURE_LEN));
 
 	CuAssertIntEquals (test, 0, status);
 
 	/* Structure verification. */
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
+	status |= flash_master_mock_expect_xfer (&pfm.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm.base.base.verify (&pfm.base.base, &hash.base, &verification.base, NULL, 0);
+	status = pfm.test.base.base.verify (&pfm.test.base.base, &pfm.hash.base, &pfm.verification.base,
+		NULL, 0);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_verify_manifest_header_read_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init (test, &pfm, 0x10000);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_SIGNATURE, PFM_SIGNATURE_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_SIGNATURE,
+		PFM_SIGNATURE_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_SIGNATURE_OFFSET, 0, -1, PFM_SIGNATURE_LEN));
-	status |= flash_master_mock_expect_verify_flash (&flash_mock, 0x10000, PFM_DATA,
+	status |= flash_master_mock_expect_verify_flash (&pfm.flash_mock, 0x10000, PFM_DATA,
 		PFM_DATA_LEN - PFM_SIGNATURE_LEN);
 
-	status |= mock_expect (&verification.mock, verification.base.verify_signature, &verification, 0,
-		MOCK_ARG_PTR_CONTAINS (PFM_HASH, PFM_HASH_LEN), MOCK_ARG (PFM_HASH_LEN),
-		MOCK_ARG_PTR_CONTAINS (PFM_SIGNATURE, PFM_SIGNATURE_LEN), MOCK_ARG (PFM_SIGNATURE_LEN));
+	status |= mock_expect (&pfm.verification.mock, pfm.verification.base.verify_signature,
+		&pfm.verification, 0, MOCK_ARG_PTR_CONTAINS (PFM_HASH, PFM_HASH_LEN),
+		MOCK_ARG (PFM_HASH_LEN), MOCK_ARG_PTR_CONTAINS (PFM_SIGNATURE, PFM_SIGNATURE_LEN),
+		MOCK_ARG (PFM_SIGNATURE_LEN));
 
 	CuAssertIntEquals (test, 0, status);
 
 	/* Structure verification. */
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
+		PFM_DATA + PFM_ALLOWED_HDR_OFFSET, PFM_DATA_LEN - PFM_ALLOWED_HDR_OFFSET,
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_ALLOWED_HDR_OFFSET, 0, -1,
+			PFM_ALLOWED_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_ALLOWED_HDR_OFFSET,
-		PFM_DATA_LEN - PFM_ALLOWED_HDR_OFFSET,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_ALLOWED_HDR_OFFSET, 0, -1, PFM_ALLOWED_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
+	status |= flash_master_mock_expect_xfer (&pfm.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm.base.base.verify (&pfm.base.base, &hash.base, &verification.base, NULL, 0);
+	status = pfm.test.base.base.verify (&pfm.test.base.base, &pfm.hash.base, &pfm.verification.base,
+		NULL, 0);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_verify_platform_header_read_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init (test, &pfm, 0x10000);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_SIGNATURE, PFM_SIGNATURE_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_SIGNATURE,
+		PFM_SIGNATURE_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_SIGNATURE_OFFSET, 0, -1, PFM_SIGNATURE_LEN));
-	status |= flash_master_mock_expect_verify_flash (&flash_mock, 0x10000, PFM_DATA,
+	status |= flash_master_mock_expect_verify_flash (&pfm.flash_mock, 0x10000, PFM_DATA,
 		PFM_DATA_LEN - PFM_SIGNATURE_LEN);
 
-	status |= mock_expect (&verification.mock, verification.base.verify_signature, &verification, 0,
-		MOCK_ARG_PTR_CONTAINS (PFM_HASH, PFM_HASH_LEN), MOCK_ARG (PFM_HASH_LEN),
-		MOCK_ARG_PTR_CONTAINS (PFM_SIGNATURE, PFM_SIGNATURE_LEN), MOCK_ARG (PFM_SIGNATURE_LEN));
+	status |= mock_expect (&pfm.verification.mock, pfm.verification.base.verify_signature,
+		&pfm.verification, 0, MOCK_ARG_PTR_CONTAINS (PFM_HASH, PFM_HASH_LEN),
+		MOCK_ARG (PFM_HASH_LEN), MOCK_ARG_PTR_CONTAINS (PFM_SIGNATURE, PFM_SIGNATURE_LEN),
+		MOCK_ARG (PFM_SIGNATURE_LEN));
 
 	CuAssertIntEquals (test, 0, status);
 
 	/* Structure verification. */
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
+		PFM_DATA + PFM_ALLOWED_HDR_OFFSET, PFM_DATA_LEN - PFM_ALLOWED_HDR_OFFSET,
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_ALLOWED_HDR_OFFSET, 0, -1,
+			PFM_ALLOWED_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_ALLOWED_HDR_OFFSET,
-		PFM_DATA_LEN - PFM_ALLOWED_HDR_OFFSET,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_ALLOWED_HDR_OFFSET, 0, -1, PFM_ALLOWED_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_MANIFEST_OFFSET,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA + PFM_MANIFEST_OFFSET,
 		PFM_DATA_LEN - PFM_MANIFEST_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_MANIFEST_OFFSET, 0, -1, PFM_MANIFEST_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
+	status |= flash_master_mock_expect_xfer (&pfm.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm.base.base.verify (&pfm.base.base, &hash.base, &verification.base, NULL, 0);
+	status = pfm.test.base.base.verify (&pfm.test.base.base, &pfm.hash.base, &pfm.verification.base,
+		NULL, 0);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
+	pfm_flash_testing_validate_and_release (test, &pfm);
+}
+
+static void pfm_flash_test_verify_platform_id_too_long (CuTest *test)
+{
+	struct pfm_flash_testing pfm;
+	int status;
+
+	TEST_START;
+
+	pfm_flash_testing_init_dependencies (test, &pfm, 0x10000);
+
+	status = pfm_flash_init (&pfm.test, &pfm.flash.base, &pfm.hash.base, 0x10000, pfm.signature,
+		sizeof (pfm.signature), pfm.platform_id, strlen (PFM_PLATFORM_ID));
 	CuAssertIntEquals (test, 0, status);
 
-	status = signature_verification_mock_validate_and_release (&verification);
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
+		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_SIGNATURE,
+		PFM_SIGNATURE_LEN,
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_SIGNATURE_OFFSET, 0, -1, PFM_SIGNATURE_LEN));
+	status |= flash_master_mock_expect_verify_flash (&pfm.flash_mock, 0x10000, PFM_DATA,
+		PFM_DATA_LEN - PFM_SIGNATURE_LEN);
+
+	status |= mock_expect (&pfm.verification.mock, pfm.verification.base.verify_signature,
+		&pfm.verification, 0, MOCK_ARG_PTR_CONTAINS (PFM_HASH, PFM_HASH_LEN),
+		MOCK_ARG (PFM_HASH_LEN), MOCK_ARG_PTR_CONTAINS (PFM_SIGNATURE, PFM_SIGNATURE_LEN),
+		MOCK_ARG (PFM_SIGNATURE_LEN));
+
 	CuAssertIntEquals (test, 0, status);
 
-	pfm_flash_release (&pfm);
+	/* Structure verification. */
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
+		PFM_DATA + PFM_ALLOWED_HDR_OFFSET, PFM_DATA_LEN - PFM_ALLOWED_HDR_OFFSET,
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_ALLOWED_HDR_OFFSET, 0, -1,
+			PFM_ALLOWED_HEADER_SIZE));
 
-	spi_flash_release (&flash);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA + PFM_MANIFEST_OFFSET,
+		PFM_DATA_LEN - PFM_MANIFEST_OFFSET,
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_MANIFEST_OFFSET, 0, -1, PFM_MANIFEST_HEADER_SIZE));
+
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
+		PFM_DATA + PFM_PLATFORM_HEADER_OFFSET, PFM_DATA_LEN - PFM_PLATFORM_HEADER_OFFSET,
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_PLATFORM_HEADER_OFFSET, 0, -1,
+			PFM_PLATFORM_HEADER_SIZE));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm.test.base.base.verify (&pfm.test.base.base, &pfm.hash.base, &pfm.verification.base,
+		NULL, 0);
+	CuAssertIntEquals (test, MANIFEST_PLAT_ID_BUFFER_TOO_SMALL, status);
+
+	pfm_flash_testing_validate_and_release (test, &pfm);
+}
+
+static void pfm_flash_test_verify_length_mismatch (CuTest *test)
+{
+	struct pfm_flash_testing pfm;
+	int status;
+	uint8_t bad_header[PFM_PLATFORM_HEADER_SIZE];
+
+	TEST_START;
+
+	memcpy (bad_header, PFM_DATA + PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_HEADER_SIZE);
+	bad_header[1] ^= 0x55;
+
+	pfm_flash_testing_init (test, &pfm, 0x10000);
+
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
+		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_SIGNATURE,
+		PFM_SIGNATURE_LEN,
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_SIGNATURE_OFFSET, 0, -1, PFM_SIGNATURE_LEN));
+	status |= flash_master_mock_expect_verify_flash (&pfm.flash_mock, 0x10000, PFM_DATA,
+		PFM_DATA_LEN - PFM_SIGNATURE_LEN);
+
+	status |= mock_expect (&pfm.verification.mock, pfm.verification.base.verify_signature,
+		&pfm.verification, 0, MOCK_ARG_PTR_CONTAINS (PFM_HASH, PFM_HASH_LEN),
+		MOCK_ARG (PFM_HASH_LEN), MOCK_ARG_PTR_CONTAINS (PFM_SIGNATURE, PFM_SIGNATURE_LEN),
+		MOCK_ARG (PFM_SIGNATURE_LEN));
+
+	CuAssertIntEquals (test, 0, status);
+
+	/* Structure verification. */
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
+		PFM_DATA + PFM_ALLOWED_HDR_OFFSET, PFM_DATA_LEN - PFM_ALLOWED_HDR_OFFSET,
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_ALLOWED_HDR_OFFSET, 0, -1,
+			PFM_ALLOWED_HEADER_SIZE));
+
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA + PFM_MANIFEST_OFFSET,
+		PFM_DATA_LEN - PFM_MANIFEST_OFFSET,
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_MANIFEST_OFFSET, 0, -1, PFM_MANIFEST_HEADER_SIZE));
+
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, bad_header, sizeof (bad_header),
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_PLATFORM_HEADER_OFFSET, 0, -1,
+			PFM_PLATFORM_HEADER_SIZE));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm.test.base.base.verify (&pfm.test.base.base, &pfm.hash.base, &pfm.verification.base,
+		NULL, 0);
+	CuAssertIntEquals (test, MANIFEST_MALFORMED, status);
+
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_verify_missing_platform_id (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
 	const char *version1 = "V1";
 	const char *version2 = "Version2";
@@ -1086,91 +1064,119 @@ static void pfm_flash_test_verify_missing_platform_id (CuTest *test)
 		RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, &pfm_data[sig_offset], PFM_SIGNATURE_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init (test, &pfm, 0x10000);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data, sizeof (pfm_data),
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data, sizeof (pfm_data),
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &pfm_data[sig_offset],
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &pfm_data[sig_offset],
 		PFM_SIGNATURE_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + sig_offset, 0, -1, PFM_SIGNATURE_LEN));
-	status |= flash_master_mock_expect_verify_flash (&flash_mock, 0x10000, pfm_data,
+	status |= flash_master_mock_expect_verify_flash (&pfm.flash_mock, 0x10000, pfm_data,
 		sizeof (pfm_data) - PFM_SIGNATURE_LEN);
 
-	status |= mock_expect (&verification.mock, verification.base.verify_signature, &verification, 0,
-		MOCK_ARG_NOT_NULL, MOCK_ARG (PFM_HASH_LEN),
+	status |= mock_expect (&pfm.verification.mock, pfm.verification.base.verify_signature,
+		&pfm.verification, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (PFM_HASH_LEN),
 		MOCK_ARG_PTR_CONTAINS (&pfm_data[sig_offset], PFM_SIGNATURE_LEN),
 		MOCK_ARG (PFM_SIGNATURE_LEN));
 
 	CuAssertIntEquals (test, 0, status);
 
 	/* Structure verification. */
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data, sizeof (pfm_data),
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) allowed_header,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, (uint8_t*) allowed_header,
 		allowed_header->length,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_HEADER_SIZE, 0, -1, PFM_ALLOWED_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) manifest_header,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, (uint8_t*) manifest_header,
 		manifest_header->length,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + man_offset, 0, -1, PFM_MANIFEST_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &pfm_data[sig_offset],
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &pfm_data[sig_offset],
 		PFM_SIGNATURE_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + sig_offset, 0, -1, PFM_PLATFORM_HEADER_SIZE));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm.base.base.verify (&pfm.base.base, &hash.base, &verification.base, NULL, 0);
+	status = pfm.test.base.base.verify (&pfm.test.base.base, &pfm.hash.base, &pfm.verification.base,
+		NULL, 0);
 	CuAssertIntEquals (test, MANIFEST_MALFORMED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
+	pfm_flash_testing_validate_and_release (test, &pfm);
+}
+
+static void pfm_flash_test_verify_platform_id_read_error (CuTest *test)
+{
+	struct pfm_flash_testing pfm;
+	int status;
+
+	TEST_START;
+
+	pfm_flash_testing_init (test, &pfm, 0x10000);
+
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
+		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_SIGNATURE,
+		PFM_SIGNATURE_LEN,
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_SIGNATURE_OFFSET, 0, -1, PFM_SIGNATURE_LEN));
+	status |= flash_master_mock_expect_verify_flash (&pfm.flash_mock, 0x10000, PFM_DATA,
+		PFM_DATA_LEN - PFM_SIGNATURE_LEN);
+
+	status |= mock_expect (&pfm.verification.mock, pfm.verification.base.verify_signature,
+		&pfm.verification, 0, MOCK_ARG_PTR_CONTAINS (PFM_HASH, PFM_HASH_LEN),
+		MOCK_ARG (PFM_HASH_LEN), MOCK_ARG_PTR_CONTAINS (PFM_SIGNATURE, PFM_SIGNATURE_LEN),
+		MOCK_ARG (PFM_SIGNATURE_LEN));
+
 	CuAssertIntEquals (test, 0, status);
 
-	status = signature_verification_mock_validate_and_release (&verification);
+	/* Structure verification. */
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
+		PFM_DATA + PFM_ALLOWED_HDR_OFFSET, PFM_DATA_LEN - PFM_ALLOWED_HDR_OFFSET,
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_ALLOWED_HDR_OFFSET, 0, -1,
+			PFM_ALLOWED_HEADER_SIZE));
+
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA + PFM_MANIFEST_OFFSET,
+		PFM_DATA_LEN - PFM_MANIFEST_OFFSET,
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_MANIFEST_OFFSET, 0, -1, PFM_MANIFEST_HEADER_SIZE));
+
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
+		PFM_DATA + PFM_PLATFORM_HEADER_OFFSET, PFM_DATA_LEN - PFM_PLATFORM_HEADER_OFFSET,
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_PLATFORM_HEADER_OFFSET, 0, -1,
+			PFM_PLATFORM_HEADER_SIZE));
+
+	status |= flash_master_mock_expect_xfer (&pfm.flash_mock, FLASH_MASTER_XFER_FAILED,
+		FLASH_EXP_READ_STATUS_REG);
+
 	CuAssertIntEquals (test, 0, status);
 
-	pfm_flash_release (&pfm);
+	status = pfm.test.base.base.verify (&pfm.test.base.base, &pfm.hash.base, &pfm.verification.base,
+		NULL, 0);
+	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	spi_flash_release (&flash);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_verify_header_reserved_non_zero (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
 	const char *version1 = "V1";
 	const char *version2 = "Version2";
@@ -1284,97 +1290,29 @@ static void pfm_flash_test_verify_header_reserved_non_zero (CuTest *test)
 
 	platform_header = (struct pfm_platform_header*) &pfm_data[plat_offset];
 	platform_header->length = PFM_PLATFORM_HEADER_SIZE + 8;
+	platform_header->id_length = 8;
 	memcpy (&pfm_data[plat_offset + PFM_PLATFORM_HEADER_SIZE], platform_id, strlen (platform_id));
 
 	status = RSA_TESTING_ENGINE_SIGN (pfm_data, sizeof (pfm_data) - PFM_SIGNATURE_LEN,
 		RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, &pfm_data[sig_offset], PFM_SIGNATURE_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
+	pfm_flash_testing_init (test, &pfm, 0x10000);
+
+	pfm_flash_testing_verify_pfm (test, &pfm, pfm_data, sizeof (pfm_data), NULL,
+		&pfm_data[sig_offset], sig_offset, PFM_HEADER_SIZE, man_offset, plat_offset,
+		plat_offset + PFM_PLATFORM_HEADER_SIZE, strlen (platform_id), 0);
+
+	status = pfm.test.base.base.verify (&pfm.test.base.base, &pfm.hash.base, &pfm.verification.base,
+		NULL, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data, sizeof (pfm_data),
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &pfm_data[sig_offset],
-		PFM_SIGNATURE_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + sig_offset, 0, -1, PFM_SIGNATURE_LEN));
-	status |= flash_master_mock_expect_verify_flash (&flash_mock, 0x10000, pfm_data,
-		sizeof (pfm_data) - PFM_SIGNATURE_LEN);
-
-	status |= mock_expect (&verification.mock, verification.base.verify_signature, &verification, 0,
-		MOCK_ARG_NOT_NULL, MOCK_ARG (PFM_HASH_LEN),
-		MOCK_ARG_PTR_CONTAINS (&pfm_data[sig_offset], PFM_SIGNATURE_LEN),
-		MOCK_ARG (PFM_SIGNATURE_LEN));
-
-	CuAssertIntEquals (test, 0, status);
-
-	/* Structure verification. */
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data, sizeof (pfm_data),
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) allowed_header,
-		allowed_header->length,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_HEADER_SIZE, 0, -1, PFM_ALLOWED_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) manifest_header,
-		manifest_header->length,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + man_offset, 0, -1, PFM_MANIFEST_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) platform_header,
-		platform_header->length,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + plat_offset, 0, -1, PFM_PLATFORM_HEADER_SIZE));
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm.base.base.verify (&pfm.base.base, &hash.base, &verification.base, NULL, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_verify_allowable_header_reserved_non_zero (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
 	const char *version1 = "V1";
 	const char *version2 = "Version2";
@@ -1488,97 +1426,29 @@ static void pfm_flash_test_verify_allowable_header_reserved_non_zero (CuTest *te
 
 	platform_header = (struct pfm_platform_header*) &pfm_data[plat_offset];
 	platform_header->length = PFM_PLATFORM_HEADER_SIZE + 8;
+	platform_header->id_length = 8;
 	memcpy (&pfm_data[plat_offset + PFM_PLATFORM_HEADER_SIZE], platform_id, strlen (platform_id));
 
 	status = RSA_TESTING_ENGINE_SIGN (pfm_data, sizeof (pfm_data) - PFM_SIGNATURE_LEN,
 		RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, &pfm_data[sig_offset], PFM_SIGNATURE_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
+	pfm_flash_testing_init (test, &pfm, 0x10000);
+
+	pfm_flash_testing_verify_pfm (test, &pfm, pfm_data, sizeof (pfm_data), NULL,
+		&pfm_data[sig_offset], sig_offset, PFM_HEADER_SIZE, man_offset, plat_offset,
+		plat_offset + PFM_PLATFORM_HEADER_SIZE, strlen (platform_id), 0);
+
+	status = pfm.test.base.base.verify (&pfm.test.base.base, &pfm.hash.base, &pfm.verification.base,
+		NULL, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data, sizeof (pfm_data),
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &pfm_data[sig_offset],
-		PFM_SIGNATURE_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + sig_offset, 0, -1, PFM_SIGNATURE_LEN));
-	status |= flash_master_mock_expect_verify_flash (&flash_mock, 0x10000, pfm_data,
-		sizeof (pfm_data) - PFM_SIGNATURE_LEN);
-
-	status |= mock_expect (&verification.mock, verification.base.verify_signature, &verification, 0,
-		MOCK_ARG_NOT_NULL, MOCK_ARG (PFM_HASH_LEN),
-		MOCK_ARG_PTR_CONTAINS (&pfm_data[sig_offset], PFM_SIGNATURE_LEN),
-		MOCK_ARG (PFM_SIGNATURE_LEN));
-
-	CuAssertIntEquals (test, 0, status);
-
-	/* Structure verification. */
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data, sizeof (pfm_data),
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) allowed_header,
-		allowed_header->length,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_HEADER_SIZE, 0, -1, PFM_ALLOWED_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) manifest_header,
-		manifest_header->length,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + man_offset, 0, -1, PFM_MANIFEST_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) platform_header,
-		platform_header->length,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + plat_offset, 0, -1, PFM_PLATFORM_HEADER_SIZE));
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm.base.base.verify (&pfm.base.base, &hash.base, &verification.base, NULL, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_verify_manifest_header_reserved_non_zero (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
 	const char *version1 = "V1";
 	const char *version2 = "Version2";
@@ -1692,97 +1562,29 @@ static void pfm_flash_test_verify_manifest_header_reserved_non_zero (CuTest *tes
 
 	platform_header = (struct pfm_platform_header*) &pfm_data[plat_offset];
 	platform_header->length = PFM_PLATFORM_HEADER_SIZE + 8;
+	platform_header->id_length = 8;
 	memcpy (&pfm_data[plat_offset + PFM_PLATFORM_HEADER_SIZE], platform_id, strlen (platform_id));
 
 	status = RSA_TESTING_ENGINE_SIGN (pfm_data, sizeof (pfm_data) - PFM_SIGNATURE_LEN,
 		RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, &pfm_data[sig_offset], PFM_SIGNATURE_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
+	pfm_flash_testing_init (test, &pfm, 0x10000);
+
+	pfm_flash_testing_verify_pfm (test, &pfm, pfm_data, sizeof (pfm_data), NULL,
+		&pfm_data[sig_offset], sig_offset, PFM_HEADER_SIZE, man_offset, plat_offset,
+		plat_offset + PFM_PLATFORM_HEADER_SIZE, strlen (platform_id), 0);
+
+	status = pfm.test.base.base.verify (&pfm.test.base.base, &pfm.hash.base, &pfm.verification.base,
+		NULL, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data, sizeof (pfm_data),
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &pfm_data[sig_offset],
-		PFM_SIGNATURE_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + sig_offset, 0, -1, PFM_SIGNATURE_LEN));
-	status |= flash_master_mock_expect_verify_flash (&flash_mock, 0x10000, pfm_data,
-		sizeof (pfm_data) - PFM_SIGNATURE_LEN);
-
-	status |= mock_expect (&verification.mock, verification.base.verify_signature, &verification, 0,
-		MOCK_ARG_NOT_NULL, MOCK_ARG (PFM_HASH_LEN),
-		MOCK_ARG_PTR_CONTAINS (&pfm_data[sig_offset], PFM_SIGNATURE_LEN),
-		MOCK_ARG (PFM_SIGNATURE_LEN));
-
-	CuAssertIntEquals (test, 0, status);
-
-	/* Structure verification. */
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data, sizeof (pfm_data),
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) allowed_header,
-		allowed_header->length,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_HEADER_SIZE, 0, -1, PFM_ALLOWED_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) manifest_header,
-		manifest_header->length,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + man_offset, 0, -1, PFM_MANIFEST_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) platform_header,
-		platform_header->length,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + plat_offset, 0, -1, PFM_PLATFORM_HEADER_SIZE));
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm.base.base.verify (&pfm.base.base, &hash.base, &verification.base, NULL, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_verify_platform_header_reserved_non_zero (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
 	const char *version1 = "V1";
 	const char *version2 = "Version2";
@@ -1895,6 +1697,7 @@ static void pfm_flash_test_verify_platform_header_reserved_non_zero (CuTest *tes
 
 	platform_header = (struct pfm_platform_header*) &pfm_data[plat_offset];
 	platform_header->length = PFM_PLATFORM_HEADER_SIZE + 8;
+	platform_header->id_length = 8;
 	platform_header->reserved = 1;
 	memcpy (&pfm_data[plat_offset + PFM_PLATFORM_HEADER_SIZE], platform_id, strlen (platform_id));
 
@@ -1902,399 +1705,533 @@ static void pfm_flash_test_verify_platform_header_reserved_non_zero (CuTest *tes
 		RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, &pfm_data[sig_offset], PFM_SIGNATURE_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
+	pfm_flash_testing_init (test, &pfm, 0x10000);
+
+	pfm_flash_testing_verify_pfm (test, &pfm, pfm_data, sizeof (pfm_data), NULL,
+		&pfm_data[sig_offset], sig_offset, PFM_HEADER_SIZE, man_offset, plat_offset,
+		plat_offset + PFM_PLATFORM_HEADER_SIZE, strlen (platform_id), 0);
+
+	status = pfm.test.base.base.verify (&pfm.test.base.base, &pfm.hash.base, &pfm.verification.base,
+		NULL, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_validate_and_release (test, &pfm);
+}
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+static void pfm_flash_test_get_id (CuTest *test)
+{
+	struct pfm_flash_testing pfm;
+	int status;
+	uint32_t id;
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
+	TEST_START;
 
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_ALLOWED_HDR_OFFSET, PFM_MANIFEST_OFFSET,
+		PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_ID_OFFSET, strlen (PFM_PLATFORM_ID), 0);
 
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
+	status = pfm.test.base.base.get_id (&pfm.test.base.base, &id);
 	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, id);
 
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	pfm_flash_testing_validate_and_release (test, &pfm);
+}
+
+static void pfm_flash_test_get_id_null (CuTest *test)
+{
+	struct pfm_flash_testing pfm;
+	int status;
+	uint32_t id;
+
+	TEST_START;
+
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_ALLOWED_HDR_OFFSET, PFM_MANIFEST_OFFSET,
+		PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_ID_OFFSET, strlen (PFM_PLATFORM_ID), 0);
+
+	status = pfm.test.base.base.get_id (NULL, &id);
+	CuAssertIntEquals (test, PFM_INVALID_ARGUMENT, status);
+
+	status = pfm.test.base.base.get_id (&pfm.test.base.base, NULL);
+	CuAssertIntEquals (test, MANIFEST_INVALID_ARGUMENT, status);
+
+	pfm_flash_testing_validate_and_release (test, &pfm);
+}
+
+static void pfm_flash_test_get_id_verify_never_run (CuTest *test)
+{
+	struct pfm_flash_testing pfm;
+	int status;
+	uint32_t id;
+
+	TEST_START;
+
+	pfm_flash_testing_init (test, &pfm, 0x10000);
+
+	status = pfm.test.base.base.get_id (&pfm.test.base.base, &id);
+	CuAssertIntEquals (test, MANIFEST_NO_MANIFEST, status);
+
+	pfm_flash_testing_validate_and_release (test, &pfm);
+}
+
+static void pfm_flash_test_get_id_after_verify_allowable_header_read_error (CuTest *test)
+{
+	struct pfm_flash_testing pfm;
+	int status;
+	uint32_t id;
+
+	TEST_START;
+
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_ALLOWED_HDR_OFFSET, PFM_MANIFEST_OFFSET,
+		PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_ID_OFFSET, strlen (PFM_PLATFORM_ID), 0);
+
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data, sizeof (pfm_data),
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &pfm_data[sig_offset],
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_SIGNATURE,
 		PFM_SIGNATURE_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + sig_offset, 0, -1, PFM_SIGNATURE_LEN));
-	status |= flash_master_mock_expect_verify_flash (&flash_mock, 0x10000, pfm_data,
-		sizeof (pfm_data) - PFM_SIGNATURE_LEN);
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_SIGNATURE_OFFSET, 0, -1, PFM_SIGNATURE_LEN));
+	status |= flash_master_mock_expect_verify_flash (&pfm.flash_mock, 0x10000, PFM_DATA,
+		PFM_DATA_LEN - PFM_SIGNATURE_LEN);
 
-	status |= mock_expect (&verification.mock, verification.base.verify_signature, &verification, 0,
-		MOCK_ARG_NOT_NULL, MOCK_ARG (PFM_HASH_LEN),
-		MOCK_ARG_PTR_CONTAINS (&pfm_data[sig_offset], PFM_SIGNATURE_LEN),
+	status |= mock_expect (&pfm.verification.mock, pfm.verification.base.verify_signature,
+		&pfm.verification, 0, MOCK_ARG_PTR_CONTAINS (PFM_HASH, PFM_HASH_LEN),
+		MOCK_ARG (PFM_HASH_LEN), MOCK_ARG_PTR_CONTAINS (PFM_SIGNATURE, PFM_SIGNATURE_LEN),
 		MOCK_ARG (PFM_SIGNATURE_LEN));
 
 	CuAssertIntEquals (test, 0, status);
 
 	/* Structure verification. */
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_xfer (&pfm.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data, sizeof (pfm_data),
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) allowed_header,
-		allowed_header->length,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_HEADER_SIZE, 0, -1, PFM_ALLOWED_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) manifest_header,
-		manifest_header->length,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + man_offset, 0, -1, PFM_MANIFEST_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) platform_header,
-		platform_header->length,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + plat_offset, 0, -1, PFM_PLATFORM_HEADER_SIZE));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm.base.base.verify (&pfm.base.base, &hash.base, &verification.base, NULL, 0);
-	CuAssertIntEquals (test, 0, status);
+	status = pfm.test.base.base.verify (&pfm.test.base.base, &pfm.hash.base, &pfm.verification.base,
+		NULL, 0);
+	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	status = pfm.test.base.base.get_id (&pfm.test.base.base, &id);
+	CuAssertIntEquals (test, MANIFEST_NO_MANIFEST, status);
 
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
-static void pfm_flash_test_get_id (CuTest *test)
+static void pfm_flash_test_get_id_after_verify_manifest_header_read_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
 	uint32_t id;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_ALLOWED_HDR_OFFSET, PFM_MANIFEST_OFFSET,
+		PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_ID_OFFSET, strlen (PFM_PLATFORM_ID), 0);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm.base.base.get_id (&pfm.base.base, &id);
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, 1, id);
-
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-	spi_flash_release (&flash);
-}
-
-static void pfm_flash_test_get_id_null (CuTest *test)
-{
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
-	int status;
-	uint32_t id;
-
-	TEST_START;
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm.base.base.get_id (NULL, &id);
-	CuAssertIntEquals (test, PFM_INVALID_ARGUMENT, status);
-
-	status = pfm.base.base.get_id (&pfm.base.base, NULL);
-	CuAssertIntEquals (test, MANIFEST_INVALID_ARGUMENT, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
-}
-
-static void pfm_flash_test_get_id_bad_magic_num (CuTest *test)
-{
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
-	int status;
-	uint32_t id;
-	uint8_t pfm_bad_data[PFM_SIGNATURE_OFFSET];
-
-	TEST_START;
-
-	memcpy (pfm_bad_data, PFM_DATA, sizeof (pfm_bad_data));
-	pfm_bad_data[2] ^= 0x55;
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_bad_data, sizeof (pfm_bad_data),
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm.base.base.get_id (&pfm.base.base, &id);
-	CuAssertIntEquals (test, MANIFEST_BAD_MAGIC_NUMBER, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
-}
-
-static void pfm_flash_test_get_hash (CuTest *test)
-{
-	HASH_TESTING_ENGINE hash;
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
-	uint8_t hash_out[SHA256_HASH_LENGTH];
-	int status;
-
-	TEST_START;
-
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_HEADER_SIZE,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_verify_flash (&flash_mock, 0x10000, PFM_DATA,
-		PFM_DATA_LEN - PFM_SIGNATURE_LEN);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm.base.base.get_hash (&pfm.base.base, &hash.base, hash_out, sizeof (hash_out));
-	CuAssertIntEquals (test, 0, status);
-
-	status = testing_validate_array (PFM_HASH, hash_out, PFM_HASH_LEN);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
-}
-
-static void pfm_flash_test_get_hash_after_verify (CuTest *test)
-{
-	HASH_TESTING_ENGINE hash;
-	struct signature_verification_mock verification;
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
-	uint8_t hash_out[SHA256_HASH_LENGTH];
-	int status;
-
-	TEST_START;
-
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_SIGNATURE, PFM_SIGNATURE_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_SIGNATURE,
+		PFM_SIGNATURE_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_SIGNATURE_OFFSET, 0, -1, PFM_SIGNATURE_LEN));
-	status |= flash_master_mock_expect_verify_flash (&flash_mock, 0x10000, PFM_DATA,
+	status |= flash_master_mock_expect_verify_flash (&pfm.flash_mock, 0x10000, PFM_DATA,
 		PFM_DATA_LEN - PFM_SIGNATURE_LEN);
-	CuAssertIntEquals (test, 0, status);
 
-	status |= mock_expect (&verification.mock, verification.base.verify_signature, &verification, 0,
-		MOCK_ARG_PTR_CONTAINS (PFM_HASH, PFM_HASH_LEN), MOCK_ARG (PFM_HASH_LEN),
-		MOCK_ARG_PTR_CONTAINS (PFM_SIGNATURE, PFM_SIGNATURE_LEN), MOCK_ARG (PFM_SIGNATURE_LEN));
+	status |= mock_expect (&pfm.verification.mock, pfm.verification.base.verify_signature,
+		&pfm.verification, 0, MOCK_ARG_PTR_CONTAINS (PFM_HASH, PFM_HASH_LEN),
+		MOCK_ARG (PFM_HASH_LEN), MOCK_ARG_PTR_CONTAINS (PFM_SIGNATURE, PFM_SIGNATURE_LEN),
+		MOCK_ARG (PFM_SIGNATURE_LEN));
+
+	CuAssertIntEquals (test, 0, status);
 
 	/* Structure verification. */
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
+		PFM_DATA + PFM_ALLOWED_HDR_OFFSET, PFM_DATA_LEN - PFM_ALLOWED_HDR_OFFSET,
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_ALLOWED_HDR_OFFSET, 0, -1,
+			PFM_ALLOWED_HEADER_SIZE));
+
+	status |= flash_master_mock_expect_xfer (&pfm.flash_mock, FLASH_MASTER_XFER_FAILED,
+		FLASH_EXP_READ_STATUS_REG);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm.test.base.base.verify (&pfm.test.base.base, &pfm.hash.base, &pfm.verification.base,
+		NULL, 0);
+	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
+
+	status = pfm.test.base.base.get_id (&pfm.test.base.base, &id);
+	CuAssertIntEquals (test, MANIFEST_NO_MANIFEST, status);
+
+	pfm_flash_testing_validate_and_release (test, &pfm);
+}
+
+static void pfm_flash_test_get_id_after_verify_platform_header_read_error (CuTest *test)
+{
+	struct pfm_flash_testing pfm;
+	int status;
+	uint32_t id;
+
+	TEST_START;
+
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_ALLOWED_HDR_OFFSET, PFM_MANIFEST_OFFSET,
+		PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_ID_OFFSET, strlen (PFM_PLATFORM_ID), 0);
+
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_ALLOWED_HDR_OFFSET,
-		PFM_DATA_LEN - PFM_ALLOWED_HDR_OFFSET,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_ALLOWED_HDR_OFFSET, 0, -1, PFM_ALLOWED_HEADER_SIZE));
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_SIGNATURE,
+		PFM_SIGNATURE_LEN,
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_SIGNATURE_OFFSET, 0, -1, PFM_SIGNATURE_LEN));
+	status |= flash_master_mock_expect_verify_flash (&pfm.flash_mock, 0x10000, PFM_DATA,
+		PFM_DATA_LEN - PFM_SIGNATURE_LEN);
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= mock_expect (&pfm.verification.mock, pfm.verification.base.verify_signature,
+		&pfm.verification, 0, MOCK_ARG_PTR_CONTAINS (PFM_HASH, PFM_HASH_LEN),
+		MOCK_ARG (PFM_HASH_LEN), MOCK_ARG_PTR_CONTAINS (PFM_SIGNATURE, PFM_SIGNATURE_LEN),
+		MOCK_ARG (PFM_SIGNATURE_LEN));
+
+	CuAssertIntEquals (test, 0, status);
+
+	/* Structure verification. */
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_MANIFEST_OFFSET,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
+		PFM_DATA + PFM_ALLOWED_HDR_OFFSET, PFM_DATA_LEN - PFM_ALLOWED_HDR_OFFSET,
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_ALLOWED_HDR_OFFSET, 0, -1,
+			PFM_ALLOWED_HEADER_SIZE));
+
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA + PFM_MANIFEST_OFFSET,
 		PFM_DATA_LEN - PFM_MANIFEST_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_MANIFEST_OFFSET, 0, -1, PFM_MANIFEST_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_xfer (&pfm.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0,
-		PFM_DATA + PFM_PLATFORM_HEADER_OFFSET, PFM_DATA_LEN - PFM_PLATFORM_HEADER_OFFSET,
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm.test.base.base.verify (&pfm.test.base.base, &pfm.hash.base, &pfm.verification.base,
+		NULL, 0);
+	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
+
+	status = pfm.test.base.base.get_id (&pfm.test.base.base, &id);
+	CuAssertIntEquals (test, MANIFEST_NO_MANIFEST, status);
+
+	pfm_flash_testing_validate_and_release (test, &pfm);
+}
+
+static void pfm_flash_test_get_id_after_verify_platform_id_too_long (CuTest *test)
+{
+	struct pfm_flash_testing pfm;
+	int status;
+	uint32_t id;
+	uint8_t bad_header[PFM_PLATFORM_HEADER_SIZE];
+
+	TEST_START;
+
+	memcpy (bad_header, PFM_DATA + PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_HEADER_SIZE);
+	((struct pfm_platform_header*) bad_header)->id_length++;
+
+	pfm_flash_testing_init_dependencies (test, &pfm, 0x10000);
+
+	status = pfm_flash_init (&pfm.test, &pfm.flash.base, &pfm.hash.base, 0x10000, pfm.signature,
+		sizeof (pfm.signature), pfm.platform_id, strlen (PFM_PLATFORM_ID) + 1);
+	CuAssertIntEquals (test, 0, status);
+
+	pfm_flash_testing_verify_pfm (test, &pfm, PFM_DATA, PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE,
+		PFM_SIGNATURE_OFFSET, PFM_ALLOWED_HDR_OFFSET, PFM_MANIFEST_OFFSET,
+		PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_ID_OFFSET, strlen (PFM_PLATFORM_ID), 0);
+
+	status = pfm.test.base.base.verify (&pfm.test.base.base, &pfm.hash.base,
+		&pfm.verification.base, NULL, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&pfm.flash_mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&pfm.verification.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
+		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_SIGNATURE,
+		PFM_SIGNATURE_LEN,
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_SIGNATURE_OFFSET, 0, -1, PFM_SIGNATURE_LEN));
+	status |= flash_master_mock_expect_verify_flash (&pfm.flash_mock, 0x10000, PFM_DATA,
+		PFM_DATA_LEN - PFM_SIGNATURE_LEN);
+
+	status |= mock_expect (&pfm.verification.mock, pfm.verification.base.verify_signature,
+		&pfm.verification, 0, MOCK_ARG_PTR_CONTAINS (PFM_HASH, PFM_HASH_LEN),
+		MOCK_ARG (PFM_HASH_LEN), MOCK_ARG_PTR_CONTAINS (PFM_SIGNATURE, PFM_SIGNATURE_LEN),
+		MOCK_ARG (PFM_SIGNATURE_LEN));
+
+	CuAssertIntEquals (test, 0, status);
+
+	/* Structure verification. */
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
+		PFM_DATA + PFM_ALLOWED_HDR_OFFSET, PFM_DATA_LEN - PFM_ALLOWED_HDR_OFFSET,
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_ALLOWED_HDR_OFFSET, 0, -1,
+			PFM_ALLOWED_HEADER_SIZE));
+
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA + PFM_MANIFEST_OFFSET,
+		PFM_DATA_LEN - PFM_MANIFEST_OFFSET,
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_MANIFEST_OFFSET, 0, -1, PFM_MANIFEST_HEADER_SIZE));
+
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, bad_header, sizeof (bad_header),
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_PLATFORM_HEADER_OFFSET, 0, -1,
 			PFM_PLATFORM_HEADER_SIZE));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm.base.base.verify (&pfm.base.base, &hash.base, &verification.base, NULL, 0);
-	CuAssertIntEquals (test, 0, status);
+	status = pfm.test.base.base.verify (&pfm.test.base.base, &pfm.hash.base, &pfm.verification.base,
+		NULL, 0);
+	CuAssertIntEquals (test, MANIFEST_PLAT_ID_BUFFER_TOO_SMALL, status);
 
-	status = pfm.base.base.get_hash (&pfm.base.base, &hash.base, hash_out, sizeof (hash_out));
-	CuAssertIntEquals (test, 0, status);
+	status = pfm.test.base.base.get_id (&pfm.test.base.base, &id);
+	CuAssertIntEquals (test, MANIFEST_NO_MANIFEST, status);
 
-	status = testing_validate_array (PFM_HASH, hash_out, PFM_HASH_LEN);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
-static void pfm_flash_test_get_hash_null (CuTest *test)
+static void pfm_flash_test_get_id_after_verify_length_mismatch (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
+	int status;
+	uint32_t id;
+	uint8_t bad_header[PFM_PLATFORM_HEADER_SIZE];
+
+	TEST_START;
+
+	memcpy (bad_header, PFM_DATA + PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_HEADER_SIZE);
+	bad_header[1] ^= 0x55;
+
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_ALLOWED_HDR_OFFSET, PFM_MANIFEST_OFFSET,
+		PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_ID_OFFSET, strlen (PFM_PLATFORM_ID), 0);
+
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
+		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_SIGNATURE,
+		PFM_SIGNATURE_LEN,
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_SIGNATURE_OFFSET, 0, -1, PFM_SIGNATURE_LEN));
+	status |= flash_master_mock_expect_verify_flash (&pfm.flash_mock, 0x10000, PFM_DATA,
+		PFM_DATA_LEN - PFM_SIGNATURE_LEN);
+
+	status |= mock_expect (&pfm.verification.mock, pfm.verification.base.verify_signature,
+		&pfm.verification, 0, MOCK_ARG_PTR_CONTAINS (PFM_HASH, PFM_HASH_LEN),
+		MOCK_ARG (PFM_HASH_LEN), MOCK_ARG_PTR_CONTAINS (PFM_SIGNATURE, PFM_SIGNATURE_LEN),
+		MOCK_ARG (PFM_SIGNATURE_LEN));
+
+	CuAssertIntEquals (test, 0, status);
+
+	/* Structure verification. */
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
+		PFM_DATA + PFM_ALLOWED_HDR_OFFSET, PFM_DATA_LEN - PFM_ALLOWED_HDR_OFFSET,
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_ALLOWED_HDR_OFFSET, 0, -1,
+			PFM_ALLOWED_HEADER_SIZE));
+
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA + PFM_MANIFEST_OFFSET,
+		PFM_DATA_LEN - PFM_MANIFEST_OFFSET,
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_MANIFEST_OFFSET, 0, -1, PFM_MANIFEST_HEADER_SIZE));
+
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, bad_header, sizeof (bad_header),
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_PLATFORM_HEADER_OFFSET, 0, -1,
+			PFM_PLATFORM_HEADER_SIZE));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm.test.base.base.verify (&pfm.test.base.base, &pfm.hash.base, &pfm.verification.base,
+		NULL, 0);
+	CuAssertIntEquals (test, MANIFEST_MALFORMED, status);
+
+	status = pfm.test.base.base.get_id (&pfm.test.base.base, &id);
+	CuAssertIntEquals (test, MANIFEST_NO_MANIFEST, status);
+
+	pfm_flash_testing_validate_and_release (test, &pfm);
+}
+
+static void pfm_flash_test_get_id_after_verify_platform_id_read_error (CuTest *test)
+{
+	struct pfm_flash_testing pfm;
+	int status;
+	uint32_t id;
+
+	TEST_START;
+
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_ALLOWED_HDR_OFFSET, PFM_MANIFEST_OFFSET,
+		PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_ID_OFFSET, strlen (PFM_PLATFORM_ID), 0);
+
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
+		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_SIGNATURE,
+		PFM_SIGNATURE_LEN,
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_SIGNATURE_OFFSET, 0, -1, PFM_SIGNATURE_LEN));
+	status |= flash_master_mock_expect_verify_flash (&pfm.flash_mock, 0x10000, PFM_DATA,
+		PFM_DATA_LEN - PFM_SIGNATURE_LEN);
+
+	status |= mock_expect (&pfm.verification.mock, pfm.verification.base.verify_signature,
+		&pfm.verification, 0, MOCK_ARG_PTR_CONTAINS (PFM_HASH, PFM_HASH_LEN),
+		MOCK_ARG (PFM_HASH_LEN), MOCK_ARG_PTR_CONTAINS (PFM_SIGNATURE, PFM_SIGNATURE_LEN),
+		MOCK_ARG (PFM_SIGNATURE_LEN));
+
+	CuAssertIntEquals (test, 0, status);
+
+	/* Structure verification. */
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
+		PFM_DATA + PFM_ALLOWED_HDR_OFFSET, PFM_DATA_LEN - PFM_ALLOWED_HDR_OFFSET,
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_ALLOWED_HDR_OFFSET, 0, -1,
+			PFM_ALLOWED_HEADER_SIZE));
+
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA + PFM_MANIFEST_OFFSET,
+		PFM_DATA_LEN - PFM_MANIFEST_OFFSET,
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_MANIFEST_OFFSET, 0, -1, PFM_MANIFEST_HEADER_SIZE));
+
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
+		PFM_DATA + PFM_PLATFORM_HEADER_OFFSET, PFM_DATA_LEN - PFM_PLATFORM_HEADER_OFFSET,
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_PLATFORM_HEADER_OFFSET, 0, -1,
+			PFM_PLATFORM_HEADER_SIZE));
+
+	status |= flash_master_mock_expect_xfer (&pfm.flash_mock, FLASH_MASTER_XFER_FAILED,
+		FLASH_EXP_READ_STATUS_REG);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm.test.base.base.verify (&pfm.test.base.base, &pfm.hash.base, &pfm.verification.base,
+		NULL, 0);
+	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
+
+	status = pfm.test.base.base.get_id (&pfm.test.base.base, &id);
+	CuAssertIntEquals (test, MANIFEST_NO_MANIFEST, status);
+
+	pfm_flash_testing_validate_and_release (test, &pfm);
+}
+
+static void pfm_flash_test_get_hash (CuTest *test)
+{
+	struct pfm_flash_testing pfm;
 	uint8_t hash_out[SHA256_HASH_LENGTH];
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
+	pfm_flash_testing_init (test, &pfm, 0x10000);
+
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA, PFM_HEADER_SIZE,
+		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
+
+	status |= flash_master_mock_expect_verify_flash (&pfm.flash_mock, 0x10000, PFM_DATA,
+		PFM_DATA_LEN - PFM_SIGNATURE_LEN);
+
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_init (&flash_mock);
+	status = pfm.test.base.base.get_hash (&pfm.test.base.base, &pfm.hash.base, hash_out,
+		sizeof (hash_out));
+	CuAssertIntEquals (test, PFM_HASH_LEN, status);
+
+	status = testing_validate_array (PFM_HASH, hash_out, status);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	pfm_flash_testing_validate_and_release (test, &pfm);
+}
+
+static void pfm_flash_test_get_hash_after_verify (CuTest *test)
+{
+	struct pfm_flash_testing pfm;
+	uint8_t hash_out[SHA256_HASH_LENGTH];
+	int status;
+
+	TEST_START;
+
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_ALLOWED_HDR_OFFSET, PFM_MANIFEST_OFFSET,
+		PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_ID_OFFSET, strlen (PFM_PLATFORM_ID), 0);
+
+	status = pfm.test.base.base.get_hash (&pfm.test.base.base, &pfm.hash.base, hash_out,
+		sizeof (hash_out));
+	CuAssertIntEquals (test, PFM_HASH_LEN, status);
+
+	status = testing_validate_array (PFM_HASH, hash_out, status);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_validate_and_release (test, &pfm);
+}
 
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
+static void pfm_flash_test_get_hash_null (CuTest *test)
+{
+	struct pfm_flash_testing pfm;
+	uint8_t hash_out[SHA256_HASH_LENGTH];
+	int status;
 
-	status = pfm.base.base.get_hash (NULL, &hash.base, hash_out, sizeof (hash_out));
+	TEST_START;
+
+	pfm_flash_testing_init (test, &pfm, 0x10000);
+
+	status = pfm.test.base.base.get_hash (NULL, &pfm.hash.base, hash_out,
+		sizeof (hash_out));
 	CuAssertIntEquals (test, PFM_INVALID_ARGUMENT, status);
 
-	status = pfm.base.base.get_hash (&pfm.base.base, NULL, hash_out, sizeof (hash_out));
+	status = pfm.test.base.base.get_hash (&pfm.test.base.base, NULL, hash_out,
+		sizeof (hash_out));
 	CuAssertIntEquals (test, MANIFEST_INVALID_ARGUMENT, status);
 
-	status = pfm.base.base.get_hash (&pfm.base.base, &hash.base, NULL, sizeof (hash_out));
+	status = pfm.test.base.base.get_hash (&pfm.test.base.base, &pfm.hash.base, NULL,
+		sizeof (hash_out));
 	CuAssertIntEquals (test, MANIFEST_INVALID_ARGUMENT, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_get_hash_bad_magic_num (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	uint8_t hash_out[SHA256_HASH_LENGTH];
 	int status;
 	uint8_t pfm_bad_data[PFM_SIGNATURE_OFFSET];
@@ -2304,129 +2241,98 @@ static void pfm_flash_test_get_hash_bad_magic_num (CuTest *test)
 	memcpy (pfm_bad_data, PFM_DATA, sizeof (pfm_bad_data));
 	pfm_bad_data[2] ^= 0x55;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init (test, &pfm, 0x10000);
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_bad_data, sizeof (pfm_bad_data),
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_bad_data,
+		sizeof (pfm_bad_data),
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm.base.base.get_hash (&pfm.base.base, &hash.base, hash_out, sizeof (hash_out));
+	status = pfm.test.base.base.get_hash (&pfm.test.base.base, &pfm.hash.base, hash_out,
+		sizeof (hash_out));
 	CuAssertIntEquals (test, MANIFEST_BAD_MAGIC_NUMBER, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_get_signature (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	uint8_t sig_out[PFM_SIGNATURE_LEN];
 	int status;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init (test, &pfm, 0x10000);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_HEADER_SIZE,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA, PFM_HEADER_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_SIGNATURE, PFM_SIGNATURE_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_SIGNATURE,
+		PFM_SIGNATURE_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_SIGNATURE_OFFSET, 0, -1, PFM_SIGNATURE_LEN));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm.base.base.get_signature (&pfm.base.base, sig_out, sizeof (sig_out));
+	status = pfm.test.base.base.get_signature (&pfm.test.base.base, sig_out, sizeof (sig_out));
 	CuAssertIntEquals (test, PFM_SIGNATURE_LEN, status);
 
 	status = testing_validate_array (PFM_SIGNATURE, sig_out, PFM_SIGNATURE_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
+	pfm_flash_testing_validate_and_release (test, &pfm);
+}
+
+static void pfm_flash_test_get_signature_after_verify (CuTest *test)
+{
+	struct pfm_flash_testing pfm;
+	uint8_t sig_out[PFM_SIGNATURE_LEN];
+	int status;
+
+	TEST_START;
+
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_ALLOWED_HDR_OFFSET, PFM_MANIFEST_OFFSET,
+		PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_ID_OFFSET, strlen (PFM_PLATFORM_ID), 0);
+
+	status = pfm.test.base.base.get_signature (&pfm.test.base.base, sig_out, sizeof (sig_out));
+	CuAssertIntEquals (test, PFM_SIGNATURE_LEN, status);
+
+	status = testing_validate_array (PFM_SIGNATURE, sig_out, PFM_SIGNATURE_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_get_signature_null (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	uint8_t sig_out[SHA256_HASH_LENGTH];
 	int status;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init (test, &pfm, 0x10000);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm.base.base.get_signature (NULL, sig_out, sizeof (sig_out));
+	status = pfm.test.base.base.get_signature (NULL, sig_out, sizeof (sig_out));
 	CuAssertIntEquals (test, PFM_INVALID_ARGUMENT, status);
 
-	status = pfm.base.base.get_signature (&pfm.base.base, NULL, sizeof (sig_out));
+	status = pfm.test.base.base.get_signature (&pfm.test.base.base, NULL, sizeof (sig_out));
 	CuAssertIntEquals (test, MANIFEST_INVALID_ARGUMENT, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_get_signature_bad_magic_number (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	uint8_t sig_out[SHA256_HASH_LENGTH];
 	int status;
 	uint8_t pfm_bad_data[PFM_SIGNATURE_OFFSET];
@@ -2436,119 +2342,94 @@ static void pfm_flash_test_get_signature_bad_magic_number (CuTest *test)
 	memcpy (pfm_bad_data, PFM_DATA, sizeof (pfm_bad_data));
 	pfm_bad_data[2] ^= 0x55;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init (test, &pfm, 0x10000);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_bad_data, sizeof (pfm_bad_data),
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_bad_data,
+		sizeof (pfm_bad_data),
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm.base.base.get_signature (&pfm.base.base, sig_out, sizeof (sig_out));
+	status = pfm.test.base.base.get_signature (&pfm.test.base.base, sig_out, sizeof (sig_out));
 	CuAssertIntEquals (test, MANIFEST_BAD_MAGIC_NUMBER, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_get_supported_versions (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
-	struct pfm_firmware_versions fw;
+	struct pfm_firmware_versions ver_list;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_ALLOWED_HDR_OFFSET, PFM_MANIFEST_OFFSET,
+		PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_ID_OFFSET, strlen (PFM_PLATFORM_ID), 0);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_ALLOWED_HDR_OFFSET,
-		PFM_DATA_LEN - PFM_ALLOWED_HDR_OFFSET,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_ALLOWED_HDR_OFFSET, 0, -1, PFM_ALLOWED_HEADER_SIZE));
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
+		PFM_DATA + PFM_ALLOWED_HDR_OFFSET, PFM_DATA_LEN - PFM_ALLOWED_HDR_OFFSET,
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_ALLOWED_HDR_OFFSET, 0, -1,
+			PFM_ALLOWED_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_FW_HEADER_OFFSET,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA + PFM_FW_HEADER_OFFSET,
 		PFM_DATA_LEN - PFM_FW_HEADER_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_FW_HEADER_OFFSET, 0, -1, PFM_FW_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_VERSION_OFFSET,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA + PFM_VERSION_OFFSET,
 		PFM_DATA_LEN - PFM_VERSION_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_VERSION_OFFSET, 0, -1, strlen (PFM_VERSION_ID)));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm.base.get_supported_versions (&pfm.base, &fw);
+	status = pfm.test.base.get_supported_versions (&pfm.test.base, NULL, &ver_list);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, 1, fw.count);
-	CuAssertPtrNotNull (test, fw.versions);
-	CuAssertStrEquals (test, PFM_VERSION_ID, fw.versions[0].fw_version_id);
-	CuAssertIntEquals (test, 0x12345, fw.versions[0].version_addr);
-	CuAssertIntEquals (test, 0xff, fw.versions[0].blank_byte);
+	CuAssertIntEquals (test, 1, ver_list.count);
+	CuAssertPtrNotNull (test, ver_list.versions);
+	CuAssertStrEquals (test, PFM_VERSION_ID, ver_list.versions[0].fw_version_id);
+	CuAssertIntEquals (test, 0x12345, ver_list.versions[0].version_addr);
+	CuAssertIntEquals (test, 0xff, ver_list.versions[0].blank_byte);
 
-	pfm.base.free_fw_versions (&pfm.base, &fw);
+	pfm.test.base.free_fw_versions (&pfm.test.base, &ver_list);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_get_supported_versions_multiple (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
-	struct pfm_firmware_versions fw;
+	struct pfm_firmware_versions ver_list;
 	const char *version1 = "Version1";
 	const char *version2 = "Version2";
 	const char *version3 = "Version3";
-	uint8_t pfm_data[PFM_HEADER_SIZE + PFM_ALLOWED_HEADER_SIZE + (PFM_FW_HEADER_SIZE * 3) +
-		(strlen (version1) * 3)];
+	const char *platform_id = "Platform";
 	struct manifest_header *header;
 	struct pfm_allowable_firmware_header *allowed_header;
 	struct pfm_firmware_header *fw_header;
+	struct pfm_key_manifest_header *manifest_header;
+	struct pfm_platform_header *platform_header;
 	int offset1 = PFM_HEADER_SIZE + PFM_ALLOWED_HEADER_SIZE;
 	int offset2 = offset1 + PFM_FW_HEADER_SIZE + strlen (version1);
 	int offset3 = offset2 + PFM_FW_HEADER_SIZE + strlen (version2);
+	int man_offset = offset3 + PFM_FW_HEADER_SIZE + strlen (version3);
+	int plat_offset = man_offset + PFM_MANIFEST_HEADER_SIZE;
+	int sig_offset = plat_offset + PFM_PLATFORM_HEADER_SIZE + 8;
+	uint8_t pfm_data[sig_offset + PFM_SIGNATURE_LEN];
 
 	TEST_START;
 
@@ -2557,6 +2438,7 @@ static void pfm_flash_test_get_supported_versions_multiple (CuTest *test)
 	header = (struct manifest_header*) pfm_data;
 	header->length = sizeof (pfm_data);
 	header->magic = PFM_MAGIC_NUM;
+	header->sig_length = PFM_SIGNATURE_LEN;
 
 	allowed_header = (struct pfm_allowable_firmware_header*) &pfm_data[PFM_HEADER_SIZE];
 	allowed_header->length = PFM_ALLOWED_HEADER_SIZE;
@@ -2567,7 +2449,7 @@ static void pfm_flash_test_get_supported_versions_multiple (CuTest *test)
 	fw_header->version_addr = 0x12345;
 	fw_header->version_length = strlen (version1);
 	memcpy (&pfm_data[offset1 + PFM_FW_HEADER_SIZE], version1, strlen (version1));
-	allowed_header += fw_header->length;
+	allowed_header->length += fw_header->length;
 
 	fw_header = (struct pfm_firmware_header*) &pfm_data[offset2];
 	fw_header->length = PFM_FW_HEADER_SIZE + strlen (version2);
@@ -2575,7 +2457,7 @@ static void pfm_flash_test_get_supported_versions_multiple (CuTest *test)
 	fw_header->version_length = strlen (version2);
 	fw_header->blank_byte = 0x55;
 	memcpy (&pfm_data[offset2 + PFM_FW_HEADER_SIZE], version2, strlen (version2));
-	allowed_header += fw_header->length;
+	allowed_header->length += fw_header->length;
 
 	fw_header = (struct pfm_firmware_header*) &pfm_data[offset3];
 	fw_header->length = PFM_FW_HEADER_SIZE + strlen (version3);
@@ -2583,104 +2465,111 @@ static void pfm_flash_test_get_supported_versions_multiple (CuTest *test)
 	fw_header->version_length = strlen (version3);
 	fw_header->blank_byte = 0xaa;
 	memcpy (&pfm_data[offset3 + PFM_FW_HEADER_SIZE], version3, strlen (version3));
-	allowed_header += fw_header->length;
+	allowed_header->length += fw_header->length;
 
-	status = flash_master_mock_init (&flash_mock);
+	manifest_header = (struct pfm_key_manifest_header*) &pfm_data[man_offset];
+	manifest_header->length = PFM_MANIFEST_HEADER_SIZE;
+	manifest_header->key_count = 0;
+
+	platform_header = (struct pfm_platform_header*) &pfm_data[plat_offset];
+	platform_header->length = PFM_PLATFORM_HEADER_SIZE + 8;
+	platform_header->id_length = strlen (platform_id);
+	memcpy (&pfm_data[plat_offset + PFM_PLATFORM_HEADER_SIZE], platform_id, strlen (platform_id));
+
+	status = RSA_TESTING_ENGINE_SIGN (pfm_data, sizeof (pfm_data) - PFM_SIGNATURE_LEN,
+		RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, &pfm_data[sig_offset], PFM_SIGNATURE_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, pfm_data, sizeof (pfm_data), NULL,
+		&pfm_data[sig_offset], sig_offset, PFM_HEADER_SIZE, man_offset, plat_offset,
+		plat_offset + PFM_PLATFORM_HEADER_SIZE, strlen (platform_id), 0);
 
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data, sizeof (pfm_data),
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data, sizeof (pfm_data),
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + PFM_HEADER_SIZE,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + PFM_HEADER_SIZE,
 		sizeof (pfm_data) - PFM_HEADER_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_HEADER_SIZE, 0, -1, PFM_ALLOWED_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + offset1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + offset1,
 		sizeof (pfm_data) - offset1,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + offset1, 0, -1, PFM_FW_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
 		pfm_data + offset1 + PFM_FW_HEADER_SIZE, sizeof (pfm_data) - offset1 - PFM_FW_HEADER_SIZE,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + offset1 + PFM_FW_HEADER_SIZE, 0, -1, strlen (version1)));
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + offset1 + PFM_FW_HEADER_SIZE, 0, -1,
+			strlen (version1)));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + offset2,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + offset2,
 		sizeof (pfm_data) - offset2,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + offset2, 0, -1, PFM_FW_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
 		pfm_data + offset2 + PFM_FW_HEADER_SIZE, sizeof (pfm_data) - offset2 - PFM_FW_HEADER_SIZE,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + offset2 + PFM_FW_HEADER_SIZE, 0, -1, strlen (version2)));
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + offset2 + PFM_FW_HEADER_SIZE, 0, -1,
+			strlen (version2)));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + offset3,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + offset3,
 		sizeof (pfm_data) - offset3,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + offset3, 0, -1, PFM_FW_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
 		pfm_data + offset3 + PFM_FW_HEADER_SIZE, sizeof (pfm_data) - offset3 - PFM_FW_HEADER_SIZE,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + offset3 + PFM_FW_HEADER_SIZE, 0, -1, strlen (version3)));
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + offset3 + PFM_FW_HEADER_SIZE, 0, -1,
+			strlen (version3)));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm.base.get_supported_versions (&pfm.base, &fw);
+	status = pfm.test.base.get_supported_versions (&pfm.test.base, NULL, &ver_list);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, 3, fw.count);
-	CuAssertPtrNotNull (test, fw.versions);
+	CuAssertIntEquals (test, 3, ver_list.count);
+	CuAssertPtrNotNull (test, ver_list.versions);
 
-	CuAssertStrEquals (test, version1, fw.versions[0].fw_version_id);
-	CuAssertIntEquals (test, 0x12345, fw.versions[0].version_addr);
-	CuAssertIntEquals (test, 0, fw.versions[0].blank_byte);
-	CuAssertStrEquals (test, version2, fw.versions[1].fw_version_id);
-	CuAssertIntEquals (test, 0x6789, fw.versions[1].version_addr);
-	CuAssertIntEquals (test, 0x55, fw.versions[1].blank_byte);
-	CuAssertStrEquals (test, version3, fw.versions[2].fw_version_id);
-	CuAssertIntEquals (test, 0x112233, fw.versions[2].version_addr);
-	CuAssertIntEquals (test, 0xaa, fw.versions[2].blank_byte);
+	CuAssertStrEquals (test, version1, ver_list.versions[0].fw_version_id);
+	CuAssertIntEquals (test, 0x12345, ver_list.versions[0].version_addr);
+	CuAssertIntEquals (test, 0, ver_list.versions[0].blank_byte);
+	CuAssertStrEquals (test, version2, ver_list.versions[1].fw_version_id);
+	CuAssertIntEquals (test, 0x6789, ver_list.versions[1].version_addr);
+	CuAssertIntEquals (test, 0x55, ver_list.versions[1].blank_byte);
+	CuAssertStrEquals (test, version3, ver_list.versions[2].fw_version_id);
+	CuAssertIntEquals (test, 0x112233, ver_list.versions[2].version_addr);
+	CuAssertIntEquals (test, 0xaa, ver_list.versions[2].blank_byte);
 
-	pfm.base.free_fw_versions (&pfm.base, &fw);
+	pfm.test.base.free_fw_versions (&pfm.test.base, &ver_list);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_get_supported_versions_empty_manifest (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
-	struct pfm_firmware_versions fw;
+	struct pfm_firmware_versions ver_list;
+	const char *platform_id = "Platform";
 	struct manifest_header *header;
 	struct pfm_allowable_firmware_header *allowed_header;
-	uint8_t pfm_data[PFM_HEADER_SIZE + PFM_ALLOWED_HEADER_SIZE];
+	struct pfm_key_manifest_header *manifest_header;
+	struct pfm_platform_header *platform_header;
+	int man_offset = PFM_HEADER_SIZE + PFM_ALLOWED_HEADER_SIZE;
+	int plat_offset = man_offset + PFM_MANIFEST_HEADER_SIZE;
+	int sig_offset = plat_offset + PFM_PLATFORM_HEADER_SIZE + 8;
+	uint8_t pfm_data[sig_offset + PFM_SIGNATURE_LEN];
 
 	TEST_START;
 
@@ -2695,181 +2584,155 @@ static void pfm_flash_test_get_supported_versions_empty_manifest (CuTest *test)
 	allowed_header->length = PFM_ALLOWED_HEADER_SIZE;
 	allowed_header->fw_count = 0;
 
-	status = flash_master_mock_init (&flash_mock);
+	manifest_header = (struct pfm_key_manifest_header*) &pfm_data[man_offset];
+	manifest_header->length = PFM_MANIFEST_HEADER_SIZE;
+	manifest_header->key_count = 0;
+
+	platform_header = (struct pfm_platform_header*) &pfm_data[plat_offset];
+	platform_header->length = PFM_PLATFORM_HEADER_SIZE + 8;
+	platform_header->id_length = strlen (platform_id);
+	memcpy (&pfm_data[plat_offset + PFM_PLATFORM_HEADER_SIZE], platform_id, strlen (platform_id));
+
+	status = RSA_TESTING_ENGINE_SIGN (pfm_data, sizeof (pfm_data) - PFM_SIGNATURE_LEN,
+		RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, &pfm_data[sig_offset], PFM_SIGNATURE_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, pfm_data, sizeof (pfm_data), NULL,
+		&pfm_data[sig_offset], sig_offset, PFM_HEADER_SIZE, man_offset, plat_offset,
+		plat_offset + PFM_PLATFORM_HEADER_SIZE, strlen (platform_id), 0);
 
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data, sizeof (pfm_data),
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data, sizeof (pfm_data),
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + PFM_HEADER_SIZE,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + PFM_HEADER_SIZE,
 		sizeof (pfm_data) - PFM_HEADER_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_HEADER_SIZE, 0, -1, PFM_ALLOWED_HEADER_SIZE));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm.base.get_supported_versions (&pfm.base, &fw);
+	status = pfm.test.base.get_supported_versions (&pfm.test.base, NULL, &ver_list);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, 0, fw.count);
-	CuAssertPtrEquals (test, NULL, (void*) fw.versions);
+	CuAssertIntEquals (test, 0, ver_list.count);
+	CuAssertPtrEquals (test, NULL, (void*) ver_list.versions);
 
-	pfm.base.free_fw_versions (&pfm.base, &fw);
+	pfm.test.base.free_fw_versions (&pfm.test.base, &ver_list);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_get_supported_versions_null (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
-	struct pfm_firmware_versions fw;
+	struct pfm_firmware_versions ver_list;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_ALLOWED_HDR_OFFSET, PFM_MANIFEST_OFFSET,
+		PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_ID_OFFSET, strlen (PFM_PLATFORM_ID), 0);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm.base.get_supported_versions (NULL, &fw);
+	status = pfm.test.base.get_supported_versions (NULL, NULL, &ver_list);
 	CuAssertIntEquals (test, PFM_INVALID_ARGUMENT, status);
 
-	status = pfm.base.get_supported_versions (&pfm.base, NULL);
+	status = pfm.test.base.get_supported_versions (&pfm.test.base, NULL, NULL);
 	CuAssertIntEquals (test, PFM_INVALID_ARGUMENT, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_validate_and_release (test, &pfm);
+}
 
-	pfm_flash_release (&pfm);
+static void pfm_flash_test_get_supported_versions_verify_never_run (CuTest *test)
+{
+	struct pfm_flash_testing pfm;
+	int status;
+	struct pfm_firmware_versions ver_list;
 
-	spi_flash_release (&flash);
+	TEST_START;
+
+	pfm_flash_testing_init (test, &pfm, 0x10000);
+
+	status = pfm.test.base.get_supported_versions (&pfm.test.base, NULL, &ver_list);
+	CuAssertIntEquals (test, MANIFEST_NO_MANIFEST, status);
+
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_get_supported_versions_header_read_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
-	struct pfm_firmware_versions fw;
+	struct pfm_firmware_versions ver_list;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_ALLOWED_HDR_OFFSET, PFM_MANIFEST_OFFSET,
+		PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_ID_OFFSET, strlen (PFM_PLATFORM_ID), 0);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
+	status = flash_master_mock_expect_xfer (&pfm.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm.base.get_supported_versions (&pfm.base, &fw);
+	status = pfm.test.base.get_supported_versions (&pfm.test.base, NULL, &ver_list);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_get_supported_versions_allowable_header_read_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
-	struct pfm_firmware_versions fw;
+	struct pfm_firmware_versions ver_list;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_ALLOWED_HDR_OFFSET, PFM_MANIFEST_OFFSET,
+		PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_ID_OFFSET, strlen (PFM_PLATFORM_ID), 0);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
+	status |= flash_master_mock_expect_xfer (&pfm.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm.base.get_supported_versions (&pfm.base, &fw);
+	status = pfm.test.base.get_supported_versions (&pfm.test.base, NULL, &ver_list);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_get_supported_versions_fw_header_read_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
-	struct pfm_firmware_versions fw;
+	struct pfm_firmware_versions ver_list;
 	const char *version1 = "Version1";
 	const char *version2 = "Version2";
 	const char *version3 = "Version3";
-	uint8_t pfm_data[PFM_HEADER_SIZE + PFM_ALLOWED_HEADER_SIZE + (PFM_FW_HEADER_SIZE * 3) +
-		(strlen (version1) * 3)];
+	const char *platform_id = "Platform";
 	struct manifest_header *header;
 	struct pfm_allowable_firmware_header *allowed_header;
 	struct pfm_firmware_header *fw_header;
+	struct pfm_key_manifest_header *manifest_header;
+	struct pfm_platform_header *platform_header;
 	int offset1 = PFM_HEADER_SIZE + PFM_ALLOWED_HEADER_SIZE;
 	int offset2 = offset1 + PFM_FW_HEADER_SIZE + strlen (version1);
 	int offset3 = offset2 + PFM_FW_HEADER_SIZE + strlen (version2);
+	int man_offset = offset3 + PFM_FW_HEADER_SIZE + strlen (version3);
+	int plat_offset = man_offset + PFM_MANIFEST_HEADER_SIZE;
+	int sig_offset = plat_offset + PFM_PLATFORM_HEADER_SIZE + 8;
+	uint8_t pfm_data[sig_offset + PFM_SIGNATURE_LEN];
 
 	TEST_START;
 
@@ -2878,6 +2741,7 @@ static void pfm_flash_test_get_supported_versions_fw_header_read_error (CuTest *
 	header = (struct manifest_header*) pfm_data;
 	header->length = sizeof (pfm_data);
 	header->magic = PFM_MAGIC_NUM;
+	header->sig_length = PFM_SIGNATURE_LEN;
 
 	allowed_header = (struct pfm_allowable_firmware_header*) &pfm_data[PFM_HEADER_SIZE];
 	allowed_header->length = PFM_ALLOWED_HEADER_SIZE;
@@ -2904,75 +2768,79 @@ static void pfm_flash_test_get_supported_versions_fw_header_read_error (CuTest *
 	memcpy (&pfm_data[offset3 + PFM_FW_HEADER_SIZE], version3, strlen (version3));
 	allowed_header->length += fw_header->length;
 
-	status = flash_master_mock_init (&flash_mock);
+	manifest_header = (struct pfm_key_manifest_header*) &pfm_data[man_offset];
+	manifest_header->length = PFM_MANIFEST_HEADER_SIZE;
+	manifest_header->key_count = 0;
+
+	platform_header = (struct pfm_platform_header*) &pfm_data[plat_offset];
+	platform_header->length = PFM_PLATFORM_HEADER_SIZE + 8;
+	platform_header->id_length = strlen (platform_id);
+	memcpy (&pfm_data[plat_offset + PFM_PLATFORM_HEADER_SIZE], platform_id, strlen (platform_id));
+
+	status = RSA_TESTING_ENGINE_SIGN (pfm_data, sizeof (pfm_data) - PFM_SIGNATURE_LEN,
+		RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, &pfm_data[sig_offset], PFM_SIGNATURE_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, pfm_data, sizeof (pfm_data), NULL,
+		&pfm_data[sig_offset], sig_offset, PFM_HEADER_SIZE, man_offset, plat_offset,
+		plat_offset + PFM_PLATFORM_HEADER_SIZE, strlen (platform_id), 0);
 
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data, sizeof (pfm_data),
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data, sizeof (pfm_data),
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + PFM_HEADER_SIZE,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + PFM_HEADER_SIZE,
 		sizeof (pfm_data) - PFM_HEADER_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_HEADER_SIZE, 0, -1, PFM_ALLOWED_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + offset1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + offset1,
 		sizeof (pfm_data) - offset1,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + offset1, 0, -1, PFM_FW_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
 		pfm_data + offset1 + PFM_FW_HEADER_SIZE, sizeof (pfm_data) - offset1 - PFM_FW_HEADER_SIZE,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + offset1 + PFM_FW_HEADER_SIZE, 0, -1, strlen (version1)));
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + offset1 + PFM_FW_HEADER_SIZE, 0, -1,
+			strlen (version1)));
 
-	status |= flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
+	status |= flash_master_mock_expect_xfer (&pfm.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm.base.get_supported_versions (&pfm.base, &fw);
+	status = pfm.test.base.get_supported_versions (&pfm.test.base, NULL, &ver_list);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_get_supported_versions_id_read_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
-	struct pfm_firmware_versions fw;
+	struct pfm_firmware_versions ver_list;
 	const char *version1 = "Version1";
 	const char *version2 = "Version2";
 	const char *version3 = "Version3";
-	uint8_t pfm_data[PFM_HEADER_SIZE + PFM_ALLOWED_HEADER_SIZE + (PFM_FW_HEADER_SIZE * 3) +
-		(strlen (version1) * 3)];
+	const char *platform_id = "Platform";
 	struct manifest_header *header;
 	struct pfm_allowable_firmware_header *allowed_header;
 	struct pfm_firmware_header *fw_header;
+	struct pfm_key_manifest_header *manifest_header;
+	struct pfm_platform_header *platform_header;
 	int offset1 = PFM_HEADER_SIZE + PFM_ALLOWED_HEADER_SIZE;
 	int offset2 = offset1 + PFM_FW_HEADER_SIZE + strlen (version1);
 	int offset3 = offset2 + PFM_FW_HEADER_SIZE + strlen (version2);
+	int man_offset = offset3 + PFM_FW_HEADER_SIZE + strlen (version3);
+	int plat_offset = man_offset + PFM_MANIFEST_HEADER_SIZE;
+	int sig_offset = plat_offset + PFM_PLATFORM_HEADER_SIZE + 8;
+	uint8_t pfm_data[sig_offset + PFM_SIGNATURE_LEN];
 
 	TEST_START;
 
@@ -2981,6 +2849,7 @@ static void pfm_flash_test_get_supported_versions_id_read_error (CuTest *test)
 	header = (struct manifest_header*) pfm_data;
 	header->length = sizeof (pfm_data);
 	header->magic = PFM_MAGIC_NUM;
+	header->sig_length = PFM_SIGNATURE_LEN;
 
 	allowed_header = (struct pfm_allowable_firmware_header*) &pfm_data[PFM_HEADER_SIZE];
 	allowed_header->length = PFM_ALLOWED_HEADER_SIZE;
@@ -3007,70 +2876,69 @@ static void pfm_flash_test_get_supported_versions_id_read_error (CuTest *test)
 	memcpy (&pfm_data[offset3 + PFM_FW_HEADER_SIZE], version3, strlen (version3));
 	allowed_header->length += fw_header->length;
 
-	status = flash_master_mock_init (&flash_mock);
+	manifest_header = (struct pfm_key_manifest_header*) &pfm_data[man_offset];
+	manifest_header->length = PFM_MANIFEST_HEADER_SIZE;
+	manifest_header->key_count = 0;
+
+	platform_header = (struct pfm_platform_header*) &pfm_data[plat_offset];
+	platform_header->length = PFM_PLATFORM_HEADER_SIZE + 8;
+	platform_header->id_length = strlen (platform_id);
+	memcpy (&pfm_data[plat_offset + PFM_PLATFORM_HEADER_SIZE], platform_id, strlen (platform_id));
+
+	status = RSA_TESTING_ENGINE_SIGN (pfm_data, sizeof (pfm_data) - PFM_SIGNATURE_LEN,
+		RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, &pfm_data[sig_offset], PFM_SIGNATURE_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, pfm_data, sizeof (pfm_data), NULL,
+		&pfm_data[sig_offset], sig_offset, PFM_HEADER_SIZE, man_offset, plat_offset,
+		plat_offset + PFM_PLATFORM_HEADER_SIZE, strlen (platform_id), 0);
 
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data, sizeof (pfm_data),
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data, sizeof (pfm_data),
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + PFM_HEADER_SIZE,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + PFM_HEADER_SIZE,
 		sizeof (pfm_data) - PFM_HEADER_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_HEADER_SIZE, 0, -1, PFM_ALLOWED_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + offset1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + offset1,
 		sizeof (pfm_data) - offset1,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + offset1, 0, -1, PFM_FW_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
 		pfm_data + offset1 + PFM_FW_HEADER_SIZE, sizeof (pfm_data) - offset1 - PFM_FW_HEADER_SIZE,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + offset1 + PFM_FW_HEADER_SIZE, 0, -1, strlen (version1)));
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + offset1 + PFM_FW_HEADER_SIZE, 0, -1,
+			strlen (version1)));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + offset2,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + offset2,
 		sizeof (pfm_data) - offset2,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + offset2, 0, -1, PFM_FW_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
+	status |= flash_master_mock_expect_xfer (&pfm.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm.base.get_supported_versions (&pfm.base, &fw);
+	status = pfm.test.base.get_supported_versions (&pfm.test.base, NULL, &ver_list);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_get_supported_versions_bad_magic_num (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
-	struct pfm_firmware_versions fw;
+	struct pfm_firmware_versions ver_list;
 	uint8_t pfm_bad_data[PFM_SIGNATURE_OFFSET];
 
 	TEST_START;
@@ -3078,303 +2946,223 @@ static void pfm_flash_test_get_supported_versions_bad_magic_num (CuTest *test)
 	memcpy (pfm_bad_data, PFM_DATA, sizeof (pfm_bad_data));
 	pfm_bad_data[2] ^= 0x55;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_ALLOWED_HDR_OFFSET, PFM_MANIFEST_OFFSET,
+		PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_ID_OFFSET, strlen (PFM_PLATFORM_ID), 0);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_bad_data, sizeof (pfm_bad_data),
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_bad_data,
+		sizeof (pfm_bad_data),
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm.base.get_supported_versions (&pfm.base, &fw);
+	status = pfm.test.base.get_supported_versions (&pfm.test.base, NULL, &ver_list);
 	CuAssertIntEquals (test, MANIFEST_BAD_MAGIC_NUMBER, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_free_fw_versions_null (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
-	int status;
+	struct pfm_flash_testing pfm;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_ALLOWED_HDR_OFFSET, PFM_MANIFEST_OFFSET,
+		PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_ID_OFFSET, strlen (PFM_PLATFORM_ID), 0);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
+	pfm.test.base.free_fw_versions (&pfm.test.base, NULL);
 
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm.base.free_fw_versions (&pfm.base, NULL);
-
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_free_fw_versions_null_list (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
-	int status;
-	struct pfm_firmware_versions fw;
+	struct pfm_flash_testing pfm;
+	struct pfm_firmware_versions ver_list;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_ALLOWED_HDR_OFFSET, PFM_MANIFEST_OFFSET,
+		PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_ID_OFFSET, strlen (PFM_PLATFORM_ID), 0);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
+	ver_list.count = 1;
+	ver_list.versions = NULL;
+	pfm.test.base.free_fw_versions (&pfm.test.base, &ver_list);
 
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	fw.count = 1;
-	fw.versions = NULL;
-	pfm.base.free_fw_versions (&pfm.base, &fw);
-
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_get_read_write_regions (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
 	struct pfm_read_write_regions writable;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_ALLOWED_HDR_OFFSET, PFM_MANIFEST_OFFSET,
+		PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_ID_OFFSET, strlen (PFM_PLATFORM_ID), 0);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_ALLOWED_HDR_OFFSET,
-		PFM_DATA_LEN - PFM_ALLOWED_HDR_OFFSET,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_ALLOWED_HDR_OFFSET, 0, -1, PFM_ALLOWED_HEADER_SIZE));
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
+		PFM_DATA + PFM_ALLOWED_HDR_OFFSET, PFM_DATA_LEN - PFM_ALLOWED_HDR_OFFSET,
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_ALLOWED_HDR_OFFSET, 0, -1,
+			PFM_ALLOWED_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_FW_HEADER_OFFSET,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA + PFM_FW_HEADER_OFFSET,
 		PFM_DATA_LEN - PFM_FW_HEADER_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_FW_HEADER_OFFSET, 0, -1, PFM_FW_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_VERSION_OFFSET,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA + PFM_VERSION_OFFSET,
 		PFM_DATA_LEN - PFM_VERSION_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_VERSION_OFFSET, 0, -1, strlen (PFM_VERSION_ID)));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_RW_REGION_OFFSET,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA + PFM_RW_REGION_OFFSET,
 		PFM_DATA_LEN - PFM_RW_REGION_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_RW_REGION_OFFSET, 0, -1, PFM_REGION_SIZE));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm.base.get_read_write_regions (&pfm.base, "Testing", &writable);
+	status = pfm.test.base.get_read_write_regions (&pfm.test.base, NULL, "Testing", &writable);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, writable.count);
 	CuAssertPtrNotNull (test, writable.regions);
+	CuAssertPtrNotNull (test, writable.properties);
+
 	CuAssertIntEquals (test, 0x2000000, writable.regions[0].start_addr);
 	CuAssertIntEquals (test, 0x2000000, writable.regions[0].length);
+	CuAssertIntEquals (test, PFM_RW_DO_NOTHING, writable.properties[0].on_failure);
 
-	pfm.base.free_read_write_regions (&pfm.base, &writable);
+	pfm.test.base.free_read_write_regions (&pfm.test.base, &writable);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_get_read_write_regions_wrong_version (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
 	struct pfm_read_write_regions writable;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_ALLOWED_HDR_OFFSET, PFM_MANIFEST_OFFSET,
+		PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_ID_OFFSET, strlen (PFM_PLATFORM_ID), 0);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_ALLOWED_HDR_OFFSET,
-		PFM_DATA_LEN - PFM_ALLOWED_HDR_OFFSET,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_ALLOWED_HDR_OFFSET, 0, -1, PFM_ALLOWED_HEADER_SIZE));
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
+		PFM_DATA + PFM_ALLOWED_HDR_OFFSET, PFM_DATA_LEN - PFM_ALLOWED_HDR_OFFSET,
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_ALLOWED_HDR_OFFSET, 0, -1,
+			PFM_ALLOWED_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_FW_HEADER_OFFSET,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA + PFM_FW_HEADER_OFFSET,
 		PFM_DATA_LEN - PFM_FW_HEADER_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_FW_HEADER_OFFSET, 0, -1, PFM_FW_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_VERSION_OFFSET,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA + PFM_VERSION_OFFSET,
 		PFM_DATA_LEN - PFM_VERSION_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_VERSION_OFFSET, 0, -1, strlen (PFM_VERSION_ID)));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm.base.get_read_write_regions (&pfm.base, "gnitseT", &writable);
+	status = pfm.test.base.get_read_write_regions (&pfm.test.base, NULL, "gnitseT", &writable);
 	CuAssertIntEquals (test, PFM_UNSUPPORTED_VERSION, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_get_read_write_regions_version_diff_len (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
 	struct pfm_read_write_regions writable;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_ALLOWED_HDR_OFFSET, PFM_MANIFEST_OFFSET,
+		PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_ID_OFFSET, strlen (PFM_PLATFORM_ID), 0);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_ALLOWED_HDR_OFFSET,
-		PFM_DATA_LEN - PFM_ALLOWED_HDR_OFFSET,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_ALLOWED_HDR_OFFSET, 0, -1, PFM_ALLOWED_HEADER_SIZE));
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
+		PFM_DATA + PFM_ALLOWED_HDR_OFFSET, PFM_DATA_LEN - PFM_ALLOWED_HDR_OFFSET,
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_ALLOWED_HDR_OFFSET, 0, -1,
+			PFM_ALLOWED_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_FW_HEADER_OFFSET,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA + PFM_FW_HEADER_OFFSET,
 		PFM_DATA_LEN - PFM_FW_HEADER_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_FW_HEADER_OFFSET, 0, -1, PFM_FW_HEADER_SIZE));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm.base.get_read_write_regions (&pfm.base, "Short", &writable);
+	status = pfm.test.base.get_read_write_regions (&pfm.test.base, NULL, "Short", &writable);
 	CuAssertIntEquals (test, PFM_UNSUPPORTED_VERSION, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_get_read_write_regions_multiple_versions (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
 	struct pfm_read_write_regions writable;
 	const char *version1 = "V1";
 	const char *version2 = "Version2";
 	const char *version3 = "V 3";
-	uint8_t pfm_data[PFM_HEADER_SIZE + PFM_ALLOWED_HEADER_SIZE + (PFM_FW_HEADER_SIZE * 3) +
-		(PFM_REGION_SIZE * 3) + 25];
+	const char *platform_id = "Platform";
 	struct manifest_header *header;
 	struct pfm_allowable_firmware_header *allowed_header;
 	struct pfm_firmware_header *fw_header;
 	struct pfm_flash_region *region;
+	struct pfm_key_manifest_header *manifest_header;
+	struct pfm_platform_header *platform_header;
 	int ver_offset1 = PFM_HEADER_SIZE + PFM_ALLOWED_HEADER_SIZE;
 	int reg_offset1 = ver_offset1 + PFM_FW_HEADER_SIZE + 4;
 	int ver_offset2 = reg_offset1 + PFM_REGION_SIZE;
 	int reg_offset2 = ver_offset2 + PFM_FW_HEADER_SIZE + 8;
 	int ver_offset3 = reg_offset2 + PFM_REGION_SIZE;
 	int reg_offset3 = ver_offset3 + PFM_FW_HEADER_SIZE + 4;
+	int man_offset = reg_offset3 + PFM_REGION_SIZE;
+	int plat_offset = man_offset + PFM_MANIFEST_HEADER_SIZE;
+	int sig_offset = plat_offset + PFM_PLATFORM_HEADER_SIZE + 8;
+	uint8_t pfm_data[sig_offset + PFM_SIGNATURE_LEN];
 
 	TEST_START;
 
@@ -3383,6 +3171,7 @@ static void pfm_flash_test_get_read_write_regions_multiple_versions (CuTest *tes
 	header = (struct manifest_header*) pfm_data;
 	header->length = sizeof (pfm_data);
 	header->magic = PFM_MAGIC_NUM;
+	header->sig_length = PFM_SIGNATURE_LEN;
 
 	allowed_header = (struct pfm_allowable_firmware_header*) &pfm_data[PFM_HEADER_SIZE];
 	allowed_header->length = PFM_ALLOWED_HEADER_SIZE;
@@ -3400,7 +3189,7 @@ static void pfm_flash_test_get_read_write_regions_multiple_versions (CuTest *tes
 	region->end_addr = 0x1ffffff;
 
 	fw_header = (struct pfm_firmware_header*) &pfm_data[ver_offset2];
-	fw_header->length = PFM_FW_HEADER_SIZE + 8;
+	fw_header->length = PFM_FW_HEADER_SIZE + 8 + PFM_REGION_SIZE;
 	fw_header->version_addr = 0x6789;
 	fw_header->version_length = strlen (version2);
 	fw_header->rw_count = 1;
@@ -3411,7 +3200,7 @@ static void pfm_flash_test_get_read_write_regions_multiple_versions (CuTest *tes
 	region->end_addr = 0x27fffff;
 
 	fw_header = (struct pfm_firmware_header*) &pfm_data[ver_offset3];
-	fw_header->length = PFM_FW_HEADER_SIZE + 4;
+	fw_header->length = PFM_FW_HEADER_SIZE + 4 + PFM_REGION_SIZE;
 	fw_header->version_addr = 0x112233;
 	fw_header->version_length = strlen (version3);
 	fw_header->rw_count = 1;
@@ -3421,92 +3210,98 @@ static void pfm_flash_test_get_read_write_regions_multiple_versions (CuTest *tes
 	region->start_addr = 0x4000000;
 	region->end_addr = 0x401ffff;
 
-	status = flash_master_mock_init (&flash_mock);
+	manifest_header = (struct pfm_key_manifest_header*) &pfm_data[man_offset];
+	manifest_header->length = PFM_MANIFEST_HEADER_SIZE;
+	manifest_header->key_count = 0;
+
+	platform_header = (struct pfm_platform_header*) &pfm_data[plat_offset];
+	platform_header->length = PFM_PLATFORM_HEADER_SIZE + 8;
+	platform_header->id_length = strlen (platform_id);
+	memcpy (&pfm_data[plat_offset + PFM_PLATFORM_HEADER_SIZE], platform_id, strlen (platform_id));
+
+	status = RSA_TESTING_ENGINE_SIGN (pfm_data, sizeof (pfm_data) - PFM_SIGNATURE_LEN,
+		RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, &pfm_data[sig_offset], PFM_SIGNATURE_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, pfm_data, sizeof (pfm_data), NULL,
+		&pfm_data[sig_offset], sig_offset, PFM_HEADER_SIZE, man_offset, plat_offset,
+		plat_offset + PFM_PLATFORM_HEADER_SIZE, strlen (platform_id), 0);
 
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data, sizeof (pfm_data),
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data, sizeof (pfm_data),
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + PFM_HEADER_SIZE,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + PFM_HEADER_SIZE,
 		sizeof (pfm_data) - PFM_HEADER_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_HEADER_SIZE, 0, -1, PFM_ALLOWED_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + ver_offset1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + ver_offset1,
 		sizeof (pfm_data) - ver_offset1,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + ver_offset1, 0, -1, PFM_FW_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + ver_offset2,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + ver_offset2,
 		sizeof (pfm_data) - ver_offset2,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + ver_offset2, 0, -1, PFM_FW_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
 		pfm_data + ver_offset2 + PFM_FW_HEADER_SIZE,
 		sizeof (pfm_data) - ver_offset2 - PFM_FW_HEADER_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + ver_offset2 + PFM_FW_HEADER_SIZE, 0, -1,
 			strlen (version2)));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset2,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset2,
 		sizeof (pfm_data) - reg_offset2,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset2, 0, -1, PFM_REGION_SIZE));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm.base.get_read_write_regions (&pfm.base, version2, &writable);
+	status = pfm.test.base.get_read_write_regions (&pfm.test.base, NULL, version2, &writable);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, writable.count);
 	CuAssertPtrNotNull (test, writable.regions);
+	CuAssertPtrNotNull (test, writable.properties);
+
 	CuAssertIntEquals (test, 0x2000000, writable.regions[0].start_addr);
 	CuAssertIntEquals (test, 0x800000, writable.regions[0].length);
+	CuAssertIntEquals (test, PFM_RW_DO_NOTHING, writable.properties[0].on_failure);
 
-	pfm.base.free_read_write_regions (&pfm.base, &writable);
+	pfm.test.base.free_read_write_regions (&pfm.test.base, &writable);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_get_read_write_regions_multiple_regions (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
 	struct pfm_read_write_regions writable;
 	const char *version = "V 3";
-	uint8_t pfm_data[PFM_HEADER_SIZE + PFM_ALLOWED_HEADER_SIZE + PFM_FW_HEADER_SIZE +
-		(PFM_REGION_SIZE * 3) + 4];
+	const char *platform_id = "Platform";
 	struct manifest_header *header;
 	struct pfm_allowable_firmware_header *allowed_header;
 	struct pfm_firmware_header *fw_header;
 	struct pfm_flash_region *region;
+	struct pfm_key_manifest_header *manifest_header;
+	struct pfm_platform_header *platform_header;
 	int ver_offset = PFM_HEADER_SIZE + PFM_ALLOWED_HEADER_SIZE;
 	int reg_offset1 = ver_offset + PFM_FW_HEADER_SIZE + 4;
 	int reg_offset2 = reg_offset1 + PFM_REGION_SIZE;
 	int reg_offset3 = reg_offset2 + PFM_REGION_SIZE;
+	int man_offset = reg_offset3 + PFM_REGION_SIZE;
+	int plat_offset = man_offset + PFM_MANIFEST_HEADER_SIZE;
+	int sig_offset = plat_offset + PFM_PLATFORM_HEADER_SIZE + 8;
+	uint8_t pfm_data[sig_offset + PFM_SIGNATURE_LEN];
 
 	TEST_START;
 
@@ -3515,6 +3310,7 @@ static void pfm_flash_test_get_read_write_regions_multiple_regions (CuTest *test
 	header = (struct manifest_header*) pfm_data;
 	header->length = sizeof (pfm_data);
 	header->magic = PFM_MAGIC_NUM;
+	header->sig_length = PFM_SIGNATURE_LEN;
 
 	allowed_header = (struct pfm_allowable_firmware_header*) &pfm_data[PFM_HEADER_SIZE];
 	allowed_header->length = PFM_ALLOWED_HEADER_SIZE;
@@ -3539,95 +3335,105 @@ static void pfm_flash_test_get_read_write_regions_multiple_regions (CuTest *test
 	region->start_addr = 0x4000000;
 	region->end_addr = 0x401ffff;
 
-	status = flash_master_mock_init (&flash_mock);
+	manifest_header = (struct pfm_key_manifest_header*) &pfm_data[man_offset];
+	manifest_header->length = PFM_MANIFEST_HEADER_SIZE;
+	manifest_header->key_count = 0;
+
+	platform_header = (struct pfm_platform_header*) &pfm_data[plat_offset];
+	platform_header->length = PFM_PLATFORM_HEADER_SIZE + 8;
+	platform_header->id_length = strlen (platform_id);
+	memcpy (&pfm_data[plat_offset + PFM_PLATFORM_HEADER_SIZE], platform_id, strlen (platform_id));
+
+	status = RSA_TESTING_ENGINE_SIGN (pfm_data, sizeof (pfm_data) - PFM_SIGNATURE_LEN,
+		RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, &pfm_data[sig_offset], PFM_SIGNATURE_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, pfm_data, sizeof (pfm_data), NULL,
+		&pfm_data[sig_offset], sig_offset, PFM_HEADER_SIZE, man_offset, plat_offset,
+		plat_offset + PFM_PLATFORM_HEADER_SIZE, strlen (platform_id), 0);
 
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data, sizeof (pfm_data),
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data, sizeof (pfm_data),
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + PFM_HEADER_SIZE,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + PFM_HEADER_SIZE,
 		sizeof (pfm_data) - PFM_HEADER_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_HEADER_SIZE, 0, -1, PFM_ALLOWED_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + ver_offset,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + ver_offset,
 		sizeof (pfm_data) - ver_offset,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + ver_offset, 0, -1, PFM_FW_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
 		pfm_data + ver_offset + PFM_FW_HEADER_SIZE,
 		sizeof (pfm_data) - ver_offset - PFM_FW_HEADER_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + ver_offset + PFM_FW_HEADER_SIZE, 0, -1,
 			strlen (version)));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset1,
 		sizeof (pfm_data) - reg_offset1,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset1, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset2,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset2,
 		sizeof (pfm_data) - reg_offset2,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset2, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset3,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset3,
 		sizeof (pfm_data) - reg_offset3,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset3, 0, -1, PFM_REGION_SIZE));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm.base.get_read_write_regions (&pfm.base, version, &writable);
+	status = pfm.test.base.get_read_write_regions (&pfm.test.base, NULL, version, &writable);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 3, writable.count);
 	CuAssertPtrNotNull (test, writable.regions);
+	CuAssertPtrNotNull (test, writable.properties);
 
 	CuAssertIntEquals (test, 0x1000000, writable.regions[0].start_addr);
 	CuAssertIntEquals (test, 0x1000000, writable.regions[0].length);
+	CuAssertIntEquals (test, PFM_RW_DO_NOTHING, writable.properties[0].on_failure);
+
 	CuAssertIntEquals (test, 0x2000000, writable.regions[1].start_addr);
 	CuAssertIntEquals (test, 0x800000, writable.regions[1].length);
+	CuAssertIntEquals (test, PFM_RW_DO_NOTHING, writable.properties[1].on_failure);
+
 	CuAssertIntEquals (test, 0x4000000, writable.regions[2].start_addr);
 	CuAssertIntEquals (test, 0x20000, writable.regions[2].length);
+	CuAssertIntEquals (test, PFM_RW_DO_NOTHING, writable.properties[2].on_failure);
 
-	pfm.base.free_read_write_regions (&pfm.base, &writable);
+	pfm.test.base.free_read_write_regions (&pfm.test.base, &writable);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_get_read_write_regions_empty_manifest (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
 	struct pfm_read_write_regions writable;
+	const char *platform_id = "Platform";
 	struct manifest_header *header;
 	struct pfm_allowable_firmware_header *allowed_header;
-	uint8_t pfm_data[PFM_HEADER_SIZE + PFM_ALLOWED_HEADER_SIZE];
+	struct pfm_key_manifest_header *manifest_header;
+	struct pfm_platform_header *platform_header;
+	int man_offset = PFM_HEADER_SIZE + PFM_ALLOWED_HEADER_SIZE;
+	int plat_offset = man_offset + PFM_MANIFEST_HEADER_SIZE;
+	int sig_offset = plat_offset + PFM_PLATFORM_HEADER_SIZE + 8;
+	uint8_t pfm_data[sig_offset + PFM_SIGNATURE_LEN];
 
 	TEST_START;
 
@@ -3642,184 +3448,161 @@ static void pfm_flash_test_get_read_write_regions_empty_manifest (CuTest *test)
 	allowed_header->length = PFM_ALLOWED_HEADER_SIZE;
 	allowed_header->fw_count = 0;
 
-	status = flash_master_mock_init (&flash_mock);
+	manifest_header = (struct pfm_key_manifest_header*) &pfm_data[man_offset];
+	manifest_header->length = PFM_MANIFEST_HEADER_SIZE;
+	manifest_header->key_count = 0;
+
+	platform_header = (struct pfm_platform_header*) &pfm_data[plat_offset];
+	platform_header->length = PFM_PLATFORM_HEADER_SIZE + 8;
+	platform_header->id_length = strlen (platform_id);
+	memcpy (&pfm_data[plat_offset + PFM_PLATFORM_HEADER_SIZE], platform_id, strlen (platform_id));
+
+	status = RSA_TESTING_ENGINE_SIGN (pfm_data, sizeof (pfm_data) - PFM_SIGNATURE_LEN,
+		RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, &pfm_data[sig_offset], PFM_SIGNATURE_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, pfm_data, sizeof (pfm_data), NULL,
+		&pfm_data[sig_offset], sig_offset, PFM_HEADER_SIZE, man_offset, plat_offset,
+		plat_offset + PFM_PLATFORM_HEADER_SIZE, strlen (platform_id), 0);
 
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data, sizeof (pfm_data),
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data, sizeof (pfm_data),
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + PFM_HEADER_SIZE,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + PFM_HEADER_SIZE,
 		sizeof (pfm_data) - PFM_HEADER_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_HEADER_SIZE, 0, -1, PFM_ALLOWED_HEADER_SIZE));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm.base.get_read_write_regions (&pfm.base, "Testing", &writable);
+	status = pfm.test.base.get_read_write_regions (&pfm.test.base, NULL, "Testing", &writable);
 	CuAssertIntEquals (test, PFM_UNSUPPORTED_VERSION, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_get_read_write_regions_null (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
 	struct pfm_read_write_regions writable;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_ALLOWED_HDR_OFFSET, PFM_MANIFEST_OFFSET,
+		PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_ID_OFFSET, strlen (PFM_PLATFORM_ID), 0);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm.base.get_read_write_regions (NULL, "Testing", &writable);
+	status = pfm.test.base.get_read_write_regions (NULL, NULL, "Testing", &writable);
 	CuAssertIntEquals (test, PFM_INVALID_ARGUMENT, status);
 
-	status = pfm.base.get_read_write_regions (&pfm.base, NULL, &writable);
+	status = pfm.test.base.get_read_write_regions (&pfm.test.base, NULL, NULL, &writable);
 	CuAssertIntEquals (test, PFM_INVALID_ARGUMENT, status);
 
-	status = pfm.base.get_read_write_regions (&pfm.base, "", &writable);
+	status = pfm.test.base.get_read_write_regions (&pfm.test.base, NULL, "", &writable);
 	CuAssertIntEquals (test, PFM_INVALID_ARGUMENT, status);
 
-	status = pfm.base.get_read_write_regions (&pfm.base, "Testing", NULL);
+	status = pfm.test.base.get_read_write_regions (&pfm.test.base, NULL, "Testing", NULL);
 	CuAssertIntEquals (test, PFM_INVALID_ARGUMENT, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_validate_and_release (test, &pfm);
+}
 
-	pfm_flash_release (&pfm);
-	spi_flash_release (&flash);
+static void pfm_flash_test_get_read_write_regions_verify_never_run (CuTest *test)
+{
+	struct pfm_flash_testing pfm;
+	int status;
+	struct pfm_read_write_regions writable;
+
+	TEST_START;
+
+	pfm_flash_testing_init (test, &pfm, 0x10000);
+
+	status = pfm.test.base.get_read_write_regions (&pfm.test.base, NULL, "Testing", &writable);
+	CuAssertIntEquals (test, MANIFEST_NO_MANIFEST, status);
+
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_get_read_write_regions_header_read_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
 	struct pfm_read_write_regions writable;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_ALLOWED_HDR_OFFSET, PFM_MANIFEST_OFFSET,
+		PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_ID_OFFSET, strlen (PFM_PLATFORM_ID), 0);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
+	status = flash_master_mock_expect_xfer (&pfm.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm.base.get_read_write_regions (&pfm.base, "Testing", &writable);
+	status = pfm.test.base.get_read_write_regions (&pfm.test.base, NULL, "Testing", &writable);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-	spi_flash_release (&flash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_get_read_write_regions_allowable_header_read_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
 	struct pfm_read_write_regions writable;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_ALLOWED_HDR_OFFSET, PFM_MANIFEST_OFFSET,
+		PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_ID_OFFSET, strlen (PFM_PLATFORM_ID), 0);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
+	status |= flash_master_mock_expect_xfer (&pfm.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm.base.get_read_write_regions (&pfm.base, "Testing", &writable);
+	status = pfm.test.base.get_read_write_regions (&pfm.test.base, NULL, "Testing", &writable);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-	spi_flash_release (&flash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_get_read_write_regions_fw_header_read_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
 	struct pfm_read_write_regions writable;
 	const char *version1 = "V1";
 	const char *version2 = "Version2";
 	const char *version3 = "V 3";
-	uint8_t pfm_data[PFM_HEADER_SIZE + PFM_ALLOWED_HEADER_SIZE + (PFM_FW_HEADER_SIZE * 3) +
-		(PFM_REGION_SIZE * 3) + 25];
+	const char *platform_id = "Platform";
 	struct manifest_header *header;
 	struct pfm_allowable_firmware_header *allowed_header;
 	struct pfm_firmware_header *fw_header;
 	struct pfm_flash_region *region;
+	struct pfm_key_manifest_header *manifest_header;
+	struct pfm_platform_header *platform_header;
 	int ver_offset1 = PFM_HEADER_SIZE + PFM_ALLOWED_HEADER_SIZE;
 	int reg_offset1 = ver_offset1 + PFM_FW_HEADER_SIZE + 4;
 	int ver_offset2 = reg_offset1 + PFM_REGION_SIZE;
 	int reg_offset2 = ver_offset2 + PFM_FW_HEADER_SIZE + 8;
 	int ver_offset3 = reg_offset2 + PFM_REGION_SIZE;
 	int reg_offset3 = ver_offset3 + PFM_FW_HEADER_SIZE + 4;
+	int man_offset = reg_offset3 + PFM_REGION_SIZE;
+	int plat_offset = man_offset + PFM_MANIFEST_HEADER_SIZE;
+	int sig_offset = plat_offset + PFM_PLATFORM_HEADER_SIZE + 8;
+	uint8_t pfm_data[sig_offset + PFM_SIGNATURE_LEN];
 
 	TEST_START;
 
@@ -3828,6 +3611,7 @@ static void pfm_flash_test_get_read_write_regions_fw_header_read_error (CuTest *
 	header = (struct manifest_header*) pfm_data;
 	header->length = sizeof (pfm_data);
 	header->magic = PFM_MAGIC_NUM;
+	header->sig_length = PFM_SIGNATURE_LEN;
 
 	allowed_header = (struct pfm_allowable_firmware_header*) &pfm_data[PFM_HEADER_SIZE];
 	allowed_header->length = PFM_ALLOWED_HEADER_SIZE;
@@ -3845,7 +3629,7 @@ static void pfm_flash_test_get_read_write_regions_fw_header_read_error (CuTest *
 	region->end_addr = 0x1ffffff;
 
 	fw_header = (struct pfm_firmware_header*) &pfm_data[ver_offset2];
-	fw_header->length = PFM_FW_HEADER_SIZE + 8;
+	fw_header->length = PFM_FW_HEADER_SIZE + 8 + PFM_REGION_SIZE;
 	fw_header->version_addr = 0x6789;
 	fw_header->version_length = strlen (version2);
 	fw_header->rw_count = 1;
@@ -3856,7 +3640,7 @@ static void pfm_flash_test_get_read_write_regions_fw_header_read_error (CuTest *
 	region->end_addr = 0x27fffff;
 
 	fw_header = (struct pfm_firmware_header*) &pfm_data[ver_offset3];
-	fw_header->length = PFM_FW_HEADER_SIZE + 4;
+	fw_header->length = PFM_FW_HEADER_SIZE + 4 + PFM_REGION_SIZE;
 	fw_header->version_addr = 0x112233;
 	fw_header->version_length = strlen (version3);
 	fw_header->rw_count = 1;
@@ -3866,69 +3650,73 @@ static void pfm_flash_test_get_read_write_regions_fw_header_read_error (CuTest *
 	region->start_addr = 0x4000000;
 	region->end_addr = 0x401ffff;
 
-	status = flash_master_mock_init (&flash_mock);
+	manifest_header = (struct pfm_key_manifest_header*) &pfm_data[man_offset];
+	manifest_header->length = PFM_MANIFEST_HEADER_SIZE;
+	manifest_header->key_count = 0;
+
+	platform_header = (struct pfm_platform_header*) &pfm_data[plat_offset];
+	platform_header->length = PFM_PLATFORM_HEADER_SIZE + 8;
+	platform_header->id_length = strlen (platform_id);
+	memcpy (&pfm_data[plat_offset + PFM_PLATFORM_HEADER_SIZE], platform_id, strlen (platform_id));
+
+	status = RSA_TESTING_ENGINE_SIGN (pfm_data, sizeof (pfm_data) - PFM_SIGNATURE_LEN,
+		RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, &pfm_data[sig_offset], PFM_SIGNATURE_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, pfm_data, sizeof (pfm_data), NULL,
+		&pfm_data[sig_offset], sig_offset, PFM_HEADER_SIZE, man_offset, plat_offset,
+		plat_offset + PFM_PLATFORM_HEADER_SIZE, strlen (platform_id), 0);
 
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data, sizeof (pfm_data),
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data, sizeof (pfm_data),
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + PFM_HEADER_SIZE,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + PFM_HEADER_SIZE,
 		sizeof (pfm_data) - PFM_HEADER_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_HEADER_SIZE, 0, -1, PFM_ALLOWED_HEADER_SIZE));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + ver_offset1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + ver_offset1,
 		sizeof (pfm_data) - ver_offset1,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + ver_offset1, 0, -1, PFM_FW_HEADER_SIZE));
-	status |= flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
+	status |= flash_master_mock_expect_xfer (&pfm.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm.base.get_read_write_regions (&pfm.base, version2, &writable);
+	status = pfm.test.base.get_read_write_regions (&pfm.test.base, NULL, version2, &writable);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-	spi_flash_release (&flash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_get_read_write_regions_version_read_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
 	struct pfm_read_write_regions writable;
 	const char *version1 = "V1";
 	const char *version2 = "Version2";
 	const char *version3 = "V 3";
-	uint8_t pfm_data[PFM_HEADER_SIZE + PFM_ALLOWED_HEADER_SIZE + (PFM_FW_HEADER_SIZE * 3) +
-		(PFM_REGION_SIZE * 3) + 25];
+	const char *platform_id = "Platform";
 	struct manifest_header *header;
 	struct pfm_allowable_firmware_header *allowed_header;
 	struct pfm_firmware_header *fw_header;
 	struct pfm_flash_region *region;
+	struct pfm_key_manifest_header *manifest_header;
+	struct pfm_platform_header *platform_header;
 	int ver_offset1 = PFM_HEADER_SIZE + PFM_ALLOWED_HEADER_SIZE;
 	int reg_offset1 = ver_offset1 + PFM_FW_HEADER_SIZE + 4;
 	int ver_offset2 = reg_offset1 + PFM_REGION_SIZE;
 	int reg_offset2 = ver_offset2 + PFM_FW_HEADER_SIZE + 8;
 	int ver_offset3 = reg_offset2 + PFM_REGION_SIZE;
 	int reg_offset3 = ver_offset3 + PFM_FW_HEADER_SIZE + 4;
+	int man_offset = reg_offset3 + PFM_REGION_SIZE;
+	int plat_offset = man_offset + PFM_MANIFEST_HEADER_SIZE;
+	int sig_offset = plat_offset + PFM_PLATFORM_HEADER_SIZE + 8;
+	uint8_t pfm_data[sig_offset + PFM_SIGNATURE_LEN];
 
 	TEST_START;
 
@@ -3937,6 +3725,7 @@ static void pfm_flash_test_get_read_write_regions_version_read_error (CuTest *te
 	header = (struct manifest_header*) pfm_data;
 	header->length = sizeof (pfm_data);
 	header->magic = PFM_MAGIC_NUM;
+	header->sig_length = PFM_SIGNATURE_LEN;
 
 	allowed_header = (struct pfm_allowable_firmware_header*) &pfm_data[PFM_HEADER_SIZE];
 	allowed_header->length = PFM_ALLOWED_HEADER_SIZE;
@@ -3954,7 +3743,7 @@ static void pfm_flash_test_get_read_write_regions_version_read_error (CuTest *te
 	region->end_addr = 0x1ffffff;
 
 	fw_header = (struct pfm_firmware_header*) &pfm_data[ver_offset2];
-	fw_header->length = PFM_FW_HEADER_SIZE + 8;
+	fw_header->length = PFM_FW_HEADER_SIZE + 8 + PFM_REGION_SIZE;
 	fw_header->version_addr = 0x6789;
 	fw_header->version_length = strlen (version2);
 	fw_header->rw_count = 1;
@@ -3965,7 +3754,7 @@ static void pfm_flash_test_get_read_write_regions_version_read_error (CuTest *te
 	region->end_addr = 0x27fffff;
 
 	fw_header = (struct pfm_firmware_header*) &pfm_data[ver_offset3];
-	fw_header->length = PFM_FW_HEADER_SIZE + 4;
+	fw_header->length = PFM_FW_HEADER_SIZE + 4 + PFM_REGION_SIZE;
 	fw_header->version_addr = 0x112233;
 	fw_header->version_length = strlen (version3);
 	fw_header->rw_count = 1;
@@ -3975,74 +3764,78 @@ static void pfm_flash_test_get_read_write_regions_version_read_error (CuTest *te
 	region->start_addr = 0x4000000;
 	region->end_addr = 0x401ffff;
 
-	status = flash_master_mock_init (&flash_mock);
+	manifest_header = (struct pfm_key_manifest_header*) &pfm_data[man_offset];
+	manifest_header->length = PFM_MANIFEST_HEADER_SIZE;
+	manifest_header->key_count = 0;
+
+	platform_header = (struct pfm_platform_header*) &pfm_data[plat_offset];
+	platform_header->length = PFM_PLATFORM_HEADER_SIZE + 8;
+	platform_header->id_length = strlen (platform_id);
+	memcpy (&pfm_data[plat_offset + PFM_PLATFORM_HEADER_SIZE], platform_id, strlen (platform_id));
+
+	status = RSA_TESTING_ENGINE_SIGN (pfm_data, sizeof (pfm_data) - PFM_SIGNATURE_LEN,
+		RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, &pfm_data[sig_offset], PFM_SIGNATURE_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, pfm_data, sizeof (pfm_data), NULL,
+		&pfm_data[sig_offset], sig_offset, PFM_HEADER_SIZE, man_offset, plat_offset,
+		plat_offset + PFM_PLATFORM_HEADER_SIZE, strlen (platform_id), 0);
 
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data, sizeof (pfm_data),
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data, sizeof (pfm_data),
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + PFM_HEADER_SIZE,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + PFM_HEADER_SIZE,
 		sizeof (pfm_data) - PFM_HEADER_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_HEADER_SIZE, 0, -1, PFM_ALLOWED_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + ver_offset1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + ver_offset1,
 		sizeof (pfm_data) - ver_offset1,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + ver_offset1, 0, -1, PFM_FW_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + ver_offset2,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + ver_offset2,
 		sizeof (pfm_data) - ver_offset2,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + ver_offset2, 0, -1, PFM_FW_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
+	status |= flash_master_mock_expect_xfer (&pfm.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm.base.get_read_write_regions (&pfm.base, version2, &writable);
+	status = pfm.test.base.get_read_write_regions (&pfm.test.base, NULL, version2, &writable);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-	spi_flash_release (&flash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_get_read_write_regions_region_read_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
 	struct pfm_read_write_regions writable;
 	const char *version = "V 3";
-	uint8_t pfm_data[PFM_HEADER_SIZE + PFM_ALLOWED_HEADER_SIZE + PFM_FW_HEADER_SIZE +
-		(PFM_REGION_SIZE * 3) + 4];
+	const char *platform_id = "Platform";
 	struct manifest_header *header;
 	struct pfm_allowable_firmware_header *allowed_header;
 	struct pfm_firmware_header *fw_header;
 	struct pfm_flash_region *region;
+	struct pfm_key_manifest_header *manifest_header;
+	struct pfm_platform_header *platform_header;
 	int ver_offset = PFM_HEADER_SIZE + PFM_ALLOWED_HEADER_SIZE;
 	int reg_offset1 = ver_offset + PFM_FW_HEADER_SIZE + 4;
 	int reg_offset2 = reg_offset1 + PFM_REGION_SIZE;
 	int reg_offset3 = reg_offset2 + PFM_REGION_SIZE;
+	int man_offset = reg_offset3 + PFM_REGION_SIZE;
+	int plat_offset = man_offset + PFM_MANIFEST_HEADER_SIZE;
+	int sig_offset = plat_offset + PFM_PLATFORM_HEADER_SIZE + 8;
+	uint8_t pfm_data[sig_offset + PFM_SIGNATURE_LEN];
 
 	TEST_START;
 
@@ -4051,6 +3844,7 @@ static void pfm_flash_test_get_read_write_regions_region_read_error (CuTest *tes
 	header = (struct manifest_header*) pfm_data;
 	header->length = sizeof (pfm_data);
 	header->magic = PFM_MAGIC_NUM;
+	header->sig_length = PFM_SIGNATURE_LEN;
 
 	allowed_header = (struct pfm_allowable_firmware_header*) &pfm_data[PFM_HEADER_SIZE];
 	allowed_header->length = PFM_ALLOWED_HEADER_SIZE;
@@ -4075,70 +3869,68 @@ static void pfm_flash_test_get_read_write_regions_region_read_error (CuTest *tes
 	region->start_addr = 0x4000000;
 	region->end_addr = 0x401ffff;
 
-	status = flash_master_mock_init (&flash_mock);
+	manifest_header = (struct pfm_key_manifest_header*) &pfm_data[man_offset];
+	manifest_header->length = PFM_MANIFEST_HEADER_SIZE;
+	manifest_header->key_count = 0;
+
+	platform_header = (struct pfm_platform_header*) &pfm_data[plat_offset];
+	platform_header->length = PFM_PLATFORM_HEADER_SIZE + 8;
+	platform_header->id_length = strlen (platform_id);
+	memcpy (&pfm_data[plat_offset + PFM_PLATFORM_HEADER_SIZE], platform_id, strlen (platform_id));
+
+	status = RSA_TESTING_ENGINE_SIGN (pfm_data, sizeof (pfm_data) - PFM_SIGNATURE_LEN,
+		RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, &pfm_data[sig_offset], PFM_SIGNATURE_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, pfm_data, sizeof (pfm_data), NULL,
+		&pfm_data[sig_offset], sig_offset, PFM_HEADER_SIZE, man_offset, plat_offset,
+		plat_offset + PFM_PLATFORM_HEADER_SIZE, strlen (platform_id), 0);
 
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data, sizeof (pfm_data),
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data, sizeof (pfm_data),
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + PFM_HEADER_SIZE,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + PFM_HEADER_SIZE,
 		sizeof (pfm_data) - PFM_HEADER_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_HEADER_SIZE, 0, -1, PFM_ALLOWED_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + ver_offset,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + ver_offset,
 		sizeof (pfm_data) - ver_offset,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + ver_offset, 0, -1, PFM_FW_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
 		pfm_data + ver_offset + PFM_FW_HEADER_SIZE,
 		sizeof (pfm_data) - ver_offset - PFM_FW_HEADER_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + ver_offset + PFM_FW_HEADER_SIZE, 0, -1,
 			strlen (version)));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset1,
 		sizeof (pfm_data) - reg_offset1,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset1, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
+	status |= flash_master_mock_expect_xfer (&pfm.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm.base.get_read_write_regions (&pfm.base, version, &writable);
+	status = pfm.test.base.get_read_write_regions (&pfm.test.base, NULL, version, &writable);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_get_read_write_regions_bad_magic_num (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
 	struct pfm_read_write_regions writable;
 	uint8_t pfm_bad_data[PFM_SIGNATURE_OFFSET];
@@ -4148,183 +3940,162 @@ static void pfm_flash_test_get_read_write_regions_bad_magic_num (CuTest *test)
 	memcpy (pfm_bad_data, PFM_DATA, sizeof (pfm_bad_data));
 	pfm_bad_data[2] ^= 0x55;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_ALLOWED_HDR_OFFSET, PFM_MANIFEST_OFFSET,
+		PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_ID_OFFSET, strlen (PFM_PLATFORM_ID), 0);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_bad_data, sizeof (pfm_bad_data),
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_bad_data,
+		sizeof (pfm_bad_data),
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm.base.get_read_write_regions (&pfm.base, "Testing", &writable);
+	status = pfm.test.base.get_read_write_regions (&pfm.test.base, NULL, "Testing", &writable);
 	CuAssertIntEquals (test, MANIFEST_BAD_MAGIC_NUMBER, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_free_read_write_regions_null (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
-	int status;
+	struct pfm_flash_testing pfm;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_ALLOWED_HDR_OFFSET, PFM_MANIFEST_OFFSET,
+		PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_ID_OFFSET, strlen (PFM_PLATFORM_ID), 0);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
+	pfm.test.base.free_read_write_regions (&pfm.test.base, NULL);
 
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_validate_and_release (test, &pfm);
+}
 
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
+static void pfm_flash_test_free_read_write_regions_null_list (CuTest *test)
+{
+	struct pfm_flash_testing pfm;
+	struct pfm_read_write_regions writable;
 
-	pfm.base.free_read_write_regions (&pfm.base, NULL);
+	TEST_START;
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_ALLOWED_HDR_OFFSET, PFM_MANIFEST_OFFSET,
+		PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_ID_OFFSET, strlen (PFM_PLATFORM_ID), 0);
 
-	pfm_flash_release (&pfm);
+	writable.count = 1;
+	writable.regions = NULL;
+	writable.properties = NULL;
+	pfm.test.base.free_read_write_regions (&pfm.test.base, &writable);
 
-	spi_flash_release (&flash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_get_firmware_images (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
 	struct pfm_image_list img_list;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_ALLOWED_HDR_OFFSET, PFM_MANIFEST_OFFSET,
+		PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_ID_OFFSET, strlen (PFM_PLATFORM_ID), 0);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_ALLOWED_HDR_OFFSET,
-		PFM_DATA_LEN - PFM_ALLOWED_HDR_OFFSET,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_ALLOWED_HDR_OFFSET, 0, -1, PFM_ALLOWED_HEADER_SIZE));
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
+		PFM_DATA + PFM_ALLOWED_HDR_OFFSET, PFM_DATA_LEN - PFM_ALLOWED_HDR_OFFSET,
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_ALLOWED_HDR_OFFSET, 0, -1,
+			PFM_ALLOWED_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_FW_HEADER_OFFSET,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA + PFM_FW_HEADER_OFFSET,
 		PFM_DATA_LEN - PFM_FW_HEADER_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_FW_HEADER_OFFSET, 0, -1, PFM_FW_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_VERSION_OFFSET,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA + PFM_VERSION_OFFSET,
 		PFM_DATA_LEN - PFM_VERSION_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_VERSION_OFFSET, 0, -1, strlen (PFM_VERSION_ID)));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_IMG_HEADER_OFFSET,
-		PFM_DATA_LEN - PFM_IMG_HEADER_OFFSET,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
+		PFM_DATA + PFM_IMG_HEADER_OFFSET, PFM_DATA_LEN - PFM_IMG_HEADER_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_IMG_HEADER_OFFSET, 0, -1, PFM_IMG_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_IMG_SIGNATURE, PFM_IMG_KEY_SIZE,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_IMG_SIGNATURE,
+		PFM_IMG_KEY_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_IMG_SIG_OFFSET, 0, -1, PFM_IMG_KEY_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_IMG_REGION_OFFSET,
-		PFM_DATA_LEN - PFM_IMG_REGION_OFFSET,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
+		PFM_DATA + PFM_IMG_REGION_OFFSET, PFM_DATA_LEN - PFM_IMG_REGION_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_IMG_REGION_OFFSET, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_MANIFEST_OFFSET,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA + PFM_MANIFEST_OFFSET,
 		PFM_DATA_LEN - PFM_MANIFEST_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_MANIFEST_OFFSET, 0, -1, PFM_MANIFEST_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_KEY_HEADER_OFFSET,
-		PFM_DATA_LEN - PFM_KEY_HEADER_OFFSET,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
+		PFM_DATA + PFM_KEY_HEADER_OFFSET, PFM_DATA_LEN - PFM_KEY_HEADER_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_KEY_HEADER_OFFSET, 0, -1, PFM_KEY_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_IMG_KEY, PFM_IMG_KEY_SIZE,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_IMG_KEY, PFM_IMG_KEY_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_IMG_KEY_OFFSET, 0, -1, PFM_IMG_KEY_SIZE));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm.base.get_firmware_images (&pfm.base, "Testing", &img_list);
+	status = pfm.test.base.get_firmware_images (&pfm.test.base, NULL, "Testing", &img_list);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, img_list.count);
-	CuAssertPtrNotNull (test, img_list.images);
+	CuAssertPtrNotNull (test, img_list.images_sig);
+	CuAssertPtrEquals (test, NULL, (void*) img_list.images_hash);
 
-	CuAssertIntEquals (test, 1, img_list.images[0].count);
-	CuAssertPtrNotNull (test, img_list.images[0].regions);
-	CuAssertIntEquals (test, 1, img_list.images[0].always_validate);
-	CuAssertIntEquals (test, 0, img_list.images[0].regions[0].start_addr);
-	CuAssertIntEquals (test, 0x2000000, img_list.images[0].regions[0].length);
+	CuAssertIntEquals (test, 1, img_list.images_sig[0].count);
+	CuAssertPtrNotNull (test, img_list.images_sig[0].regions);
+	CuAssertIntEquals (test, 1, img_list.images_sig[0].always_validate);
+	CuAssertIntEquals (test, 0, img_list.images_sig[0].regions[0].start_addr);
+	CuAssertIntEquals (test, 0x2000000, img_list.images_sig[0].regions[0].length);
 
-	CuAssertIntEquals (test, 65537, img_list.images[0].key.exponent);
-	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images[0].key.mod_length);
-	status = testing_validate_array (PFM_IMG_KEY, img_list.images[0].key.modulus, PFM_IMG_KEY_SIZE);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images[0].sig_length);
-	status = testing_validate_array (PFM_IMG_SIGNATURE, img_list.images[0].signature,
+	CuAssertIntEquals (test, 65537, img_list.images_sig[0].key.exponent);
+	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images_sig[0].key.mod_length);
+	status = testing_validate_array (PFM_IMG_KEY, img_list.images_sig[0].key.modulus,
 		PFM_IMG_KEY_SIZE);
-
-	pfm.base.free_firmware_images (&pfm.base, &img_list);
-
-	status = flash_master_mock_validate_and_release (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	pfm_flash_release (&pfm);
+	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images_sig[0].sig_length);
+	status = testing_validate_array (PFM_IMG_SIGNATURE, img_list.images_sig[0].signature,
+		PFM_IMG_KEY_SIZE);
+	CuAssertIntEquals (test, 0, status);
 
-	spi_flash_release (&flash);
+	pfm.test.base.free_firmware_images (&pfm.test.base, &img_list);
+
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_get_firmware_images_no_flags (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
 	struct pfm_image_list img_list;
 	uint8_t pfm_data[PFM_DATA_LEN];
@@ -4334,112 +4105,102 @@ static void pfm_flash_test_get_firmware_images_no_flags (CuTest *test)
 	memcpy (pfm_data, PFM_DATA, sizeof (pfm_data));
 	pfm_data[PFM_IMG_FLAGS_OFFSET] = 0;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_ALLOWED_HDR_OFFSET, PFM_MANIFEST_OFFSET,
+		PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_ID_OFFSET, strlen (PFM_PLATFORM_ID), 0);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data, sizeof (pfm_data),
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data, sizeof (pfm_data),
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + PFM_ALLOWED_HDR_OFFSET,
-		sizeof (pfm_data) - PFM_ALLOWED_HDR_OFFSET,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_ALLOWED_HDR_OFFSET, 0, -1, PFM_ALLOWED_HEADER_SIZE));
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
+		pfm_data + PFM_ALLOWED_HDR_OFFSET, sizeof (pfm_data) - PFM_ALLOWED_HDR_OFFSET,
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_ALLOWED_HDR_OFFSET, 0, -1,
+			PFM_ALLOWED_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + PFM_FW_HEADER_OFFSET,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + PFM_FW_HEADER_OFFSET,
 		sizeof (pfm_data) - PFM_FW_HEADER_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_FW_HEADER_OFFSET, 0, -1, PFM_FW_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + PFM_VERSION_OFFSET,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + PFM_VERSION_OFFSET,
 		sizeof (pfm_data) - PFM_VERSION_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_VERSION_OFFSET, 0, -1, strlen (PFM_VERSION_ID)));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + PFM_IMG_HEADER_OFFSET,
-		sizeof (pfm_data) - PFM_IMG_HEADER_OFFSET,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
+		pfm_data + PFM_IMG_HEADER_OFFSET, sizeof (pfm_data) - PFM_IMG_HEADER_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_IMG_HEADER_OFFSET, 0, -1, PFM_IMG_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_IMG_SIGNATURE, PFM_IMG_KEY_SIZE,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_IMG_SIGNATURE,
+		PFM_IMG_KEY_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_IMG_SIG_OFFSET, 0, -1, PFM_IMG_KEY_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + PFM_IMG_REGION_OFFSET,
-		sizeof (pfm_data) - PFM_IMG_REGION_OFFSET,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
+		pfm_data + PFM_IMG_REGION_OFFSET, sizeof (pfm_data) - PFM_IMG_REGION_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_IMG_REGION_OFFSET, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + PFM_MANIFEST_OFFSET,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + PFM_MANIFEST_OFFSET,
 		sizeof (pfm_data) - PFM_MANIFEST_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_MANIFEST_OFFSET, 0, -1, PFM_MANIFEST_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + PFM_KEY_HEADER_OFFSET,
-		sizeof (pfm_data) - PFM_KEY_HEADER_OFFSET,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
+		pfm_data + PFM_KEY_HEADER_OFFSET, sizeof (pfm_data) - PFM_KEY_HEADER_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_KEY_HEADER_OFFSET, 0, -1, PFM_KEY_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_IMG_KEY, PFM_IMG_KEY_SIZE,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_IMG_KEY, PFM_IMG_KEY_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_IMG_KEY_OFFSET, 0, -1, PFM_IMG_KEY_SIZE));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm.base.get_firmware_images (&pfm.base, "Testing", &img_list);
+	status = pfm.test.base.get_firmware_images (&pfm.test.base, NULL, "Testing", &img_list);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, img_list.count);
-	CuAssertPtrNotNull (test, img_list.images);
+	CuAssertPtrNotNull (test, img_list.images_sig);
+	CuAssertPtrEquals (test, NULL, (void*) img_list.images_hash);
 
-	CuAssertIntEquals (test, 1, img_list.images[0].count);
-	CuAssertPtrNotNull (test, img_list.images[0].regions);
-	CuAssertIntEquals (test, 0, img_list.images[0].always_validate);
-	CuAssertIntEquals (test, 0, img_list.images[0].regions[0].start_addr);
-	CuAssertIntEquals (test, 0x2000000, img_list.images[0].regions[0].length);
+	CuAssertIntEquals (test, 1, img_list.images_sig[0].count);
+	CuAssertPtrNotNull (test, img_list.images_sig[0].regions);
+	CuAssertIntEquals (test, 0, img_list.images_sig[0].always_validate);
+	CuAssertIntEquals (test, 0, img_list.images_sig[0].regions[0].start_addr);
+	CuAssertIntEquals (test, 0x2000000, img_list.images_sig[0].regions[0].length);
 
-	CuAssertIntEquals (test, 65537, img_list.images[0].key.exponent);
-	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images[0].key.mod_length);
-	status = testing_validate_array (PFM_IMG_KEY, img_list.images[0].key.modulus, PFM_IMG_KEY_SIZE);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images[0].sig_length);
-	status = testing_validate_array (PFM_IMG_SIGNATURE, img_list.images[0].signature,
+	CuAssertIntEquals (test, 65537, img_list.images_sig[0].key.exponent);
+	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images_sig[0].key.mod_length);
+	status = testing_validate_array (PFM_IMG_KEY, img_list.images_sig[0].key.modulus,
 		PFM_IMG_KEY_SIZE);
-
-	pfm.base.free_firmware_images (&pfm.base, &img_list);
-
-	status = flash_master_mock_validate_and_release (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	pfm_flash_release (&pfm);
+	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images_sig[0].sig_length);
+	status = testing_validate_array (PFM_IMG_SIGNATURE, img_list.images_sig[0].signature,
+		PFM_IMG_KEY_SIZE);
+	CuAssertIntEquals (test, 0, status);
 
-	spi_flash_release (&flash);
+	pfm.test.base.free_firmware_images (&pfm.test.base, &img_list);
+
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_get_firmware_images_unknown_flags (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
 	struct pfm_image_list img_list;
 	uint8_t pfm_data[PFM_DATA_LEN];
@@ -4449,112 +4210,102 @@ static void pfm_flash_test_get_firmware_images_unknown_flags (CuTest *test)
 	memcpy (pfm_data, PFM_DATA, sizeof (pfm_data));
 	pfm_data[PFM_IMG_FLAGS_OFFSET] = 8;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_ALLOWED_HDR_OFFSET, PFM_MANIFEST_OFFSET,
+		PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_ID_OFFSET, strlen (PFM_PLATFORM_ID), 0);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data, sizeof (pfm_data),
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data, sizeof (pfm_data),
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + PFM_ALLOWED_HDR_OFFSET,
-		sizeof (pfm_data) - PFM_ALLOWED_HDR_OFFSET,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_ALLOWED_HDR_OFFSET, 0, -1, PFM_ALLOWED_HEADER_SIZE));
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
+		pfm_data + PFM_ALLOWED_HDR_OFFSET, sizeof (pfm_data) - PFM_ALLOWED_HDR_OFFSET,
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_ALLOWED_HDR_OFFSET, 0, -1,
+			PFM_ALLOWED_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + PFM_FW_HEADER_OFFSET,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + PFM_FW_HEADER_OFFSET,
 		sizeof (pfm_data) - PFM_FW_HEADER_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_FW_HEADER_OFFSET, 0, -1, PFM_FW_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + PFM_VERSION_OFFSET,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + PFM_VERSION_OFFSET,
 		sizeof (pfm_data) - PFM_VERSION_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_VERSION_OFFSET, 0, -1, strlen (PFM_VERSION_ID)));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + PFM_IMG_HEADER_OFFSET,
-		sizeof (pfm_data) - PFM_IMG_HEADER_OFFSET,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
+		pfm_data + PFM_IMG_HEADER_OFFSET, sizeof (pfm_data) - PFM_IMG_HEADER_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_IMG_HEADER_OFFSET, 0, -1, PFM_IMG_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_IMG_SIGNATURE, PFM_IMG_KEY_SIZE,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_IMG_SIGNATURE,
+		PFM_IMG_KEY_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_IMG_SIG_OFFSET, 0, -1, PFM_IMG_KEY_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + PFM_IMG_REGION_OFFSET,
-		sizeof (pfm_data) - PFM_IMG_REGION_OFFSET,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
+		pfm_data + PFM_IMG_REGION_OFFSET, sizeof (pfm_data) - PFM_IMG_REGION_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_IMG_REGION_OFFSET, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + PFM_MANIFEST_OFFSET,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + PFM_MANIFEST_OFFSET,
 		sizeof (pfm_data) - PFM_MANIFEST_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_MANIFEST_OFFSET, 0, -1, PFM_MANIFEST_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + PFM_KEY_HEADER_OFFSET,
-		sizeof (pfm_data) - PFM_KEY_HEADER_OFFSET,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
+		pfm_data + PFM_KEY_HEADER_OFFSET, sizeof (pfm_data) - PFM_KEY_HEADER_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_KEY_HEADER_OFFSET, 0, -1, PFM_KEY_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_IMG_KEY, PFM_IMG_KEY_SIZE,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_IMG_KEY, PFM_IMG_KEY_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_IMG_KEY_OFFSET, 0, -1, PFM_IMG_KEY_SIZE));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm.base.get_firmware_images (&pfm.base, "Testing", &img_list);
+	status = pfm.test.base.get_firmware_images (&pfm.test.base, NULL, "Testing", &img_list);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, img_list.count);
-	CuAssertPtrNotNull (test, img_list.images);
+	CuAssertPtrNotNull (test, img_list.images_sig);
+	CuAssertPtrEquals (test, NULL, (void*) img_list.images_hash);
 
-	CuAssertIntEquals (test, 1, img_list.images[0].count);
-	CuAssertPtrNotNull (test, img_list.images[0].regions);
-	CuAssertIntEquals (test, 0, img_list.images[0].always_validate);
-	CuAssertIntEquals (test, 0, img_list.images[0].regions[0].start_addr);
-	CuAssertIntEquals (test, 0x2000000, img_list.images[0].regions[0].length);
+	CuAssertIntEquals (test, 1, img_list.images_sig[0].count);
+	CuAssertPtrNotNull (test, img_list.images_sig[0].regions);
+	CuAssertIntEquals (test, 0, img_list.images_sig[0].always_validate);
+	CuAssertIntEquals (test, 0, img_list.images_sig[0].regions[0].start_addr);
+	CuAssertIntEquals (test, 0x2000000, img_list.images_sig[0].regions[0].length);
 
-	CuAssertIntEquals (test, 65537, img_list.images[0].key.exponent);
-	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images[0].key.mod_length);
-	status = testing_validate_array (PFM_IMG_KEY, img_list.images[0].key.modulus, PFM_IMG_KEY_SIZE);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images[0].sig_length);
-	status = testing_validate_array (PFM_IMG_SIGNATURE, img_list.images[0].signature,
+	CuAssertIntEquals (test, 65537, img_list.images_sig[0].key.exponent);
+	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images_sig[0].key.mod_length);
+	status = testing_validate_array (PFM_IMG_KEY, img_list.images_sig[0].key.modulus,
 		PFM_IMG_KEY_SIZE);
-
-	pfm.base.free_firmware_images (&pfm.base, &img_list);
-
-	status = flash_master_mock_validate_and_release (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	pfm_flash_release (&pfm);
+	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images_sig[0].sig_length);
+	status = testing_validate_array (PFM_IMG_SIGNATURE, img_list.images_sig[0].signature,
+		PFM_IMG_KEY_SIZE);
+	CuAssertIntEquals (test, 0, status);
 
-	spi_flash_release (&flash);
+	pfm.test.base.free_firmware_images (&pfm.test.base, &img_list);
+
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_get_firmware_images_no_version_padding (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
 	struct pfm_image_list img_list;
 	uint8_t pfm_data[PFM_DATA_LEN];
@@ -4565,172 +4316,146 @@ static void pfm_flash_test_get_firmware_images_no_version_padding (CuTest *test)
 	pfm_data[PFM_FW_HEADER_OFFSET + 2] = 8;
 	pfm_data[PFM_VERSION_OFFSET + strlen (PFM_VERSION_ID)] = '1';
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_ALLOWED_HDR_OFFSET, PFM_MANIFEST_OFFSET,
+		PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_ID_OFFSET, strlen (PFM_PLATFORM_ID), 0);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data, sizeof (pfm_data),
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data, sizeof (pfm_data),
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + PFM_ALLOWED_HDR_OFFSET,
-		sizeof (pfm_data) - PFM_ALLOWED_HDR_OFFSET,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_ALLOWED_HDR_OFFSET, 0, -1, PFM_ALLOWED_HEADER_SIZE));
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
+		pfm_data + PFM_ALLOWED_HDR_OFFSET, sizeof (pfm_data) - PFM_ALLOWED_HDR_OFFSET,
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_ALLOWED_HDR_OFFSET, 0, -1,
+			PFM_ALLOWED_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + PFM_FW_HEADER_OFFSET,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + PFM_FW_HEADER_OFFSET,
 		sizeof (pfm_data) - PFM_FW_HEADER_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_FW_HEADER_OFFSET, 0, -1, PFM_FW_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + PFM_VERSION_OFFSET,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + PFM_VERSION_OFFSET,
 		sizeof (pfm_data) - PFM_VERSION_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_VERSION_OFFSET, 0, -1, 8));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + PFM_IMG_HEADER_OFFSET,
-		sizeof (pfm_data) - PFM_IMG_HEADER_OFFSET,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
+		pfm_data + PFM_IMG_HEADER_OFFSET, sizeof (pfm_data) - PFM_IMG_HEADER_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_IMG_HEADER_OFFSET, 0, -1, PFM_IMG_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_IMG_SIGNATURE, PFM_IMG_KEY_SIZE,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_IMG_SIGNATURE,
+		PFM_IMG_KEY_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_IMG_SIG_OFFSET, 0, -1, PFM_IMG_KEY_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + PFM_IMG_REGION_OFFSET,
-		sizeof (pfm_data) - PFM_IMG_REGION_OFFSET,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
+		pfm_data + PFM_IMG_REGION_OFFSET, sizeof (pfm_data) - PFM_IMG_REGION_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_IMG_REGION_OFFSET, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + PFM_MANIFEST_OFFSET,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + PFM_MANIFEST_OFFSET,
 		sizeof (pfm_data) - PFM_MANIFEST_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_MANIFEST_OFFSET, 0, -1, PFM_MANIFEST_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + PFM_KEY_HEADER_OFFSET,
-		sizeof (pfm_data) - PFM_KEY_HEADER_OFFSET,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
+		pfm_data + PFM_KEY_HEADER_OFFSET, sizeof (pfm_data) - PFM_KEY_HEADER_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_KEY_HEADER_OFFSET, 0, -1, PFM_KEY_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_IMG_KEY, PFM_IMG_KEY_SIZE,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_IMG_KEY, PFM_IMG_KEY_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_IMG_KEY_OFFSET, 0, -1, PFM_IMG_KEY_SIZE));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm.base.get_firmware_images (&pfm.base, "Testing1", &img_list);
+	status = pfm.test.base.get_firmware_images (&pfm.test.base, NULL, "Testing1", &img_list);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, img_list.count);
-	CuAssertPtrNotNull (test, img_list.images);
+	CuAssertPtrNotNull (test, img_list.images_sig);
+	CuAssertPtrEquals (test, NULL, (void*) img_list.images_hash);
 
-	CuAssertIntEquals (test, 1, img_list.images[0].count);
-	CuAssertPtrNotNull (test, img_list.images[0].regions);
-	CuAssertIntEquals (test, 1, img_list.images[0].always_validate);
-	CuAssertIntEquals (test, 0, img_list.images[0].regions[0].start_addr);
-	CuAssertIntEquals (test, 0x2000000, img_list.images[0].regions[0].length);
+	CuAssertIntEquals (test, 1, img_list.images_sig[0].count);
+	CuAssertPtrNotNull (test, img_list.images_sig[0].regions);
+	CuAssertIntEquals (test, 1, img_list.images_sig[0].always_validate);
+	CuAssertIntEquals (test, 0, img_list.images_sig[0].regions[0].start_addr);
+	CuAssertIntEquals (test, 0x2000000, img_list.images_sig[0].regions[0].length);
 
-	CuAssertIntEquals (test, 65537, img_list.images[0].key.exponent);
-	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images[0].key.mod_length);
-	status = testing_validate_array (PFM_IMG_KEY, img_list.images[0].key.modulus, PFM_IMG_KEY_SIZE);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images[0].sig_length);
-	status = testing_validate_array (PFM_IMG_SIGNATURE, img_list.images[0].signature,
+	CuAssertIntEquals (test, 65537, img_list.images_sig[0].key.exponent);
+	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images_sig[0].key.mod_length);
+	status = testing_validate_array (PFM_IMG_KEY, img_list.images_sig[0].key.modulus,
 		PFM_IMG_KEY_SIZE);
-
-	pfm.base.free_firmware_images (&pfm.base, &img_list);
-
-	status = flash_master_mock_validate_and_release (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	pfm_flash_release (&pfm);
+	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images_sig[0].sig_length);
+	status = testing_validate_array (PFM_IMG_SIGNATURE, img_list.images_sig[0].signature,
+		PFM_IMG_KEY_SIZE);
+	CuAssertIntEquals (test, 0, status);
 
-	spi_flash_release (&flash);
+	pfm.test.base.free_firmware_images (&pfm.test.base, &img_list);
+
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_get_firmware_images_unknown_version (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
 	struct pfm_image_list img_list;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_ALLOWED_HDR_OFFSET, PFM_MANIFEST_OFFSET,
+		PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_ID_OFFSET, strlen (PFM_PLATFORM_ID), 0);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_ALLOWED_HDR_OFFSET,
-		PFM_DATA_LEN - PFM_ALLOWED_HDR_OFFSET,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_ALLOWED_HDR_OFFSET, 0, -1, PFM_ALLOWED_HEADER_SIZE));
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
+		PFM_DATA + PFM_ALLOWED_HDR_OFFSET, PFM_DATA_LEN - PFM_ALLOWED_HDR_OFFSET,
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_ALLOWED_HDR_OFFSET, 0, -1,
+			PFM_ALLOWED_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_FW_HEADER_OFFSET,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA + PFM_FW_HEADER_OFFSET,
 		PFM_DATA_LEN - PFM_FW_HEADER_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_FW_HEADER_OFFSET, 0, -1, PFM_FW_HEADER_SIZE));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm.base.get_firmware_images (&pfm.base, "Bad", &img_list);
+	status = pfm.test.base.get_firmware_images (&pfm.test.base, NULL, "Bad", &img_list);
 	CuAssertIntEquals (test, PFM_UNSUPPORTED_VERSION, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_get_firmware_images_multiple_versions (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
 	struct pfm_image_list img_list;
 	const char *version1 = "V1";
 	const char *version2 = "Version2";
 	const char *version3 = "V 3";
-	uint8_t pfm_data[PFM_HEADER_SIZE + PFM_ALLOWED_HEADER_SIZE + (PFM_FW_HEADER_SIZE * 3) +
-		(PFM_IMG_HEADER_SIZE * 3) + (PFM_REGION_SIZE * 3) + PFM_MANIFEST_HEADER_SIZE +
-		PFM_KEY_HEADER_SIZE + (PFM_IMG_KEY_SIZE * 4) + 25];
+	const char *platform_id = "Platform";
 	struct manifest_header *header;
 	struct pfm_allowable_firmware_header *allowed_header;
 	struct pfm_firmware_header *fw_header;
@@ -4738,6 +4463,7 @@ static void pfm_flash_test_get_firmware_images_multiple_versions (CuTest *test)
 	struct pfm_flash_region *region;
 	struct pfm_key_manifest_header *manifest_header;
 	struct pfm_public_key_header *key_header;
+	struct pfm_platform_header *platform_header;
 	int ver_offset1 = PFM_HEADER_SIZE + PFM_ALLOWED_HEADER_SIZE;
 	int img_offset1 = ver_offset1 + PFM_FW_HEADER_SIZE + 4;
 	int sig_offset1 = img_offset1 + PFM_IMG_HEADER_SIZE;
@@ -4753,6 +4479,9 @@ static void pfm_flash_test_get_firmware_images_multiple_versions (CuTest *test)
 	int man_offset = reg_offset3 + PFM_REGION_SIZE;
 	int pub_offset = man_offset + PFM_MANIFEST_HEADER_SIZE;
 	int key_offset = pub_offset + PFM_KEY_HEADER_SIZE;
+	int plat_offset = key_offset + PFM_IMG_KEY_SIZE;
+	int sig_offset = plat_offset + PFM_PLATFORM_HEADER_SIZE + 8;
+	uint8_t pfm_data[sig_offset + PFM_SIGNATURE_LEN];
 
 	TEST_START;
 
@@ -4761,6 +4490,7 @@ static void pfm_flash_test_get_firmware_images_multiple_versions (CuTest *test)
 	header = (struct manifest_header*) pfm_data;
 	header->length = sizeof (pfm_data);
 	header->magic = PFM_MAGIC_NUM;
+	header->sig_length = PFM_SIGNATURE_LEN;
 
 	allowed_header = (struct pfm_allowable_firmware_header*) &pfm_data[PFM_HEADER_SIZE];
 	allowed_header->length = PFM_ALLOWED_HEADER_SIZE;
@@ -4831,126 +4561,119 @@ static void pfm_flash_test_get_firmware_images_multiple_versions (CuTest *test)
 	key_header->id = 0;
 	pfm_data[key_offset] = 1;
 
-	status = flash_master_mock_init (&flash_mock);
+	platform_header = (struct pfm_platform_header*) &pfm_data[plat_offset];
+	platform_header->length = PFM_PLATFORM_HEADER_SIZE + 8;
+	platform_header->id_length = strlen (platform_id);
+	memcpy (&pfm_data[plat_offset + PFM_PLATFORM_HEADER_SIZE], platform_id, strlen (platform_id));
+
+	status = RSA_TESTING_ENGINE_SIGN (pfm_data, sizeof (pfm_data) - PFM_SIGNATURE_LEN,
+		RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, &pfm_data[sig_offset], PFM_SIGNATURE_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, pfm_data, sizeof (pfm_data), NULL,
+		&pfm_data[sig_offset], sig_offset, PFM_HEADER_SIZE, man_offset, plat_offset,
+		plat_offset + PFM_PLATFORM_HEADER_SIZE, strlen (platform_id), 0);
 
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data, sizeof (pfm_data),
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data, sizeof (pfm_data),
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + PFM_HEADER_SIZE,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + PFM_HEADER_SIZE,
 		sizeof (pfm_data) - PFM_HEADER_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_HEADER_SIZE, 0, -1, PFM_ALLOWED_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + ver_offset1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + ver_offset1,
 		sizeof (pfm_data) - ver_offset1,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + ver_offset1, 0, -1, PFM_FW_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + ver_offset2,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + ver_offset2,
 		sizeof (pfm_data) - ver_offset2,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + ver_offset2, 0, -1, PFM_FW_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
 		pfm_data + ver_offset2 + PFM_FW_HEADER_SIZE,
 		sizeof (pfm_data) - ver_offset2 - PFM_FW_HEADER_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + ver_offset2 + PFM_FW_HEADER_SIZE, 0, -1,
 			strlen (version2)));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + img_offset2,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + img_offset2,
 		sizeof (pfm_data) - img_offset2,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + img_offset2, 0, -1, PFM_IMG_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + sig_offset2,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + sig_offset2,
 		sizeof (pfm_data) - sig_offset2,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + sig_offset2, 0, -1, PFM_IMG_KEY_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset2,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset2,
 		sizeof (pfm_data) - reg_offset2,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset2, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + man_offset,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + man_offset,
 		sizeof (pfm_data) - man_offset,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + man_offset, 0, -1, PFM_MANIFEST_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + pub_offset,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + pub_offset,
 		sizeof (pfm_data) - pub_offset,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + pub_offset, 0, -1, PFM_KEY_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + key_offset,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + key_offset,
 		sizeof (pfm_data) - key_offset,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + key_offset, 0, -1, PFM_IMG_KEY_SIZE));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm.base.get_firmware_images (&pfm.base, version2, &img_list);
+	status = pfm.test.base.get_firmware_images (&pfm.test.base, NULL, version2, &img_list);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, img_list.count);
-	CuAssertPtrNotNull (test, img_list.images);
+	CuAssertPtrNotNull (test, img_list.images_sig);
+	CuAssertPtrEquals (test, NULL, (void*) img_list.images_hash);
 
-	CuAssertIntEquals (test, 1, img_list.images[0].count);
-	CuAssertPtrNotNull (test, img_list.images[0].regions);
-	CuAssertIntEquals (test, 0, img_list.images[0].always_validate);
-	CuAssertIntEquals (test, 0x2000000, img_list.images[0].regions[0].start_addr);
-	CuAssertIntEquals (test, 0x800000, img_list.images[0].regions[0].length);
+	CuAssertIntEquals (test, 1, img_list.images_sig[0].count);
+	CuAssertPtrNotNull (test, img_list.images_sig[0].regions);
+	CuAssertIntEquals (test, 0, img_list.images_sig[0].always_validate);
+	CuAssertIntEquals (test, 0x2000000, img_list.images_sig[0].regions[0].start_addr);
+	CuAssertIntEquals (test, 0x800000, img_list.images_sig[0].regions[0].length);
 
-	CuAssertIntEquals (test, 3, img_list.images[0].key.exponent);
-	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images[0].key.mod_length);
-	CuAssertIntEquals (test, 1, img_list.images[0].key.modulus[0]);
+	CuAssertIntEquals (test, 3, img_list.images_sig[0].key.exponent);
+	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images_sig[0].key.mod_length);
+	CuAssertIntEquals (test, 1, img_list.images_sig[0].key.modulus[0]);
 
-	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images[0].sig_length);
-	CuAssertIntEquals (test, 22, img_list.images[0].signature[0]);
+	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images_sig[0].sig_length);
+	CuAssertIntEquals (test, 22, img_list.images_sig[0].signature[0]);
 
-	pfm.base.free_firmware_images (&pfm.base, &img_list);
+	pfm.test.base.free_firmware_images (&pfm.test.base, &img_list);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_get_firmware_images_multiple_regions (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
 	struct pfm_image_list img_list;
 	const char *version1 = "V1";
-	uint8_t pfm_data[PFM_HEADER_SIZE + PFM_ALLOWED_HEADER_SIZE + PFM_FW_HEADER_SIZE +
-		PFM_IMG_HEADER_SIZE + (PFM_REGION_SIZE * 3) + PFM_MANIFEST_HEADER_SIZE +
-		PFM_KEY_HEADER_SIZE + (PFM_IMG_KEY_SIZE * 2) + 4];
+	const char *platform_id = "Platform";
 	struct manifest_header *header;
 	struct pfm_allowable_firmware_header *allowed_header;
 	struct pfm_firmware_header *fw_header;
@@ -4958,6 +4681,7 @@ static void pfm_flash_test_get_firmware_images_multiple_regions (CuTest *test)
 	struct pfm_flash_region *region;
 	struct pfm_key_manifest_header *manifest_header;
 	struct pfm_public_key_header *key_header;
+	struct pfm_platform_header *platform_header;
 	int ver_offset1 = PFM_HEADER_SIZE + PFM_ALLOWED_HEADER_SIZE;
 	int img_offset1 = ver_offset1 + PFM_FW_HEADER_SIZE + 4;
 	int sig_offset1 = img_offset1 + PFM_IMG_HEADER_SIZE;
@@ -4967,6 +4691,9 @@ static void pfm_flash_test_get_firmware_images_multiple_regions (CuTest *test)
 	int man_offset = reg_offset3 + PFM_REGION_SIZE;
 	int pub_offset = man_offset + PFM_MANIFEST_HEADER_SIZE;
 	int key_offset = pub_offset + PFM_KEY_HEADER_SIZE;
+	int plat_offset = key_offset + PFM_IMG_KEY_SIZE;
+	int sig_offset = plat_offset + PFM_PLATFORM_HEADER_SIZE + 8;
+	uint8_t pfm_data[sig_offset + PFM_SIGNATURE_LEN];
 
 	TEST_START;
 
@@ -4975,6 +4702,7 @@ static void pfm_flash_test_get_firmware_images_multiple_regions (CuTest *test)
 	header = (struct manifest_header*) pfm_data;
 	header->length = sizeof (pfm_data);
 	header->magic = PFM_MAGIC_NUM;
+	header->sig_length = PFM_SIGNATURE_LEN;
 
 	allowed_header = (struct pfm_allowable_firmware_header*) &pfm_data[PFM_HEADER_SIZE];
 	allowed_header->length = PFM_ALLOWED_HEADER_SIZE;
@@ -5017,135 +4745,128 @@ static void pfm_flash_test_get_firmware_images_multiple_regions (CuTest *test)
 	key_header->id = 0;
 	pfm_data[key_offset] = 1;
 
-	status = flash_master_mock_init (&flash_mock);
+	platform_header = (struct pfm_platform_header*) &pfm_data[plat_offset];
+	platform_header->length = PFM_PLATFORM_HEADER_SIZE + 8;
+	platform_header->id_length = strlen (platform_id);
+	memcpy (&pfm_data[plat_offset + PFM_PLATFORM_HEADER_SIZE], platform_id, strlen (platform_id));
+
+	status = RSA_TESTING_ENGINE_SIGN (pfm_data, sizeof (pfm_data) - PFM_SIGNATURE_LEN,
+		RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, &pfm_data[sig_offset], PFM_SIGNATURE_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, pfm_data, sizeof (pfm_data), NULL,
+		&pfm_data[sig_offset], sig_offset, PFM_HEADER_SIZE, man_offset, plat_offset,
+		plat_offset + PFM_PLATFORM_HEADER_SIZE, strlen (platform_id), 0);
 
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data, sizeof (pfm_data),
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data, sizeof (pfm_data),
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + PFM_HEADER_SIZE,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + PFM_HEADER_SIZE,
 		sizeof (pfm_data) - PFM_HEADER_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_HEADER_SIZE, 0, -1, PFM_ALLOWED_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + ver_offset1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + ver_offset1,
 		sizeof (pfm_data) - ver_offset1,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + ver_offset1, 0, -1, PFM_FW_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
 		pfm_data + ver_offset1 + PFM_FW_HEADER_SIZE,
 		sizeof (pfm_data) - ver_offset1 - PFM_FW_HEADER_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + ver_offset1 + PFM_FW_HEADER_SIZE, 0, -1,
 			strlen (version1)));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + img_offset1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + img_offset1,
 		sizeof (pfm_data) - img_offset1,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + img_offset1, 0, -1, PFM_IMG_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + sig_offset1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + sig_offset1,
 		sizeof (pfm_data) - sig_offset1,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + sig_offset1, 0, -1, PFM_IMG_KEY_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset1,
 		sizeof (pfm_data) - reg_offset1,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset1, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset2,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset2,
 		sizeof (pfm_data) - reg_offset2,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset2, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset3,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset3,
 		sizeof (pfm_data) - reg_offset3,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset3, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + man_offset,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + man_offset,
 		sizeof (pfm_data) - man_offset,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + man_offset, 0, -1, PFM_MANIFEST_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + pub_offset,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + pub_offset,
 		sizeof (pfm_data) - pub_offset,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + pub_offset, 0, -1, PFM_KEY_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + key_offset,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + key_offset,
 		sizeof (pfm_data) - key_offset,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + key_offset, 0, -1, PFM_IMG_KEY_SIZE));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm.base.get_firmware_images (&pfm.base, version1, &img_list);
+	status = pfm.test.base.get_firmware_images (&pfm.test.base, NULL, version1, &img_list);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, img_list.count);
-	CuAssertPtrNotNull (test, img_list.images);
+	CuAssertPtrNotNull (test, img_list.images_sig);
+	CuAssertPtrEquals (test, NULL, (void*) img_list.images_hash);
 
-	CuAssertIntEquals (test, 3, img_list.images[0].count);
-	CuAssertPtrNotNull (test, img_list.images[0].regions);
-	CuAssertIntEquals (test, 1, img_list.images[0].always_validate);
-	CuAssertIntEquals (test, 65537, img_list.images[0].key.exponent);
-	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images[0].key.mod_length);
-	CuAssertIntEquals (test, 1, img_list.images[0].key.modulus[0]);
-	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images[0].sig_length);
-	CuAssertIntEquals (test, 11, img_list.images[0].signature[0]);
+	CuAssertIntEquals (test, 3, img_list.images_sig[0].count);
+	CuAssertPtrNotNull (test, img_list.images_sig[0].regions);
+	CuAssertIntEquals (test, 1, img_list.images_sig[0].always_validate);
+	CuAssertIntEquals (test, 65537, img_list.images_sig[0].key.exponent);
+	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images_sig[0].key.mod_length);
+	CuAssertIntEquals (test, 1, img_list.images_sig[0].key.modulus[0]);
+	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images_sig[0].sig_length);
+	CuAssertIntEquals (test, 11, img_list.images_sig[0].signature[0]);
 
-	CuAssertIntEquals (test, 0x1000000, img_list.images[0].regions[0].start_addr);
-	CuAssertIntEquals (test, 0x1000000, img_list.images[0].regions[0].length);
-	CuAssertIntEquals (test, 0x2000000, img_list.images[0].regions[1].start_addr);
-	CuAssertIntEquals (test, 0x800000, img_list.images[0].regions[1].length);
-	CuAssertIntEquals (test, 0x4000000, img_list.images[0].regions[2].start_addr);
-	CuAssertIntEquals (test, 0x20000, img_list.images[0].regions[2].length);
+	CuAssertIntEquals (test, 0x1000000, img_list.images_sig[0].regions[0].start_addr);
+	CuAssertIntEquals (test, 0x1000000, img_list.images_sig[0].regions[0].length);
+	CuAssertIntEquals (test, 0x2000000, img_list.images_sig[0].regions[1].start_addr);
+	CuAssertIntEquals (test, 0x800000, img_list.images_sig[0].regions[1].length);
+	CuAssertIntEquals (test, 0x4000000, img_list.images_sig[0].regions[2].start_addr);
+	CuAssertIntEquals (test, 0x20000, img_list.images_sig[0].regions[2].length);
 
-	pfm.base.free_firmware_images (&pfm.base, &img_list);
+	pfm.test.base.free_firmware_images (&pfm.test.base, &img_list);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_get_firmware_images_multiple_images (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
 	struct pfm_image_list img_list;
 	const char *version1 = "V1";
-	uint8_t pfm_data[PFM_HEADER_SIZE + PFM_ALLOWED_HEADER_SIZE + PFM_FW_HEADER_SIZE  +
-		(PFM_IMG_HEADER_SIZE * 3) + (PFM_IMG_KEY_SIZE * 4) + (PFM_REGION_SIZE * 3 * 3) +
-		PFM_MANIFEST_HEADER_SIZE + PFM_KEY_HEADER_SIZE + 4];
+	const char *platform_id = "Platform";
 	struct manifest_header *header;
 	struct pfm_allowable_firmware_header *allowed_header;
 	struct pfm_firmware_header *fw_header;
@@ -5153,6 +4874,7 @@ static void pfm_flash_test_get_firmware_images_multiple_images (CuTest *test)
 	struct pfm_flash_region *region;
 	struct pfm_key_manifest_header *manifest_header;
 	struct pfm_public_key_header *key_header;
+	struct pfm_platform_header *platform_header;
 	int ver_offset1 = PFM_HEADER_SIZE + PFM_ALLOWED_HEADER_SIZE;
 	int img_offset1 = ver_offset1 + PFM_FW_HEADER_SIZE + 4;
 	int sig_offset1 = img_offset1 + PFM_IMG_HEADER_SIZE;
@@ -5172,6 +4894,9 @@ static void pfm_flash_test_get_firmware_images_multiple_images (CuTest *test)
 	int man_offset = reg_offset34 + PFM_REGION_SIZE;
 	int pub_offset = man_offset + PFM_MANIFEST_HEADER_SIZE;
 	int key_offset = pub_offset + PFM_KEY_HEADER_SIZE;
+	int plat_offset = key_offset + PFM_IMG_KEY_SIZE;
+	int sig_offset = plat_offset + PFM_PLATFORM_HEADER_SIZE + 8;
+	uint8_t pfm_data[sig_offset + PFM_SIGNATURE_LEN];
 
 	TEST_START;
 
@@ -5180,6 +4905,7 @@ static void pfm_flash_test_get_firmware_images_multiple_images (CuTest *test)
 	header = (struct manifest_header*) pfm_data;
 	header->length = sizeof (pfm_data);
 	header->magic = PFM_MAGIC_NUM;
+	header->sig_length = PFM_SIGNATURE_LEN;
 
 	allowed_header = (struct pfm_allowable_firmware_header*) &pfm_data[PFM_HEADER_SIZE];
 	allowed_header->length = PFM_ALLOWED_HEADER_SIZE;
@@ -5256,224 +4982,217 @@ static void pfm_flash_test_get_firmware_images_multiple_images (CuTest *test)
 	key_header->id = 0;
 	pfm_data[key_offset] = 1;
 
-	status = flash_master_mock_init (&flash_mock);
+	platform_header = (struct pfm_platform_header*) &pfm_data[plat_offset];
+	platform_header->length = PFM_PLATFORM_HEADER_SIZE + 8;
+	platform_header->id_length = strlen (platform_id);
+	memcpy (&pfm_data[plat_offset + PFM_PLATFORM_HEADER_SIZE], platform_id, strlen (platform_id));
+
+	status = RSA_TESTING_ENGINE_SIGN (pfm_data, sizeof (pfm_data) - PFM_SIGNATURE_LEN,
+		RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, &pfm_data[sig_offset], PFM_SIGNATURE_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, pfm_data, sizeof (pfm_data), NULL,
+		&pfm_data[sig_offset], sig_offset, PFM_HEADER_SIZE, man_offset, plat_offset,
+		plat_offset + PFM_PLATFORM_HEADER_SIZE, strlen (platform_id), 0);
 
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data, sizeof (pfm_data),
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data, sizeof (pfm_data),
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + PFM_HEADER_SIZE,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + PFM_HEADER_SIZE,
 		sizeof (pfm_data) - PFM_HEADER_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_HEADER_SIZE, 0, -1, PFM_ALLOWED_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + ver_offset1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + ver_offset1,
 		sizeof (pfm_data) - ver_offset1,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + ver_offset1, 0, -1, PFM_FW_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
 		pfm_data + ver_offset1 + PFM_FW_HEADER_SIZE,
 		sizeof (pfm_data) - ver_offset1 - PFM_FW_HEADER_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + ver_offset1 + PFM_FW_HEADER_SIZE, 0, -1,
 			strlen (version1)));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + img_offset1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + img_offset1,
 		sizeof (pfm_data) - img_offset1,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + img_offset1, 0, -1, PFM_IMG_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + sig_offset1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + sig_offset1,
 		sizeof (pfm_data) - sig_offset1,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + sig_offset1, 0, -1, PFM_IMG_KEY_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset11,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset11,
 		sizeof (pfm_data) - reg_offset11,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset11, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset12,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset12,
 		sizeof (pfm_data) - reg_offset12,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset12, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset13,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset13,
 		sizeof (pfm_data) - reg_offset13,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset13, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + img_offset2,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + img_offset2,
 		sizeof (pfm_data) - img_offset2,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + img_offset2, 0, -1, PFM_IMG_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + sig_offset2,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + sig_offset2,
 		sizeof (pfm_data) - sig_offset2,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + sig_offset2, 0, -1, PFM_IMG_KEY_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset21,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset21,
 		sizeof (pfm_data) - reg_offset21,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset21, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset22,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset22,
 		sizeof (pfm_data) - reg_offset22,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset22, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + img_offset3,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + img_offset3,
 		sizeof (pfm_data) - img_offset3,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + img_offset3, 0, -1, PFM_IMG_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + sig_offset3,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + sig_offset3,
 		sizeof (pfm_data) - sig_offset3,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + sig_offset3, 0, -1, PFM_IMG_KEY_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset31,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset31,
 		sizeof (pfm_data) - reg_offset31,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset31, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset32,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset32,
 		sizeof (pfm_data) - reg_offset32,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset32, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset33,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset33,
 		sizeof (pfm_data) - reg_offset33,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset33, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset34,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset34,
 		sizeof (pfm_data) - reg_offset34,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset34, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + man_offset,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + man_offset,
 		sizeof (pfm_data) - man_offset,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + man_offset, 0, -1, PFM_MANIFEST_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + pub_offset,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + pub_offset,
 		sizeof (pfm_data) - pub_offset,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + pub_offset, 0, -1, PFM_KEY_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + key_offset,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + key_offset,
 		sizeof (pfm_data) - key_offset,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + key_offset, 0, -1, PFM_IMG_KEY_SIZE));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm.base.get_firmware_images (&pfm.base, version1, &img_list);
+	status = pfm.test.base.get_firmware_images (&pfm.test.base, NULL, version1, &img_list);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 3, img_list.count);
-	CuAssertPtrNotNull (test, img_list.images);
+	CuAssertPtrNotNull (test, img_list.images_sig);
+	CuAssertPtrEquals (test, NULL, (void*) img_list.images_hash);
 
-	CuAssertIntEquals (test, 3, img_list.images[0].count);
-	CuAssertPtrNotNull (test, img_list.images[0].regions);
-	CuAssertIntEquals (test, 1, img_list.images[0].always_validate);
-	CuAssertIntEquals (test, 65537, img_list.images[0].key.exponent);
-	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images[0].key.mod_length);
-	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images[0].sig_length);
-	CuAssertIntEquals (test, 1, img_list.images[0].key.modulus[0]);
-	CuAssertIntEquals (test, 11, img_list.images[0].signature[0]);
-	CuAssertIntEquals (test, 0x1000000, img_list.images[0].regions[0].start_addr);
-	CuAssertIntEquals (test, 0x1000000, img_list.images[0].regions[0].length);
-	CuAssertIntEquals (test, 0x2000000, img_list.images[0].regions[1].start_addr);
-	CuAssertIntEquals (test, 0x800000, img_list.images[0].regions[1].length);
-	CuAssertIntEquals (test, 0x4000000, img_list.images[0].regions[2].start_addr);
-	CuAssertIntEquals (test, 0x20000, img_list.images[0].regions[2].length);
+	CuAssertIntEquals (test, 3, img_list.images_sig[0].count);
+	CuAssertPtrNotNull (test, img_list.images_sig[0].regions);
+	CuAssertIntEquals (test, 1, img_list.images_sig[0].always_validate);
+	CuAssertIntEquals (test, 65537, img_list.images_sig[0].key.exponent);
+	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images_sig[0].key.mod_length);
+	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images_sig[0].sig_length);
+	CuAssertIntEquals (test, 1, img_list.images_sig[0].key.modulus[0]);
+	CuAssertIntEquals (test, 11, img_list.images_sig[0].signature[0]);
+	CuAssertIntEquals (test, 0x1000000, img_list.images_sig[0].regions[0].start_addr);
+	CuAssertIntEquals (test, 0x1000000, img_list.images_sig[0].regions[0].length);
+	CuAssertIntEquals (test, 0x2000000, img_list.images_sig[0].regions[1].start_addr);
+	CuAssertIntEquals (test, 0x800000, img_list.images_sig[0].regions[1].length);
+	CuAssertIntEquals (test, 0x4000000, img_list.images_sig[0].regions[2].start_addr);
+	CuAssertIntEquals (test, 0x20000, img_list.images_sig[0].regions[2].length);
 
-	CuAssertIntEquals (test, 2, img_list.images[1].count);
-	CuAssertPtrNotNull (test, img_list.images[1].regions);
-	CuAssertIntEquals (test, 1, img_list.images[1].always_validate);
-	CuAssertIntEquals (test, 65537, img_list.images[1].key.exponent);
-	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images[1].key.mod_length);
-	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images[1].sig_length);
-	CuAssertIntEquals (test, 1, img_list.images[1].key.modulus[0]);
-	CuAssertIntEquals (test, 22, img_list.images[1].signature[0]);
-	CuAssertIntEquals (test, 0x20000, img_list.images[1].regions[0].start_addr);
-	CuAssertIntEquals (test, 0x20000, img_list.images[1].regions[0].length);
-	CuAssertIntEquals (test, 0x50000, img_list.images[1].regions[1].start_addr);
-	CuAssertIntEquals (test, 0x20000, img_list.images[1].regions[1].length);
+	CuAssertIntEquals (test, 2, img_list.images_sig[1].count);
+	CuAssertPtrNotNull (test, img_list.images_sig[1].regions);
+	CuAssertIntEquals (test, 1, img_list.images_sig[1].always_validate);
+	CuAssertIntEquals (test, 65537, img_list.images_sig[1].key.exponent);
+	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images_sig[1].key.mod_length);
+	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images_sig[1].sig_length);
+	CuAssertIntEquals (test, 1, img_list.images_sig[1].key.modulus[0]);
+	CuAssertIntEquals (test, 22, img_list.images_sig[1].signature[0]);
+	CuAssertIntEquals (test, 0x20000, img_list.images_sig[1].regions[0].start_addr);
+	CuAssertIntEquals (test, 0x20000, img_list.images_sig[1].regions[0].length);
+	CuAssertIntEquals (test, 0x50000, img_list.images_sig[1].regions[1].start_addr);
+	CuAssertIntEquals (test, 0x20000, img_list.images_sig[1].regions[1].length);
 
-	CuAssertIntEquals (test, 4, img_list.images[2].count);
-	CuAssertPtrNotNull (test, img_list.images[2].regions);
-	CuAssertIntEquals (test, 0, img_list.images[2].always_validate);
-	CuAssertIntEquals (test, 65537, img_list.images[2].key.exponent);
-	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images[2].key.mod_length);
-	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images[2].sig_length);
-	CuAssertIntEquals (test, 1, img_list.images[2].key.modulus[0]);
-	CuAssertIntEquals (test, 33, img_list.images[2].signature[0]);
-	CuAssertIntEquals (test, 0x6000000, img_list.images[2].regions[0].start_addr);
-	CuAssertIntEquals (test, 0x1000000, img_list.images[2].regions[0].length);
-	CuAssertIntEquals (test, 0x500000, img_list.images[2].regions[1].start_addr);
-	CuAssertIntEquals (test, 0x200000, img_list.images[2].regions[1].length);
-	CuAssertIntEquals (test, 0x40000, img_list.images[2].regions[2].start_addr);
-	CuAssertIntEquals (test, 0x10000, img_list.images[2].regions[2].length);
-	CuAssertIntEquals (test, 0x100000, img_list.images[2].regions[3].start_addr);
-	CuAssertIntEquals (test, 0x500000, img_list.images[2].regions[3].length);
+	CuAssertIntEquals (test, 4, img_list.images_sig[2].count);
+	CuAssertPtrNotNull (test, img_list.images_sig[2].regions);
+	CuAssertIntEquals (test, 0, img_list.images_sig[2].always_validate);
+	CuAssertIntEquals (test, 65537, img_list.images_sig[2].key.exponent);
+	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images_sig[2].key.mod_length);
+	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images_sig[2].sig_length);
+	CuAssertIntEquals (test, 1, img_list.images_sig[2].key.modulus[0]);
+	CuAssertIntEquals (test, 33, img_list.images_sig[2].signature[0]);
+	CuAssertIntEquals (test, 0x6000000, img_list.images_sig[2].regions[0].start_addr);
+	CuAssertIntEquals (test, 0x1000000, img_list.images_sig[2].regions[0].length);
+	CuAssertIntEquals (test, 0x500000, img_list.images_sig[2].regions[1].start_addr);
+	CuAssertIntEquals (test, 0x200000, img_list.images_sig[2].regions[1].length);
+	CuAssertIntEquals (test, 0x40000, img_list.images_sig[2].regions[2].start_addr);
+	CuAssertIntEquals (test, 0x10000, img_list.images_sig[2].regions[2].length);
+	CuAssertIntEquals (test, 0x100000, img_list.images_sig[2].regions[3].start_addr);
+	CuAssertIntEquals (test, 0x500000, img_list.images_sig[2].regions[3].length);
 
-	pfm.base.free_firmware_images (&pfm.base, &img_list);
+	pfm.test.base.free_firmware_images (&pfm.test.base, &img_list);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_get_firmware_images_multiple_keys (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
 	struct pfm_image_list img_list;
 	const char *version1 = "V1";
-	uint8_t pfm_data[PFM_HEADER_SIZE + PFM_ALLOWED_HEADER_SIZE + PFM_FW_HEADER_SIZE  +
-		(PFM_IMG_HEADER_SIZE * 3) + (PFM_IMG_KEY_SIZE * 6) + (PFM_REGION_SIZE * 3 * 3) +
-		PFM_MANIFEST_HEADER_SIZE + (PFM_KEY_HEADER_SIZE * 3) + 4];
+	const char *platform_id = "Platform";
 	struct manifest_header *header;
 	struct pfm_allowable_firmware_header *allowed_header;
 	struct pfm_firmware_header *fw_header;
@@ -5481,6 +5200,7 @@ static void pfm_flash_test_get_firmware_images_multiple_keys (CuTest *test)
 	struct pfm_flash_region *region;
 	struct pfm_key_manifest_header *manifest_header;
 	struct pfm_public_key_header *key_header;
+	struct pfm_platform_header *platform_header;
 	int ver_offset1 = PFM_HEADER_SIZE + PFM_ALLOWED_HEADER_SIZE;
 	int img_offset1 = ver_offset1 + PFM_FW_HEADER_SIZE + 4;
 	int sig_offset1 = img_offset1 + PFM_IMG_HEADER_SIZE;
@@ -5504,6 +5224,9 @@ static void pfm_flash_test_get_firmware_images_multiple_keys (CuTest *test)
 	int key_offset2 = pub_offset2 + PFM_KEY_HEADER_SIZE;
 	int pub_offset3 = key_offset2 + PFM_IMG_KEY_SIZE;
 	int key_offset3 = pub_offset3 + PFM_KEY_HEADER_SIZE;
+	int plat_offset = key_offset3 + PFM_IMG_KEY_SIZE;
+	int sig_offset = plat_offset + PFM_PLATFORM_HEADER_SIZE + 8;
+	uint8_t pfm_data[sig_offset + PFM_SIGNATURE_LEN];
 
 	TEST_START;
 
@@ -5512,6 +5235,7 @@ static void pfm_flash_test_get_firmware_images_multiple_keys (CuTest *test)
 	header = (struct manifest_header*) pfm_data;
 	header->length = sizeof (pfm_data);
 	header->magic = PFM_MAGIC_NUM;
+	header->sig_length = PFM_SIGNATURE_LEN;
 
 	allowed_header = (struct pfm_allowable_firmware_header*) &pfm_data[PFM_HEADER_SIZE];
 	allowed_header->length = PFM_ALLOWED_HEADER_SIZE;
@@ -5603,248 +5327,241 @@ static void pfm_flash_test_get_firmware_images_multiple_keys (CuTest *test)
 	key_header->id = 2;
 	pfm_data[key_offset3] = 3;
 
-	status = flash_master_mock_init (&flash_mock);
+	platform_header = (struct pfm_platform_header*) &pfm_data[plat_offset];
+	platform_header->length = PFM_PLATFORM_HEADER_SIZE + 8;
+	platform_header->id_length = strlen (platform_id);
+	memcpy (&pfm_data[plat_offset + PFM_PLATFORM_HEADER_SIZE], platform_id, strlen (platform_id));
+
+	status = RSA_TESTING_ENGINE_SIGN (pfm_data, sizeof (pfm_data) - PFM_SIGNATURE_LEN,
+		RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, &pfm_data[sig_offset], PFM_SIGNATURE_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, pfm_data, sizeof (pfm_data), NULL,
+		&pfm_data[sig_offset], sig_offset, PFM_HEADER_SIZE, man_offset, plat_offset,
+		plat_offset + PFM_PLATFORM_HEADER_SIZE, strlen (platform_id), 0);
 
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data, sizeof (pfm_data),
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data, sizeof (pfm_data),
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + PFM_HEADER_SIZE,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + PFM_HEADER_SIZE,
 		sizeof (pfm_data) - PFM_HEADER_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_HEADER_SIZE, 0, -1, PFM_ALLOWED_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + ver_offset1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + ver_offset1,
 		sizeof (pfm_data) - ver_offset1,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + ver_offset1, 0, -1, PFM_FW_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
 		pfm_data + ver_offset1 + PFM_FW_HEADER_SIZE,
 		sizeof (pfm_data) - ver_offset1 - PFM_FW_HEADER_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + ver_offset1 + PFM_FW_HEADER_SIZE, 0, -1,
 			strlen (version1)));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + img_offset1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + img_offset1,
 		sizeof (pfm_data) - img_offset1,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + img_offset1, 0, -1, PFM_IMG_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + sig_offset1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + sig_offset1,
 		sizeof (pfm_data) - sig_offset1,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + sig_offset1, 0, -1, PFM_IMG_KEY_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset11,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset11,
 		sizeof (pfm_data) - reg_offset11,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset11, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset12,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset12,
 		sizeof (pfm_data) - reg_offset12,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset12, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset13,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset13,
 		sizeof (pfm_data) - reg_offset13,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset13, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + img_offset2,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + img_offset2,
 		sizeof (pfm_data) - img_offset2,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + img_offset2, 0, -1, PFM_IMG_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + sig_offset2,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + sig_offset2,
 		sizeof (pfm_data) - sig_offset2,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + sig_offset2, 0, -1, PFM_IMG_KEY_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset21,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset21,
 		sizeof (pfm_data) - reg_offset21,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset21, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset22,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset22,
 		sizeof (pfm_data) - reg_offset22,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset22, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + img_offset3,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + img_offset3,
 		sizeof (pfm_data) - img_offset3,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + img_offset3, 0, -1, PFM_IMG_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + sig_offset3,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + sig_offset3,
 		sizeof (pfm_data) - sig_offset3,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + sig_offset3, 0, -1, PFM_IMG_KEY_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset31,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset31,
 		sizeof (pfm_data) - reg_offset31,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset31, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset32,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset32,
 		sizeof (pfm_data) - reg_offset32,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset32, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset33,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset33,
 		sizeof (pfm_data) - reg_offset33,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset33, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset34,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset34,
 		sizeof (pfm_data) - reg_offset34,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset34, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + man_offset,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + man_offset,
 		sizeof (pfm_data) - man_offset,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + man_offset, 0, -1, PFM_MANIFEST_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + pub_offset1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + pub_offset1,
 		sizeof (pfm_data) - pub_offset1,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + pub_offset1, 0, -1, PFM_KEY_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + key_offset1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + key_offset1,
 		sizeof (pfm_data) - key_offset1,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + key_offset1, 0, -1, PFM_IMG_KEY_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + pub_offset2,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + pub_offset2,
 		sizeof (pfm_data) - pub_offset2,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + pub_offset2, 0, -1, PFM_KEY_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + key_offset2,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + key_offset2,
 		sizeof (pfm_data) - key_offset2,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + key_offset2, 0, -1, PFM_IMG_KEY_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + pub_offset3,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + pub_offset3,
 		sizeof (pfm_data) - pub_offset3,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + pub_offset3, 0, -1, PFM_KEY_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + key_offset3,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + key_offset3,
 		sizeof (pfm_data) - key_offset3,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + key_offset3, 0, -1, PFM_IMG_KEY_SIZE));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm.base.get_firmware_images (&pfm.base, version1, &img_list);
+	status = pfm.test.base.get_firmware_images (&pfm.test.base, NULL, version1, &img_list);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 3, img_list.count);
-	CuAssertPtrNotNull (test, img_list.images);
+	CuAssertPtrNotNull (test, img_list.images_sig);
+	CuAssertPtrEquals (test, NULL, (void*) img_list.images_hash);
 
-	CuAssertIntEquals (test, 3, img_list.images[0].count);
-	CuAssertPtrNotNull (test, img_list.images[0].regions);
-	CuAssertIntEquals (test, 1, img_list.images[0].always_validate);
-	CuAssertIntEquals (test, 65537, img_list.images[0].key.exponent);
-	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images[0].key.mod_length);
-	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images[0].sig_length);
-	CuAssertIntEquals (test, 1, img_list.images[0].key.modulus[0]);
-	CuAssertIntEquals (test, 11, img_list.images[0].signature[0]);
-	CuAssertIntEquals (test, 0x1000000, img_list.images[0].regions[0].start_addr);
-	CuAssertIntEquals (test, 0x1000000, img_list.images[0].regions[0].length);
-	CuAssertIntEquals (test, 0x2000000, img_list.images[0].regions[1].start_addr);
-	CuAssertIntEquals (test, 0x800000, img_list.images[0].regions[1].length);
-	CuAssertIntEquals (test, 0x4000000, img_list.images[0].regions[2].start_addr);
-	CuAssertIntEquals (test, 0x20000, img_list.images[0].regions[2].length);
+	CuAssertIntEquals (test, 3, img_list.images_sig[0].count);
+	CuAssertPtrNotNull (test, img_list.images_sig[0].regions);
+	CuAssertIntEquals (test, 1, img_list.images_sig[0].always_validate);
+	CuAssertIntEquals (test, 65537, img_list.images_sig[0].key.exponent);
+	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images_sig[0].key.mod_length);
+	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images_sig[0].sig_length);
+	CuAssertIntEquals (test, 1, img_list.images_sig[0].key.modulus[0]);
+	CuAssertIntEquals (test, 11, img_list.images_sig[0].signature[0]);
+	CuAssertIntEquals (test, 0x1000000, img_list.images_sig[0].regions[0].start_addr);
+	CuAssertIntEquals (test, 0x1000000, img_list.images_sig[0].regions[0].length);
+	CuAssertIntEquals (test, 0x2000000, img_list.images_sig[0].regions[1].start_addr);
+	CuAssertIntEquals (test, 0x800000, img_list.images_sig[0].regions[1].length);
+	CuAssertIntEquals (test, 0x4000000, img_list.images_sig[0].regions[2].start_addr);
+	CuAssertIntEquals (test, 0x20000, img_list.images_sig[0].regions[2].length);
 
-	CuAssertIntEquals (test, 2, img_list.images[1].count);
-	CuAssertPtrNotNull (test, img_list.images[1].regions);
-	CuAssertIntEquals (test, 1, img_list.images[1].always_validate);
-	CuAssertIntEquals (test, 3, img_list.images[1].key.exponent);
-	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images[1].key.mod_length);
-	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images[1].sig_length);
-	CuAssertIntEquals (test, 2, img_list.images[1].key.modulus[0]);
-	CuAssertIntEquals (test, 22, img_list.images[1].signature[0]);
-	CuAssertIntEquals (test, 0x20000, img_list.images[1].regions[0].start_addr);
-	CuAssertIntEquals (test, 0x20000, img_list.images[1].regions[0].length);
-	CuAssertIntEquals (test, 0x50000, img_list.images[1].regions[1].start_addr);
-	CuAssertIntEquals (test, 0x20000, img_list.images[1].regions[1].length);
+	CuAssertIntEquals (test, 2, img_list.images_sig[1].count);
+	CuAssertPtrNotNull (test, img_list.images_sig[1].regions);
+	CuAssertIntEquals (test, 1, img_list.images_sig[1].always_validate);
+	CuAssertIntEquals (test, 3, img_list.images_sig[1].key.exponent);
+	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images_sig[1].key.mod_length);
+	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images_sig[1].sig_length);
+	CuAssertIntEquals (test, 2, img_list.images_sig[1].key.modulus[0]);
+	CuAssertIntEquals (test, 22, img_list.images_sig[1].signature[0]);
+	CuAssertIntEquals (test, 0x20000, img_list.images_sig[1].regions[0].start_addr);
+	CuAssertIntEquals (test, 0x20000, img_list.images_sig[1].regions[0].length);
+	CuAssertIntEquals (test, 0x50000, img_list.images_sig[1].regions[1].start_addr);
+	CuAssertIntEquals (test, 0x20000, img_list.images_sig[1].regions[1].length);
 
-	CuAssertIntEquals (test, 4, img_list.images[2].count);
-	CuAssertPtrNotNull (test, img_list.images[2].regions);
-	CuAssertIntEquals (test, 0, img_list.images[2].always_validate);
-	CuAssertIntEquals (test, 65537, img_list.images[2].key.exponent);
-	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images[2].key.mod_length);
-	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images[2].sig_length);
-	CuAssertIntEquals (test, 3, img_list.images[2].key.modulus[0]);
-	CuAssertIntEquals (test, 33, img_list.images[2].signature[0]);
-	CuAssertIntEquals (test, 0x6000000, img_list.images[2].regions[0].start_addr);
-	CuAssertIntEquals (test, 0x1000000, img_list.images[2].regions[0].length);
-	CuAssertIntEquals (test, 0x500000, img_list.images[2].regions[1].start_addr);
-	CuAssertIntEquals (test, 0x200000, img_list.images[2].regions[1].length);
-	CuAssertIntEquals (test, 0x40000, img_list.images[2].regions[2].start_addr);
-	CuAssertIntEquals (test, 0x10000, img_list.images[2].regions[2].length);
-	CuAssertIntEquals (test, 0x100000, img_list.images[2].regions[3].start_addr);
-	CuAssertIntEquals (test, 0x500000, img_list.images[2].regions[3].length);
+	CuAssertIntEquals (test, 4, img_list.images_sig[2].count);
+	CuAssertPtrNotNull (test, img_list.images_sig[2].regions);
+	CuAssertIntEquals (test, 0, img_list.images_sig[2].always_validate);
+	CuAssertIntEquals (test, 65537, img_list.images_sig[2].key.exponent);
+	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images_sig[2].key.mod_length);
+	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images_sig[2].sig_length);
+	CuAssertIntEquals (test, 3, img_list.images_sig[2].key.modulus[0]);
+	CuAssertIntEquals (test, 33, img_list.images_sig[2].signature[0]);
+	CuAssertIntEquals (test, 0x6000000, img_list.images_sig[2].regions[0].start_addr);
+	CuAssertIntEquals (test, 0x1000000, img_list.images_sig[2].regions[0].length);
+	CuAssertIntEquals (test, 0x500000, img_list.images_sig[2].regions[1].start_addr);
+	CuAssertIntEquals (test, 0x200000, img_list.images_sig[2].regions[1].length);
+	CuAssertIntEquals (test, 0x40000, img_list.images_sig[2].regions[2].start_addr);
+	CuAssertIntEquals (test, 0x10000, img_list.images_sig[2].regions[2].length);
+	CuAssertIntEquals (test, 0x100000, img_list.images_sig[2].regions[3].start_addr);
+	CuAssertIntEquals (test, 0x500000, img_list.images_sig[2].regions[3].length);
 
-	pfm.base.free_firmware_images (&pfm.base, &img_list);
+	pfm.test.base.free_firmware_images (&pfm.test.base, &img_list);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_get_firmware_images_key_id_matches_length (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
 	struct pfm_image_list img_list;
 	const char *version1 = "V1";
-	uint8_t pfm_data[PFM_HEADER_SIZE + PFM_ALLOWED_HEADER_SIZE + PFM_FW_HEADER_SIZE  +
-		(PFM_IMG_HEADER_SIZE * 3) + (PFM_IMG_KEY_SIZE * 4) + 64 + (PFM_REGION_SIZE * 3 * 3) +
-		PFM_MANIFEST_HEADER_SIZE + (PFM_KEY_HEADER_SIZE * 3) + 4];
+	const char *platform_id = "Platform";
 	struct manifest_header *header;
 	struct pfm_allowable_firmware_header *allowed_header;
 	struct pfm_firmware_header *fw_header;
@@ -5852,6 +5569,7 @@ static void pfm_flash_test_get_firmware_images_key_id_matches_length (CuTest *te
 	struct pfm_flash_region *region;
 	struct pfm_key_manifest_header *manifest_header;
 	struct pfm_public_key_header *key_header;
+	struct pfm_platform_header *platform_header;
 	int ver_offset1 = PFM_HEADER_SIZE + PFM_ALLOWED_HEADER_SIZE;
 	int img_offset1 = ver_offset1 + PFM_FW_HEADER_SIZE + 4;
 	int sig_offset1 = img_offset1 + PFM_IMG_HEADER_SIZE;
@@ -5875,6 +5593,9 @@ static void pfm_flash_test_get_firmware_images_key_id_matches_length (CuTest *te
 	int key_offset2 = pub_offset2 + PFM_KEY_HEADER_SIZE;
 	int pub_offset3 = key_offset2 + PFM_IMG_KEY_SIZE;
 	int key_offset3 = pub_offset3 + PFM_KEY_HEADER_SIZE;
+	int plat_offset = key_offset3 + PFM_IMG_KEY_SIZE;
+	int sig_offset = plat_offset + PFM_PLATFORM_HEADER_SIZE + 8;
+	uint8_t pfm_data[sig_offset + PFM_SIGNATURE_LEN];
 
 	TEST_START;
 
@@ -5883,6 +5604,7 @@ static void pfm_flash_test_get_firmware_images_key_id_matches_length (CuTest *te
 	header = (struct manifest_header*) pfm_data;
 	header->length = sizeof (pfm_data);
 	header->magic = PFM_MAGIC_NUM;
+	header->sig_length = PFM_SIGNATURE_LEN;
 
 	allowed_header = (struct pfm_allowable_firmware_header*) &pfm_data[PFM_HEADER_SIZE];
 	allowed_header->length = PFM_ALLOWED_HEADER_SIZE;
@@ -5974,248 +5696,241 @@ static void pfm_flash_test_get_firmware_images_key_id_matches_length (CuTest *te
 	key_header->id = 32;
 	pfm_data[key_offset3] = 3;
 
-	status = flash_master_mock_init (&flash_mock);
+	platform_header = (struct pfm_platform_header*) &pfm_data[plat_offset];
+	platform_header->length = PFM_PLATFORM_HEADER_SIZE + 8;
+	platform_header->id_length = strlen (platform_id);
+	memcpy (&pfm_data[plat_offset + PFM_PLATFORM_HEADER_SIZE], platform_id, strlen (platform_id));
+
+	status = RSA_TESTING_ENGINE_SIGN (pfm_data, sizeof (pfm_data) - PFM_SIGNATURE_LEN,
+		RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, &pfm_data[sig_offset], PFM_SIGNATURE_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, pfm_data, sizeof (pfm_data), NULL,
+		&pfm_data[sig_offset], sig_offset, PFM_HEADER_SIZE, man_offset, plat_offset,
+		plat_offset + PFM_PLATFORM_HEADER_SIZE, strlen (platform_id), 0);
 
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data, sizeof (pfm_data),
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data, sizeof (pfm_data),
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + PFM_HEADER_SIZE,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + PFM_HEADER_SIZE,
 		sizeof (pfm_data) - PFM_HEADER_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_HEADER_SIZE, 0, -1, PFM_ALLOWED_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + ver_offset1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + ver_offset1,
 		sizeof (pfm_data) - ver_offset1,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + ver_offset1, 0, -1, PFM_FW_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
 		pfm_data + ver_offset1 + PFM_FW_HEADER_SIZE,
 		sizeof (pfm_data) - ver_offset1 - PFM_FW_HEADER_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + ver_offset1 + PFM_FW_HEADER_SIZE, 0, -1,
 			strlen (version1)));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + img_offset1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + img_offset1,
 		sizeof (pfm_data) - img_offset1,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + img_offset1, 0, -1, PFM_IMG_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + sig_offset1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + sig_offset1,
 		sizeof (pfm_data) - sig_offset1,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + sig_offset1, 0, -1, 32));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset11,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset11,
 		sizeof (pfm_data) - reg_offset11,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset11, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset12,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset12,
 		sizeof (pfm_data) - reg_offset12,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset12, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset13,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset13,
 		sizeof (pfm_data) - reg_offset13,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset13, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + img_offset2,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + img_offset2,
 		sizeof (pfm_data) - img_offset2,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + img_offset2, 0, -1, PFM_IMG_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + sig_offset2,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + sig_offset2,
 		sizeof (pfm_data) - sig_offset2,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + sig_offset2, 0, -1, PFM_IMG_KEY_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset21,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset21,
 		sizeof (pfm_data) - reg_offset21,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset21, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset22,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset22,
 		sizeof (pfm_data) - reg_offset22,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset22, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + img_offset3,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + img_offset3,
 		sizeof (pfm_data) - img_offset3,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + img_offset3, 0, -1, PFM_IMG_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + sig_offset3,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + sig_offset3,
 		sizeof (pfm_data) - sig_offset3,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + sig_offset3, 0, -1, PFM_IMG_KEY_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset31,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset31,
 		sizeof (pfm_data) - reg_offset31,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset31, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset32,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset32,
 		sizeof (pfm_data) - reg_offset32,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset32, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset33,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset33,
 		sizeof (pfm_data) - reg_offset33,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset33, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset34,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset34,
 		sizeof (pfm_data) - reg_offset34,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset34, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + man_offset,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + man_offset,
 		sizeof (pfm_data) - man_offset,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + man_offset, 0, -1, PFM_MANIFEST_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + pub_offset1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + pub_offset1,
 		sizeof (pfm_data) - pub_offset1,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + pub_offset1, 0, -1, PFM_KEY_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + key_offset1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + key_offset1,
 		sizeof (pfm_data) - key_offset1,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + key_offset1, 0, -1, 32));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + pub_offset2,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + pub_offset2,
 		sizeof (pfm_data) - pub_offset2,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + pub_offset2, 0, -1, PFM_KEY_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + key_offset2,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + key_offset2,
 		sizeof (pfm_data) - key_offset2,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + key_offset2, 0, -1, PFM_IMG_KEY_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + pub_offset3,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + pub_offset3,
 		sizeof (pfm_data) - pub_offset3,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + pub_offset3, 0, -1, PFM_KEY_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + key_offset3,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + key_offset3,
 		sizeof (pfm_data) - key_offset3,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + key_offset3, 0, -1, PFM_IMG_KEY_SIZE));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm.base.get_firmware_images (&pfm.base, version1, &img_list);
+	status = pfm.test.base.get_firmware_images (&pfm.test.base, NULL, version1, &img_list);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 3, img_list.count);
-	CuAssertPtrNotNull (test, img_list.images);
+	CuAssertPtrNotNull (test, img_list.images_sig);
+	CuAssertPtrEquals (test, NULL, (void*) img_list.images_hash);
 
-	CuAssertIntEquals (test, 3, img_list.images[0].count);
-	CuAssertPtrNotNull (test, img_list.images[0].regions);
-	CuAssertIntEquals (test, 1, img_list.images[0].always_validate);
-	CuAssertIntEquals (test, 65537, img_list.images[0].key.exponent);
-	CuAssertIntEquals (test, 32, img_list.images[0].key.mod_length);
-	CuAssertIntEquals (test, 32, img_list.images[0].sig_length);
-	CuAssertIntEquals (test, 1, img_list.images[0].key.modulus[0]);
-	CuAssertIntEquals (test, 11, img_list.images[0].signature[0]);
-	CuAssertIntEquals (test, 0x1000000, img_list.images[0].regions[0].start_addr);
-	CuAssertIntEquals (test, 0x1000000, img_list.images[0].regions[0].length);
-	CuAssertIntEquals (test, 0x2000000, img_list.images[0].regions[1].start_addr);
-	CuAssertIntEquals (test, 0x800000, img_list.images[0].regions[1].length);
-	CuAssertIntEquals (test, 0x4000000, img_list.images[0].regions[2].start_addr);
-	CuAssertIntEquals (test, 0x20000, img_list.images[0].regions[2].length);
+	CuAssertIntEquals (test, 3, img_list.images_sig[0].count);
+	CuAssertPtrNotNull (test, img_list.images_sig[0].regions);
+	CuAssertIntEquals (test, 1, img_list.images_sig[0].always_validate);
+	CuAssertIntEquals (test, 65537, img_list.images_sig[0].key.exponent);
+	CuAssertIntEquals (test, 32, img_list.images_sig[0].key.mod_length);
+	CuAssertIntEquals (test, 32, img_list.images_sig[0].sig_length);
+	CuAssertIntEquals (test, 1, img_list.images_sig[0].key.modulus[0]);
+	CuAssertIntEquals (test, 11, img_list.images_sig[0].signature[0]);
+	CuAssertIntEquals (test, 0x1000000, img_list.images_sig[0].regions[0].start_addr);
+	CuAssertIntEquals (test, 0x1000000, img_list.images_sig[0].regions[0].length);
+	CuAssertIntEquals (test, 0x2000000, img_list.images_sig[0].regions[1].start_addr);
+	CuAssertIntEquals (test, 0x800000, img_list.images_sig[0].regions[1].length);
+	CuAssertIntEquals (test, 0x4000000, img_list.images_sig[0].regions[2].start_addr);
+	CuAssertIntEquals (test, 0x20000, img_list.images_sig[0].regions[2].length);
 
-	CuAssertIntEquals (test, 2, img_list.images[1].count);
-	CuAssertPtrNotNull (test, img_list.images[1].regions);
-	CuAssertIntEquals (test, 1, img_list.images[1].always_validate);
-	CuAssertIntEquals (test, 3, img_list.images[1].key.exponent);
-	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images[1].key.mod_length);
-	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images[1].sig_length);
-	CuAssertIntEquals (test, 2, img_list.images[1].key.modulus[0]);
-	CuAssertIntEquals (test, 22, img_list.images[1].signature[0]);
-	CuAssertIntEquals (test, 0x20000, img_list.images[1].regions[0].start_addr);
-	CuAssertIntEquals (test, 0x20000, img_list.images[1].regions[0].length);
-	CuAssertIntEquals (test, 0x50000, img_list.images[1].regions[1].start_addr);
-	CuAssertIntEquals (test, 0x20000, img_list.images[1].regions[1].length);
+	CuAssertIntEquals (test, 2, img_list.images_sig[1].count);
+	CuAssertPtrNotNull (test, img_list.images_sig[1].regions);
+	CuAssertIntEquals (test, 1, img_list.images_sig[1].always_validate);
+	CuAssertIntEquals (test, 3, img_list.images_sig[1].key.exponent);
+	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images_sig[1].key.mod_length);
+	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images_sig[1].sig_length);
+	CuAssertIntEquals (test, 2, img_list.images_sig[1].key.modulus[0]);
+	CuAssertIntEquals (test, 22, img_list.images_sig[1].signature[0]);
+	CuAssertIntEquals (test, 0x20000, img_list.images_sig[1].regions[0].start_addr);
+	CuAssertIntEquals (test, 0x20000, img_list.images_sig[1].regions[0].length);
+	CuAssertIntEquals (test, 0x50000, img_list.images_sig[1].regions[1].start_addr);
+	CuAssertIntEquals (test, 0x20000, img_list.images_sig[1].regions[1].length);
 
-	CuAssertIntEquals (test, 4, img_list.images[2].count);
-	CuAssertPtrNotNull (test, img_list.images[2].regions);
-	CuAssertIntEquals (test, 0, img_list.images[2].always_validate);
-	CuAssertIntEquals (test, 65537, img_list.images[2].key.exponent);
-	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images[2].key.mod_length);
-	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images[2].sig_length);
-	CuAssertIntEquals (test, 3, img_list.images[2].key.modulus[0]);
-	CuAssertIntEquals (test, 33, img_list.images[2].signature[0]);
-	CuAssertIntEquals (test, 0x6000000, img_list.images[2].regions[0].start_addr);
-	CuAssertIntEquals (test, 0x1000000, img_list.images[2].regions[0].length);
-	CuAssertIntEquals (test, 0x500000, img_list.images[2].regions[1].start_addr);
-	CuAssertIntEquals (test, 0x200000, img_list.images[2].regions[1].length);
-	CuAssertIntEquals (test, 0x40000, img_list.images[2].regions[2].start_addr);
-	CuAssertIntEquals (test, 0x10000, img_list.images[2].regions[2].length);
-	CuAssertIntEquals (test, 0x100000, img_list.images[2].regions[3].start_addr);
-	CuAssertIntEquals (test, 0x500000, img_list.images[2].regions[3].length);
+	CuAssertIntEquals (test, 4, img_list.images_sig[2].count);
+	CuAssertPtrNotNull (test, img_list.images_sig[2].regions);
+	CuAssertIntEquals (test, 0, img_list.images_sig[2].always_validate);
+	CuAssertIntEquals (test, 65537, img_list.images_sig[2].key.exponent);
+	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images_sig[2].key.mod_length);
+	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images_sig[2].sig_length);
+	CuAssertIntEquals (test, 3, img_list.images_sig[2].key.modulus[0]);
+	CuAssertIntEquals (test, 33, img_list.images_sig[2].signature[0]);
+	CuAssertIntEquals (test, 0x6000000, img_list.images_sig[2].regions[0].start_addr);
+	CuAssertIntEquals (test, 0x1000000, img_list.images_sig[2].regions[0].length);
+	CuAssertIntEquals (test, 0x500000, img_list.images_sig[2].regions[1].start_addr);
+	CuAssertIntEquals (test, 0x200000, img_list.images_sig[2].regions[1].length);
+	CuAssertIntEquals (test, 0x40000, img_list.images_sig[2].regions[2].start_addr);
+	CuAssertIntEquals (test, 0x10000, img_list.images_sig[2].regions[2].length);
+	CuAssertIntEquals (test, 0x100000, img_list.images_sig[2].regions[3].start_addr);
+	CuAssertIntEquals (test, 0x500000, img_list.images_sig[2].regions[3].length);
 
-	pfm.base.free_firmware_images (&pfm.base, &img_list);
+	pfm.test.base.free_firmware_images (&pfm.test.base, &img_list);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_get_firmware_images_unused_key (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
 	struct pfm_image_list img_list;
 	const char *version1 = "V1";
-	uint8_t pfm_data[PFM_HEADER_SIZE + PFM_ALLOWED_HEADER_SIZE + PFM_FW_HEADER_SIZE  +
-		(PFM_IMG_HEADER_SIZE * 3) + (PFM_IMG_KEY_SIZE * 6) + (PFM_REGION_SIZE * 3 * 3) +
-		PFM_MANIFEST_HEADER_SIZE + (PFM_KEY_HEADER_SIZE * 3) + 4];
+	const char *platform_id = "Platform";
 	struct manifest_header *header;
 	struct pfm_allowable_firmware_header *allowed_header;
 	struct pfm_firmware_header *fw_header;
@@ -6223,6 +5938,7 @@ static void pfm_flash_test_get_firmware_images_unused_key (CuTest *test)
 	struct pfm_flash_region *region;
 	struct pfm_key_manifest_header *manifest_header;
 	struct pfm_public_key_header *key_header;
+	struct pfm_platform_header *platform_header;
 	int ver_offset1 = PFM_HEADER_SIZE + PFM_ALLOWED_HEADER_SIZE;
 	int img_offset1 = ver_offset1 + PFM_FW_HEADER_SIZE + 4;
 	int sig_offset1 = img_offset1 + PFM_IMG_HEADER_SIZE;
@@ -6246,6 +5962,9 @@ static void pfm_flash_test_get_firmware_images_unused_key (CuTest *test)
 	int key_offset2 = pub_offset2 + PFM_KEY_HEADER_SIZE;
 	int pub_offset3 = key_offset2 + PFM_IMG_KEY_SIZE;
 	int key_offset3 = pub_offset3 + PFM_KEY_HEADER_SIZE;
+	int plat_offset = key_offset3 + PFM_IMG_KEY_SIZE;
+	int sig_offset = plat_offset + PFM_PLATFORM_HEADER_SIZE + 8;
+	uint8_t pfm_data[sig_offset + PFM_SIGNATURE_LEN];
 
 	TEST_START;
 
@@ -6254,6 +5973,7 @@ static void pfm_flash_test_get_firmware_images_unused_key (CuTest *test)
 	header = (struct manifest_header*) pfm_data;
 	header->length = sizeof (pfm_data);
 	header->magic = PFM_MAGIC_NUM;
+	header->sig_length = PFM_SIGNATURE_LEN;
 
 	allowed_header = (struct pfm_allowable_firmware_header*) &pfm_data[PFM_HEADER_SIZE];
 	allowed_header->length = PFM_ALLOWED_HEADER_SIZE;
@@ -6345,236 +6065,229 @@ static void pfm_flash_test_get_firmware_images_unused_key (CuTest *test)
 	key_header->id = 2;
 	pfm_data[key_offset3] = 3;
 
-	status = flash_master_mock_init (&flash_mock);
+	platform_header = (struct pfm_platform_header*) &pfm_data[plat_offset];
+	platform_header->length = PFM_PLATFORM_HEADER_SIZE + 8;
+	platform_header->id_length = strlen (platform_id);
+	memcpy (&pfm_data[plat_offset + PFM_PLATFORM_HEADER_SIZE], platform_id, strlen (platform_id));
+
+	status = RSA_TESTING_ENGINE_SIGN (pfm_data, sizeof (pfm_data) - PFM_SIGNATURE_LEN,
+		RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, &pfm_data[sig_offset], PFM_SIGNATURE_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, pfm_data, sizeof (pfm_data), NULL,
+		&pfm_data[sig_offset], sig_offset, PFM_HEADER_SIZE, man_offset, plat_offset,
+		plat_offset + PFM_PLATFORM_HEADER_SIZE, strlen (platform_id), 0);
 
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data, sizeof (pfm_data),
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data, sizeof (pfm_data),
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + PFM_HEADER_SIZE,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + PFM_HEADER_SIZE,
 		sizeof (pfm_data) - PFM_HEADER_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_HEADER_SIZE, 0, -1, PFM_ALLOWED_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + ver_offset1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + ver_offset1,
 		sizeof (pfm_data) - ver_offset1,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + ver_offset1, 0, -1, PFM_FW_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
 		pfm_data + ver_offset1 + PFM_FW_HEADER_SIZE,
 		sizeof (pfm_data) - ver_offset1 - PFM_FW_HEADER_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + ver_offset1 + PFM_FW_HEADER_SIZE, 0, -1,
 			strlen (version1)));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + img_offset1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + img_offset1,
 		sizeof (pfm_data) - img_offset1,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + img_offset1, 0, -1, PFM_IMG_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + sig_offset1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + sig_offset1,
 		sizeof (pfm_data) - sig_offset1,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + sig_offset1, 0, -1, PFM_IMG_KEY_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset11,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset11,
 		sizeof (pfm_data) - reg_offset11,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset11, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset12,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset12,
 		sizeof (pfm_data) - reg_offset12,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset12, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset13,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset13,
 		sizeof (pfm_data) - reg_offset13,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset13, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + img_offset2,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + img_offset2,
 		sizeof (pfm_data) - img_offset2,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + img_offset2, 0, -1, PFM_IMG_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + sig_offset2,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + sig_offset2,
 		sizeof (pfm_data) - sig_offset2,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + sig_offset2, 0, -1, PFM_IMG_KEY_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset21,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset21,
 		sizeof (pfm_data) - reg_offset21,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset21, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset22,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset22,
 		sizeof (pfm_data) - reg_offset22,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset22, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + img_offset3,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + img_offset3,
 		sizeof (pfm_data) - img_offset3,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + img_offset3, 0, -1, PFM_IMG_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + sig_offset3,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + sig_offset3,
 		sizeof (pfm_data) - sig_offset3,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + sig_offset3, 0, -1, PFM_IMG_KEY_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset31,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset31,
 		sizeof (pfm_data) - reg_offset31,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset31, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset32,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset32,
 		sizeof (pfm_data) - reg_offset32,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset32, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset33,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset33,
 		sizeof (pfm_data) - reg_offset33,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset33, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset34,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset34,
 		sizeof (pfm_data) - reg_offset34,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset34, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + man_offset,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + man_offset,
 		sizeof (pfm_data) - man_offset,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + man_offset, 0, -1, PFM_MANIFEST_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + pub_offset1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + pub_offset1,
 		sizeof (pfm_data) - pub_offset1,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + pub_offset1, 0, -1, PFM_KEY_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + key_offset1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + key_offset1,
 		sizeof (pfm_data) - key_offset1,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + key_offset1, 0, -1, PFM_IMG_KEY_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + pub_offset2,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + pub_offset2,
 		sizeof (pfm_data) - pub_offset2,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + pub_offset2, 0, -1, PFM_KEY_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + key_offset2,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + key_offset2,
 		sizeof (pfm_data) - key_offset2,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + key_offset2, 0, -1, PFM_IMG_KEY_SIZE));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm.base.get_firmware_images (&pfm.base, version1, &img_list);
+	status = pfm.test.base.get_firmware_images (&pfm.test.base, NULL, version1, &img_list);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 3, img_list.count);
-	CuAssertPtrNotNull (test, img_list.images);
+	CuAssertPtrNotNull (test, img_list.images_sig);
+	CuAssertPtrEquals (test, NULL, (void*) img_list.images_hash);
 
-	CuAssertIntEquals (test, 3, img_list.images[0].count);
-	CuAssertPtrNotNull (test, img_list.images[0].regions);
-	CuAssertIntEquals (test, 1, img_list.images[0].always_validate);
-	CuAssertIntEquals (test, 65537, img_list.images[0].key.exponent);
-	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images[0].key.mod_length);
-	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images[0].sig_length);
-	CuAssertIntEquals (test, 1, img_list.images[0].key.modulus[0]);
-	CuAssertIntEquals (test, 11, img_list.images[0].signature[0]);
-	CuAssertIntEquals (test, 0x1000000, img_list.images[0].regions[0].start_addr);
-	CuAssertIntEquals (test, 0x1000000, img_list.images[0].regions[0].length);
-	CuAssertIntEquals (test, 0x2000000, img_list.images[0].regions[1].start_addr);
-	CuAssertIntEquals (test, 0x800000, img_list.images[0].regions[1].length);
-	CuAssertIntEquals (test, 0x4000000, img_list.images[0].regions[2].start_addr);
-	CuAssertIntEquals (test, 0x20000, img_list.images[0].regions[2].length);
+	CuAssertIntEquals (test, 3, img_list.images_sig[0].count);
+	CuAssertPtrNotNull (test, img_list.images_sig[0].regions);
+	CuAssertIntEquals (test, 1, img_list.images_sig[0].always_validate);
+	CuAssertIntEquals (test, 65537, img_list.images_sig[0].key.exponent);
+	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images_sig[0].key.mod_length);
+	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images_sig[0].sig_length);
+	CuAssertIntEquals (test, 1, img_list.images_sig[0].key.modulus[0]);
+	CuAssertIntEquals (test, 11, img_list.images_sig[0].signature[0]);
+	CuAssertIntEquals (test, 0x1000000, img_list.images_sig[0].regions[0].start_addr);
+	CuAssertIntEquals (test, 0x1000000, img_list.images_sig[0].regions[0].length);
+	CuAssertIntEquals (test, 0x2000000, img_list.images_sig[0].regions[1].start_addr);
+	CuAssertIntEquals (test, 0x800000, img_list.images_sig[0].regions[1].length);
+	CuAssertIntEquals (test, 0x4000000, img_list.images_sig[0].regions[2].start_addr);
+	CuAssertIntEquals (test, 0x20000, img_list.images_sig[0].regions[2].length);
 
-	CuAssertIntEquals (test, 2, img_list.images[1].count);
-	CuAssertPtrNotNull (test, img_list.images[1].regions);
-	CuAssertIntEquals (test, 1, img_list.images[1].always_validate);
-	CuAssertIntEquals (test, 3, img_list.images[1].key.exponent);
-	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images[1].key.mod_length);
-	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images[1].sig_length);
-	CuAssertIntEquals (test, 2, img_list.images[1].key.modulus[0]);
-	CuAssertIntEquals (test, 22, img_list.images[1].signature[0]);
-	CuAssertIntEquals (test, 0x20000, img_list.images[1].regions[0].start_addr);
-	CuAssertIntEquals (test, 0x20000, img_list.images[1].regions[0].length);
-	CuAssertIntEquals (test, 0x50000, img_list.images[1].regions[1].start_addr);
-	CuAssertIntEquals (test, 0x20000, img_list.images[1].regions[1].length);
+	CuAssertIntEquals (test, 2, img_list.images_sig[1].count);
+	CuAssertPtrNotNull (test, img_list.images_sig[1].regions);
+	CuAssertIntEquals (test, 1, img_list.images_sig[1].always_validate);
+	CuAssertIntEquals (test, 3, img_list.images_sig[1].key.exponent);
+	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images_sig[1].key.mod_length);
+	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images_sig[1].sig_length);
+	CuAssertIntEquals (test, 2, img_list.images_sig[1].key.modulus[0]);
+	CuAssertIntEquals (test, 22, img_list.images_sig[1].signature[0]);
+	CuAssertIntEquals (test, 0x20000, img_list.images_sig[1].regions[0].start_addr);
+	CuAssertIntEquals (test, 0x20000, img_list.images_sig[1].regions[0].length);
+	CuAssertIntEquals (test, 0x50000, img_list.images_sig[1].regions[1].start_addr);
+	CuAssertIntEquals (test, 0x20000, img_list.images_sig[1].regions[1].length);
 
-	CuAssertIntEquals (test, 4, img_list.images[2].count);
-	CuAssertPtrNotNull (test, img_list.images[2].regions);
-	CuAssertIntEquals (test, 0, img_list.images[2].always_validate);
-	CuAssertIntEquals (test, 65537, img_list.images[2].key.exponent);
-	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images[2].key.mod_length);
-	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images[2].sig_length);
-	CuAssertIntEquals (test, 1, img_list.images[2].key.modulus[0]);
-	CuAssertIntEquals (test, 33, img_list.images[2].signature[0]);
-	CuAssertIntEquals (test, 0x6000000, img_list.images[2].regions[0].start_addr);
-	CuAssertIntEquals (test, 0x1000000, img_list.images[2].regions[0].length);
-	CuAssertIntEquals (test, 0x500000, img_list.images[2].regions[1].start_addr);
-	CuAssertIntEquals (test, 0x200000, img_list.images[2].regions[1].length);
-	CuAssertIntEquals (test, 0x40000, img_list.images[2].regions[2].start_addr);
-	CuAssertIntEquals (test, 0x10000, img_list.images[2].regions[2].length);
-	CuAssertIntEquals (test, 0x100000, img_list.images[2].regions[3].start_addr);
-	CuAssertIntEquals (test, 0x500000, img_list.images[2].regions[3].length);
+	CuAssertIntEquals (test, 4, img_list.images_sig[2].count);
+	CuAssertPtrNotNull (test, img_list.images_sig[2].regions);
+	CuAssertIntEquals (test, 0, img_list.images_sig[2].always_validate);
+	CuAssertIntEquals (test, 65537, img_list.images_sig[2].key.exponent);
+	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images_sig[2].key.mod_length);
+	CuAssertIntEquals (test, PFM_IMG_KEY_SIZE, img_list.images_sig[2].sig_length);
+	CuAssertIntEquals (test, 1, img_list.images_sig[2].key.modulus[0]);
+	CuAssertIntEquals (test, 33, img_list.images_sig[2].signature[0]);
+	CuAssertIntEquals (test, 0x6000000, img_list.images_sig[2].regions[0].start_addr);
+	CuAssertIntEquals (test, 0x1000000, img_list.images_sig[2].regions[0].length);
+	CuAssertIntEquals (test, 0x500000, img_list.images_sig[2].regions[1].start_addr);
+	CuAssertIntEquals (test, 0x200000, img_list.images_sig[2].regions[1].length);
+	CuAssertIntEquals (test, 0x40000, img_list.images_sig[2].regions[2].start_addr);
+	CuAssertIntEquals (test, 0x10000, img_list.images_sig[2].regions[2].length);
+	CuAssertIntEquals (test, 0x100000, img_list.images_sig[2].regions[3].start_addr);
+	CuAssertIntEquals (test, 0x500000, img_list.images_sig[2].regions[3].length);
 
-	pfm.base.free_firmware_images (&pfm.base, &img_list);
+	pfm.test.base.free_firmware_images (&pfm.test.base, &img_list);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_get_firmware_images_no_matching_key (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
 	struct pfm_image_list img_list;
 	const char *version1 = "V1";
-	uint8_t pfm_data[PFM_HEADER_SIZE + PFM_ALLOWED_HEADER_SIZE + PFM_FW_HEADER_SIZE  +
-		(PFM_IMG_HEADER_SIZE * 3) + (PFM_IMG_KEY_SIZE * 6) + (PFM_REGION_SIZE * 3 * 3) +
-		PFM_MANIFEST_HEADER_SIZE + (PFM_KEY_HEADER_SIZE * 3) + 4];
+	const char *platform_id = "Platform";
 	struct manifest_header *header;
 	struct pfm_allowable_firmware_header *allowed_header;
 	struct pfm_firmware_header *fw_header;
@@ -6582,6 +6295,7 @@ static void pfm_flash_test_get_firmware_images_no_matching_key (CuTest *test)
 	struct pfm_flash_region *region;
 	struct pfm_key_manifest_header *manifest_header;
 	struct pfm_public_key_header *key_header;
+	struct pfm_platform_header *platform_header;
 	int ver_offset1 = PFM_HEADER_SIZE + PFM_ALLOWED_HEADER_SIZE;
 	int img_offset1 = ver_offset1 + PFM_FW_HEADER_SIZE + 4;
 	int sig_offset1 = img_offset1 + PFM_IMG_HEADER_SIZE;
@@ -6605,6 +6319,9 @@ static void pfm_flash_test_get_firmware_images_no_matching_key (CuTest *test)
 	int key_offset2 = pub_offset2 + PFM_KEY_HEADER_SIZE;
 	int pub_offset3 = key_offset2 + PFM_IMG_KEY_SIZE;
 	int key_offset3 = pub_offset3 + PFM_KEY_HEADER_SIZE;
+	int plat_offset = key_offset3 + PFM_IMG_KEY_SIZE;
+	int sig_offset = plat_offset + PFM_PLATFORM_HEADER_SIZE + 8;
+	uint8_t pfm_data[sig_offset + PFM_SIGNATURE_LEN];
 
 	TEST_START;
 
@@ -6613,6 +6330,7 @@ static void pfm_flash_test_get_firmware_images_no_matching_key (CuTest *test)
 	header = (struct manifest_header*) pfm_data;
 	header->length = sizeof (pfm_data);
 	header->magic = PFM_MAGIC_NUM;
+	header->sig_length = PFM_SIGNATURE_LEN;
 
 	allowed_header = (struct pfm_allowable_firmware_header*) &pfm_data[PFM_HEADER_SIZE];
 	allowed_header->length = PFM_ALLOWED_HEADER_SIZE;
@@ -6704,198 +6422,198 @@ static void pfm_flash_test_get_firmware_images_no_matching_key (CuTest *test)
 	key_header->id = 2;
 	pfm_data[key_offset3] = 3;
 
-	status = flash_master_mock_init (&flash_mock);
+	platform_header = (struct pfm_platform_header*) &pfm_data[plat_offset];
+	platform_header->length = PFM_PLATFORM_HEADER_SIZE + 8;
+	platform_header->id_length = strlen (platform_id);
+	memcpy (&pfm_data[plat_offset + PFM_PLATFORM_HEADER_SIZE], platform_id, strlen (platform_id));
+
+	status = RSA_TESTING_ENGINE_SIGN (pfm_data, sizeof (pfm_data) - PFM_SIGNATURE_LEN,
+		RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, &pfm_data[sig_offset], PFM_SIGNATURE_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, pfm_data, sizeof (pfm_data), NULL,
+		&pfm_data[sig_offset], sig_offset, PFM_HEADER_SIZE, man_offset, plat_offset,
+		plat_offset + PFM_PLATFORM_HEADER_SIZE, strlen (platform_id), 0);
 
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data, sizeof (pfm_data),
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data, sizeof (pfm_data),
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + PFM_HEADER_SIZE,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + PFM_HEADER_SIZE,
 		sizeof (pfm_data) - PFM_HEADER_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_HEADER_SIZE, 0, -1, PFM_ALLOWED_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + ver_offset1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + ver_offset1,
 		sizeof (pfm_data) - ver_offset1,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + ver_offset1, 0, -1, PFM_FW_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
 		pfm_data + ver_offset1 + PFM_FW_HEADER_SIZE,
 		sizeof (pfm_data) - ver_offset1 - PFM_FW_HEADER_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + ver_offset1 + PFM_FW_HEADER_SIZE, 0, -1,
 			strlen (version1)));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + img_offset1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + img_offset1,
 		sizeof (pfm_data) - img_offset1,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + img_offset1, 0, -1, PFM_IMG_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + sig_offset1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + sig_offset1,
 		sizeof (pfm_data) - sig_offset1,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + sig_offset1, 0, -1, PFM_IMG_KEY_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset11,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset11,
 		sizeof (pfm_data) - reg_offset11,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset11, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset12,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset12,
 		sizeof (pfm_data) - reg_offset12,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset12, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset13,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset13,
 		sizeof (pfm_data) - reg_offset13,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset13, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + img_offset2,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + img_offset2,
 		sizeof (pfm_data) - img_offset2,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + img_offset2, 0, -1, PFM_IMG_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + sig_offset2,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + sig_offset2,
 		sizeof (pfm_data) - sig_offset2,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + sig_offset2, 0, -1, PFM_IMG_KEY_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset21,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset21,
 		sizeof (pfm_data) - reg_offset21,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset21, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset22,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset22,
 		sizeof (pfm_data) - reg_offset22,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset22, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + img_offset3,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + img_offset3,
 		sizeof (pfm_data) - img_offset3,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + img_offset3, 0, -1, PFM_IMG_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + sig_offset3,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + sig_offset3,
 		sizeof (pfm_data) - sig_offset3,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + sig_offset3, 0, -1, PFM_IMG_KEY_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset31,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset31,
 		sizeof (pfm_data) - reg_offset31,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset31, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset32,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset32,
 		sizeof (pfm_data) - reg_offset32,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset32, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset33,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset33,
 		sizeof (pfm_data) - reg_offset33,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset33, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset34,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset34,
 		sizeof (pfm_data) - reg_offset34,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset34, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + man_offset,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + man_offset,
 		sizeof (pfm_data) - man_offset,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + man_offset, 0, -1, PFM_MANIFEST_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + pub_offset1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + pub_offset1,
 		sizeof (pfm_data) - pub_offset1,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + pub_offset1, 0, -1, PFM_KEY_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + key_offset1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + key_offset1,
 		sizeof (pfm_data) - key_offset1,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + key_offset1, 0, -1, PFM_IMG_KEY_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + pub_offset2,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + pub_offset2,
 		sizeof (pfm_data) - pub_offset2,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + pub_offset2, 0, -1, PFM_KEY_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + key_offset2,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + key_offset2,
 		sizeof (pfm_data) - key_offset2,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + key_offset2, 0, -1, PFM_IMG_KEY_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + pub_offset3,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + pub_offset3,
 		sizeof (pfm_data) - pub_offset3,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + pub_offset3, 0, -1, PFM_KEY_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + key_offset3,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + key_offset3,
 		sizeof (pfm_data) - key_offset3,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + key_offset3, 0, -1, PFM_IMG_KEY_SIZE));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm.base.get_firmware_images (&pfm.base, version1, &img_list);
+	status = pfm.test.base.get_firmware_images (&pfm.test.base, NULL, version1, &img_list);
 	CuAssertIntEquals (test, PFM_UNKNOWN_KEY_ID, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_get_firmware_images_empty_manifest (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
 	struct pfm_image_list img_list;
+	const char *platform_id = "Platform";
 	struct manifest_header *header;
 	struct pfm_allowable_firmware_header *allowed_header;
-	uint8_t pfm_data[PFM_HEADER_SIZE + PFM_ALLOWED_HEADER_SIZE];
+	struct pfm_key_manifest_header *manifest_header;
+	struct pfm_platform_header *platform_header;
+	int man_offset = PFM_HEADER_SIZE + PFM_ALLOWED_HEADER_SIZE;
+	int plat_offset = man_offset + PFM_MANIFEST_HEADER_SIZE;
+	int sig_offset = plat_offset + PFM_PLATFORM_HEADER_SIZE + 8;
+	uint8_t pfm_data[sig_offset + PFM_SIGNATURE_LEN];
 
 	TEST_START;
 
@@ -6910,538 +6628,438 @@ static void pfm_flash_test_get_firmware_images_empty_manifest (CuTest *test)
 	allowed_header->length = PFM_ALLOWED_HEADER_SIZE;
 	allowed_header->fw_count = 0;
 
-	status = flash_master_mock_init (&flash_mock);
+	manifest_header = (struct pfm_key_manifest_header*) &pfm_data[man_offset];
+	manifest_header->length = PFM_MANIFEST_HEADER_SIZE;
+	manifest_header->key_count = 0;
+
+	platform_header = (struct pfm_platform_header*) &pfm_data[plat_offset];
+	platform_header->length = PFM_PLATFORM_HEADER_SIZE + 8;
+	platform_header->id_length = strlen (platform_id);
+	memcpy (&pfm_data[plat_offset + PFM_PLATFORM_HEADER_SIZE], platform_id, strlen (platform_id));
+
+	status = RSA_TESTING_ENGINE_SIGN (pfm_data, sizeof (pfm_data) - PFM_SIGNATURE_LEN,
+		RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, &pfm_data[sig_offset], PFM_SIGNATURE_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, pfm_data, sizeof (pfm_data), NULL,
+		&pfm_data[sig_offset], sig_offset, PFM_HEADER_SIZE, man_offset, plat_offset,
+		plat_offset + PFM_PLATFORM_HEADER_SIZE, strlen (platform_id), 0);
 
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data, sizeof (pfm_data),
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data, sizeof (pfm_data),
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + PFM_HEADER_SIZE,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + PFM_HEADER_SIZE,
 		sizeof (pfm_data) - PFM_HEADER_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_HEADER_SIZE, 0, -1, PFM_ALLOWED_HEADER_SIZE));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm.base.get_firmware_images (&pfm.base, "Testing", &img_list);
+	status = pfm.test.base.get_firmware_images (&pfm.test.base, NULL, "Testing", &img_list);
 	CuAssertIntEquals (test, PFM_UNSUPPORTED_VERSION, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_get_firmware_images_null (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
 	struct pfm_image_list img_list;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_ALLOWED_HDR_OFFSET, PFM_MANIFEST_OFFSET,
+		PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_ID_OFFSET, strlen (PFM_PLATFORM_ID), 0);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm.base.get_firmware_images (NULL, "Testing", &img_list);
+	status = pfm.test.base.get_firmware_images (NULL, NULL, "Testing", &img_list);
 	CuAssertIntEquals (test, PFM_INVALID_ARGUMENT, status);
 
-	status = pfm.base.get_firmware_images (&pfm.base, NULL, &img_list);
+	status = pfm.test.base.get_firmware_images (&pfm.test.base, NULL, NULL, &img_list);
 	CuAssertIntEquals (test, PFM_INVALID_ARGUMENT, status);
 
-	status = pfm.base.get_firmware_images (&pfm.base, "", &img_list);
+	status = pfm.test.base.get_firmware_images (&pfm.test.base, NULL, "", &img_list);
 	CuAssertIntEquals (test, PFM_INVALID_ARGUMENT, status);
 
-	status = pfm.base.get_firmware_images (&pfm.base, "Testing", NULL);
+	status = pfm.test.base.get_firmware_images (&pfm.test.base, NULL, "Testing", NULL);
 	CuAssertIntEquals (test, PFM_INVALID_ARGUMENT, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_validate_and_release (test, &pfm);
+}
 
-	pfm_flash_release (&pfm);
+static void pfm_flash_test_get_firmware_images_verify_never_run (CuTest *test)
+{
+	struct pfm_flash_testing pfm;
+	int status;
+	struct pfm_image_list img_list;
 
-	spi_flash_release (&flash);
+	TEST_START;
+
+	pfm_flash_testing_init (test, &pfm, 0x10000);
+
+	status = pfm.test.base.get_firmware_images (&pfm.test.base, NULL, "Testing", &img_list);
+	CuAssertIntEquals (test, MANIFEST_NO_MANIFEST, status);
+
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_get_firmware_images_header_read_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
 	struct pfm_image_list img_list;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_ALLOWED_HDR_OFFSET, PFM_MANIFEST_OFFSET,
+		PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_ID_OFFSET, strlen (PFM_PLATFORM_ID), 0);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
+	status = flash_master_mock_expect_xfer (&pfm.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm.base.get_firmware_images (&pfm.base, "Testing", &img_list);
+	status = pfm.test.base.get_firmware_images (&pfm.test.base, NULL, "Testing", &img_list);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_get_firmware_images_allowable_header_read_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
 	struct pfm_image_list img_list;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_ALLOWED_HDR_OFFSET, PFM_MANIFEST_OFFSET,
+		PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_ID_OFFSET, strlen (PFM_PLATFORM_ID), 0);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
+	status |= flash_master_mock_expect_xfer (&pfm.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm.base.get_firmware_images (&pfm.base, "Testing", &img_list);
+	status = pfm.test.base.get_firmware_images (&pfm.test.base, NULL, "Testing", &img_list);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_get_firmware_images_img_header_read_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
 	struct pfm_image_list img_list;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_ALLOWED_HDR_OFFSET, PFM_MANIFEST_OFFSET,
+		PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_ID_OFFSET, strlen (PFM_PLATFORM_ID), 0);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_ALLOWED_HDR_OFFSET,
-		PFM_DATA_LEN - PFM_ALLOWED_HDR_OFFSET,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_ALLOWED_HDR_OFFSET, 0, -1, PFM_ALLOWED_HEADER_SIZE));
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
+		PFM_DATA + PFM_ALLOWED_HDR_OFFSET, PFM_DATA_LEN - PFM_ALLOWED_HDR_OFFSET,
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_ALLOWED_HDR_OFFSET, 0, -1,
+			PFM_ALLOWED_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_FW_HEADER_OFFSET,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA + PFM_FW_HEADER_OFFSET,
 		PFM_DATA_LEN - PFM_FW_HEADER_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_FW_HEADER_OFFSET, 0, -1, PFM_FW_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_VERSION_OFFSET,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA + PFM_VERSION_OFFSET,
 		PFM_DATA_LEN - PFM_VERSION_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_VERSION_OFFSET, 0, -1, strlen (PFM_VERSION_ID)));
 
-	status |= flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
+	status |= flash_master_mock_expect_xfer (&pfm.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm.base.get_firmware_images (&pfm.base, "Testing", &img_list);
+	status = pfm.test.base.get_firmware_images (&pfm.test.base, NULL, "Testing", &img_list);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_get_firmware_images_signature_read_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
 	struct pfm_image_list img_list;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_ALLOWED_HDR_OFFSET, PFM_MANIFEST_OFFSET,
+		PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_ID_OFFSET, strlen (PFM_PLATFORM_ID), 0);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_ALLOWED_HDR_OFFSET,
-		PFM_DATA_LEN - PFM_ALLOWED_HDR_OFFSET,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_ALLOWED_HDR_OFFSET, 0, -1, PFM_ALLOWED_HEADER_SIZE));
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
+		PFM_DATA + PFM_ALLOWED_HDR_OFFSET, PFM_DATA_LEN - PFM_ALLOWED_HDR_OFFSET,
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_ALLOWED_HDR_OFFSET, 0, -1,
+			PFM_ALLOWED_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_FW_HEADER_OFFSET,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA + PFM_FW_HEADER_OFFSET,
 		PFM_DATA_LEN - PFM_FW_HEADER_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_FW_HEADER_OFFSET, 0, -1, PFM_FW_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_VERSION_OFFSET,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA + PFM_VERSION_OFFSET,
 		PFM_DATA_LEN - PFM_VERSION_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_VERSION_OFFSET, 0, -1, strlen (PFM_VERSION_ID)));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_IMG_HEADER_OFFSET,
-		PFM_DATA_LEN - PFM_IMG_HEADER_OFFSET,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
+		PFM_DATA + PFM_IMG_HEADER_OFFSET, PFM_DATA_LEN - PFM_IMG_HEADER_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_IMG_HEADER_OFFSET, 0, -1, PFM_IMG_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
+	status |= flash_master_mock_expect_xfer (&pfm.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm.base.get_firmware_images (&pfm.base, "Testing", &img_list);
+	status = pfm.test.base.get_firmware_images (&pfm.test.base, NULL, "Testing", &img_list);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_get_firmware_images_region_read_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
 	struct pfm_image_list img_list;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_ALLOWED_HDR_OFFSET, PFM_MANIFEST_OFFSET,
+		PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_ID_OFFSET, strlen (PFM_PLATFORM_ID), 0);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_ALLOWED_HDR_OFFSET,
-		PFM_DATA_LEN - PFM_ALLOWED_HDR_OFFSET,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_ALLOWED_HDR_OFFSET, 0, -1, PFM_ALLOWED_HEADER_SIZE));
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
+		PFM_DATA + PFM_ALLOWED_HDR_OFFSET, PFM_DATA_LEN - PFM_ALLOWED_HDR_OFFSET,
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_ALLOWED_HDR_OFFSET, 0, -1,
+			PFM_ALLOWED_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_FW_HEADER_OFFSET,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA + PFM_FW_HEADER_OFFSET,
 		PFM_DATA_LEN - PFM_FW_HEADER_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_FW_HEADER_OFFSET, 0, -1, PFM_FW_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_VERSION_OFFSET,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA + PFM_VERSION_OFFSET,
 		PFM_DATA_LEN - PFM_VERSION_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_VERSION_OFFSET, 0, -1, strlen (PFM_VERSION_ID)));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_IMG_HEADER_OFFSET,
-		PFM_DATA_LEN - PFM_IMG_HEADER_OFFSET,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
+		PFM_DATA + PFM_IMG_HEADER_OFFSET, PFM_DATA_LEN - PFM_IMG_HEADER_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_IMG_HEADER_OFFSET, 0, -1, PFM_IMG_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_IMG_SIGNATURE, PFM_IMG_KEY_SIZE,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_IMG_SIGNATURE,
+		PFM_IMG_KEY_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_IMG_SIG_OFFSET, 0, -1, PFM_IMG_KEY_SIZE));
 
-	status |= flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
+	status |= flash_master_mock_expect_xfer (&pfm.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm.base.get_firmware_images (&pfm.base, "Testing", &img_list);
+	status = pfm.test.base.get_firmware_images (&pfm.test.base, NULL, "Testing", &img_list);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_get_firmware_images_manifest_header_read_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
 	struct pfm_image_list img_list;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_ALLOWED_HDR_OFFSET, PFM_MANIFEST_OFFSET,
+		PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_ID_OFFSET, strlen (PFM_PLATFORM_ID), 0);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_ALLOWED_HDR_OFFSET,
-		PFM_DATA_LEN - PFM_ALLOWED_HDR_OFFSET,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_ALLOWED_HDR_OFFSET, 0, -1, PFM_ALLOWED_HEADER_SIZE));
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
+		PFM_DATA + PFM_ALLOWED_HDR_OFFSET, PFM_DATA_LEN - PFM_ALLOWED_HDR_OFFSET,
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_ALLOWED_HDR_OFFSET, 0, -1,
+			PFM_ALLOWED_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_FW_HEADER_OFFSET,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA + PFM_FW_HEADER_OFFSET,
 		PFM_DATA_LEN - PFM_FW_HEADER_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_FW_HEADER_OFFSET, 0, -1, PFM_FW_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_VERSION_OFFSET,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA + PFM_VERSION_OFFSET,
 		PFM_DATA_LEN - PFM_VERSION_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_VERSION_OFFSET, 0, -1, strlen (PFM_VERSION_ID)));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_IMG_HEADER_OFFSET,
-		PFM_DATA_LEN - PFM_IMG_HEADER_OFFSET,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
+		PFM_DATA + PFM_IMG_HEADER_OFFSET, PFM_DATA_LEN - PFM_IMG_HEADER_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_IMG_HEADER_OFFSET, 0, -1, PFM_IMG_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_IMG_SIGNATURE, PFM_IMG_KEY_SIZE,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_IMG_SIGNATURE,
+		PFM_IMG_KEY_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_IMG_SIG_OFFSET, 0, -1, PFM_IMG_KEY_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_IMG_REGION_OFFSET,
-		PFM_DATA_LEN - PFM_IMG_REGION_OFFSET,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
+		PFM_DATA + PFM_IMG_REGION_OFFSET, PFM_DATA_LEN - PFM_IMG_REGION_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_IMG_REGION_OFFSET, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
+	status |= flash_master_mock_expect_xfer (&pfm.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm.base.get_firmware_images (&pfm.base, "Testing", &img_list);
+	status = pfm.test.base.get_firmware_images (&pfm.test.base, NULL, "Testing", &img_list);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_get_firmware_images_key_header_read_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
 	struct pfm_image_list img_list;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_ALLOWED_HDR_OFFSET, PFM_MANIFEST_OFFSET,
+		PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_ID_OFFSET, strlen (PFM_PLATFORM_ID), 0);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_ALLOWED_HDR_OFFSET,
-		PFM_DATA_LEN - PFM_ALLOWED_HDR_OFFSET,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_ALLOWED_HDR_OFFSET, 0, -1, PFM_ALLOWED_HEADER_SIZE));
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
+		PFM_DATA + PFM_ALLOWED_HDR_OFFSET, PFM_DATA_LEN - PFM_ALLOWED_HDR_OFFSET,
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_ALLOWED_HDR_OFFSET, 0, -1,
+			PFM_ALLOWED_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_FW_HEADER_OFFSET,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA + PFM_FW_HEADER_OFFSET,
 		PFM_DATA_LEN - PFM_FW_HEADER_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_FW_HEADER_OFFSET, 0, -1, PFM_FW_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_VERSION_OFFSET,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA + PFM_VERSION_OFFSET,
 		PFM_DATA_LEN - PFM_VERSION_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_VERSION_OFFSET, 0, -1, strlen (PFM_VERSION_ID)));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_IMG_HEADER_OFFSET,
-		PFM_DATA_LEN - PFM_IMG_HEADER_OFFSET,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
+		PFM_DATA + PFM_IMG_HEADER_OFFSET, PFM_DATA_LEN - PFM_IMG_HEADER_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_IMG_HEADER_OFFSET, 0, -1, PFM_IMG_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_IMG_SIGNATURE, PFM_IMG_KEY_SIZE,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_IMG_SIGNATURE,
+		PFM_IMG_KEY_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_IMG_SIG_OFFSET, 0, -1, PFM_IMG_KEY_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_IMG_REGION_OFFSET,
-		PFM_DATA_LEN - PFM_IMG_REGION_OFFSET,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
+		PFM_DATA + PFM_IMG_REGION_OFFSET, PFM_DATA_LEN - PFM_IMG_REGION_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_IMG_REGION_OFFSET, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_MANIFEST_OFFSET,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA + PFM_MANIFEST_OFFSET,
 		PFM_DATA_LEN - PFM_MANIFEST_OFFSET,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_MANIFEST_OFFSET, 0, -1, PFM_MANIFEST_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
+	status |= flash_master_mock_expect_xfer (&pfm.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm.base.get_firmware_images (&pfm.base, "Testing", &img_list);
+	status = pfm.test.base.get_firmware_images (&pfm.test.base, NULL, "Testing", &img_list);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_get_firmware_images_key_read_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
 	struct pfm_image_list img_list;
 	const char *version1 = "V1";
-	uint8_t pfm_data[PFM_HEADER_SIZE + PFM_ALLOWED_HEADER_SIZE + PFM_FW_HEADER_SIZE  +
-		(PFM_IMG_HEADER_SIZE * 3) + (PFM_IMG_KEY_SIZE * 6) + (PFM_REGION_SIZE * 3 * 3) +
-		PFM_MANIFEST_HEADER_SIZE + (PFM_KEY_HEADER_SIZE * 3) + 4];
+	const char *platform_id = "Platform";
 	struct manifest_header *header;
 	struct pfm_allowable_firmware_header *allowed_header;
 	struct pfm_firmware_header *fw_header;
@@ -7449,6 +7067,7 @@ static void pfm_flash_test_get_firmware_images_key_read_error (CuTest *test)
 	struct pfm_flash_region *region;
 	struct pfm_key_manifest_header *manifest_header;
 	struct pfm_public_key_header *key_header;
+	struct pfm_platform_header *platform_header;
 	int ver_offset1 = PFM_HEADER_SIZE + PFM_ALLOWED_HEADER_SIZE;
 	int img_offset1 = ver_offset1 + PFM_FW_HEADER_SIZE + 4;
 	int sig_offset1 = img_offset1 + PFM_IMG_HEADER_SIZE;
@@ -7472,6 +7091,9 @@ static void pfm_flash_test_get_firmware_images_key_read_error (CuTest *test)
 	int key_offset2 = pub_offset2 + PFM_KEY_HEADER_SIZE;
 	int pub_offset3 = key_offset2 + PFM_IMG_KEY_SIZE;
 	int key_offset3 = pub_offset3 + PFM_KEY_HEADER_SIZE;
+	int plat_offset = key_offset3 + PFM_IMG_KEY_SIZE;
+	int sig_offset = plat_offset + PFM_PLATFORM_HEADER_SIZE + 8;
+	uint8_t pfm_data[sig_offset + PFM_SIGNATURE_LEN];
 
 	TEST_START;
 
@@ -7480,6 +7102,7 @@ static void pfm_flash_test_get_firmware_images_key_read_error (CuTest *test)
 	header = (struct manifest_header*) pfm_data;
 	header->length = sizeof (pfm_data);
 	header->magic = PFM_MAGIC_NUM;
+	header->sig_length = PFM_SIGNATURE_LEN;
 
 	allowed_header = (struct pfm_allowable_firmware_header*) &pfm_data[PFM_HEADER_SIZE];
 	allowed_header->length = PFM_ALLOWED_HEADER_SIZE;
@@ -7571,178 +7194,172 @@ static void pfm_flash_test_get_firmware_images_key_read_error (CuTest *test)
 	key_header->id = 2;
 	pfm_data[key_offset3] = 3;
 
-	status = flash_master_mock_init (&flash_mock);
+	platform_header = (struct pfm_platform_header*) &pfm_data[plat_offset];
+	platform_header->length = PFM_PLATFORM_HEADER_SIZE + 8;
+	platform_header->id_length = strlen (platform_id);
+	memcpy (&pfm_data[plat_offset + PFM_PLATFORM_HEADER_SIZE], platform_id, strlen (platform_id));
+
+	status = RSA_TESTING_ENGINE_SIGN (pfm_data, sizeof (pfm_data) - PFM_SIGNATURE_LEN,
+		RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, &pfm_data[sig_offset], PFM_SIGNATURE_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, pfm_data, sizeof (pfm_data), NULL,
+		&pfm_data[sig_offset], sig_offset, PFM_HEADER_SIZE, man_offset, plat_offset,
+		plat_offset + PFM_PLATFORM_HEADER_SIZE, strlen (platform_id), 0);
 
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data, sizeof (pfm_data),
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data, sizeof (pfm_data),
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + PFM_HEADER_SIZE,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + PFM_HEADER_SIZE,
 		sizeof (pfm_data) - PFM_HEADER_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_HEADER_SIZE, 0, -1, PFM_ALLOWED_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + ver_offset1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + ver_offset1,
 		sizeof (pfm_data) - ver_offset1,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + ver_offset1, 0, -1, PFM_FW_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
 		pfm_data + ver_offset1 + PFM_FW_HEADER_SIZE,
 		sizeof (pfm_data) - ver_offset1 - PFM_FW_HEADER_SIZE,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + ver_offset1 + PFM_FW_HEADER_SIZE, 0, -1,
 			strlen (version1)));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + img_offset1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + img_offset1,
 		sizeof (pfm_data) - img_offset1,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + img_offset1, 0, -1, PFM_IMG_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + sig_offset1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + sig_offset1,
 		sizeof (pfm_data) - sig_offset1,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + sig_offset1, 0, -1, PFM_IMG_KEY_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset11,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset11,
 		sizeof (pfm_data) - reg_offset11,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset11, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset12,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset12,
 		sizeof (pfm_data) - reg_offset12,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset12, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset13,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset13,
 		sizeof (pfm_data) - reg_offset13,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset13, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + img_offset2,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + img_offset2,
 		sizeof (pfm_data) - img_offset2,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + img_offset2, 0, -1, PFM_IMG_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + sig_offset2,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + sig_offset2,
 		sizeof (pfm_data) - sig_offset2,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + sig_offset2, 0, -1, PFM_IMG_KEY_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset21,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset21,
 		sizeof (pfm_data) - reg_offset21,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset21, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset22,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset22,
 		sizeof (pfm_data) - reg_offset22,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset22, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + img_offset3,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + img_offset3,
 		sizeof (pfm_data) - img_offset3,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + img_offset3, 0, -1, PFM_IMG_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + sig_offset3,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + sig_offset3,
 		sizeof (pfm_data) - sig_offset3,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + sig_offset3, 0, -1, PFM_IMG_KEY_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset31,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset31,
 		sizeof (pfm_data) - reg_offset31,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset31, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset32,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset32,
 		sizeof (pfm_data) - reg_offset32,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset32, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset33,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset33,
 		sizeof (pfm_data) - reg_offset33,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset33, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + reg_offset34,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + reg_offset34,
 		sizeof (pfm_data) - reg_offset34,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + reg_offset34, 0, -1, PFM_REGION_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + man_offset,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + man_offset,
 		sizeof (pfm_data) - man_offset,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + man_offset, 0, -1, PFM_MANIFEST_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + pub_offset1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + pub_offset1,
 		sizeof (pfm_data) - pub_offset1,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + pub_offset1, 0, -1, PFM_KEY_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + key_offset1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + key_offset1,
 		sizeof (pfm_data) - key_offset1,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + key_offset1, 0, -1, PFM_IMG_KEY_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_data + pub_offset2,
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_data + pub_offset2,
 		sizeof (pfm_data) - pub_offset2,
 		FLASH_EXP_READ_CMD (0x03, 0x10000 + pub_offset2, 0, -1, PFM_KEY_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
+	status |= flash_master_mock_expect_xfer (&pfm.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm.base.get_firmware_images (&pfm.base, version1, &img_list);
+	status = pfm.test.base.get_firmware_images (&pfm.test.base, NULL, version1, &img_list);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_get_firmware_images_bad_magic_num (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
 	struct pfm_image_list img_list;
 	uint8_t pfm_bad_data[PFM_SIGNATURE_OFFSET];
@@ -7752,510 +7369,385 @@ static void pfm_flash_test_get_firmware_images_bad_magic_num (CuTest *test)
 	memcpy (pfm_bad_data, PFM_DATA, sizeof (pfm_bad_data));
 	pfm_bad_data[2] ^= 0x55;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_ALLOWED_HDR_OFFSET, PFM_MANIFEST_OFFSET,
+		PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_ID_OFFSET, strlen (PFM_PLATFORM_ID), 0);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_bad_data, sizeof (pfm_bad_data),
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, pfm_bad_data,
+		sizeof (pfm_bad_data),
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pfm.base.get_firmware_images (&pfm.base, "Testing", &img_list);
+	status = pfm.test.base.get_firmware_images (&pfm.test.base, NULL, "Testing", &img_list);
 	CuAssertIntEquals (test, MANIFEST_BAD_MAGIC_NUMBER, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
+	pfm_flash_testing_validate_and_release (test, &pfm);
+}
+
+static void pfm_flash_test_get_firmware_images_signature_too_long (CuTest *test)
+{
+	struct pfm_flash_testing pfm;
+	int status;
+	struct pfm_image_list img_list;
+	struct pfm_image_header img_header;
+
+	TEST_START;
+
+	memcpy (&img_header, PFM_DATA + PFM_IMG_HEADER_OFFSET, sizeof (img_header));
+	img_header.sig_length = RSA_MAX_KEY_LENGTH + 1;
+
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_ALLOWED_HDR_OFFSET, PFM_MANIFEST_OFFSET,
+		PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_ID_OFFSET, strlen (PFM_PLATFORM_ID), 0);
+
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
+		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
+
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
+		PFM_DATA + PFM_ALLOWED_HDR_OFFSET, PFM_DATA_LEN - PFM_ALLOWED_HDR_OFFSET,
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_ALLOWED_HDR_OFFSET, 0, -1,
+			PFM_ALLOWED_HEADER_SIZE));
+
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA + PFM_FW_HEADER_OFFSET,
+		PFM_DATA_LEN - PFM_FW_HEADER_OFFSET,
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_FW_HEADER_OFFSET, 0, -1, PFM_FW_HEADER_SIZE));
+
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA + PFM_VERSION_OFFSET,
+		PFM_DATA_LEN - PFM_VERSION_OFFSET,
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_VERSION_OFFSET, 0, -1, strlen (PFM_VERSION_ID)));
+
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, (uint8_t*) &img_header,
+		sizeof (img_header),
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_IMG_HEADER_OFFSET, 0, -1, PFM_IMG_HEADER_SIZE));
+
 	CuAssertIntEquals (test, 0, status);
 
-	pfm_flash_release (&pfm);
+	status = pfm.test.base.get_firmware_images (&pfm.test.base, NULL, "Testing", &img_list);
+	CuAssertIntEquals (test, PFM_FW_IMAGE_UNSUPPORTED, status);
 
-	spi_flash_release (&flash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
+}
+
+static void pfm_flash_test_get_firmware_images_key_too_long (CuTest *test)
+{
+	struct pfm_flash_testing pfm;
+	int status;
+	struct pfm_image_list img_list;
+	struct pfm_public_key_header key_header;
+
+	TEST_START;
+
+	memcpy (&key_header, PFM_DATA + PFM_KEY_HEADER_OFFSET, sizeof (key_header));
+	key_header.key_length = RSA_MAX_KEY_LENGTH + 1;
+
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_ALLOWED_HDR_OFFSET, PFM_MANIFEST_OFFSET,
+		PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_ID_OFFSET, strlen (PFM_PLATFORM_ID), 0);
+
+	status = flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
+		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
+
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
+		PFM_DATA + PFM_ALLOWED_HDR_OFFSET, PFM_DATA_LEN - PFM_ALLOWED_HDR_OFFSET,
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_ALLOWED_HDR_OFFSET, 0, -1,
+			PFM_ALLOWED_HEADER_SIZE));
+
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA + PFM_FW_HEADER_OFFSET,
+		PFM_DATA_LEN - PFM_FW_HEADER_OFFSET,
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_FW_HEADER_OFFSET, 0, -1, PFM_FW_HEADER_SIZE));
+
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA + PFM_VERSION_OFFSET,
+		PFM_DATA_LEN - PFM_VERSION_OFFSET,
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_VERSION_OFFSET, 0, -1, strlen (PFM_VERSION_ID)));
+
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
+		PFM_DATA + PFM_IMG_HEADER_OFFSET, PFM_DATA_LEN - PFM_IMG_HEADER_OFFSET,
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_IMG_HEADER_OFFSET, 0, -1, PFM_IMG_HEADER_SIZE));
+
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_IMG_SIGNATURE,
+		PFM_IMG_KEY_SIZE,
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_IMG_SIG_OFFSET, 0, -1, PFM_IMG_KEY_SIZE));
+
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0,
+		PFM_DATA + PFM_IMG_REGION_OFFSET, PFM_DATA_LEN - PFM_IMG_REGION_OFFSET,
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_IMG_REGION_OFFSET, 0, -1, PFM_REGION_SIZE));
+
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, PFM_DATA + PFM_MANIFEST_OFFSET,
+		PFM_DATA_LEN - PFM_MANIFEST_OFFSET,
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_MANIFEST_OFFSET, 0, -1, PFM_MANIFEST_HEADER_SIZE));
+
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&pfm.flash_mock, 0, (uint8_t*) &key_header,
+		sizeof (key_header),
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_KEY_HEADER_OFFSET, 0, -1, PFM_KEY_HEADER_SIZE));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm.test.base.get_firmware_images (&pfm.test.base, NULL, "Testing", &img_list);
+	CuAssertIntEquals (test, PFM_KEY_UNSUPPORTED, status);
+
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_free_firmware_images_null (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
-	int status;
+	struct pfm_flash_testing pfm;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_ALLOWED_HDR_OFFSET, PFM_MANIFEST_OFFSET,
+		PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_ID_OFFSET, strlen (PFM_PLATFORM_ID), 0);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
+	pfm.test.base.free_firmware_images (&pfm.test.base, NULL);
 
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm.base.free_firmware_images (&pfm.base, NULL);
-
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_free_firmware_images_null_list (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
-	int status;
+	struct pfm_flash_testing pfm;
 	struct pfm_image_list img_list;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_ALLOWED_HDR_OFFSET, PFM_MANIFEST_OFFSET,
+		PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_ID_OFFSET, strlen (PFM_PLATFORM_ID), 0);
 
 	img_list.count = 1;
-	img_list.images = NULL;
-	pfm.base.free_firmware_images (&pfm.base, &img_list);
+	img_list.images_sig = NULL;
+	img_list.images_hash = NULL;
+	pfm.test.base.free_firmware_images (&pfm.test.base, &img_list);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_get_platform_id (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
-	char *id;
+	char buffer[32];
+	char *id = buffer;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_ALLOWED_HDR_OFFSET, PFM_MANIFEST_OFFSET,
+		PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_ID_OFFSET, strlen (PFM_PLATFORM_ID), 0);
+
+	status = pfm.test.base.base.get_platform_id (&pfm.test.base.base, &id, sizeof (buffer));
 	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrEquals (test, buffer, id);
+	CuAssertStrEquals (test, PFM_PLATFORM_ID, id);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_validate_and_release (test, &pfm);
+}
 
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
+static void pfm_flash_test_get_platform_id_manifest_allocation (CuTest *test)
+{
+	struct pfm_flash_testing pfm;
+	int status;
+	char *id = NULL;
 
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
+	TEST_START;
 
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_ALLOWED_HDR_OFFSET, PFM_MANIFEST_OFFSET,
+		PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_ID_OFFSET, strlen (PFM_PLATFORM_ID), 0);
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_ALLOWED_HDR_OFFSET,
-		PFM_DATA_LEN - PFM_ALLOWED_HDR_OFFSET,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_ALLOWED_HDR_OFFSET, 0, -1, PFM_ALLOWED_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_MANIFEST_OFFSET,
-		PFM_DATA_LEN - PFM_MANIFEST_OFFSET,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_MANIFEST_OFFSET, 0, -1, PFM_MANIFEST_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0,
-		PFM_DATA + PFM_PLATFORM_HEADER_OFFSET, PFM_DATA_LEN - PFM_PLATFORM_HEADER_OFFSET,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_PLATFORM_HEADER_OFFSET, 0, -1,
-			PFM_PLATFORM_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_PLATFORM_ID_OFFSET,
-		PFM_DATA_LEN - PFM_PLATFORM_ID_OFFSET,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_PLATFORM_ID_OFFSET, 0, -1,
-			strlen (PFM_PLATFORM_ID)));
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm.base.base.get_platform_id (&pfm.base.base, &id);
+	status = pfm.test.base.base.get_platform_id (&pfm.test.base.base, &id, 0);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, id);
 	CuAssertStrEquals (test, PFM_PLATFORM_ID, id);
 
-	platform_free (id);
+	pfm.test.base.base.free_platform_id (&pfm.test.base.base, id);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_flash_test_get_platform_id_null (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
-	char *id;
+	char *id = NULL;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_ALLOWED_HDR_OFFSET, PFM_MANIFEST_OFFSET,
+		PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_ID_OFFSET, strlen (PFM_PLATFORM_ID), 0);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	id = (char*) &status;
-	status = pfm.base.base.get_platform_id (NULL, &id);
-	CuAssertIntEquals (test, PFM_INVALID_ARGUMENT, status);
-	CuAssertPtrEquals (test, NULL, id);
-
-	status = pfm.base.base.get_platform_id (&pfm.base.base, NULL);
+	status = pfm.test.base.base.get_platform_id (NULL, &id, 0);
 	CuAssertIntEquals (test, PFM_INVALID_ARGUMENT, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	status = pfm.test.base.base.get_platform_id (&pfm.test.base.base, NULL, 0);
+	CuAssertIntEquals (test, MANIFEST_INVALID_ARGUMENT, status);
 
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
-static void pfm_flash_test_get_platform_id_header_read_error (CuTest *test)
+static void pfm_flash_test_get_platform_id_verify_never_run (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
-	char *id;
+	char buffer[32];
+	char *id = buffer;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init (test, &pfm, 0x10000);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
+	status = pfm.test.base.base.get_platform_id (&pfm.test.base.base, &id, sizeof (buffer));
+	CuAssertIntEquals (test, MANIFEST_NO_MANIFEST, status);
 
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
-		FLASH_EXP_READ_STATUS_REG);
-
-	CuAssertIntEquals (test, 0, status);
-
-	id = (char*) &status;
-	status = pfm.base.base.get_platform_id (&pfm.base.base, &id);
-	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
-	CuAssertPtrEquals (test, NULL, id);
-
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
-static void pfm_flash_test_get_platform_id_allowable_header_read_error (CuTest *test)
+static void pfm_flash_test_free_platform_id_null (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
-	char *id;
+	char *id = NULL;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_ALLOWED_HDR_OFFSET, PFM_MANIFEST_OFFSET,
+		PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_ID_OFFSET, strlen (PFM_PLATFORM_ID), 0);
+
+	status = pfm.test.base.base.get_platform_id (&pfm.test.base.base, &id, 0);
 	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, id);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
+	pfm.test.base.base.free_platform_id (NULL, id);
+	pfm.test.base.base.free_platform_id (&pfm.test.base.base, NULL);
 
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
-
-	status = flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
-		FLASH_EXP_READ_STATUS_REG);
-
-	CuAssertIntEquals (test, 0, status);
-
-	id = (char*) &status;
-	status = pfm.base.base.get_platform_id (&pfm.base.base, &id);
-	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
-	CuAssertPtrEquals (test, NULL, id);
-
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
+	pfm.test.base.base.free_platform_id (&pfm.test.base.base, id);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
-static void pfm_flash_test_get_platform_id_manifest_header_read_error (CuTest *test)
+static void pfm_flash_test_get_firmware (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
-	char *id;
+	struct pfm_firmware fw;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_ALLOWED_HDR_OFFSET, PFM_MANIFEST_OFFSET,
+		PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_ID_OFFSET, strlen (PFM_PLATFORM_ID), 0);
+
+	status = pfm.test.base.get_firmware (&pfm.test.base, &fw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, fw.count);
+	CuAssertPtrEquals (test, NULL, (void*) fw.ids[0]);
 
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
+	pfm.test.base.free_firmware (&pfm.test.base, &fw);
 
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_ALLOWED_HDR_OFFSET,
-		PFM_DATA_LEN - PFM_ALLOWED_HDR_OFFSET,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_ALLOWED_HDR_OFFSET, 0, -1, PFM_ALLOWED_HEADER_SIZE));
-
-	status = flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
-		FLASH_EXP_READ_STATUS_REG);
-
-	CuAssertIntEquals (test, 0, status);
-
-	id = (char*) &status;
-	status = pfm.base.base.get_platform_id (&pfm.base.base, &id);
-	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
-	CuAssertPtrEquals (test, NULL, id);
-
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
-static void pfm_flash_test_get_platform_id_platform_header_read_error (CuTest *test)
+static void pfm_flash_test_get_firmware_null (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
-	char *id;
+	struct pfm_firmware fw;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_ALLOWED_HDR_OFFSET, PFM_MANIFEST_OFFSET,
+		PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_ID_OFFSET, strlen (PFM_PLATFORM_ID), 0);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
+	status = pfm.test.base.get_firmware (NULL, &fw);
+	CuAssertIntEquals (test, PFM_INVALID_ARGUMENT, status);
 
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
+	status = pfm.test.base.get_firmware (&pfm.test.base, NULL);
+	CuAssertIntEquals (test, PFM_INVALID_ARGUMENT, status);
 
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_ALLOWED_HDR_OFFSET,
-		PFM_DATA_LEN - PFM_ALLOWED_HDR_OFFSET,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_ALLOWED_HDR_OFFSET, 0, -1, PFM_ALLOWED_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_MANIFEST_OFFSET,
-		PFM_DATA_LEN - PFM_MANIFEST_OFFSET,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_MANIFEST_OFFSET, 0, -1, PFM_MANIFEST_HEADER_SIZE));
-
-	status = flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
-		FLASH_EXP_READ_STATUS_REG);
-
-	CuAssertIntEquals (test, 0, status);
-
-	id = (char*) &status;
-	status = pfm.base.base.get_platform_id (&pfm.base.base, &id);
-	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
-	CuAssertPtrEquals (test, NULL, id);
-
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
-static void pfm_flash_test_get_platform_id_identifier_read_error (CuTest *test)
+static void pfm_flash_test_get_firmware_verify_never_run (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
+	struct pfm_flash_testing pfm;
 	int status;
-	char *id;
+	struct pfm_firmware fw;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_init (test, &pfm, 0x10000);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
+	status = pfm.test.base.get_firmware (&pfm.test.base, &fw);
+	CuAssertIntEquals (test, MANIFEST_NO_MANIFEST, status);
 
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_ALLOWED_HDR_OFFSET,
-		PFM_DATA_LEN - PFM_ALLOWED_HDR_OFFSET,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_ALLOWED_HDR_OFFSET, 0, -1, PFM_ALLOWED_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, PFM_DATA + PFM_MANIFEST_OFFSET,
-		PFM_DATA_LEN - PFM_MANIFEST_OFFSET,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_MANIFEST_OFFSET, 0, -1, PFM_MANIFEST_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0,
-		PFM_DATA + PFM_PLATFORM_HEADER_OFFSET, PFM_DATA_LEN - PFM_PLATFORM_HEADER_OFFSET,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_PLATFORM_HEADER_OFFSET, 0, -1,
-			PFM_PLATFORM_HEADER_SIZE));
-
-	status = flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
-		FLASH_EXP_READ_STATUS_REG);
-
-	CuAssertIntEquals (test, 0, status);
-
-	id = (char*) &status;
-	status = pfm.base.base.get_platform_id (&pfm.base.base, &id);
-	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
-	CuAssertPtrEquals (test, NULL, id);
-
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
-static void pfm_flash_test_get_platform_id_bad_magic_num (CuTest *test)
+static void pfm_flash_test_free_firmware_null (CuTest *test)
 {
-	struct flash_master_mock flash_mock;
-	struct spi_flash flash;
-	struct pfm_flash pfm;
-	int status;
-	char *id;
-	uint8_t pfm_bad_data[PFM_SIGNATURE_OFFSET];
+	struct pfm_flash_testing pfm;
 
 	TEST_START;
 
-	memcpy (pfm_bad_data, PFM_DATA, sizeof (pfm_bad_data));
-	pfm_bad_data[2] ^= 0x55;
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_ALLOWED_HDR_OFFSET, PFM_MANIFEST_OFFSET,
+		PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_ID_OFFSET, strlen (PFM_PLATFORM_ID), 0);
 
-	status = flash_master_mock_init (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
+	pfm.test.base.free_firmware (&pfm.test.base, NULL);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
+	pfm_flash_testing_validate_and_release (test, &pfm);
+}
 
-	status = spi_flash_set_device_size (&flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
+static void pfm_flash_test_free_firmware_null_list (CuTest *test)
+{
+	struct pfm_flash_testing pfm;
+	struct pfm_firmware fw;
 
-	status = pfm_flash_init (&pfm, &flash, 0x10000);
-	CuAssertIntEquals (test, 0, status);
+	TEST_START;
 
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, pfm_bad_data, sizeof (pfm_bad_data),
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
+	pfm_flash_testing_init_and_verify (test, &pfm, 0x10000, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
+		PFM_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_ALLOWED_HDR_OFFSET, PFM_MANIFEST_OFFSET,
+		PFM_PLATFORM_HEADER_OFFSET, PFM_PLATFORM_ID_OFFSET, strlen (PFM_PLATFORM_ID), 0);
 
-	CuAssertIntEquals (test, 0, status);
+	fw.count = 1;
+	fw.ids = NULL;
+	pfm.test.base.free_firmware (&pfm.test.base, &fw);
 
-	id = (char*) &status;
-	status = pfm.base.base.get_platform_id (&pfm.base.base, &id);
-	CuAssertIntEquals (test, MANIFEST_BAD_MAGIC_NUMBER, status);
-	CuAssertPtrEquals (test, NULL, id);
-
-	status = flash_master_mock_validate_and_release (&flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	pfm_flash_release (&pfm);
-
-	spi_flash_release (&flash);
+	pfm_flash_testing_validate_and_release (test, &pfm);
 }
 
 
@@ -8267,36 +7759,44 @@ CuSuite* get_pfm_flash_suite ()
 	SUITE_ADD_TEST (suite, pfm_flash_test_init_null);
 	SUITE_ADD_TEST (suite, pfm_flash_test_init_not_block_aligned);
 	SUITE_ADD_TEST (suite, pfm_flash_test_release_null);
-	SUITE_ADD_TEST (suite, pfm_flash_test_release_no_init);
-	SUITE_ADD_TEST (suite, pfm_flash_test_get_addr_null);
-	SUITE_ADD_TEST (suite, pfm_flash_test_get_flash_null);
 	SUITE_ADD_TEST (suite, pfm_flash_test_verify);
 	SUITE_ADD_TEST (suite, pfm_flash_test_verify_empty_manifest);
+	SUITE_ADD_TEST (suite, pfm_flash_test_verify_minimum_platform_id_buffer_length);
 	SUITE_ADD_TEST (suite, pfm_flash_test_verify_null);
 	SUITE_ADD_TEST (suite, pfm_flash_test_verify_bad_magic_number);
-	SUITE_ADD_TEST (suite, pfm_flash_test_verify_header_read_error);
 	SUITE_ADD_TEST (suite, pfm_flash_test_verify_allowable_header_read_error);
 	SUITE_ADD_TEST (suite, pfm_flash_test_verify_manifest_header_read_error);
 	SUITE_ADD_TEST (suite, pfm_flash_test_verify_platform_header_read_error);
+	SUITE_ADD_TEST (suite, pfm_flash_test_verify_platform_id_too_long);
+	SUITE_ADD_TEST (suite, pfm_flash_test_verify_length_mismatch);
 	SUITE_ADD_TEST (suite, pfm_flash_test_verify_missing_platform_id);
+	SUITE_ADD_TEST (suite, pfm_flash_test_verify_platform_id_read_error);
 	SUITE_ADD_TEST (suite, pfm_flash_test_verify_header_reserved_non_zero);
 	SUITE_ADD_TEST (suite, pfm_flash_test_verify_allowable_header_reserved_non_zero);
 	SUITE_ADD_TEST (suite, pfm_flash_test_verify_manifest_header_reserved_non_zero);
 	SUITE_ADD_TEST (suite, pfm_flash_test_verify_platform_header_reserved_non_zero);
 	SUITE_ADD_TEST (suite, pfm_flash_test_get_id);
 	SUITE_ADD_TEST (suite, pfm_flash_test_get_id_null);
-	SUITE_ADD_TEST (suite, pfm_flash_test_get_id_bad_magic_num);
+	SUITE_ADD_TEST (suite, pfm_flash_test_get_id_verify_never_run);
+	SUITE_ADD_TEST (suite, pfm_flash_test_get_id_after_verify_allowable_header_read_error);
+	SUITE_ADD_TEST (suite, pfm_flash_test_get_id_after_verify_manifest_header_read_error);
+	SUITE_ADD_TEST (suite, pfm_flash_test_get_id_after_verify_platform_header_read_error);
+	SUITE_ADD_TEST (suite, pfm_flash_test_get_id_after_verify_platform_id_too_long);
+	SUITE_ADD_TEST (suite, pfm_flash_test_get_id_after_verify_length_mismatch);
+	SUITE_ADD_TEST (suite, pfm_flash_test_get_id_after_verify_platform_id_read_error);
 	SUITE_ADD_TEST (suite, pfm_flash_test_get_hash);
 	SUITE_ADD_TEST (suite, pfm_flash_test_get_hash_after_verify);
 	SUITE_ADD_TEST (suite, pfm_flash_test_get_hash_null);
 	SUITE_ADD_TEST (suite, pfm_flash_test_get_hash_bad_magic_num);
 	SUITE_ADD_TEST (suite, pfm_flash_test_get_signature);
+	SUITE_ADD_TEST (suite, pfm_flash_test_get_signature_after_verify);
 	SUITE_ADD_TEST (suite, pfm_flash_test_get_signature_null);
 	SUITE_ADD_TEST (suite, pfm_flash_test_get_signature_bad_magic_number);
 	SUITE_ADD_TEST (suite, pfm_flash_test_get_supported_versions);
 	SUITE_ADD_TEST (suite, pfm_flash_test_get_supported_versions_multiple);
 	SUITE_ADD_TEST (suite, pfm_flash_test_get_supported_versions_empty_manifest);
 	SUITE_ADD_TEST (suite, pfm_flash_test_get_supported_versions_null);
+	SUITE_ADD_TEST (suite, pfm_flash_test_get_supported_versions_verify_never_run);
 	SUITE_ADD_TEST (suite, pfm_flash_test_get_supported_versions_header_read_error);
 	SUITE_ADD_TEST (suite, pfm_flash_test_get_supported_versions_allowable_header_read_error);
 	SUITE_ADD_TEST (suite, pfm_flash_test_get_supported_versions_fw_header_read_error);
@@ -8311,6 +7811,7 @@ CuSuite* get_pfm_flash_suite ()
 	SUITE_ADD_TEST (suite, pfm_flash_test_get_read_write_regions_multiple_regions);
 	SUITE_ADD_TEST (suite, pfm_flash_test_get_read_write_regions_empty_manifest);
 	SUITE_ADD_TEST (suite, pfm_flash_test_get_read_write_regions_null);
+	SUITE_ADD_TEST (suite, pfm_flash_test_get_read_write_regions_verify_never_run);
 	SUITE_ADD_TEST (suite, pfm_flash_test_get_read_write_regions_header_read_error);
 	SUITE_ADD_TEST (suite, pfm_flash_test_get_read_write_regions_allowable_header_read_error);
 	SUITE_ADD_TEST (suite, pfm_flash_test_get_read_write_regions_fw_header_read_error);
@@ -8318,6 +7819,7 @@ CuSuite* get_pfm_flash_suite ()
 	SUITE_ADD_TEST (suite, pfm_flash_test_get_read_write_regions_region_read_error);
 	SUITE_ADD_TEST (suite, pfm_flash_test_get_read_write_regions_bad_magic_num);
 	SUITE_ADD_TEST (suite, pfm_flash_test_free_read_write_regions_null);
+	SUITE_ADD_TEST (suite, pfm_flash_test_free_read_write_regions_null_list);
 	SUITE_ADD_TEST (suite, pfm_flash_test_get_firmware_images);
 	SUITE_ADD_TEST (suite, pfm_flash_test_get_firmware_images_no_flags);
 	SUITE_ADD_TEST (suite, pfm_flash_test_get_firmware_images_unknown_flags);
@@ -8332,6 +7834,7 @@ CuSuite* get_pfm_flash_suite ()
 	SUITE_ADD_TEST (suite, pfm_flash_test_get_firmware_images_no_matching_key);
 	SUITE_ADD_TEST (suite, pfm_flash_test_get_firmware_images_empty_manifest);
 	SUITE_ADD_TEST (suite, pfm_flash_test_get_firmware_images_null);
+	SUITE_ADD_TEST (suite, pfm_flash_test_get_firmware_images_verify_never_run);
 	SUITE_ADD_TEST (suite, pfm_flash_test_get_firmware_images_header_read_error);
 	SUITE_ADD_TEST (suite, pfm_flash_test_get_firmware_images_allowable_header_read_error);
 	SUITE_ADD_TEST (suite, pfm_flash_test_get_firmware_images_img_header_read_error);
@@ -8341,16 +7844,20 @@ CuSuite* get_pfm_flash_suite ()
 	SUITE_ADD_TEST (suite, pfm_flash_test_get_firmware_images_key_header_read_error);
 	SUITE_ADD_TEST (suite, pfm_flash_test_get_firmware_images_key_read_error);
 	SUITE_ADD_TEST (suite, pfm_flash_test_get_firmware_images_bad_magic_num);
+	SUITE_ADD_TEST (suite, pfm_flash_test_get_firmware_images_signature_too_long);
+	SUITE_ADD_TEST (suite, pfm_flash_test_get_firmware_images_key_too_long);
 	SUITE_ADD_TEST (suite, pfm_flash_test_free_firmware_images_null);
 	SUITE_ADD_TEST (suite, pfm_flash_test_free_firmware_images_null_list);
 	SUITE_ADD_TEST (suite, pfm_flash_test_get_platform_id);
+	SUITE_ADD_TEST (suite, pfm_flash_test_get_platform_id_manifest_allocation);
 	SUITE_ADD_TEST (suite, pfm_flash_test_get_platform_id_null);
-	SUITE_ADD_TEST (suite, pfm_flash_test_get_platform_id_header_read_error);
-	SUITE_ADD_TEST (suite, pfm_flash_test_get_platform_id_allowable_header_read_error);
-	SUITE_ADD_TEST (suite, pfm_flash_test_get_platform_id_manifest_header_read_error);
-	SUITE_ADD_TEST (suite, pfm_flash_test_get_platform_id_platform_header_read_error);
-	SUITE_ADD_TEST (suite, pfm_flash_test_get_platform_id_identifier_read_error);
-	SUITE_ADD_TEST (suite, pfm_flash_test_get_platform_id_bad_magic_num);
+	SUITE_ADD_TEST (suite, pfm_flash_test_get_platform_id_verify_never_run);
+	SUITE_ADD_TEST (suite, pfm_flash_test_free_platform_id_null);
+	SUITE_ADD_TEST (suite, pfm_flash_test_get_firmware);
+	SUITE_ADD_TEST (suite, pfm_flash_test_get_firmware_null);
+	SUITE_ADD_TEST (suite, pfm_flash_test_get_firmware_verify_never_run);
+	SUITE_ADD_TEST (suite, pfm_flash_test_free_firmware_null);
+	SUITE_ADD_TEST (suite, pfm_flash_test_free_firmware_null_list);
 
 	return suite;
 }

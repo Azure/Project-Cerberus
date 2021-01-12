@@ -1541,13 +1541,8 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_id_platform_regio
 	struct cerberus_protocol_get_cfm_id_platform_response *resp =
 		(struct cerberus_protocol_get_cfm_id_platform_response*) data;
 	size_t id_length = CFM_PLATFORM_ID_LEN + 1;
-	char *platform_id;
+	int max = CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG - 1;
 	int status;
-
-	platform_id = platform_malloc (id_length);
-	CuAssertPtrNotNull (test, platform_id);
-
-	strcpy (platform_id, CFM_PLATFORM_ID);
 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
@@ -1572,8 +1567,8 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_id_platform_regio
 		0, MOCK_ARG (&cfm_mock.base));
 
 	status |= mock_expect (&cfm_mock.mock, cfm_mock.base.base.get_platform_id, &cfm_mock, 0,
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&cfm_mock.mock, 0, &platform_id, sizeof (platform_id), -1);
+		MOCK_ARG_PTR_PTR_NOT_NULL, MOCK_ARG (max));
+	status |= mock_expect_output_ptr (&cfm_mock.mock, 0, CFM_PLATFORM_ID, id_length, 1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1610,13 +1605,8 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_id_platform_regio
 	struct cerberus_protocol_get_cfm_id_platform_response *resp =
 		(struct cerberus_protocol_get_cfm_id_platform_response*) data;
 	size_t id_length = CFM_PLATFORM_ID_LEN + 1;
-	char *platform_id;
+	int max = CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG - 1;
 	int status;
-
-	platform_id = platform_malloc (id_length);
-	CuAssertPtrNotNull (test, platform_id);
-
-	strcpy (platform_id, CFM_PLATFORM_ID);
 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
@@ -1641,8 +1631,8 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_id_platform_regio
 		0, MOCK_ARG (&cfm_mock.base));
 
 	status |= mock_expect (&cfm_mock.mock, cfm_mock.base.base.get_platform_id, &cfm_mock, 0,
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&cfm_mock.mock, 0, &platform_id, sizeof (platform_id), -1);
+		MOCK_ARG_PTR_PTR_NOT_NULL, MOCK_ARG (max));
+	status |= mock_expect_output_ptr (&cfm_mock.mock, 0, CFM_PLATFORM_ID, id_length, -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1770,6 +1760,7 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_id_platform_fail 
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_request request;
 	struct cerberus_protocol_get_cfm_id *req = (struct cerberus_protocol_get_cfm_id*) data;
+	int max = CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG - 1;
 	int status;
 
 	memset (&request, 0, sizeof (request));
@@ -1795,7 +1786,7 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_id_platform_fail 
 		0, MOCK_ARG (&cfm_mock.base));
 
 	status |= mock_expect (&cfm_mock.mock, cfm_mock.base.base.get_platform_id, &cfm_mock,
-		CFM_NO_MEMORY, MOCK_ARG_NOT_NULL);
+		CFM_NO_MEMORY, MOCK_ARG_PTR_PTR_NOT_NULL, MOCK_ARG (max));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2903,13 +2894,8 @@ void cerberus_protocol_master_commands_testing_process_get_pcd_id_platform (CuTe
 	struct cerberus_protocol_get_pcd_id_platform_response *resp =
 		(struct cerberus_protocol_get_pcd_id_platform_response*) data;
 	size_t id_length = PCD_PLATFORM_ID_LEN + 1;
-	char *platform_id;
+	int max = CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG - 1;
 	int status;
-
-	platform_id = platform_malloc (id_length);
-	CuAssertPtrNotNull (test, platform_id);
-
-	strcpy (platform_id, PCD_PLATFORM_ID);
 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
@@ -2933,8 +2919,8 @@ void cerberus_protocol_master_commands_testing_process_get_pcd_id_platform (CuTe
 		MOCK_ARG (&pcd_mock.base));
 
 	status |= mock_expect (&pcd_mock.mock, pcd_mock.base.base.get_platform_id, &pcd_mock, 0,
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pcd_mock.mock, 0, &platform_id, sizeof (platform_id), -1);
+		MOCK_ARG_PTR_PTR_NOT_NULL, MOCK_ARG (max));
+	status |= mock_expect_output_ptr (&pcd_mock.mock, 0, PCD_PLATFORM_ID, id_length, -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3060,6 +3046,7 @@ void cerberus_protocol_master_commands_testing_process_get_pcd_id_platform_fail 
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_request request;
 	struct cerberus_protocol_get_pcd_id *req = (struct cerberus_protocol_get_pcd_id*) data;
+	int max = CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG - 1;
 	int status;
 
 	memset (&request, 0, sizeof (request));
@@ -3084,7 +3071,7 @@ void cerberus_protocol_master_commands_testing_process_get_pcd_id_platform_fail 
 		MOCK_ARG (&pcd_mock.base));
 
 	status |= mock_expect (&pcd_mock.mock, pcd_mock.base.base.get_platform_id, &pcd_mock,
-		PCD_NO_MEMORY, MOCK_ARG_NOT_NULL);
+		PCD_NO_MEMORY, MOCK_ARG_PTR_PTR_NOT_NULL, MOCK_ARG (max));
 
 	CuAssertIntEquals (test, 0, status);
 

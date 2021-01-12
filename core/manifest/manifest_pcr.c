@@ -78,24 +78,26 @@ void manifest_pcr_release (struct manifest_pcr *pcr)
  */
 void manifest_pcr_record_manifest_measurement (struct manifest_pcr *pcr, struct manifest *active)
 {
-	uint8_t manifest_measurement[SHA256_HASH_LENGTH] = {0};
+	uint8_t manifest_measurement[SHA512_HASH_LENGTH] = {0};
+	int measurement_length = SHA256_HASH_LENGTH;
 	uint8_t id[5];
 	char *platform_id = NULL;
 	char empty_string = '\0';
 	int status;
 
 	if (active) {
-		status = active->get_hash (active, pcr->hash, manifest_measurement,
+		measurement_length = active->get_hash (active, pcr->hash, manifest_measurement,
 			sizeof (manifest_measurement));
-		if (status != 0) {
+		if (ROT_IS_ERROR (measurement_length)) {
 			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
-				MANIFEST_LOGGING_GET_MEASUREMENT_FAIL, pcr->manifest_measurement, status);
+				MANIFEST_LOGGING_GET_MEASUREMENT_FAIL, pcr->manifest_measurement,
+				measurement_length);
 			return;
 		}
 	}
 
 	status = pcr_store_update_versioned_buffer (pcr->store, pcr->hash, pcr->manifest_measurement,
-		manifest_measurement, SHA256_HASH_LENGTH, true, 0);
+		manifest_measurement, measurement_length, true, 0);
 	if (status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
 			MANIFEST_LOGGING_RECORD_MEASUREMENT_FAIL, pcr->manifest_measurement, status);
@@ -127,7 +129,7 @@ void manifest_pcr_record_manifest_measurement (struct manifest_pcr *pcr, struct 
 		platform_id = &empty_string;
 	}
 	else {
-		status = active->get_platform_id (active, &platform_id);
+		status = active->get_platform_id (active, &platform_id, 0);
 		if (status != 0) {
 			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
 				MANIFEST_LOGGING_GET_PLATFORM_ID_FAIL, pcr->manifest_platform_id_measurement,
@@ -146,6 +148,6 @@ void manifest_pcr_record_manifest_measurement (struct manifest_pcr *pcr, struct 
 	}
 
 	if (active != NULL) {
-		platform_free (platform_id);
+		active->free_platform_id (active, platform_id);
 	}
 }

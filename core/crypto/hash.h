@@ -20,6 +20,7 @@
 #define	SHA384_BLOCK_SIZE	(1024 / 8)
 #define	SHA512_BLOCK_SIZE	(1024 / 8)
 
+
 /* Definitions of hash engine state for internal implementation use, as necessary. */
 enum {
 	HASH_ACTIVE_NONE = 0,	/**< No hash context is active. */
@@ -28,7 +29,6 @@ enum {
 	HASH_ACTIVE_SHA384,		/**< SHA-384 context is active. */
 	HASH_ACTIVE_SHA512,		/**< SHA-512 context is active. */
 };
-
 
 /**
  * The types of hashes supported by the hashing API.

@@ -18,13 +18,11 @@ static struct cfm* cfm_manager_flash_get_cfm (struct cfm_manager_flash *manager,
 	}
 
 	region = manifest_manager_flash_get_manifest_region (&manager->manifest_manager, active);
-
 	if (region == NULL) {
 		return NULL;
 	}
 
 	flash = (struct cfm_flash*) region->manifest;
-
 	return &flash->base;
 }
 
@@ -155,9 +153,8 @@ int cfm_manager_flash_init (struct cfm_manager_flash *manager, struct cfm_flash 
 	}
 
 	status = manifest_manager_flash_init (&manager->manifest_manager, &cfm_region1->base.base,
-		&cfm_region2->base.base, state, hash, verification, cfm_flash_get_flash (cfm_region1),
-		cfm_flash_get_addr (cfm_region1), cfm_flash_get_flash (cfm_region2),
-		cfm_flash_get_addr (cfm_region2), SYSTEM_STATE_MANIFEST_CFM);
+		&cfm_region2->base.base, &cfm_region1->base_flash, &cfm_region2->base_flash, state, hash,
+		verification, SYSTEM_STATE_MANIFEST_CFM);
 	if (status != 0) {
 		cfm_manager_release (&manager->base);
 		return status;
@@ -166,6 +163,7 @@ int cfm_manager_flash_init (struct cfm_manager_flash *manager, struct cfm_flash 
 	manager->base.get_active_cfm = cfm_manager_flash_get_active_cfm;
 	manager->base.get_pending_cfm = cfm_manager_flash_get_pending_cfm;
 	manager->base.free_cfm = cfm_manager_flash_free_cfm;
+
 	manager->base.base.activate_pending_manifest = cfm_manager_flash_activate_pending_cfm;
 	manager->base.base.clear_pending_region = cfm_manager_flash_clear_pending_region;
 	manager->base.base.write_pending_data = cfm_manager_flash_write_pending_data;

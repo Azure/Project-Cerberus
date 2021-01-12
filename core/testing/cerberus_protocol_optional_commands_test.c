@@ -1819,13 +1819,8 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_por
 	struct cerberus_protocol_get_pfm_id_platform_response *resp =
 		(struct cerberus_protocol_get_pfm_id_platform_response*) data;
 	size_t id_length = PFM_PLATFORM_ID_LEN + 1;
-	char *platform_id;
+	int max = CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG - 1;
 	int status;
-
-	platform_id = platform_malloc (id_length);
-	CuAssertPtrNotNull (test, platform_id);
-
-	strcpy (platform_id, PFM_PLATFORM_ID);
 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
@@ -1850,8 +1845,9 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_por
 	status |= mock_expect (&pfm_manager_0->mock, pfm_manager_0->base.free_pfm, pfm_manager_0, 0,
 		MOCK_ARG (&pfm.base));
 
-	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 0, &platform_id, sizeof (platform_id), -1);
+	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0,
+		MOCK_ARG_PTR_PTR_NOT_NULL, MOCK_ARG (max));
+	status |= mock_expect_output_ptr (&pfm.mock, 0, PFM_PLATFORM_ID, id_length, -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1888,13 +1884,8 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_por
 	struct cerberus_protocol_get_pfm_id_platform_response *resp =
 		(struct cerberus_protocol_get_pfm_id_platform_response*) data;
 	size_t id_length = PFM_PLATFORM_ID_LEN + 1;
-	char *platform_id;
+	int max = CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG - 1;
 	int status;
-
-	platform_id = platform_malloc (id_length);
-	CuAssertPtrNotNull (test, platform_id);
-
-	strcpy (platform_id, PFM_PLATFORM_ID);
 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
@@ -1919,8 +1910,9 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_por
 	status |= mock_expect (&pfm_manager_0->mock, pfm_manager_0->base.free_pfm, pfm_manager_0, 0,
 		MOCK_ARG (&pfm.base));
 
-	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 0, &platform_id, sizeof (platform_id), -1);
+	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0,
+		MOCK_ARG_PTR_PTR_NOT_NULL, MOCK_ARG (max));
+	status |= mock_expect_output_ptr (&pfm.mock, 0, PFM_PLATFORM_ID, id_length, -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1957,13 +1949,8 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_por
 	struct cerberus_protocol_get_pfm_id_platform_response *resp =
 		(struct cerberus_protocol_get_pfm_id_platform_response*) data;
 	size_t id_length = PFM_PLATFORM_ID_LEN + 1;
-	char *platform_id;
+	int max = CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG - 1;
 	int status;
-
-	platform_id = platform_malloc (id_length);
-	CuAssertPtrNotNull (test, platform_id);
-
-	strcpy (platform_id, PFM_PLATFORM_ID);
 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
@@ -1988,8 +1975,9 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_por
 	status |= mock_expect (&pfm_manager_1->mock, pfm_manager_1->base.free_pfm, pfm_manager_1, 0,
 		MOCK_ARG (&pfm.base));
 
-	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 0, &platform_id, sizeof (platform_id), -1);
+	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0,
+		MOCK_ARG_PTR_PTR_NOT_NULL, MOCK_ARG (max));
+	status |= mock_expect_output_ptr (&pfm.mock, 0, PFM_PLATFORM_ID, id_length, -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2026,13 +2014,8 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_por
 	struct cerberus_protocol_get_pfm_id_platform_response *resp =
 		(struct cerberus_protocol_get_pfm_id_platform_response*) data;
 	size_t id_length = PFM_PLATFORM_ID_LEN + 1;
-	char *platform_id;
+	int max = CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG - 1;
 	int status;
-
-	platform_id = platform_malloc (id_length);
-	CuAssertPtrNotNull (test, platform_id);
-
-	strcpy (platform_id, PFM_PLATFORM_ID);
 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
@@ -2057,8 +2040,9 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_por
 	status |= mock_expect (&pfm_manager_1->mock, pfm_manager_1->base.free_pfm, pfm_manager_1, 0,
 		MOCK_ARG (&pfm.base));
 
-	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 0, &platform_id, sizeof (platform_id), -1);
+	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0,
+		MOCK_ARG_PTR_PTR_NOT_NULL, MOCK_ARG (max));
+	status |= mock_expect_output_ptr (&pfm.mock, 0, PFM_PLATFORM_ID, id_length, -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2268,6 +2252,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_fai
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_request request;
 	struct cerberus_protocol_get_pfm_id *req = (struct cerberus_protocol_get_pfm_id*) data;
+	int max = CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG - 1;
 	int status;
 
 	memset (&request, 0, sizeof (request));
@@ -2294,7 +2279,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_fai
 		MOCK_ARG (&pfm.base));
 
 	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, PFM_NO_MEMORY,
-		MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR_PTR_NOT_NULL, MOCK_ARG (max));
 	CuAssertIntEquals (test, 0, status);
 
 	request.crypto_timeout = true;
@@ -2470,9 +2455,10 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_po
 	status = mock_expect (&pfm.mock, pfm.base.base.get_id, &pfm, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&pfm.mock, 0, &pfm_id, sizeof (pfm_id), -1);
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 0, &versions_list, sizeof (versions_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 0, 0);
+	status |= mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, 0, MOCK_ARG (NULL),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&pfm.mock, 1, &versions_list, sizeof (versions_list), -1);
+	status |= mock_expect_save_arg (&pfm.mock, 1, 0);
 
 	status |= mock_expect (&pfm.mock, pfm.base.free_fw_versions, &pfm, 0, MOCK_ARG_SAVED_ARG (0));
 
@@ -2568,9 +2554,10 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_po
 	status = mock_expect (&pfm.mock, pfm.base.base.get_id, &pfm, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&pfm.mock, 0, &pfm_id, sizeof (pfm_id), -1);
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 0, &versions_list, sizeof (versions_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 0, 0);
+	status |= mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, 0, MOCK_ARG (NULL),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&pfm.mock, 1, &versions_list, sizeof (versions_list), -1);
+	status |= mock_expect_save_arg (&pfm.mock, 1, 0);
 
 	status |= mock_expect (&pfm.mock, pfm.base.free_fw_versions, &pfm, 0, MOCK_ARG_SAVED_ARG (0));
 
@@ -2666,9 +2653,10 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_po
 	status = mock_expect (&pfm.mock, pfm.base.base.get_id, &pfm, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&pfm.mock, 0, &pfm_id, sizeof (pfm_id), -1);
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 0, &versions_list, sizeof (versions_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 0, 0);
+	status |= mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, 0, MOCK_ARG (NULL),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&pfm.mock, 1, &versions_list, sizeof (versions_list), -1);
+	status |= mock_expect_save_arg (&pfm.mock, 1, 0);
 
 	status |= mock_expect (&pfm.mock, pfm.base.free_fw_versions, &pfm, 0, MOCK_ARG_SAVED_ARG (0));
 
@@ -2764,9 +2752,10 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_po
 	status = mock_expect (&pfm.mock, pfm.base.base.get_id, &pfm, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&pfm.mock, 0, &pfm_id, sizeof (pfm_id), -1);
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 0, &versions_list, sizeof (versions_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 0, 0);
+	status |= mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, 0, MOCK_ARG (NULL),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&pfm.mock, 1, &versions_list, sizeof (versions_list), -1);
+	status |= mock_expect_save_arg (&pfm.mock, 1, 0);
 
 	status |= mock_expect (&pfm.mock, pfm.base.free_fw_versions, &pfm, 0, MOCK_ARG_SAVED_ARG (0));
 
@@ -2864,9 +2853,10 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_no
 	status = mock_expect (&pfm.mock, pfm.base.base.get_id, &pfm, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&pfm.mock, 0, &pfm_id, sizeof (pfm_id), -1);
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 0, &versions_list, sizeof (versions_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 0, 0);
+	status |= mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, 0, MOCK_ARG (NULL),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&pfm.mock, 1, &versions_list, sizeof (versions_list), -1);
+	status |= mock_expect_save_arg (&pfm.mock, 1, 0);
 
 	status |= mock_expect (&pfm.mock, pfm.base.free_fw_versions, &pfm, 0, MOCK_ARG_SAVED_ARG (0));
 
@@ -2960,9 +2950,10 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_li
 	status = mock_expect (&pfm.mock, pfm.base.base.get_id, &pfm, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&pfm.mock, 0, &pfm_id, sizeof (pfm_id), -1);
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 0, &versions_list, sizeof (versions_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 0, 0);
+	status |= mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, 0, MOCK_ARG (NULL),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&pfm.mock, 1, &versions_list, sizeof (versions_list), -1);
+	status |= mock_expect_save_arg (&pfm.mock, 1, 0);
 
 	status |= mock_expect (&pfm.mock, pfm.base.free_fw_versions, &pfm, 0, MOCK_ARG_SAVED_ARG (0));
 
@@ -3041,9 +3032,10 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_em
 	status = mock_expect (&pfm.mock, pfm.base.base.get_id, &pfm, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&pfm.mock, 0, &pfm_id, sizeof (pfm_id), -1);
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 0, &versions_list, sizeof (versions_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 0, 0);
+	status |= mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, 0, MOCK_ARG (NULL),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&pfm.mock, 1, &versions_list, sizeof (versions_list), -1);
+	status |= mock_expect_save_arg (&pfm.mock, 1, 0);
 
 	status |= mock_expect (&pfm.mock, pfm.base.free_fw_versions, &pfm, 0, MOCK_ARG_SAVED_ARG (0));
 
@@ -3118,9 +3110,10 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_em
 	status = mock_expect (&pfm.mock, pfm.base.base.get_id, &pfm, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&pfm.mock, 0, &pfm_id, sizeof (pfm_id), -1);
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 0, &versions_list, sizeof (versions_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 0, 0);
+	status |= mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, 0, MOCK_ARG (NULL),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&pfm.mock, 1, &versions_list, sizeof (versions_list), -1);
+	status |= mock_expect_save_arg (&pfm.mock, 1, 0);
 
 	status |= mock_expect (&pfm.mock, pfm.base.free_fw_versions, &pfm, 0, MOCK_ARG_SAVED_ARG (0));
 
@@ -3528,7 +3521,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_fa
 	status |= mock_expect_output (&pfm.mock, 0, &pfm_id, sizeof (pfm_id), -1);
 
 	status |= mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, PFM_NO_MEMORY,
-		MOCK_ARG_NOT_NULL);
+		MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3671,9 +3664,10 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_in
 	status = mock_expect (&pfm.mock, pfm.base.base.get_id, &pfm, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&pfm.mock, 0, &pfm_id, sizeof (pfm_id), -1);
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 0, &versions_list, sizeof (versions_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 0, 0);
+	status |= mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, 0, MOCK_ARG (NULL),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&pfm.mock, 1, &versions_list, sizeof (versions_list), -1);
+	status |= mock_expect_save_arg (&pfm.mock, 1, 0);
 
 	status |= mock_expect (&pfm.mock, pfm.base.free_fw_versions, &pfm, 0, MOCK_ARG_SAVED_ARG (0));
 
