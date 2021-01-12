@@ -37,6 +37,8 @@ int host_fw_migrate_read_write_data (struct spi_flash *dest,
 
 int host_fw_restore_flash_device (struct spi_flash *restore, struct spi_flash *from,
 	const struct pfm_image_list *img_list, const struct pfm_read_write_regions *writable);
+int host_fw_restore_read_write_data (struct spi_flash *restore, struct spi_flash *from,
+	const struct pfm_read_write_regions *writable);
 
 int host_fw_config_spi_filter_read_write_regions (struct spi_filter_interface *filter,
 	const struct pfm_read_write_regions *writable);

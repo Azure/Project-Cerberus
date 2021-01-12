@@ -25,44 +25,254 @@ static const char *SUITE = "host_flash_manager";
 
 
 /**
+ * Dependencies for testing.
+ */
+struct host_flash_manager_testing {
+	HASH_TESTING_ENGINE hash;						/**< Hash engine for testing. */
+	RSA_TESTING_ENGINE rsa;							/**< RSA engine for testing. */
+	struct flash_master_mock flash_mock0;			/**< Mock for CS0 flash. */
+	struct flash_master_mock flash_mock1;			/**< Mock for CS1 flash. */
+	struct flash_master_mock flash_mock_state;		/**< Mock for host state flash. */
+	struct spi_flash flash0;						/**< CS0 flash device. */
+	struct spi_flash flash1;						/**< CS1 flash device. */
+	struct spi_flash flash_state;					/**< Host state flash device. */
+	struct state_manager host_state;				/**< Host state. */
+	struct spi_filter_interface_mock filter;		/**< Mock for the SPI filter. */
+	struct flash_mfg_filter_handler_mock handler;	/**< Handler for SPI filter device config. */
+	struct host_flash_initialization flash_init;	/**< Manager for flash initialization. */
+	struct host_control_mock control;				/**< Mock for host control. */
+	struct pfm_mock pfm;							/**< Mock PFM for testing. */
+	struct pfm_mock pfm_good;						/**< Secondary mock PFM for testing. */
+	struct host_flash_manager test;					/**< Flash manager under test. */
+};
+
+/**
  * Initialize the host state manager for testing.
  *
  * @param test The testing framework.
- * @param state The host state instance to initialize.
- * @param flash_mock The mock for the flash state storage.
- * @param flash The flash device to initialize for state.
+ * @param manager The testing components.
  */
 static void host_flash_manager_testing_init_host_state (CuTest *test,
-	struct state_manager *state, struct flash_master_mock *flash_mock, struct spi_flash *flash)
+	struct host_flash_manager_testing *manager)
 {
 	int status;
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
 
-	status = flash_master_mock_init (flash_mock);
+	status = flash_master_mock_init (&manager->flash_mock_state);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (flash, &flash_mock->base);
+	status = spi_flash_init (&manager->flash_state, &manager->flash_mock_state.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_set_device_size (flash, 0x1000000);
+	status = spi_flash_set_device_size (&manager->flash_state, 0x1000000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_expect_rx_xfer (flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&manager->flash_mock_state, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (flash_mock, 0, (uint8_t*) end, sizeof (end),
+	status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock_state, 0, (uint8_t*) end,
+		sizeof (end),
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, 8));
 
-	status |= flash_master_mock_expect_rx_xfer (flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock_state, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (flash_mock, 0, (uint8_t*) end, sizeof (end),
+	status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock_state, 0, (uint8_t*) end,
+		sizeof (end),
 		FLASH_EXP_READ_CMD (0x03, 0x11000, 0, -1, 8));
 
-	status |= flash_master_mock_expect_erase_flash_sector_verify (flash_mock, 0x10000, 0x1000);
+	status |= flash_master_mock_expect_erase_flash_sector_verify (&manager->flash_mock_state,
+		0x10000, 0x1000);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_state_manager_init (state, &flash->base, 0x10000);
+	status = host_state_manager_init (&manager->host_state, &manager->flash_state.base, 0x10000);
 	CuAssertIntEquals (test, 0, status);
+}
+
+/**
+ * Initialize the dependencies for flash manager testing, but skip all SPI flash initialization.
+ *
+ * @param test The testing framework.
+ * @param manager The testing components to initialize.
+ *
+ */
+static void host_flash_manager_testing_initialize_dependencies_no_flash_master (CuTest *test,
+	struct host_flash_manager_testing *manager)
+{
+	int status;
+
+	status = HASH_TESTING_ENGINE_INIT (&manager->hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = RSA_TESTING_ENGINE_INIT (&manager->rsa);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_filter_interface_mock_init (&manager->filter);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mfg_filter_handler_mock_init (&manager->handler);
+	CuAssertIntEquals (test, 0, status);
+
+	host_flash_manager_testing_init_host_state (test, manager);
+
+	status = host_flash_initialization_init (&manager->flash_init, &manager->flash0,
+		&manager->flash_mock0.base, &manager->flash1, &manager->flash_mock1.base, false, false);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_control_mock_init (&manager->control);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_mock_init (&manager->pfm);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_mock_init (&manager->pfm_good);
+	CuAssertIntEquals (test, 0, status);
+}
+
+/**
+ * Initialize the dependencies for flash manager testing, but skip the flash devices.
+ *
+ * @param test The testing framework.
+ * @param manager The testing components to initialize.
+ *
+ */
+static void host_flash_manager_testing_initialize_dependencies_no_flash (CuTest *test,
+	struct host_flash_manager_testing *manager)
+{
+	int status;
+
+	host_flash_manager_testing_initialize_dependencies_no_flash_master (test, manager);
+
+	status = flash_master_mock_init (&manager->flash_mock0);
+	CuAssertIntEquals (test, 0, status);
+	manager->flash_mock0.mock.name = "flash_master0";
+
+	status = flash_master_mock_init (&manager->flash_mock1);
+	CuAssertIntEquals (test, 0, status);
+	manager->flash_mock1.mock.name = "flash_master1";
+}
+
+/**
+ * Initialize the dependencies for flash manager testing.
+ *
+ * @param test The testing framework.
+ * @param manager The testing components to initialize.
+ *
+ */
+static void host_flash_manager_testing_initialize_dependencies (CuTest *test,
+	struct host_flash_manager_testing *manager)
+{
+	int status;
+
+	host_flash_manager_testing_initialize_dependencies_no_flash (test, manager);
+
+	status = spi_flash_init (&manager->flash0, &manager->flash_mock0.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&manager->flash0, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&manager->flash1, &manager->flash_mock1.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&manager->flash1, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+}
+
+/**
+ * Release the dependencies used for flash manager testing and validate all mocks.  Skip releasing
+ * flash instances.
+ *
+ * @param test The testing framework.
+ * @param manager The testing components to release.
+ *
+ */
+static void host_flash_manager_testing_validate_and_release_dependencies_no_flash (CuTest *test,
+	struct host_flash_manager_testing *manager)
+{
+	int status;
+
+	status = flash_master_mock_validate_and_release (&manager->flash_mock0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&manager->flash_mock1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&manager->flash_mock_state);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_filter_interface_mock_validate_and_release (&manager->filter);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mfg_filter_handler_mock_validate_and_release (&manager->handler);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_control_mock_validate_and_release (&manager->control);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_mock_validate_and_release (&manager->pfm);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_mock_validate_and_release (&manager->pfm_good);
+	CuAssertIntEquals (test, 0, status);
+
+	host_state_manager_release (&manager->host_state);
+	host_flash_initialization_release (&manager->flash_init);
+	spi_flash_release (&manager->flash_state);
+	HASH_TESTING_ENGINE_RELEASE (&manager->hash);
+	RSA_TESTING_ENGINE_RELEASE (&manager->rsa);
+}
+
+/**
+ * Release the dependencies used for flash manager testing and validate all mocks.
+ *
+ * @param test The testing framework.
+ * @param manager The testing components to release.
+ *
+ */
+static void host_flash_manager_testing_validate_and_release_dependencies (CuTest *test,
+	struct host_flash_manager_testing *manager)
+{
+	host_flash_manager_testing_validate_and_release_dependencies_no_flash (test, manager);
+	spi_flash_release (&manager->flash0);
+	spi_flash_release (&manager->flash1);
+}
+
+/**
+ * Initialize a flash manager for testing.
+ *
+ * @param test The testing framework.
+ * @param manager The testing components to initialize.
+ * @param ro_cs1 true if CS1 flash should be used as the RO flash.
+ */
+static void host_flash_manager_testing_init (CuTest *test,
+	struct host_flash_manager_testing *manager, bool ro_cs1)
+{
+	int status;
+
+	host_flash_manager_testing_initialize_dependencies (test, manager);
+
+	if (ro_cs1) {
+		status = host_state_manager_save_read_only_flash (&manager->host_state, SPI_FILTER_CS_1);
+		CuAssertIntEquals (test, 0, status);
+	}
+
+	status = host_flash_manager_init (&manager->test, &manager->flash0, &manager->flash1,
+		&manager->host_state, &manager->filter.base, &manager->handler.base);
+	CuAssertIntEquals (test, 0, status);
+}
+
+/**
+ * Release all testing components and validate all mocks.
+ *
+ * @param test The testing framework.
+ * @param manager The testing components to release.
+ *
+ */
+static void host_flash_manager_testing_validate_and_release (CuTest *test,
+	struct host_flash_manager_testing *manager)
+{
+	host_flash_manager_testing_validate_and_release_dependencies (test, manager);
+	host_flash_manager_release (&manager->test);
 }
 
 /**
@@ -70,28 +280,30 @@ static void host_flash_manager_testing_init_host_state (CuTest *test,
  * after returning from flash manager calls.
  *
  * @param test The testing framework.
- * @param state The state manager to test against.
- * @param flash_mock The flash master used for the state manager.
+ * @param manager The testing components.
  */
 static void host_flash_manager_testing_check_state_persistence (CuTest *test,
-		struct state_manager *state, struct flash_master_mock *flash_mock)
+	struct host_flash_manager_testing *manager)
 {
 	int status;
 
-	status = flash_master_mock_expect_rx_xfer (flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_rx_xfer (&manager->flash_mock_state, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= mock_expect (&flash_mock->mock, flash_mock->base.xfer, flash_mock, 0, MOCK_ARG_ANY,
-		MOCK_ARG_ANY, MOCK_ARG_ANY, MOCK_ARG_ANY, MOCK_ARG_ANY, MOCK_ARG_ANY, MOCK_ARG_ANY);
-	status |= mock_expect (&flash_mock->mock, flash_mock->base.xfer, flash_mock, 0, MOCK_ARG_ANY,
-		MOCK_ARG_ANY, MOCK_ARG_ANY, MOCK_ARG_ANY, MOCK_ARG_ANY, MOCK_ARG_ANY, MOCK_ARG_ANY);
-	status |= flash_master_mock_expect_rx_xfer (flash_mock, 0, &WIP_STATUS, 1,
+	status |= mock_expect (&manager->flash_mock_state.mock, manager->flash_mock_state.base.xfer,
+		&manager->flash_mock_state, 0, MOCK_ARG_ANY, MOCK_ARG_ANY, MOCK_ARG_ANY, MOCK_ARG_ANY,
+		MOCK_ARG_ANY, MOCK_ARG_ANY, MOCK_ARG_ANY);
+	status |= mock_expect (&manager->flash_mock_state.mock, manager->flash_mock_state.base.xfer,
+		&manager->flash_mock_state, 0, MOCK_ARG_ANY, MOCK_ARG_ANY, MOCK_ARG_ANY, MOCK_ARG_ANY,
+		MOCK_ARG_ANY, MOCK_ARG_ANY, MOCK_ARG_ANY);
+	status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock_state, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
-	status |= flash_master_mock_expect_erase_flash_sector_verify (flash_mock, 0x11000, 0x1000);
+	status |= flash_master_mock_expect_erase_flash_sector_verify (&manager->flash_mock_state,
+		0x11000, 0x1000);
 
 	CuAssertIntEquals (test, 0, status);
 
-	state_manager_store_non_volatile_state (state);
+	state_manager_store_non_volatile_state (&manager->host_state);
 }
 
 /**
@@ -174,332 +386,146 @@ static void host_flash_manager_testing_initialize_flash_device (CuTest *test,
 
 static void host_flash_manager_test_init (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
+	host_flash_manager_testing_initialize_dependencies (test, &manager);
+
+	status = host_flash_manager_init (&manager.test, &manager.flash0, &manager.flash1,
+		&manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, manager.test.get_read_only_flash);
+	CuAssertPtrNotNull (test, manager.test.get_read_write_flash);
+	CuAssertPtrNotNull (test, manager.test.validate_read_only_flash);
+	CuAssertPtrNotNull (test, manager.test.validate_read_write_flash);
+	CuAssertPtrNotNull (test, manager.test.get_flash_read_write_regions);
+	CuAssertPtrNotNull (test, manager.test.restore_flash_read_write_regions);
+	CuAssertPtrNotNull (test, manager.test.config_spi_filter_flash_type);
+	CuAssertPtrNotNull (test, manager.test.config_spi_filter_flash_devices);
+	CuAssertPtrNotNull (test, manager.test.swap_flash_devices);
+	CuAssertPtrNotNull (test, manager.test.initialize_flash_protection);
+	CuAssertPtrNotNull (test, manager.test.set_flash_for_rot_access);
+	CuAssertPtrNotNull (test, manager.test.set_flash_for_host_access);
+	CuAssertPtrNotNull (test, manager.test.host_has_flash_access);
 
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrNotNull (test, manager.get_read_only_flash);
-	CuAssertPtrNotNull (test, manager.get_read_write_flash);
-	CuAssertPtrNotNull (test, manager.validate_read_only_flash);
-	CuAssertPtrNotNull (test, manager.validate_read_write_flash);
-	CuAssertPtrNotNull (test, manager.get_flash_read_write_regions);
-	CuAssertPtrNotNull (test, manager.config_spi_filter_flash_type);
-	CuAssertPtrNotNull (test, manager.config_spi_filter_flash_devices);
-	CuAssertPtrNotNull (test, manager.swap_flash_devices);
-	CuAssertPtrNotNull (test, manager.initialize_flash_protection);
-	CuAssertPtrNotNull (test, manager.set_flash_for_rot_access);
-	CuAssertPtrNotNull (test, manager.set_flash_for_host_access);
-	CuAssertPtrNotNull (test, manager.host_has_flash_access);
-
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_init_null (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_initialize_dependencies (test, &manager);
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (NULL, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
+	status = host_flash_manager_init (NULL, &manager.flash0, &manager.flash1,
+		&manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = host_flash_manager_init (&manager, NULL, &flash1, &host_state, &filter.base,
-		&handler.base);
+	status = host_flash_manager_init (&manager.test, NULL, &manager.flash1,
+		&manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = host_flash_manager_init (&manager, &flash0, NULL, &host_state, &filter.base,
-		&handler.base);
+	status = host_flash_manager_init (&manager.test, &manager.flash0, NULL,
+		&manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = host_flash_manager_init (&manager, &flash0, &flash1, NULL, &filter.base,
-		&handler.base);
+	status = host_flash_manager_init (&manager.test, &manager.flash0, &manager.flash1,
+		NULL, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, NULL,
-		&handler.base);
+	status = host_flash_manager_init (&manager.test, &manager.flash0, &manager.flash1,
+		&manager.host_state, NULL, &manager.handler.base);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		NULL);
+	status = host_flash_manager_init (&manager.test, &manager.flash0, &manager.flash1,
+		&manager.host_state, &manager.filter.base, NULL);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release_dependencies (test, &manager);
 }
 
 static void host_flash_manager_test_init_with_managed_flash_initialization (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_initialization flash_init;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
+	host_flash_manager_testing_initialize_dependencies (test, &manager);
+
+	status = host_flash_manager_init_with_managed_flash_initialization (&manager.test,
+		&manager.flash0, &manager.flash1, &manager.host_state, &manager.filter.base,
+		&manager.handler.base, &manager.flash_init);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, manager.test.get_read_only_flash);
+	CuAssertPtrNotNull (test, manager.test.get_read_write_flash);
+	CuAssertPtrNotNull (test, manager.test.validate_read_only_flash);
+	CuAssertPtrNotNull (test, manager.test.validate_read_write_flash);
+	CuAssertPtrNotNull (test, manager.test.get_flash_read_write_regions);
+	CuAssertPtrNotNull (test, manager.test.restore_flash_read_write_regions);
+	CuAssertPtrNotNull (test, manager.test.config_spi_filter_flash_type);
+	CuAssertPtrNotNull (test, manager.test.config_spi_filter_flash_devices);
+	CuAssertPtrNotNull (test, manager.test.swap_flash_devices);
+	CuAssertPtrNotNull (test, manager.test.initialize_flash_protection);
+	CuAssertPtrNotNull (test, manager.test.set_flash_for_rot_access);
+	CuAssertPtrNotNull (test, manager.test.set_flash_for_host_access);
+	CuAssertPtrNotNull (test, manager.test.host_has_flash_access);
 
-	status = host_flash_initialization_init (&flash_init, &flash0, &flash_mock0.base, &flash1,
-		&flash_mock1.base, false, false);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init_with_managed_flash_initialization (&manager, &flash0, &flash1,
-		&host_state, &filter.base, &handler.base, &flash_init);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrNotNull (test, manager.get_read_only_flash);
-	CuAssertPtrNotNull (test, manager.get_read_write_flash);
-	CuAssertPtrNotNull (test, manager.validate_read_only_flash);
-	CuAssertPtrNotNull (test, manager.validate_read_write_flash);
-	CuAssertPtrNotNull (test, manager.get_flash_read_write_regions);
-	CuAssertPtrNotNull (test, manager.config_spi_filter_flash_type);
-	CuAssertPtrNotNull (test, manager.config_spi_filter_flash_devices);
-	CuAssertPtrNotNull (test, manager.swap_flash_devices);
-	CuAssertPtrNotNull (test, manager.initialize_flash_protection);
-	CuAssertPtrNotNull (test, manager.set_flash_for_rot_access);
-	CuAssertPtrNotNull (test, manager.set_flash_for_host_access);
-	CuAssertPtrNotNull (test, manager.host_has_flash_access);
-
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	host_flash_initialization_release (&flash_init);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_init_with_managed_flash_initialization_null (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_initialization flash_init;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_initialize_dependencies (test, &manager);
 
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_flash_initialization_init (&flash_init, &flash0, &flash_mock0.base, &flash1,
-		&flash_mock1.base, false, false);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init_with_managed_flash_initialization (NULL, &flash0, &flash1,
-		&host_state, &filter.base, &handler.base, &flash_init);
+	status = host_flash_manager_init_with_managed_flash_initialization (NULL,
+		&manager.flash0, &manager.flash1, &manager.host_state, &manager.filter.base,
+		&manager.handler.base, &manager.flash_init);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = host_flash_manager_init_with_managed_flash_initialization (&manager, NULL, &flash1,
-		&host_state, &filter.base, &handler.base, &flash_init);
+	status = host_flash_manager_init_with_managed_flash_initialization (&manager.test,
+		NULL, &manager.flash1, &manager.host_state, &manager.filter.base,
+		&manager.handler.base, &manager.flash_init);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = host_flash_manager_init_with_managed_flash_initialization (&manager, &flash0, NULL,
-		&host_state, &filter.base, &handler.base, &flash_init);
+	status = host_flash_manager_init_with_managed_flash_initialization (&manager.test,
+		&manager.flash0, NULL, &manager.host_state, &manager.filter.base,
+		&manager.handler.base, &manager.flash_init);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = host_flash_manager_init_with_managed_flash_initialization (&manager, &flash0, &flash1,
-		NULL, &filter.base, &handler.base, &flash_init);
+	status = host_flash_manager_init_with_managed_flash_initialization (&manager.test,
+		&manager.flash0, &manager.flash1, NULL, &manager.filter.base,
+		&manager.handler.base, &manager.flash_init);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = host_flash_manager_init_with_managed_flash_initialization (&manager, &flash0, &flash1,
-		&host_state, NULL, &handler.base, &flash_init);
+	status = host_flash_manager_init_with_managed_flash_initialization (&manager.test,
+		&manager.flash0, &manager.flash1, &manager.host_state, NULL,
+		&manager.handler.base, &manager.flash_init);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = host_flash_manager_init_with_managed_flash_initialization (&manager, &flash0, &flash1,
-		&host_state, &filter.base, NULL, &flash_init);
+	status = host_flash_manager_init_with_managed_flash_initialization (&manager.test,
+		&manager.flash0, &manager.flash1, &manager.host_state, &manager.filter.base,
+		NULL, &manager.flash_init);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = host_flash_manager_init_with_managed_flash_initialization (&manager, &flash0, &flash1,
-		&host_state, &filter.base, &handler.base, NULL);
+	status = host_flash_manager_init_with_managed_flash_initialization (&manager.test,
+		&manager.flash0, &manager.flash1, &manager.host_state, &manager.filter.base,
+		&manager.handler.base, NULL);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	host_flash_initialization_release (&flash_init);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release_dependencies (test, &manager);
 }
 
 static void host_flash_manager_test_release_null (CuTest *test)
@@ -511,1814 +537,690 @@ static void host_flash_manager_test_release_null (CuTest *test)
 
 static void host_flash_manager_test_get_read_only_flash_cs0 (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
-	int status;
+	struct host_flash_manager_testing manager;
 	struct spi_flash *active;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
+	active = manager.test.get_read_only_flash (&manager.test);
+	CuAssertPtrEquals (test, &manager.flash0, active);
 
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	active = manager.get_read_only_flash (&manager);
-	CuAssertPtrEquals (test, &flash0, active);
-
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_get_read_only_flash_cs1 (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
-	int status;
+	struct host_flash_manager_testing manager;
 	struct spi_flash *active;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, true);
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
+	active = manager.test.get_read_only_flash (&manager.test);
+	CuAssertPtrEquals (test, &manager.flash1, active);
 
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_state_manager_save_read_only_flash (&host_state, SPI_FILTER_CS_1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	active = manager.get_read_only_flash (&manager);
-	CuAssertPtrEquals (test, &flash1, active);
-
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_get_read_only_flash_null (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
-	int status;
+	struct host_flash_manager_testing manager;
 	struct spi_flash *active;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	active = manager.get_read_only_flash (NULL);
+	active = manager.test.get_read_only_flash (NULL);
 	CuAssertPtrEquals (test, NULL, active);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_get_read_write_flash_cs1 (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
-	int status;
+	struct host_flash_manager_testing manager;
 	struct spi_flash *inactive;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
+	inactive = manager.test.get_read_write_flash (&manager.test);
+	CuAssertPtrEquals (test, &manager.flash1, inactive);
 
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	inactive = manager.get_read_write_flash (&manager);
-	CuAssertPtrEquals (test, &flash1, inactive);
-
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_get_read_write_flash_cs0 (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
-	int status;
+	struct host_flash_manager_testing manager;
 	struct spi_flash *inactive;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, true);
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
+	inactive = manager.test.get_read_write_flash (&manager.test);
+	CuAssertPtrEquals (test, &manager.flash0, inactive);
 
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_state_manager_save_read_only_flash (&host_state, SPI_FILTER_CS_1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	inactive = manager.get_read_write_flash (&manager);
-	CuAssertPtrEquals (test, &flash0, inactive);
-
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_get_read_write_flash_null (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
-	int status;
+	struct host_flash_manager_testing manager;
 	struct spi_flash *inactive;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	inactive = manager.get_read_write_flash (NULL);
+	inactive = manager.test.get_read_write_flash (NULL);
 	CuAssertPtrEquals (test, NULL, inactive);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_swap_flash_devices_cs1 (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	spi_filter_cs active;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-	host_state_manager_save_inactive_dirty (&host_state, true);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
+	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	rw_region.start_addr = 0x10000;
 	rw_region.length = RSA_ENCRYPT_LEN;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = mock_expect (&filter.mock, filter.base.clear_flash_dirty_state, &filter, 0);
-	status |= mock_expect (&filter.mock, filter.base.set_ro_cs, &filter, 0,
+	status = mock_expect (&manager.filter.mock, manager.filter.base.clear_flash_dirty_state,
+		&manager.filter, 0);
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_ro_cs, &manager.filter, 0,
 		MOCK_ARG (SPI_FILTER_CS_1));
 
-	status |= flash_master_mock_expect_erase_flash_verify (&flash_mock0, 0x10000, RSA_ENCRYPT_LEN);
-	status |= flash_master_mock_expect_copy_flash_verify (&flash_mock0, &flash_mock1, 0x10000,
-		0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
+	status |= flash_master_mock_expect_erase_flash_verify (&manager.flash_mock0, 0x10000,
+		RSA_ENCRYPT_LEN);
+	status |= flash_master_mock_expect_copy_flash_verify (&manager.flash_mock0,
+		&manager.flash_mock1, 0x10000, 0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
 
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&host_state));
+	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.swap_flash_devices (&manager, &rw_list, NULL);
+	status = manager.test.swap_flash_devices (&manager.test, &rw_list, NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	active = host_state_manager_get_read_only_flash (&host_state);
+	active = host_state_manager_get_read_only_flash (&manager.host_state);
 	CuAssertIntEquals (test, SPI_FILTER_CS_1, active);
 
-	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&host_state));
+	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = mock_validate (&flash_mock_state.mock);
+	status = mock_validate (&manager.flash_mock_state.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_testing_check_state_persistence (test, &host_state, &flash_mock_state);
+	host_flash_manager_testing_check_state_persistence (test, &manager);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_swap_flash_devices_cs0 (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	spi_filter_cs active;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-	host_state_manager_save_inactive_dirty (&host_state, true);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_state_manager_save_read_only_flash (&host_state, SPI_FILTER_CS_1);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, true);
+	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	rw_region.start_addr = 0x10000;
 	rw_region.length = RSA_ENCRYPT_LEN;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = mock_expect (&filter.mock, filter.base.clear_flash_dirty_state, &filter, 0);
-	status |= mock_expect (&filter.mock, filter.base.set_ro_cs, &filter, 0,
+	status = mock_expect (&manager.filter.mock, manager.filter.base.clear_flash_dirty_state,
+		&manager.filter, 0);
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_ro_cs, &manager.filter, 0,
 		MOCK_ARG (SPI_FILTER_CS_0));
 
-	status |= flash_master_mock_expect_erase_flash_verify (&flash_mock1, 0x10000, RSA_ENCRYPT_LEN);
-	status |= flash_master_mock_expect_copy_flash_verify (&flash_mock1, &flash_mock0, 0x10000,
-		0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
+	status |= flash_master_mock_expect_erase_flash_verify (&manager.flash_mock1, 0x10000,
+		RSA_ENCRYPT_LEN);
+	status |= flash_master_mock_expect_copy_flash_verify (&manager.flash_mock1,
+		&manager.flash_mock0, 0x10000, 0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
 
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&host_state));
+	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.swap_flash_devices (&manager, &rw_list, NULL);
+	status = manager.test.swap_flash_devices (&manager.test, &rw_list, NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	active = host_state_manager_get_read_only_flash (&host_state);
+	active = host_state_manager_get_read_only_flash (&manager.host_state);
 	CuAssertIntEquals (test, SPI_FILTER_CS_0, active);
 
-	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&host_state));
+	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = mock_validate (&flash_mock_state.mock);
+	status = mock_validate (&manager.flash_mock_state.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_testing_check_state_persistence (test, &host_state, &flash_mock_state);
+	host_flash_manager_testing_check_state_persistence (test, &manager);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_swap_flash_devices_activate_pending_pfm (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct pfm_manager_mock pending;
 	spi_filter_cs active;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
+	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	status = pfm_manager_mock_init (&pending);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-	host_state_manager_save_inactive_dirty (&host_state, true);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
 	CuAssertIntEquals (test, 0, status);
 
 	rw_region.start_addr = 0x10000;
 	rw_region.length = RSA_ENCRYPT_LEN;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = mock_expect (&filter.mock, filter.base.clear_flash_dirty_state, &filter, 0);
-	status |= mock_expect (&filter.mock, filter.base.set_ro_cs, &filter, 0,
+	status = mock_expect (&manager.filter.mock, manager.filter.base.clear_flash_dirty_state,
+		&manager.filter, 0);
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_ro_cs, &manager.filter, 0,
 		MOCK_ARG (SPI_FILTER_CS_1));
 
-	status |= flash_master_mock_expect_erase_flash_verify (&flash_mock0, 0x10000, RSA_ENCRYPT_LEN);
-	status |= flash_master_mock_expect_copy_flash_verify (&flash_mock0, &flash_mock1, 0x10000,
-		0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
+	status |= flash_master_mock_expect_erase_flash_verify (&manager.flash_mock0, 0x10000,
+		RSA_ENCRYPT_LEN);
+	status |= flash_master_mock_expect_copy_flash_verify (&manager.flash_mock0,
+		&manager.flash_mock1, 0x10000, 0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
 
 	status |= mock_expect (&pending.mock, pending.base.base.activate_pending_manifest, &pending, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&host_state));
+	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.swap_flash_devices (&manager, &rw_list, &pending.base);
+	status = manager.test.swap_flash_devices (&manager.test, &rw_list, &pending.base);
 	CuAssertIntEquals (test, 0, status);
 
-	active = host_state_manager_get_read_only_flash (&host_state);
+	active = host_state_manager_get_read_only_flash (&manager.host_state);
 	CuAssertIntEquals (test, SPI_FILTER_CS_1, active);
 
-	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&host_state));
+	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = mock_validate (&flash_mock_state.mock);
+	status = mock_validate (&manager.flash_mock_state.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_testing_check_state_persistence (test, &host_state, &flash_mock_state);
-
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_check_state_persistence (test, &manager);
 
 	status = pfm_manager_mock_validate_and_release (&pending);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_swap_flash_devices_no_data_migration (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	spi_filter_cs active;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
+	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-	host_state_manager_save_inactive_dirty (&host_state, true);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&filter.mock, filter.base.clear_flash_dirty_state, &filter, 0);
-	status |= mock_expect (&filter.mock, filter.base.set_ro_cs, &filter, 0,
+	status = mock_expect (&manager.filter.mock, manager.filter.base.clear_flash_dirty_state,
+		&manager.filter, 0);
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_ro_cs, &manager.filter, 0,
 		MOCK_ARG (SPI_FILTER_CS_1));
 
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&host_state));
+	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.swap_flash_devices (&manager, NULL, NULL);
+	status = manager.test.swap_flash_devices (&manager.test, NULL, NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	active = host_state_manager_get_read_only_flash (&host_state);
+	active = host_state_manager_get_read_only_flash (&manager.host_state);
 	CuAssertIntEquals (test, SPI_FILTER_CS_1, active);
 
-	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&host_state));
+	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = mock_validate (&flash_mock_state.mock);
+	status = mock_validate (&manager.flash_mock_state.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_testing_check_state_persistence (test, &host_state, &flash_mock_state);
+	host_flash_manager_testing_check_state_persistence (test, &manager);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_swap_flash_devices_null (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	spi_filter_cs active;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-	host_state_manager_save_inactive_dirty (&host_state, true);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
+	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	rw_region.start_addr = 0x10000;
 	rw_region.length = RSA_ENCRYPT_LEN;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = manager.swap_flash_devices (NULL, &rw_list, NULL);
+	status = manager.test.swap_flash_devices (NULL, &rw_list, NULL);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	active = host_state_manager_get_read_only_flash (&host_state);
+	active = host_state_manager_get_read_only_flash (&manager.host_state);
 	CuAssertIntEquals (test, SPI_FILTER_CS_0, active);
 
-	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&host_state));
+	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = mock_validate (&flash_mock_state.mock);
+	status = mock_validate (&manager.flash_mock_state.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_testing_check_state_persistence (test, &host_state, &flash_mock_state);
+	host_flash_manager_testing_check_state_persistence (test, &manager);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_swap_flash_devices_dirty_clear_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	spi_filter_cs active;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-	host_state_manager_save_inactive_dirty (&host_state, true);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
+	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	rw_region.start_addr = 0x10000;
 	rw_region.length = RSA_ENCRYPT_LEN;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = mock_expect (&filter.mock, filter.base.clear_flash_dirty_state, &filter,
-		SPI_FILTER_CLEAR_DIRTY_FAILED);
+	status = mock_expect (&manager.filter.mock, manager.filter.base.clear_flash_dirty_state,
+		&manager.filter, SPI_FILTER_CLEAR_DIRTY_FAILED);
 
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&host_state));
+	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.swap_flash_devices (&manager, &rw_list, NULL);
+	status = manager.test.swap_flash_devices (&manager.test, &rw_list, NULL);
 	CuAssertIntEquals (test, SPI_FILTER_CLEAR_DIRTY_FAILED, status);
 
-	active = host_state_manager_get_read_only_flash (&host_state);
+	active = host_state_manager_get_read_only_flash (&manager.host_state);
 	CuAssertIntEquals (test, SPI_FILTER_CS_0, active);
 
-	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&host_state));
+	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = mock_validate (&flash_mock_state.mock);
+	status = mock_validate (&manager.flash_mock_state.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_testing_check_state_persistence (test, &host_state, &flash_mock_state);
+	host_flash_manager_testing_check_state_persistence (test, &manager);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_swap_flash_devices_spi_filter_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	spi_filter_cs active;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-	host_state_manager_save_inactive_dirty (&host_state, true);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
+	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	rw_region.start_addr = 0x10000;
 	rw_region.length = RSA_ENCRYPT_LEN;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = mock_expect (&filter.mock, filter.base.clear_flash_dirty_state, &filter, 0);
-	status |= mock_expect (&filter.mock, filter.base.set_ro_cs, &filter, SPI_FILTER_SET_RO_FAILED,
-		MOCK_ARG (SPI_FILTER_CS_1));
+	status = mock_expect (&manager.filter.mock, manager.filter.base.clear_flash_dirty_state,
+		&manager.filter, 0);
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_ro_cs, &manager.filter,
+		SPI_FILTER_SET_RO_FAILED, MOCK_ARG (SPI_FILTER_CS_1));
 
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&host_state));
+	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.swap_flash_devices (&manager, &rw_list, NULL);
+	status = manager.test.swap_flash_devices (&manager.test, &rw_list, NULL);
 	CuAssertIntEquals (test, SPI_FILTER_SET_RO_FAILED, status);
 
-	active = host_state_manager_get_read_only_flash (&host_state);
+	active = host_state_manager_get_read_only_flash (&manager.host_state);
 	CuAssertIntEquals (test, SPI_FILTER_CS_0, active);
 
-	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&host_state));
+	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = mock_validate (&flash_mock_state.mock);
+	status = mock_validate (&manager.flash_mock_state.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_testing_check_state_persistence (test, &host_state, &flash_mock_state);
+	host_flash_manager_testing_check_state_persistence (test, &manager);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_swap_flash_devices_cs1_data_copy_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	spi_filter_cs active;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-	host_state_manager_save_inactive_dirty (&host_state, true);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
+	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	rw_region.start_addr = 0x10000;
 	rw_region.length = RSA_ENCRYPT_LEN;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = mock_expect (&filter.mock, filter.base.clear_flash_dirty_state, &filter, 0);
-	status |= mock_expect (&filter.mock, filter.base.set_ro_cs, &filter, 0,
+	status = mock_expect (&manager.filter.mock, manager.filter.base.clear_flash_dirty_state,
+		&manager.filter, 0);
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_ro_cs, &manager.filter, 0,
 		MOCK_ARG (SPI_FILTER_CS_1));
 
-	status |= flash_master_mock_expect_xfer (&flash_mock0, FLASH_MASTER_XFER_FAILED,
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock0, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&host_state));
+	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.swap_flash_devices (&manager, &rw_list, NULL);
+	status = manager.test.swap_flash_devices (&manager.test, &rw_list, NULL);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	active = host_state_manager_get_read_only_flash (&host_state);
+	active = host_state_manager_get_read_only_flash (&manager.host_state);
 	CuAssertIntEquals (test, SPI_FILTER_CS_0, active);
 
-	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&host_state));
+	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = mock_validate (&flash_mock_state.mock);
+	status = mock_validate (&manager.flash_mock_state.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_testing_check_state_persistence (test, &host_state, &flash_mock_state);
+	host_flash_manager_testing_check_state_persistence (test, &manager);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_swap_flash_devices_cs0_data_copy_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	spi_filter_cs active;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-	host_state_manager_save_inactive_dirty (&host_state, true);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_state_manager_save_read_only_flash (&host_state, SPI_FILTER_CS_1);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, true);
+	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	rw_region.start_addr = 0x10000;
 	rw_region.length = RSA_ENCRYPT_LEN;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = mock_expect (&filter.mock, filter.base.clear_flash_dirty_state, &filter, 0);
-	status |= mock_expect (&filter.mock, filter.base.set_ro_cs, &filter, 0,
+	status = mock_expect (&manager.filter.mock, manager.filter.base.clear_flash_dirty_state,
+		&manager.filter, 0);
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_ro_cs, &manager.filter, 0,
 		MOCK_ARG (SPI_FILTER_CS_0));
 
-	status |= flash_master_mock_expect_xfer (&flash_mock1, FLASH_MASTER_XFER_FAILED,
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock1, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&host_state));
+	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.swap_flash_devices (&manager, &rw_list, NULL);
+	status = manager.test.swap_flash_devices (&manager.test, &rw_list, NULL);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	active = host_state_manager_get_read_only_flash (&host_state);
+	active = host_state_manager_get_read_only_flash (&manager.host_state);
 	CuAssertIntEquals (test, SPI_FILTER_CS_1, active);
 
-	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&host_state));
+	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = mock_validate (&flash_mock_state.mock);
+	status = mock_validate (&manager.flash_mock_state.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_testing_check_state_persistence (test, &host_state, &flash_mock_state);
+	host_flash_manager_testing_check_state_persistence (test, &manager);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_swap_flash_devices_activate_pending_pfm_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct pfm_manager_mock pending;
 	spi_filter_cs active;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
+	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	status = pfm_manager_mock_init (&pending);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-	host_state_manager_save_inactive_dirty (&host_state, true);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
 	CuAssertIntEquals (test, 0, status);
 
 	rw_region.start_addr = 0x10000;
 	rw_region.length = RSA_ENCRYPT_LEN;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = mock_expect (&filter.mock, filter.base.clear_flash_dirty_state, &filter, 0);
-	status |= mock_expect (&filter.mock, filter.base.set_ro_cs, &filter, 0,
+	status = mock_expect (&manager.filter.mock, manager.filter.base.clear_flash_dirty_state,
+		&manager.filter, 0);
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_ro_cs, &manager.filter, 0,
 		MOCK_ARG (SPI_FILTER_CS_1));
 
-	status |= flash_master_mock_expect_erase_flash_verify (&flash_mock0, 0x10000, RSA_ENCRYPT_LEN);
-	status |= flash_master_mock_expect_copy_flash_verify (&flash_mock0, &flash_mock1, 0x10000,
-		0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
+	status |= flash_master_mock_expect_erase_flash_verify (&manager.flash_mock0, 0x10000,
+		RSA_ENCRYPT_LEN);
+	status |= flash_master_mock_expect_copy_flash_verify (&manager.flash_mock0,
+		&manager.flash_mock1, 0x10000, 0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
 
 	status |= mock_expect (&pending.mock, pending.base.base.activate_pending_manifest, &pending,
 		MANIFEST_MANAGER_NONE_PENDING);
 
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&host_state));
+	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.swap_flash_devices (&manager, &rw_list, &pending.base);
+	status = manager.test.swap_flash_devices (&manager.test, &rw_list, &pending.base);
 	CuAssertIntEquals (test, 0, status);
 
-	active = host_state_manager_get_read_only_flash (&host_state);
+	active = host_state_manager_get_read_only_flash (&manager.host_state);
 	CuAssertIntEquals (test, SPI_FILTER_CS_1, active);
 
-	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&host_state));
+	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = mock_validate (&flash_mock_state.mock);
+	status = mock_validate (&manager.flash_mock_state.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_testing_check_state_persistence (test, &host_state, &flash_mock_state);
-
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_check_state_persistence (test, &manager);
 
 	status = pfm_manager_mock_validate_and_release (&pending);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_config_spi_filter_flash_devices_cs0 (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	spi_filter_cs active;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&filter.mock, filter.base.set_ro_cs, &filter, 0,
+	status = mock_expect (&manager.filter.mock, manager.filter.base.set_ro_cs, &manager.filter, 0,
 		MOCK_ARG (SPI_FILTER_CS_0));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.config_spi_filter_flash_devices (&manager);
+	status = manager.test.config_spi_filter_flash_devices (&manager.test);
 	CuAssertIntEquals (test, 0, status);
 
-	active = host_state_manager_get_read_only_flash (&host_state);
+	active = host_state_manager_get_read_only_flash (&manager.host_state);
 	CuAssertIntEquals (test, SPI_FILTER_CS_0, active);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_config_spi_filter_flash_devices_cs1 (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	spi_filter_cs active;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, true);
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_state_manager_save_read_only_flash (&host_state, SPI_FILTER_CS_1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&filter.mock, filter.base.set_ro_cs, &filter, 0,
+	status = mock_expect (&manager.filter.mock, manager.filter.base.set_ro_cs, &manager.filter, 0,
 		MOCK_ARG (SPI_FILTER_CS_1));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.config_spi_filter_flash_devices (&manager);
+	status = manager.test.config_spi_filter_flash_devices (&manager.test);
 	CuAssertIntEquals (test, 0, status);
 
-	active = host_state_manager_get_read_only_flash (&host_state);
+	active = host_state_manager_get_read_only_flash (&manager.host_state);
 	CuAssertIntEquals (test, SPI_FILTER_CS_1, active);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_config_spi_filter_flash_devices_null (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	spi_filter_cs active;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manager.config_spi_filter_flash_devices (NULL);
+	status = manager.test.config_spi_filter_flash_devices (NULL);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	active = host_state_manager_get_read_only_flash (&host_state);
+	active = host_state_manager_get_read_only_flash (&manager.host_state);
 	CuAssertIntEquals (test, SPI_FILTER_CS_0, active);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_config_spi_filter_flash_devices_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	spi_filter_cs active;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&filter.mock, filter.base.set_ro_cs, &filter, SPI_FILTER_SET_RO_FAILED,
-		MOCK_ARG (SPI_FILTER_CS_0));
+	status = mock_expect (&manager.filter.mock, manager.filter.base.set_ro_cs, &manager.filter,
+		SPI_FILTER_SET_RO_FAILED, MOCK_ARG (SPI_FILTER_CS_0));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.config_spi_filter_flash_devices (&manager);
+	status = manager.test.config_spi_filter_flash_devices (&manager.test);
 	CuAssertIntEquals (test, SPI_FILTER_SET_RO_FAILED, status);
 
-	active = host_state_manager_get_read_only_flash (&host_state);
+	active = host_state_manager_get_read_only_flash (&manager.host_state);
 	CuAssertIntEquals (test, SPI_FILTER_CS_0, active);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_validate_read_only_flash_cs0 (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	struct host_flash_manager_testing manager;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
@@ -2327,45 +1229,14 @@ static void host_flash_manager_test_validate_read_only_flash_cs0 (CuTest *test)
 	struct pfm_image_list img_list;
 	char *img_data = "Test";
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
-	struct pfm_mock pfm;
 	struct pfm_read_write_regions rw_output;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = RSA_TESTING_ENGINE_INIT (&rsa);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_init (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -2390,89 +1261,59 @@ static void host_flash_manager_test_validate_read_only_flash_cs0 (CuTest *test)
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = spi_flash_set_device_size (&flash0, 0x1000);
-	status |= spi_flash_set_device_size (&flash1, 0x1000);
+	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 1, &version_list, sizeof (version_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 1, 0);
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, (uint8_t*) version_exp,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp,
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_firmware_images, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 2, &img_list, sizeof (img_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 2, 1);
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
+		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list, sizeof (img_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, (uint8_t*) img_data,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) img_data,
 		strlen (img_data), FLASH_EXP_READ_CMD (0x03, 0, 0, -1, strlen (img_data)));
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_read_write_regions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG (&rw_output));
-	status |= mock_expect_output (&pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG (&rw_output));
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
 
-	status |= mock_expect (&pfm.mock, pfm.base.free_firmware_images, &pfm, 0,
-		MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&pfm.mock, pfm.base.free_fw_versions, &pfm, 0, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.validate_read_only_flash (&manager, &pfm.base, NULL, &hash.base, &rsa.base,
-		false, &rw_output);
+	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base, NULL,
+		&manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
-	RSA_TESTING_ENGINE_RELEASE (&rsa);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_validate_read_only_flash_cs1 (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	struct host_flash_manager_testing manager;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
@@ -2481,48 +1322,14 @@ static void host_flash_manager_test_validate_read_only_flash_cs1 (CuTest *test)
 	struct pfm_image_list img_list;
 	char *img_data = "Test";
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
-	struct pfm_mock pfm;
 	struct pfm_read_write_regions rw_output;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = RSA_TESTING_ENGINE_INIT (&rsa);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_init (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_state_manager_save_read_only_flash (&host_state, SPI_FILTER_CS_1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, true);
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -2547,89 +1354,59 @@ static void host_flash_manager_test_validate_read_only_flash_cs1 (CuTest *test)
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = spi_flash_set_device_size (&flash0, 0x1000);
-	status |= spi_flash_set_device_size (&flash1, 0x1000);
+	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 1, &version_list, sizeof (version_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 1, 0);
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, (uint8_t*) version_exp,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) version_exp,
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_firmware_images, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 2, &img_list, sizeof (img_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 2, 1);
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
+		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list, sizeof (img_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, (uint8_t*) img_data,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) img_data,
 		strlen (img_data), FLASH_EXP_READ_CMD (0x03, 0, 0, -1, strlen (img_data)));
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_read_write_regions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG (&rw_output));
-	status |= mock_expect_output (&pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG (&rw_output));
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
 
-	status |= mock_expect (&pfm.mock, pfm.base.free_firmware_images, &pfm, 0,
-		MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&pfm.mock, pfm.base.free_fw_versions, &pfm, 0, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.validate_read_only_flash (&manager, &pfm.base, NULL, &hash.base, &rsa.base,
-		false, &rw_output);
+	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base, NULL,
+		&manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
-	RSA_TESTING_ENGINE_RELEASE (&rsa);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_validate_read_only_flash_cs0_full_validation (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	struct host_flash_manager_testing manager;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
@@ -2638,45 +1415,14 @@ static void host_flash_manager_test_validate_read_only_flash_cs0_full_validation
 	struct pfm_image_list img_list;
 	char *img_data = "Test";
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
-	struct pfm_mock pfm;
 	struct pfm_read_write_regions rw_output;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = RSA_TESTING_ENGINE_INIT (&rsa);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_init (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -2702,93 +1448,63 @@ static void host_flash_manager_test_validate_read_only_flash_cs0_full_validation
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = spi_flash_set_device_size (&flash0, 0x1000);
-	status |= spi_flash_set_device_size (&flash1, 0x1000);
+	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 1, &version_list, sizeof (version_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 1, 0);
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, (uint8_t*) version_exp,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp,
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_firmware_images, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 2, &img_list, sizeof (img_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 2, 1);
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
+		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list, sizeof (img_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_read_write_regions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG (&rw_output));
-	status |= mock_expect_output (&pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG (&rw_output));
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, (uint8_t*) img_data,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) img_data,
 		strlen (img_data), FLASH_EXP_READ_CMD (0x03, 0, 0, -1, strlen (img_data)));
 
-	status |= flash_master_mock_expect_blank_check (&flash_mock0, 0 + strlen (img_data),
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock0, 0 + strlen (img_data),
 		0x200 - strlen (img_data));
-	status |= flash_master_mock_expect_blank_check (&flash_mock0, 0x300, 0x1000 - 0x300);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock0, 0x300, 0x1000 - 0x300);
 
-	status |= mock_expect (&pfm.mock, pfm.base.free_firmware_images, &pfm, 0,
-		MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&pfm.mock, pfm.base.free_fw_versions, &pfm, 0, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.validate_read_only_flash (&manager, &pfm.base, NULL, &hash.base, &rsa.base,
-		true, &rw_output);
+	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base, NULL,
+		&manager.hash.base, &manager.rsa.base, true, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
-	RSA_TESTING_ENGINE_RELEASE (&rsa);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_validate_read_only_flash_cs1_full_validation (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	struct host_flash_manager_testing manager;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
@@ -2797,48 +1513,14 @@ static void host_flash_manager_test_validate_read_only_flash_cs1_full_validation
 	struct pfm_image_list img_list;
 	char *img_data = "Test";
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
-	struct pfm_mock pfm;
 	struct pfm_read_write_regions rw_output;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = RSA_TESTING_ENGINE_INIT (&rsa);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_init (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_state_manager_save_read_only_flash (&host_state, SPI_FILTER_CS_1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, true);
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -2864,94 +1546,64 @@ static void host_flash_manager_test_validate_read_only_flash_cs1_full_validation
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = spi_flash_set_device_size (&flash0, 0x1000);
-	status |= spi_flash_set_device_size (&flash1, 0x1000);
+	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 1, &version_list, sizeof (version_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 1, 0);
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, (uint8_t*) version_exp,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) version_exp,
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_firmware_images, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 2, &img_list, sizeof (img_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 2, 1);
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
+		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list, sizeof (img_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_read_write_regions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG (&rw_output));
-	status |= mock_expect_output (&pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG (&rw_output));
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, (uint8_t*) img_data,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) img_data,
 		strlen (img_data), FLASH_EXP_READ_CMD (0x03, 0, 0, -1, strlen (img_data)));
 
-	status |= flash_master_mock_expect_blank_check (&flash_mock1, 0 + strlen (img_data),
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock1, 0 + strlen (img_data),
 		0x200 - strlen (img_data));
-	status |= flash_master_mock_expect_blank_check (&flash_mock1, 0x300, 0x1000 - 0x300);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock1, 0x300, 0x1000 - 0x300);
 
-	status |= mock_expect (&pfm.mock, pfm.base.free_firmware_images, &pfm, 0,
-		MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&pfm.mock, pfm.base.free_fw_versions, &pfm, 0, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.validate_read_only_flash (&manager, &pfm.base, NULL, &hash.base, &rsa.base,
-		true, &rw_output);
+	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base, NULL,
+		&manager.hash.base, &manager.rsa.base, true, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
-	RSA_TESTING_ENGINE_RELEASE (&rsa);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_validate_read_only_flash_full_validation_not_blank_byte (
 	CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	struct host_flash_manager_testing manager;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
@@ -2960,45 +1612,14 @@ static void host_flash_manager_test_validate_read_only_flash_full_validation_not
 	struct pfm_image_list img_list;
 	char *img_data = "Test";
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
-	struct pfm_mock pfm;
 	struct pfm_read_write_regions rw_output;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = RSA_TESTING_ENGINE_INIT (&rsa);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_init (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -3024,93 +1645,64 @@ static void host_flash_manager_test_validate_read_only_flash_full_validation_not
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = spi_flash_set_device_size (&flash0, 0x1000);
-	status |= spi_flash_set_device_size (&flash1, 0x1000);
+	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 1, &version_list, sizeof (version_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 1, 0);
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, (uint8_t*) version_exp,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp,
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_firmware_images, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 2, &img_list, sizeof (img_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 2, 1);
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
+		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list, sizeof (img_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_read_write_regions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG (&rw_output));
-	status |= mock_expect_output (&pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG (&rw_output));
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, (uint8_t*) img_data,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) img_data,
 		strlen (img_data), FLASH_EXP_READ_CMD (0x03, 0, 0, -1, strlen (img_data)));
 
-	status |= flash_master_mock_expect_value_check (&flash_mock0, 0 + strlen (img_data),
+	status |= flash_master_mock_expect_value_check (&manager.flash_mock0, 0 + strlen (img_data),
 		0x200 - strlen (img_data), 0x45);
-	status |= flash_master_mock_expect_value_check (&flash_mock0, 0x300, 0x1000 - 0x300, 0x45);
+	status |= flash_master_mock_expect_value_check (&manager.flash_mock0, 0x300, 0x1000 - 0x300,
+		0x45);
 
-	status |= mock_expect (&pfm.mock, pfm.base.free_firmware_images, &pfm, 0,
-		MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&pfm.mock, pfm.base.free_fw_versions, &pfm, 0, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.validate_read_only_flash (&manager, &pfm.base, NULL, &hash.base, &rsa.base,
-		true, &rw_output);
+	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base, NULL,
+		&manager.hash.base, &manager.rsa.base, true, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
-	RSA_TESTING_ENGINE_RELEASE (&rsa);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_validate_read_only_flash_cs0_good_pfm (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	struct host_flash_manager_testing manager;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
@@ -3118,49 +1710,14 @@ static void host_flash_manager_test_validate_read_only_flash_cs0_good_pfm (CuTes
 	struct pfm_image_signature sig;
 	struct pfm_image_list img_list;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
-	struct pfm_mock pfm;
-	struct pfm_mock pfm_good;
 	struct pfm_read_write_regions rw_output;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = RSA_TESTING_ENGINE_INIT (&rsa);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_init (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_init (&pfm_good);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -3185,96 +1742,63 @@ static void host_flash_manager_test_validate_read_only_flash_cs0_good_pfm (CuTes
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = spi_flash_set_device_size (&flash0, 0x1000);
-	status |= spi_flash_set_device_size (&flash1, 0x1000);
+	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 1, &version_list, sizeof (version_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 1, 0);
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, (uint8_t*) version_exp,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp,
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_firmware_images, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 2, &img_list, sizeof (img_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 2, 1);
-
-	status |= mock_expect (&pfm.mock, pfm.base.get_read_write_regions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG (&rw_output));
-	status |= mock_expect_output (&pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
-
-	status |= mock_expect (&pfm_good.mock, pfm_good.base.get_firmware_images, &pfm_good, 0,
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
 		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm_good.mock, 2, &img_list, sizeof (img_list), -1);
-	status |= mock_expect_save_arg (&pfm_good.mock, 2, 1);
+			MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list, sizeof (img_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
 
-	status |= mock_expect (&pfm.mock, pfm.base.free_firmware_images, &pfm, 0,
-		MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&pfm.mock, pfm.base.free_fw_versions, &pfm, 0, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG (&rw_output));
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
 
-	status |= mock_expect (&pfm_good.mock, pfm_good.base.free_firmware_images, &pfm_good, 0,
-		MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm_good.mock, manager.pfm_good.base.get_firmware_images,
+		&manager.pfm_good, 0, MOCK_ARG (NULL),
+		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm_good.mock, 2, &img_list, sizeof (img_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm_good.mock, 2, 1);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&manager.pfm_good.mock, manager.pfm_good.base.free_firmware_images,
+		&manager.pfm_good, 0, MOCK_ARG_SAVED_ARG (1));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.validate_read_only_flash (&manager, &pfm.base, &pfm_good.base, &hash.base,
-		&rsa.base, false, &rw_output);
+	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base,
+		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&pfm_good);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
-	RSA_TESTING_ENGINE_RELEASE (&rsa);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_validate_read_only_flash_cs1_good_pfm (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	struct host_flash_manager_testing manager;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
@@ -3282,52 +1806,14 @@ static void host_flash_manager_test_validate_read_only_flash_cs1_good_pfm (CuTes
 	struct pfm_image_signature sig;
 	struct pfm_image_list img_list;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
-	struct pfm_mock pfm;
-	struct pfm_mock pfm_good;
 	struct pfm_read_write_regions rw_output;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = RSA_TESTING_ENGINE_INIT (&rsa);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_init (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_init (&pfm_good);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_state_manager_save_read_only_flash (&host_state, SPI_FILTER_CS_1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, true);
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -3352,97 +1838,64 @@ static void host_flash_manager_test_validate_read_only_flash_cs1_good_pfm (CuTes
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = spi_flash_set_device_size (&flash0, 0x1000);
-	status |= spi_flash_set_device_size (&flash1, 0x1000);
+	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 1, &version_list, sizeof (version_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 1, 0);
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, (uint8_t*) version_exp,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) version_exp,
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_firmware_images, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 2, &img_list, sizeof (img_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 2, 1);
-
-	status |= mock_expect (&pfm.mock, pfm.base.get_read_write_regions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG (&rw_output));
-	status |= mock_expect_output (&pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
-
-	status |= mock_expect (&pfm_good.mock, pfm_good.base.get_firmware_images, &pfm_good, 0,
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
 		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm_good.mock, 2, &img_list, sizeof (img_list), -1);
-	status |= mock_expect_save_arg (&pfm_good.mock, 2, 1);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list, sizeof (img_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
 
-	status |= mock_expect (&pfm.mock, pfm.base.free_firmware_images, &pfm, 0,
-		MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&pfm.mock, pfm.base.free_fw_versions, &pfm, 0, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG (&rw_output));
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
 
-	status |= mock_expect (&pfm_good.mock, pfm_good.base.free_firmware_images, &pfm_good, 0,
-		MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm_good.mock, manager.pfm_good.base.get_firmware_images,
+		&manager.pfm_good, 0, MOCK_ARG (NULL),
+		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm_good.mock, 2, &img_list, sizeof (img_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm_good.mock, 2, 1);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&manager.pfm_good.mock, manager.pfm_good.base.free_firmware_images,
+		&manager.pfm_good, 0, MOCK_ARG_SAVED_ARG (1));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.validate_read_only_flash (&manager, &pfm.base, &pfm_good.base, &hash.base,
-		&rsa.base, false, &rw_output);
+	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base,
+		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&pfm_good);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
-	RSA_TESTING_ENGINE_RELEASE (&rsa);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_validate_read_only_flash_cs0_good_pfm_no_match_image (
 	CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	struct host_flash_manager_testing manager;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
@@ -3451,52 +1904,17 @@ static void host_flash_manager_test_validate_read_only_flash_cs0_good_pfm_no_mat
 	struct pfm_image_signature sig1;
 	struct pfm_image_list img_list1;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_region img_region2;
 	struct pfm_image_signature sig2;
 	struct pfm_image_list img_list2;
-	struct pfm_mock pfm;
-	struct pfm_mock pfm_good;
 	struct pfm_read_write_regions rw_output;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = RSA_TESTING_ENGINE_INIT (&rsa);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_init (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_init (&pfm_good);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -3521,7 +1939,10 @@ static void host_flash_manager_test_validate_read_only_flash_cs0_good_pfm_no_mat
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	img_region2.start_addr = 0;
@@ -3538,99 +1959,63 @@ static void host_flash_manager_test_validate_read_only_flash_cs0_good_pfm_no_mat
 	img_list2.images_hash = NULL;
 	img_list2.count = 1;
 
-	status = spi_flash_set_device_size (&flash0, 0x1000);
-	status |= spi_flash_set_device_size (&flash1, 0x1000);
+	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 1, &version_list, sizeof (version_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 1, 0);
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, (uint8_t*) version_exp,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp,
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_firmware_images, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 2, &img_list1, sizeof (img_list1), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 2, 1);
-
-	status |= mock_expect (&pfm.mock, pfm.base.get_read_write_regions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG (&rw_output));
-	status |= mock_expect_output (&pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
-
-	status |= mock_expect (&pfm_good.mock, pfm_good.base.get_firmware_images, &pfm_good, 0,
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
 		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm_good.mock, 2, &img_list2, sizeof (img_list2), -1);
-	status |= mock_expect_save_arg (&pfm_good.mock, 2, 1);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list1, sizeof (img_list1), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG (&rw_output));
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
+
+	status |= mock_expect (&manager.pfm_good.mock, manager.pfm_good.base.get_firmware_images,
+		&manager.pfm_good, 0, MOCK_ARG (NULL),
+		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm_good.mock, 2, &img_list2, sizeof (img_list2), -1);
+	status |= mock_expect_save_arg (&manager.pfm_good.mock, 2, 1);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, (uint8_t*) img_data,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) img_data,
 		strlen (img_data), FLASH_EXP_READ_CMD (0x03, 0, 0, -1, strlen (img_data)));
 
-	status |= mock_expect (&pfm.mock, pfm.base.free_firmware_images, &pfm, 0,
-		MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&pfm.mock, pfm.base.free_fw_versions, &pfm, 0, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
-	status |= mock_expect (&pfm_good.mock, pfm_good.base.free_firmware_images, &pfm_good, 0,
-		MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm_good.mock, manager.pfm_good.base.free_firmware_images,
+		&manager.pfm_good, 0, MOCK_ARG_SAVED_ARG (1));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.validate_read_only_flash (&manager, &pfm.base, &pfm_good.base, &hash.base,
-		&rsa.base, false, &rw_output);
+	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base,
+		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&pfm_good);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
-	RSA_TESTING_ENGINE_RELEASE (&rsa);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_validate_read_only_flash_cs1_good_pfm_no_match_image (
 	CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	struct host_flash_manager_testing manager;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
@@ -3639,55 +2024,17 @@ static void host_flash_manager_test_validate_read_only_flash_cs1_good_pfm_no_mat
 	struct pfm_image_signature sig1;
 	struct pfm_image_list img_list1;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_region img_region2;
 	struct pfm_image_signature sig2;
 	struct pfm_image_list img_list2;
-	struct pfm_mock pfm;
-	struct pfm_mock pfm_good;
 	struct pfm_read_write_regions rw_output;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = RSA_TESTING_ENGINE_INIT (&rsa);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_init (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_init (&pfm_good);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_state_manager_save_read_only_flash (&host_state, SPI_FILTER_CS_1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, true);
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -3712,7 +2059,10 @@ static void host_flash_manager_test_validate_read_only_flash_cs1_good_pfm_no_mat
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	img_region2.start_addr = 0;
@@ -3729,98 +2079,62 @@ static void host_flash_manager_test_validate_read_only_flash_cs1_good_pfm_no_mat
 	img_list2.images_hash = NULL;
 	img_list2.count = 1;
 
-	status = spi_flash_set_device_size (&flash0, 0x1000);
-	status |= spi_flash_set_device_size (&flash1, 0x1000);
+	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 1, &version_list, sizeof (version_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 1, 0);
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, (uint8_t*) version_exp,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) version_exp,
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_firmware_images, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 2, &img_list1, sizeof (img_list1), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 2, 1);
-
-	status |= mock_expect (&pfm.mock, pfm.base.get_read_write_regions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG (&rw_output));
-	status |= mock_expect_output (&pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
-
-	status |= mock_expect (&pfm_good.mock, pfm_good.base.get_firmware_images, &pfm_good, 0,
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
 		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm_good.mock, 2, &img_list2, sizeof (img_list2), -1);
-	status |= mock_expect_save_arg (&pfm_good.mock, 2, 1);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list1, sizeof (img_list1), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &WIP_STATUS, 1,
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG (&rw_output));
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
+
+	status |= mock_expect (&manager.pfm_good.mock, manager.pfm_good.base.get_firmware_images,
+		&manager.pfm_good, 0, MOCK_ARG (NULL),
+		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm_good.mock, 2, &img_list2, sizeof (img_list2), -1);
+	status |= mock_expect_save_arg (&manager.pfm_good.mock, 2, 1);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, (uint8_t*) img_data,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) img_data,
 		strlen (img_data), FLASH_EXP_READ_CMD (0x03, 0, 0, -1, strlen (img_data)));
 
-	status |= mock_expect (&pfm.mock, pfm.base.free_firmware_images, &pfm, 0,
-		MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&pfm.mock, pfm.base.free_fw_versions, &pfm, 0, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
-	status |= mock_expect (&pfm_good.mock, pfm_good.base.free_firmware_images, &pfm_good, 0,
-		MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm_good.mock, manager.pfm_good.base.free_firmware_images,
+		&manager.pfm_good, 0, MOCK_ARG_SAVED_ARG (1));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.validate_read_only_flash (&manager, &pfm.base, &pfm_good.base, &hash.base,
-		&rsa.base, false, &rw_output);
+	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base,
+		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&pfm_good);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
-	RSA_TESTING_ENGINE_RELEASE (&rsa);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_validate_read_only_flash_good_pfm_full_validation (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	struct host_flash_manager_testing manager;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
@@ -3829,49 +2143,14 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_full_valid
 	struct pfm_image_list img_list;
 	char *img_data = "Test";
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
-	struct pfm_mock pfm;
-	struct pfm_mock pfm_good;
 	struct pfm_read_write_regions rw_output;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = RSA_TESTING_ENGINE_INIT (&rsa);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_init (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_init (&pfm_good);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -3897,346 +2176,127 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_full_valid
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = spi_flash_set_device_size (&flash0, 0x1000);
-	status |= spi_flash_set_device_size (&flash1, 0x1000);
+	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 1, &version_list, sizeof (version_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 1, 0);
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, (uint8_t*) version_exp,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp,
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_firmware_images, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 2, &img_list, sizeof (img_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 2, 1);
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
+		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list, sizeof (img_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_read_write_regions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG (&rw_output));
-	status |= mock_expect_output (&pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG (&rw_output));
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, (uint8_t*) img_data,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) img_data,
 		strlen (img_data), FLASH_EXP_READ_CMD (0x03, 0, 0, -1, strlen (img_data)));
 
-	status |= flash_master_mock_expect_blank_check (&flash_mock0, 0 + strlen (img_data),
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock0, 0 + strlen (img_data),
 		0x200 - strlen (img_data));
-	status |= flash_master_mock_expect_blank_check (&flash_mock0, 0x300, 0x1000 - 0x300);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock0, 0x300, 0x1000 - 0x300);
 
-	status |= mock_expect (&pfm.mock, pfm.base.free_firmware_images, &pfm, 0,
-		MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&pfm.mock, pfm.base.free_fw_versions, &pfm, 0, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.validate_read_only_flash (&manager, &pfm.base, &pfm_good.base, &hash.base,
-		&rsa.base, true, &rw_output);
+	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base,
+		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, true, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&pfm_good);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
-	RSA_TESTING_ENGINE_RELEASE (&rsa);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_validate_read_only_flash_null (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
-	struct pfm_mock pfm;
+	struct host_flash_manager_testing manager;
 	struct pfm_read_write_regions rw_output;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
-	status = RSA_TESTING_ENGINE_INIT (&rsa);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_init (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manager.validate_read_only_flash (NULL, &pfm.base, NULL, &hash.base, &rsa.base,
-		false, &rw_output);
+	status = manager.test.validate_read_only_flash (NULL, &manager.pfm.base, NULL,
+		&manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = manager.validate_read_only_flash (&manager, NULL, NULL, &hash.base, &rsa.base,
-		false, &rw_output);
+	status = manager.test.validate_read_only_flash (&manager.test, NULL, NULL,
+		&manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = manager.validate_read_only_flash (&manager, &pfm.base, NULL, NULL, &rsa.base,
-		false, &rw_output);
+	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base, NULL,
+		NULL, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = manager.validate_read_only_flash (&manager, &pfm.base, NULL, &hash.base, NULL,
-		false, &rw_output);
+	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base, NULL,
+		&manager.hash.base, NULL, false, &rw_output);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = manager.validate_read_only_flash (&manager, &pfm.base, NULL, &hash.base, &rsa.base,
-		false, NULL);
+	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base, NULL,
+		&manager.hash.base, &manager.rsa.base, false, NULL);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
-	RSA_TESTING_ENGINE_RELEASE (&rsa);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_validate_read_only_flash_pfm_version_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
-	struct pfm_mock pfm;
+	struct host_flash_manager_testing manager;
 	struct pfm_read_write_regions rw_output;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
-	status = RSA_TESTING_ENGINE_INIT (&rsa);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_init (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, PFM_GET_VERSIONS_FAILED,
-		MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		PFM_GET_VERSIONS_FAILED, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.validate_read_only_flash (&manager, &pfm.base, NULL, &hash.base, &rsa.base,
-		false, &rw_output);
+	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base, NULL,
+		&manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, PFM_GET_VERSIONS_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
-	RSA_TESTING_ENGINE_RELEASE (&rsa);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_validate_read_only_flash_pfm_images_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	struct host_flash_manager_testing manager;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
-	struct pfm_mock pfm;
 	struct pfm_read_write_regions rw_output;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = RSA_TESTING_ENGINE_INIT (&rsa);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_init (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -4244,70 +2304,35 @@ static void host_flash_manager_test_validate_read_only_flash_pfm_images_error (C
 	version_list.versions = &version;
 	version_list.count = 1;
 
-	status = mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 1, &version_list, sizeof (version_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 1, 0);
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, (uint8_t*) version_exp,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp,
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_firmware_images, &pfm, PFM_GET_FW_IMAGES_FAILED,
-		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
-		MOCK_ARG_NOT_NULL);
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm,
+		PFM_GET_FW_IMAGES_FAILED, MOCK_ARG (NULL),
+		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
 
-	status |= mock_expect (&pfm.mock, pfm.base.free_fw_versions, &pfm, 0, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.validate_read_only_flash (&manager, &pfm.base, NULL, &hash.base, &rsa.base,
-		false, &rw_output);
+	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base, NULL,
+		&manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, PFM_GET_FW_IMAGES_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
-	RSA_TESTING_ENGINE_RELEASE (&rsa);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_validate_read_only_flash_pfm_rw_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	struct host_flash_manager_testing manager;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
@@ -4315,50 +2340,12 @@ static void host_flash_manager_test_validate_read_only_flash_pfm_rw_error (CuTes
 	struct pfm_image_signature sig;
 	struct pfm_image_list img_list;
 	char *img_data = "Test";
-	struct pfm_mock pfm;
 	struct pfm_read_write_regions rw_output;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = RSA_TESTING_ENGINE_INIT (&rsa);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_init (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -4380,124 +2367,52 @@ static void host_flash_manager_test_validate_read_only_flash_pfm_rw_error (CuTes
 	img_list.images_hash = NULL;
 	img_list.count = 1;
 
-	status = mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 1, &version_list, sizeof (version_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 1, 0);
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, (uint8_t*) version_exp,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp,
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_firmware_images, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 2, &img_list, sizeof (img_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 2, 1);
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
+		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list, sizeof (img_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_read_write_regions, &pfm,
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
 		PFM_GET_READ_WRITE_FAILED, MOCK_ARG (NULL),
 		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG (&rw_output));
 
-	status |= mock_expect (&pfm.mock, pfm.base.free_firmware_images, &pfm, 0,
-		MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&pfm.mock, pfm.base.free_fw_versions, &pfm, 0, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.validate_read_only_flash (&manager, &pfm.base, NULL, &hash.base, &rsa.base,
-		false, &rw_output);
+	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base, NULL,
+		&manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, PFM_GET_READ_WRITE_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
-	RSA_TESTING_ENGINE_RELEASE (&rsa);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_validate_read_only_flash_flash_version_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	struct host_flash_manager_testing manager;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
-	struct pfm_mock pfm;
 	struct pfm_read_write_regions rw_output;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = RSA_TESTING_ENGINE_INIT (&rsa);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_init (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -4505,64 +2420,29 @@ static void host_flash_manager_test_validate_read_only_flash_flash_version_error
 	version_list.versions = &version;
 	version_list.count = 1;
 
-	status = mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 1, &version_list, sizeof (version_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 1, 0);
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
-	status |= flash_master_mock_expect_xfer (&flash_mock0, FLASH_MASTER_XFER_FAILED,
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock0, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
-	status |= mock_expect (&pfm.mock, pfm.base.free_fw_versions, &pfm, 0, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.validate_read_only_flash (&manager, &pfm.base, NULL, &hash.base, &rsa.base,
-		false, &rw_output);
+	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base, NULL,
+		&manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
-	RSA_TESTING_ENGINE_RELEASE (&rsa);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_validate_read_only_flash_flash_image_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	struct host_flash_manager_testing manager;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
@@ -4571,45 +2451,14 @@ static void host_flash_manager_test_validate_read_only_flash_flash_image_error (
 	struct pfm_image_list img_list;
 	char *img_data = "Test";
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
-	struct pfm_mock pfm;
 	struct pfm_read_write_regions rw_output;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = RSA_TESTING_ENGINE_INIT (&rsa);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_init (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -4634,90 +2483,60 @@ static void host_flash_manager_test_validate_read_only_flash_flash_image_error (
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = spi_flash_set_device_size (&flash0, 0x1000);
-	status |= spi_flash_set_device_size (&flash1, 0x1000);
+	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 1, &version_list, sizeof (version_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 1, 0);
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, (uint8_t*) version_exp,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp,
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_firmware_images, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 2, &img_list, sizeof (img_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 2, 1);
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
+		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list, sizeof (img_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_read_write_regions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG (&rw_output));
-	status |= mock_expect_output (&pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 2, 2);
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG (&rw_output));
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
 
-	status |= flash_master_mock_expect_xfer (&flash_mock0, FLASH_MASTER_XFER_FAILED,
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock0, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
-	status |= mock_expect (&pfm.mock, pfm.base.free_read_write_regions, &pfm, 0,
-		MOCK_ARG_SAVED_ARG (2));
-	status |= mock_expect (&pfm.mock, pfm.base.free_firmware_images, &pfm, 0,
-		MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&pfm.mock, pfm.base.free_fw_versions, &pfm, 0, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions,
+		&manager.pfm, 0, MOCK_ARG_SAVED_ARG (2));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.validate_read_only_flash (&manager, &pfm.base, NULL, &hash.base, &rsa.base,
-		false, &rw_output);
+	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base, NULL,
+		&manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
-	RSA_TESTING_ENGINE_RELEASE (&rsa);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_validate_read_only_flash_full_flash_image_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	struct host_flash_manager_testing manager;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
@@ -4726,45 +2545,14 @@ static void host_flash_manager_test_validate_read_only_flash_full_flash_image_er
 	struct pfm_image_list img_list;
 	char *img_data = "Test";
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
-	struct pfm_mock pfm;
 	struct pfm_read_write_regions rw_output;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = RSA_TESTING_ENGINE_INIT (&rsa);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_init (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -4789,238 +2577,97 @@ static void host_flash_manager_test_validate_read_only_flash_full_flash_image_er
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = spi_flash_set_device_size (&flash0, 0x1000);
-	status |= spi_flash_set_device_size (&flash1, 0x1000);
+	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 1, &version_list, sizeof (version_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 1, 0);
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, (uint8_t*) version_exp,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp,
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_firmware_images, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 2, &img_list, sizeof (img_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 2, 1);
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
+		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list, sizeof (img_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_read_write_regions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG (&rw_output));
-	status |= mock_expect_output (&pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 2, 2);
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG (&rw_output));
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
 
-	status |= flash_master_mock_expect_xfer (&flash_mock0, FLASH_MASTER_XFER_FAILED,
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock0, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
-	status |= mock_expect (&pfm.mock, pfm.base.free_read_write_regions, &pfm, 0,
-		MOCK_ARG_SAVED_ARG (2));
-	status |= mock_expect (&pfm.mock, pfm.base.free_firmware_images, &pfm, 0,
-		MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&pfm.mock, pfm.base.free_fw_versions, &pfm, 0, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions,
+		&manager.pfm, 0, MOCK_ARG_SAVED_ARG (2));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.validate_read_only_flash (&manager, &pfm.base, NULL, &hash.base, &rsa.base,
-		true, &rw_output);
+	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base, NULL,
+		&manager.hash.base, &manager.rsa.base, true, &rw_output);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
-	RSA_TESTING_ENGINE_RELEASE (&rsa);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_validate_read_only_flash_good_pfm_pfm_version_error (
 	CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
-	struct pfm_mock pfm;
-	struct pfm_mock pfm_good;
+	struct host_flash_manager_testing manager;
 	struct pfm_read_write_regions rw_output;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
+	host_flash_manager_testing_init (test, &manager, false);
+
+	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = RSA_TESTING_ENGINE_INIT (&rsa);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_init (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_init (&pfm_good);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000);
-	status |= spi_flash_set_device_size (&flash1, 0x1000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, PFM_GET_VERSIONS_FAILED,
-		MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		PFM_GET_VERSIONS_FAILED, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.validate_read_only_flash (&manager, &pfm.base, &pfm_good.base, &hash.base,
-		&rsa.base, false, &rw_output);
+	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base,
+		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, PFM_GET_VERSIONS_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&pfm_good);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
-	RSA_TESTING_ENGINE_RELEASE (&rsa);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_validate_read_only_flash_good_pfm_flash_version_error (
 	CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	struct host_flash_manager_testing manager;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
-	struct pfm_mock pfm;
-	struct pfm_mock pfm_good;
 	struct pfm_read_write_regions rw_output;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = RSA_TESTING_ENGINE_INIT (&rsa);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_init (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_init (&pfm_good);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -5028,117 +2675,43 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_flash_vers
 	version_list.versions = &version;
 	version_list.count = 1;
 
-	status = spi_flash_set_device_size (&flash0, 0x1000);
-	status |= spi_flash_set_device_size (&flash1, 0x1000);
+	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 1, &version_list, sizeof (version_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 1, 0);
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
-	status |= flash_master_mock_expect_xfer (&flash_mock0, FLASH_MASTER_XFER_FAILED,
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock0, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
-	status |= mock_expect (&pfm.mock, pfm.base.free_fw_versions, &pfm, 0, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.validate_read_only_flash (&manager, &pfm.base, &pfm_good.base, &hash.base,
-		&rsa.base, false, &rw_output);
+	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base,
+		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&pfm_good);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
-	RSA_TESTING_ENGINE_RELEASE (&rsa);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_validate_read_only_flash_good_pfm_pfm_images_error (
 	CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	struct host_flash_manager_testing manager;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
-	struct pfm_mock pfm;
-	struct pfm_mock pfm_good;
 	struct pfm_read_write_regions rw_output;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = RSA_TESTING_ENGINE_INIT (&rsa);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_init (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_init (&pfm_good);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -5146,125 +2719,51 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_pfm_images
 	version_list.versions = &version;
 	version_list.count = 1;
 
-	status = spi_flash_set_device_size (&flash0, 0x1000);
-	status |= spi_flash_set_device_size (&flash1, 0x1000);
+	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 1, &version_list, sizeof (version_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 1, 0);
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, (uint8_t*) version_exp,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp,
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_firmware_images, &pfm, PFM_GET_FW_IMAGES_FAILED,
-		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
-		MOCK_ARG_NOT_NULL);
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm,
+		PFM_GET_FW_IMAGES_FAILED, MOCK_ARG (NULL),
+		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
 
-	status |= mock_expect (&pfm.mock, pfm.base.free_fw_versions, &pfm, 0, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.validate_read_only_flash (&manager, &pfm.base, &pfm_good.base, &hash.base,
-		&rsa.base, false, &rw_output);
+	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base,
+		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, PFM_GET_FW_IMAGES_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&pfm_good);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
-	RSA_TESTING_ENGINE_RELEASE (&rsa);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_validate_read_only_flash_good_pfm_pfm_rw_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	struct host_flash_manager_testing manager;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
 	struct flash_region img_region;
 	struct pfm_image_signature sig;
 	struct pfm_image_list img_list;
-	struct pfm_mock pfm;
-	struct pfm_mock pfm_good;
 	struct pfm_read_write_regions rw_output;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = RSA_TESTING_ENGINE_INIT (&rsa);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_init (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_init (&pfm_good);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -5286,85 +2785,48 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_pfm_rw_err
 	img_list.images_hash = NULL;
 	img_list.count = 1;
 
-	status = spi_flash_set_device_size (&flash0, 0x1000);
-	status |= spi_flash_set_device_size (&flash1, 0x1000);
+	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 1, &version_list, sizeof (version_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 1, 0);
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, (uint8_t*) version_exp,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp,
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_firmware_images, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 2, &img_list, sizeof (img_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 2, 1);
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
+		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list, sizeof (img_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_read_write_regions, &pfm,
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
 		PFM_GET_READ_WRITE_FAILED, MOCK_ARG (NULL),
 		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG (&rw_output));
 
-	status |= mock_expect (&pfm.mock, pfm.base.free_firmware_images, &pfm, 0,
-		MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&pfm.mock, pfm.base.free_fw_versions, &pfm, 0, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.validate_read_only_flash (&manager, &pfm.base, &pfm_good.base, &hash.base,
-		&rsa.base, false, &rw_output);
+	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base,
+		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, PFM_GET_READ_WRITE_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&pfm_good);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
-	RSA_TESTING_ENGINE_RELEASE (&rsa);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_validate_read_only_flash_good_pfm_good_images_error (
 	CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	struct host_flash_manager_testing manager;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
@@ -5373,49 +2835,14 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_good_image
 	struct pfm_image_signature sig;
 	struct pfm_image_list img_list;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
-	struct pfm_mock pfm;
-	struct pfm_mock pfm_good;
 	struct pfm_read_write_regions rw_output;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = RSA_TESTING_ENGINE_INIT (&rsa);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_init (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_init (&pfm_good);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -5440,97 +2867,64 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_good_image
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = spi_flash_set_device_size (&flash0, 0x1000);
-	status |= spi_flash_set_device_size (&flash1, 0x1000);
+	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 1, &version_list, sizeof (version_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 1, 0);
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, (uint8_t*) version_exp,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp,
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_firmware_images, &pfm, 0, MOCK_ARG (NULL),
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
+		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list, sizeof (img_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG (&rw_output));
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
+
+	status |= mock_expect (&manager.pfm_good.mock, manager.pfm_good.base.get_firmware_images,
+		&manager.pfm_good, PFM_GET_FW_IMAGES_FAILED, MOCK_ARG (NULL),
 		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 2, &img_list, sizeof (img_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 2, 1);
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_read_write_regions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG (&rw_output));
-	status |= mock_expect_output (&pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
-
-	status |= mock_expect (&pfm_good.mock, pfm_good.base.get_firmware_images, &pfm_good,
-		PFM_GET_FW_IMAGES_FAILED, MOCK_ARG (NULL),
-		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
-
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, (uint8_t*) img_data,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) img_data,
 		strlen (img_data), FLASH_EXP_READ_CMD (0x03, 0, 0, -1, strlen (img_data)));
 
-	status |= mock_expect (&pfm.mock, pfm.base.free_firmware_images, &pfm, 0,
-		MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&pfm.mock, pfm.base.free_fw_versions, &pfm, 0, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.validate_read_only_flash (&manager, &pfm.base, &pfm_good.base, &hash.base,
-		&rsa.base, false, &rw_output);
+	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base,
+		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&pfm_good);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
-	RSA_TESTING_ENGINE_RELEASE (&rsa);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_validate_read_only_flash_good_pfm_flash_image_error (
 	CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	struct host_flash_manager_testing manager;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
@@ -5539,52 +2933,17 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_flash_imag
 	struct pfm_image_signature sig1;
 	struct pfm_image_list img_list1;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_region img_region2;
 	struct pfm_image_signature sig2;
 	struct pfm_image_list img_list2;
-	struct pfm_mock pfm;
-	struct pfm_mock pfm_good;
 	struct pfm_read_write_regions rw_output;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = RSA_TESTING_ENGINE_INIT (&rsa);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_init (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_init (&pfm_good);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -5609,7 +2968,10 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_flash_imag
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	img_region2.start_addr = 0;
@@ -5626,98 +2988,62 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_flash_imag
 	img_list2.images_hash = NULL;
 	img_list2.count = 1;
 
-	status = spi_flash_set_device_size (&flash0, 0x1000);
-	status |= spi_flash_set_device_size (&flash1, 0x1000);
+	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 1, &version_list, sizeof (version_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 1, 0);
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, (uint8_t*) version_exp,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp,
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_firmware_images, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 2, &img_list1, sizeof (img_list1), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 2, 1);
-
-	status |= mock_expect (&pfm.mock, pfm.base.get_read_write_regions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG (&rw_output));
-	status |= mock_expect_output (&pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
-
-	status |= mock_expect (&pfm_good.mock, pfm_good.base.get_firmware_images, &pfm_good, 0,
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
 		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm_good.mock, 2, &img_list2, sizeof (img_list2), -1);
-	status |= mock_expect_save_arg (&pfm_good.mock, 2, 1);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list1, sizeof (img_list1), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
 
-	status |= flash_master_mock_expect_xfer (&flash_mock0, FLASH_MASTER_XFER_FAILED,
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG (&rw_output));
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
+
+	status |= mock_expect (&manager.pfm_good.mock, manager.pfm_good.base.get_firmware_images,
+		&manager.pfm_good, 0, MOCK_ARG (NULL),
+		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm_good.mock, 2, &img_list2, sizeof (img_list2), -1);
+	status |= mock_expect_save_arg (&manager.pfm_good.mock, 2, 1);
+
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock0, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
-	status |= mock_expect (&pfm.mock, pfm.base.free_read_write_regions, &pfm, 0,
-		MOCK_ARG (&rw_output));
-	status |= mock_expect (&pfm.mock, pfm.base.free_firmware_images, &pfm, 0,
-		MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&pfm.mock, pfm.base.free_fw_versions, &pfm, 0, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions,
+		&manager.pfm, 0, MOCK_ARG (&rw_output));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
-	status |= mock_expect (&pfm_good.mock, pfm_good.base.free_firmware_images, &pfm_good, 0,
-		MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm_good.mock, manager.pfm_good.base.free_firmware_images,
+		&manager.pfm_good, 0, MOCK_ARG_SAVED_ARG (1));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.validate_read_only_flash (&manager, &pfm.base, &pfm_good.base, &hash.base,
-		&rsa.base, false, &rw_output);
+	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base,
+		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&pfm_good);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
-	RSA_TESTING_ENGINE_RELEASE (&rsa);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_validate_read_write_flash_cs1 (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	struct host_flash_manager_testing manager;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
@@ -5726,45 +3052,14 @@ static void host_flash_manager_test_validate_read_write_flash_cs1 (CuTest *test)
 	struct pfm_image_list img_list;
 	char *img_data = "Test";
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
-	struct pfm_mock pfm;
 	struct pfm_read_write_regions rw_output;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = RSA_TESTING_ENGINE_INIT (&rsa);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_init (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -5790,93 +3085,63 @@ static void host_flash_manager_test_validate_read_write_flash_cs1 (CuTest *test)
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = spi_flash_set_device_size (&flash0, 0x1000);
-	status |= spi_flash_set_device_size (&flash1, 0x1000);
+	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 1, &version_list, sizeof (version_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 1, 0);
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, (uint8_t*) version_exp,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) version_exp,
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_firmware_images, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 2, &img_list, sizeof (img_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 2, 1);
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
+		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list, sizeof (img_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_read_write_regions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG (&rw_output));
-	status |= mock_expect_output (&pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG (&rw_output));
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, (uint8_t*) img_data,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) img_data,
 		strlen (img_data), FLASH_EXP_READ_CMD (0x03, 0, 0, -1, strlen (img_data)));
 
-	status |= flash_master_mock_expect_blank_check (&flash_mock1, 0 + strlen (img_data),
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock1, 0 + strlen (img_data),
 		0x200 - strlen (img_data));
-	status |= flash_master_mock_expect_blank_check (&flash_mock1, 0x300, 0x1000 - 0x300);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock1, 0x300, 0x1000 - 0x300);
 
-	status |= mock_expect (&pfm.mock, pfm.base.free_firmware_images, &pfm, 0,
-		MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&pfm.mock, pfm.base.free_fw_versions, &pfm, 0, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.validate_read_write_flash (&manager, &pfm.base, &hash.base, &rsa.base,
-		&rw_output);
+	status = manager.test.validate_read_write_flash (&manager.test, &manager.pfm.base,
+		&manager.hash.base, &manager.rsa.base, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
-	RSA_TESTING_ENGINE_RELEASE (&rsa);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_validate_read_write_flash_cs0 (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	struct host_flash_manager_testing manager;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
@@ -5885,48 +3150,14 @@ static void host_flash_manager_test_validate_read_write_flash_cs0 (CuTest *test)
 	struct pfm_image_list img_list;
 	char *img_data = "Test";
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
-	struct pfm_mock pfm;
 	struct pfm_read_write_regions rw_output;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = RSA_TESTING_ENGINE_INIT (&rsa);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_init (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_state_manager_save_read_only_flash (&host_state, SPI_FILTER_CS_1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, true);
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -5952,93 +3183,63 @@ static void host_flash_manager_test_validate_read_write_flash_cs0 (CuTest *test)
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = spi_flash_set_device_size (&flash0, 0x1000);
-	status |= spi_flash_set_device_size (&flash1, 0x1000);
+	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 1, &version_list, sizeof (version_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 1, 0);
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, (uint8_t*) version_exp,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp,
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_firmware_images, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 2, &img_list, sizeof (img_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 2, 1);
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
+		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list, sizeof (img_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_read_write_regions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG (&rw_output));
-	status |= mock_expect_output (&pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG (&rw_output));
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, (uint8_t*) img_data,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) img_data,
 		strlen (img_data), FLASH_EXP_READ_CMD (0x03, 0, 0, -1, strlen (img_data)));
 
-	status |= flash_master_mock_expect_blank_check (&flash_mock0, 0 + strlen (img_data),
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock0, 0 + strlen (img_data),
 		0x200 - strlen (img_data));
-	status |= flash_master_mock_expect_blank_check (&flash_mock0, 0x300, 0x1000 - 0x300);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock0, 0x300, 0x1000 - 0x300);
 
-	status |= mock_expect (&pfm.mock, pfm.base.free_firmware_images, &pfm, 0,
-		MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&pfm.mock, pfm.base.free_fw_versions, &pfm, 0, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.validate_read_write_flash (&manager, &pfm.base, &hash.base, &rsa.base,
-		&rw_output);
+	status = manager.test.validate_read_write_flash (&manager.test, &manager.pfm.base,
+		&manager.hash.base, &manager.rsa.base, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
-	RSA_TESTING_ENGINE_RELEASE (&rsa);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_validate_read_write_flash_not_blank_byte (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	struct host_flash_manager_testing manager;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
@@ -6047,45 +3248,14 @@ static void host_flash_manager_test_validate_read_write_flash_not_blank_byte (Cu
 	struct pfm_image_list img_list;
 	char *img_data = "Test";
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
-	struct pfm_mock pfm;
 	struct pfm_read_write_regions rw_output;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = RSA_TESTING_ENGINE_INIT (&rsa);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_init (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -6111,343 +3281,128 @@ static void host_flash_manager_test_validate_read_write_flash_not_blank_byte (Cu
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = spi_flash_set_device_size (&flash0, 0x1000);
-	status |= spi_flash_set_device_size (&flash1, 0x1000);
+	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 1, &version_list, sizeof (version_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 1, 0);
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, (uint8_t*) version_exp,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) version_exp,
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_firmware_images, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 2, &img_list, sizeof (img_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 2, 1);
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
+		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list, sizeof (img_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_read_write_regions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG (&rw_output));
-	status |= mock_expect_output (&pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG (&rw_output));
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, (uint8_t*) img_data,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) img_data,
 		strlen (img_data), FLASH_EXP_READ_CMD (0x03, 0, 0, -1, strlen (img_data)));
 
-	status |= flash_master_mock_expect_value_check (&flash_mock1, 0 + strlen (img_data),
+	status |= flash_master_mock_expect_value_check (&manager.flash_mock1, 0 + strlen (img_data),
 		0x200 - strlen (img_data), 0xaa);
-	status |= flash_master_mock_expect_value_check (&flash_mock1, 0x300, 0x1000 - 0x300, 0xaa);
+	status |= flash_master_mock_expect_value_check (&manager.flash_mock1, 0x300, 0x1000 - 0x300,
+		0xaa);
 
-	status |= mock_expect (&pfm.mock, pfm.base.free_firmware_images, &pfm, 0,
-		MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&pfm.mock, pfm.base.free_fw_versions, &pfm, 0, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.validate_read_write_flash (&manager, &pfm.base, &hash.base, &rsa.base,
-		&rw_output);
+	status = manager.test.validate_read_write_flash (&manager.test, &manager.pfm.base,
+		&manager.hash.base, &manager.rsa.base, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
-	RSA_TESTING_ENGINE_RELEASE (&rsa);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_validate_read_write_flash_null (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
-	struct pfm_mock pfm;
+	struct host_flash_manager_testing manager;
 	struct pfm_read_write_regions rw_output;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
-	status = RSA_TESTING_ENGINE_INIT (&rsa);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_init (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manager.validate_read_write_flash (NULL, &pfm.base, &hash.base, &rsa.base,
-		&rw_output);
+	status = manager.test.validate_read_write_flash (NULL, &manager.pfm.base,
+		&manager.hash.base, &manager.rsa.base, &rw_output);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = manager.validate_read_write_flash (&manager, NULL, &hash.base, &rsa.base,
-		&rw_output);
+	status = manager.test.validate_read_write_flash (&manager.test, NULL,
+		&manager.hash.base, &manager.rsa.base, &rw_output);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = manager.validate_read_write_flash (&manager, &pfm.base, NULL, &rsa.base,
-		&rw_output);
+	status = manager.test.validate_read_write_flash (&manager.test, &manager.pfm.base,
+		NULL, &manager.rsa.base, &rw_output);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = manager.validate_read_write_flash (&manager, &pfm.base, &hash.base, NULL,
-		&rw_output);
+	status = manager.test.validate_read_write_flash (&manager.test, &manager.pfm.base,
+		&manager.hash.base, NULL, &rw_output);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = manager.validate_read_write_flash (&manager, &pfm.base, &hash.base, &rsa.base,
-		NULL);
+	status = manager.test.validate_read_write_flash (&manager.test, &manager.pfm.base,
+		&manager.hash.base, &manager.rsa.base, NULL);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
-	RSA_TESTING_ENGINE_RELEASE (&rsa);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_validate_read_write_flash_pfm_version_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
-	struct pfm_mock pfm;
+	struct host_flash_manager_testing manager;
 	struct pfm_read_write_regions rw_output;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
-	status = RSA_TESTING_ENGINE_INIT (&rsa);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_init (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, PFM_GET_VERSIONS_FAILED,
-		MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		PFM_GET_VERSIONS_FAILED, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.validate_read_write_flash (&manager, &pfm.base, &hash.base, &rsa.base,
-		&rw_output);
+	status = manager.test.validate_read_write_flash (&manager.test, &manager.pfm.base,
+		&manager.hash.base, &manager.rsa.base, &rw_output);
 	CuAssertIntEquals (test, PFM_GET_VERSIONS_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
-	RSA_TESTING_ENGINE_RELEASE (&rsa);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_validate_read_write_flash_pfm_images_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	struct host_flash_manager_testing manager;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
-	struct pfm_mock pfm;
 	struct pfm_read_write_regions rw_output;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = RSA_TESTING_ENGINE_INIT (&rsa);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_init (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -6456,70 +3411,35 @@ static void host_flash_manager_test_validate_read_write_flash_pfm_images_error (
 	version_list.versions = &version;
 	version_list.count = 1;
 
-	status = mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 1, &version_list, sizeof (version_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 1, 0);
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, (uint8_t*) version_exp,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) version_exp,
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_firmware_images, &pfm, PFM_GET_FW_IMAGES_FAILED,
-		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
-		MOCK_ARG_NOT_NULL);
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm,
+		PFM_GET_FW_IMAGES_FAILED, MOCK_ARG (NULL),
+		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
 
-	status |= mock_expect (&pfm.mock, pfm.base.free_fw_versions, &pfm, 0, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.validate_read_write_flash (&manager, &pfm.base, &hash.base, &rsa.base,
-		&rw_output);
+	status = manager.test.validate_read_write_flash (&manager.test, &manager.pfm.base,
+		&manager.hash.base, &manager.rsa.base, &rw_output);
 	CuAssertIntEquals (test, PFM_GET_FW_IMAGES_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
-	RSA_TESTING_ENGINE_RELEASE (&rsa);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_validate_read_write_flash_pfm_rw_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	struct host_flash_manager_testing manager;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
@@ -6527,50 +3447,12 @@ static void host_flash_manager_test_validate_read_write_flash_pfm_rw_error (CuTe
 	struct pfm_image_signature sig;
 	struct pfm_image_list img_list;
 	char *img_data = "Test";
-	struct pfm_mock pfm;
 	struct pfm_read_write_regions rw_output;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = RSA_TESTING_ENGINE_INIT (&rsa);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_init (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -6593,124 +3475,52 @@ static void host_flash_manager_test_validate_read_write_flash_pfm_rw_error (CuTe
 	img_list.images_hash = NULL;
 	img_list.count = 1;
 
-	status = mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 1, &version_list, sizeof (version_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 1, 0);
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, (uint8_t*) version_exp,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) version_exp,
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_firmware_images, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 2, &img_list, sizeof (img_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 2, 1);
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
+		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list, sizeof (img_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_read_write_regions, &pfm,
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
 		PFM_GET_READ_WRITE_FAILED, MOCK_ARG (NULL),
 		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG (&rw_output));
 
-	status |= mock_expect (&pfm.mock, pfm.base.free_firmware_images, &pfm, 0,
-		MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&pfm.mock, pfm.base.free_fw_versions, &pfm, 0, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.validate_read_write_flash (&manager, &pfm.base, &hash.base, &rsa.base,
-		&rw_output);
+	status = manager.test.validate_read_write_flash (&manager.test, &manager.pfm.base,
+		&manager.hash.base, &manager.rsa.base, &rw_output);
 	CuAssertIntEquals (test, PFM_GET_READ_WRITE_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
-	RSA_TESTING_ENGINE_RELEASE (&rsa);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_validate_read_write_flash_version_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	struct host_flash_manager_testing manager;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
-	struct pfm_mock pfm;
 	struct pfm_read_write_regions rw_output;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = RSA_TESTING_ENGINE_INIT (&rsa);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_init (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -6719,64 +3529,29 @@ static void host_flash_manager_test_validate_read_write_flash_version_error (CuT
 	version_list.versions = &version;
 	version_list.count = 1;
 
-	status = mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 1, &version_list, sizeof (version_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 1, 0);
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
-	status |= flash_master_mock_expect_xfer (&flash_mock1, FLASH_MASTER_XFER_FAILED,
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock1, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
-	status |= mock_expect (&pfm.mock, pfm.base.free_fw_versions, &pfm, 0, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.validate_read_write_flash (&manager, &pfm.base, &hash.base, &rsa.base,
-		&rw_output);
+	status = manager.test.validate_read_write_flash (&manager.test, &manager.pfm.base,
+		&manager.hash.base, &manager.rsa.base, &rw_output);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
-	RSA_TESTING_ENGINE_RELEASE (&rsa);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_validate_read_write_flash_verify_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	struct host_flash_manager_testing manager;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
@@ -6785,45 +3560,14 @@ static void host_flash_manager_test_validate_read_write_flash_verify_error (CuTe
 	struct pfm_image_list img_list;
 	char *img_data = "Test";
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
-	struct pfm_mock pfm;
 	struct pfm_read_write_regions rw_output;
 	int status;
 
 	TEST_START;
 
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = RSA_TESTING_ENGINE_INIT (&rsa);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_init (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -6849,88 +3593,59 @@ static void host_flash_manager_test_validate_read_write_flash_verify_error (CuTe
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = spi_flash_set_device_size (&flash0, 0x1000);
-	status |= spi_flash_set_device_size (&flash1, 0x1000);
+	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 1, &version_list, sizeof (version_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 1, 0);
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, (uint8_t*) version_exp,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) version_exp,
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_firmware_images, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 2, &img_list, sizeof (img_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 2, 1);
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
+		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list, sizeof (img_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_read_write_regions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG (&rw_output));
-	status |= mock_expect_output (&pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG (&rw_output));
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
 
-	status |= flash_master_mock_expect_xfer (&flash_mock1, FLASH_MASTER_XFER_FAILED,
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock1, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
-	status |= mock_expect (&pfm.mock, pfm.base.free_read_write_regions, &pfm, 0,
-		MOCK_ARG (&rw_output));
-	status |= mock_expect (&pfm.mock, pfm.base.free_firmware_images, &pfm, 0,
-		MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&pfm.mock, pfm.base.free_fw_versions, &pfm, 0, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions,
+		&manager.pfm, 0, MOCK_ARG (&rw_output));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.validate_read_write_flash (&manager, &pfm.base, &hash.base, &rsa.base,
-		&rw_output);
+	status = manager.test.validate_read_write_flash (&manager.test, &manager.pfm.base,
+		&manager.hash.base, &manager.rsa.base, &rw_output);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
-	RSA_TESTING_ENGINE_RELEASE (&rsa);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_set_flash_for_rot_access (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_control_mock control;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 	uint8_t bp_status = 0x3c;
@@ -6939,139 +3654,90 @@ static void host_flash_manager_test_set_flash_for_rot_access (CuTest *test)
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-	flash_mock0.mock.name = "flash_master0";
+	host_flash_manager_testing_initialize_dependencies_no_flash (test, &manager);
+	host_flash_manager_testing_initialize_flash_device (test, &manager.flash0, &manager.flash_mock0,
+		id);
+	host_flash_manager_testing_initialize_flash_device (test, &manager.flash1, &manager.flash_mock1,
+		id);
 
-	host_flash_manager_testing_initialize_flash_device (test, &flash0, &flash_mock0, id);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-	flash_mock1.mock.name = "flash_master1";
-
-	host_flash_manager_testing_initialize_flash_device (test, &flash1, &flash_mock1, id);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_init (&control);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
+	status = host_flash_manager_init (&manager.test, &manager.flash0, &manager.flash1,
+		&manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, 0, status);
 
 	/* Disable SPI filter. */
-	status = mock_expect (&filter.mock, filter.base.enable_filter, &filter, 0, MOCK_ARG (false));
+	status = mock_expect (&manager.filter.mock, manager.filter.base.enable_filter, &manager.filter,
+		0, MOCK_ARG (false));
 
 	/* Switch SPI mux. */
-	status |= mock_expect (&control.mock, control.base.enable_processor_flash_access, &control, 0,
-		MOCK_ARG (false));
+	status |= mock_expect (&manager.control.mock,
+		manager.control.base.enable_processor_flash_access, &manager.control, 0, MOCK_ARG (false));
 
 	/* Detect device WIP state. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
 	/* Clear block protect bits. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &bp_status, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &bp_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &bp_status, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &bp_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_xfer (&flash_mock0, 0, FLASH_EXP_WRITE_ENABLE);
-	status |= flash_master_mock_expect_tx_xfer (&flash_mock0, 0,
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock0, 0, FLASH_EXP_WRITE_ENABLE);
+	status |= flash_master_mock_expect_tx_xfer (&manager.flash_mock0, 0,
 		FLASH_EXP_WRITE_REG (0x01, &WIP_STATUS, 1));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &bp_status, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &bp_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &bp_status, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &bp_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_xfer (&flash_mock1, 0, FLASH_EXP_WRITE_ENABLE);
-	status |= flash_master_mock_expect_tx_xfer (&flash_mock1, 0,
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock1, 0, FLASH_EXP_WRITE_ENABLE);
+	status |= flash_master_mock_expect_tx_xfer (&manager.flash_mock1, 0,
 		FLASH_EXP_WRITE_REG (0x01, &WIP_STATUS, 1));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
 	/* Enable QSPI mode. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_xfer (&flash_mock0, 0, FLASH_EXP_WRITE_ENABLE);
-	status |= flash_master_mock_expect_tx_xfer (&flash_mock0, 0,
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock0, 0, FLASH_EXP_WRITE_ENABLE);
+	status |= flash_master_mock_expect_tx_xfer (&manager.flash_mock0, 0,
 		FLASH_EXP_WRITE_REG (0x01, &qspi_enable, 1));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &qspi_enable, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &qspi_enable, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &qspi_enable, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &qspi_enable, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
 	/* Detect 4-byte addressing. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &addr_mode, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &addr_mode, 1,
 		FLASH_EXP_READ_REG (0x15, 1));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &addr_mode, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &addr_mode, 1,
 		FLASH_EXP_READ_REG (0x15, 1));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.set_flash_for_rot_access (&manager, &control.base);
+	status = manager.test.set_flash_for_rot_access (&manager.test, &manager.control.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_is_4byte_address_mode (&flash0);
+	status = spi_flash_is_4byte_address_mode (&manager.flash0);
 	CuAssertIntEquals (test, 1, status);
 
-	status = spi_flash_is_4byte_address_mode (&flash1);
+	status = spi_flash_is_4byte_address_mode (&manager.flash1);
 	CuAssertIntEquals (test, 1, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_validate_and_release (&control);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_set_flash_for_rot_access_not_initilized_device (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_control_mock control;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 	uint8_t bp_status = 0x3c;
@@ -7079,140 +3745,75 @@ static void host_flash_manager_test_set_flash_for_rot_access_not_initilized_devi
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-	flash_mock0.mock.name = "flash_master0";
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-	flash_mock1.mock.name = "flash_master1";
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_init (&control);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
 	/* Disable SPI filter. */
-	status = mock_expect (&filter.mock, filter.base.enable_filter, &filter, 0, MOCK_ARG (false));
+	status = mock_expect (&manager.filter.mock, manager.filter.base.enable_filter, &manager.filter,
+		0, MOCK_ARG (false));
 
 	/* Switch SPI mux. */
-	status |= mock_expect (&control.mock, control.base.enable_processor_flash_access, &control, 0,
-		MOCK_ARG (false));
+	status |= mock_expect (&manager.control.mock,
+		manager.control.base.enable_processor_flash_access, &manager.control, 0, MOCK_ARG (false));
 
 	/* Detect devices. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, FLASH_ID_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id, FLASH_ID_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
 	/* Detect device WIP state. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
 	/* Clear block protect bits. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &bp_status, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &bp_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &bp_status, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &bp_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_xfer (&flash_mock0, 0, FLASH_EXP_WRITE_ENABLE);
-	status |= flash_master_mock_expect_tx_xfer (&flash_mock0, 0,
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock0, 0, FLASH_EXP_WRITE_ENABLE);
+	status |= flash_master_mock_expect_tx_xfer (&manager.flash_mock0, 0,
 		FLASH_EXP_WRITE_REG (0x01, &WIP_STATUS, 1));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &bp_status, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &bp_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &bp_status, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &bp_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_xfer (&flash_mock1, 0, FLASH_EXP_WRITE_ENABLE);
-	status |= flash_master_mock_expect_tx_xfer (&flash_mock1, 0,
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock1, 0, FLASH_EXP_WRITE_ENABLE);
+	status |= flash_master_mock_expect_tx_xfer (&manager.flash_mock1, 0,
 		FLASH_EXP_WRITE_REG (0x01, &WIP_STATUS, 1));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
 	/* Detect 4-byte addressing. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &addr_mode, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &addr_mode, 1,
 		FLASH_EXP_READ_REG (0x15, 1));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &addr_mode, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &addr_mode, 1,
 		FLASH_EXP_READ_REG (0x15, 1));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.set_flash_for_rot_access (&manager, &control.base);
+	status = manager.test.set_flash_for_rot_access (&manager.test, &manager.control.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_validate (&flash_mock0.mock);
+	status = mock_validate (&manager.flash_mock0.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_is_4byte_address_mode (&flash0);
+	status = spi_flash_is_4byte_address_mode (&manager.flash0);
 	CuAssertIntEquals (test, 1, status);
 
-	status = spi_flash_is_4byte_address_mode (&flash1);
+	status = spi_flash_is_4byte_address_mode (&manager.flash1);
 	CuAssertIntEquals (test, 1, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_validate_and_release (&control);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_set_flash_for_rot_access_check_qspi_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_control_mock control;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 	uint8_t bp_status = 0x3c;
@@ -7221,139 +3822,90 @@ static void host_flash_manager_test_set_flash_for_rot_access_check_qspi_error (C
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-	flash_mock0.mock.name = "flash_master0";
+	host_flash_manager_testing_initialize_dependencies_no_flash (test, &manager);
+	host_flash_manager_testing_initialize_flash_device (test, &manager.flash0, &manager.flash_mock0,
+		id);
+	host_flash_manager_testing_initialize_flash_device (test, &manager.flash1, &manager.flash_mock1,
+		id);
 
-	host_flash_manager_testing_initialize_flash_device (test, &flash0, &flash_mock0, id);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-	flash_mock1.mock.name = "flash_master1";
-
-	host_flash_manager_testing_initialize_flash_device (test, &flash1, &flash_mock1, id);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_init (&control);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
+	status = host_flash_manager_init (&manager.test, &manager.flash0, &manager.flash1,
+		&manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, 0, status);
 
 	/* Disable SPI filter. */
-	status = mock_expect (&filter.mock, filter.base.enable_filter, &filter, 0, MOCK_ARG (false));
+	status = mock_expect (&manager.filter.mock, manager.filter.base.enable_filter, &manager.filter,
+		0, MOCK_ARG (false));
 
 	/* Switch SPI mux. */
-	status |= mock_expect (&control.mock, control.base.enable_processor_flash_access, &control, 0,
-		MOCK_ARG (false));
+	status |= mock_expect (&manager.control.mock,
+		manager.control.base.enable_processor_flash_access, &manager.control, 0, MOCK_ARG (false));
 
 	/* Detect device WIP state. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
 	/* Clear block protect bits. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &bp_status, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &bp_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &bp_status, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &bp_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_xfer (&flash_mock0, 0, FLASH_EXP_WRITE_ENABLE);
-	status |= flash_master_mock_expect_tx_xfer (&flash_mock0, 0,
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock0, 0, FLASH_EXP_WRITE_ENABLE);
+	status |= flash_master_mock_expect_tx_xfer (&manager.flash_mock0, 0,
 		FLASH_EXP_WRITE_REG (0x01, &WIP_STATUS, 1));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &bp_status, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &bp_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &bp_status, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &bp_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_xfer (&flash_mock1, 0, FLASH_EXP_WRITE_ENABLE);
-	status |= flash_master_mock_expect_tx_xfer (&flash_mock1, 0,
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock1, 0, FLASH_EXP_WRITE_ENABLE);
+	status |= flash_master_mock_expect_tx_xfer (&manager.flash_mock1, 0,
 		FLASH_EXP_WRITE_REG (0x01, &WIP_STATUS, 1));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
 	/* Enable QSPI mode. */
-	status |= flash_master_mock_expect_xfer (&flash_mock0, FLASH_MASTER_XFER_FAILED,
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock0, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_xfer (&flash_mock0, 0, FLASH_EXP_WRITE_ENABLE);
-	status |= flash_master_mock_expect_tx_xfer (&flash_mock0, 0,
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock0, 0, FLASH_EXP_WRITE_ENABLE);
+	status |= flash_master_mock_expect_tx_xfer (&manager.flash_mock0, 0,
 		FLASH_EXP_WRITE_REG (0x01, &qspi_enable, 1));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &qspi_enable, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &qspi_enable, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &qspi_enable, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &qspi_enable, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
 	/* Detect 4-byte addressing. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &addr_mode, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &addr_mode, 1,
 		FLASH_EXP_READ_REG (0x15, 1));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &addr_mode, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &addr_mode, 1,
 		FLASH_EXP_READ_REG (0x15, 1));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.set_flash_for_rot_access (&manager, &control.base);
+	status = manager.test.set_flash_for_rot_access (&manager.test, &manager.control.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_is_4byte_address_mode (&flash0);
+	status = spi_flash_is_4byte_address_mode (&manager.flash0);
 	CuAssertIntEquals (test, 1, status);
 
-	status = spi_flash_is_4byte_address_mode (&flash1);
+	status = spi_flash_is_4byte_address_mode (&manager.flash1);
 	CuAssertIntEquals (test, 1, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_validate_and_release (&control);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_set_flash_for_rot_access_wip_set (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_control_mock control;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 	uint8_t bp_status = 0x3c;
@@ -7363,148 +3915,98 @@ static void host_flash_manager_test_set_flash_for_rot_access_wip_set (CuTest *te
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-	flash_mock0.mock.name = "flash_master0";
+	host_flash_manager_testing_initialize_dependencies_no_flash (test, &manager);
+	host_flash_manager_testing_initialize_flash_device (test, &manager.flash0, &manager.flash_mock0,
+		id);
+	host_flash_manager_testing_initialize_flash_device (test, &manager.flash1, &manager.flash_mock1,
+		id);
 
-	host_flash_manager_testing_initialize_flash_device (test, &flash0, &flash_mock0, id);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-	flash_mock1.mock.name = "flash_master1";
-
-	host_flash_manager_testing_initialize_flash_device (test, &flash1, &flash_mock1, id);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_init (&control);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
+	status = host_flash_manager_init (&manager.test, &manager.flash0, &manager.flash1,
+		&manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, 0, status);
 
 	/* Disable SPI filter. */
-	status = mock_expect (&filter.mock, filter.base.enable_filter, &filter, 0, MOCK_ARG (false));
+	status = mock_expect (&manager.filter.mock, manager.filter.base.enable_filter, &manager.filter,
+		0, MOCK_ARG (false));
 
 	/* Switch SPI mux. */
-	status |= mock_expect (&control.mock, control.base.enable_processor_flash_access, &control, 0,
-		MOCK_ARG (false));
+	status |= mock_expect (&manager.control.mock,
+		manager.control.base.enable_processor_flash_access, &manager.control, 0, MOCK_ARG (false));
 
 	/* Detect device WIP state. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &wip_set, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &wip_set, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &wip_set, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &wip_set, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &wip_set, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &wip_set, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
 	/* Clear block protect bits. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &bp_status, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &bp_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &bp_status, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &bp_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_xfer (&flash_mock0, 0, FLASH_EXP_WRITE_ENABLE);
-	status |= flash_master_mock_expect_tx_xfer (&flash_mock0, 0,
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock0, 0, FLASH_EXP_WRITE_ENABLE);
+	status |= flash_master_mock_expect_tx_xfer (&manager.flash_mock0, 0,
 		FLASH_EXP_WRITE_REG (0x01, &WIP_STATUS, 1));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &bp_status, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &bp_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &bp_status, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &bp_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_xfer (&flash_mock1, 0, FLASH_EXP_WRITE_ENABLE);
-	status |= flash_master_mock_expect_tx_xfer (&flash_mock1, 0,
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock1, 0, FLASH_EXP_WRITE_ENABLE);
+	status |= flash_master_mock_expect_tx_xfer (&manager.flash_mock1, 0,
 		FLASH_EXP_WRITE_REG (0x01, &WIP_STATUS, 1));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
 	/* Enable QSPI mode. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_xfer (&flash_mock0, 0, FLASH_EXP_WRITE_ENABLE);
-	status |= flash_master_mock_expect_tx_xfer (&flash_mock0, 0,
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock0, 0, FLASH_EXP_WRITE_ENABLE);
+	status |= flash_master_mock_expect_tx_xfer (&manager.flash_mock0, 0,
 		FLASH_EXP_WRITE_REG (0x01, &qspi_enable, 1));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &qspi_enable, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &qspi_enable, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &qspi_enable, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &qspi_enable, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
 	/* Detect 4-byte addressing. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &addr_mode, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &addr_mode, 1,
 		FLASH_EXP_READ_REG (0x15, 1));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &addr_mode, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &addr_mode, 1,
 		FLASH_EXP_READ_REG (0x15, 1));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.set_flash_for_rot_access (&manager, &control.base);
+	status = manager.test.set_flash_for_rot_access (&manager.test, &manager.control.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_is_4byte_address_mode (&flash0);
+	status = spi_flash_is_4byte_address_mode (&manager.flash0);
 	CuAssertIntEquals (test, 1, status);
 
-	status = spi_flash_is_4byte_address_mode (&flash1);
+	status = spi_flash_is_4byte_address_mode (&manager.flash1);
 	CuAssertIntEquals (test, 1, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_validate_and_release (&control);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_set_flash_for_rot_access_with_flash_initialization (
 	CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_initialization flash_init;
-	struct host_control_mock control;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	uint32_t header[] = {
 		0x50444653,
@@ -7538,741 +4040,345 @@ static void host_flash_manager_test_set_flash_for_rot_access_with_flash_initiali
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-	flash_mock0.mock.name = "flash_master0";
+	host_flash_manager_testing_initialize_dependencies_no_flash (test, &manager);
 
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-	flash_mock1.mock.name = "flash_master1";
-
-	status = host_flash_initialization_init (&flash_init, &flash0, &flash_mock0.base, &flash1,
-		&flash_mock1.base, false, false);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_init (&control);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init_with_managed_flash_initialization (&manager, &flash0, &flash1,
-		&host_state, &filter.base, &handler.base, &flash_init);
+	status = host_flash_manager_init_with_managed_flash_initialization (&manager.test,
+		&manager.flash0, &manager.flash1, &manager.host_state, &manager.filter.base,
+		&manager.handler.base, &manager.flash_init);
 	CuAssertIntEquals (test, 0, status);
 
 	/* Disable SPI filter. */
-	status = mock_expect (&filter.mock, filter.base.enable_filter, &filter, 0, MOCK_ARG (false));
+	status = mock_expect (&manager.filter.mock, manager.filter.base.enable_filter, &manager.filter,
+		0, MOCK_ARG (false));
 
 	/* Switch SPI mux. */
-	status |= mock_expect (&control.mock, control.base.enable_processor_flash_access, &control, 0,
-		MOCK_ARG (false));
+	status |= mock_expect (&manager.control.mock,
+		manager.control.base.enable_processor_flash_access, &manager.control, 0, MOCK_ARG (false));
 
 	/* Initialize flash devices. */
 
 	/* Get Device ID. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, FLASH_ID_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
 	/* Use SFDP to discover device properties. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, FLASH_ID_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, (uint8_t*) header, sizeof (header),
-		FLASH_EXP_READ_CMD (0x5a, 0x000000, 1, -1, sizeof (header)));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, (uint8_t*) params, sizeof (params),
-		FLASH_EXP_READ_CMD (0x5a, 0x000030, 1, -1, sizeof (params)));
-	status |= mock_expect (&flash_mock0.mock, flash_mock0.base.capabilities, &flash_mock0,
-		FLASH_CAP_3BYTE_ADDR | FLASH_CAP_4BYTE_ADDR);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) header,
+		sizeof (header), FLASH_EXP_READ_CMD (0x5a, 0x000000, 1, -1, sizeof (header)));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) params,
+		sizeof (params), FLASH_EXP_READ_CMD (0x5a, 0x000030, 1, -1, sizeof (params)));
+	status |= mock_expect (&manager.flash_mock0.mock, manager.flash_mock0.base.capabilities,
+		&manager.flash_mock0, FLASH_CAP_3BYTE_ADDR | FLASH_CAP_4BYTE_ADDR);
 
 	/* Detect device WIP state. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
 	/* Detect address mode. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &addr_mode, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &addr_mode, 1,
 		FLASH_EXP_READ_REG (0x15, 1));
 
 	/* Clear block protect bits. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &read_status, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &read_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &read_status, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &read_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_xfer (&flash_mock0, 0, FLASH_EXP_WRITE_ENABLE);
-	status |= flash_master_mock_expect_tx_xfer (&flash_mock0, 0,
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock0, 0, FLASH_EXP_WRITE_ENABLE);
+	status |= flash_master_mock_expect_tx_xfer (&manager.flash_mock0, 0,
 		FLASH_EXP_WRITE_REG (0x01, &write_status, 1));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &write_status, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &write_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
 	/* Get Device ID. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id, FLASH_ID_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
 	/* Use SFDP to discover device properties. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id, FLASH_ID_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, (uint8_t*) header, sizeof (header),
-		FLASH_EXP_READ_CMD (0x5a, 0x000000, 1, -1, sizeof (header)));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, (uint8_t*) params, sizeof (params),
-		FLASH_EXP_READ_CMD (0x5a, 0x000030, 1, -1, sizeof (params)));
-	status |= mock_expect (&flash_mock1.mock, flash_mock1.base.capabilities, &flash_mock1,
-		FLASH_CAP_3BYTE_ADDR | FLASH_CAP_4BYTE_ADDR);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) header,
+		sizeof (header), FLASH_EXP_READ_CMD (0x5a, 0x000000, 1, -1, sizeof (header)));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) params,
+		sizeof (params), FLASH_EXP_READ_CMD (0x5a, 0x000030, 1, -1, sizeof (params)));
+	status |= mock_expect (&manager.flash_mock1.mock, manager.flash_mock0.base.capabilities,
+		&manager.flash_mock1, FLASH_CAP_3BYTE_ADDR | FLASH_CAP_4BYTE_ADDR);
 
 	/* Detect device WIP state. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
 	/* Detect address mode. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &addr_mode, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &addr_mode, 1,
 		FLASH_EXP_READ_REG (0x15, 1));
 
 	/* Clear block protect bits. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &read_status, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &read_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &read_status, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &read_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_xfer (&flash_mock1, 0, FLASH_EXP_WRITE_ENABLE);
-	status |= flash_master_mock_expect_tx_xfer (&flash_mock1, 0,
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock1, 0, FLASH_EXP_WRITE_ENABLE);
+	status |= flash_master_mock_expect_tx_xfer (&manager.flash_mock1, 0,
 		FLASH_EXP_WRITE_REG (0x01, &write_status, 1));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &write_status, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &write_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
 	/* Prepare devices. */
 
 	/* Detect device WIP state. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
 	/* Clear block protect bits. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &write_status, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &write_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &write_status, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &write_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
 	/* Enable QSPI mode. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_xfer (&flash_mock0, 0, FLASH_EXP_WRITE_ENABLE);
-	status |= flash_master_mock_expect_tx_xfer (&flash_mock0, 0,
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock0, 0, FLASH_EXP_WRITE_ENABLE);
+	status |= flash_master_mock_expect_tx_xfer (&manager.flash_mock0, 0,
 		FLASH_EXP_WRITE_REG (0x01, &qspi_enable, 1));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &qspi_enable, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &qspi_enable, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &qspi_enable, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &qspi_enable, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
 	/* Detect 4-byte addressing. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &addr_mode, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &addr_mode, 1,
 		FLASH_EXP_READ_REG (0x15, 1));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &addr_mode, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &addr_mode, 1,
 		FLASH_EXP_READ_REG (0x15, 1));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.set_flash_for_rot_access (&manager, &control.base);
+	status = manager.test.set_flash_for_rot_access (&manager.test, &manager.control.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_is_4byte_address_mode (&flash0);
+	status = spi_flash_is_4byte_address_mode (&manager.flash0);
 	CuAssertIntEquals (test, 1, status);
 
-	status = spi_flash_is_4byte_address_mode (&flash1);
+	status = spi_flash_is_4byte_address_mode (&manager.flash1);
 	CuAssertIntEquals (test, 1, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_validate_and_release (&control);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	host_flash_initialization_release (&flash_init);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_set_flash_for_rot_access_null (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_control_mock control;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-	flash_mock0.mock.name = "flash_master0";
+	host_flash_manager_testing_init (test, &manager, false);
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-	flash_mock1.mock.name = "flash_master1";
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_init (&control);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manager.set_flash_for_rot_access (NULL, &control.base);
+	status = manager.test.set_flash_for_rot_access (NULL, &manager.control.base);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = manager.set_flash_for_rot_access (&manager, NULL);
+	status = manager.test.set_flash_for_rot_access (&manager.test, NULL);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_validate_and_release (&control);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_set_flash_for_rot_access_filter_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_control_mock control;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-	flash_mock0.mock.name = "flash_master0";
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-	flash_mock1.mock.name = "flash_master1";
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_init (&control);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
 	/* Disable SPI filter. */
-	status = mock_expect (&filter.mock, filter.base.enable_filter, &filter,
+	status = mock_expect (&manager.filter.mock, manager.filter.base.enable_filter, &manager.filter,
 		SPI_FILTER_ENABLE_FAILED, MOCK_ARG (false));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.set_flash_for_rot_access (&manager, &control.base);
+	status = manager.test.set_flash_for_rot_access (&manager.test, &manager.control.base);
 	CuAssertIntEquals (test, SPI_FILTER_ENABLE_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_validate_and_release (&control);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_set_flash_for_rot_access_mux_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_control_mock control;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-	flash_mock0.mock.name = "flash_master0";
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-	flash_mock1.mock.name = "flash_master1";
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_init (&control);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
 	/* Disable SPI filter. */
-	status = mock_expect (&filter.mock, filter.base.enable_filter, &filter, 0, MOCK_ARG (false));
+	status = mock_expect (&manager.filter.mock, manager.filter.base.enable_filter, &manager.filter,
+		0, MOCK_ARG (false));
 
 	/* Switch SPI mux. */
-	status |= mock_expect (&control.mock, control.base.enable_processor_flash_access, &control,
+	status |= mock_expect (&manager.control.mock,
+		manager.control.base.enable_processor_flash_access, &manager.control,
 		HOST_CONTROL_FLASH_ACCESS_FAILED, MOCK_ARG (false));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.set_flash_for_rot_access (&manager, &control.base);
+	status = manager.test.set_flash_for_rot_access (&manager.test, &manager.control.base);
 	CuAssertIntEquals (test, HOST_CONTROL_FLASH_ACCESS_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_validate_and_release (&control);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_set_flash_for_rot_access_wip_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_control_mock control;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-	flash_mock0.mock.name = "flash_master0";
+	host_flash_manager_testing_initialize_dependencies_no_flash (test, &manager);
+	host_flash_manager_testing_initialize_flash_device (test, &manager.flash0, &manager.flash_mock0,
+		id);
+	host_flash_manager_testing_initialize_flash_device (test, &manager.flash1, &manager.flash_mock1,
+		id);
 
-	host_flash_manager_testing_initialize_flash_device (test, &flash0, &flash_mock0, id);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-	flash_mock1.mock.name = "flash_master1";
-
-	host_flash_manager_testing_initialize_flash_device (test, &flash1, &flash_mock1, id);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_init (&control);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
+	status = host_flash_manager_init (&manager.test, &manager.flash0, &manager.flash1,
+		&manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, 0, status);
 
 	/* Disable SPI filter. */
-	status = mock_expect (&filter.mock, filter.base.enable_filter, &filter, 0, MOCK_ARG (false));
+	status = mock_expect (&manager.filter.mock, manager.filter.base.enable_filter, &manager.filter,
+		0, MOCK_ARG (false));
 
 	/* Switch SPI mux. */
-	status |= mock_expect (&control.mock, control.base.enable_processor_flash_access, &control, 0,
-		MOCK_ARG (false));
+	status |= mock_expect (&manager.control.mock,
+		manager.control.base.enable_processor_flash_access, &manager.control, 0, MOCK_ARG (false));
 
 	/* Detect device WIP state. */
-	status |= flash_master_mock_expect_xfer (&flash_mock0, FLASH_MASTER_XFER_FAILED,
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock0, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.set_flash_for_rot_access (&manager, &control.base);
+	status = manager.test.set_flash_for_rot_access (&manager.test, &manager.control.base);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_validate_and_release (&control);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_set_flash_for_rot_access_block_protect_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_control_mock control;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-	flash_mock0.mock.name = "flash_master0";
+	host_flash_manager_testing_initialize_dependencies_no_flash (test, &manager);
+	host_flash_manager_testing_initialize_flash_device (test, &manager.flash0, &manager.flash_mock0,
+		id);
+	host_flash_manager_testing_initialize_flash_device (test, &manager.flash1, &manager.flash_mock1,
+		id);
 
-	host_flash_manager_testing_initialize_flash_device (test, &flash0, &flash_mock0, id);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-	flash_mock1.mock.name = "flash_master1";
-
-	host_flash_manager_testing_initialize_flash_device (test, &flash1, &flash_mock1, id);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_init (&control);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
+	status = host_flash_manager_init (&manager.test, &manager.flash0, &manager.flash1,
+		&manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, 0, status);
 
 	/* Disable SPI filter. */
-	status = mock_expect (&filter.mock, filter.base.enable_filter, &filter, 0, MOCK_ARG (false));
+	status = mock_expect (&manager.filter.mock, manager.filter.base.enable_filter, &manager.filter,
+		0, MOCK_ARG (false));
 
 	/* Switch SPI mux. */
-	status |= mock_expect (&control.mock, control.base.enable_processor_flash_access, &control, 0,
-		MOCK_ARG (false));
+	status |= mock_expect (&manager.control.mock,
+		manager.control.base.enable_processor_flash_access, &manager.control, 0, MOCK_ARG (false));
 
 	/* Detect device WIP state. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
 	/* Clear block protect bits. */
-	status |= flash_master_mock_expect_xfer (&flash_mock0, FLASH_MASTER_XFER_FAILED,
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock0, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.set_flash_for_rot_access (&manager, &control.base);
+	status = manager.test.set_flash_for_rot_access (&manager.test, &manager.control.base);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_validate_and_release (&control);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_set_flash_for_rot_access_qspi_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_control_mock control;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 	uint8_t bp_status = 0x3c;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-	flash_mock0.mock.name = "flash_master0";
+	host_flash_manager_testing_initialize_dependencies_no_flash (test, &manager);
+	host_flash_manager_testing_initialize_flash_device (test, &manager.flash0, &manager.flash_mock0,
+		id);
+	host_flash_manager_testing_initialize_flash_device (test, &manager.flash1, &manager.flash_mock1,
+		id);
 
-	host_flash_manager_testing_initialize_flash_device (test, &flash0, &flash_mock0, id);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-	flash_mock1.mock.name = "flash_master1";
-
-	host_flash_manager_testing_initialize_flash_device (test, &flash1, &flash_mock1, id);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_init (&control);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
+	status = host_flash_manager_init (&manager.test, &manager.flash0, &manager.flash1,
+		&manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, 0, status);
 
 	/* Disable SPI filter. */
-	status = mock_expect (&filter.mock, filter.base.enable_filter, &filter, 0, MOCK_ARG (false));
+	status = mock_expect (&manager.filter.mock, manager.filter.base.enable_filter, &manager.filter,
+		0, MOCK_ARG (false));
 
 	/* Switch SPI mux. */
-	status |= mock_expect (&control.mock, control.base.enable_processor_flash_access, &control, 0,
-		MOCK_ARG (false));
+	status |= mock_expect (&manager.control.mock,
+		manager.control.base.enable_processor_flash_access, &manager.control, 0, MOCK_ARG (false));
 
 	/* Detect device WIP state. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
 	/* Clear block protect bits. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &bp_status, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &bp_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &bp_status, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &bp_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_xfer (&flash_mock0, 0, FLASH_EXP_WRITE_ENABLE);
-	status |= flash_master_mock_expect_tx_xfer (&flash_mock0, 0,
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock0, 0, FLASH_EXP_WRITE_ENABLE);
+	status |= flash_master_mock_expect_tx_xfer (&manager.flash_mock0, 0,
 		FLASH_EXP_WRITE_REG (0x01, &WIP_STATUS, 1));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
 	/* Enable QSPI mode. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_xfer (&flash_mock0, FLASH_MASTER_XFER_FAILED,
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock0, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.set_flash_for_rot_access (&manager, &control.base);
+	status = manager.test.set_flash_for_rot_access (&manager.test, &manager.control.base);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_validate_and_release (&control);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_set_flash_for_rot_access_4byte_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_control_mock control;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 	uint8_t bp_status = 0x3c;
@@ -8280,1222 +4386,443 @@ static void host_flash_manager_test_set_flash_for_rot_access_4byte_error (CuTest
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-	flash_mock0.mock.name = "flash_master0";
+	host_flash_manager_testing_initialize_dependencies_no_flash (test, &manager);
+	host_flash_manager_testing_initialize_flash_device (test, &manager.flash0, &manager.flash_mock0,
+		id);
+	host_flash_manager_testing_initialize_flash_device (test, &manager.flash1, &manager.flash_mock1,
+		id);
 
-	host_flash_manager_testing_initialize_flash_device (test, &flash0, &flash_mock0, id);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-	flash_mock1.mock.name = "flash_master1";
-
-	host_flash_manager_testing_initialize_flash_device (test, &flash1, &flash_mock1, id);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_init (&control);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
+	status = host_flash_manager_init (&manager.test, &manager.flash0, &manager.flash1,
+		&manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, 0, status);
 
 	/* Disable SPI filter. */
-	status = mock_expect (&filter.mock, filter.base.enable_filter, &filter, 0, MOCK_ARG (false));
+	status = mock_expect (&manager.filter.mock, manager.filter.base.enable_filter, &manager.filter,
+		0, MOCK_ARG (false));
 
 	/* Switch SPI mux. */
-	status |= mock_expect (&control.mock, control.base.enable_processor_flash_access, &control, 0,
-		MOCK_ARG (false));
+	status |= mock_expect (&manager.control.mock,
+		manager.control.base.enable_processor_flash_access, &manager.control, 0, MOCK_ARG (false));
 
 	/* Detect device WIP state. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
 	/* Clear block protect bits. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &bp_status, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &bp_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &bp_status, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &bp_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_xfer (&flash_mock0, 0, FLASH_EXP_WRITE_ENABLE);
-	status |= flash_master_mock_expect_tx_xfer (&flash_mock0, 0,
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock0, 0, FLASH_EXP_WRITE_ENABLE);
+	status |= flash_master_mock_expect_tx_xfer (&manager.flash_mock0, 0,
 		FLASH_EXP_WRITE_REG (0x01, &WIP_STATUS, 1));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
 	/* Enable QSPI mode. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_xfer (&flash_mock0, 0, FLASH_EXP_WRITE_ENABLE);
-	status |= flash_master_mock_expect_tx_xfer (&flash_mock0, 0,
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock0, 0, FLASH_EXP_WRITE_ENABLE);
+	status |= flash_master_mock_expect_tx_xfer (&manager.flash_mock0, 0,
 		FLASH_EXP_WRITE_REG (0x01, &qspi_enable, 1));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &qspi_enable, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &qspi_enable, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
 	/* Detect 4-byte addressing. */
-	status |= flash_master_mock_expect_xfer (&flash_mock0, FLASH_MASTER_XFER_FAILED,
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock0, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_REG (0x15, 1));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.set_flash_for_rot_access (&manager, &control.base);
+	status = manager.test.set_flash_for_rot_access (&manager.test, &manager.control.base);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_validate_and_release (&control);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_set_flash_for_rot_access_id_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_control_mock control;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-	flash_mock0.mock.name = "flash_master0";
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-	flash_mock1.mock.name = "flash_master1";
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_init (&control);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
 	/* Disable SPI filter. */
-	status = mock_expect (&filter.mock, filter.base.enable_filter, &filter, 0, MOCK_ARG (false));
+	status = mock_expect (&manager.filter.mock, manager.filter.base.enable_filter, &manager.filter,
+		0, MOCK_ARG (false));
 
 	/* Switch SPI mux. */
-	status |= mock_expect (&control.mock, control.base.enable_processor_flash_access, &control, 0,
-		MOCK_ARG (false));
+	status |= mock_expect (&manager.control.mock,
+		manager.control.base.enable_processor_flash_access, &manager.control, 0, MOCK_ARG (false));
 
 	/* Detect devices. */
-	status |= flash_master_mock_expect_xfer (&flash_mock0, FLASH_MASTER_XFER_FAILED,
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock0, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_REG (0x9f, 3));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.set_flash_for_rot_access (&manager, &control.base);
+	status = manager.test.set_flash_for_rot_access (&manager.test, &manager.control.base);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_validate_and_release (&control);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_set_flash_for_rot_access_unknown_id_ff (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_control_mock control;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	uint8_t id[] = {0xff, 0xff, 0xff};
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-	flash_mock0.mock.name = "flash_master0";
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-	flash_mock1.mock.name = "flash_master1";
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_init (&control);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
 	/* Disable SPI filter. */
-	status = mock_expect (&filter.mock, filter.base.enable_filter, &filter, 0, MOCK_ARG (false));
+	status = mock_expect (&manager.filter.mock, manager.filter.base.enable_filter, &manager.filter,
+		0, MOCK_ARG (false));
 
 	/* Switch SPI mux. */
-	status |= mock_expect (&control.mock, control.base.enable_processor_flash_access, &control, 0,
-		MOCK_ARG (false));
+	status |= mock_expect (&manager.control.mock,
+		manager.control.base.enable_processor_flash_access, &manager.control, 0, MOCK_ARG (false));
 
 	/* Detect devices. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, FLASH_ID_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.set_flash_for_rot_access (&manager, &control.base);
+	status = manager.test.set_flash_for_rot_access (&manager.test, &manager.control.base);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_VENDOR, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_validate_and_release (&control);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_set_flash_for_rot_access_unknown_id_00 (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_control_mock control;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	uint8_t id[] = {0x00, 0x00, 0x00};
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-	flash_mock0.mock.name = "flash_master0";
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-	flash_mock1.mock.name = "flash_master1";
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_init (&control);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
 	/* Disable SPI filter. */
-	status = mock_expect (&filter.mock, filter.base.enable_filter, &filter, 0, MOCK_ARG (false));
+	status = mock_expect (&manager.filter.mock, manager.filter.base.enable_filter, &manager.filter,
+		0, MOCK_ARG (false));
 
 	/* Switch SPI mux. */
-	status |= mock_expect (&control.mock, control.base.enable_processor_flash_access, &control, 0,
-		MOCK_ARG (false));
+	status |= mock_expect (&manager.control.mock,
+		manager.control.base.enable_processor_flash_access, &manager.control, 0, MOCK_ARG (false));
 
 	/* Detect devices. */
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, FLASH_ID_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.set_flash_for_rot_access (&manager, &control.base);
+	status = manager.test.set_flash_for_rot_access (&manager.test, &manager.control.base);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_VENDOR, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_validate_and_release (&control);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_set_flash_for_rot_access_with_flash_initialization_error (
 	CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_initialization flash_init;
-	struct host_control_mock control;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-	flash_mock0.mock.name = "flash_master0";
+	host_flash_manager_testing_initialize_dependencies_no_flash (test, &manager);
 
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-	flash_mock1.mock.name = "flash_master1";
-
-	status = host_flash_initialization_init (&flash_init, &flash0, &flash_mock0.base, &flash1,
-		&flash_mock1.base, false, false);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_init (&control);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init_with_managed_flash_initialization (&manager, &flash0, &flash1,
-		&host_state, &filter.base, &handler.base, &flash_init);
+	status = host_flash_manager_init_with_managed_flash_initialization (&manager.test,
+		&manager.flash0, &manager.flash1, &manager.host_state, &manager.filter.base,
+		&manager.handler.base, &manager.flash_init);
 	CuAssertIntEquals (test, 0, status);
 
 	/* Disable SPI filter. */
-	status = mock_expect (&filter.mock, filter.base.enable_filter, &filter, 0, MOCK_ARG (false));
+	status = mock_expect (&manager.filter.mock, manager.filter.base.enable_filter, &manager.filter,
+		0, MOCK_ARG (false));
 
 	/* Switch SPI mux. */
-	status |= mock_expect (&control.mock, control.base.enable_processor_flash_access, &control, 0,
-		MOCK_ARG (false));
+	status |= mock_expect (&manager.control.mock,
+		manager.control.base.enable_processor_flash_access, &manager.control, 0, MOCK_ARG (false));
 
 	/* Initialize flash devices. */
 
 	/* Get Device ID. */
-	status |= flash_master_mock_expect_xfer (&flash_mock0, FLASH_MASTER_XFER_FAILED,
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock0, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_REG (0x9f, 3));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.set_flash_for_rot_access (&manager, &control.base);
+	status = manager.test.set_flash_for_rot_access (&manager.test, &manager.control.base);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_validate_and_release (&control);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	host_flash_initialization_release (&flash_init);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release_dependencies_no_flash (test, &manager);
+	host_flash_manager_release (&manager.test);
 }
 
 static void host_flash_manager_test_set_flash_for_host_access (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_control_mock control;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-	flash_mock0.mock.name = "flash_master0";
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-	flash_mock1.mock.name = "flash_master1";
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_init (&control);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
 	/* Switch SPI mux. */
-	status |= mock_expect (&control.mock, control.base.enable_processor_flash_access, &control, 0,
-		MOCK_ARG (true));
+	status = mock_expect (&manager.control.mock,
+		manager.control.base.enable_processor_flash_access, &manager.control, 0, MOCK_ARG (true));
 
 	/* Enable SPI filter. */
-	status |= mock_expect (&filter.mock, filter.base.enable_filter, &filter, 0, MOCK_ARG (true));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.enable_filter, &manager.filter,
+		0, MOCK_ARG (true));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.set_flash_for_host_access (&manager, &control.base);
+	status = manager.test.set_flash_for_host_access (&manager.test, &manager.control.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_validate_and_release (&control);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_set_flash_for_host_access_null (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_control_mock control;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-	flash_mock0.mock.name = "flash_master0";
+	host_flash_manager_testing_init (test, &manager, false);
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-	flash_mock1.mock.name = "flash_master1";
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_init (&control);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manager.set_flash_for_host_access (NULL, &control.base);
+	status = manager.test.set_flash_for_host_access (NULL, &manager.control.base);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = manager.set_flash_for_host_access (&manager, NULL);
+	status = manager.test.set_flash_for_host_access (&manager.test, NULL);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_validate_and_release (&control);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_set_flash_for_host_access_mux_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_control_mock control;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-	flash_mock0.mock.name = "flash_master0";
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-	flash_mock1.mock.name = "flash_master1";
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_init (&control);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
 	/* Switch SPI mux. */
-	status |= mock_expect (&control.mock, control.base.enable_processor_flash_access, &control,
+	status = mock_expect (&manager.control.mock,
+		manager.control.base.enable_processor_flash_access, &manager.control,
 		HOST_CONTROL_FLASH_ACCESS_FAILED, MOCK_ARG (true));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.set_flash_for_host_access (&manager, &control.base);
+	status = manager.test.set_flash_for_host_access (&manager.test, &manager.control.base);
 	CuAssertIntEquals (test, HOST_CONTROL_FLASH_ACCESS_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_validate_and_release (&control);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_set_flash_for_host_access_enable_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_control_mock control;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-	flash_mock0.mock.name = "flash_master0";
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-	flash_mock1.mock.name = "flash_master1";
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_init (&control);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
 	/* Switch SPI mux. */
-	status |= mock_expect (&control.mock, control.base.enable_processor_flash_access, &control, 0,
-		MOCK_ARG (true));
+	status = mock_expect (&manager.control.mock,
+		manager.control.base.enable_processor_flash_access, &manager.control, 0, MOCK_ARG (true));
 
 	/* Enable SPI filter. */
-	status |= mock_expect (&filter.mock, filter.base.enable_filter, &filter,
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.enable_filter, &manager.filter,
 		SPI_FILTER_ENABLE_FAILED, MOCK_ARG (true));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.set_flash_for_host_access (&manager, &control.base);
+	status = manager.test.set_flash_for_host_access (&manager.test, &manager.control.base);
 	CuAssertIntEquals (test, SPI_FILTER_ENABLE_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_validate_and_release (&control);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_config_spi_filter_flash_type (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, FLASH_ID_LEN,
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id, FLASH_ID_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
-	status |= mock_expect (&handler.mock, handler.base.set_flash_manufacturer, &handler, 0,
-		MOCK_ARG (0xc2), MOCK_ARG (0x2019));
-	status |= mock_expect (&filter.mock, filter.base.set_flash_size, &filter, 0,
-		MOCK_ARG (0x1000000));
-	status |= mock_expect (&filter.mock, filter.base.set_addr_byte_mode, &filter, 0,
-		MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
-	status |= mock_expect (&filter.mock, filter.base.require_addr_byte_mode_write_enable, &filter,
-		0, MOCK_ARG (false));
-	status |= mock_expect (&filter.mock, filter.base.set_reset_addr_byte_mode, &filter, 0,
-		MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
+	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
+		&manager.handler, 0, MOCK_ARG (0xc2), MOCK_ARG (0x2019));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_flash_size,
+		&manager.filter, 0, MOCK_ARG (0x1000000));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_addr_byte_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
+	status |= mock_expect (&manager.filter.mock,
+		manager.filter.base.require_addr_byte_mode_write_enable, &manager.filter, 0,
+		MOCK_ARG (false));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_reset_addr_byte_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.config_spi_filter_flash_type (&manager);
+	status = manager.test.config_spi_filter_flash_type (&manager.test);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_config_spi_filter_flash_type_4byte (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
+	host_flash_manager_testing_init (test, &manager, false);
+
+	status = spi_flash_force_4byte_address_mode (&manager.flash0, true);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
+	status = spi_flash_force_4byte_address_mode (&manager.flash1, true);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_force_4byte_address_mode (&flash0, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_force_4byte_address_mode (&flash1, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, FLASH_ID_LEN,
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id, FLASH_ID_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
-	status |= mock_expect (&handler.mock, handler.base.set_flash_manufacturer, &handler, 0,
-		MOCK_ARG (0xc2), MOCK_ARG (0x2019));
-	status |= mock_expect (&filter.mock, filter.base.set_flash_size, &filter, 0,
-		MOCK_ARG (0x1000000));
-	status |= mock_expect (&filter.mock, filter.base.set_addr_byte_mode, &filter, 0,
-		MOCK_ARG (SPI_FILTER_ADDRESS_MODE_4));
-	status |= mock_expect (&filter.mock, filter.base.require_addr_byte_mode_write_enable, &filter,
-		0, MOCK_ARG (false));
-	status |= mock_expect (&filter.mock, filter.base.set_reset_addr_byte_mode, &filter, 0,
+	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
+		&manager.handler, 0, MOCK_ARG (0xc2), MOCK_ARG (0x2019));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_flash_size,
+		&manager.filter, 0, MOCK_ARG (0x1000000));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_addr_byte_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_4));
+	status |= mock_expect (&manager.filter.mock,
+		manager.filter.base.require_addr_byte_mode_write_enable, &manager.filter, 0,
+		MOCK_ARG (false));
+	status |= mock_expect (&manager.filter.mock,
+		manager.filter.base.set_reset_addr_byte_mode, &manager.filter, 0,
 		MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.config_spi_filter_flash_type (&manager);
+	status = manager.test.config_spi_filter_flash_type (&manager.test);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_config_spi_filter_flash_type_diff_addr_mode_3byte (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
+	host_flash_manager_testing_init (test, &manager, false);
+
+	status = spi_flash_force_4byte_address_mode (&manager.flash1, true);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_force_4byte_address_mode (&flash1, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, FLASH_ID_LEN,
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id, FLASH_ID_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
-	status |= mock_expect (&handler.mock, handler.base.set_flash_manufacturer, &handler, 0,
-		MOCK_ARG (0xc2), MOCK_ARG (0x2019));
-	status |= mock_expect (&filter.mock, filter.base.set_flash_size, &filter, 0,
-		MOCK_ARG (0x1000000));
+	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
+		&manager.handler, 0, MOCK_ARG (0xc2), MOCK_ARG (0x2019));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_flash_size,
+		&manager.filter, 0, MOCK_ARG (0x1000000));
 
-	status |= flash_master_mock_expect_xfer (&flash_mock1, 0, FLASH_EXP_OPCODE (0xe9));
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock1, 0, FLASH_EXP_OPCODE (0xe9));
 
-	status |= mock_expect (&filter.mock, filter.base.set_addr_byte_mode, &filter, 0,
-		MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
-	status |= mock_expect (&filter.mock, filter.base.require_addr_byte_mode_write_enable, &filter,
-		0, MOCK_ARG (false));
-	status |= mock_expect (&filter.mock, filter.base.set_reset_addr_byte_mode, &filter, 0,
-		MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_addr_byte_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
+	status |= mock_expect (&manager.filter.mock,
+		manager.filter.base.require_addr_byte_mode_write_enable, &manager.filter, 0,
+		MOCK_ARG (false));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_reset_addr_byte_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.config_spi_filter_flash_type (&manager);
+	status = manager.test.config_spi_filter_flash_type (&manager.test);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_config_spi_filter_flash_type_diff_addr_mode_4byte (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
+	host_flash_manager_testing_init (test, &manager, false);
+
+	status = spi_flash_force_4byte_address_mode (&manager.flash0, true);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_force_4byte_address_mode (&flash0, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, FLASH_ID_LEN,
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id, FLASH_ID_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
-	status |= mock_expect (&handler.mock, handler.base.set_flash_manufacturer, &handler, 0,
-		MOCK_ARG (0xc2), MOCK_ARG (0x2019));
-	status |= mock_expect (&filter.mock, filter.base.set_flash_size, &filter, 0,
-		MOCK_ARG (0x1000000));
+	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
+		&manager.handler, 0, MOCK_ARG (0xc2), MOCK_ARG (0x2019));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_flash_size,
+		&manager.filter, 0, MOCK_ARG (0x1000000));
 
-	status |= flash_master_mock_expect_xfer (&flash_mock1, 0, FLASH_EXP_OPCODE (0xb7));
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock1, 0, FLASH_EXP_OPCODE (0xb7));
 
-	status |= mock_expect (&filter.mock, filter.base.set_addr_byte_mode, &filter, 0,
-		MOCK_ARG (SPI_FILTER_ADDRESS_MODE_4));
-	status |= mock_expect (&filter.mock, filter.base.require_addr_byte_mode_write_enable, &filter,
-		0, MOCK_ARG (false));
-	status |= mock_expect (&filter.mock, filter.base.set_reset_addr_byte_mode, &filter, 0,
-		MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_addr_byte_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_4));
+	status |= mock_expect (&manager.filter.mock,
+		manager.filter.base.require_addr_byte_mode_write_enable, &manager.filter, 0,
+			MOCK_ARG (false));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_reset_addr_byte_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.config_spi_filter_flash_type (&manager);
+	status = manager.test.config_spi_filter_flash_type (&manager.test);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_config_spi_filter_flash_type_require_write_enable (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	uint32_t header[] = {
 		0x50444653,
@@ -9525,81 +4852,45 @@ static void host_flash_manager_test_config_spi_filter_flash_type_require_write_e
 
 	TEST_START;
 
-	spi_flash_testing_discover_params (test, &flash0, &flash_mock0, id, header, params,
-		sizeof (params), 0x000030, FULL_CAPABILITIES);
+	host_flash_manager_testing_initialize_dependencies_no_flash_master (test, &manager);
+	spi_flash_testing_discover_params (test, &manager.flash0, &manager.flash_mock0, id, header,
+		params, sizeof (params), 0x000030, FULL_CAPABILITIES);
+	spi_flash_testing_discover_params (test, &manager.flash1, &manager.flash_mock1, id, header,
+		params, sizeof (params), 0x000030, FULL_CAPABILITIES);
 
-	spi_flash_testing_discover_params (test, &flash1, &flash_mock1, id, header, params,
-		sizeof (params), 0x000030, FULL_CAPABILITIES);
-
-	status = spi_filter_interface_mock_init (&filter);
+	status = host_flash_manager_init (&manager.test, &manager.flash0, &manager.flash1,
+		&manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, FLASH_ID_LEN,
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id, FLASH_ID_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
-	status |= mock_expect (&handler.mock, handler.base.set_flash_manufacturer, &handler, 0,
-		MOCK_ARG (0xc2), MOCK_ARG (0x2019));
-	status |= mock_expect (&filter.mock, filter.base.set_flash_size, &filter, 0,
-		MOCK_ARG (0x200000));
-	status |= mock_expect (&filter.mock, filter.base.set_addr_byte_mode, &filter, 0,
-		MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
-	status |= mock_expect (&filter.mock, filter.base.require_addr_byte_mode_write_enable, &filter,
-		0, MOCK_ARG (true));
-	status |= mock_expect (&filter.mock, filter.base.set_reset_addr_byte_mode, &filter, 0,
-		MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
+	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
+		&manager.handler, 0, MOCK_ARG (0xc2), MOCK_ARG (0x2019));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_flash_size,
+		&manager.filter, 0, MOCK_ARG (0x200000));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_addr_byte_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
+	status |= mock_expect (&manager.filter.mock,
+		manager.filter.base.require_addr_byte_mode_write_enable, &manager.filter, 0,
+		MOCK_ARG (true));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_reset_addr_byte_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.config_spi_filter_flash_type (&manager);
+	status = manager.test.config_spi_filter_flash_type (&manager.test);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_config_spi_filter_flash_type_fixed_addr_mode_3byte (
 	CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	uint32_t header[] = {
 		0x50444653,
@@ -9622,81 +4913,45 @@ static void host_flash_manager_test_config_spi_filter_flash_type_fixed_addr_mode
 
 	TEST_START;
 
-	spi_flash_testing_discover_params (test, &flash0, &flash_mock0, id, header, params,
-		sizeof (params), 0x000030, FULL_CAPABILITIES);
+	host_flash_manager_testing_initialize_dependencies_no_flash_master (test, &manager);
+	spi_flash_testing_discover_params (test, &manager.flash0, &manager.flash_mock0, id, header,
+		params, sizeof (params), 0x000030, FULL_CAPABILITIES);
+	spi_flash_testing_discover_params (test, &manager.flash1, &manager.flash_mock1, id, header,
+		params, sizeof (params), 0x000030, FULL_CAPABILITIES);
 
-	spi_flash_testing_discover_params (test, &flash1, &flash_mock1, id, header, params,
-		sizeof (params), 0x000030, FULL_CAPABILITIES);
-
-	status = spi_filter_interface_mock_init (&filter);
+	status = host_flash_manager_init (&manager.test, &manager.flash0, &manager.flash1,
+		&manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, FLASH_ID_LEN,
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id, FLASH_ID_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
-	status |= mock_expect (&handler.mock, handler.base.set_flash_manufacturer, &handler, 0,
-		MOCK_ARG (0xc2), MOCK_ARG (0x2019));
-	status |= mock_expect (&filter.mock, filter.base.set_flash_size, &filter, 0,
-		MOCK_ARG (0x200000));
-	status |= mock_expect (&filter.mock, filter.base.set_fixed_addr_byte_mode, &filter, 0,
-		MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
-	status |= mock_expect (&filter.mock, filter.base.require_addr_byte_mode_write_enable, &filter,
-		0, MOCK_ARG (false));
-	status |= mock_expect (&filter.mock, filter.base.set_reset_addr_byte_mode, &filter, 0,
-		MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
+	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
+		&manager.handler, 0, MOCK_ARG (0xc2), MOCK_ARG (0x2019));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_flash_size,
+		&manager.filter, 0, MOCK_ARG (0x200000));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_fixed_addr_byte_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
+	status |= mock_expect (&manager.filter.mock,
+		manager.filter.base.require_addr_byte_mode_write_enable, &manager.filter, 0,
+		MOCK_ARG (false));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_reset_addr_byte_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.config_spi_filter_flash_type (&manager);
+	status = manager.test.config_spi_filter_flash_type (&manager.test);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_config_spi_filter_flash_type_fixed_addr_mode_4byte (
 	CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	uint32_t header[] = {
 		0x50444653,
@@ -9719,772 +4974,287 @@ static void host_flash_manager_test_config_spi_filter_flash_type_fixed_addr_mode
 
 	TEST_START;
 
-	spi_flash_testing_discover_params (test, &flash0, &flash_mock0, id, header, params,
-		sizeof (params), 0x000030, FULL_CAPABILITIES);
+	host_flash_manager_testing_initialize_dependencies_no_flash_master (test, &manager);
+	spi_flash_testing_discover_params (test, &manager.flash0, &manager.flash_mock0, id, header,
+		params, sizeof (params), 0x000030, FULL_CAPABILITIES);
+	spi_flash_testing_discover_params (test, &manager.flash1, &manager.flash_mock1, id, header,
+		params, sizeof (params), 0x000030, FULL_CAPABILITIES);
 
-	spi_flash_testing_discover_params (test, &flash1, &flash_mock1, id, header, params,
-		sizeof (params), 0x000030, FULL_CAPABILITIES);
-
-	status = spi_filter_interface_mock_init (&filter);
+	status = host_flash_manager_init (&manager.test, &manager.flash0, &manager.flash1,
+		&manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, FLASH_ID_LEN,
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id, FLASH_ID_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
-	status |= mock_expect (&handler.mock, handler.base.set_flash_manufacturer, &handler, 0,
-		MOCK_ARG (0xc2), MOCK_ARG (0x2019));
-	status |= mock_expect (&filter.mock, filter.base.set_flash_size, &filter, 0,
-		MOCK_ARG (0x200000));
-	status |= mock_expect (&filter.mock, filter.base.set_fixed_addr_byte_mode, &filter, 0,
-		MOCK_ARG (SPI_FILTER_ADDRESS_MODE_4));
-	status |= mock_expect (&filter.mock, filter.base.require_addr_byte_mode_write_enable, &filter,
-		0, MOCK_ARG (false));
-	status |= mock_expect (&filter.mock, filter.base.set_reset_addr_byte_mode, &filter, 0,
-		MOCK_ARG (SPI_FILTER_ADDRESS_MODE_4));
+	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
+		&manager.handler, 0, MOCK_ARG (0xc2), MOCK_ARG (0x2019));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_flash_size,
+		&manager.filter, 0, MOCK_ARG (0x200000));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_fixed_addr_byte_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_4));
+	status |= mock_expect (&manager.filter.mock,
+		manager.filter.base.require_addr_byte_mode_write_enable, &manager.filter, 0,
+			MOCK_ARG (false));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_reset_addr_byte_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_4));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.config_spi_filter_flash_type (&manager);
+	status = manager.test.config_spi_filter_flash_type (&manager.test);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_config_spi_filter_flash_type_reset_addr_mode_4byte (
 	CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	uint8_t id[] = {0xef, 0x40, 0x19};
 	uint8_t reset_4b[] = {0x02};
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, FLASH_ID_LEN,
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id, FLASH_ID_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
-	status |= mock_expect (&handler.mock, handler.base.set_flash_manufacturer, &handler, 0,
-		MOCK_ARG (0xef), MOCK_ARG (0x4019));
-	status |= mock_expect (&filter.mock, filter.base.set_flash_size, &filter, 0,
-		MOCK_ARG (0x1000000));
+	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
+		&manager.handler, 0, MOCK_ARG (0xef), MOCK_ARG (0x4019));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_flash_size,
+		&manager.filter, 0, MOCK_ARG (0x1000000));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, reset_4b, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, reset_4b, 1,
 		FLASH_EXP_READ_REG (0x15, 1));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, reset_4b, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, reset_4b, 1,
 		FLASH_EXP_READ_REG (0x15, 1));
 
-	status |= mock_expect (&filter.mock, filter.base.set_addr_byte_mode, &filter, 0,
-		MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
-	status |= mock_expect (&filter.mock, filter.base.require_addr_byte_mode_write_enable, &filter,
-		0, MOCK_ARG (false));
-	status |= mock_expect (&filter.mock, filter.base.set_reset_addr_byte_mode, &filter, 0,
-		MOCK_ARG (SPI_FILTER_ADDRESS_MODE_4));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_addr_byte_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
+	status |= mock_expect (&manager.filter.mock,
+		manager.filter.base.require_addr_byte_mode_write_enable, &manager.filter, 0,
+		MOCK_ARG (false));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_reset_addr_byte_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_4));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.config_spi_filter_flash_type (&manager);
+	status = manager.test.config_spi_filter_flash_type (&manager.test);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_config_spi_filter_flash_type_set_size_unsupported (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, FLASH_ID_LEN,
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id, FLASH_ID_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
-	status |= mock_expect (&handler.mock, handler.base.set_flash_manufacturer, &handler, 0,
-		MOCK_ARG (0xc2), MOCK_ARG (0x2019));
-	status |= mock_expect (&filter.mock, filter.base.set_flash_size, &filter,
-		SPI_FILTER_UNSUPPORTED_OPERATION, MOCK_ARG (0x1000000));
-	status |= mock_expect (&filter.mock, filter.base.set_addr_byte_mode, &filter, 0,
-		MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
-	status |= mock_expect (&filter.mock, filter.base.require_addr_byte_mode_write_enable, &filter,
-		0, MOCK_ARG (false));
-	status |= mock_expect (&filter.mock, filter.base.set_reset_addr_byte_mode, &filter, 0,
-		MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
+	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
+		&manager.handler, 0, MOCK_ARG (0xc2), MOCK_ARG (0x2019));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_flash_size,
+		&manager.filter, SPI_FILTER_UNSUPPORTED_OPERATION, MOCK_ARG (0x1000000));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_addr_byte_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
+	status |= mock_expect (&manager.filter.mock,
+		manager.filter.base.require_addr_byte_mode_write_enable, &manager.filter, 0,
+		MOCK_ARG (false));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_reset_addr_byte_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.config_spi_filter_flash_type (&manager);
+	status = manager.test.config_spi_filter_flash_type (&manager.test);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_config_spi_filter_flash_type_addr_mode_write_en_unsupported (
 	CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, FLASH_ID_LEN,
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id, FLASH_ID_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
-	status |= mock_expect (&handler.mock, handler.base.set_flash_manufacturer, &handler, 0,
-		MOCK_ARG (0xc2), MOCK_ARG (0x2019));
-	status |= mock_expect (&filter.mock, filter.base.set_flash_size, &filter, 0,
-		MOCK_ARG (0x1000000));
-	status |= mock_expect (&filter.mock, filter.base.set_addr_byte_mode, &filter, 0,
-		MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
-	status |= mock_expect (&filter.mock, filter.base.require_addr_byte_mode_write_enable, &filter,
+	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
+		&manager.handler, 0, MOCK_ARG (0xc2), MOCK_ARG (0x2019));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_flash_size,
+		&manager.filter, 0, MOCK_ARG (0x1000000));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_addr_byte_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
+	status |= mock_expect (&manager.filter.mock,
+		manager.filter.base.require_addr_byte_mode_write_enable, &manager.filter,
 		SPI_FILTER_UNSUPPORTED_OPERATION, MOCK_ARG (false));
-	status |= mock_expect (&filter.mock, filter.base.set_reset_addr_byte_mode, &filter, 0,
-		MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_reset_addr_byte_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.config_spi_filter_flash_type (&manager);
+	status = manager.test.config_spi_filter_flash_type (&manager.test);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_config_spi_filter_flash_type_reset_addr_mode_unsupported (
 	CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, FLASH_ID_LEN,
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id, FLASH_ID_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
-	status |= mock_expect (&handler.mock, handler.base.set_flash_manufacturer, &handler, 0,
-		MOCK_ARG (0xc2), MOCK_ARG (0x2019));
-	status |= mock_expect (&filter.mock, filter.base.set_flash_size, &filter, 0,
-		MOCK_ARG (0x1000000));
-	status |= mock_expect (&filter.mock, filter.base.set_addr_byte_mode, &filter, 0,
-		MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
-	status |= mock_expect (&filter.mock, filter.base.require_addr_byte_mode_write_enable, &filter,
-		0, MOCK_ARG (false));
-	status |= mock_expect (&filter.mock, filter.base.set_reset_addr_byte_mode, &filter,
-		SPI_FILTER_UNSUPPORTED_OPERATION, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
+	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
+		&manager.handler, 0, MOCK_ARG (0xc2), MOCK_ARG (0x2019));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_flash_size,
+		&manager.filter, 0, MOCK_ARG (0x1000000));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_addr_byte_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
+	status |= mock_expect (&manager.filter.mock,
+		manager.filter.base.require_addr_byte_mode_write_enable, &manager.filter, 0,
+		MOCK_ARG (false));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_reset_addr_byte_mode,
+		&manager.filter, SPI_FILTER_UNSUPPORTED_OPERATION, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.config_spi_filter_flash_type (&manager);
+	status = manager.test.config_spi_filter_flash_type (&manager.test);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_config_spi_filter_flash_type_null (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manager.config_spi_filter_flash_type (NULL);
+	status = manager.test.config_spi_filter_flash_type (NULL);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_config_spi_filter_flash_type_diff_vendors (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	uint8_t id0[] = {0xc2, 0x20, 0x19};
 	uint8_t id1[] = {0xef, 0x40, 0x19};
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id0, FLASH_ID_LEN,
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id0, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id1, FLASH_ID_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id1, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.config_spi_filter_flash_type (&manager);
+	status = manager.test.config_spi_filter_flash_type (&manager.test);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_MISMATCH_VENDOR, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_config_spi_filter_flash_type_diff_devices (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	uint8_t id0[] = {0xc2, 0x20, 0x19};
 	uint8_t id1[] = {0xc2, 0x20, 0x18};
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id0, FLASH_ID_LEN,
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id0, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id1, FLASH_ID_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id1, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.config_spi_filter_flash_type (&manager);
+	status = manager.test.config_spi_filter_flash_type (&manager.test);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_MISMATCH_DEVICE, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_config_spi_filter_flash_type_diff_sizes (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
+	host_flash_manager_testing_init (test, &manager, false);
+
+	status = spi_flash_set_device_size (&manager.flash1, 0x2000000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x2000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, FLASH_ID_LEN,
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id, FLASH_ID_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
-	status |= mock_expect (&handler.mock, handler.base.set_flash_manufacturer, &handler, 0,
-		MOCK_ARG (0xc2), MOCK_ARG (0x2019));
+	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
+		&manager.handler, 0, MOCK_ARG (0xc2), MOCK_ARG (0x2019));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.config_spi_filter_flash_type (&manager);
+	status = manager.test.config_spi_filter_flash_type (&manager.test);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_MISMATCH_SIZES, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_config_spi_filter_flash_type_diff_require_write_enable (
 	CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	uint32_t header[] = {
 		0x50444653,
@@ -10532,75 +5302,38 @@ static void host_flash_manager_test_config_spi_filter_flash_type_diff_require_wr
 
 	TEST_START;
 
-	spi_flash_testing_discover_params (test, &flash0, &flash_mock0, id, header, params_we,
-		sizeof (params_we), 0x000030, FULL_CAPABILITIES);
+	host_flash_manager_testing_initialize_dependencies_no_flash_master (test, &manager);
+	spi_flash_testing_discover_params (test, &manager.flash0, &manager.flash_mock0, id, header,
+		params_we, sizeof (params_we), 0x000030, FULL_CAPABILITIES);
+	spi_flash_testing_discover_params (test, &manager.flash1, &manager.flash_mock1, id, header,
+		params_no_we, sizeof (params_no_we), 0x000030, FULL_CAPABILITIES);
 
-	spi_flash_testing_discover_params (test, &flash1, &flash_mock1, id, header, params_no_we,
-		sizeof (params_no_we), 0x000030, FULL_CAPABILITIES);
-
-	status = spi_filter_interface_mock_init (&filter);
+	status = host_flash_manager_init (&manager.test, &manager.flash0, &manager.flash1,
+		&manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, FLASH_ID_LEN,
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id, FLASH_ID_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
-	status |= mock_expect (&handler.mock, handler.base.set_flash_manufacturer, &handler, 0,
-		MOCK_ARG (0xc2), MOCK_ARG (0x2019));
-	status |= mock_expect (&filter.mock, filter.base.set_flash_size, &filter, 0,
-		MOCK_ARG (0x200000));
+	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
+		&manager.handler, 0, MOCK_ARG (0xc2), MOCK_ARG (0x2019));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_flash_size,
+		&manager.filter, 0, MOCK_ARG (0x200000));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.config_spi_filter_flash_type (&manager);
+	status = manager.test.config_spi_filter_flash_type (&manager.test);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_MISMATCH_ADDR_MODE, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_config_spi_filter_flash_type_diff_addr_mode_control (
 	CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	uint32_t header[] = {
 		0x50444653,
@@ -10648,75 +5381,38 @@ static void host_flash_manager_test_config_spi_filter_flash_type_diff_addr_mode_
 
 	TEST_START;
 
-	spi_flash_testing_discover_params (test, &flash0, &flash_mock0, id, header, params_switch,
-		sizeof (params_switch), 0x000030, FULL_CAPABILITIES);
+	host_flash_manager_testing_initialize_dependencies_no_flash_master (test, &manager);
+	spi_flash_testing_discover_params (test, &manager.flash0, &manager.flash_mock0, id, header,
+		params_switch, sizeof (params_switch), 0x000030, FULL_CAPABILITIES);
+	spi_flash_testing_discover_params (test, &manager.flash1, &manager.flash_mock1, id, header,
+		params_fixed, sizeof (params_fixed), 0x000030, FULL_CAPABILITIES);
 
-	spi_flash_testing_discover_params (test, &flash1, &flash_mock1, id, header, params_fixed,
-		sizeof (params_fixed), 0x000030, FULL_CAPABILITIES);
-
-	status = spi_filter_interface_mock_init (&filter);
+	status = host_flash_manager_init (&manager.test, &manager.flash0, &manager.flash1,
+		&manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, FLASH_ID_LEN,
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id, FLASH_ID_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
-	status |= mock_expect (&handler.mock, handler.base.set_flash_manufacturer, &handler, 0,
-		MOCK_ARG (0xc2), MOCK_ARG (0x2019));
-	status |= mock_expect (&filter.mock, filter.base.set_flash_size, &filter, 0,
-		MOCK_ARG (0x200000));
+	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
+		&manager.handler, 0, MOCK_ARG (0xc2), MOCK_ARG (0x2019));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_flash_size,
+		&manager.filter, 0, MOCK_ARG (0x200000));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.config_spi_filter_flash_type (&manager);
+	status = manager.test.config_spi_filter_flash_type (&manager.test);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_MISMATCH_ADDR_MODE, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_config_spi_filter_flash_type_diff_fixed_addr_mode (
 	CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	uint32_t header[] = {
 		0x50444653,
@@ -10750,74 +5446,37 @@ static void host_flash_manager_test_config_spi_filter_flash_type_diff_fixed_addr
 
 	TEST_START;
 
-	spi_flash_testing_discover_params (test, &flash0, &flash_mock0, id, header, params_3b,
-		sizeof (params_3b), 0x000030, FULL_CAPABILITIES);
+	host_flash_manager_testing_initialize_dependencies_no_flash_master (test, &manager);
+	spi_flash_testing_discover_params (test, &manager.flash0, &manager.flash_mock0, id, header,
+		params_3b, sizeof (params_3b), 0x000030, FULL_CAPABILITIES);
+	spi_flash_testing_discover_params (test, &manager.flash1, &manager.flash_mock1, id, header,
+		params_4b, sizeof (params_4b), 0x000030, FULL_CAPABILITIES);
 
-	spi_flash_testing_discover_params (test, &flash1, &flash_mock1, id, header, params_4b,
-		sizeof (params_4b), 0x000030, FULL_CAPABILITIES);
-
-	status = spi_filter_interface_mock_init (&filter);
+	status = host_flash_manager_init (&manager.test, &manager.flash0, &manager.flash1,
+		&manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, FLASH_ID_LEN,
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id, FLASH_ID_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
-	status |= mock_expect (&handler.mock, handler.base.set_flash_manufacturer, &handler, 0,
-		MOCK_ARG (0xc2), MOCK_ARG (0x2019));
-	status |= mock_expect (&filter.mock, filter.base.set_flash_size, &filter, 0,
-		MOCK_ARG (0x200000));
+	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
+		&manager.handler, 0, MOCK_ARG (0xc2), MOCK_ARG (0x2019));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_flash_size,
+		&manager.filter, 0, MOCK_ARG (0x200000));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.config_spi_filter_flash_type (&manager);
+	status = manager.test.config_spi_filter_flash_type (&manager.test);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_MISMATCH_ADDR_MODE, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_config_spi_filter_flash_type_diff_reset_addr_mode (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	uint8_t id[] = {0xef, 0x40, 0x19};
 	uint8_t reset_4b[] = {0x02};
@@ -10825,943 +5484,318 @@ static void host_flash_manager_test_config_spi_filter_flash_type_diff_reset_addr
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, FLASH_ID_LEN,
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id, FLASH_ID_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
-	status |= mock_expect (&handler.mock, handler.base.set_flash_manufacturer, &handler, 0,
-		MOCK_ARG (0xef), MOCK_ARG (0x4019));
-	status |= mock_expect (&filter.mock, filter.base.set_flash_size, &filter, 0,
-		MOCK_ARG (0x1000000));
+	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
+		&manager.handler, 0, MOCK_ARG (0xef), MOCK_ARG (0x4019));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_flash_size,
+		&manager.filter, 0, MOCK_ARG (0x1000000));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, reset_4b, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, reset_4b, 1,
 		FLASH_EXP_READ_REG (0x15, 1));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, reset_3b, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, reset_3b, 1,
 		FLASH_EXP_READ_REG (0x15, 1));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.config_spi_filter_flash_type (&manager);
+	status = manager.test.config_spi_filter_flash_type (&manager.test);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_MISMATCH_ADDR_MODE, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_config_spi_filter_flash_type_id0_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_xfer (&flash_mock0, FLASH_MASTER_XFER_FAILED,
+	status = flash_master_mock_expect_xfer (&manager.flash_mock0, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_REG (0x9f, 3));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.config_spi_filter_flash_type (&manager);
+	status = manager.test.config_spi_filter_flash_type (&manager.test);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_config_spi_filter_flash_type_id1_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, FLASH_ID_LEN,
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
-	status |= flash_master_mock_expect_xfer (&flash_mock1, FLASH_MASTER_XFER_FAILED,
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock1, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.config_spi_filter_flash_type (&manager);
+	status = manager.test.config_spi_filter_flash_type (&manager.test);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_config_spi_filter_flash_type_diff_addr_mode_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
+	host_flash_manager_testing_init (test, &manager, false);
+
+	status = spi_flash_force_4byte_address_mode (&manager.flash1, true);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_force_4byte_address_mode (&flash1, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, FLASH_ID_LEN,
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id, FLASH_ID_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
-	status |= mock_expect (&handler.mock, handler.base.set_flash_manufacturer, &handler, 0,
-		MOCK_ARG (0xc2), MOCK_ARG (0x2019));
-	status |= mock_expect (&filter.mock, filter.base.set_flash_size, &filter, 0,
-		MOCK_ARG (0x1000000));
+	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
+		&manager.handler, 0, MOCK_ARG (0xc2), MOCK_ARG (0x2019));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_flash_size,
+		&manager.filter, 0, MOCK_ARG (0x1000000));
 
-	status |= flash_master_mock_expect_xfer (&flash_mock1, FLASH_MASTER_XFER_FAILED,
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock1, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_OPCODE (0xe9));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.config_spi_filter_flash_type (&manager);
+	status = manager.test.config_spi_filter_flash_type (&manager.test);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_config_spi_filter_flash_type_reset_addr_mode0_error (
 	CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	uint8_t id[] = {0xef, 0x40, 0x19};
 	uint8_t reset_4b[] = {0x02};
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, FLASH_ID_LEN,
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id, FLASH_ID_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
-	status |= mock_expect (&handler.mock, handler.base.set_flash_manufacturer, &handler, 0,
-		MOCK_ARG (0xef), MOCK_ARG (0x4019));
-	status |= mock_expect (&filter.mock, filter.base.set_flash_size, &filter, 0,
-		MOCK_ARG (0x1000000));
+	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
+		&manager.handler, 0, MOCK_ARG (0xef), MOCK_ARG (0x4019));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_flash_size,
+		&manager.filter, 0, MOCK_ARG (0x1000000));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, FLASH_MASTER_XFER_FAILED, reset_4b, 1,
-		FLASH_EXP_READ_REG (0x15, 1));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, FLASH_MASTER_XFER_FAILED,
+		reset_4b, 1, FLASH_EXP_READ_REG (0x15, 1));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.config_spi_filter_flash_type (&manager);
+	status = manager.test.config_spi_filter_flash_type (&manager.test);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_config_spi_filter_flash_type_reset_addr_mode1_error (
 	CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	uint8_t id[] = {0xef, 0x40, 0x19};
 	uint8_t reset_4b[] = {0x02};
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, FLASH_ID_LEN,
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id, FLASH_ID_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
-	status |= mock_expect (&handler.mock, handler.base.set_flash_manufacturer, &handler, 0,
-		MOCK_ARG (0xef), MOCK_ARG (0x4019));
-	status |= mock_expect (&filter.mock, filter.base.set_flash_size, &filter, 0,
-		MOCK_ARG (0x1000000));
+	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
+		&manager.handler, 0, MOCK_ARG (0xef), MOCK_ARG (0x4019));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_flash_size,
+		&manager.filter, 0, MOCK_ARG (0x1000000));
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, reset_4b, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, reset_4b, 1,
 		FLASH_EXP_READ_REG (0x15, 1));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, FLASH_MASTER_XFER_FAILED, reset_4b, 1,
-		FLASH_EXP_READ_REG (0x15, 1));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, FLASH_MASTER_XFER_FAILED,
+		reset_4b, 1, FLASH_EXP_READ_REG (0x15, 1));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.config_spi_filter_flash_type (&manager);
+	status = manager.test.config_spi_filter_flash_type (&manager.test);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_config_spi_filter_flash_type_filter_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, FLASH_ID_LEN,
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id, FLASH_ID_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
-	status |= mock_expect (&handler.mock, handler.base.set_flash_manufacturer, &handler,
-		MFG_FILTER_HANDLER_SET_MFG_FAILED, MOCK_ARG (0xc2), MOCK_ARG (0x2019));
+	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
+		&manager.handler, MFG_FILTER_HANDLER_SET_MFG_FAILED, MOCK_ARG (0xc2), MOCK_ARG (0x2019));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.config_spi_filter_flash_type (&manager);
+	status = manager.test.config_spi_filter_flash_type (&manager.test);
 	CuAssertIntEquals (test, MFG_FILTER_HANDLER_SET_MFG_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_config_spi_filter_flash_type_unsupported_mfg (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	uint8_t id[] = {0x01, 0x20, 0x19};
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, FLASH_ID_LEN,
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id, FLASH_ID_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
-	status |= mock_expect (&handler.mock, handler.base.set_flash_manufacturer, &handler,
-		MFG_FILTER_HANDLER_UNSUPPORTED_VENDOR, MOCK_ARG (0x01), MOCK_ARG (0x2019));
+	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
+		&manager.handler, MFG_FILTER_HANDLER_UNSUPPORTED_VENDOR, MOCK_ARG (0x01),
+		MOCK_ARG (0x2019));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.config_spi_filter_flash_type (&manager);
+	status = manager.test.config_spi_filter_flash_type (&manager.test);
 	CuAssertIntEquals (test, MFG_FILTER_HANDLER_UNSUPPORTED_VENDOR, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_config_spi_filter_flash_type_unsupported_dev (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x18};
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, FLASH_ID_LEN,
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id, FLASH_ID_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
-	status |= mock_expect (&handler.mock, handler.base.set_flash_manufacturer, &handler,
-		MFG_FILTER_HANDLER_UNSUPPORTED_DEVICE, MOCK_ARG (0xc2), MOCK_ARG (0x2018));
+	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
+		&manager.handler, MFG_FILTER_HANDLER_UNSUPPORTED_DEVICE, MOCK_ARG (0xc2),
+		MOCK_ARG (0x2018));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.config_spi_filter_flash_type (&manager);
+	status = manager.test.config_spi_filter_flash_type (&manager.test);
 	CuAssertIntEquals (test, MFG_FILTER_HANDLER_UNSUPPORTED_DEVICE, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_config_spi_filter_flash_type_filter_size_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, FLASH_ID_LEN,
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id, FLASH_ID_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
-	status |= mock_expect (&handler.mock, handler.base.set_flash_manufacturer, &handler, 0,
-		MOCK_ARG (0xc2), MOCK_ARG (0x2019));
-	status |= mock_expect (&filter.mock, filter.base.set_flash_size, &filter,
-		SPI_FILTER_SET_SIZE_FAILED, MOCK_ARG (0x1000000));
+	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
+		&manager.handler, 0, MOCK_ARG (0xc2), MOCK_ARG (0x2019));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_flash_size,
+		&manager.filter, SPI_FILTER_SET_SIZE_FAILED, MOCK_ARG (0x1000000));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.config_spi_filter_flash_type (&manager);
+	status = manager.test.config_spi_filter_flash_type (&manager.test);
 	CuAssertIntEquals (test, SPI_FILTER_SET_SIZE_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_config_spi_filter_flash_type_addr_mode_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, FLASH_ID_LEN,
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id, FLASH_ID_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
-	status |= mock_expect (&handler.mock, handler.base.set_flash_manufacturer, &handler, 0,
-		MOCK_ARG (0xc2), MOCK_ARG (0x2019));
-	status |= mock_expect (&filter.mock, filter.base.set_flash_size, &filter, 0,
-		MOCK_ARG (0x1000000));
-	status |= mock_expect (&filter.mock, filter.base.set_addr_byte_mode, &filter,
-		SPI_FILTER_SET_ADDR_MODE_FAILED, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
+	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
+		&manager.handler, 0, MOCK_ARG (0xc2), MOCK_ARG (0x2019));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_flash_size,
+		&manager.filter, 0, MOCK_ARG (0x1000000));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_addr_byte_mode,
+		&manager.filter, SPI_FILTER_SET_ADDR_MODE_FAILED, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.config_spi_filter_flash_type (&manager);
+	status = manager.test.config_spi_filter_flash_type (&manager.test);
 	CuAssertIntEquals (test, SPI_FILTER_SET_ADDR_MODE_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_config_spi_filter_flash_type_fixed_addr_mode_error (
 	CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	uint32_t header[] = {
 		0x50444653,
@@ -11784,1130 +5818,557 @@ static void host_flash_manager_test_config_spi_filter_flash_type_fixed_addr_mode
 
 	TEST_START;
 
-	spi_flash_testing_discover_params (test, &flash0, &flash_mock0, id, header, params,
-		sizeof (params), 0x000030, FULL_CAPABILITIES);
+	host_flash_manager_testing_initialize_dependencies_no_flash_master (test, &manager);
+	spi_flash_testing_discover_params (test, &manager.flash0, &manager.flash_mock0, id, header,
+		params, sizeof (params), 0x000030, FULL_CAPABILITIES);
+	spi_flash_testing_discover_params (test, &manager.flash1, &manager.flash_mock1, id, header,
+		params, sizeof (params), 0x000030, FULL_CAPABILITIES);
 
-	spi_flash_testing_discover_params (test, &flash1, &flash_mock1, id, header, params,
-		sizeof (params), 0x000030, FULL_CAPABILITIES);
-
-	status = spi_filter_interface_mock_init (&filter);
+	status = host_flash_manager_init (&manager.test, &manager.flash0, &manager.flash1,
+		&manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, FLASH_ID_LEN,
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id, FLASH_ID_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
-	status |= mock_expect (&handler.mock, handler.base.set_flash_manufacturer, &handler, 0,
-		MOCK_ARG (0xc2), MOCK_ARG (0x2019));
-	status |= mock_expect (&filter.mock, filter.base.set_flash_size, &filter, 0,
-		MOCK_ARG (0x200000));
-	status |= mock_expect (&filter.mock, filter.base.set_fixed_addr_byte_mode, &filter,
-		SPI_FILTER_SET_FIXED_ADDR_FAILED, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
+	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
+		&manager.handler, 0, MOCK_ARG (0xc2), MOCK_ARG (0x2019));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_flash_size,
+		&manager.filter, 0, MOCK_ARG (0x200000));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_fixed_addr_byte_mode,
+		&manager.filter, SPI_FILTER_SET_FIXED_ADDR_FAILED, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.config_spi_filter_flash_type (&manager);
+	status = manager.test.config_spi_filter_flash_type (&manager.test);
 	CuAssertIntEquals (test, SPI_FILTER_SET_FIXED_ADDR_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_config_spi_filter_flash_type_addr_mode_write_en_error (
 	CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, FLASH_ID_LEN,
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id, FLASH_ID_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
-	status |= mock_expect (&handler.mock, handler.base.set_flash_manufacturer, &handler, 0,
-		MOCK_ARG (0xc2), MOCK_ARG (0x2019));
-	status |= mock_expect (&filter.mock, filter.base.set_flash_size, &filter, 0,
-		MOCK_ARG (0x1000000));
-	status |= mock_expect (&filter.mock, filter.base.set_addr_byte_mode, &filter, 0,
-		MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
-	status |= mock_expect (&filter.mock, filter.base.require_addr_byte_mode_write_enable, &filter,
+	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
+		&manager.handler, 0, MOCK_ARG (0xc2), MOCK_ARG (0x2019));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_flash_size,
+		&manager.filter, 0, MOCK_ARG (0x1000000));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_addr_byte_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
+	status |= mock_expect (&manager.filter.mock,
+		manager.filter.base.require_addr_byte_mode_write_enable, &manager.filter,
 		SPI_FILTER_SET_WREN_REQ_FAILED, MOCK_ARG (false));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.config_spi_filter_flash_type (&manager);
+	status = manager.test.config_spi_filter_flash_type (&manager.test);
 	CuAssertIntEquals (test, SPI_FILTER_SET_WREN_REQ_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_config_spi_filter_flash_type_reset_addr_mode_error (
 	CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&flash_mock0, 0, id, FLASH_ID_LEN,
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, id, FLASH_ID_LEN,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
-	status |= mock_expect (&handler.mock, handler.base.set_flash_manufacturer, &handler, 0,
-		MOCK_ARG (0xc2), MOCK_ARG (0x2019));
-	status |= mock_expect (&filter.mock, filter.base.set_flash_size, &filter, 0,
-		MOCK_ARG (0x1000000));
-	status |= mock_expect (&filter.mock, filter.base.set_addr_byte_mode, &filter, 0,
-		MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
-	status |= mock_expect (&filter.mock, filter.base.require_addr_byte_mode_write_enable, &filter,
-		0, MOCK_ARG (false));
-	status |= mock_expect (&filter.mock, filter.base.set_reset_addr_byte_mode, &filter,
-		SPI_FILTER_SET_RESET_ADDR_FAILED, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
+	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
+		&manager.handler, 0, MOCK_ARG (0xc2), MOCK_ARG (0x2019));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_flash_size,
+		&manager.filter, 0, MOCK_ARG (0x1000000));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_addr_byte_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
+	status |= mock_expect (&manager.filter.mock,
+		manager.filter.base.require_addr_byte_mode_write_enable, &manager.filter, 0,
+		MOCK_ARG (false));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_reset_addr_byte_mode,
+		&manager.filter, SPI_FILTER_SET_RESET_ADDR_FAILED, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.config_spi_filter_flash_type (&manager);
+	status = manager.test.config_spi_filter_flash_type (&manager.test);
 	CuAssertIntEquals (test, SPI_FILTER_SET_RESET_ADDR_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_initialize_flash_protection_cs0_3byte_cs1_3byte (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	spi_filter_cs active;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-	host_state_manager_save_inactive_dirty (&host_state, true);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
+	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	rw_region.start_addr = 0x10000;
 	rw_region.length = RSA_ENCRYPT_LEN;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = flash_master_mock_expect_erase_flash_verify (&flash_mock1, 0x10000, RSA_ENCRYPT_LEN);
-	status |= flash_master_mock_expect_copy_flash_verify (&flash_mock1, &flash_mock0, 0x10000,
-		0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
+	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock1, 0x10000,
+		RSA_ENCRYPT_LEN);
+	status |= flash_master_mock_expect_copy_flash_verify (&manager.flash_mock1,
+		&manager.flash_mock0, 0x10000, 0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
 
-	status |= mock_expect (&filter.mock, filter.base.clear_flash_dirty_state, &filter, 0);
-	status |= mock_expect (&filter.mock, filter.base.set_addr_byte_mode, &filter, 0,
-		MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
-	status |= mock_expect (&filter.mock, filter.base.set_bypass_mode, &filter, 0,
-		MOCK_ARG (SPI_FILTER_OPERATE));
-	status |= mock_expect (&filter.mock, filter.base.set_ro_cs, &filter, 0,
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.clear_flash_dirty_state,
+		&manager.filter, 0);
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_addr_byte_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_bypass_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_OPERATE));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_ro_cs, &manager.filter, 0,
 		MOCK_ARG (SPI_FILTER_CS_0));
 
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&host_state));
+	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.initialize_flash_protection (&manager, &rw_list);
+	status = manager.test.initialize_flash_protection (&manager.test, &rw_list);
 	CuAssertIntEquals (test, 0, status);
 
-	active = host_state_manager_get_read_only_flash (&host_state);
+	active = host_state_manager_get_read_only_flash (&manager.host_state);
 	CuAssertIntEquals (test, SPI_FILTER_CS_0, active);
 
-	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&host_state));
+	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_initialize_flash_protection_cs1_3byte_cs0_3byte (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	spi_filter_cs active;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-	host_state_manager_save_inactive_dirty (&host_state, true);
-
-	status = host_state_manager_save_read_only_flash (&host_state, SPI_FILTER_CS_1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, true);
+	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	rw_region.start_addr = 0x10000;
 	rw_region.length = RSA_ENCRYPT_LEN;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = flash_master_mock_expect_erase_flash_verify (&flash_mock0, 0x10000, RSA_ENCRYPT_LEN);
-	status |= flash_master_mock_expect_copy_flash_verify (&flash_mock0, &flash_mock1, 0x10000,
-		0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
+	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock0, 0x10000,
+		RSA_ENCRYPT_LEN);
+	status |= flash_master_mock_expect_copy_flash_verify (&manager.flash_mock0,
+		&manager.flash_mock1, 0x10000, 0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
 
-	status |= mock_expect (&filter.mock, filter.base.clear_flash_dirty_state, &filter, 0);
-	status |= mock_expect (&filter.mock, filter.base.set_addr_byte_mode, &filter, 0,
-		MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
-	status |= mock_expect (&filter.mock, filter.base.set_bypass_mode, &filter, 0,
-		MOCK_ARG (SPI_FILTER_OPERATE));
-	status |= mock_expect (&filter.mock, filter.base.set_ro_cs, &filter, 0,
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.clear_flash_dirty_state,
+		&manager.filter, 0);
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_addr_byte_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_bypass_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_OPERATE));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_ro_cs, &manager.filter, 0,
 		MOCK_ARG (SPI_FILTER_CS_1));
 
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&host_state));
+	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.initialize_flash_protection (&manager, &rw_list);
+	status = manager.test.initialize_flash_protection (&manager.test, &rw_list);
 	CuAssertIntEquals (test, 0, status);
 
-	active = host_state_manager_get_read_only_flash (&host_state);
+	active = host_state_manager_get_read_only_flash (&manager.host_state);
 	CuAssertIntEquals (test, SPI_FILTER_CS_1, active);
 
-	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&host_state));
+	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_initialize_flash_protection_cs0_4byte_cs1_4byte (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	spi_filter_cs active;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
+	host_flash_manager_testing_init (test, &manager, false);
+	host_state_manager_save_inactive_dirty (&manager.host_state, true);
+
+	status = spi_flash_force_4byte_address_mode (&manager.flash0, true);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_force_4byte_address_mode (&flash0, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_force_4byte_address_mode (&flash1, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-	host_state_manager_save_inactive_dirty (&host_state, true);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
+	status = spi_flash_force_4byte_address_mode (&manager.flash1, true);
 	CuAssertIntEquals (test, 0, status);
 
 	rw_region.start_addr = 0x10000;
 	rw_region.length = RSA_ENCRYPT_LEN;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = flash_master_mock_expect_erase_flash_verify_4byte (&flash_mock1, 0x10000,
+	status = flash_master_mock_expect_erase_flash_verify_4byte (&manager.flash_mock1, 0x10000,
 		RSA_ENCRYPT_LEN);
-	status |= flash_master_mock_expect_copy_flash_verify_4byte (&flash_mock1, &flash_mock0, 0x10000,
-		0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
+	status |= flash_master_mock_expect_copy_flash_verify_4byte (&manager.flash_mock1,
+		&manager.flash_mock0, 0x10000, 0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
 
-	status |= mock_expect (&filter.mock, filter.base.clear_flash_dirty_state, &filter, 0);
-	status |= mock_expect (&filter.mock, filter.base.set_addr_byte_mode, &filter, 0,
-		MOCK_ARG (SPI_FILTER_ADDRESS_MODE_4));
-	status |= mock_expect (&filter.mock, filter.base.set_bypass_mode, &filter, 0,
-		MOCK_ARG (SPI_FILTER_OPERATE));
-	status |= mock_expect (&filter.mock, filter.base.set_ro_cs, &filter, 0,
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.clear_flash_dirty_state,
+		&manager.filter, 0);
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_addr_byte_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_4));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_bypass_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_OPERATE));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_ro_cs, &manager.filter, 0,
 		MOCK_ARG (SPI_FILTER_CS_0));
 
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&host_state));
+	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.initialize_flash_protection (&manager, &rw_list);
+	status = manager.test.initialize_flash_protection (&manager.test, &rw_list);
 	CuAssertIntEquals (test, 0, status);
 
-	active = host_state_manager_get_read_only_flash (&host_state);
+	active = host_state_manager_get_read_only_flash (&manager.host_state);
 	CuAssertIntEquals (test, SPI_FILTER_CS_0, active);
 
-	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&host_state));
+	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_initialize_flash_protection_cs1_4byte_cs0_4byte (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	spi_filter_cs active;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
+	host_flash_manager_testing_init (test, &manager, true);
+	host_state_manager_save_inactive_dirty (&manager.host_state, true);
+
+	status = spi_flash_force_4byte_address_mode (&manager.flash0, true);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_force_4byte_address_mode (&flash0, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_force_4byte_address_mode (&flash1, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-	host_state_manager_save_inactive_dirty (&host_state, true);
-
-	status = host_state_manager_save_read_only_flash (&host_state, SPI_FILTER_CS_1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
+	status = spi_flash_force_4byte_address_mode (&manager.flash1, true);
 	CuAssertIntEquals (test, 0, status);
 
 	rw_region.start_addr = 0x10000;
 	rw_region.length = RSA_ENCRYPT_LEN;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = flash_master_mock_expect_erase_flash_verify_4byte (&flash_mock0, 0x10000,
+	status = flash_master_mock_expect_erase_flash_verify_4byte (&manager.flash_mock0, 0x10000,
 		RSA_ENCRYPT_LEN);
-	status |= flash_master_mock_expect_copy_flash_verify_4byte (&flash_mock0, &flash_mock1, 0x10000,
-		0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
+	status |= flash_master_mock_expect_copy_flash_verify_4byte (&manager.flash_mock0,
+		&manager.flash_mock1, 0x10000, 0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
 
-	status |= mock_expect (&filter.mock, filter.base.clear_flash_dirty_state, &filter, 0);
-	status |= mock_expect (&filter.mock, filter.base.set_addr_byte_mode, &filter, 0,
-		MOCK_ARG (SPI_FILTER_ADDRESS_MODE_4));
-	status |= mock_expect (&filter.mock, filter.base.set_bypass_mode, &filter, 0,
-		MOCK_ARG (SPI_FILTER_OPERATE));
-	status |= mock_expect (&filter.mock, filter.base.set_ro_cs, &filter, 0,
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.clear_flash_dirty_state,
+		&manager.filter, 0);
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_addr_byte_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_4));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_bypass_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_OPERATE));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_ro_cs, &manager.filter, 0,
 		MOCK_ARG (SPI_FILTER_CS_1));
 
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&host_state));
+	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.initialize_flash_protection (&manager, &rw_list);
+	status = manager.test.initialize_flash_protection (&manager.test, &rw_list);
 	CuAssertIntEquals (test, 0, status);
 
-	active = host_state_manager_get_read_only_flash (&host_state);
+	active = host_state_manager_get_read_only_flash (&manager.host_state);
 	CuAssertIntEquals (test, SPI_FILTER_CS_1, active);
 
-	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&host_state));
+	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_initialize_flash_protection_cs0_4byte_cs1_3byte (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	spi_filter_cs active;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
+	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_force_4byte_address_mode (&flash0, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-	host_state_manager_save_inactive_dirty (&host_state, true);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
+	status = spi_flash_force_4byte_address_mode (&manager.flash0, true);
 	CuAssertIntEquals (test, 0, status);
 
 	rw_region.start_addr = 0x10000;
 	rw_region.length = RSA_ENCRYPT_LEN;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = flash_master_mock_expect_xfer (&flash_mock1, 0, FLASH_EXP_OPCODE (0xb7));
+	status = flash_master_mock_expect_xfer (&manager.flash_mock1, 0, FLASH_EXP_OPCODE (0xb7));
 
-	status |= flash_master_mock_expect_erase_flash_verify_4byte (&flash_mock1, 0x10000,
+	status |= flash_master_mock_expect_erase_flash_verify_4byte (&manager.flash_mock1, 0x10000,
 		RSA_ENCRYPT_LEN);
-	status |= flash_master_mock_expect_copy_flash_verify_4byte (&flash_mock1, &flash_mock0, 0x10000,
-		0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
+	status |= flash_master_mock_expect_copy_flash_verify_4byte (&manager.flash_mock1,
+		&manager.flash_mock0, 0x10000, 0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
 
-	status |= mock_expect (&filter.mock, filter.base.clear_flash_dirty_state, &filter, 0);
-	status |= mock_expect (&filter.mock, filter.base.set_addr_byte_mode, &filter, 0,
-		MOCK_ARG (SPI_FILTER_ADDRESS_MODE_4));
-	status |= mock_expect (&filter.mock, filter.base.set_bypass_mode, &filter, 0,
-		MOCK_ARG (SPI_FILTER_OPERATE));
-	status |= mock_expect (&filter.mock, filter.base.set_ro_cs, &filter, 0,
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.clear_flash_dirty_state,
+		&manager.filter, 0);
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_addr_byte_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_4));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_bypass_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_OPERATE));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_ro_cs, &manager.filter, 0,
 		MOCK_ARG (SPI_FILTER_CS_0));
 
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&host_state));
+	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.initialize_flash_protection (&manager, &rw_list);
+	status = manager.test.initialize_flash_protection (&manager.test, &rw_list);
 	CuAssertIntEquals (test, 0, status);
 
-	active = host_state_manager_get_read_only_flash (&host_state);
+	active = host_state_manager_get_read_only_flash (&manager.host_state);
 	CuAssertIntEquals (test, SPI_FILTER_CS_0, active);
 
-	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&host_state));
+	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_initialize_flash_protection_cs1_4byte_cs0_3byte (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	spi_filter_cs active;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, true);
+	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_force_4byte_address_mode (&flash1, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-	host_state_manager_save_inactive_dirty (&host_state, true);
-
-	status = host_state_manager_save_read_only_flash (&host_state, SPI_FILTER_CS_1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
+	status = spi_flash_force_4byte_address_mode (&manager.flash1, true);
 	CuAssertIntEquals (test, 0, status);
 
 	rw_region.start_addr = 0x10000;
 	rw_region.length = RSA_ENCRYPT_LEN;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = flash_master_mock_expect_xfer (&flash_mock0, 0, FLASH_EXP_OPCODE (0xb7));
+	status = flash_master_mock_expect_xfer (&manager.flash_mock0, 0, FLASH_EXP_OPCODE (0xb7));
 
-	status |= flash_master_mock_expect_erase_flash_verify_4byte (&flash_mock0, 0x10000,
+	status |= flash_master_mock_expect_erase_flash_verify_4byte (&manager.flash_mock0, 0x10000,
 		RSA_ENCRYPT_LEN);
-	status |= flash_master_mock_expect_copy_flash_verify_4byte (&flash_mock0, &flash_mock1, 0x10000,
-		0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
+	status |= flash_master_mock_expect_copy_flash_verify_4byte (&manager.flash_mock0,
+		&manager.flash_mock1, 0x10000, 0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
 
-	status |= mock_expect (&filter.mock, filter.base.clear_flash_dirty_state, &filter, 0);
-	status |= mock_expect (&filter.mock, filter.base.set_addr_byte_mode, &filter, 0,
-		MOCK_ARG (SPI_FILTER_ADDRESS_MODE_4));
-	status |= mock_expect (&filter.mock, filter.base.set_bypass_mode, &filter, 0,
-		MOCK_ARG (SPI_FILTER_OPERATE));
-	status |= mock_expect (&filter.mock, filter.base.set_ro_cs, &filter, 0,
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.clear_flash_dirty_state,
+		&manager.filter, 0);
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_addr_byte_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_4));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_bypass_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_OPERATE));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_ro_cs, &manager.filter, 0,
 		MOCK_ARG (SPI_FILTER_CS_1));
 
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&host_state));
+	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.initialize_flash_protection (&manager, &rw_list);
+	status = manager.test.initialize_flash_protection (&manager.test, &rw_list);
 	CuAssertIntEquals (test, 0, status);
 
-	active = host_state_manager_get_read_only_flash (&host_state);
+	active = host_state_manager_get_read_only_flash (&manager.host_state);
 	CuAssertIntEquals (test, SPI_FILTER_CS_1, active);
 
-	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&host_state));
+	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_initialize_flash_protection_cs0_3byte_cs1_4byte (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	spi_filter_cs active;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
+	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_force_4byte_address_mode (&flash1, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-	host_state_manager_save_inactive_dirty (&host_state, true);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
+	status = spi_flash_force_4byte_address_mode (&manager.flash1, true);
 	CuAssertIntEquals (test, 0, status);
 
 	rw_region.start_addr = 0x10000;
 	rw_region.length = RSA_ENCRYPT_LEN;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = flash_master_mock_expect_xfer (&flash_mock1, 0, FLASH_EXP_OPCODE (0xe9));
+	status = flash_master_mock_expect_xfer (&manager.flash_mock1, 0, FLASH_EXP_OPCODE (0xe9));
 
-	status |= flash_master_mock_expect_erase_flash_verify (&flash_mock1, 0x10000, RSA_ENCRYPT_LEN);
-	status |= flash_master_mock_expect_copy_flash_verify (&flash_mock1, &flash_mock0, 0x10000,
-		0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
+	status |= flash_master_mock_expect_erase_flash_verify (&manager.flash_mock1, 0x10000,
+		RSA_ENCRYPT_LEN);
+	status |= flash_master_mock_expect_copy_flash_verify (&manager.flash_mock1,
+		&manager.flash_mock0, 0x10000, 0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
 
-	status |= mock_expect (&filter.mock, filter.base.clear_flash_dirty_state, &filter, 0);
-	status |= mock_expect (&filter.mock, filter.base.set_addr_byte_mode, &filter, 0,
-		MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
-	status |= mock_expect (&filter.mock, filter.base.set_bypass_mode, &filter, 0,
-		MOCK_ARG (SPI_FILTER_OPERATE));
-	status |= mock_expect (&filter.mock, filter.base.set_ro_cs, &filter, 0,
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.clear_flash_dirty_state,
+		&manager.filter, 0);
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_addr_byte_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_bypass_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_OPERATE));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_ro_cs, &manager.filter, 0,
 		MOCK_ARG (SPI_FILTER_CS_0));
 
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&host_state));
+	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.initialize_flash_protection (&manager, &rw_list);
+	status = manager.test.initialize_flash_protection (&manager.test, &rw_list);
 	CuAssertIntEquals (test, 0, status);
 
-	active = host_state_manager_get_read_only_flash (&host_state);
+	active = host_state_manager_get_read_only_flash (&manager.host_state);
 	CuAssertIntEquals (test, SPI_FILTER_CS_0, active);
 
-	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&host_state));
+	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_initialize_flash_protection_cs1_3byte_cs0_4byte (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	spi_filter_cs active;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, true);
+	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_force_4byte_address_mode (&flash0, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-	host_state_manager_save_inactive_dirty (&host_state, true);
-
-	status = host_state_manager_save_read_only_flash (&host_state, SPI_FILTER_CS_1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
+	status = spi_flash_force_4byte_address_mode (&manager.flash0, true);
 	CuAssertIntEquals (test, 0, status);
 
 	rw_region.start_addr = 0x10000;
 	rw_region.length = RSA_ENCRYPT_LEN;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = flash_master_mock_expect_xfer (&flash_mock0, 0, FLASH_EXP_OPCODE (0xe9));
+	status = flash_master_mock_expect_xfer (&manager.flash_mock0, 0, FLASH_EXP_OPCODE (0xe9));
 
-	status |= flash_master_mock_expect_erase_flash_verify (&flash_mock0, 0x10000, RSA_ENCRYPT_LEN);
-	status |= flash_master_mock_expect_copy_flash_verify (&flash_mock0, &flash_mock1, 0x10000,
-		0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
+	status |= flash_master_mock_expect_erase_flash_verify (&manager.flash_mock0, 0x10000,
+		RSA_ENCRYPT_LEN);
+	status |= flash_master_mock_expect_copy_flash_verify (&manager.flash_mock0,
+		&manager.flash_mock1, 0x10000, 0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
 
-	status |= mock_expect (&filter.mock, filter.base.clear_flash_dirty_state, &filter, 0);
-	status |= mock_expect (&filter.mock, filter.base.set_addr_byte_mode, &filter, 0,
-		MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
-	status |= mock_expect (&filter.mock, filter.base.set_bypass_mode, &filter, 0,
-		MOCK_ARG (SPI_FILTER_OPERATE));
-	status |= mock_expect (&filter.mock, filter.base.set_ro_cs, &filter, 0,
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.clear_flash_dirty_state,
+		&manager.filter, 0);
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_addr_byte_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_bypass_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_OPERATE));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_ro_cs, &manager.filter, 0,
 		MOCK_ARG (SPI_FILTER_CS_1));
 
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&host_state));
+	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.initialize_flash_protection (&manager, &rw_list);
+	status = manager.test.initialize_flash_protection (&manager.test, &rw_list);
 	CuAssertIntEquals (test, 0, status);
 
-	active = host_state_manager_get_read_only_flash (&host_state);
+	active = host_state_manager_get_read_only_flash (&manager.host_state);
 	CuAssertIntEquals (test, SPI_FILTER_CS_1, active);
 
-	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&host_state));
+	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_initialize_flash_protection_fixed_3byte (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	uint32_t header[] = {
 		0x50444653,
@@ -12927,93 +6388,62 @@ static void host_flash_manager_test_initialize_flash_protection_fixed_3byte (CuT
 		0xff00ff00
 	};
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	spi_filter_cs active;
 
 	TEST_START;
 
-	spi_flash_testing_discover_params (test, &flash0, &flash_mock0, TEST_ID, header, params,
-		sizeof (params), 0x000030, FULL_CAPABILITIES);
+	host_flash_manager_testing_initialize_dependencies_no_flash_master (test, &manager);
+	spi_flash_testing_discover_params (test, &manager.flash0, &manager.flash_mock0, TEST_ID, header,
+		params, sizeof (params), 0x000030, FULL_CAPABILITIES);
+	spi_flash_testing_discover_params (test, &manager.flash1, &manager.flash_mock1, TEST_ID, header,
+		params, sizeof (params), 0x000030, FULL_CAPABILITIES);
+	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
-	spi_flash_testing_discover_params (test, &flash1, &flash_mock1, TEST_ID, header, params,
-		sizeof (params), 0x000030, FULL_CAPABILITIES);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-	host_state_manager_save_inactive_dirty (&host_state, true);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
+	status = host_flash_manager_init (&manager.test, &manager.flash0, &manager.flash1,
+		&manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, 0, status);
 
 	rw_region.start_addr = 0x10000;
 	rw_region.length = RSA_ENCRYPT_LEN;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = flash_master_mock_expect_erase_flash_verify (&flash_mock1, 0x10000, RSA_ENCRYPT_LEN);
-	status |= flash_master_mock_expect_copy_flash_verify (&flash_mock1, &flash_mock0, 0x10000,
-		0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
+	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock1, 0x10000,
+		RSA_ENCRYPT_LEN);
+	status |= flash_master_mock_expect_copy_flash_verify (&manager.flash_mock1,
+		&manager.flash_mock0, 0x10000, 0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
 
-	status |= mock_expect (&filter.mock, filter.base.clear_flash_dirty_state, &filter, 0);
-	status |= mock_expect (&filter.mock, filter.base.set_bypass_mode, &filter, 0,
-		MOCK_ARG (SPI_FILTER_OPERATE));
-	status |= mock_expect (&filter.mock, filter.base.set_ro_cs, &filter, 0,
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.clear_flash_dirty_state,
+		&manager.filter, 0);
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_bypass_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_OPERATE));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_ro_cs, &manager.filter, 0,
 		MOCK_ARG (SPI_FILTER_CS_0));
 
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&host_state));
+	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.initialize_flash_protection (&manager, &rw_list);
+	status = manager.test.initialize_flash_protection (&manager.test, &rw_list);
 	CuAssertIntEquals (test, 0, status);
 
-	active = host_state_manager_get_read_only_flash (&host_state);
+	active = host_state_manager_get_read_only_flash (&manager.host_state);
 	CuAssertIntEquals (test, SPI_FILTER_CS_0, active);
 
-	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&host_state));
+	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_initialize_flash_protection_fixed_4byte (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	uint32_t header[] = {
 		0x50444653,
@@ -13033,812 +6463,392 @@ static void host_flash_manager_test_initialize_flash_protection_fixed_4byte (CuT
 		0xff00ff00
 	};
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	spi_filter_cs active;
 
 	TEST_START;
 
-	spi_flash_testing_discover_params (test, &flash0, &flash_mock0, TEST_ID, header, params,
-		sizeof (params), 0x000030, FULL_CAPABILITIES);
+	host_flash_manager_testing_initialize_dependencies_no_flash_master (test, &manager);
+	spi_flash_testing_discover_params (test, &manager.flash0, &manager.flash_mock0, TEST_ID, header,
+		params, sizeof (params), 0x000030, FULL_CAPABILITIES);
+	spi_flash_testing_discover_params (test, &manager.flash1, &manager.flash_mock1, TEST_ID, header,
+		params, sizeof (params), 0x000030, FULL_CAPABILITIES);
+	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
-	spi_flash_testing_discover_params (test, &flash1, &flash_mock1, TEST_ID, header, params,
-		sizeof (params), 0x000030, FULL_CAPABILITIES);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-	host_state_manager_save_inactive_dirty (&host_state, true);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
+	status = host_flash_manager_init (&manager.test, &manager.flash0, &manager.flash1,
+		&manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, 0, status);
 
 	rw_region.start_addr = 0x10000;
 	rw_region.length = RSA_ENCRYPT_LEN;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = flash_master_mock_expect_erase_flash_verify (&flash_mock1, 0x10000, RSA_ENCRYPT_LEN);
-	status |= flash_master_mock_expect_copy_flash_verify (&flash_mock1, &flash_mock0, 0x10000,
-		0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
+	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock1, 0x10000,
+		RSA_ENCRYPT_LEN);
+	status |= flash_master_mock_expect_copy_flash_verify (&manager.flash_mock1,
+		&manager.flash_mock0, 0x10000, 0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
 
-	status |= mock_expect (&filter.mock, filter.base.clear_flash_dirty_state, &filter, 0);
-	status |= mock_expect (&filter.mock, filter.base.set_bypass_mode, &filter, 0,
-		MOCK_ARG (SPI_FILTER_OPERATE));
-	status |= mock_expect (&filter.mock, filter.base.set_ro_cs, &filter, 0,
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.clear_flash_dirty_state,
+		&manager.filter, 0);
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_bypass_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_OPERATE));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_ro_cs, &manager.filter, 0,
 		MOCK_ARG (SPI_FILTER_CS_0));
 
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&host_state));
+	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.initialize_flash_protection (&manager, &rw_list);
+	status = manager.test.initialize_flash_protection (&manager.test, &rw_list);
 	CuAssertIntEquals (test, 0, status);
 
-	active = host_state_manager_get_read_only_flash (&host_state);
+	active = host_state_manager_get_read_only_flash (&manager.host_state);
 	CuAssertIntEquals (test, SPI_FILTER_CS_0, active);
 
-	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&host_state));
+	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_initialize_flash_protection_null (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	spi_filter_cs active;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-	host_state_manager_save_inactive_dirty (&host_state, true);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
+	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	rw_region.start_addr = 0x10000;
 	rw_region.length = RSA_ENCRYPT_LEN;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = manager.initialize_flash_protection (NULL, &rw_list);
+	status = manager.test.initialize_flash_protection (NULL, &rw_list);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = manager.initialize_flash_protection (&manager, NULL);
+	status = manager.test.initialize_flash_protection (&manager.test, NULL);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	active = host_state_manager_get_read_only_flash (&host_state);
+	active = host_state_manager_get_read_only_flash (&manager.host_state);
 	CuAssertIntEquals (test, SPI_FILTER_CS_0, active);
 
-	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&host_state));
+	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_initialize_flash_protection_flash_mode_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	spi_filter_cs active;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
+	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_force_4byte_address_mode (&flash0, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-	host_state_manager_save_inactive_dirty (&host_state, true);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
+	status = spi_flash_force_4byte_address_mode (&manager.flash0, true);
 	CuAssertIntEquals (test, 0, status);
 
 	rw_region.start_addr = 0x10000;
 	rw_region.length = RSA_ENCRYPT_LEN;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = flash_master_mock_expect_xfer (&flash_mock1, FLASH_MASTER_XFER_FAILED,
+	status = flash_master_mock_expect_xfer (&manager.flash_mock1, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_OPCODE (0xb7));
 
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&host_state));
+	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.initialize_flash_protection (&manager, &rw_list);
+	status = manager.test.initialize_flash_protection (&manager.test, &rw_list);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	active = host_state_manager_get_read_only_flash (&host_state);
+	active = host_state_manager_get_read_only_flash (&manager.host_state);
 	CuAssertIntEquals (test, SPI_FILTER_CS_0, active);
 
-	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&host_state));
+	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_initialize_flash_protection_data_copy_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	spi_filter_cs active;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-	host_state_manager_save_inactive_dirty (&host_state, true);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
+	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	rw_region.start_addr = 0x10000;
 	rw_region.length = RSA_ENCRYPT_LEN;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = flash_master_mock_expect_xfer (&flash_mock1, FLASH_MASTER_XFER_FAILED,
+	status = flash_master_mock_expect_xfer (&manager.flash_mock1, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&host_state));
+	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.initialize_flash_protection (&manager, &rw_list);
+	status = manager.test.initialize_flash_protection (&manager.test, &rw_list);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	active = host_state_manager_get_read_only_flash (&host_state);
+	active = host_state_manager_get_read_only_flash (&manager.host_state);
 	CuAssertIntEquals (test, SPI_FILTER_CS_0, active);
 
-	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&host_state));
+	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_initialize_flash_protection_dirty_clear_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	spi_filter_cs active;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-	host_state_manager_save_inactive_dirty (&host_state, true);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
+	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	rw_region.start_addr = 0x10000;
 	rw_region.length = RSA_ENCRYPT_LEN;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = flash_master_mock_expect_erase_flash_verify (&flash_mock1, 0x10000, RSA_ENCRYPT_LEN);
-	status |= flash_master_mock_expect_copy_flash_verify (&flash_mock1, &flash_mock0, 0x10000,
-		0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
+	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock1, 0x10000,
+		RSA_ENCRYPT_LEN);
+	status |= flash_master_mock_expect_copy_flash_verify (&manager.flash_mock1,
+		&manager.flash_mock0, 0x10000, 0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
 
-	status |= mock_expect (&filter.mock, filter.base.clear_flash_dirty_state, &filter,
-		SPI_FILTER_CLEAR_DIRTY_FAILED);
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.clear_flash_dirty_state,
+		&manager.filter, SPI_FILTER_CLEAR_DIRTY_FAILED);
 
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&host_state));
+	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.initialize_flash_protection (&manager, &rw_list);
+	status = manager.test.initialize_flash_protection (&manager.test, &rw_list);
 	CuAssertIntEquals (test, SPI_FILTER_CLEAR_DIRTY_FAILED, status);
 
-	active = host_state_manager_get_read_only_flash (&host_state);
+	active = host_state_manager_get_read_only_flash (&manager.host_state);
 	CuAssertIntEquals (test, SPI_FILTER_CS_0, active);
 
-	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&host_state));
+	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_initialize_flash_protection_filter_mode_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	spi_filter_cs active;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-	host_state_manager_save_inactive_dirty (&host_state, true);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
+	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	rw_region.start_addr = 0x10000;
 	rw_region.length = RSA_ENCRYPT_LEN;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = flash_master_mock_expect_erase_flash_verify (&flash_mock1, 0x10000, RSA_ENCRYPT_LEN);
-	status |= flash_master_mock_expect_copy_flash_verify (&flash_mock1, &flash_mock0, 0x10000,
-		0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
+	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock1, 0x10000,
+		RSA_ENCRYPT_LEN);
+	status |= flash_master_mock_expect_copy_flash_verify (&manager.flash_mock1,
+		&manager.flash_mock0, 0x10000, 0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
 
-	status |= mock_expect (&filter.mock, filter.base.clear_flash_dirty_state, &filter, 0);
-	status |= mock_expect (&filter.mock, filter.base.set_addr_byte_mode, &filter,
-		SPI_FILTER_SET_ADDR_MODE_FAILED, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.clear_flash_dirty_state,
+		&manager.filter, 0);
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_addr_byte_mode,
+		&manager.filter, SPI_FILTER_SET_ADDR_MODE_FAILED, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
 
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&host_state));
+	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.initialize_flash_protection (&manager, &rw_list);
+	status = manager.test.initialize_flash_protection (&manager.test, &rw_list);
 	CuAssertIntEquals (test, SPI_FILTER_SET_ADDR_MODE_FAILED, status);
 
-	active = host_state_manager_get_read_only_flash (&host_state);
+	active = host_state_manager_get_read_only_flash (&manager.host_state);
 	CuAssertIntEquals (test, SPI_FILTER_CS_0, active);
 
-	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&host_state));
+	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_initialize_flash_protection_bypass_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	spi_filter_cs active;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-	host_state_manager_save_inactive_dirty (&host_state, true);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
+	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	rw_region.start_addr = 0x10000;
 	rw_region.length = RSA_ENCRYPT_LEN;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = flash_master_mock_expect_erase_flash_verify (&flash_mock1, 0x10000, RSA_ENCRYPT_LEN);
-	status |= flash_master_mock_expect_copy_flash_verify (&flash_mock1, &flash_mock0, 0x10000,
-		0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
+	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock1, 0x10000,
+		RSA_ENCRYPT_LEN);
+	status |= flash_master_mock_expect_copy_flash_verify (&manager.flash_mock1,
+		&manager.flash_mock0, 0x10000, 0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
 
-	status |= mock_expect (&filter.mock, filter.base.clear_flash_dirty_state, &filter, 0);
-	status |= mock_expect (&filter.mock, filter.base.set_addr_byte_mode, &filter, 0,
-		MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
-	status |= mock_expect (&filter.mock, filter.base.set_bypass_mode, &filter,
-		SPI_FILTER_SET_BYPASS_FAILED, MOCK_ARG (SPI_FILTER_OPERATE));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.clear_flash_dirty_state,
+		&manager.filter, 0);
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_addr_byte_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_bypass_mode,
+		&manager.filter, SPI_FILTER_SET_BYPASS_FAILED, MOCK_ARG (SPI_FILTER_OPERATE));
 
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&host_state));
+	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.initialize_flash_protection (&manager, &rw_list);
+	status = manager.test.initialize_flash_protection (&manager.test, &rw_list);
 	CuAssertIntEquals (test, SPI_FILTER_SET_BYPASS_FAILED, status);
 
-	active = host_state_manager_get_read_only_flash (&host_state);
+	active = host_state_manager_get_read_only_flash (&manager.host_state);
 	CuAssertIntEquals (test, SPI_FILTER_CS_0, active);
 
-	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&host_state));
+	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_initialize_flash_protection_filter_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	spi_filter_cs active;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-	host_state_manager_save_inactive_dirty (&host_state, true);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
+	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	rw_region.start_addr = 0x10000;
 	rw_region.length = RSA_ENCRYPT_LEN;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = flash_master_mock_expect_erase_flash_verify (&flash_mock1, 0x10000, RSA_ENCRYPT_LEN);
-	status |= flash_master_mock_expect_copy_flash_verify (&flash_mock1, &flash_mock0, 0x10000,
-		0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
+	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock1, 0x10000,
+		RSA_ENCRYPT_LEN);
+	status |= flash_master_mock_expect_copy_flash_verify (&manager.flash_mock1,
+		&manager.flash_mock0, 0x10000, 0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
 
-	status |= mock_expect (&filter.mock, filter.base.clear_flash_dirty_state, &filter, 0);
-	status |= mock_expect (&filter.mock, filter.base.set_addr_byte_mode, &filter, 0,
-		MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
-	status |= mock_expect (&filter.mock, filter.base.set_bypass_mode, &filter, 0,
-		MOCK_ARG (SPI_FILTER_OPERATE));
-	status |= mock_expect (&filter.mock, filter.base.set_ro_cs, &filter, SPI_FILTER_SET_RO_FAILED,
-		MOCK_ARG (SPI_FILTER_CS_0));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.clear_flash_dirty_state,
+		&manager.filter, 0);
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_addr_byte_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_bypass_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_OPERATE));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_ro_cs, &manager.filter,
+		SPI_FILTER_SET_RO_FAILED, MOCK_ARG (SPI_FILTER_CS_0));
 
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&host_state));
+	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.initialize_flash_protection (&manager, &rw_list);
+	status = manager.test.initialize_flash_protection (&manager.test, &rw_list);
 	CuAssertIntEquals (test, SPI_FILTER_SET_RO_FAILED, status);
 
-	active = host_state_manager_get_read_only_flash (&host_state);
+	active = host_state_manager_get_read_only_flash (&manager.host_state);
 	CuAssertIntEquals (test, SPI_FILTER_CS_0, active);
 
-	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&host_state));
+	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_get_flash_read_write_regions_ro_flash_cs0 (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
-	struct pfm_mock pfm;
 	struct pfm_read_write_regions rw_output;
 	int status;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_init (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -13849,112 +6859,58 @@ static void host_flash_manager_test_get_flash_read_write_regions_ro_flash_cs0 (C
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = spi_flash_set_device_size (&flash0, 0x1000);
-	status |= spi_flash_set_device_size (&flash1, 0x1000);
+	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 1, &version_list, sizeof (version_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 1, 0);
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, (uint8_t*) version_exp,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp,
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_read_write_regions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG (&rw_output));
-	status |= mock_expect_output (&pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+			MOCK_ARG (&rw_output));
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
 
-	status |= mock_expect (&pfm.mock, pfm.base.free_fw_versions, &pfm, 0, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.get_flash_read_write_regions (&manager, &pfm.base, false, &rw_output);
+	status = manager.test.get_flash_read_write_regions (&manager.test, &manager.pfm.base, false,
+		&rw_output);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_get_flash_read_write_regions_ro_flash_cs1 (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
-	struct pfm_mock pfm;
 	struct pfm_read_write_regions rw_output;
 	int status;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_init (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_state_manager_save_read_only_flash (&host_state, SPI_FILTER_CS_1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, true);
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -13965,109 +6921,58 @@ static void host_flash_manager_test_get_flash_read_write_regions_ro_flash_cs1 (C
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = spi_flash_set_device_size (&flash0, 0x1000);
-	status |= spi_flash_set_device_size (&flash1, 0x1000);
+	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 1, &version_list, sizeof (version_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 1, 0);
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, (uint8_t*) version_exp,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) version_exp,
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_read_write_regions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG (&rw_output));
-	status |= mock_expect_output (&pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG (&rw_output));
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
 
-	status |= mock_expect (&pfm.mock, pfm.base.free_fw_versions, &pfm, 0, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.get_flash_read_write_regions (&manager, &pfm.base, false, &rw_output);
+	status = manager.test.get_flash_read_write_regions (&manager.test, &manager.pfm.base, false,
+		&rw_output);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_get_flash_read_write_regions_rw_flash_cs1 (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
-	struct pfm_mock pfm;
 	struct pfm_read_write_regions rw_output;
 	int status;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_init (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -14078,112 +6983,58 @@ static void host_flash_manager_test_get_flash_read_write_regions_rw_flash_cs1 (C
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = spi_flash_set_device_size (&flash0, 0x1000);
-	status |= spi_flash_set_device_size (&flash1, 0x1000);
+	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 1, &version_list, sizeof (version_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 1, 0);
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock1, 0, (uint8_t*) version_exp,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) version_exp,
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_read_write_regions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG (&rw_output));
-	status |= mock_expect_output (&pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG (&rw_output));
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
 
-	status |= mock_expect (&pfm.mock, pfm.base.free_fw_versions, &pfm, 0, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.get_flash_read_write_regions (&manager, &pfm.base, true, &rw_output);
+	status = manager.test.get_flash_read_write_regions (&manager.test, &manager.pfm.base, true,
+		&rw_output);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_get_flash_read_write_regions_rw_flash_cs0 (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
-	struct pfm_mock pfm;
 	struct pfm_read_write_regions rw_output;
 	int status;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_init (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_state_manager_save_read_only_flash (&host_state, SPI_FILTER_CS_1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, true);
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -14194,267 +7045,103 @@ static void host_flash_manager_test_get_flash_read_write_regions_rw_flash_cs0 (C
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = spi_flash_set_device_size (&flash0, 0x1000);
-	status |= spi_flash_set_device_size (&flash1, 0x1000);
+	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 1, &version_list, sizeof (version_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 1, 0);
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, (uint8_t*) version_exp,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp,
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_read_write_regions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG (&rw_output));
-	status |= mock_expect_output (&pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+			MOCK_ARG (&rw_output));
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
 
-	status |= mock_expect (&pfm.mock, pfm.base.free_fw_versions, &pfm, 0, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.get_flash_read_write_regions (&manager, &pfm.base, true, &rw_output);
+	status = manager.test.get_flash_read_write_regions (&manager.test, &manager.pfm.base, true,
+		&rw_output);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_get_flash_read_write_regions_null (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
-	struct pfm_mock pfm;
+	struct host_flash_manager_testing manager;
 	struct pfm_read_write_regions rw_output;
 	int status;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_init (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manager.get_flash_read_write_regions (NULL, &pfm.base, false, &rw_output);
+	status = manager.test.get_flash_read_write_regions (NULL, &manager.pfm.base, false,
+		&rw_output);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = manager.get_flash_read_write_regions (&manager, NULL, false, &rw_output);
+	status = manager.test.get_flash_read_write_regions (&manager.test, NULL, false,
+		&rw_output);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = manager.get_flash_read_write_regions (&manager, &pfm.base, false, NULL);
+	status = manager.test.get_flash_read_write_regions (&manager.test, &manager.pfm.base, false,
+		NULL);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_get_flash_read_write_regions_pfm_version_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
-	struct pfm_mock pfm;
+	struct host_flash_manager_testing manager;
 	struct pfm_read_write_regions rw_output;
 	int status;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_init (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, PFM_GET_VERSIONS_FAILED,
-		MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		PFM_GET_VERSIONS_FAILED, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.get_flash_read_write_regions (&manager, &pfm.base, false, &rw_output);
+	status = manager.test.get_flash_read_write_regions (&manager.test, &manager.pfm.base, false,
+		&rw_output);
 	CuAssertIntEquals (test, PFM_GET_VERSIONS_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_get_flash_read_write_regions_ro_flash_version_error (
 	CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
-	struct pfm_mock pfm;
 	struct pfm_read_write_regions rw_output;
 	int status;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_init (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -14462,99 +7149,43 @@ static void host_flash_manager_test_get_flash_read_write_regions_ro_flash_versio
 	version_list.versions = &version;
 	version_list.count = 1;
 
-	status = spi_flash_set_device_size (&flash0, 0x1000);
-	status |= spi_flash_set_device_size (&flash1, 0x1000);
+	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 1, &version_list, sizeof (version_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 1, 0);
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
-	status |= flash_master_mock_expect_xfer (&flash_mock0, FLASH_MASTER_XFER_FAILED,
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock0, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
-	status |= mock_expect (&pfm.mock, pfm.base.free_fw_versions, &pfm, 0, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.get_flash_read_write_regions (&manager, &pfm.base, false, &rw_output);
+	status = manager.test.get_flash_read_write_regions (&manager.test, &manager.pfm.base, false,
+		&rw_output);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_get_flash_read_write_regions_rw_flash_version_error (
 	CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
-	struct pfm_mock pfm;
 	struct pfm_read_write_regions rw_output;
 	int status;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_init (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -14562,98 +7193,42 @@ static void host_flash_manager_test_get_flash_read_write_regions_rw_flash_versio
 	version_list.versions = &version;
 	version_list.count = 1;
 
-	status = spi_flash_set_device_size (&flash0, 0x1000);
-	status |= spi_flash_set_device_size (&flash1, 0x1000);
+	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 1, &version_list, sizeof (version_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 1, 0);
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
-	status |= flash_master_mock_expect_xfer (&flash_mock1, FLASH_MASTER_XFER_FAILED,
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock1, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
-	status |= mock_expect (&pfm.mock, pfm.base.free_fw_versions, &pfm, 0, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.get_flash_read_write_regions (&manager, &pfm.base, true, &rw_output);
+	status = manager.test.get_flash_read_write_regions (&manager.test, &manager.pfm.base, true,
+		&rw_output);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_get_flash_read_write_regions_pfm_rw_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
-	struct pfm_mock pfm;
 	struct pfm_read_write_regions rw_output;
 	int status;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_init (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_testing_init (test, &manager, false);
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -14661,586 +7236,302 @@ static void host_flash_manager_test_get_flash_read_write_regions_pfm_rw_error (C
 	version_list.versions = &version;
 	version_list.count = 1;
 
-	status = spi_flash_set_device_size (&flash0, 0x1000);
-	status |= spi_flash_set_device_size (&flash1, 0x1000);
+	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&pfm.mock, pfm.base.get_supported_versions, &pfm, 0, MOCK_ARG (NULL),
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 1, &version_list, sizeof (version_list), -1);
-	status |= mock_expect_save_arg (&pfm.mock, 1, 0);
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&flash_mock0, 0, (uint8_t*) version_exp,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp,
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
-	status |= mock_expect (&pfm.mock, pfm.base.get_read_write_regions, &pfm,
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
 		PFM_GET_READ_WRITE_FAILED, MOCK_ARG (NULL),
 		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG (&rw_output));
 
-	status |= mock_expect (&pfm.mock, pfm.base.free_fw_versions, &pfm, 0, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.get_flash_read_write_regions (&manager, &pfm.base, false, &rw_output);
+	status = manager.test.get_flash_read_write_regions (&manager.test, &manager.pfm.base, false,
+		&rw_output);
 	CuAssertIntEquals (test, PFM_GET_READ_WRITE_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_host_has_flash_access (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_control_mock control;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	bool enabled = true;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-	flash_mock0.mock.name = "flash_master0";
+	host_flash_manager_testing_init (test, &manager, false);
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
+	status = mock_expect (&manager.control.mock, manager.control.base.processor_has_flash_access,
+		&manager.control, 1);
 
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-	flash_mock1.mock.name = "flash_master1";
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_init (&control);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&control.mock, control.base.processor_has_flash_access, &control, 1);
-
-	status |= mock_expect (&filter.mock, filter.base.get_filter_enabled, &filter, 0,
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&filter.mock, 0, &enabled, sizeof (enabled), -1);
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.get_filter_enabled,
+		&manager.filter, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.filter.mock, 0, &enabled, sizeof (enabled), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.host_has_flash_access (&manager, &control.base);
+	status = manager.test.host_has_flash_access (&manager.test, &manager.control.base);
 	CuAssertIntEquals (test, 1, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_validate_and_release (&control);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_host_has_flash_access_rot_access (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_control_mock control;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	bool enabled = true;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-	flash_mock0.mock.name = "flash_master0";
+	host_flash_manager_testing_init (test, &manager, false);
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
+	status = mock_expect (&manager.control.mock, manager.control.base.processor_has_flash_access,
+		&manager.control, 0);
 
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-	flash_mock1.mock.name = "flash_master1";
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_init (&control);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&control.mock, control.base.processor_has_flash_access, &control, 0);
-
-	status |= mock_expect (&filter.mock, filter.base.get_filter_enabled, &filter, 0,
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&filter.mock, 0, &enabled, sizeof (enabled), -1);
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.get_filter_enabled,
+		&manager.filter, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.filter.mock, 0, &enabled, sizeof (enabled), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.host_has_flash_access (&manager, &control.base);
+	status = manager.test.host_has_flash_access (&manager.test, &manager.control.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_validate_and_release (&control);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_host_has_flash_access_filter_disabled (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_control_mock control;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	bool enabled = false;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-	flash_mock0.mock.name = "flash_master0";
+	host_flash_manager_testing_init (test, &manager, false);
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
+	status = mock_expect (&manager.control.mock, manager.control.base.processor_has_flash_access,
+		&manager.control, 1);
 
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-	flash_mock1.mock.name = "flash_master1";
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_init (&control);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&control.mock, control.base.processor_has_flash_access, &control, 1);
-
-	status |= mock_expect (&filter.mock, filter.base.get_filter_enabled, &filter, 0,
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&filter.mock, 0, &enabled, sizeof (enabled), -1);
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.get_filter_enabled,
+		&manager.filter, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.filter.mock, 0, &enabled, sizeof (enabled), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.host_has_flash_access (&manager, &control.base);
+	status = manager.test.host_has_flash_access (&manager.test, &manager.control.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_validate_and_release (&control);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_host_has_flash_access_null (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_control_mock control;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-	flash_mock0.mock.name = "flash_master0";
+	host_flash_manager_testing_init (test, &manager, false);
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-	flash_mock1.mock.name = "flash_master1";
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_init (&control);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manager.host_has_flash_access (NULL, &control.base);
+	status = manager.test.host_has_flash_access (NULL, &manager.control.base);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = manager.host_has_flash_access (&manager, NULL);
+	status = manager.test.host_has_flash_access (&manager.test, NULL);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_validate_and_release (&control);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_host_has_flash_access_access_check_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_control_mock control;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 	bool enabled = true;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-	flash_mock0.mock.name = "flash_master0";
+	host_flash_manager_testing_init (test, &manager, false);
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
+	status = mock_expect (&manager.control.mock, manager.control.base.processor_has_flash_access,
+		&manager.control, HOST_CONTROL_FLASH_CHECK_FAILED);
 
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-	flash_mock1.mock.name = "flash_master1";
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_init (&control);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&control.mock, control.base.processor_has_flash_access, &control,
-		HOST_CONTROL_FLASH_CHECK_FAILED);
-
-	status |= mock_expect (&filter.mock, filter.base.get_filter_enabled, &filter, 0,
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&filter.mock, 0, &enabled, sizeof (enabled), -1);
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.get_filter_enabled,
+		&manager.filter, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.filter.mock, 0, &enabled, sizeof (enabled), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.host_has_flash_access (&manager, &control.base);
+	status = manager.test.host_has_flash_access (&manager.test, &manager.control.base);
 	CuAssertIntEquals (test, HOST_CONTROL_FLASH_CHECK_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_validate_and_release (&control);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_host_has_flash_access_filter_check_error (CuTest *test)
 {
-	struct flash_master_mock flash_mock0;
-	struct flash_master_mock flash_mock1;
-	struct flash_master_mock flash_mock_state;
-	struct spi_flash flash0;
-	struct spi_flash flash1;
-	struct spi_flash flash_state;
-	struct state_manager host_state;
-	struct spi_filter_interface_mock filter;
-	struct flash_mfg_filter_handler_mock handler;
-	struct host_control_mock control;
-	struct host_flash_manager manager;
+	struct host_flash_manager_testing manager;
 	int status;
 
 	TEST_START;
 
-	status = flash_master_mock_init (&flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-	flash_mock0.mock.name = "flash_master0";
+	host_flash_manager_testing_init (test, &manager, false);
 
-	status = spi_flash_init (&flash0, &flash_mock0.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash0, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-	flash_mock1.mock.name = "flash_master1";
-
-	status = spi_flash_init (&flash1, &flash_mock1.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&flash1, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_init (&handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_init (&control);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_init_host_state (test, &host_state, &flash_mock_state, &flash_state);
-
-	status = host_flash_manager_init (&manager, &flash0, &flash1, &host_state, &filter.base,
-		&handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&filter.mock, filter.base.get_filter_enabled, &filter,
-		SPI_FILTER_GET_ENABLED_FAILED, MOCK_ARG_NOT_NULL);
+	status = mock_expect (&manager.filter.mock, manager.filter.base.get_filter_enabled,
+		&manager.filter, SPI_FILTER_GET_ENABLED_FAILED, MOCK_ARG_NOT_NULL);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.host_has_flash_access (&manager, &control.base);
+	status = manager.test.host_has_flash_access (&manager.test, &manager.control.base);
 	CuAssertIntEquals (test, SPI_FILTER_GET_ENABLED_FAILED, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock0);
+	host_flash_manager_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_test_restore_flash_read_write_regions_cs1 (CuTest *test)
+{
+	struct host_flash_manager_testing manager;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+	int status;
+
+	TEST_START;
+
+	host_flash_manager_testing_init (test, &manager, false);
+
+	rw_region.start_addr = 0x20000;
+	rw_region.length = 0x10000;
+
+	rw_prop.on_failure = PFM_RW_ERASE;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock1, 0x20000, 0x10000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock1);
+	status = manager.test.restore_flash_read_write_regions (&manager.test, &rw_list);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_master_mock_validate_and_release (&flash_mock_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_test_restore_flash_read_write_regions_cs0 (CuTest *test)
+{
+	struct host_flash_manager_testing manager;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+	int status;
+	uint8_t data[0x10000];
+	size_t i;
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	host_flash_manager_testing_init (test, &manager, true);
+
+	rw_region.start_addr = 0x20000;
+	rw_region.length = 0x10000;
+
+	rw_prop.on_failure = PFM_RW_RESTORE;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock0, 0x20000, 0x10000);
+	status |= flash_master_mock_expect_copy_flash_verify (&manager.flash_mock0,
+		&manager.flash_mock1, 0x20000, 0x20000, data, sizeof (data));
+
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_filter_interface_mock_validate_and_release (&filter);
+	status = manager.test.restore_flash_read_write_regions (&manager.test, &rw_list);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_mfg_filter_handler_mock_validate_and_release (&handler);
+	host_flash_manager_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_test_restore_flash_read_write_regions_null (CuTest *test)
+{
+	struct host_flash_manager_testing manager;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+	int status;
+
+	TEST_START;
+
+	host_flash_manager_testing_init (test, &manager, false);
+
+	rw_region.start_addr = 0x20000;
+	rw_region.length = 0x10000;
+
+	rw_prop.on_failure = PFM_RW_ERASE;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = manager.test.restore_flash_read_write_regions (NULL, &rw_list);
+	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
+
+	status = manager.test.restore_flash_read_write_regions (&manager.test, NULL);
+	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
+
+	host_flash_manager_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_test_restore_flash_read_write_regions_flash_error (CuTest *test)
+{
+	struct host_flash_manager_testing manager;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+	int status;
+
+	TEST_START;
+
+	host_flash_manager_testing_init (test, &manager, false);
+
+	rw_region.start_addr = 0x20000;
+	rw_region.length = 0x10000;
+
+	rw_prop.on_failure = PFM_RW_ERASE;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = flash_master_mock_expect_xfer (&manager.flash_mock1, FLASH_MASTER_XFER_FAILED,
+		FLASH_EXP_READ_STATUS_REG);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_control_mock_validate_and_release (&control);
-	CuAssertIntEquals (test, 0, status);
+	status = manager.test.restore_flash_read_write_regions (&manager.test, &rw_list);
+	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	host_flash_manager_release (&manager);
-
-	host_state_manager_release (&host_state);
-	spi_flash_release (&flash0);
-	spi_flash_release (&flash1);
-	spi_flash_release (&flash_state);
+	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 
@@ -15422,6 +7713,10 @@ CuSuite* get_host_flash_manager_suite ()
 	SUITE_ADD_TEST (suite, host_flash_manager_test_host_has_flash_access_null);
 	SUITE_ADD_TEST (suite, host_flash_manager_test_host_has_flash_access_access_check_error);
 	SUITE_ADD_TEST (suite, host_flash_manager_test_host_has_flash_access_filter_check_error);
+	SUITE_ADD_TEST (suite, host_flash_manager_test_restore_flash_read_write_regions_cs1);
+	SUITE_ADD_TEST (suite, host_flash_manager_test_restore_flash_read_write_regions_cs0);
+	SUITE_ADD_TEST (suite, host_flash_manager_test_restore_flash_read_write_regions_null);
+	SUITE_ADD_TEST (suite, host_flash_manager_test_restore_flash_read_write_regions_flash_error);
 
 	return suite;
 }

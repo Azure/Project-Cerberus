@@ -101,6 +101,16 @@ struct host_flash_manager {
 		bool rw_flash, struct pfm_read_write_regions *writable);
 
 	/**
+	 * Restore the read/write regions from the read-only flash.
+	 *
+	 * @param manager The flash manager to use for flash updating.
+	 * @param writable The list of read/write regions to restore.  The region properties decide what
+	 * restore operation, if any, will be executed on each read/write region.
+	 */
+	int (*restore_flash_read_write_regions) (struct host_flash_manager *manager,
+		struct pfm_read_write_regions *writable);
+
+	/**
 	 * Configure the SPI filter for the ID of the devices that are being protected.
 	 *
 	 * @param manager The flash manager to use for configuration.
@@ -242,6 +252,7 @@ enum {
 	HOST_FLASH_MGR_CHECK_ACCESS_FAILED = HOST_FLASH_MGR_ERROR (0x10),	/**< Could not determine if the host has flash access. */
 	HOST_FLASH_MGR_MISMATCH_SIZES = HOST_FLASH_MGR_ERROR (0x11),		/**< The host flash devices are not the same size. */
 	HOST_FLASH_MGR_MISMATCH_ADDR_MODE = HOST_FLASH_MGR_ERROR (0x12),	/**< The host flash devices support different address mode behavior. */
+	HOST_FLASH_MGR_RESTORE_RW_FAILED = HOST_FLASH_MGR_ERROR (0x13),		/**< Flash read/write regions were not restore successfully. */
 };
 
 

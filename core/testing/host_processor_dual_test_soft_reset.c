@@ -429,6 +429,7 @@ static void host_processor_dual_test_soft_reset_active_pfm_not_dirty_bypass (CuT
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -440,7 +441,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_not_dirty_bypass (CuT
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -544,6 +548,7 @@ static void host_processor_dual_test_soft_reset_active_pfm_not_dirty_checked_byp
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -556,7 +561,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_not_dirty_checked_byp
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -621,6 +629,7 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty (CuTest *test)
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -633,7 +642,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty (CuTest *test)
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -701,6 +713,7 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_no_observer (Cu
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -716,7 +729,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_no_observer (Cu
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -778,6 +794,7 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_bypass (CuTest 
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -792,7 +809,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_bypass (CuTest 
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -860,6 +880,7 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_fl
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -874,7 +895,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_fl
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -950,6 +974,7 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_fl
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -965,7 +990,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_fl
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -1039,6 +1067,7 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_fl
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -1054,7 +1083,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_fl
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -1131,6 +1163,7 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_fl
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -1147,7 +1180,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_fl
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -1218,6 +1254,7 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked (CuTest
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -1232,7 +1269,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked (CuTest
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -1300,6 +1340,7 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked_bypass 
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -1315,7 +1356,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked_bypass 
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -1384,6 +1428,7 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevali
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -1399,7 +1444,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevali
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -1475,6 +1523,7 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevali
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -1491,7 +1540,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevali
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -1565,6 +1617,7 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevali
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -1581,7 +1634,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevali
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -1658,6 +1714,7 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevali
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -1675,7 +1732,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevali
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -1746,6 +1806,7 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_pulse_reset (Cu
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -1758,7 +1819,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_pulse_reset (Cu
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -1826,6 +1890,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_not_dirty 
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -1835,7 +1900,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_not_dirty 
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -1904,6 +1972,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_not_dirty_
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -1915,7 +1984,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_not_dirty_
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -1984,6 +2056,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_not_dirty_
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -1995,7 +2068,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_not_dirty_
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -2064,6 +2140,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_not_dirty_
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -2076,7 +2153,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_not_dirty_
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -2144,6 +2224,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty (CuT
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -2156,7 +2237,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty (CuT
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -2227,6 +2311,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_bypa
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -2241,7 +2326,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_bypa
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -2312,6 +2400,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_chec
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -2326,7 +2415,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_chec
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -2398,6 +2490,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_chec
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -2413,7 +2506,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_chec
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -2484,6 +2580,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_pulse_rese
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -2493,7 +2590,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_pulse_rese
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -2561,6 +2661,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_not_dirt
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -2570,7 +2671,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_not_dirt
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -2633,6 +2737,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_not_dirt
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -2644,7 +2749,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_not_dirt
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -2757,6 +2865,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_not_dirt
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -2769,7 +2878,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_not_dirt
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -2840,6 +2952,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_not_dirt
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -2849,7 +2962,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_not_dirt
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -2911,6 +3027,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty (C
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -2923,7 +3040,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty (C
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -2993,6 +3113,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_by
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -3007,7 +3128,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_by
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -3081,6 +3205,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -3095,7 +3220,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -3174,6 +3302,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -3189,7 +3318,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -3271,6 +3403,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -3286,7 +3419,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -3368,6 +3504,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -3384,7 +3521,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -3460,6 +3600,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -3474,7 +3615,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -3545,6 +3689,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -3560,7 +3705,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -3634,6 +3782,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -3649,7 +3798,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -3727,6 +3879,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -3743,7 +3896,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -3820,6 +3976,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -3836,7 +3993,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -3914,6 +4074,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -3931,7 +4092,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -4006,6 +4170,9 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_validation_fail
 {
 	struct host_processor_dual_testing host;
 	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
 
@@ -4013,6 +4180,15 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_validation_fail
 
 	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
 	CuAssertIntEquals (test, 0, status);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
 		(intptr_t) &host.pfm);
@@ -4029,8 +4205,21 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_validation_fail
 		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
 		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
 
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
+	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
+
+	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
@@ -4065,6 +4254,9 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_validation_fail
 {
 	struct host_processor_dual_testing host;
 	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
 
@@ -4072,6 +4264,15 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_validation_fail
 
 	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
 	CuAssertIntEquals (test, 0, status);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
 		(intptr_t) &host.pfm);
@@ -4088,8 +4289,21 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_validation_fail
 		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
 		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
 
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
+	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, SPI_FILTER_CLEAR_DIRTY_FAILED);
+
+	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
@@ -4119,7 +4333,8 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_validation_fail
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_soft_reset_active_pfm_dirty_hash_validation_fail (CuTest *test)
+static void host_processor_dual_test_soft_reset_active_pfm_dirty_validation_fail_restore_get_rw_error (
+	CuTest *test)
 {
 	struct host_processor_dual_testing host;
 	int status;
@@ -4143,11 +4358,188 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_hash_validation
 		&host.flash_mgr, 0, MOCK_ARG (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FW_UTIL_BAD_IMAGE_HASH, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
 		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, HOST_FLASH_MGR_GET_RW_FAILED, MOCK_ARG (&host.pfm), MOCK_ARG (false),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
+
+	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
+		0);
+
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG (&host.pfm));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (false));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host.test.base.soft_reset (&host.test.base, &host.hash.base, &host.rsa.base);
+	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
+
+	status = host_state_manager_is_inactive_dirty (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	status = host_state_manager_is_pfm_dirty (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	status = host_state_manager_is_bypass_mode (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	host_processor_dual_testing_validate_and_release (test, &host);
+}
+
+static void host_processor_dual_test_soft_reset_active_pfm_dirty_validation_fail_restore_error (
+	CuTest *test)
+{
+	struct host_processor_dual_testing host;
+	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+
+	TEST_START;
+
+	host_processor_dual_testing_init (test, &host);
+
+	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
+	CuAssertIntEquals (test, 0, status);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
+		(intptr_t) &host.pfm);
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
+		(intptr_t) NULL);
+
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (true));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_write_flash,
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
+		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
+	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr,
+		HOST_FLASH_MGR_RESTORE_RW_FAILED, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr,
+		HOST_FLASH_MGR_RESTORE_RW_FAILED, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr,
+		HOST_FLASH_MGR_RESTORE_RW_FAILED, MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
+		&host.filter, 0);
+
+	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
+		0);
+
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG (&host.pfm));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (false));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host.test.base.soft_reset (&host.test.base, &host.hash.base, &host.rsa.base);
+	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
+
+	status = host_state_manager_is_inactive_dirty (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	status = host_state_manager_is_pfm_dirty (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	status = host_state_manager_is_bypass_mode (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	host_processor_dual_testing_validate_and_release (test, &host);
+}
+
+static void host_processor_dual_test_soft_reset_active_pfm_dirty_hash_validation_fail (CuTest *test)
+{
+	struct host_processor_dual_testing host;
+	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+
+	TEST_START;
+
+	host_processor_dual_testing_init (test, &host);
+
+	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
+	CuAssertIntEquals (test, 0, status);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
+		(intptr_t) &host.pfm);
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
+		(intptr_t) NULL);
+
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (true));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_write_flash,
+		&host.flash_mgr, HOST_FW_UTIL_BAD_IMAGE_HASH, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
+		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
+	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
+		&host.filter, 0);
+
+	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
@@ -4181,6 +4573,9 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_blank_fail (CuT
 {
 	struct host_processor_dual_testing host;
 	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
 
@@ -4188,6 +4583,15 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_blank_fail (CuT
 
 	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
 	CuAssertIntEquals (test, 0, status);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
 		(intptr_t) &host.pfm);
@@ -4204,8 +4608,21 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_blank_fail (CuT
 		&host.flash_mgr, FLASH_UTIL_UNEXPECTED_VALUE, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
 		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
 
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
+	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
+
+	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
@@ -4239,6 +4656,9 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_unknown_version
 {
 	struct host_processor_dual_testing host;
 	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
 
@@ -4246,6 +4666,15 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_unknown_version
 
 	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
 	CuAssertIntEquals (test, 0, status);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
 		(intptr_t) &host.pfm);
@@ -4262,8 +4691,21 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_unknown_version
 		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm),
 		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
 
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
+	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
+
+	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
@@ -4529,6 +4971,9 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_fl
 {
 	struct host_processor_dual_testing host;
 	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
 
@@ -4538,6 +4983,15 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_fl
 	CuAssertIntEquals (test, 0, status);
 
 	host_state_manager_set_run_time_validation (&host.host_state, HOST_STATE_PREVALIDATED_FLASH);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
 		(intptr_t) &host.pfm);
@@ -4554,8 +5008,21 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_fl
 		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm), MOCK_ARG (true),
 		MOCK_ARG_NOT_NULL);
 
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
+	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
+
+	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
@@ -4593,6 +5060,9 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_fl
 {
 	struct host_processor_dual_testing host;
 	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
 
@@ -4602,6 +5072,15 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_fl
 	CuAssertIntEquals (test, 0, status);
 
 	host_state_manager_set_run_time_validation (&host.host_state, HOST_STATE_PREVALIDATED_FLASH);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
 		(intptr_t) &host.pfm);
@@ -4618,8 +5097,21 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_fl
 		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm), MOCK_ARG (true),
 		MOCK_ARG_NOT_NULL);
 
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
+	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, SPI_FILTER_CLEAR_DIRTY_FAILED);
+
+	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
@@ -4652,7 +5144,7 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_fl
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevalidated_flash_and_pfm_validation_fail (
+static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_flash_unknown_version_restore_get_rw_error (
 	CuTest *test)
 {
 	struct host_processor_dual_testing host;
@@ -4665,9 +5157,184 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevali
 	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
 	CuAssertIntEquals (test, 0, status);
 
+	host_state_manager_set_run_time_validation (&host.host_state, HOST_STATE_PREVALIDATED_FLASH);
+
+	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
+		(intptr_t) &host.pfm);
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
+		(intptr_t) NULL);
+
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (true));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm), MOCK_ARG (true),
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, HOST_FLASH_MGR_GET_RW_FAILED, MOCK_ARG (&host.pfm), MOCK_ARG (false),
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
+		&host.filter, 0);
+
+	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
+		0);
+
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG (&host.pfm));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (false));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host.test.base.soft_reset (&host.test.base, &host.hash.base, &host.rsa.base);
+	CuAssertIntEquals (test, HOST_FW_UTIL_UNSUPPORTED_VERSION, status);
+
+	status = host_state_manager_is_inactive_dirty (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	status = host_state_manager_is_pfm_dirty (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	CuAssertIntEquals (test, HOST_STATE_PREVALIDATED_NONE,
+		host_state_manager_get_run_time_validation (&host.host_state));
+
+	status = host_state_manager_is_bypass_mode (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	host_processor_dual_testing_validate_and_release (test, &host);
+}
+
+static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_flash_unknown_version_restore_error (
+	CuTest *test)
+{
+	struct host_processor_dual_testing host;
+	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+
+	TEST_START;
+
+	host_processor_dual_testing_init (test, &host);
+
+	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
+	CuAssertIntEquals (test, 0, status);
+
+	host_state_manager_set_run_time_validation (&host.host_state, HOST_STATE_PREVALIDATED_FLASH);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
+		(intptr_t) &host.pfm);
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
+		(intptr_t) NULL);
+
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (true));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm), MOCK_ARG (true),
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
+	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr,
+		HOST_FLASH_MGR_RESTORE_RW_FAILED, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr,
+		HOST_FLASH_MGR_RESTORE_RW_FAILED, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr,
+		HOST_FLASH_MGR_RESTORE_RW_FAILED, MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
+		&host.filter, 0);
+
+	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
+		0);
+
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG (&host.pfm));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (false));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host.test.base.soft_reset (&host.test.base, &host.hash.base, &host.rsa.base);
+	CuAssertIntEquals (test, HOST_FW_UTIL_UNSUPPORTED_VERSION, status);
+
+	status = host_state_manager_is_inactive_dirty (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	status = host_state_manager_is_pfm_dirty (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	CuAssertIntEquals (test, HOST_STATE_PREVALIDATED_NONE,
+		host_state_manager_get_run_time_validation (&host.host_state));
+
+	status = host_state_manager_is_bypass_mode (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	host_processor_dual_testing_validate_and_release (test, &host);
+}
+
+static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevalidated_flash_and_pfm_validation_fail (
+	CuTest *test)
+{
+	struct host_processor_dual_testing host;
+	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+
+	TEST_START;
+
+	host_processor_dual_testing_init (test, &host);
+
+	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
+	CuAssertIntEquals (test, 0, status);
+
 	host_state_manager_set_run_time_validation (&host.host_state,
 		HOST_STATE_PREVALIDATED_FLASH_AND_PFM);
 	host_state_manager_set_pfm_dirty (&host.host_state, false);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
 		(intptr_t) &host.pfm);
@@ -4684,8 +5351,21 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevali
 		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
 		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
 
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
+	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
+
+	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
@@ -4723,6 +5403,9 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevali
 {
 	struct host_processor_dual_testing host;
 	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
 
@@ -4734,6 +5417,15 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevali
 	host_state_manager_set_run_time_validation (&host.host_state,
 		HOST_STATE_PREVALIDATED_FLASH_AND_PFM);
 	host_state_manager_set_pfm_dirty (&host.host_state, false);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
 		(intptr_t) &host.pfm);
@@ -4750,8 +5442,21 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevali
 		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
 		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
 
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
+	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, SPI_FILTER_CLEAR_DIRTY_FAILED);
+
+	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
@@ -4784,7 +5489,7 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevali
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevalidated_flash_and_pfm_hash_validation_fail (
+static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevalidated_flash_and_pfm_validation_fail_restore_get_rw_error (
 	CuTest *test)
 {
 	struct host_processor_dual_testing host;
@@ -4813,11 +5518,203 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevali
 		&host.flash_mgr, 0, MOCK_ARG (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FW_UTIL_BAD_IMAGE_HASH, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
 		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, HOST_FLASH_MGR_GET_RW_FAILED, MOCK_ARG (&host.pfm), MOCK_ARG (false),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
+
+	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
+		0);
+
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG (&host.pfm));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (false));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host.test.base.soft_reset (&host.test.base, &host.hash.base, &host.rsa.base);
+	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
+
+	status = host_state_manager_is_inactive_dirty (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	status = host_state_manager_is_pfm_dirty (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	CuAssertIntEquals (test, HOST_STATE_PREVALIDATED_NONE,
+		host_state_manager_get_run_time_validation (&host.host_state));
+
+	status = host_state_manager_is_bypass_mode (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	host_processor_dual_testing_validate_and_release (test, &host);
+}
+
+static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevalidated_flash_and_pfm_validation_fail_restore_error (
+	CuTest *test)
+{
+	struct host_processor_dual_testing host;
+	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+
+	TEST_START;
+
+	host_processor_dual_testing_init (test, &host);
+
+	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
+	CuAssertIntEquals (test, 0, status);
+
+	host_state_manager_set_run_time_validation (&host.host_state,
+		HOST_STATE_PREVALIDATED_FLASH_AND_PFM);
+	host_state_manager_set_pfm_dirty (&host.host_state, false);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
+		(intptr_t) &host.pfm);
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
+		(intptr_t) NULL);
+
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (true));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_write_flash,
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
+		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
+	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr,
+		HOST_FLASH_MGR_RESTORE_RW_FAILED, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr,
+		HOST_FLASH_MGR_RESTORE_RW_FAILED, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr,
+		HOST_FLASH_MGR_RESTORE_RW_FAILED, MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
+		&host.filter, 0);
+
+	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
+		0);
+
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG (&host.pfm));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (false));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host.test.base.soft_reset (&host.test.base, &host.hash.base, &host.rsa.base);
+	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
+
+	status = host_state_manager_is_inactive_dirty (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	status = host_state_manager_is_pfm_dirty (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	CuAssertIntEquals (test, HOST_STATE_PREVALIDATED_NONE,
+		host_state_manager_get_run_time_validation (&host.host_state));
+
+	status = host_state_manager_is_bypass_mode (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	host_processor_dual_testing_validate_and_release (test, &host);
+}
+
+static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevalidated_flash_and_pfm_hash_validation_fail (
+	CuTest *test)
+{
+	struct host_processor_dual_testing host;
+	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+
+	TEST_START;
+
+	host_processor_dual_testing_init (test, &host);
+
+	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
+	CuAssertIntEquals (test, 0, status);
+
+	host_state_manager_set_run_time_validation (&host.host_state,
+		HOST_STATE_PREVALIDATED_FLASH_AND_PFM);
+	host_state_manager_set_pfm_dirty (&host.host_state, false);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
+		(intptr_t) &host.pfm);
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
+		(intptr_t) NULL);
+
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (true));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_write_flash,
+		&host.flash_mgr, HOST_FW_UTIL_BAD_IMAGE_HASH, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
+		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
+	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
+		&host.filter, 0);
+
+	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
@@ -4855,6 +5752,9 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevali
 {
 	struct host_processor_dual_testing host;
 	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
 
@@ -4866,6 +5766,15 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevali
 	host_state_manager_set_run_time_validation (&host.host_state,
 		HOST_STATE_PREVALIDATED_FLASH_AND_PFM);
 	host_state_manager_set_pfm_dirty (&host.host_state, false);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
 		(intptr_t) &host.pfm);
@@ -4882,8 +5791,21 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevali
 		&host.flash_mgr, FLASH_UTIL_UNEXPECTED_VALUE, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
 		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
 
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
+	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
+
+	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
@@ -4921,6 +5843,9 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevali
 {
 	struct host_processor_dual_testing host;
 	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
 
@@ -4932,6 +5857,15 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevali
 	host_state_manager_set_run_time_validation (&host.host_state,
 		HOST_STATE_PREVALIDATED_FLASH_AND_PFM);
 	host_state_manager_set_pfm_dirty (&host.host_state, false);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
 		(intptr_t) &host.pfm);
@@ -4948,8 +5882,21 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevali
 		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm),
 		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
 
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
+	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
+
+	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
@@ -5464,6 +6411,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_va
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -5476,7 +6424,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_va
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -5500,6 +6451,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_va
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_list, sizeof (rw_list), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.base.activate_pending_manifest,
 		&host.pfm_mgr, 0);
@@ -5549,6 +6504,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_va
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -5561,7 +6517,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_va
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -5585,6 +6544,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_va
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_list, sizeof (rw_list), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.base.activate_pending_manifest,
 		&host.pfm_mgr, 0);
@@ -5628,12 +6591,13 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_va
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_hash_validation_fail (
+static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_validation_fail_restore_error (
 	CuTest *test)
 {
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -5646,7 +6610,109 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ha
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
+		(intptr_t) &host.pfm);
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
+		(intptr_t) &host.pfm_next);
+
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (true));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_write_flash,
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.hash),
+		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_only_flash,
+		&host.flash_mgr, 0, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
+		MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
+	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr,
+		HOST_FLASH_MGR_RESTORE_RW_FAILED, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr,
+		HOST_FLASH_MGR_RESTORE_RW_FAILED, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr,
+		HOST_FLASH_MGR_RESTORE_RW_FAILED, MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.base.activate_pending_manifest,
+		&host.pfm_mgr, 0);
+
+	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
+		0);
+
+	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
+		&host.filter, 0);
+
+	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.free_read_write_regions,
+		&host.pfm_next, 0, MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
+		0);
+
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG (&host.pfm));
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG (&host.pfm_next));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (false));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host.test.base.soft_reset (&host.test.base, &host.hash.base, &host.rsa.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_is_inactive_dirty (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	status = host_state_manager_is_pfm_dirty (&host.host_state);
+	CuAssertIntEquals (test, true, status);	// State changes in PFM manager.
+
+	status = host_state_manager_is_bypass_mode (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	host_processor_dual_testing_validate_and_release (test, &host);
+}
+
+static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_hash_validation_fail (
+	CuTest *test)
+{
+	struct host_processor_dual_testing host;
+	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+
+	TEST_START;
+
+	host_processor_dual_testing_init (test, &host);
+
+	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
+	CuAssertIntEquals (test, 0, status);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -5670,6 +6736,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ha
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_list, sizeof (rw_list), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.base.activate_pending_manifest,
 		&host.pfm_mgr, 0);
@@ -5719,6 +6789,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_bl
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -5731,7 +6802,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_bl
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -5755,6 +6829,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_bl
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_list, sizeof (rw_list), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.base.activate_pending_manifest,
 		&host.pfm_mgr, 0);
@@ -5804,6 +6882,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_un
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -5816,7 +6895,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_un
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -5840,6 +6922,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_un
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_list, sizeof (rw_list), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.base.activate_pending_manifest,
 		&host.pfm_mgr, 0);
@@ -5889,6 +6975,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -5903,7 +6990,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -5978,6 +7068,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -5992,7 +7083,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -6067,6 +7161,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -6081,7 +7176,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -6156,6 +7254,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -6170,7 +7269,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -6245,6 +7347,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ro
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -6257,7 +7360,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ro
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -6336,6 +7442,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ro
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -6348,7 +7455,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ro
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -6428,6 +7538,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ro
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -6440,7 +7551,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ro
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -6519,6 +7633,9 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ac
 {
 	struct host_processor_dual_testing host;
 	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
 
@@ -6526,6 +7643,15 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ac
 
 	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
 	CuAssertIntEquals (test, 0, status);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
 		(intptr_t) &host.pfm);
@@ -6550,8 +7676,21 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ac
 		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
 		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
 
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
+	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
+
+	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
@@ -6588,6 +7727,9 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ac
 {
 	struct host_processor_dual_testing host;
 	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
 
@@ -6595,6 +7737,15 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ac
 
 	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
 	CuAssertIntEquals (test, 0, status);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
 		(intptr_t) &host.pfm);
@@ -6619,8 +7770,21 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ac
 		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
 		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
 
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
+	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, SPI_FILTER_CLEAR_DIRTY_FAILED);
+
+	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
@@ -6652,7 +7816,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ac
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_active_hash_validation_fail (
+static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_active_validation_fail_restore_get_rw_error (
 	CuTest *test)
 {
 	struct host_processor_dual_testing host;
@@ -6677,6 +7841,191 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ac
 		&host.flash_mgr, 0, MOCK_ARG (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_write_flash,
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.hash),
+		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_only_flash,
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.pfm),
+		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_write_flash,
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
+		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, HOST_FLASH_MGR_GET_RW_FAILED, MOCK_ARG (&host.pfm), MOCK_ARG (false),
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
+		&host.filter, 0);
+
+	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
+		0);
+
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG (&host.pfm));
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG (&host.pfm_next));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (false));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host.test.base.soft_reset (&host.test.base, &host.hash.base, &host.rsa.base);
+	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
+
+	status = host_state_manager_is_inactive_dirty (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	status = host_state_manager_is_pfm_dirty (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	status = host_state_manager_is_bypass_mode (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	host_processor_dual_testing_validate_and_release (test, &host);
+}
+
+static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_active_validation_fail_restore_error (
+	CuTest *test)
+{
+	struct host_processor_dual_testing host;
+	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+
+	TEST_START;
+
+	host_processor_dual_testing_init (test, &host);
+
+	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
+	CuAssertIntEquals (test, 0, status);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
+		(intptr_t) &host.pfm);
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
+		(intptr_t) &host.pfm_next);
+
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (true));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_write_flash,
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.hash),
+		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_only_flash,
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.pfm),
+		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_write_flash,
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
+		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
+	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr,
+		HOST_FLASH_MGR_RESTORE_RW_FAILED, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr,
+		HOST_FLASH_MGR_RESTORE_RW_FAILED, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr,
+		HOST_FLASH_MGR_RESTORE_RW_FAILED, MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
+		&host.filter, 0);
+
+	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
+		0);
+
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG (&host.pfm));
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG (&host.pfm_next));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (false));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host.test.base.soft_reset (&host.test.base, &host.hash.base, &host.rsa.base);
+	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
+
+	status = host_state_manager_is_inactive_dirty (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	status = host_state_manager_is_pfm_dirty (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	status = host_state_manager_is_bypass_mode (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	host_processor_dual_testing_validate_and_release (test, &host);
+}
+
+static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_active_hash_validation_fail (
+	CuTest *test)
+{
+	struct host_processor_dual_testing host;
+	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+
+	TEST_START;
+
+	host_processor_dual_testing_init (test, &host);
+
+	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
+	CuAssertIntEquals (test, 0, status);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
+		(intptr_t) &host.pfm);
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
+		(intptr_t) &host.pfm_next);
+
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (true));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_write_flash,
 		&host.flash_mgr, HOST_FW_UTIL_BAD_IMAGE_HASH, MOCK_ARG (&host.pfm_next),
 		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
 
@@ -6688,8 +8037,21 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ac
 		&host.flash_mgr, HOST_FW_UTIL_BAD_IMAGE_HASH, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
 		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
 
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
+	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
+
+	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
@@ -6726,6 +8088,9 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ac
 {
 	struct host_processor_dual_testing host;
 	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
 
@@ -6733,6 +8098,15 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ac
 
 	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
 	CuAssertIntEquals (test, 0, status);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
 		(intptr_t) &host.pfm);
@@ -6757,8 +8131,21 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ac
 		&host.flash_mgr, FLASH_UTIL_UNEXPECTED_VALUE, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
 		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
 
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
+	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
+
+	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
@@ -6795,6 +8182,9 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ac
 {
 	struct host_processor_dual_testing host;
 	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
 
@@ -6802,6 +8192,15 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ac
 
 	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
 	CuAssertIntEquals (test, 0, status);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
 		(intptr_t) &host.pfm);
@@ -6827,8 +8226,21 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ac
 		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm),
 		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
 
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
+	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
+
+	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
@@ -6866,6 +8278,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -6880,7 +8293,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -6904,6 +8320,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_list, sizeof (rw_list), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.base.activate_pending_manifest,
 		&host.pfm_mgr, 0);
@@ -6956,6 +8376,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -6970,7 +8391,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -6994,6 +8418,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_list, sizeof (rw_list), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.base.activate_pending_manifest,
 		&host.pfm_mgr, 0);
@@ -7040,12 +8468,13 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_prevalidated_flash_hash_validation_fail (
+static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_prevalidated_flash_validation_fail_restore_error (
 	CuTest *test)
 {
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -7060,7 +8489,114 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
+		(intptr_t) &host.pfm);
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
+		(intptr_t) &host.pfm_next);
+
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (true));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_write_flash,
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.hash),
+		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_only_flash,
+		&host.flash_mgr, 0, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
+		MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
+	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr,
+		HOST_FLASH_MGR_RESTORE_RW_FAILED, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr,
+		HOST_FLASH_MGR_RESTORE_RW_FAILED, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr,
+		HOST_FLASH_MGR_RESTORE_RW_FAILED, MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.base.activate_pending_manifest,
+		&host.pfm_mgr, 0);
+
+	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
+		0);
+
+	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
+		&host.filter, 0);
+
+	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.free_read_write_regions,
+		&host.pfm_next, 0, MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
+		0);
+
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG (&host.pfm));
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG (&host.pfm_next));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (false));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host.test.base.soft_reset (&host.test.base, &host.hash.base, &host.rsa.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_is_inactive_dirty (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	status = host_state_manager_is_pfm_dirty (&host.host_state);
+	CuAssertIntEquals (test, true, status);	// State changes in PFM manager.
+
+	CuAssertIntEquals (test, HOST_STATE_PREVALIDATED_NONE,
+		host_state_manager_get_run_time_validation (&host.host_state));
+
+	status = host_state_manager_is_bypass_mode (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	host_processor_dual_testing_validate_and_release (test, &host);
+}
+
+static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_prevalidated_flash_hash_validation_fail (
+	CuTest *test)
+{
+	struct host_processor_dual_testing host;
+	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+
+	TEST_START;
+
+	host_processor_dual_testing_init (test, &host);
+
+	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
+	CuAssertIntEquals (test, 0, status);
+
+	host_state_manager_set_run_time_validation (&host.host_state, HOST_STATE_PREVALIDATED_FLASH);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -7084,6 +8620,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_list, sizeof (rw_list), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.base.activate_pending_manifest,
 		&host.pfm_mgr, 0);
@@ -7136,6 +8676,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -7150,7 +8691,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -7174,6 +8718,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_list, sizeof (rw_list), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.base.activate_pending_manifest,
 		&host.pfm_mgr, 0);
@@ -7226,6 +8774,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -7240,7 +8789,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -7264,6 +8816,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_list, sizeof (rw_list), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.base.activate_pending_manifest,
 		&host.pfm_mgr, 0);
@@ -7316,6 +8872,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -7330,7 +8887,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -7411,6 +8971,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -7425,7 +8986,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -7507,6 +9071,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -7521,7 +9086,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -7602,6 +9170,9 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 {
 	struct host_processor_dual_testing host;
 	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
 
@@ -7611,6 +9182,15 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	CuAssertIntEquals (test, 0, status);
 
 	host_state_manager_set_run_time_validation (&host.host_state, HOST_STATE_PREVALIDATED_FLASH);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
 		(intptr_t) &host.pfm);
@@ -7635,8 +9215,21 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm), MOCK_ARG (true),
 		MOCK_ARG_NOT_NULL);
 
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
+	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
+
+	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
@@ -7676,6 +9269,9 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 {
 	struct host_processor_dual_testing host;
 	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
 
@@ -7685,6 +9281,15 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	CuAssertIntEquals (test, 0, status);
 
 	host_state_manager_set_run_time_validation (&host.host_state, HOST_STATE_PREVALIDATED_FLASH);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
 		(intptr_t) &host.pfm);
@@ -7709,8 +9314,21 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm), MOCK_ARG (true),
 		MOCK_ARG_NOT_NULL);
 
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
+	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, SPI_FILTER_CLEAR_DIRTY_FAILED);
+
+	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
@@ -7745,7 +9363,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_checked_prevalidated_flash_unknown_version (
+static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_prevalidated_flash_active_unknown_version_restore_get_rw_error (
 	CuTest *test)
 {
 	struct host_processor_dual_testing host;
@@ -7759,7 +9377,202 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	CuAssertIntEquals (test, 0, status);
 
 	host_state_manager_set_run_time_validation (&host.host_state, HOST_STATE_PREVALIDATED_FLASH);
+
+	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
+		(intptr_t) &host.pfm);
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
+		(intptr_t) &host.pfm_next);
+
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (true));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_write_flash,
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.hash),
+		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_only_flash,
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.pfm),
+		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm), MOCK_ARG (true),
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, HOST_FLASH_MGR_GET_RW_FAILED, MOCK_ARG (&host.pfm), MOCK_ARG (false),
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
+		&host.filter, 0);
+
+	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
+		0);
+
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG (&host.pfm));
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG (&host.pfm_next));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (false));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host.test.base.soft_reset (&host.test.base, &host.hash.base, &host.rsa.base);
+	CuAssertIntEquals (test, HOST_FW_UTIL_UNSUPPORTED_VERSION, status);
+
+	status = host_state_manager_is_inactive_dirty (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	status = host_state_manager_is_pfm_dirty (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	CuAssertIntEquals (test, HOST_STATE_PREVALIDATED_NONE,
+		host_state_manager_get_run_time_validation (&host.host_state));
+
+	status = host_state_manager_is_bypass_mode (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	host_processor_dual_testing_validate_and_release (test, &host);
+}
+
+static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_prevalidated_flash_active_unknown_version_restore_error (
+	CuTest *test)
+{
+	struct host_processor_dual_testing host;
+	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+
+	TEST_START;
+
+	host_processor_dual_testing_init (test, &host);
+
+	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
+	CuAssertIntEquals (test, 0, status);
+
+	host_state_manager_set_run_time_validation (&host.host_state, HOST_STATE_PREVALIDATED_FLASH);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
+		(intptr_t) &host.pfm);
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
+		(intptr_t) &host.pfm_next);
+
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (true));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_write_flash,
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.hash),
+		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_only_flash,
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.pfm),
+		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm), MOCK_ARG (true),
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
+	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr,
+		HOST_FLASH_MGR_RESTORE_RW_FAILED, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr,
+		HOST_FLASH_MGR_RESTORE_RW_FAILED, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr,
+		HOST_FLASH_MGR_RESTORE_RW_FAILED, MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
+		&host.filter, 0);
+
+	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
+		0);
+
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG (&host.pfm));
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG (&host.pfm_next));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (false));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host.test.base.soft_reset (&host.test.base, &host.hash.base, &host.rsa.base);
+	CuAssertIntEquals (test, HOST_FW_UTIL_UNSUPPORTED_VERSION, status);
+
+	status = host_state_manager_is_inactive_dirty (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	status = host_state_manager_is_pfm_dirty (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	CuAssertIntEquals (test, HOST_STATE_PREVALIDATED_NONE,
+		host_state_manager_get_run_time_validation (&host.host_state));
+
+	status = host_state_manager_is_bypass_mode (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	host_processor_dual_testing_validate_and_release (test, &host);
+}
+
+static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_checked_prevalidated_flash_unknown_version (
+	CuTest *test)
+{
+	struct host_processor_dual_testing host;
+	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+
+	TEST_START;
+
+	host_processor_dual_testing_init (test, &host);
+
+	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
+	CuAssertIntEquals (test, 0, status);
+
+	host_state_manager_set_run_time_validation (&host.host_state, HOST_STATE_PREVALIDATED_FLASH);
 	host_state_manager_set_pfm_dirty (&host.host_state, false);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
 		(intptr_t) &host.pfm);
@@ -7776,8 +9589,21 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm), MOCK_ARG (true),
 		MOCK_ARG_NOT_NULL);
 
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
+	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
+
+	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
@@ -7817,6 +9643,9 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 {
 	struct host_processor_dual_testing host;
 	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
 
@@ -7827,6 +9656,15 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 
 	host_state_manager_set_run_time_validation (&host.host_state, HOST_STATE_PREVALIDATED_FLASH);
 	host_state_manager_set_pfm_dirty (&host.host_state, false);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
 		(intptr_t) &host.pfm);
@@ -7843,8 +9681,21 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm), MOCK_ARG (true),
 		MOCK_ARG_NOT_NULL);
 
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
+	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, SPI_FILTER_CLEAR_DIRTY_FAILED);
+
+	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
@@ -7879,7 +9730,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_checked_prevalidated_flash_and_pfm_unknown_version (
+static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_checked_prevalidated_flash_unknown_version_restore_get_rw_error (
 	CuTest *test)
 {
 	struct host_processor_dual_testing host;
@@ -7892,9 +9743,190 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
 	CuAssertIntEquals (test, 0, status);
 
+	host_state_manager_set_run_time_validation (&host.host_state, HOST_STATE_PREVALIDATED_FLASH);
+	host_state_manager_set_pfm_dirty (&host.host_state, false);
+
+	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
+		(intptr_t) &host.pfm);
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
+		(intptr_t) &host.pfm_next);
+
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (true));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm), MOCK_ARG (true),
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, HOST_FLASH_MGR_GET_RW_FAILED, MOCK_ARG (&host.pfm), MOCK_ARG (false),
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
+		&host.filter, 0);
+
+	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
+		0);
+
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG (&host.pfm));
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG (&host.pfm_next));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (false));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host.test.base.soft_reset (&host.test.base, &host.hash.base, &host.rsa.base);
+	CuAssertIntEquals (test, HOST_FW_UTIL_UNSUPPORTED_VERSION, status);
+
+	status = host_state_manager_is_inactive_dirty (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	status = host_state_manager_is_pfm_dirty (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	CuAssertIntEquals (test, HOST_STATE_PREVALIDATED_NONE,
+		host_state_manager_get_run_time_validation (&host.host_state));
+
+	status = host_state_manager_is_bypass_mode (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	host_processor_dual_testing_validate_and_release (test, &host);
+}
+
+static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_checked_prevalidated_flash_unknown_version_restore_error (
+	CuTest *test)
+{
+	struct host_processor_dual_testing host;
+	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+
+	TEST_START;
+
+	host_processor_dual_testing_init (test, &host);
+
+	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
+	CuAssertIntEquals (test, 0, status);
+
+	host_state_manager_set_run_time_validation (&host.host_state, HOST_STATE_PREVALIDATED_FLASH);
+	host_state_manager_set_pfm_dirty (&host.host_state, false);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
+		(intptr_t) &host.pfm);
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
+		(intptr_t) &host.pfm_next);
+
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (true));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm), MOCK_ARG (true),
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
+	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr,
+		HOST_FLASH_MGR_RESTORE_RW_FAILED, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr,
+		HOST_FLASH_MGR_RESTORE_RW_FAILED, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr,
+		HOST_FLASH_MGR_RESTORE_RW_FAILED, MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
+		&host.filter, 0);
+
+	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
+		0);
+
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG (&host.pfm));
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG (&host.pfm_next));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (false));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host.test.base.soft_reset (&host.test.base, &host.hash.base, &host.rsa.base);
+	CuAssertIntEquals (test, HOST_FW_UTIL_UNSUPPORTED_VERSION, status);
+
+	status = host_state_manager_is_inactive_dirty (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	status = host_state_manager_is_pfm_dirty (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	CuAssertIntEquals (test, HOST_STATE_PREVALIDATED_NONE,
+		host_state_manager_get_run_time_validation (&host.host_state));
+
+	status = host_state_manager_is_bypass_mode (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	host_processor_dual_testing_validate_and_release (test, &host);
+}
+
+static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_checked_prevalidated_flash_and_pfm_unknown_version (
+	CuTest *test)
+{
+	struct host_processor_dual_testing host;
+	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+
+	TEST_START;
+
+	host_processor_dual_testing_init (test, &host);
+
+	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
+	CuAssertIntEquals (test, 0, status);
+
 	host_state_manager_set_run_time_validation (&host.host_state,
 		HOST_STATE_PREVALIDATED_FLASH_AND_PFM);
 	host_state_manager_set_pfm_dirty (&host.host_state, false);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
 		(intptr_t) &host.pfm);
@@ -7911,8 +9943,21 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm_next),
 		MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
+	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
+
+	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
@@ -7952,6 +9997,9 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 {
 	struct host_processor_dual_testing host;
 	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
 
@@ -7963,6 +10011,15 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	host_state_manager_set_run_time_validation (&host.host_state,
 		HOST_STATE_PREVALIDATED_FLASH_AND_PFM);
 	host_state_manager_set_pfm_dirty (&host.host_state, false);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
 		(intptr_t) &host.pfm);
@@ -7979,8 +10036,21 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm_next),
 		MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
+	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, SPI_FILTER_CLEAR_DIRTY_FAILED);
+
+	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
@@ -8015,12 +10085,184 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
+static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_checked_prevalidated_flash_and_pfm_unknown_version_restore_get_rw_error (
+	CuTest *test)
+{
+	struct host_processor_dual_testing host;
+	int status;
+
+	TEST_START;
+
+	host_processor_dual_testing_init (test, &host);
+
+	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
+	CuAssertIntEquals (test, 0, status);
+
+	host_state_manager_set_run_time_validation (&host.host_state,
+		HOST_STATE_PREVALIDATED_FLASH_AND_PFM);
+	host_state_manager_set_pfm_dirty (&host.host_state, false);
+
+	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
+		(intptr_t) &host.pfm);
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
+		(intptr_t) &host.pfm_next);
+
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (true));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm_next),
+		MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, HOST_FLASH_MGR_GET_RW_FAILED, MOCK_ARG (&host.pfm), MOCK_ARG (false),
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
+		&host.filter, 0);
+
+	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
+		0);
+
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG (&host.pfm));
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG (&host.pfm_next));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (false));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host.test.base.soft_reset (&host.test.base, &host.hash.base, &host.rsa.base);
+	CuAssertIntEquals (test, HOST_FW_UTIL_UNSUPPORTED_VERSION, status);
+
+	status = host_state_manager_is_inactive_dirty (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	status = host_state_manager_is_pfm_dirty (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	CuAssertIntEquals (test, HOST_STATE_PREVALIDATED_NONE,
+		host_state_manager_get_run_time_validation (&host.host_state));
+
+	status = host_state_manager_is_bypass_mode (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	host_processor_dual_testing_validate_and_release (test, &host);
+}
+
+static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_checked_prevalidated_flash_and_pfm_unknown_version_restore_error (
+	CuTest *test)
+{
+	struct host_processor_dual_testing host;
+	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+
+	TEST_START;
+
+	host_processor_dual_testing_init (test, &host);
+
+	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
+	CuAssertIntEquals (test, 0, status);
+
+	host_state_manager_set_run_time_validation (&host.host_state,
+		HOST_STATE_PREVALIDATED_FLASH_AND_PFM);
+	host_state_manager_set_pfm_dirty (&host.host_state, false);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
+		(intptr_t) &host.pfm);
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
+		(intptr_t) &host.pfm_next);
+
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (true));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm_next),
+		MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
+	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr,
+		HOST_FLASH_MGR_RESTORE_RW_FAILED, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr,
+		HOST_FLASH_MGR_RESTORE_RW_FAILED, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr,
+		HOST_FLASH_MGR_RESTORE_RW_FAILED, MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
+		&host.filter, 0);
+
+	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
+		0);
+
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG (&host.pfm));
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG (&host.pfm_next));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (false));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host.test.base.soft_reset (&host.test.base, &host.hash.base, &host.rsa.base);
+	CuAssertIntEquals (test, HOST_FW_UTIL_UNSUPPORTED_VERSION, status);
+
+	status = host_state_manager_is_inactive_dirty (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	status = host_state_manager_is_pfm_dirty (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	CuAssertIntEquals (test, HOST_STATE_PREVALIDATED_NONE,
+		host_state_manager_get_run_time_validation (&host.host_state));
+
+	status = host_state_manager_is_bypass_mode (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	host_processor_dual_testing_validate_and_release (test, &host);
+}
+
 static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_bypass_validation_fail (
 	CuTest *test)
 {
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -8035,7 +10277,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_by
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -8110,6 +10355,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_by
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -8124,7 +10370,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_by
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -8199,6 +10448,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_by
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -8213,7 +10463,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_by
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -8288,6 +10541,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_by
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -8302,7 +10556,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_by
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -8632,6 +10889,9 @@ static void host_processor_dual_test_soft_reset_validation_fail_pulse_reset (CuT
 {
 	struct host_processor_dual_testing host;
 	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
 
@@ -8639,6 +10899,15 @@ static void host_processor_dual_test_soft_reset_validation_fail_pulse_reset (CuT
 
 	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
 	CuAssertIntEquals (test, 0, status);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
 		(intptr_t) &host.pfm);
@@ -8652,8 +10921,21 @@ static void host_processor_dual_test_soft_reset_validation_fail_pulse_reset (CuT
 		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
 		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
 
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
+	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
+
+	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
@@ -8690,6 +10972,9 @@ static void host_processor_dual_test_soft_reset_hash_validation_fail_pulse_reset
 {
 	struct host_processor_dual_testing host;
 	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
 
@@ -8697,6 +10982,15 @@ static void host_processor_dual_test_soft_reset_hash_validation_fail_pulse_reset
 
 	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
 	CuAssertIntEquals (test, 0, status);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
 		(intptr_t) &host.pfm);
@@ -8710,8 +11004,21 @@ static void host_processor_dual_test_soft_reset_hash_validation_fail_pulse_reset
 		&host.flash_mgr, HOST_FW_UTIL_BAD_IMAGE_HASH, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
 		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
 
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
+	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
+
+	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
@@ -8748,6 +11055,9 @@ static void host_processor_dual_test_soft_reset_blank_fail_pulse_reset (CuTest *
 {
 	struct host_processor_dual_testing host;
 	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
 
@@ -8755,6 +11065,15 @@ static void host_processor_dual_test_soft_reset_blank_fail_pulse_reset (CuTest *
 
 	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
 	CuAssertIntEquals (test, 0, status);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
 		(intptr_t) &host.pfm);
@@ -8768,8 +11087,21 @@ static void host_processor_dual_test_soft_reset_blank_fail_pulse_reset (CuTest *
 		&host.flash_mgr, FLASH_UTIL_UNEXPECTED_VALUE, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
 		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
 
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
+	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
+
+	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
@@ -8806,6 +11138,9 @@ static void host_processor_dual_test_soft_reset_unknown_version_pulse_reset (CuT
 {
 	struct host_processor_dual_testing host;
 	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
 
@@ -8813,6 +11148,15 @@ static void host_processor_dual_test_soft_reset_unknown_version_pulse_reset (CuT
 
 	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
 	CuAssertIntEquals (test, 0, status);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
 		(intptr_t) &host.pfm);
@@ -8826,8 +11170,21 @@ static void host_processor_dual_test_soft_reset_unknown_version_pulse_reset (CuT
 		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm),
 		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
 
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
+	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
+
+	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
@@ -9074,6 +11431,7 @@ static void host_processor_dual_test_soft_reset_host_access_error (CuTest *test)
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -9086,7 +11444,10 @@ static void host_processor_dual_test_soft_reset_host_access_error (CuTest *test)
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -9163,6 +11524,7 @@ static void host_processor_dual_test_soft_reset_host_access_error_pulse_reset (C
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -9175,7 +11537,10 @@ static void host_processor_dual_test_soft_reset_host_access_error_pulse_reset (C
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -9291,6 +11656,87 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_validation_erro
 {
 	struct host_processor_dual_testing host;
 	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+
+	TEST_START;
+
+	host_processor_dual_testing_init (test, &host);
+
+	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
+	CuAssertIntEquals (test, 0, status);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
+		(intptr_t) &host.pfm);
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
+		(intptr_t) NULL);
+
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (true));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_write_flash,
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG (&host.pfm),
+		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
+	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
+		0);
+
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG (&host.pfm));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (false));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host.test.base.soft_reset (&host.test.base, &host.hash.base, &host.rsa.base);
+	CuAssertIntEquals (test, HOST_FLASH_MGR_VALIDATE_RO_FAILED, status);
+
+	status = host_state_manager_is_inactive_dirty (&host.host_state);
+	CuAssertIntEquals (test, true, status);
+
+	status = host_state_manager_is_pfm_dirty (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	status = host_state_manager_is_bypass_mode (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	host_processor_dual_testing_validate_and_release (test, &host);
+}
+
+static void host_processor_dual_test_soft_reset_active_pfm_dirty_validation_error_restore_get_rw_error (
+	CuTest *test)
+{
+	struct host_processor_dual_testing host;
+	int status;
 
 	TEST_START;
 
@@ -9313,6 +11759,97 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_validation_erro
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_write_flash,
 		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG (&host.pfm),
 		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, HOST_FLASH_MGR_GET_RW_FAILED, MOCK_ARG (&host.pfm), MOCK_ARG (false),
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
+		0);
+
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG (&host.pfm));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (false));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host.test.base.soft_reset (&host.test.base, &host.hash.base, &host.rsa.base);
+	CuAssertIntEquals (test, HOST_FLASH_MGR_VALIDATE_RO_FAILED, status);
+
+	status = host_state_manager_is_inactive_dirty (&host.host_state);
+	CuAssertIntEquals (test, true, status);
+
+	status = host_state_manager_is_pfm_dirty (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	status = host_state_manager_is_bypass_mode (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	host_processor_dual_testing_validate_and_release (test, &host);
+}
+
+static void host_processor_dual_test_soft_reset_active_pfm_dirty_validation_error_restore_error (
+	CuTest *test)
+{
+	struct host_processor_dual_testing host;
+	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+
+	TEST_START;
+
+	host_processor_dual_testing_init (test, &host);
+
+	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
+	CuAssertIntEquals (test, 0, status);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
+		(intptr_t) &host.pfm);
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
+		(intptr_t) NULL);
+
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (true));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_write_flash,
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG (&host.pfm),
+		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
+	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr,
+		HOST_FLASH_MGR_RESTORE_RW_FAILED, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr,
+		HOST_FLASH_MGR_RESTORE_RW_FAILED, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr,
+		HOST_FLASH_MGR_RESTORE_RW_FAILED, MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
@@ -9347,6 +11884,9 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_validation_erro
 {
 	struct host_processor_dual_testing host;
 	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
 
@@ -9354,6 +11894,15 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_validation_erro
 
 	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
 	CuAssertIntEquals (test, 0, status);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
 		(intptr_t) &host.pfm);
@@ -9366,6 +11915,19 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_validation_erro
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_write_flash,
 		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG (&host.pfm),
 		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
+	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
@@ -9403,6 +11965,7 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_swap_error (CuT
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -9415,7 +11978,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_swap_error (CuT
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -9491,6 +12057,7 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_filter_error (C
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -9503,7 +12070,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_filter_error (C
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -9695,6 +12265,7 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_bypass_init_err
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -9709,7 +12280,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_bypass_init_err
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -9785,6 +12359,7 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_bypass_filter_e
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -9799,7 +12374,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_bypass_filter_e
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -9875,6 +12453,92 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_fl
 {
 	struct host_processor_dual_testing host;
 	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+
+	TEST_START;
+
+	host_processor_dual_testing_init (test, &host);
+
+	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
+	CuAssertIntEquals (test, 0, status);
+
+	host_state_manager_set_run_time_validation (&host.host_state, HOST_STATE_PREVALIDATED_FLASH);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
+		(intptr_t) &host.pfm);
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
+		(intptr_t) NULL);
+
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (true));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, HOST_FLASH_MGR_RW_REGIONS_FAILED, MOCK_ARG (&host.pfm), MOCK_ARG (true),
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
+	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
+		0);
+
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG (&host.pfm));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (false));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host.test.base.soft_reset (&host.test.base, &host.hash.base, &host.rsa.base);
+	CuAssertIntEquals (test, HOST_FLASH_MGR_RW_REGIONS_FAILED, status);
+
+	status = host_state_manager_is_inactive_dirty (&host.host_state);
+	CuAssertIntEquals (test, true, status);
+
+	status = host_state_manager_is_pfm_dirty (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	CuAssertIntEquals (test, HOST_STATE_PREVALIDATED_NONE,
+		host_state_manager_get_run_time_validation (&host.host_state));
+
+	status = host_state_manager_is_bypass_mode (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	host_processor_dual_testing_validate_and_release (test, &host);
+}
+
+static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_flash_get_rw_error_restore_get_rw_error (
+	CuTest *test)
+{
+	struct host_processor_dual_testing host;
+	int status;
 
 	TEST_START;
 
@@ -9900,6 +12564,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_fl
 		&host.flash_mgr, HOST_FLASH_MGR_RW_REGIONS_FAILED, MOCK_ARG (&host.pfm), MOCK_ARG (true),
 		MOCK_ARG_NOT_NULL);
 
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, HOST_FLASH_MGR_GET_RW_FAILED, MOCK_ARG (&host.pfm), MOCK_ARG (false),
+		MOCK_ARG_NOT_NULL);
+
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
 
@@ -9922,7 +12590,7 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_fl
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
 	CuAssertIntEquals (test, false, status);
 
-	CuAssertIntEquals (test, HOST_STATE_PREVALIDATED_FLASH,
+	CuAssertIntEquals (test, HOST_STATE_PREVALIDATED_NONE,
 		host_state_manager_get_run_time_validation (&host.host_state));
 
 	status = host_state_manager_is_bypass_mode (&host.host_state);
@@ -9931,12 +12599,13 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_fl
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_flash_swap_error (
+static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_flash_get_rw_error_restore_error (
 	CuTest *test)
 {
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -9951,7 +12620,102 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_fl
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
+		(intptr_t) &host.pfm);
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
+		(intptr_t) NULL);
+
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (true));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, HOST_FLASH_MGR_RW_REGIONS_FAILED, MOCK_ARG (&host.pfm), MOCK_ARG (true),
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
+	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr,
+		HOST_FLASH_MGR_RESTORE_RW_FAILED, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr,
+		HOST_FLASH_MGR_RESTORE_RW_FAILED, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr,
+		HOST_FLASH_MGR_RESTORE_RW_FAILED, MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
+		0);
+
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG (&host.pfm));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (false));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host.test.base.soft_reset (&host.test.base, &host.hash.base, &host.rsa.base);
+	CuAssertIntEquals (test, HOST_FLASH_MGR_RW_REGIONS_FAILED, status);
+
+	status = host_state_manager_is_inactive_dirty (&host.host_state);
+	CuAssertIntEquals (test, true, status);
+
+	status = host_state_manager_is_pfm_dirty (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	CuAssertIntEquals (test, HOST_STATE_PREVALIDATED_NONE,
+		host_state_manager_get_run_time_validation (&host.host_state));
+
+	status = host_state_manager_is_bypass_mode (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	host_processor_dual_testing_validate_and_release (test, &host);
+}
+
+static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_flash_swap_error (
+	CuTest *test)
+{
+	struct host_processor_dual_testing host;
+	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+
+	TEST_START;
+
+	host_processor_dual_testing_init (test, &host);
+
+	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
+	CuAssertIntEquals (test, 0, status);
+
+	host_state_manager_set_run_time_validation (&host.host_state, HOST_STATE_PREVALIDATED_FLASH);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -10030,6 +12794,7 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_fl
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -10044,7 +12809,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_fl
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -10235,6 +13003,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_init
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -10247,7 +13016,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_init
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -10327,6 +13099,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_filt
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -10339,7 +13112,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_filt
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -10525,6 +13301,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_va
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -10537,7 +13314,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_va
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -10561,6 +13341,106 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_va
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_list, sizeof (rw_list), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.base.activate_pending_manifest,
+		&host.pfm_mgr, 0);
+
+	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
+		0);
+
+	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.free_read_write_regions,
+		&host.pfm_next, 0, MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
+		0);
+
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG (&host.pfm));
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG (&host.pfm_next));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (false));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host.test.base.soft_reset (&host.test.base, &host.hash.base, &host.rsa.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_is_inactive_dirty (&host.host_state);
+	CuAssertIntEquals (test, true, status);
+
+	status = host_state_manager_is_pfm_dirty (&host.host_state);
+	CuAssertIntEquals (test, true, status);	// State changes in PFM manager.
+
+	status = host_state_manager_is_bypass_mode (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	host_processor_dual_testing_validate_and_release (test, &host);
+}
+
+static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_validation_error_restore_error (
+	CuTest *test)
+{
+	struct host_processor_dual_testing host;
+	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+
+	TEST_START;
+
+	host_processor_dual_testing_init (test, &host);
+
+	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
+	CuAssertIntEquals (test, 0, status);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
+		(intptr_t) &host.pfm);
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
+		(intptr_t) &host.pfm_next);
+
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (true));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_write_flash,
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG (&host.pfm_next),
+		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_only_flash,
+		&host.flash_mgr, 0, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
+		MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
+	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr,
+		HOST_FLASH_MGR_RESTORE_RW_FAILED, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr,
+		HOST_FLASH_MGR_RESTORE_RW_FAILED, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr,
+		HOST_FLASH_MGR_RESTORE_RW_FAILED, MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.base.activate_pending_manifest,
 		&host.pfm_mgr, 0);
@@ -10607,6 +13487,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -10621,7 +13502,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -10696,6 +13580,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ro
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -10708,7 +13593,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ro
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -10788,6 +13676,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_va
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -10800,7 +13689,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_va
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -10879,6 +13771,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_va
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -10891,7 +13784,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_va
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -10970,6 +13866,97 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ac
 {
 	struct host_processor_dual_testing host;
 	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+
+	TEST_START;
+
+	host_processor_dual_testing_init (test, &host);
+
+	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
+	CuAssertIntEquals (test, 0, status);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
+		(intptr_t) &host.pfm);
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
+		(intptr_t) &host.pfm_next);
+
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (true));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_write_flash,
+		&host.flash_mgr, HOST_FLASH_MGR_NO_MEMORY, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.hash),
+		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_only_flash,
+		&host.flash_mgr, HOST_FLASH_MGR_NO_MEMORY, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.pfm),
+		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_write_flash,
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG (&host.pfm),
+		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
+	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
+		0);
+
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG (&host.pfm));
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG (&host.pfm_next));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (false));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host.test.base.soft_reset (&host.test.base, &host.hash.base, &host.rsa.base);
+	CuAssertIntEquals (test, HOST_FLASH_MGR_VALIDATE_RW_FAILED, status);
+
+	status = host_state_manager_is_inactive_dirty (&host.host_state);
+	CuAssertIntEquals (test, true, status);
+
+	status = host_state_manager_is_pfm_dirty (&host.host_state);
+	CuAssertIntEquals (test, true, status);
+
+	status = host_state_manager_is_bypass_mode (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	host_processor_dual_testing_validate_and_release (test, &host);
+}
+
+static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_active_validation_error_restore_get_rw_error (
+	CuTest *test)
+{
+	struct host_processor_dual_testing host;
+	int status;
 
 	TEST_START;
 
@@ -11000,6 +13987,107 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ac
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_write_flash,
 		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG (&host.pfm),
 		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, HOST_FLASH_MGR_GET_RW_FAILED, MOCK_ARG (&host.pfm), MOCK_ARG (false),
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
+		0);
+
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG (&host.pfm));
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG (&host.pfm_next));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (false));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host.test.base.soft_reset (&host.test.base, &host.hash.base, &host.rsa.base);
+	CuAssertIntEquals (test, HOST_FLASH_MGR_VALIDATE_RW_FAILED, status);
+
+	status = host_state_manager_is_inactive_dirty (&host.host_state);
+	CuAssertIntEquals (test, true, status);
+
+	status = host_state_manager_is_pfm_dirty (&host.host_state);
+	CuAssertIntEquals (test, true, status);
+
+	status = host_state_manager_is_bypass_mode (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	host_processor_dual_testing_validate_and_release (test, &host);
+}
+
+static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_active_validation_error_restore_error (
+	CuTest *test)
+{
+	struct host_processor_dual_testing host;
+	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+
+	TEST_START;
+
+	host_processor_dual_testing_init (test, &host);
+
+	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
+	CuAssertIntEquals (test, 0, status);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
+		(intptr_t) &host.pfm);
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
+		(intptr_t) &host.pfm_next);
+
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (true));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_write_flash,
+		&host.flash_mgr, HOST_FLASH_MGR_NO_MEMORY, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.hash),
+		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_only_flash,
+		&host.flash_mgr, HOST_FLASH_MGR_NO_MEMORY, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.pfm),
+		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_write_flash,
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG (&host.pfm),
+		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
+	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr,
+		HOST_FLASH_MGR_RESTORE_RW_FAILED, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr,
+		HOST_FLASH_MGR_RESTORE_RW_FAILED, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr,
+		HOST_FLASH_MGR_RESTORE_RW_FAILED, MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
@@ -11036,6 +14124,95 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 {
 	struct host_processor_dual_testing host;
 	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+
+	TEST_START;
+
+	host_processor_dual_testing_init (test, &host);
+
+	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
+	CuAssertIntEquals (test, 0, status);
+
+	host_state_manager_set_pfm_dirty (&host.host_state, false);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
+		(intptr_t) &host.pfm);
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
+		(intptr_t) &host.pfm_next);
+
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (true));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_write_flash,
+		&host.flash_mgr, HOST_FLASH_MGR_NO_MEMORY, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.hash),
+		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_write_flash,
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG (&host.pfm),
+		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
+	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
+		0);
+
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG (&host.pfm));
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG (&host.pfm_next));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (false));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host.test.base.soft_reset (&host.test.base, &host.hash.base, &host.rsa.base);
+	CuAssertIntEquals (test, HOST_FLASH_MGR_VALIDATE_RW_FAILED, status);
+
+	status = host_state_manager_is_inactive_dirty (&host.host_state);
+	CuAssertIntEquals (test, true, status);
+
+	status = host_state_manager_is_pfm_dirty (&host.host_state);
+	CuAssertIntEquals (test, true, status);
+
+	status = host_state_manager_is_bypass_mode (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	host_processor_dual_testing_validate_and_release (test, &host);
+}
+
+static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_checked_active_validation_error_restore_get_rw_error (
+	CuTest *test)
+{
+	struct host_processor_dual_testing host;
+	int status;
 
 	TEST_START;
 
@@ -11064,6 +14241,105 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_write_flash,
 		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG (&host.pfm),
 		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, HOST_FLASH_MGR_GET_RW_FAILED, MOCK_ARG (&host.pfm), MOCK_ARG (false),
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
+		0);
+
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG (&host.pfm));
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG (&host.pfm_next));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (false));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host.test.base.soft_reset (&host.test.base, &host.hash.base, &host.rsa.base);
+	CuAssertIntEquals (test, HOST_FLASH_MGR_VALIDATE_RW_FAILED, status);
+
+	status = host_state_manager_is_inactive_dirty (&host.host_state);
+	CuAssertIntEquals (test, true, status);
+
+	status = host_state_manager_is_pfm_dirty (&host.host_state);
+	CuAssertIntEquals (test, true, status);
+
+	status = host_state_manager_is_bypass_mode (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	host_processor_dual_testing_validate_and_release (test, &host);
+}
+
+static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_checked_active_validation_error_restore_error (
+	CuTest *test)
+{
+	struct host_processor_dual_testing host;
+	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+
+	TEST_START;
+
+	host_processor_dual_testing_init (test, &host);
+
+	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
+	CuAssertIntEquals (test, 0, status);
+
+	host_state_manager_set_pfm_dirty (&host.host_state, false);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
+		(intptr_t) &host.pfm);
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
+		(intptr_t) &host.pfm_next);
+
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (true));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_write_flash,
+		&host.flash_mgr, HOST_FLASH_MGR_NO_MEMORY, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.hash),
+		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_write_flash,
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG (&host.pfm),
+		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
+	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr,
+		HOST_FLASH_MGR_RESTORE_RW_FAILED, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr,
+		HOST_FLASH_MGR_RESTORE_RW_FAILED, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr,
+		HOST_FLASH_MGR_RESTORE_RW_FAILED, MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
@@ -11100,6 +14376,9 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ac
 {
 	struct host_processor_dual_testing host;
 	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
 
@@ -11107,6 +14386,15 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ac
 
 	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
 	CuAssertIntEquals (test, 0, status);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
 		(intptr_t) &host.pfm);
@@ -11127,6 +14415,19 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ac
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_write_flash,
 		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG (&host.pfm),
 		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
+	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
@@ -11167,6 +14468,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_sw
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -11179,7 +14481,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_sw
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -11262,6 +14567,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_fi
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -11274,7 +14580,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_fi
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -11353,6 +14662,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ac
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -11365,7 +14675,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ac
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -11453,6 +14766,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ac
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -11465,7 +14779,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ac
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -11553,6 +14870,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -11567,7 +14885,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -11591,6 +14912,111 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_list, sizeof (rw_list), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.base.activate_pending_manifest,
+		&host.pfm_mgr, 0);
+
+	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
+		0);
+
+	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.free_read_write_regions,
+		&host.pfm_next, 0, MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
+		0);
+
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG (&host.pfm));
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG (&host.pfm_next));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (false));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host.test.base.soft_reset (&host.test.base, &host.hash.base, &host.rsa.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_is_inactive_dirty (&host.host_state);
+	CuAssertIntEquals (test, true, status);
+
+	status = host_state_manager_is_pfm_dirty (&host.host_state);
+	CuAssertIntEquals (test, true, status);	// State changes in PFM manager.
+
+	CuAssertIntEquals (test, HOST_STATE_PREVALIDATED_NONE,
+		host_state_manager_get_run_time_validation (&host.host_state));
+
+	status = host_state_manager_is_bypass_mode (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	host_processor_dual_testing_validate_and_release (test, &host);
+}
+
+static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_prevalidated_flash_validation_error_restore_error (
+	CuTest *test)
+{
+	struct host_processor_dual_testing host;
+	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+
+	TEST_START;
+
+	host_processor_dual_testing_init (test, &host);
+
+	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
+	CuAssertIntEquals (test, 0, status);
+
+	host_state_manager_set_run_time_validation (&host.host_state, HOST_STATE_PREVALIDATED_FLASH);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
+		(intptr_t) &host.pfm);
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
+		(intptr_t) &host.pfm_next);
+
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (true));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_write_flash,
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG (&host.pfm_next),
+		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_only_flash,
+		&host.flash_mgr, 0, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
+		MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
+	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr,
+		HOST_FLASH_MGR_RESTORE_RW_FAILED, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr,
+		HOST_FLASH_MGR_RESTORE_RW_FAILED, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr,
+		HOST_FLASH_MGR_RESTORE_RW_FAILED, MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.base.activate_pending_manifest,
 		&host.pfm_mgr, 0);
@@ -11640,6 +15066,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -11654,7 +15081,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -11736,6 +15166,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -11750,7 +15181,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -11831,6 +15265,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -11845,7 +15280,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -11926,6 +15364,103 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 {
 	struct host_processor_dual_testing host;
 	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+
+	TEST_START;
+
+	host_processor_dual_testing_init (test, &host);
+
+	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
+	CuAssertIntEquals (test, 0, status);
+
+	host_state_manager_set_run_time_validation (&host.host_state, HOST_STATE_PREVALIDATED_FLASH);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
+		(intptr_t) &host.pfm);
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
+		(intptr_t) &host.pfm_next);
+
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (true));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_write_flash,
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG (&host.pfm_next),
+		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_only_flash,
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG (&host.pfm_next),
+		MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false),
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, HOST_FLASH_MGR_RW_REGIONS_FAILED, MOCK_ARG (&host.pfm), MOCK_ARG (true),
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
+	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
+		0);
+
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG (&host.pfm));
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG (&host.pfm_next));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (false));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host.test.base.soft_reset (&host.test.base, &host.hash.base, &host.rsa.base);
+	CuAssertIntEquals (test, HOST_FLASH_MGR_RW_REGIONS_FAILED, status);
+
+	status = host_state_manager_is_inactive_dirty (&host.host_state);
+	CuAssertIntEquals (test, true, status);
+
+	status = host_state_manager_is_pfm_dirty (&host.host_state);
+	CuAssertIntEquals (test, true, status);
+
+	CuAssertIntEquals (test, HOST_STATE_PREVALIDATED_NONE,
+		host_state_manager_get_run_time_validation (&host.host_state));
+
+	status = host_state_manager_is_bypass_mode (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	host_processor_dual_testing_validate_and_release (test, &host);
+}
+
+static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_prevalidated_flash_active_get_rw_error_restore_get_rw_error (
+	CuTest *test)
+{
+	struct host_processor_dual_testing host;
+	int status;
 
 	TEST_START;
 
@@ -11960,6 +15495,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 		&host.flash_mgr, HOST_FLASH_MGR_RW_REGIONS_FAILED, MOCK_ARG (&host.pfm), MOCK_ARG (true),
 		MOCK_ARG_NOT_NULL);
 
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, HOST_FLASH_MGR_GET_RW_FAILED, MOCK_ARG (&host.pfm), MOCK_ARG (false),
+		MOCK_ARG_NOT_NULL);
+
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
 
@@ -11984,7 +15523,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
 	CuAssertIntEquals (test, true, status);
 
-	CuAssertIntEquals (test, HOST_STATE_PREVALIDATED_FLASH,
+	CuAssertIntEquals (test, HOST_STATE_PREVALIDATED_NONE,
 		host_state_manager_get_run_time_validation (&host.host_state));
 
 	status = host_state_manager_is_bypass_mode (&host.host_state);
@@ -11993,12 +15532,13 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_prevalidated_flash_swap_error (
+static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_prevalidated_flash_active_get_rw_error_restore_error (
 	CuTest *test)
 {
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -12013,7 +15553,113 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
+		(intptr_t) &host.pfm);
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
+		(intptr_t) &host.pfm_next);
+
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (true));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_write_flash,
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG (&host.pfm_next),
+		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_only_flash,
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG (&host.pfm_next),
+		MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false),
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, HOST_FLASH_MGR_RW_REGIONS_FAILED, MOCK_ARG (&host.pfm), MOCK_ARG (true),
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
+	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr,
+		HOST_FLASH_MGR_RESTORE_RW_FAILED, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr,
+		HOST_FLASH_MGR_RESTORE_RW_FAILED, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr,
+		HOST_FLASH_MGR_RESTORE_RW_FAILED, MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
+		0);
+
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG (&host.pfm));
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG (&host.pfm_next));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (false));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host.test.base.soft_reset (&host.test.base, &host.hash.base, &host.rsa.base);
+	CuAssertIntEquals (test, HOST_FLASH_MGR_RW_REGIONS_FAILED, status);
+
+	status = host_state_manager_is_inactive_dirty (&host.host_state);
+	CuAssertIntEquals (test, true, status);
+
+	status = host_state_manager_is_pfm_dirty (&host.host_state);
+	CuAssertIntEquals (test, true, status);
+
+	CuAssertIntEquals (test, HOST_STATE_PREVALIDATED_NONE,
+		host_state_manager_get_run_time_validation (&host.host_state));
+
+	status = host_state_manager_is_bypass_mode (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	host_processor_dual_testing_validate_and_release (test, &host);
+}
+
+static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_prevalidated_flash_swap_error (
+	CuTest *test)
+{
+	struct host_processor_dual_testing host;
+	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+
+	TEST_START;
+
+	host_processor_dual_testing_init (test, &host);
+
+	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
+	CuAssertIntEquals (test, 0, status);
+
+	host_state_manager_set_run_time_validation (&host.host_state, HOST_STATE_PREVALIDATED_FLASH);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -12099,6 +15745,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -12113,7 +15760,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -12195,6 +15845,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -12209,7 +15860,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -12299,6 +15953,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -12313,7 +15968,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -12402,6 +16060,95 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 {
 	struct host_processor_dual_testing host;
 	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+
+	TEST_START;
+
+	host_processor_dual_testing_init (test, &host);
+
+	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
+	CuAssertIntEquals (test, 0, status);
+
+	host_state_manager_set_run_time_validation (&host.host_state, HOST_STATE_PREVALIDATED_FLASH);
+	host_state_manager_set_pfm_dirty (&host.host_state, false);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
+		(intptr_t) &host.pfm);
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
+		(intptr_t) &host.pfm_next);
+
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (true));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, HOST_FLASH_MGR_RW_REGIONS_FAILED, MOCK_ARG (&host.pfm), MOCK_ARG (true),
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
+	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
+		0);
+
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG (&host.pfm));
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG (&host.pfm_next));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (false));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host.test.base.soft_reset (&host.test.base, &host.hash.base, &host.rsa.base);
+	CuAssertIntEquals (test, HOST_FLASH_MGR_RW_REGIONS_FAILED, status);
+
+	status = host_state_manager_is_inactive_dirty (&host.host_state);
+	CuAssertIntEquals (test, true, status);
+
+	status = host_state_manager_is_pfm_dirty (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	CuAssertIntEquals (test, HOST_STATE_PREVALIDATED_NONE,
+		host_state_manager_get_run_time_validation (&host.host_state));
+
+	status = host_state_manager_is_bypass_mode (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	host_processor_dual_testing_validate_and_release (test, &host);
+}
+
+static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_checked_prevalidated_flash_get_rw_error_restore_get_rw_error (
+	CuTest *test)
+{
+	struct host_processor_dual_testing host;
+	int status;
 
 	TEST_START;
 
@@ -12428,6 +16175,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 		&host.flash_mgr, HOST_FLASH_MGR_RW_REGIONS_FAILED, MOCK_ARG (&host.pfm), MOCK_ARG (true),
 		MOCK_ARG_NOT_NULL);
 
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, HOST_FLASH_MGR_GET_RW_FAILED, MOCK_ARG (&host.pfm), MOCK_ARG (false),
+		MOCK_ARG_NOT_NULL);
+
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
 
@@ -12452,7 +16203,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
 	CuAssertIntEquals (test, false, status);
 
-	CuAssertIntEquals (test, HOST_STATE_PREVALIDATED_FLASH,
+	CuAssertIntEquals (test, HOST_STATE_PREVALIDATED_NONE,
 		host_state_manager_get_run_time_validation (&host.host_state));
 
 	status = host_state_manager_is_bypass_mode (&host.host_state);
@@ -12461,12 +16212,13 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_checked_prevalidated_flash_swap_error (
+static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_checked_prevalidated_flash_get_rw_error_restore_error (
 	CuTest *test)
 {
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -12482,7 +16234,105 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
+		(intptr_t) &host.pfm);
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
+		(intptr_t) &host.pfm_next);
+
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (true));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, HOST_FLASH_MGR_RW_REGIONS_FAILED, MOCK_ARG (&host.pfm), MOCK_ARG (true),
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
+	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr,
+		HOST_FLASH_MGR_RESTORE_RW_FAILED, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr,
+		HOST_FLASH_MGR_RESTORE_RW_FAILED, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr,
+		HOST_FLASH_MGR_RESTORE_RW_FAILED, MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
+		0);
+
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG (&host.pfm));
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG (&host.pfm_next));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (false));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host.test.base.soft_reset (&host.test.base, &host.hash.base, &host.rsa.base);
+	CuAssertIntEquals (test, HOST_FLASH_MGR_RW_REGIONS_FAILED, status);
+
+	status = host_state_manager_is_inactive_dirty (&host.host_state);
+	CuAssertIntEquals (test, true, status);
+
+	status = host_state_manager_is_pfm_dirty (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	CuAssertIntEquals (test, HOST_STATE_PREVALIDATED_NONE,
+		host_state_manager_get_run_time_validation (&host.host_state));
+
+	status = host_state_manager_is_bypass_mode (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	host_processor_dual_testing_validate_and_release (test, &host);
+}
+
+static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_checked_prevalidated_flash_swap_error (
+	CuTest *test)
+{
+	struct host_processor_dual_testing host;
+	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+
+	TEST_START;
+
+	host_processor_dual_testing_init (test, &host);
+
+	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
+	CuAssertIntEquals (test, 0, status);
+
+	host_state_manager_set_run_time_validation (&host.host_state, HOST_STATE_PREVALIDATED_FLASH);
+	host_state_manager_set_pfm_dirty (&host.host_state, false);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -12561,6 +16411,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -12576,7 +16427,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -12654,6 +16508,96 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 {
 	struct host_processor_dual_testing host;
 	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+
+	TEST_START;
+
+	host_processor_dual_testing_init (test, &host);
+
+	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
+	CuAssertIntEquals (test, 0, status);
+
+	host_state_manager_set_run_time_validation (&host.host_state,
+		HOST_STATE_PREVALIDATED_FLASH_AND_PFM);
+	host_state_manager_set_pfm_dirty (&host.host_state, false);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
+		(intptr_t) &host.pfm);
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
+		(intptr_t) &host.pfm_next);
+
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (true));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, HOST_FLASH_MGR_RW_REGIONS_FAILED, MOCK_ARG (&host.pfm_next),
+		MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
+	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
+		0);
+
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG (&host.pfm));
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG (&host.pfm_next));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (false));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host.test.base.soft_reset (&host.test.base, &host.hash.base, &host.rsa.base);
+	CuAssertIntEquals (test, HOST_FLASH_MGR_RW_REGIONS_FAILED, status);
+
+	status = host_state_manager_is_inactive_dirty (&host.host_state);
+	CuAssertIntEquals (test, true, status);
+
+	status = host_state_manager_is_pfm_dirty (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	CuAssertIntEquals (test, HOST_STATE_PREVALIDATED_NONE,
+		host_state_manager_get_run_time_validation (&host.host_state));
+
+	status = host_state_manager_is_bypass_mode (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	host_processor_dual_testing_validate_and_release (test, &host);
+}
+
+static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_checked_prevalidated_flash_and_pfm_get_rw_error_restore_get_rw_error (
+	CuTest *test)
+{
+	struct host_processor_dual_testing host;
+	int status;
 
 	TEST_START;
 
@@ -12678,7 +16622,11 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 		&host.flash_mgr, 0, MOCK_ARG (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
-		&host.flash_mgr, HOST_FLASH_MGR_RW_REGIONS_FAILED, MOCK_ARG (&host.pfm_next), MOCK_ARG (true),
+		&host.flash_mgr, HOST_FLASH_MGR_RW_REGIONS_FAILED, MOCK_ARG (&host.pfm_next),
+		MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, HOST_FLASH_MGR_GET_RW_FAILED, MOCK_ARG (&host.pfm), MOCK_ARG (false),
 		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
@@ -12705,7 +16653,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
 	CuAssertIntEquals (test, false, status);
 
-	CuAssertIntEquals (test, HOST_STATE_PREVALIDATED_FLASH_AND_PFM,
+	CuAssertIntEquals (test, HOST_STATE_PREVALIDATED_NONE,
 		host_state_manager_get_run_time_validation (&host.host_state));
 
 	status = host_state_manager_is_bypass_mode (&host.host_state);
@@ -12714,12 +16662,13 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	host_processor_dual_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_checked_prevalidated_flash_and_pfm_swap_error (
+static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_checked_prevalidated_flash_and_pfm_get_rw_error_restore_error (
 	CuTest *test)
 {
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -12736,7 +16685,106 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
+		(intptr_t) &host.pfm);
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
+		(intptr_t) &host.pfm_next);
+
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (true));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, HOST_FLASH_MGR_RW_REGIONS_FAILED, MOCK_ARG (&host.pfm_next),
+		MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_flash_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
+	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr,
+		HOST_FLASH_MGR_RESTORE_RW_FAILED, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr,
+		HOST_FLASH_MGR_RESTORE_RW_FAILED, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.restore_flash_read_write_regions, &host.flash_mgr,
+		HOST_FLASH_MGR_RESTORE_RW_FAILED, MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
+		0);
+
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG (&host.pfm));
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG (&host.pfm_next));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (false));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host.test.base.soft_reset (&host.test.base, &host.hash.base, &host.rsa.base);
+	CuAssertIntEquals (test, HOST_FLASH_MGR_RW_REGIONS_FAILED, status);
+
+	status = host_state_manager_is_inactive_dirty (&host.host_state);
+	CuAssertIntEquals (test, true, status);
+
+	status = host_state_manager_is_pfm_dirty (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	CuAssertIntEquals (test, HOST_STATE_PREVALIDATED_NONE,
+		host_state_manager_get_run_time_validation (&host.host_state));
+
+	status = host_state_manager_is_bypass_mode (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	host_processor_dual_testing_validate_and_release (test, &host);
+}
+
+static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_checked_prevalidated_flash_and_pfm_swap_error (
+	CuTest *test)
+{
+	struct host_processor_dual_testing host;
+	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+
+	TEST_START;
+
+	host_processor_dual_testing_init (test, &host);
+
+	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
+	CuAssertIntEquals (test, 0, status);
+
+	host_state_manager_set_run_time_validation (&host.host_state,
+		HOST_STATE_PREVALIDATED_FLASH_AND_PFM);
+	host_state_manager_set_pfm_dirty (&host.host_state, false);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -12821,6 +16869,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -12837,7 +16886,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -12918,6 +16970,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_by
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -12932,7 +16985,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_by
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -13008,6 +17064,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_by
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -13022,7 +17079,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_by
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -13104,6 +17164,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_by
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -13118,7 +17179,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_by
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -13264,6 +17328,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_by
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -13278,7 +17343,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_by
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -13362,6 +17430,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_by
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -13376,7 +17445,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_by
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -13543,6 +17615,10 @@ CuSuite* get_host_processor_dual_soft_reset_suite ()
 	SUITE_ADD_TEST (suite,
 		host_processor_dual_test_soft_reset_active_pfm_dirty_validation_fail_clear_error);
 	SUITE_ADD_TEST (suite,
+		host_processor_dual_test_soft_reset_active_pfm_dirty_validation_fail_restore_get_rw_error);
+	SUITE_ADD_TEST (suite,
+		host_processor_dual_test_soft_reset_active_pfm_dirty_validation_fail_restore_error);
+	SUITE_ADD_TEST (suite,
 		host_processor_dual_test_soft_reset_active_pfm_dirty_hash_validation_fail);
 	SUITE_ADD_TEST (suite, host_processor_dual_test_soft_reset_active_pfm_dirty_blank_fail);
 	SUITE_ADD_TEST (suite, host_processor_dual_test_soft_reset_active_pfm_dirty_unknown_version);
@@ -13558,9 +17634,17 @@ CuSuite* get_host_processor_dual_soft_reset_suite ()
 	SUITE_ADD_TEST (suite,
 		host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_flash_unknown_version_clear_error);
 	SUITE_ADD_TEST (suite,
+		host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_flash_unknown_version_restore_get_rw_error);
+	SUITE_ADD_TEST (suite,
+		host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_flash_unknown_version_restore_error);
+	SUITE_ADD_TEST (suite,
 		host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevalidated_flash_and_pfm_validation_fail);
 	SUITE_ADD_TEST (suite,
 		host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevalidated_flash_and_pfm_validation_fail_clear_error);
+	SUITE_ADD_TEST (suite,
+		host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevalidated_flash_and_pfm_validation_fail_restore_get_rw_error);
+	SUITE_ADD_TEST (suite,
+		host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevalidated_flash_and_pfm_validation_fail_restore_error);
 	SUITE_ADD_TEST (suite,
 		host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevalidated_flash_and_pfm_hash_validation_fail);
 	SUITE_ADD_TEST (suite,
@@ -13590,6 +17674,8 @@ CuSuite* get_host_processor_dual_soft_reset_suite ()
 	SUITE_ADD_TEST (suite,
 		host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_validation_fail_clear_error);
 	SUITE_ADD_TEST (suite,
+		host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_validation_fail_restore_error);
+	SUITE_ADD_TEST (suite,
 		host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_hash_validation_fail);
 	SUITE_ADD_TEST (suite,
 		host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_blank_fail);
@@ -13614,6 +17700,10 @@ CuSuite* get_host_processor_dual_soft_reset_suite ()
 	SUITE_ADD_TEST (suite,
 		host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_active_validation_fail_clear_error);
 	SUITE_ADD_TEST (suite,
+		host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_active_validation_fail_restore_get_rw_error);
+	SUITE_ADD_TEST (suite,
+		host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_active_validation_fail_restore_error);
+	SUITE_ADD_TEST (suite,
 		host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_active_hash_validation_fail);
 	SUITE_ADD_TEST (suite,
 		host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_active_blank_fail);
@@ -13623,6 +17713,8 @@ CuSuite* get_host_processor_dual_soft_reset_suite ()
 		host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_prevalidated_flash_validation_fail);
 	SUITE_ADD_TEST (suite,
 		host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_prevalidated_flash_validation_fail_clear_error);
+	SUITE_ADD_TEST (suite,
+		host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_prevalidated_flash_validation_fail_restore_error);
 	SUITE_ADD_TEST (suite,
 		host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_prevalidated_flash_hash_validation_fail);
 	SUITE_ADD_TEST (suite,
@@ -13640,13 +17732,25 @@ CuSuite* get_host_processor_dual_soft_reset_suite ()
 	SUITE_ADD_TEST (suite,
 		host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_prevalidated_flash_active_unknown_version_clear_error);
 	SUITE_ADD_TEST (suite,
+		host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_prevalidated_flash_active_unknown_version_restore_get_rw_error);
+	SUITE_ADD_TEST (suite,
+		host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_prevalidated_flash_active_unknown_version_restore_error);
+	SUITE_ADD_TEST (suite,
 		host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_checked_prevalidated_flash_unknown_version);
 	SUITE_ADD_TEST (suite,
 		host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_checked_prevalidated_flash_unknown_version_clear_error);
 	SUITE_ADD_TEST (suite,
+		host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_checked_prevalidated_flash_unknown_version_restore_get_rw_error);
+	SUITE_ADD_TEST (suite,
+		host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_checked_prevalidated_flash_unknown_version_restore_error);
+	SUITE_ADD_TEST (suite,
 		host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_checked_prevalidated_flash_and_pfm_unknown_version);
 	SUITE_ADD_TEST (suite,
 		host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_checked_prevalidated_flash_and_pfm_unknown_version_clear_error);
+	SUITE_ADD_TEST (suite,
+		host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_checked_prevalidated_flash_and_pfm_unknown_version_restore_get_rw_error);
+	SUITE_ADD_TEST (suite,
+		host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_checked_prevalidated_flash_and_pfm_unknown_version_restore_error);
 	SUITE_ADD_TEST (suite,
 		host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_bypass_validation_fail);
 	SUITE_ADD_TEST (suite,
@@ -13677,6 +17781,10 @@ CuSuite* get_host_processor_dual_soft_reset_suite ()
 	SUITE_ADD_TEST (suite, host_processor_dual_test_soft_reset_no_pfm_clear_error);
 	SUITE_ADD_TEST (suite, host_processor_dual_test_soft_reset_active_pfm_dirty_validation_error);
 	SUITE_ADD_TEST (suite,
+		host_processor_dual_test_soft_reset_active_pfm_dirty_validation_error_restore_get_rw_error);
+	SUITE_ADD_TEST (suite,
+		host_processor_dual_test_soft_reset_active_pfm_dirty_validation_error_restore_error);
+	SUITE_ADD_TEST (suite,
 		host_processor_dual_test_soft_reset_active_pfm_dirty_validation_error_pulse_reset);
 	SUITE_ADD_TEST (suite, host_processor_dual_test_soft_reset_active_pfm_dirty_swap_error);
 	SUITE_ADD_TEST (suite, host_processor_dual_test_soft_reset_active_pfm_dirty_filter_error);
@@ -13689,6 +17797,10 @@ CuSuite* get_host_processor_dual_soft_reset_suite ()
 		host_processor_dual_test_soft_reset_active_pfm_dirty_bypass_filter_error);
 	SUITE_ADD_TEST (suite,
 		host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_flash_get_rw_error);
+	SUITE_ADD_TEST (suite,
+		host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_flash_get_rw_error_restore_get_rw_error);
+	SUITE_ADD_TEST (suite,
+		host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_flash_get_rw_error_restore_error);
 	SUITE_ADD_TEST (suite,
 		host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_flash_swap_error);
 	SUITE_ADD_TEST (suite,
@@ -13708,6 +17820,8 @@ CuSuite* get_host_processor_dual_soft_reset_suite ()
 	SUITE_ADD_TEST (suite,
 		host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_validation_error);
 	SUITE_ADD_TEST (suite,
+		host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_validation_error_restore_error);
+	SUITE_ADD_TEST (suite,
 		host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_checked_validation_error);
 	SUITE_ADD_TEST (suite,
 		host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ro_validation_error);
@@ -13718,7 +17832,15 @@ CuSuite* get_host_processor_dual_soft_reset_suite ()
 	SUITE_ADD_TEST (suite,
 		host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_active_validation_error);
 	SUITE_ADD_TEST (suite,
+		host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_active_validation_error_restore_get_rw_error);
+	SUITE_ADD_TEST (suite,
+		host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_active_validation_error_restore_error);
+	SUITE_ADD_TEST (suite,
 		host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_checked_active_validation_error);
+	SUITE_ADD_TEST (suite,
+		host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_checked_active_validation_error_restore_get_rw_error);
+	SUITE_ADD_TEST (suite,
+		host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_checked_active_validation_error_restore_error);
 	SUITE_ADD_TEST (suite,
 		host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_active_validation_error_pulse_reset);
 	SUITE_ADD_TEST (suite,
@@ -13732,6 +17854,8 @@ CuSuite* get_host_processor_dual_soft_reset_suite ()
 	SUITE_ADD_TEST (suite,
 		host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_prevalidated_flash_validation_error);
 	SUITE_ADD_TEST (suite,
+		host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_prevalidated_flash_validation_error_restore_error);
+	SUITE_ADD_TEST (suite,
 		host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_prevalidated_flash_ro_validation_error);
 	SUITE_ADD_TEST (suite,
 		host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_prevalidated_flash_validation_error_and_ro_validation_fail);
@@ -13739,6 +17863,10 @@ CuSuite* get_host_processor_dual_soft_reset_suite ()
 		host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_prevalidated_flash_validation_fail_and_ro_validation_error);
 	SUITE_ADD_TEST (suite,
 		host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_prevalidated_flash_active_get_rw_error);
+	SUITE_ADD_TEST (suite,
+		host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_prevalidated_flash_active_get_rw_error_restore_get_rw_error);
+	SUITE_ADD_TEST (suite,
+		host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_prevalidated_flash_active_get_rw_error_restore_error);
 	SUITE_ADD_TEST (suite,
 		host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_prevalidated_flash_swap_error);
 	SUITE_ADD_TEST (suite,
@@ -13750,11 +17878,19 @@ CuSuite* get_host_processor_dual_soft_reset_suite ()
 	SUITE_ADD_TEST (suite,
 		host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_checked_prevalidated_flash_get_rw_error);
 	SUITE_ADD_TEST (suite,
+		host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_checked_prevalidated_flash_get_rw_error_restore_get_rw_error);
+	SUITE_ADD_TEST (suite,
+		host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_checked_prevalidated_flash_get_rw_error_restore_error);
+	SUITE_ADD_TEST (suite,
 		host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_checked_prevalidated_flash_swap_error);
 	SUITE_ADD_TEST (suite,
 		host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_checked_prevalidated_flash_filter_error);
 	SUITE_ADD_TEST (suite,
 		host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_checked_prevalidated_flash_and_pfm_get_rw_error);
+	SUITE_ADD_TEST (suite,
+		host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_checked_prevalidated_flash_and_pfm_get_rw_error_restore_get_rw_error);
+	SUITE_ADD_TEST (suite,
+		host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_checked_prevalidated_flash_and_pfm_get_rw_error_restore_error);
 	SUITE_ADD_TEST (suite,
 		host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_checked_prevalidated_flash_and_pfm_swap_error);
 	SUITE_ADD_TEST (suite,

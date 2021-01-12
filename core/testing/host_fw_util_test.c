@@ -4029,6 +4029,7 @@ static void host_fw_full_flash_verification_test (CuTest *test)
 	struct pfm_image_signature sig;
 	struct pfm_image_list img_list;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash flash;
@@ -4079,7 +4080,10 @@ static void host_fw_full_flash_verification_test (CuTest *test)
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = spi_flash_set_device_size (&flash, 0x1000);
@@ -4103,6 +4107,7 @@ static void host_fw_full_flash_verification_test_not_blank_byte (CuTest *test)
 	struct pfm_image_signature sig;
 	struct pfm_image_list img_list;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash flash;
@@ -4153,7 +4158,10 @@ static void host_fw_full_flash_verification_test_not_blank_byte (CuTest *test)
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = spi_flash_set_device_size (&flash, 0x1000);
@@ -4177,6 +4185,7 @@ static void host_fw_full_flash_verification_test_multiple_rw_regions (CuTest *te
 	struct pfm_image_signature sig;
 	struct pfm_image_list img_list;
 	struct flash_region rw_region[2];
+	struct pfm_read_write rw_prop[2];
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash flash;
@@ -4230,7 +4239,11 @@ static void host_fw_full_flash_verification_test_multiple_rw_regions (CuTest *te
 	rw_region[1].start_addr = 0x600;
 	rw_region[1].length = 0x100;
 
+	rw_prop[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[1].on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = rw_region;
+	rw_list.properties = rw_prop;
 	rw_list.count = 2;
 
 	status = spi_flash_set_device_size (&flash, 0x1000);
@@ -4254,6 +4267,7 @@ static void host_fw_full_flash_verification_test_image_between_rw_regions (CuTes
 	struct pfm_image_signature sig;
 	struct pfm_image_list img_list;
 	struct flash_region rw_region[2];
+	struct pfm_read_write rw_prop[2];
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash flash;
@@ -4307,7 +4321,11 @@ static void host_fw_full_flash_verification_test_image_between_rw_regions (CuTes
 	rw_region[1].start_addr = 0xb00;
 	rw_region[1].length = 0x100;
 
+	rw_prop[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[1].on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = rw_region;
+	rw_list.properties = rw_prop;
 	rw_list.count = 2;
 
 	status = spi_flash_set_device_size (&flash, 0x1000);
@@ -4331,6 +4349,7 @@ static void host_fw_full_flash_verification_test_multiple_images (CuTest *test)
 	struct pfm_image_signature sig[2];
 	struct pfm_image_list img_list;
 	struct flash_region rw_region[2];
+	struct pfm_read_write rw_prop[2];
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash flash;
@@ -4400,7 +4419,11 @@ static void host_fw_full_flash_verification_test_multiple_images (CuTest *test)
 	rw_region[1].start_addr = 0xc00;
 	rw_region[1].length = 0x100;
 
+	rw_prop[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[1].on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = rw_region;
+	rw_list.properties = rw_prop;
 	rw_list.count = 2;
 
 	status = spi_flash_set_device_size (&flash, 0x1000);
@@ -4424,6 +4447,7 @@ static void host_fw_full_flash_verification_test_offset_image (CuTest *test)
 	struct pfm_image_signature sig[2];
 	struct pfm_image_list img_list;
 	struct flash_region rw_region[2];
+	struct pfm_read_write rw_prop[2];
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash flash;
@@ -4494,7 +4518,11 @@ static void host_fw_full_flash_verification_test_offset_image (CuTest *test)
 	rw_region[1].start_addr = 0xd00;
 	rw_region[1].length = 0x100;
 
+	rw_prop[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[1].on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = rw_region;
+	rw_list.properties = rw_prop;
 	rw_list.count = 2;
 
 	status = spi_flash_set_device_size (&flash, 0x1000);
@@ -4518,6 +4546,7 @@ static void host_fw_full_flash_verification_test_first_region_rw (CuTest *test)
 	struct pfm_image_signature sig[2];
 	struct pfm_image_list img_list;
 	struct flash_region rw_region[2];
+	struct pfm_read_write rw_prop[2];
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash flash;
@@ -4588,7 +4617,11 @@ static void host_fw_full_flash_verification_test_first_region_rw (CuTest *test)
 	rw_region[1].start_addr = 0xc00;
 	rw_region[1].length = 0x100;
 
+	rw_prop[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[1].on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = rw_region;
+	rw_list.properties = rw_prop;
 	rw_list.count = 2;
 
 	status = spi_flash_set_device_size (&flash, 0x1000);
@@ -4612,6 +4645,7 @@ static void host_fw_full_flash_verification_test_last_region_rw (CuTest *test)
 	struct pfm_image_signature sig[2];
 	struct pfm_image_list img_list;
 	struct flash_region rw_region[2];
+	struct pfm_read_write rw_prop[2];
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash flash;
@@ -4681,7 +4715,11 @@ static void host_fw_full_flash_verification_test_last_region_rw (CuTest *test)
 	rw_region[1].start_addr = 0xf00;
 	rw_region[1].length = 0x100;
 
+	rw_prop[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[1].on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = rw_region;
+	rw_list.properties = rw_prop;
 	rw_list.count = 2;
 
 	status = spi_flash_set_device_size (&flash, 0x1000);
@@ -4705,6 +4743,7 @@ static void host_fw_full_flash_verification_test_multipart_image (CuTest *test)
 	struct pfm_image_signature sig[2];
 	struct pfm_image_list img_list;
 	struct flash_region rw_region[2];
+	struct pfm_read_write rw_prop[2];
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash flash;
@@ -4733,12 +4772,12 @@ static void host_fw_full_flash_verification_test_multipart_image (CuTest *test)
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) data1, strlen (data1),
 		FLASH_EXP_READ_CMD (0x03, 0, 0, -1, 1));
 
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) data1 + 1, 3,
 		FLASH_EXP_READ_CMD (0x03, 0x300, 0, -1, 2));
 
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) data1 + 3, 1,
 		FLASH_EXP_READ_CMD (0x03, 0xe00, 0, -1, 1));
@@ -4789,7 +4828,11 @@ static void host_fw_full_flash_verification_test_multipart_image (CuTest *test)
 	rw_region[1].start_addr = 0xc00;
 	rw_region[1].length = 0x100;
 
+	rw_prop[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[1].on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = rw_region;
+	rw_list.properties = rw_prop;
 	rw_list.count = 2;
 
 	status = spi_flash_set_device_size (&flash, 0x1000);
@@ -4813,6 +4856,7 @@ static void host_fw_full_flash_verification_test_partial_validation (CuTest *tes
 	struct pfm_image_signature sig[2];
 	struct pfm_image_list img_list;
 	struct flash_region rw_region[2];
+	struct pfm_read_write rw_prop[2];
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash flash;
@@ -4882,7 +4926,11 @@ static void host_fw_full_flash_verification_test_partial_validation (CuTest *tes
 	rw_region[1].start_addr = 0xc00;
 	rw_region[1].length = 0x100;
 
+	rw_prop[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[1].on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = rw_region;
+	rw_list.properties = rw_prop;
 	rw_list.count = 2;
 
 	status = spi_flash_set_device_size (&flash, 0x1000);
@@ -4906,6 +4954,7 @@ static void host_fw_full_flash_verification_test_invalid_image (CuTest *test)
 	struct pfm_image_signature sig[2];
 	struct pfm_image_list img_list;
 	struct flash_region rw_region[2];
+	struct pfm_read_write rw_prop[2];
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash flash;
@@ -4964,7 +5013,11 @@ static void host_fw_full_flash_verification_test_invalid_image (CuTest *test)
 	rw_region[1].start_addr = 0xc00;
 	rw_region[1].length = 0x100;
 
+	rw_prop[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[1].on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = rw_region;
+	rw_list.properties = rw_prop;
 	rw_list.count = 2;
 
 	status = spi_flash_set_device_size (&flash, 0x1000);
@@ -4988,6 +5041,7 @@ static void host_fw_full_flash_verification_test_not_blank (CuTest *test)
 	struct pfm_image_signature sig;
 	struct pfm_image_list img_list;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash flash;
@@ -5039,7 +5093,10 @@ static void host_fw_full_flash_verification_test_not_blank (CuTest *test)
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = spi_flash_set_device_size (&flash, 0x1000);
@@ -5063,6 +5120,7 @@ static void host_fw_full_flash_verification_test_last_not_blank (CuTest *test)
 	struct pfm_image_signature sig;
 	struct pfm_image_list img_list;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash flash;
@@ -5116,7 +5174,10 @@ static void host_fw_full_flash_verification_test_last_not_blank (CuTest *test)
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = spi_flash_set_device_size (&flash, 0x1000);
@@ -5140,6 +5201,7 @@ static void host_fw_full_flash_verification_test_hashes_sha256 (CuTest *test)
 	struct pfm_image_hash img_hash;
 	struct pfm_image_list img_list;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash flash;
@@ -5190,7 +5252,10 @@ static void host_fw_full_flash_verification_test_hashes_sha256 (CuTest *test)
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = spi_flash_set_device_size (&flash, 0x1000);
@@ -5214,6 +5279,7 @@ static void host_fw_full_flash_verification_test_hashes_sha384 (CuTest *test)
 	struct pfm_image_hash img_hash;
 	struct pfm_image_list img_list;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash flash;
@@ -5264,7 +5330,10 @@ static void host_fw_full_flash_verification_test_hashes_sha384 (CuTest *test)
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = spi_flash_set_device_size (&flash, 0x1000);
@@ -5288,6 +5357,7 @@ static void host_fw_full_flash_verification_test_hashes_sha512 (CuTest *test)
 	struct pfm_image_hash img_hash;
 	struct pfm_image_list img_list;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash flash;
@@ -5338,7 +5408,10 @@ static void host_fw_full_flash_verification_test_hashes_sha512 (CuTest *test)
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = spi_flash_set_device_size (&flash, 0x1000);
@@ -5362,6 +5435,7 @@ static void host_fw_full_flash_verification_test_hashes_multipart_image (CuTest 
 	struct pfm_image_hash img_hash[2];
 	struct pfm_image_list img_list;
 	struct flash_region rw_region[2];
+	struct pfm_read_write rw_prop[2];
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash flash;
@@ -5390,12 +5464,12 @@ static void host_fw_full_flash_verification_test_hashes_multipart_image (CuTest 
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) data1, strlen (data1),
 		FLASH_EXP_READ_CMD (0x03, 0, 0, -1, 1));
 
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) data1 + 1, 3,
 		FLASH_EXP_READ_CMD (0x03, 0x300, 0, -1, 2));
 
-	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) data1 + 3, 1,
 		FLASH_EXP_READ_CMD (0x03, 0xe00, 0, -1, 1));
@@ -5446,7 +5520,11 @@ static void host_fw_full_flash_verification_test_hashes_multipart_image (CuTest 
 	rw_region[1].start_addr = 0xc00;
 	rw_region[1].length = 0x100;
 
+	rw_prop[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[1].on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = rw_region;
+	rw_list.properties = rw_prop;
 	rw_list.count = 2;
 
 	status = spi_flash_set_device_size (&flash, 0x1000);
@@ -5470,6 +5548,7 @@ static void host_fw_full_flash_verification_test_hashes_partial_validation (CuTe
 	struct pfm_image_hash img_hash[2];
 	struct pfm_image_list img_list;
 	struct flash_region rw_region[2];
+	struct pfm_read_write rw_prop[2];
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash flash;
@@ -5539,7 +5618,11 @@ static void host_fw_full_flash_verification_test_hashes_partial_validation (CuTe
 	rw_region[1].start_addr = 0xc00;
 	rw_region[1].length = 0x100;
 
+	rw_prop[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[1].on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = rw_region;
+	rw_list.properties = rw_prop;
 	rw_list.count = 2;
 
 	status = spi_flash_set_device_size (&flash, 0x1000);
@@ -5563,6 +5646,7 @@ static void host_fw_full_flash_verification_test_hashes_invalid_image (CuTest *t
 	struct pfm_image_hash img_hash[2];
 	struct pfm_image_list img_list;
 	struct flash_region rw_region[2];
+	struct pfm_read_write rw_prop[2];
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash flash;
@@ -5621,7 +5705,11 @@ static void host_fw_full_flash_verification_test_hashes_invalid_image (CuTest *t
 	rw_region[1].start_addr = 0xc00;
 	rw_region[1].length = 0x100;
 
+	rw_prop[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[1].on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = rw_region;
+	rw_list.properties = rw_prop;
 	rw_list.count = 2;
 
 	status = spi_flash_set_device_size (&flash, 0x1000);
@@ -5645,6 +5733,7 @@ static void host_fw_full_flash_verification_test_null (CuTest *test)
 	struct pfm_image_signature sig;
 	struct pfm_image_list img_list;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock;
 	struct spi_flash flash;
@@ -5684,7 +5773,10 @@ static void host_fw_full_flash_verification_test_null (CuTest *test)
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = spi_flash_set_device_size (&flash, 0x1000);
@@ -5721,6 +5813,7 @@ static void host_fw_full_flash_verification_test_null (CuTest *test)
 static void host_fw_migrate_read_write_data_test (CuTest *test)
 {
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
 	struct spi_flash flash1;
@@ -5757,7 +5850,10 @@ static void host_fw_migrate_read_write_data_test (CuTest *test)
 	rw_region.start_addr = 0x10000;
 	rw_region.length = RSA_ENCRYPT_LEN;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = host_fw_migrate_read_write_data (&flash2, &rw_list, &flash1, &rw_list);
@@ -5776,6 +5872,7 @@ static void host_fw_migrate_read_write_data_test (CuTest *test)
 static void host_fw_migrate_read_write_data_test_multiple_regions (CuTest *test)
 {
 	struct flash_region rw_region[3];
+	struct pfm_read_write rw_prop[3];
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
 	struct spi_flash flash1;
@@ -5823,7 +5920,12 @@ static void host_fw_migrate_read_write_data_test_multiple_regions (CuTest *test)
 	rw_region[2].start_addr = 0x50000;
 	rw_region[2].length = 32;
 
+	rw_prop[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[2].on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = rw_region;
+	rw_list.properties = rw_prop;
 	rw_list.count = 3;
 
 	status = host_fw_migrate_read_write_data (&flash2, &rw_list, &flash1, &rw_list);
@@ -5842,10 +5944,12 @@ static void host_fw_migrate_read_write_data_test_multiple_regions (CuTest *test)
 static void host_fw_migrate_read_write_data_test_different_addresses (CuTest *test)
 {
 	struct flash_region rw_region1;
+	struct pfm_read_write rw_prop1;
 	struct pfm_read_write_regions rw_list1;
 	struct flash_master_mock flash_mock1;
 	struct spi_flash flash1;
 	struct flash_region rw_region2;
+	struct pfm_read_write rw_prop2;
 	struct pfm_read_write_regions rw_list2;
 	struct flash_master_mock flash_mock2;
 	struct spi_flash flash2;
@@ -5878,13 +5982,19 @@ static void host_fw_migrate_read_write_data_test_different_addresses (CuTest *te
 	rw_region1.start_addr = 0x10000;
 	rw_region1.length = RSA_ENCRYPT_LEN;
 
+	rw_prop1.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list1.regions = &rw_region1;
+	rw_list1.properties = &rw_prop1;
 	rw_list1.count = 1;
 
 	rw_region2.start_addr = 0x50000;
 	rw_region2.length = RSA_ENCRYPT_LEN;
 
+	rw_prop2.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list2.regions = &rw_region2;
+	rw_list2.properties = &rw_prop2;
 	rw_list2.count = 1;
 
 	status = host_fw_migrate_read_write_data (&flash2, &rw_list2, &flash1, &rw_list1);
@@ -5903,10 +6013,12 @@ static void host_fw_migrate_read_write_data_test_different_addresses (CuTest *te
 static void host_fw_migrate_read_write_data_test_multiple_diff_addresses (CuTest *test)
 {
 	struct flash_region rw_region1[3];
+	struct pfm_read_write rw_prop1[3];
 	struct pfm_read_write_regions rw_list1;
 	struct flash_master_mock flash_mock1;
 	struct spi_flash flash1;
 	struct flash_region rw_region2[3];
+	struct pfm_read_write rw_prop2[3];
 	struct pfm_read_write_regions rw_list2;
 	struct flash_master_mock flash_mock2;
 	struct spi_flash flash2;
@@ -5945,7 +6057,12 @@ static void host_fw_migrate_read_write_data_test_multiple_diff_addresses (CuTest
 	rw_region1[2].start_addr = 0x50000;
 	rw_region1[2].length = 32;
 
+	rw_prop1[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop1[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop1[2].on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list1.regions = rw_region1;
+	rw_list1.properties = rw_prop1;
 	rw_list1.count = 3;
 
 	rw_region2[0].start_addr = 0x10000;
@@ -5955,7 +6072,12 @@ static void host_fw_migrate_read_write_data_test_multiple_diff_addresses (CuTest
 	rw_region2[2].start_addr = 0x50000;
 	rw_region2[2].length = 32;
 
+	rw_prop2[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop2[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop2[2].on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list2.regions = rw_region2;
+	rw_list2.properties = rw_prop2;
 	rw_list2.count = 3;
 
 	status = host_fw_migrate_read_write_data (&flash2, &rw_list2, &flash1, &rw_list1);
@@ -5974,10 +6096,12 @@ static void host_fw_migrate_read_write_data_test_multiple_diff_addresses (CuTest
 static void host_fw_migrate_read_write_data_test_dest_larger (CuTest *test)
 {
 	struct flash_region rw_region1;
+	struct pfm_read_write rw_prop1;
 	struct pfm_read_write_regions rw_list1;
 	struct flash_master_mock flash_mock1;
 	struct spi_flash flash1;
 	struct flash_region rw_region2;
+	struct pfm_read_write rw_prop2;
 	struct pfm_read_write_regions rw_list2;
 	struct flash_master_mock flash_mock2;
 	struct spi_flash flash2;
@@ -6011,13 +6135,19 @@ static void host_fw_migrate_read_write_data_test_dest_larger (CuTest *test)
 	rw_region1.start_addr = 0x10000;
 	rw_region1.length = RSA_ENCRYPT_LEN;
 
+	rw_prop1.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list1.regions = &rw_region1;
+	rw_list1.properties = &rw_prop1;
 	rw_list1.count = 1;
 
 	rw_region2.start_addr = 0x10000;
 	rw_region2.length = RSA_ENCRYPT_LEN * 2;
 
+	rw_prop2.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list2.regions = &rw_region2;
+	rw_list2.properties = &rw_prop2;
 	rw_list2.count = 1;
 
 	status = host_fw_migrate_read_write_data (&flash2, &rw_list2, &flash1, &rw_list1);
@@ -6036,10 +6166,12 @@ static void host_fw_migrate_read_write_data_test_dest_larger (CuTest *test)
 static void host_fw_migrate_read_write_data_test_dest_smaller (CuTest *test)
 {
 	struct flash_region rw_region1;
+	struct pfm_read_write rw_prop1;
 	struct pfm_read_write_regions rw_list1;
 	struct flash_master_mock flash_mock1;
 	struct spi_flash flash1;
 	struct flash_region rw_region2;
+	struct pfm_read_write rw_prop2;
 	struct pfm_read_write_regions rw_list2;
 	struct flash_master_mock flash_mock2;
 	struct spi_flash flash2;
@@ -6073,13 +6205,19 @@ static void host_fw_migrate_read_write_data_test_dest_smaller (CuTest *test)
 	rw_region1.start_addr = 0x10000;
 	rw_region1.length = RSA_ENCRYPT_LEN;
 
+	rw_prop1.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list1.regions = &rw_region1;
+	rw_list1.properties = &rw_prop1;
 	rw_list1.count = 1;
 
 	rw_region2.start_addr = 0x10000;
 	rw_region2.length = RSA_ENCRYPT_LEN - 1;
 
+	rw_prop2.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list2.regions = &rw_region2;
+	rw_list2.properties = &rw_prop2;
 	rw_list2.count = 1;
 
 	status = host_fw_migrate_read_write_data (&flash2, &rw_list2, &flash1, &rw_list1);
@@ -6098,10 +6236,12 @@ static void host_fw_migrate_read_write_data_test_dest_smaller (CuTest *test)
 static void host_fw_migrate_read_write_data_test_multiple_one_smaller (CuTest *test)
 {
 	struct flash_region rw_region1[3];
+	struct pfm_read_write rw_prop1[3];
 	struct pfm_read_write_regions rw_list1;
 	struct flash_master_mock flash_mock1;
 	struct spi_flash flash1;
 	struct flash_region rw_region2[3];
+	struct pfm_read_write rw_prop2[3];
 	struct pfm_read_write_regions rw_list2;
 	struct flash_master_mock flash_mock2;
 	struct spi_flash flash2;
@@ -6140,7 +6280,12 @@ static void host_fw_migrate_read_write_data_test_multiple_one_smaller (CuTest *t
 	rw_region1[2].start_addr = 0x50000;
 	rw_region1[2].length = 32;
 
+	rw_prop1[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop1[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop1[2].on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list1.regions = rw_region1;
+	rw_list1.properties = rw_prop1;
 	rw_list1.count = 3;
 
 	rw_region2[0].start_addr = 0x10000;
@@ -6150,7 +6295,12 @@ static void host_fw_migrate_read_write_data_test_multiple_one_smaller (CuTest *t
 	rw_region2[2].start_addr = 0x50000;
 	rw_region2[2].length = 32;
 
+	rw_prop2[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop2[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop2[2].on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list2.regions = rw_region2;
+	rw_list2.properties = rw_prop2;
 	rw_list2.count = 3;
 
 	status = host_fw_migrate_read_write_data (&flash2, &rw_list2, &flash1, &rw_list1);
@@ -6169,10 +6319,12 @@ static void host_fw_migrate_read_write_data_test_multiple_one_smaller (CuTest *t
 static void host_fw_migrate_read_write_data_test_dest_more_regions (CuTest *test)
 {
 	struct flash_region rw_region1[2];
+	struct pfm_read_write rw_prop1[2];
 	struct pfm_read_write_regions rw_list1;
 	struct flash_master_mock flash_mock1;
 	struct spi_flash flash1;
 	struct flash_region rw_region2[3];
+	struct pfm_read_write rw_prop2[3];
 	struct pfm_read_write_regions rw_list2;
 	struct flash_master_mock flash_mock2;
 	struct spi_flash flash2;
@@ -6209,7 +6361,11 @@ static void host_fw_migrate_read_write_data_test_dest_more_regions (CuTest *test
 	rw_region1[1].start_addr = 0x30000;
 	rw_region1[1].length = 16;
 
+	rw_prop1[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop1[1].on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list1.regions = rw_region1;
+	rw_list1.properties = rw_prop1;
 	rw_list1.count = 2;
 
 	rw_region2[0].start_addr = 0x10000;
@@ -6219,7 +6375,12 @@ static void host_fw_migrate_read_write_data_test_dest_more_regions (CuTest *test
 	rw_region2[2].start_addr = 0x60000;
 	rw_region2[2].length = 32;
 
+	rw_prop2[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop2[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop2[2].on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list2.regions = rw_region2;
+	rw_list2.properties = rw_prop2;
 	rw_list2.count = 3;
 
 	status = host_fw_migrate_read_write_data (&flash2, &rw_list2, &flash1, &rw_list1);
@@ -6238,10 +6399,12 @@ static void host_fw_migrate_read_write_data_test_dest_more_regions (CuTest *test
 static void host_fw_migrate_read_write_data_test_src_more_regions (CuTest *test)
 {
 	struct flash_region rw_region1[3];
+	struct pfm_read_write rw_prop1[3];
 	struct pfm_read_write_regions rw_list1;
 	struct flash_master_mock flash_mock1;
 	struct spi_flash flash1;
 	struct flash_region rw_region2[3];
+	struct pfm_read_write rw_prop2[3];
 	struct pfm_read_write_regions rw_list2;
 	struct flash_master_mock flash_mock2;
 	struct spi_flash flash2;
@@ -6279,7 +6442,12 @@ static void host_fw_migrate_read_write_data_test_src_more_regions (CuTest *test)
 	rw_region1[2].start_addr = 0x50000;
 	rw_region1[2].length = 32;
 
+	rw_prop1[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop1[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop1[2].on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list1.regions = rw_region1;
+	rw_list1.properties = rw_prop1;
 	rw_list1.count = 3;
 
 	rw_region2[0].start_addr = 0x10000;
@@ -6287,7 +6455,11 @@ static void host_fw_migrate_read_write_data_test_src_more_regions (CuTest *test)
 	rw_region2[1].start_addr = 0x30000;
 	rw_region2[1].length = 16;
 
+	rw_prop2[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop2[1].on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list2.regions = rw_region2;
+	rw_list2.properties = rw_prop2;
 	rw_list2.count = 2;
 
 	status = host_fw_migrate_read_write_data (&flash2, &rw_list2, &flash1, &rw_list1);
@@ -6306,10 +6478,12 @@ static void host_fw_migrate_read_write_data_test_src_more_regions (CuTest *test)
 static void host_fw_migrate_read_write_data_test_diff_address_and_size (CuTest *test)
 {
 	struct flash_region rw_region1[3];
+	struct pfm_read_write rw_prop1[3];
 	struct pfm_read_write_regions rw_list1;
 	struct flash_master_mock flash_mock1;
 	struct spi_flash flash1;
 	struct flash_region rw_region2[3];
+	struct pfm_read_write rw_prop2[3];
 	struct pfm_read_write_regions rw_list2;
 	struct flash_master_mock flash_mock2;
 	struct spi_flash flash2;
@@ -6348,7 +6522,12 @@ static void host_fw_migrate_read_write_data_test_diff_address_and_size (CuTest *
 	rw_region1[2].start_addr = 0x50000;
 	rw_region1[2].length = 32;
 
+	rw_prop1[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop1[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop1[2].on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list1.regions = rw_region1;
+	rw_list1.properties = rw_prop1;
 	rw_list1.count = 3;
 
 	rw_region2[0].start_addr = 0x10000;
@@ -6358,7 +6537,12 @@ static void host_fw_migrate_read_write_data_test_diff_address_and_size (CuTest *
 	rw_region2[2].start_addr = 0x50000;
 	rw_region2[2].length = 16;
 
+	rw_prop2[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop2[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop2[2].on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list2.regions = rw_region2;
+	rw_list2.properties = rw_prop2;
 	rw_list2.count = 3;
 
 	status = host_fw_migrate_read_write_data (&flash2, &rw_list2, &flash1, &rw_list1);
@@ -6377,10 +6561,12 @@ static void host_fw_migrate_read_write_data_test_diff_address_and_size (CuTest *
 static void host_fw_migrate_read_write_data_test_diff_size_and_address (CuTest *test)
 {
 	struct flash_region rw_region1[3];
+	struct pfm_read_write rw_prop1[3];
 	struct pfm_read_write_regions rw_list1;
 	struct flash_master_mock flash_mock1;
 	struct spi_flash flash1;
 	struct flash_region rw_region2[3];
+	struct pfm_read_write rw_prop2[3];
 	struct pfm_read_write_regions rw_list2;
 	struct flash_master_mock flash_mock2;
 	struct spi_flash flash2;
@@ -6419,7 +6605,12 @@ static void host_fw_migrate_read_write_data_test_diff_size_and_address (CuTest *
 	rw_region1[2].start_addr = 0x50000;
 	rw_region1[2].length = 32;
 
+	rw_prop1[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop1[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop1[2].on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list1.regions = rw_region1;
+	rw_list1.properties = rw_prop1;
 	rw_list1.count = 3;
 
 	rw_region2[0].start_addr = 0x10000;
@@ -6429,7 +6620,12 @@ static void host_fw_migrate_read_write_data_test_diff_size_and_address (CuTest *
 	rw_region2[2].start_addr = 0x60000;
 	rw_region2[2].length = 32;
 
+	rw_prop2[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop2[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop2[2].on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list2.regions = rw_region2;
+	rw_list2.properties = rw_prop2;
 	rw_list2.count = 3;
 
 	status = host_fw_migrate_read_write_data (&flash2, &rw_list2, &flash1, &rw_list1);
@@ -6448,10 +6644,12 @@ static void host_fw_migrate_read_write_data_test_diff_size_and_address (CuTest *
 static void host_fw_migrate_read_write_data_test_all_different (CuTest *test)
 {
 	struct flash_region rw_region1[3];
+	struct pfm_read_write rw_prop1[3];
 	struct pfm_read_write_regions rw_list1;
 	struct flash_master_mock flash_mock1;
 	struct spi_flash flash1;
 	struct flash_region rw_region2[3];
+	struct pfm_read_write rw_prop2[3];
 	struct pfm_read_write_regions rw_list2;
 	struct flash_master_mock flash_mock2;
 	struct spi_flash flash2;
@@ -6489,7 +6687,12 @@ static void host_fw_migrate_read_write_data_test_all_different (CuTest *test)
 	rw_region1[2].start_addr = 0x50000;
 	rw_region1[2].length = 32;
 
+	rw_prop1[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop1[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop1[2].on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list1.regions = rw_region1;
+	rw_list1.properties = rw_prop1;
 	rw_list1.count = 3;
 
 	rw_region2[0].start_addr = 0x20000;
@@ -6497,7 +6700,11 @@ static void host_fw_migrate_read_write_data_test_all_different (CuTest *test)
 	rw_region2[1].start_addr = 0x30000;
 	rw_region2[1].length = 8;
 
+	rw_prop2[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop2[1].on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list2.regions = rw_region2;
+	rw_list2.properties = rw_prop2;
 	rw_list2.count = 2;
 
 	status = host_fw_migrate_read_write_data (&flash2, &rw_list2, &flash1, &rw_list1);
@@ -6516,10 +6723,12 @@ static void host_fw_migrate_read_write_data_test_all_different (CuTest *test)
 static void host_fw_migrate_read_write_data_test_multiple_diff_ordering (CuTest *test)
 {
 	struct flash_region rw_region1[3];
+	struct pfm_read_write rw_prop1[3];
 	struct pfm_read_write_regions rw_list1;
 	struct flash_master_mock flash_mock1;
 	struct spi_flash flash1;
 	struct flash_region rw_region2[3];
+	struct pfm_read_write rw_prop2[3];
 	struct pfm_read_write_regions rw_list2;
 	struct flash_master_mock flash_mock2;
 	struct spi_flash flash2;
@@ -6565,7 +6774,12 @@ static void host_fw_migrate_read_write_data_test_multiple_diff_ordering (CuTest 
 	rw_region1[2].start_addr = 0x50000;
 	rw_region1[2].length = 32;
 
+	rw_prop1[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop1[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop1[2].on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list1.regions = rw_region1;
+	rw_list1.properties = rw_prop1;
 	rw_list1.count = 3;
 
 	rw_region2[0].start_addr = 0x50000;
@@ -6575,7 +6789,12 @@ static void host_fw_migrate_read_write_data_test_multiple_diff_ordering (CuTest 
 	rw_region2[2].start_addr = 0x30000;
 	rw_region2[2].length = 16;
 
+	rw_prop2[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop2[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop2[2].on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list2.regions = rw_region2;
+	rw_list2.properties = rw_prop2;
 	rw_list2.count = 3;
 
 	status = host_fw_migrate_read_write_data (&flash2, &rw_list2, &flash1, &rw_list1);
@@ -6594,6 +6813,7 @@ static void host_fw_migrate_read_write_data_test_multiple_diff_ordering (CuTest 
 static void host_fw_migrate_read_write_data_test_no_source_regions (CuTest *test)
 {
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
 	struct spi_flash flash1;
@@ -6630,7 +6850,10 @@ static void host_fw_migrate_read_write_data_test_no_source_regions (CuTest *test
 	rw_region.start_addr = 0x10000;
 	rw_region.length = RSA_ENCRYPT_LEN;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = host_fw_migrate_read_write_data (&flash2, &rw_list, &flash1, NULL);
@@ -6649,6 +6872,7 @@ static void host_fw_migrate_read_write_data_test_no_source_regions (CuTest *test
 static void host_fw_migrate_read_write_data_test_null (CuTest *test)
 {
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
 	struct spi_flash flash1;
@@ -6679,7 +6903,10 @@ static void host_fw_migrate_read_write_data_test_null (CuTest *test)
 	rw_region.start_addr = 0x10000;
 	rw_region.length = RSA_ENCRYPT_LEN;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = host_fw_migrate_read_write_data (NULL, &rw_list, &flash1, &rw_list);
@@ -6704,6 +6931,7 @@ static void host_fw_migrate_read_write_data_test_null (CuTest *test)
 static void host_fw_migrate_read_write_data_test_erase_error (CuTest *test)
 {
 	struct flash_region rw_region[3];
+	struct pfm_read_write rw_prop[3];
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
 	struct spi_flash flash1;
@@ -6743,7 +6971,12 @@ static void host_fw_migrate_read_write_data_test_erase_error (CuTest *test)
 	rw_region[2].start_addr = 0x50000;
 	rw_region[2].length = 32;
 
+	rw_prop[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[2].on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = rw_region;
+	rw_list.properties = rw_prop;
 	rw_list.count = 3;
 
 	status = host_fw_migrate_read_write_data (&flash2, &rw_list, &flash1, &rw_list);
@@ -6762,6 +6995,7 @@ static void host_fw_migrate_read_write_data_test_erase_error (CuTest *test)
 static void host_fw_migrate_read_write_data_test_copy_error (CuTest *test)
 {
 	struct flash_region rw_region[3];
+	struct pfm_read_write rw_prop[3];
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
 	struct spi_flash flash1;
@@ -6805,7 +7039,12 @@ static void host_fw_migrate_read_write_data_test_copy_error (CuTest *test)
 	rw_region[2].start_addr = 0x50000;
 	rw_region[2].length = 32;
 
+	rw_prop[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[2].on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = rw_region;
+	rw_list.properties = rw_prop;
 	rw_list.count = 3;
 
 	status = host_fw_migrate_read_write_data (&flash2, &rw_list, &flash1, &rw_list);
@@ -6824,8 +7063,10 @@ static void host_fw_migrate_read_write_data_test_copy_error (CuTest *test)
 static void host_fw_are_read_write_regions_different_test (CuTest *test)
 {
 	struct flash_region rw_region1;
+	struct pfm_read_write rw_prop1;
 	struct pfm_read_write_regions rw_list1;
 	struct flash_region rw_region2;
+	struct pfm_read_write rw_prop2;
 	struct pfm_read_write_regions rw_list2;
 	bool status;
 
@@ -6834,13 +7075,19 @@ static void host_fw_are_read_write_regions_different_test (CuTest *test)
 	rw_region1.start_addr = 0x10000;
 	rw_region1.length = 0x100;
 
+	rw_prop1.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list1.regions = &rw_region1;
+	rw_list1.properties = &rw_prop1;
 	rw_list1.count = 1;
 
 	rw_region2.start_addr = 0x10000;
 	rw_region2.length = 0x100;
 
+	rw_prop2.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list2.regions = &rw_region2;
+	rw_list2.properties = &rw_prop2;
 	rw_list2.count = 1;
 
 	status = host_fw_are_read_write_regions_different (&rw_list1, &rw_list2);
@@ -6850,8 +7097,10 @@ static void host_fw_are_read_write_regions_different_test (CuTest *test)
 static void host_fw_are_read_write_regions_different_test_different_address (CuTest *test)
 {
 	struct flash_region rw_region1;
+	struct pfm_read_write rw_prop1;
 	struct pfm_read_write_regions rw_list1;
 	struct flash_region rw_region2;
+	struct pfm_read_write rw_prop2;
 	struct pfm_read_write_regions rw_list2;
 	bool status;
 
@@ -6860,13 +7109,19 @@ static void host_fw_are_read_write_regions_different_test_different_address (CuT
 	rw_region1.start_addr = 0x10000;
 	rw_region1.length = 0x100;
 
+	rw_prop1.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list1.regions = &rw_region1;
+	rw_list1.properties = &rw_prop1;
 	rw_list1.count = 1;
 
 	rw_region2.start_addr = 0x50000;
 	rw_region2.length = 0x100;
 
+	rw_prop2.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list2.regions = &rw_region2;
+	rw_list2.properties = &rw_prop2;
 	rw_list2.count = 1;
 
 	status = host_fw_are_read_write_regions_different (&rw_list1, &rw_list2);
@@ -6876,8 +7131,10 @@ static void host_fw_are_read_write_regions_different_test_different_address (CuT
 static void host_fw_are_read_write_regions_different_test_different_size (CuTest *test)
 {
 	struct flash_region rw_region1;
+	struct pfm_read_write rw_prop1;
 	struct pfm_read_write_regions rw_list1;
 	struct flash_region rw_region2;
+	struct pfm_read_write rw_prop2;
 	struct pfm_read_write_regions rw_list2;
 	bool status;
 
@@ -6886,13 +7143,19 @@ static void host_fw_are_read_write_regions_different_test_different_size (CuTest
 	rw_region1.start_addr = 0x10000;
 	rw_region1.length = 0x100;
 
+	rw_prop1.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list1.regions = &rw_region1;
+	rw_list1.properties = &rw_prop1;
 	rw_list1.count = 1;
 
 	rw_region2.start_addr = 0x10000;
 	rw_region2.length = 0x101;
 
+	rw_prop2.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list2.regions = &rw_region2;
+	rw_list2.properties = &rw_prop2;
 	rw_list2.count = 1;
 
 	status = host_fw_are_read_write_regions_different (&rw_list1, &rw_list2);
@@ -6902,8 +7165,10 @@ static void host_fw_are_read_write_regions_different_test_different_size (CuTest
 static void host_fw_are_read_write_regions_different_test_multiple (CuTest *test)
 {
 	struct flash_region rw_region1[3];
+	struct pfm_read_write rw_prop1[3];
 	struct pfm_read_write_regions rw_list1;
 	struct flash_region rw_region2[3];
+	struct pfm_read_write rw_prop2[3];
 	struct pfm_read_write_regions rw_list2;
 	bool status;
 
@@ -6916,7 +7181,12 @@ static void host_fw_are_read_write_regions_different_test_multiple (CuTest *test
 	rw_region1[2].start_addr = 0x50000;
 	rw_region1[2].length = 32;
 
+	rw_prop1[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop1[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop1[2].on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list1.regions = rw_region1;
+	rw_list1.properties = rw_prop1;
 	rw_list1.count = 3;
 
 	rw_region2[0].start_addr = 0x10000;
@@ -6926,7 +7196,12 @@ static void host_fw_are_read_write_regions_different_test_multiple (CuTest *test
 	rw_region2[2].start_addr = 0x50000;
 	rw_region2[2].length = 32;
 
+	rw_prop2[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop2[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop2[2].on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list2.regions = rw_region2;
+	rw_list2.properties = rw_prop2;
 	rw_list2.count = 3;
 
 	status = host_fw_are_read_write_regions_different (&rw_list1, &rw_list2);
@@ -6936,8 +7211,10 @@ static void host_fw_are_read_write_regions_different_test_multiple (CuTest *test
 static void host_fw_are_read_write_regions_different_test_multiple_diff_addr (CuTest *test)
 {
 	struct flash_region rw_region1[3];
+	struct pfm_read_write rw_prop1[3];
 	struct pfm_read_write_regions rw_list1;
 	struct flash_region rw_region2[3];
+	struct pfm_read_write rw_prop2[3];
 	struct pfm_read_write_regions rw_list2;
 	bool status;
 
@@ -6950,7 +7227,12 @@ static void host_fw_are_read_write_regions_different_test_multiple_diff_addr (Cu
 	rw_region1[2].start_addr = 0x50000;
 	rw_region1[2].length = 32;
 
+	rw_prop1[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop1[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop1[2].on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list1.regions = rw_region1;
+	rw_list1.properties = rw_prop1;
 	rw_list1.count = 3;
 
 	rw_region2[0].start_addr = 0x10000;
@@ -6960,7 +7242,12 @@ static void host_fw_are_read_write_regions_different_test_multiple_diff_addr (Cu
 	rw_region2[2].start_addr = 0x60000;
 	rw_region2[2].length = 32;
 
+	rw_prop2[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop2[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop2[2].on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list2.regions = rw_region2;
+	rw_list2.properties = rw_prop2;
 	rw_list2.count = 3;
 
 	status = host_fw_are_read_write_regions_different (&rw_list1, &rw_list2);
@@ -6970,8 +7257,10 @@ static void host_fw_are_read_write_regions_different_test_multiple_diff_addr (Cu
 static void host_fw_are_read_write_regions_different_test_multiple_diff_size (CuTest *test)
 {
 	struct flash_region rw_region1[3];
+	struct pfm_read_write rw_prop1[3];
 	struct pfm_read_write_regions rw_list1;
 	struct flash_region rw_region2[3];
+	struct pfm_read_write rw_prop2[3];
 	struct pfm_read_write_regions rw_list2;
 	bool status;
 
@@ -6984,7 +7273,12 @@ static void host_fw_are_read_write_regions_different_test_multiple_diff_size (Cu
 	rw_region1[2].start_addr = 0x50000;
 	rw_region1[2].length = 32;
 
+	rw_prop1[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop1[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop1[2].on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list1.regions = rw_region1;
+	rw_list1.properties = rw_prop1;
 	rw_list1.count = 3;
 
 	rw_region2[0].start_addr = 0x10000;
@@ -6994,7 +7288,12 @@ static void host_fw_are_read_write_regions_different_test_multiple_diff_size (Cu
 	rw_region2[2].start_addr = 0x50000;
 	rw_region2[2].length = 32;
 
+	rw_prop2[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop2[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop2[2].on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list2.regions = rw_region2;
+	rw_list2.properties = rw_prop2;
 	rw_list2.count = 3;
 
 	status = host_fw_are_read_write_regions_different (&rw_list1, &rw_list2);
@@ -7004,8 +7303,10 @@ static void host_fw_are_read_write_regions_different_test_multiple_diff_size (Cu
 static void host_fw_are_read_write_regions_different_test_second_fewer (CuTest *test)
 {
 	struct flash_region rw_region1[3];
+	struct pfm_read_write rw_prop1[3];
 	struct pfm_read_write_regions rw_list1;
 	struct flash_region rw_region2[2];
+	struct pfm_read_write rw_prop2[2];
 	struct pfm_read_write_regions rw_list2;
 	bool status;
 
@@ -7018,7 +7319,12 @@ static void host_fw_are_read_write_regions_different_test_second_fewer (CuTest *
 	rw_region1[2].start_addr = 0x50000;
 	rw_region1[2].length = 32;
 
+	rw_prop1[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop1[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop1[2].on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list1.regions = rw_region1;
+	rw_list1.properties = rw_prop1;
 	rw_list1.count = 3;
 
 	rw_region2[0].start_addr = 0x10000;
@@ -7026,7 +7332,11 @@ static void host_fw_are_read_write_regions_different_test_second_fewer (CuTest *
 	rw_region2[1].start_addr = 0x30000;
 	rw_region2[1].length = 16;
 
+	rw_prop2[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop2[1].on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list2.regions = rw_region2;
+	rw_list2.properties = rw_prop2;
 	rw_list2.count = 2;
 
 	status = host_fw_are_read_write_regions_different (&rw_list1, &rw_list2);
@@ -7036,8 +7346,10 @@ static void host_fw_are_read_write_regions_different_test_second_fewer (CuTest *
 static void host_fw_are_read_write_regions_different_test_first_fewer (CuTest *test)
 {
 	struct flash_region rw_region1[2];
+	struct pfm_read_write rw_prop1[2];
 	struct pfm_read_write_regions rw_list1;
 	struct flash_region rw_region2[3];
+	struct pfm_read_write rw_prop2[3];
 	struct pfm_read_write_regions rw_list2;
 	bool status;
 
@@ -7048,7 +7360,11 @@ static void host_fw_are_read_write_regions_different_test_first_fewer (CuTest *t
 	rw_region1[1].start_addr = 0x30000;
 	rw_region1[1].length = 16;
 
+	rw_prop1[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop1[1].on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list1.regions = rw_region1;
+	rw_list1.properties = rw_prop1;
 	rw_list1.count = 2;
 
 	rw_region2[0].start_addr = 0x10000;
@@ -7058,7 +7374,12 @@ static void host_fw_are_read_write_regions_different_test_first_fewer (CuTest *t
 	rw_region2[2].start_addr = 0x50000;
 	rw_region2[2].length = 32;
 
+	rw_prop2[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop2[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop2[2].on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list2.regions = rw_region2;
+	rw_list2.properties = rw_prop2;
 	rw_list2.count = 3;
 
 	status = host_fw_are_read_write_regions_different (&rw_list1, &rw_list2);
@@ -7068,8 +7389,10 @@ static void host_fw_are_read_write_regions_different_test_first_fewer (CuTest *t
 static void host_fw_are_read_write_regions_different_test_multiple_reordered (CuTest *test)
 {
 	struct flash_region rw_region1[3];
+	struct pfm_read_write rw_prop1[3];
 	struct pfm_read_write_regions rw_list1;
 	struct flash_region rw_region2[3];
+	struct pfm_read_write rw_prop2[3];
 	struct pfm_read_write_regions rw_list2;
 	bool status;
 
@@ -7082,7 +7405,12 @@ static void host_fw_are_read_write_regions_different_test_multiple_reordered (Cu
 	rw_region1[2].start_addr = 0x50000;
 	rw_region1[2].length = 32;
 
+	rw_prop1[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop1[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop1[2].on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list1.regions = rw_region1;
+	rw_list1.properties = rw_prop1;
 	rw_list1.count = 3;
 
 	rw_region2[0].start_addr = 0x50000;
@@ -7092,7 +7420,12 @@ static void host_fw_are_read_write_regions_different_test_multiple_reordered (Cu
 	rw_region2[2].start_addr = 0x30000;
 	rw_region2[2].length = 16;
 
+	rw_prop2[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop2[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop2[2].on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list2.regions = rw_region2;
+	rw_list2.properties = rw_prop2;
 	rw_list2.count = 3;
 
 	status = host_fw_are_read_write_regions_different (&rw_list1, &rw_list2);
@@ -7102,8 +7435,10 @@ static void host_fw_are_read_write_regions_different_test_multiple_reordered (Cu
 static void host_fw_are_read_write_regions_different_test_null (CuTest *test)
 {
 	struct flash_region rw_region1;
+	struct pfm_read_write rw_prop1;
 	struct pfm_read_write_regions rw_list1;
 	struct flash_region rw_region2;
+	struct pfm_read_write rw_prop2;
 	struct pfm_read_write_regions rw_list2;
 	bool status;
 
@@ -7112,13 +7447,19 @@ static void host_fw_are_read_write_regions_different_test_null (CuTest *test)
 	rw_region1.start_addr = 0x10000;
 	rw_region1.length = 0x100;
 
+	rw_prop1.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list1.regions = &rw_region1;
+	rw_list1.properties = &rw_prop1;
 	rw_list1.count = 1;
 
 	rw_region2.start_addr = 0x10000;
 	rw_region2.length = 0x100;
 
+	rw_prop2.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list2.regions = &rw_region2;
+	rw_list2.properties = &rw_prop2;
 	rw_list2.count = 1;
 
 	status = host_fw_are_read_write_regions_different (NULL, &rw_list2);
@@ -7137,6 +7478,7 @@ static void host_fw_restore_flash_device_test (CuTest *test)
 	struct pfm_image_signature sig;
 	struct pfm_image_list img_list;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
 	struct spi_flash flash1;
@@ -7190,7 +7532,10 @@ static void host_fw_restore_flash_device_test (CuTest *test)
 	rw_region.start_addr = 0x10000;
 	rw_region.length = 0x10000;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = host_fw_restore_flash_device (&flash2, &flash1, &img_list, &rw_list);
@@ -7212,6 +7557,7 @@ static void host_fw_restore_flash_device_test_multipart_image (CuTest *test)
 	struct pfm_image_signature sig;
 	struct pfm_image_list img_list;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
 	struct spi_flash flash1;
@@ -7269,7 +7615,10 @@ static void host_fw_restore_flash_device_test_multipart_image (CuTest *test)
 	rw_region.start_addr = 0x10000;
 	rw_region.length = 0x10000;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = host_fw_restore_flash_device (&flash2, &flash1, &img_list, &rw_list);
@@ -7291,6 +7640,7 @@ static void host_fw_restore_flash_device_test_multiple_images (CuTest *test)
 	struct pfm_image_signature sig[2];
 	struct pfm_image_list img_list;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
 	struct spi_flash flash1;
@@ -7357,7 +7707,10 @@ static void host_fw_restore_flash_device_test_multiple_images (CuTest *test)
 	rw_region.start_addr = 0x10000;
 	rw_region.length = 0x10000;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = host_fw_restore_flash_device (&flash2, &flash1, &img_list, &rw_list);
@@ -7379,6 +7732,7 @@ static void host_fw_restore_flash_device_test_multiple_rw_regions (CuTest *test)
 	struct pfm_image_signature sig;
 	struct pfm_image_list img_list;
 	struct flash_region rw_region[3];
+	struct pfm_read_write rw_prop[3];
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
 	struct spi_flash flash1;
@@ -7438,7 +7792,12 @@ static void host_fw_restore_flash_device_test_multiple_rw_regions (CuTest *test)
 	rw_region[2].start_addr = 0x50000;
 	rw_region[2].length = 0x10000;
 
+	rw_prop[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[2].on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = rw_region;
+	rw_list.properties = rw_prop;
 	rw_list.count = 3;
 
 	status = host_fw_restore_flash_device (&flash2, &flash1, &img_list, &rw_list);
@@ -7460,6 +7819,7 @@ static void host_fw_restore_flash_device_test_rw_regions_not_ordered (CuTest *te
 	struct pfm_image_signature sig;
 	struct pfm_image_list img_list;
 	struct flash_region rw_region[3];
+	struct pfm_read_write rw_prop[3];
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
 	struct spi_flash flash1;
@@ -7519,7 +7879,12 @@ static void host_fw_restore_flash_device_test_rw_regions_not_ordered (CuTest *te
 	rw_region[2].start_addr = 0x10000;
 	rw_region[2].length = 0x10000;
 
+	rw_prop[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[2].on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = rw_region;
+	rw_list.properties = rw_prop;
 	rw_list.count = 3;
 
 	status = host_fw_restore_flash_device (&flash2, &flash1, &img_list, &rw_list);
@@ -7541,6 +7906,7 @@ static void host_fw_restore_flash_device_test_start_and_end_rw (CuTest *test)
 	struct pfm_image_signature sig;
 	struct pfm_image_list img_list;
 	struct flash_region rw_region[3];
+	struct pfm_read_write rw_prop[3];
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
 	struct spi_flash flash1;
@@ -7600,7 +7966,12 @@ static void host_fw_restore_flash_device_test_start_and_end_rw (CuTest *test)
 	rw_region[2].start_addr = 0x60000;
 	rw_region[2].length = 0x10000;
 
+	rw_prop[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[2].on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = rw_region;
+	rw_list.properties = rw_prop;
 	rw_list.count = 3;
 
 	status = host_fw_restore_flash_device (&flash2, &flash1, &img_list, &rw_list);
@@ -7622,6 +7993,7 @@ static void host_fw_restore_flash_device_test_hashes (CuTest *test)
 	struct pfm_image_hash img_hash;
 	struct pfm_image_list img_list;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
 	struct spi_flash flash1;
@@ -7675,7 +8047,10 @@ static void host_fw_restore_flash_device_test_hashes (CuTest *test)
 	rw_region.start_addr = 0x10000;
 	rw_region.length = 0x10000;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = host_fw_restore_flash_device (&flash2, &flash1, &img_list, &rw_list);
@@ -7697,6 +8072,7 @@ static void host_fw_restore_flash_device_test_hashes_multipart_image (CuTest *te
 	struct pfm_image_hash img_hash;
 	struct pfm_image_list img_list;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
 	struct spi_flash flash1;
@@ -7754,7 +8130,10 @@ static void host_fw_restore_flash_device_test_hashes_multipart_image (CuTest *te
 	rw_region.start_addr = 0x10000;
 	rw_region.length = 0x10000;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = host_fw_restore_flash_device (&flash2, &flash1, &img_list, &rw_list);
@@ -7776,6 +8155,7 @@ static void host_fw_restore_flash_device_test_hashes_multiple_images (CuTest *te
 	struct pfm_image_hash img_hash[2];
 	struct pfm_image_list img_list;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
 	struct spi_flash flash1;
@@ -7842,7 +8222,10 @@ static void host_fw_restore_flash_device_test_hashes_multiple_images (CuTest *te
 	rw_region.start_addr = 0x10000;
 	rw_region.length = 0x10000;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = host_fw_restore_flash_device (&flash2, &flash1, &img_list, &rw_list);
@@ -7864,6 +8247,7 @@ static void host_fw_restore_flash_device_test_null (CuTest *test)
 	struct pfm_image_signature sig;
 	struct pfm_image_list img_list;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
 	struct spi_flash flash1;
@@ -7909,7 +8293,10 @@ static void host_fw_restore_flash_device_test_null (CuTest *test)
 	rw_region.start_addr = 0x10000;
 	rw_region.length = 0x10000;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = host_fw_restore_flash_device (NULL, &flash1, &img_list, &rw_list);
@@ -7940,6 +8327,7 @@ static void host_fw_restore_flash_device_test_erase_error (CuTest *test)
 	struct pfm_image_signature sig;
 	struct pfm_image_list img_list;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
 	struct spi_flash flash1;
@@ -7990,7 +8378,10 @@ static void host_fw_restore_flash_device_test_erase_error (CuTest *test)
 	rw_region.start_addr = 0x10000;
 	rw_region.length = 0x10000;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = host_fw_restore_flash_device (&flash2, &flash1, &img_list, &rw_list);
@@ -8012,6 +8403,7 @@ static void host_fw_restore_flash_device_test_last_erase_error (CuTest *test)
 	struct pfm_image_signature sig;
 	struct pfm_image_list img_list;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
 	struct spi_flash flash1;
@@ -8063,7 +8455,10 @@ static void host_fw_restore_flash_device_test_last_erase_error (CuTest *test)
 	rw_region.start_addr = 0x10000;
 	rw_region.length = 0x10000;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = host_fw_restore_flash_device (&flash2, &flash1, &img_list, &rw_list);
@@ -8085,6 +8480,7 @@ static void host_fw_restore_flash_device_test_copy_error (CuTest *test)
 	struct pfm_image_signature sig;
 	struct pfm_image_list img_list;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
 	struct spi_flash flash1;
@@ -8138,7 +8534,10 @@ static void host_fw_restore_flash_device_test_copy_error (CuTest *test)
 	rw_region.start_addr = 0x10000;
 	rw_region.length = 0x10000;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = host_fw_restore_flash_device (&flash2, &flash1, &img_list, &rw_list);
@@ -8160,6 +8559,7 @@ static void host_fw_restore_flash_device_test_hashes_copy_error (CuTest *test)
 	struct pfm_image_hash img_hash;
 	struct pfm_image_list img_list;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
 	struct spi_flash flash1;
@@ -8213,7 +8613,10 @@ static void host_fw_restore_flash_device_test_hashes_copy_error (CuTest *test)
 	rw_region.start_addr = 0x10000;
 	rw_region.length = 0x10000;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = host_fw_restore_flash_device (&flash2, &flash1, &img_list, &rw_list);
@@ -8233,6 +8636,7 @@ static void host_fw_config_spi_filter_read_write_regions_test (CuTest *test)
 {
 	struct spi_filter_interface_mock filter;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	int status;
 
@@ -8244,7 +8648,10 @@ static void host_fw_config_spi_filter_read_write_regions_test (CuTest *test)
 	rw_region.start_addr = 0x10000;
 	rw_region.length = 0x10000;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&filter.mock, filter.base.clear_filter_rw_regions, &filter, 0);
@@ -8264,6 +8671,7 @@ static void host_fw_config_spi_filter_read_write_regions_test_multiple_regions (
 {
 	struct spi_filter_interface_mock filter;
 	struct flash_region rw_region[3];
+	struct pfm_read_write rw_prop[3];
 	struct pfm_read_write_regions rw_list;
 	int status;
 
@@ -8281,7 +8689,12 @@ static void host_fw_config_spi_filter_read_write_regions_test_multiple_regions (
 	rw_region[2].start_addr = 0x60000;
 	rw_region[2].length = 0x30000;
 
+	rw_prop[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[2].on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = rw_region;
+	rw_list.properties = rw_prop;
 	rw_list.count = 3;
 
 	status = mock_expect (&filter.mock, filter.base.clear_filter_rw_regions, &filter, 0);
@@ -8305,6 +8718,7 @@ static void host_fw_config_spi_filter_read_write_regions_test_null (CuTest *test
 {
 	struct spi_filter_interface_mock filter;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	int status;
 
@@ -8316,7 +8730,10 @@ static void host_fw_config_spi_filter_read_write_regions_test_null (CuTest *test
 	rw_region.start_addr = 0x10000;
 	rw_region.length = 0x10000;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = host_fw_config_spi_filter_read_write_regions (NULL, &rw_list);
@@ -8333,6 +8750,7 @@ static void host_fw_config_spi_filter_read_write_regions_test_filter_error (CuTe
 {
 	struct spi_filter_interface_mock filter;
 	struct flash_region rw_region[3];
+	struct pfm_read_write rw_prop[3];
 	struct pfm_read_write_regions rw_list;
 	int status;
 
@@ -8350,7 +8768,12 @@ static void host_fw_config_spi_filter_read_write_regions_test_filter_error (CuTe
 	rw_region[2].start_addr = 0x60000;
 	rw_region[2].length = 0x30000;
 
+	rw_prop[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[2].on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = rw_region;
+	rw_list.properties = rw_prop;
 	rw_list.count = 3;
 
 	status = mock_expect (&filter.mock, filter.base.clear_filter_rw_regions, &filter, 0);
@@ -8372,6 +8795,7 @@ static void host_fw_config_spi_filter_read_write_regions_test_clear_error (CuTes
 {
 	struct spi_filter_interface_mock filter;
 	struct flash_region rw_region[3];
+	struct pfm_read_write rw_prop[3];
 	struct pfm_read_write_regions rw_list;
 	int status;
 
@@ -8389,7 +8813,12 @@ static void host_fw_config_spi_filter_read_write_regions_test_clear_error (CuTes
 	rw_region[2].start_addr = 0x60000;
 	rw_region[2].length = 0x30000;
 
+	rw_prop[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[2].on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = rw_region;
+	rw_list.properties = rw_prop;
 	rw_list.count = 3;
 
 	status = mock_expect (&filter.mock, filter.base.clear_filter_rw_regions, &filter,
@@ -11028,6 +11457,601 @@ static void host_fw_are_images_different_test_null (CuTest *test)
 	CuAssertIntEquals (test, false, status);
 }
 
+static void host_fw_restore_read_write_data_test_do_nothing (CuTest *test)
+{
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+	struct flash_master_mock flash_mock1;
+	struct spi_flash flash1;
+	struct flash_master_mock flash_mock2;
+	struct spi_flash flash2;
+	int status;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&flash_mock1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&flash_mock2);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash1, &flash_mock1.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash2, &flash_mock2.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash1, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash2, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	rw_region.start_addr = 0x10000;
+	rw_region.length = 0x10000;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = host_fw_restore_read_write_data (&flash2, &flash1, &rw_list);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock2);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash1);
+	spi_flash_release (&flash2);
+}
+
+static void host_fw_restore_read_write_data_test_erase_flash (CuTest *test)
+{
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+	struct flash_master_mock flash_mock1;
+	struct spi_flash flash1;
+	struct flash_master_mock flash_mock2;
+	struct spi_flash flash2;
+	int status;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&flash_mock1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&flash_mock2);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash1, &flash_mock1.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash2, &flash_mock2.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash1, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash2, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_erase_flash_verify (&flash_mock2, 0x10000, 0x10000);
+	CuAssertIntEquals (test, 0, status);
+
+	rw_region.start_addr = 0x10000;
+	rw_region.length = 0x10000;
+
+	rw_prop.on_failure = PFM_RW_ERASE;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = host_fw_restore_read_write_data (&flash2, &flash1, &rw_list);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock2);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash1);
+	spi_flash_release (&flash2);
+}
+
+static void host_fw_restore_read_write_data_test_restore_flash (CuTest *test)
+{
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+	struct flash_master_mock flash_mock1;
+	struct spi_flash flash1;
+	struct flash_master_mock flash_mock2;
+	struct spi_flash flash2;
+	int status;
+	uint8_t data[0x10000];
+	size_t i;
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	status = flash_master_mock_init (&flash_mock1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&flash_mock2);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash1, &flash_mock1.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash2, &flash_mock2.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash1, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash2, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_erase_flash_verify (&flash_mock2, 0x10000, 0x10000);
+	status |= flash_master_mock_expect_copy_flash_verify (&flash_mock2, &flash_mock1, 0x10000,
+		0x10000, data, sizeof (data));
+
+	CuAssertIntEquals (test, 0, status);
+
+	rw_region.start_addr = 0x10000;
+	rw_region.length = 0x10000;
+
+	rw_prop.on_failure = PFM_RW_RESTORE;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = host_fw_restore_read_write_data (&flash2, &flash1, &rw_list);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock2);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash1);
+	spi_flash_release (&flash2);
+}
+
+static void host_fw_restore_read_write_data_test_restore_flash_no_source_device (CuTest *test)
+{
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+	struct flash_master_mock flash_mock1;
+	struct spi_flash flash1;
+	struct flash_master_mock flash_mock2;
+	struct spi_flash flash2;
+	int status;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&flash_mock1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&flash_mock2);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash1, &flash_mock1.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash2, &flash_mock2.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash1, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash2, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	rw_region.start_addr = 0x10000;
+	rw_region.length = 0x10000;
+
+	rw_prop.on_failure = PFM_RW_RESTORE;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = host_fw_restore_read_write_data (&flash2, NULL, &rw_list);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock2);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash1);
+	spi_flash_release (&flash2);
+}
+
+static void host_fw_restore_read_write_data_test_reserved (CuTest *test)
+{
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+	struct flash_master_mock flash_mock1;
+	struct spi_flash flash1;
+	struct flash_master_mock flash_mock2;
+	struct spi_flash flash2;
+	int status;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&flash_mock1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&flash_mock2);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash1, &flash_mock1.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash2, &flash_mock2.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash1, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash2, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	rw_region.start_addr = 0x10000;
+	rw_region.length = 0x10000;
+
+	rw_prop.on_failure = PFM_RW_RESERVED;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = host_fw_restore_read_write_data (&flash2, &flash1, &rw_list);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock2);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash1);
+	spi_flash_release (&flash2);
+}
+
+static void host_fw_restore_read_write_data_test_multiple_regions (CuTest *test)
+{
+	struct flash_region rw_region[4];
+	struct pfm_read_write rw_prop[4];
+	struct pfm_read_write_regions rw_list;
+	struct flash_master_mock flash_mock1;
+	struct spi_flash flash1;
+	struct flash_master_mock flash_mock2;
+	struct spi_flash flash2;
+	int status;
+	uint8_t data[0x10000];
+	size_t i;
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	status = flash_master_mock_init (&flash_mock1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&flash_mock2);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash1, &flash_mock1.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash2, &flash_mock2.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash1, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash2, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	for (i = 0; i < 3; i++) {
+		status |= flash_master_mock_expect_erase_flash (&flash_mock2, 0x40000 + (0x10000 * i));
+	}
+	status |= flash_master_mock_expect_blank_check (&flash_mock2, 0x40000, 0x30000);
+
+	status |= flash_master_mock_expect_erase_flash_verify (&flash_mock2, 0x100000, 0x10000);
+	status |= flash_master_mock_expect_copy_flash_verify (&flash_mock2, &flash_mock1, 0x100000,
+		0x100000, data, sizeof (data));
+
+	CuAssertIntEquals (test, 0, status);
+
+	rw_region[0].start_addr = 0;
+	rw_region[0].length = 0x10000;
+	rw_region[1].start_addr = 0x40000;
+	rw_region[1].length = 0x30000;
+	rw_region[2].start_addr = 0x100000;
+	rw_region[2].length = 0x10000;
+	rw_region[3].start_addr = 0x500000;
+	rw_region[3].length = 0x100000;
+
+	rw_prop[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[1].on_failure = PFM_RW_ERASE;
+	rw_prop[2].on_failure = PFM_RW_RESTORE;
+	rw_prop[3].on_failure = PFM_RW_RESERVED;
+
+	rw_list.regions = rw_region;
+	rw_list.properties = rw_prop;
+	rw_list.count = 4;
+
+	status = host_fw_restore_read_write_data (&flash2, &flash1, &rw_list);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock2);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash1);
+	spi_flash_release (&flash2);
+}
+
+static void host_fw_restore_read_write_data_test_null (CuTest *test)
+{
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+	struct flash_master_mock flash_mock1;
+	struct spi_flash flash1;
+	struct flash_master_mock flash_mock2;
+	struct spi_flash flash2;
+	int status;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&flash_mock1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&flash_mock2);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash1, &flash_mock1.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash2, &flash_mock2.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash1, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash2, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	rw_region.start_addr = 0x10000;
+	rw_region.length = 0x10000;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = host_fw_restore_read_write_data (NULL, &flash1, &rw_list);
+	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
+
+	status = host_fw_restore_read_write_data (&flash2, &flash1, NULL);
+	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock2);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash1);
+	spi_flash_release (&flash2);
+}
+
+static void host_fw_restore_read_write_data_test_erase_flash_error (CuTest *test)
+{
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+	struct flash_master_mock flash_mock1;
+	struct spi_flash flash1;
+	struct flash_master_mock flash_mock2;
+	struct spi_flash flash2;
+	int status;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&flash_mock1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&flash_mock2);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash1, &flash_mock1.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash2, &flash_mock2.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash1, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash2, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_xfer (&flash_mock2, FLASH_MASTER_XFER_FAILED,
+		FLASH_EXP_READ_STATUS_REG);
+	CuAssertIntEquals (test, 0, status);
+
+	rw_region.start_addr = 0x10000;
+	rw_region.length = 0x10000;
+
+	rw_prop.on_failure = PFM_RW_ERASE;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = host_fw_restore_read_write_data (&flash2, &flash1, &rw_list);
+	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock2);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash1);
+	spi_flash_release (&flash2);
+}
+
+static void host_fw_restore_read_write_data_test_restore_flash_error (CuTest *test)
+{
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+	struct flash_master_mock flash_mock1;
+	struct spi_flash flash1;
+	struct flash_master_mock flash_mock2;
+	struct spi_flash flash2;
+	int status;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&flash_mock1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&flash_mock2);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash1, &flash_mock1.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash2, &flash_mock2.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash1, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash2, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_xfer (&flash_mock2, FLASH_MASTER_XFER_FAILED,
+		FLASH_EXP_READ_STATUS_REG);
+	CuAssertIntEquals (test, 0, status);
+
+	rw_region.start_addr = 0x10000;
+	rw_region.length = 0x10000;
+
+	rw_prop.on_failure = PFM_RW_RESTORE;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = host_fw_restore_read_write_data (&flash2, &flash1, &rw_list);
+	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock2);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash1);
+	spi_flash_release (&flash2);
+}
+
+static void host_fw_restore_read_write_data_test_multiple_regions_error (CuTest *test)
+{
+	struct flash_region rw_region[4];
+	struct pfm_read_write rw_prop[4];
+	struct pfm_read_write_regions rw_list;
+	struct flash_master_mock flash_mock1;
+	struct spi_flash flash1;
+	struct flash_master_mock flash_mock2;
+	struct spi_flash flash2;
+	int status;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&flash_mock1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&flash_mock2);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash1, &flash_mock1.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash2, &flash_mock2.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash1, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash2, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_xfer (&flash_mock2, FLASH_MASTER_XFER_FAILED,
+		FLASH_EXP_READ_STATUS_REG);
+	CuAssertIntEquals (test, 0, status);
+
+	rw_region[0].start_addr = 0;
+	rw_region[0].length = 0x10000;
+	rw_region[1].start_addr = 0x40000;
+	rw_region[1].length = 0x30000;
+	rw_region[2].start_addr = 0x100000;
+	rw_region[2].length = 0x10000;
+	rw_region[3].start_addr = 0x500000;
+	rw_region[3].length = 0x100000;
+
+	rw_prop[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[1].on_failure = PFM_RW_ERASE;
+	rw_prop[2].on_failure = PFM_RW_RESTORE;
+	rw_prop[3].on_failure = PFM_RW_RESERVED;
+
+	rw_list.regions = rw_region;
+	rw_list.properties = rw_prop;
+	rw_list.count = 4;
+
+	status = host_fw_restore_read_write_data (&flash2, &flash1, &rw_list);
+	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock2);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash1);
+	spi_flash_release (&flash2);
+}
+
 
 CuSuite* get_host_fw_util_suite ()
 {
@@ -11211,6 +12235,16 @@ CuSuite* get_host_fw_util_suite ()
 	SUITE_ADD_TEST (suite, host_fw_are_images_different_test_different_auth_types);
 	SUITE_ADD_TEST (suite, host_fw_are_images_different_test_different_auth_types_hash_first);
 	SUITE_ADD_TEST (suite, host_fw_are_images_different_test_null);
+	SUITE_ADD_TEST (suite, host_fw_restore_read_write_data_test_do_nothing);
+	SUITE_ADD_TEST (suite, host_fw_restore_read_write_data_test_erase_flash);
+	SUITE_ADD_TEST (suite, host_fw_restore_read_write_data_test_restore_flash);
+	SUITE_ADD_TEST (suite, host_fw_restore_read_write_data_test_restore_flash_no_source_device);
+	SUITE_ADD_TEST (suite, host_fw_restore_read_write_data_test_reserved);
+	SUITE_ADD_TEST (suite, host_fw_restore_read_write_data_test_multiple_regions);
+	SUITE_ADD_TEST (suite, host_fw_restore_read_write_data_test_null);
+	SUITE_ADD_TEST (suite, host_fw_restore_read_write_data_test_erase_flash_error);
+	SUITE_ADD_TEST (suite, host_fw_restore_read_write_data_test_restore_flash_error);
+	SUITE_ADD_TEST (suite, host_fw_restore_read_write_data_test_multiple_regions_error);
 
 	return suite;
 }

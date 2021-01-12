@@ -1138,6 +1138,7 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty (CuTest
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -1147,7 +1148,10 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty (CuTest
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -1383,6 +1387,7 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_checked
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -1394,7 +1399,10 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_checked
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -1514,6 +1522,7 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_pulse_r
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -1523,7 +1532,10 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_pulse_r
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -1620,6 +1632,7 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_no_rese
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -1629,7 +1642,10 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_no_rese
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -1686,6 +1702,7 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_no_rese
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -1695,7 +1712,10 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_no_rese
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -3536,6 +3556,7 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_swap_er
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -3545,7 +3566,10 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_swap_er
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -3615,6 +3639,7 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_swap_er
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -3624,7 +3649,10 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_swap_er
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -3693,6 +3721,7 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_filter_
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -3702,7 +3731,10 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_filter_
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -3772,6 +3804,7 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_filter_
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -3781,7 +3814,10 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_filter_
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -3851,6 +3887,7 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_host_ac
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -3860,7 +3897,10 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_host_ac
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -3931,6 +3971,7 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_host_ac
 	struct host_processor_dual_testing host;
 	int status;
 	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 
 	TEST_START;
@@ -3940,7 +3981,10 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_host_ac
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
 
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
 	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,

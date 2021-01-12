@@ -59,6 +59,17 @@ static int host_processor_mock_flash_rollback (struct host_processor *host,
 		MOCK_ARG_CALL (rsa), MOCK_ARG_CALL (disable_bypass), MOCK_ARG_CALL (no_reset));
 }
 
+static int host_processor_mock_recover_active_read_write_data (struct host_processor *host)
+{
+	struct host_processor_mock *mock = (struct host_processor_mock*) host;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN_NO_ARGS (&mock->mock, host_processor_mock_recover_active_read_write_data, host);
+}
+
 static int host_processor_mock_get_next_reset_verification_actions (struct host_processor *host)
 {
 	struct host_processor_mock *mock = (struct host_processor_mock*) host;
@@ -137,6 +148,9 @@ static const char* host_processor_mock_func_name_map (void *func)
 	}
 	else if (func == host_processor_mock_flash_rollback) {
 		return "flash_rollback";
+	}
+	else if (func == host_processor_mock_recover_active_read_write_data) {
+		return "recover_active_read_write_data";
 	}
 	else if (func == host_processor_mock_get_next_reset_verification_actions) {
 		return "get_next_reset_verification_actions";
@@ -226,6 +240,7 @@ int host_processor_mock_init (struct host_processor_mock *mock)
 	mock->base.soft_reset = host_processor_mock_soft_reset;
 	mock->base.run_time_verification = host_processor_mock_run_time_verification;
 	mock->base.flash_rollback = host_processor_mock_flash_rollback;
+	mock->base.recover_active_read_write_data = host_processor_mock_recover_active_read_write_data;
 	mock->base.get_next_reset_verification_actions =
 		host_processor_mock_get_next_reset_verification_actions;
 	mock->base.needs_config_recovery = host_processor_mock_needs_config_recovery;

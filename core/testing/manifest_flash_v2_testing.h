@@ -1,5 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
+
 #ifndef MANIFEST_FLASH_V2_TESTING_H_
 #define MANIFEST_FLASH_V2_TESTING_H_
 

@@ -207,6 +207,7 @@ static void host_processor_dual_full_bypass_test_init (CuTest *test)
 	CuAssertPtrNotNull (test, host.base.base.soft_reset);
 	CuAssertPtrNotNull (test, host.base.base.run_time_verification);
 	CuAssertPtrNotNull (test, host.base.base.flash_rollback);
+	CuAssertPtrNotNull (test, host.base.base.recover_active_read_write_data);
 	CuAssertPtrNotNull (test, host.base.base.get_next_reset_verification_actions);
 	CuAssertPtrNotNull (test, host.base.base.needs_config_recovery);
 	CuAssertPtrNotNull (test, host.base.base.apply_recovery_image);
@@ -343,6 +344,7 @@ static void host_processor_dual_full_bypass_test_init_pulse_reset (CuTest *test)
 	CuAssertPtrNotNull (test, host.base.base.soft_reset);
 	CuAssertPtrNotNull (test, host.base.base.run_time_verification);
 	CuAssertPtrNotNull (test, host.base.base.flash_rollback);
+	CuAssertPtrNotNull (test, host.base.base.recover_active_read_write_data);
 	CuAssertPtrNotNull (test, host.base.base.get_next_reset_verification_actions);
 	CuAssertPtrNotNull (test, host.base.base.needs_config_recovery);
 	CuAssertPtrNotNull (test, host.base.base.apply_recovery_image);

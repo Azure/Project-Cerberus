@@ -317,6 +317,57 @@ static void host_processor_dual_swap_flash (struct host_processor_dual *host,
 }
 
 /**
+ * Restore read/write data for the current read only image.
+ *
+ * @param host The host processor instance to execute.
+ * @param rw_list The list of read/write regions defined for the current image.  This can be null if
+ * the list is not already known.
+ * @param pfm The PFM to use to determine the read/write regions.  Set to null to use a
+ * predetermined list.
+ *
+ * @return 0 if the data was successfully restored or an error code.
+ */
+static int host_processor_dual_restore_read_write_data (struct host_processor_dual *host,
+	struct pfm_read_write_regions *rw_list, struct pfm *pfm)
+{
+	struct pfm_read_write_regions restore;
+	int status;
+	int retries = 3;
+
+	if (pfm != NULL) {
+		if (rw_list == NULL) {
+			rw_list = &restore;
+		}
+
+		status = host->flash->get_flash_read_write_regions (host->flash, pfm, false, rw_list);
+		if (status != 0) {
+			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_HOST_FW,
+				HOST_LOGGING_RW_RESTORE_START, host->base.port, status);
+			return status;
+		}
+	}
+
+	do {
+		/* Restoring the R/W data could corrupt prevalidated images on flash, so clear any
+		 * prevalidated state. */
+		host_state_manager_set_run_time_validation (host->state, HOST_STATE_PREVALIDATED_NONE);
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_HOST_FW,
+				HOST_LOGGING_RW_RESTORE_START, host->base.port, 0);
+
+		status = host->flash->restore_flash_read_write_regions (host->flash, rw_list);
+
+		debug_log_create_entry ((status == 0) ? DEBUG_LOG_SEVERITY_INFO: DEBUG_LOG_SEVERITY_ERROR,
+			DEBUG_LOG_COMPONENT_HOST_FW, HOST_LOGGING_RW_RESTORE_FINISH, host->base.port, status);
+	} while ((status != 0) && (--retries > 0));
+
+	if (pfm != NULL) {
+		pfm->free_read_write_regions (pfm, rw_list);
+	}
+
+	return status;
+}
+
+/**
  * Validate the flash against a single PFM.
  *
  * @param host The host processor instance to use for validation.
@@ -347,6 +398,7 @@ static int host_processor_dual_validate_flash (struct host_processor_dual *host,
 	int status = HOST_PROCESSOR_RW_SKIPPED;
 	int dirty_fail = 0;
 	bool checked_rw = true;
+	bool failed_rw = false;
 	bool pfm_dirty = host_state_manager_is_pfm_dirty (host->state);
 
 	if (!is_bypass && host_state_manager_is_inactive_dirty (host->state)) {
@@ -356,6 +408,9 @@ static int host_processor_dual_validate_flash (struct host_processor_dual *host,
 		}
 		else {
 			status = host->flash->get_flash_read_write_regions (host->flash, pfm, true, &rw_list);
+		}
+		if (status != 0) {
+			failed_rw = true;
 		}
 
 		if (is_pending) {
@@ -416,8 +471,6 @@ static int host_processor_dual_validate_flash (struct host_processor_dual *host,
 		else if (IS_VALIDATION_FAILURE (status)) {
 			dirty_fail = status;
 
-			host_state_manager_set_run_time_validation (host->state, HOST_STATE_PREVALIDATED_NONE);
-
 			if (!is_pending || is_validated) {
 				status = host->filter->clear_flash_dirty_state (host->filter);
 				if (status == 0) {
@@ -471,6 +524,10 @@ static int host_processor_dual_validate_flash (struct host_processor_dual *host,
 			}
 
 			if (apply_filter_cfg) {
+				if (failed_rw) {
+					host_processor_dual_restore_read_write_data (host, &rw_list, NULL);
+				}
+
 				if (!is_bypass && !skip_ro_config) {
 					host_processor_dual_config_flash (host);
 				}
@@ -491,6 +548,11 @@ static int host_processor_dual_validate_flash (struct host_processor_dual *host,
 			 * the dirty PFM state. */
 			host_state_manager_set_pfm_dirty (host->state, false);
 		}
+	}
+	else if (skip_ro && !is_pending && failed_rw && apply_filter_cfg) {
+		/* Active R/W verification failed with no RO verification.  We need to restore R/W regions
+		 * here. */
+		host_processor_dual_restore_read_write_data (host, NULL, pfm);
 	}
 
 exit:
@@ -649,7 +711,7 @@ static int host_processor_dual_soft_reset (struct host_processor *host, struct h
 	struct pfm *active_pfm;
 	struct pfm *pending_pfm;
 	int status = 0;
-	enum host_state_prevalidated flash_checked;
+	enum host_state_prevalidated flash_checked = HOST_STATE_PREVALIDATED_NONE;
 	bool prevalidated;
 	bool bypass;
 	bool only_validated = false;
@@ -686,10 +748,10 @@ static int host_processor_dual_soft_reset (struct host_processor *host, struct h
 			goto return_flash;
 		}
 
-		if (bypass) {
-			host_state_manager_set_run_time_validation (dual->state, HOST_STATE_PREVALIDATED_NONE);
+		if (!bypass) {
+			flash_checked = host_state_manager_get_run_time_validation (dual->state);
 		}
-		flash_checked = host_state_manager_get_run_time_validation (dual->state);
+		host_state_manager_set_run_time_validation (dual->state, HOST_STATE_PREVALIDATED_NONE);
 
 		if (pending_pfm) {
 			if (bypass) {
@@ -728,8 +790,6 @@ static int host_processor_dual_soft_reset (struct host_processor *host, struct h
 			(host_state_manager_is_inactive_dirty (dual->state) || bypass))) {
 			if (flash_checked == HOST_STATE_PREVALIDATED_FLASH) {
 				prevalidated = true;
-				host_state_manager_set_run_time_validation (dual->state,
-					HOST_STATE_PREVALIDATED_FLASH);
 			}
 			else {
 				prevalidated = false;
@@ -737,6 +797,10 @@ static int host_processor_dual_soft_reset (struct host_processor *host, struct h
 
 			status = host_processor_dual_validate_flash (dual, hash, rsa, active_pfm, NULL, false,
 				bypass, !bypass, true, true, prevalidated, NULL);
+		}
+		else if (active_pfm && only_validated && (status != 0)) {
+			/* If something went wrong with the prevalidated flash, restore the read/write data. */
+			host_processor_dual_restore_read_write_data (dual, NULL, active_pfm);
 		}
 
 return_flash:
@@ -996,6 +1060,43 @@ exit:
 	return status;
 }
 
+static int host_processor_dual_recover_active_read_write_data (struct host_processor *host)
+{
+	struct host_processor_dual *dual = (struct host_processor_dual*) host;
+	struct pfm *active_pfm;
+	int status = HOST_PROCESSOR_NO_ACTIVE_RW_DATA;
+
+	if (dual == NULL) {
+		return HOST_PROCESSOR_INVALID_ARGUMENT;
+	}
+
+	if (!host_state_manager_is_bypass_mode (dual->state)) {
+		active_pfm = dual->pfm->get_active_pfm (dual->pfm);
+		if (active_pfm) {
+			if (!dual->reset_pulse) {
+				dual->control->hold_processor_in_reset (dual->control, true);
+			}
+
+			status = dual->flash->set_flash_for_rot_access (dual->flash, dual->control);
+			if (status == 0) {
+				status = host_processor_dual_restore_read_write_data (dual, NULL, active_pfm);
+			}
+
+			dual->pfm->free_pfm (dual->pfm, active_pfm);
+
+			host_processor_dual_set_host_flash_access (dual);
+
+			if (dual->reset_pulse) {
+				dual->control->hold_processor_in_reset (dual->control, true);
+				platform_msleep (dual->reset_pulse);
+			}
+			dual->control->hold_processor_in_reset (dual->control, false);
+		}
+	}
+
+	return status;
+}
+
 static int host_processor_dual_get_next_reset_verification_actions (struct host_processor *host)
 {
 	struct host_processor_dual *dual = (struct host_processor_dual*) host;
@@ -1230,6 +1331,7 @@ int host_processor_dual_init_internal (struct host_processor_dual *host,
 	host->base.soft_reset = host_processor_dual_soft_reset;
 	host->base.run_time_verification = host_processor_dual_run_time_verification;
 	host->base.flash_rollback = host_processor_dual_flash_rollback;
+	host->base.recover_active_read_write_data = host_processor_dual_recover_active_read_write_data;
 	host->base.get_next_reset_verification_actions =
 		host_processor_dual_get_next_reset_verification_actions;
 	host->base.needs_config_recovery = host_processor_dual_needs_config_recovery;

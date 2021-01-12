@@ -62,6 +62,8 @@ enum {
 	HOST_LOGGING_BACKUP_FIRMWARE_COMPLETED,		/**< Host active firmware backup has completed. */
 	HOST_LOGGING_BMC_RECOVERY_DETECTED,			/**< Detected BMC recovery attempt. */
     HOST_LOGGING_RESET_COUNTER_UPDATE_FAILED,   /**< Reset counter update failed. */
+	HOST_LOGGING_RW_RESTORE_START,				/**< Start condition for restoring active R/W regions. */
+	HOST_LOGGING_RW_RESTORE_FINISH,				/**< End condition for active image R/W regions. */
 };
 
 

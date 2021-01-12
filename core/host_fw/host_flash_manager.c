@@ -305,6 +305,17 @@ static int host_flash_manager_get_flash_read_write_regions (struct host_flash_ma
 	return status;
 }
 
+static int host_flash_manager_restore_flash_read_write_regions (struct host_flash_manager *manager,
+	struct pfm_read_write_regions *writable)
+{
+	if ((manager == NULL) || (writable == NULL)) {
+		return HOST_FLASH_MGR_INVALID_ARGUMENT;
+	}
+
+	return host_fw_restore_read_write_data (host_flash_manager_get_read_write_flash (manager),
+		host_flash_manager_get_read_only_flash (manager), writable);
+}
+
 /**
  * Ensure both flash devices are operating in the same address mode.
  *
@@ -785,6 +796,7 @@ int host_flash_manager_init (struct host_flash_manager *manager, struct spi_flas
 	manager->validate_read_only_flash = host_flash_manager_validate_read_only_flash;
 	manager->validate_read_write_flash = host_flash_manager_validate_read_write_flash;
 	manager->get_flash_read_write_regions = host_flash_manager_get_flash_read_write_regions;
+	manager->restore_flash_read_write_regions = host_flash_manager_restore_flash_read_write_regions;
 	manager->config_spi_filter_flash_type = host_flash_manager_config_spi_filter_flash_type;
 	manager->config_spi_filter_flash_devices = host_flash_manager_config_spi_filter_flash_devices;
 	manager->swap_flash_devices = host_flash_manager_swap_flash_devices;

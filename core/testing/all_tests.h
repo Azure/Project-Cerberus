@@ -152,6 +152,7 @@ CuSuite* get_host_processor_dual_power_on_reset_suite (void);
 CuSuite* get_host_processor_dual_soft_reset_suite (void);
 CuSuite* get_host_processor_dual_run_time_verification_suite (void);
 CuSuite* get_host_processor_dual_flash_rollback_suite (void);
+CuSuite* get_host_processor_dual_recover_active_read_write_data_suite (void);
 CuSuite* get_host_processor_dual_apply_recovery_image_suite (void);
 CuSuite* get_host_processor_dual_bypass_mode_suite (void);
 CuSuite* get_host_irq_handler_suite (void);
@@ -327,6 +328,7 @@ void add_all_tests (CuSuite *suite)
 	CuSuiteAddSuite (suite, get_host_processor_dual_soft_reset_suite ());
 	CuSuiteAddSuite (suite, get_host_processor_dual_run_time_verification_suite ());
 	CuSuiteAddSuite (suite, get_host_processor_dual_flash_rollback_suite ());
+	CuSuiteAddSuite (suite, get_host_processor_dual_recover_active_read_write_data_suite ());
 	CuSuiteAddSuite (suite, get_host_processor_dual_apply_recovery_image_suite ());
 	CuSuiteAddSuite (suite, get_host_processor_dual_bypass_mode_suite ());
 #endif

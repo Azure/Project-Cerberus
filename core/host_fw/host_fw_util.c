@@ -687,6 +687,8 @@ int host_fw_restore_flash_device (struct spi_flash *restore, struct spi_flash *f
 		return status;
 	}
 
+	/* TODO: Flash operations should include a verify step.  At least for program. */
+
 	/* Erase all read-only regions. */
 	last_addr = 0;
 	pos = host_fw_find_next_rw_region (last_addr, writable);
@@ -722,6 +724,57 @@ int host_fw_restore_flash_device (struct spi_flash *restore, struct spi_flash *f
 			if (status != 0) {
 				return status;
 			}
+		}
+	}
+
+	return 0;
+}
+
+/**
+ * Restore the read/write data in a flash device.  Based on the configuration of each region, the
+ * destination flash will either be left unchanged, completely erased, or copied from a different
+ * flash device.
+ *
+ * @param restore The flash device that should be restored.
+ * @param from The device to restore data from.  If this is null, regions that are configured to be
+ * copied will instead remain unchanged.
+ * @param writable The list of read/write regions to restore.
+ *
+ * @return 0 if all regions were restored successfully or an error code.
+ */
+int host_fw_restore_read_write_data (struct spi_flash *restore, struct spi_flash *from,
+	const struct pfm_read_write_regions *writable)
+{
+	size_t i;
+	int status;
+
+	if ((restore == NULL) || (writable == NULL)) {
+		return HOST_FW_UTIL_INVALID_ARGUMENT;
+	}
+
+	for (i = 0; i < writable->count; i++) {
+		switch (writable->properties[i].on_failure) {
+			case PFM_RW_ERASE:
+				status = flash_erase_region_and_verify (&restore->base,
+					writable->regions[i].start_addr, writable->regions[i].length);
+				if (status != 0) {
+					return status;
+				}
+				break;
+
+			case PFM_RW_RESTORE:
+				if (from != NULL) {
+					status = flash_copy_ext_and_verify (&restore->base,
+						writable->regions[i].start_addr, &from->base,
+						writable->regions[i].start_addr, writable->regions[i].length);
+					if (status != 0) {
+						return status;
+					}
+				}
+				break;
+
+			default:
+				break;
 		}
 	}
 
