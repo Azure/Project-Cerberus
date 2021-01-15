@@ -66,12 +66,6 @@ static void manifest_cmd_handler_execute (struct config_cmd_task_handler *handle
 		manifest_cmd_handler_set_status (manifest_handler, MANIFEST_CMD_STATUS_VALIDATION);
 
 		status = manifest_handler->manifest->verify_pending_manifest (manifest_handler->manifest);
-		if (status != 0) {
-			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
-				MANIFEST_LOGGING_VERIFY_FAIL, manifest_manager_get_port (
-				manifest_handler->manifest), status);
-		}
-
 		if (action & MANIFEST_RUN_ACTIVATION_BIT) {
 			if ((status == 0) || (status == MANIFEST_MANAGER_HAS_PENDING) ||
 				(status == MANIFEST_MANAGER_NONE_PENDING)) {
@@ -86,17 +80,25 @@ static void manifest_cmd_handler_execute (struct config_cmd_task_handler *handle
 				}
 			}
 			else {
+				debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
+					MANIFEST_LOGGING_VERIFY_FAIL,
+					manifest_manager_get_port (manifest_handler->manifest), status);
+
 				status = MANIFEST_CMD_STATUS (MANIFEST_CMD_STATUS_VALIDATE_FAIL, status);
 			}
 		}
 		else if (status != 0) {
+			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
+				MANIFEST_LOGGING_VERIFY_FAIL,
+				manifest_manager_get_port (manifest_handler->manifest), status);
+
 			status = MANIFEST_CMD_STATUS (MANIFEST_CMD_STATUS_VALIDATE_FAIL, status);
 		}
 	}
 	else {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_WARNING, DEBUG_LOG_COMPONENT_MANIFEST,
-			MANIFEST_LOGGING_NOTIFICATION_ERROR, manifest_manager_get_port (
-				manifest_handler->manifest), action);
+			MANIFEST_LOGGING_NOTIFICATION_ERROR,
+			manifest_manager_get_port (manifest_handler->manifest), action);
 
 		status = MANIFEST_CMD_STATUS (MANIFEST_CMD_STATUS_INTERNAL_ERROR, status);
 	}

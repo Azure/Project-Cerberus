@@ -23,7 +23,7 @@ struct manifest {
 	 * @param verification Verification instance to use to verify the manifest signature.
 	 * @param hash_out Optional output buffer for manifest hash calculated during verification.  A
 	 * validation error does not necessarily mean the hash output is not valid.  If the manifest
-	 * hash was not calculated, this buffer will be cleared.  Set thes to null to not return the
+	 * hash was not calculated, this buffer will be cleared.  Set this to null to not return the
 	 * manifest hash.
 	 * @param hash_length Length of the hash output buffer.
 	 *
@@ -52,7 +52,7 @@ struct manifest {
 	 * output must be treated as const (i.e. do not modify the contents) and must be freed by
 	 * calling free_platform_id on the same instance that allocated it.
 	 * @param length Length of the output buffer if the buffer is static (i.e. not null).  This
-	 * argument is ignored when using dynamic allocation.
+	 * argument is ignored when using manifest allocation.
 	 *
 	 * @return 0 if the platform ID was retrieved successfully or an error code.
 	 */
