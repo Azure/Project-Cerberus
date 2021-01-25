@@ -24,6 +24,7 @@
 //#define	TESTING_RUN_CERBERUS_PROTOCOL_MASTER_COMMANDS_SUITE
 //#define	TESTING_RUN_CERBERUS_PROTOCOL_OPTIONAL_COMMANDS_SUITE
 //#define	TESTING_RUN_CERBERUS_PROTOCOL_DEBUG_COMMANDS_SUITE
+//#define	TESTING_RUN_CERBERUS_PROTOCOL_DIAGNOSTIC_COMMANDS_SUITE
 //#define	TESTING_RUN_CMD_INTERFACE_SYSTEM_SUITE
 //#define	TESTING_RUN_CMD_INTERFACE_SLAVE_SUITE
 //#define	TESTING_RUN_CMD_INTERFACE_DUAL_CMD_SET_SUITE
@@ -126,12 +127,15 @@ CuSuite* get_app_image_suite (void);
 CuSuite* get_firmware_update_suite (void);
 CuSuite* get_host_fw_util_suite (void);
 CuSuite* get_manifest_flash_suite (void);
+CuSuite* get_manifest_flash_v2_suite (void);
 CuSuite* get_pfm_flash_suite (void);
+CuSuite* get_pfm_flash_v2_suite (void);
 CuSuite* get_cfm_flash_suite (void);
 CuSuite* get_cerberus_protocol_required_commands_suite (void);
 CuSuite* get_cerberus_protocol_master_commands_suite (void);
 CuSuite* get_cerberus_protocol_optional_commands_suite (void);
 CuSuite* get_cerberus_protocol_debug_commands_suite (void);
+CuSuite* get_cerberus_protocol_diagnostic_commands_suite (void);
 CuSuite* get_cmd_interface_system_suite (void);
 CuSuite* get_cmd_interface_slave_suite (void);
 CuSuite* get_cmd_interface_dual_cmd_set_suite (void);
@@ -148,6 +152,7 @@ CuSuite* get_host_processor_dual_power_on_reset_suite (void);
 CuSuite* get_host_processor_dual_soft_reset_suite (void);
 CuSuite* get_host_processor_dual_run_time_verification_suite (void);
 CuSuite* get_host_processor_dual_flash_rollback_suite (void);
+CuSuite* get_host_processor_dual_recover_active_read_write_data_suite (void);
 CuSuite* get_host_processor_dual_apply_recovery_image_suite (void);
 CuSuite* get_host_processor_dual_bypass_mode_suite (void);
 CuSuite* get_host_irq_handler_suite (void);
@@ -260,9 +265,11 @@ void add_all_tests (CuSuite *suite)
 #endif
 #ifdef TESTING_RUN_MANIFEST_FLASH_SUITE
 	CuSuiteAddSuite (suite, get_manifest_flash_suite ());
+	CuSuiteAddSuite (suite, get_manifest_flash_v2_suite ());
 #endif
 #ifdef TESTING_RUN_PFM_FLASH_SUITE
 	CuSuiteAddSuite (suite, get_pfm_flash_suite ());
+	CuSuiteAddSuite (suite, get_pfm_flash_v2_suite ());
 #endif
 #ifdef TESTING_RUN_CFM_FLASH_SUITE
 	CuSuiteAddSuite (suite, get_cfm_flash_suite ());
@@ -278,6 +285,9 @@ void add_all_tests (CuSuite *suite)
 #endif
 #ifdef TESTING_RUN_CERBERUS_PROTOCOL_DEBUG_COMMANDS_SUITE
 	CuSuiteAddSuite (suite, get_cerberus_protocol_debug_commands_suite ());
+#endif
+#ifdef TESTING_RUN_CERBERUS_PROTOCOL_DIAGNOSTIC_COMMANDS_SUITE
+	CuSuiteAddSuite (suite, get_cerberus_protocol_diagnostic_commands_suite ());
 #endif
 #ifdef TESTING_RUN_CMD_INTERFACE_SYSTEM_SUITE
 	CuSuiteAddSuite (suite, get_cmd_interface_system_suite ());
@@ -318,6 +328,7 @@ void add_all_tests (CuSuite *suite)
 	CuSuiteAddSuite (suite, get_host_processor_dual_soft_reset_suite ());
 	CuSuiteAddSuite (suite, get_host_processor_dual_run_time_verification_suite ());
 	CuSuiteAddSuite (suite, get_host_processor_dual_flash_rollback_suite ());
+	CuSuiteAddSuite (suite, get_host_processor_dual_recover_active_read_write_data_suite ());
 	CuSuiteAddSuite (suite, get_host_processor_dual_apply_recovery_image_suite ());
 	CuSuiteAddSuite (suite, get_host_processor_dual_bypass_mode_suite ());
 #endif

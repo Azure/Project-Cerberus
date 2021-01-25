@@ -1160,6 +1160,40 @@ static void ecc_mbedtls_test_compute_shared_secret (CuTest *test)
 	ecc_mbedtls_release (&engine);
 }
 
+static void ecc_mbedtls_test_compute_shared_secret_leading_zero (CuTest *test)
+{
+	struct ecc_engine_mbedtls engine;
+	struct ecc_private_key priv_key;
+	struct ecc_public_key pub_key;
+	int status;
+	int out_len;
+	uint8_t out[ECC_DH_SECRET_LEN * 2];
+
+	TEST_START;
+
+	status = ecc_mbedtls_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.init_key_pair (&engine.base, ECC_PRIVKEY_LEADING_ZERO_DER,
+		ECC_PRIVKEY_LEADING_ZERO_DER_LEN, &priv_key, NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.init_public_key (&engine.base, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN,
+		&pub_key);
+	CuAssertIntEquals (test, 0, status);
+
+	out_len = engine.base.compute_shared_secret (&engine.base, &priv_key, &pub_key, out,
+		sizeof (out));
+	CuAssertIntEquals (test, ECC_DH_SECRET_LEADING_ZERO_LEN, out_len);
+
+	status = testing_validate_array (ECC_DH_SECRET_LEADING_ZERO, out, out_len);
+	CuAssertIntEquals (test, 0, status);
+
+	engine.base.release_key_pair (&engine.base, &priv_key, &pub_key);
+
+	ecc_mbedtls_release (&engine);
+}
+
 static void ecc_mbedtls_test_compute_shared_secret_derived_key (CuTest *test)
 {
 	struct ecc_engine_mbedtls engine;
@@ -1235,10 +1269,12 @@ static void ecc_mbedtls_test_compute_shared_secret_different_keys (CuTest *test)
 	/* Prove the shared secret is the same for both keys. */
 	out_len1 = engine.base.compute_shared_secret (&engine.base, &priv_key1, &pub_key2, out1,
 		sizeof (out1));
+	CuAssertIntEquals (test, ECC_DH_SECRET_LEN, out_len1);
+
 	out_len2 = engine.base.compute_shared_secret (&engine.base, &priv_key2, &pub_key1, out2,
 		sizeof (out2));
+	CuAssertIntEquals (test, ECC_DH_SECRET_LEN, out_len2);
 
-	CuAssertIntEquals (test, out_len1, out_len2);
 	status = testing_validate_array (out1, out2, out_len1);
 	CuAssertIntEquals (test, 0, status);
 
@@ -1706,6 +1742,7 @@ CuSuite* get_ecc_mbedtls_suite ()
 	SUITE_ADD_TEST (suite, ecc_mbedtls_test_get_shared_secret_max_length_random_key);
 	SUITE_ADD_TEST (suite, ecc_mbedtls_test_get_shared_secret_max_length_null);
 	SUITE_ADD_TEST (suite, ecc_mbedtls_test_compute_shared_secret);
+	SUITE_ADD_TEST (suite, ecc_mbedtls_test_compute_shared_secret_leading_zero);
 	SUITE_ADD_TEST (suite, ecc_mbedtls_test_compute_shared_secret_derived_key);
 	SUITE_ADD_TEST (suite, ecc_mbedtls_test_compute_shared_secret_different_keys);
 	SUITE_ADD_TEST (suite, ecc_mbedtls_test_compute_shared_secret_null);

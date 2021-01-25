@@ -8,6 +8,7 @@
 
 
 /* GCC string operations. */
+char* strdup (const char *s);
 size_t strnlen (const char *s, size_t maxLen);
 
 #endif /* PLATFORM_COMPILER_H_ */

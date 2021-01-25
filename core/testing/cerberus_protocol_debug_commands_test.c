@@ -22,11 +22,14 @@
 void cerberus_protocol_debug_commands_testing_process_debug_fill_log (CuTest *test,
 	struct cmd_interface *cmd, struct cmd_background_mock *background)
 {
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_request request;
 	struct cerberus_protocol_header header = {0};
 	int status;
 
 	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
 	header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	header.command = CERBERUS_PROTOCOL_DEBUG_FILL_LOG;
@@ -49,11 +52,14 @@ void cerberus_protocol_debug_commands_testing_process_debug_fill_log (CuTest *te
 void cerberus_protocol_debug_commands_testing_process_get_device_certificate (CuTest *test,
 	struct cmd_interface *cmd, struct device_manager *device_manager)
 {
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_request request;
 	struct cerberus_protocol_header header = {0};
 	int status;
 
 	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
 	header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	header.command = CERBERUS_PROTOCOL_DEBUG_GET_DEVICE_MANAGER_CERT;
@@ -95,11 +101,14 @@ void cerberus_protocol_debug_commands_testing_process_get_device_certificate (Cu
 void cerberus_protocol_debug_commands_testing_process_get_device_certificate_invalid_len (
 	CuTest *test, struct cmd_interface *cmd)
 {
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_request request;
 	struct cerberus_protocol_header header = {0};
 	int status;
 
 	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
 	header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	header.command = CERBERUS_PROTOCOL_DEBUG_GET_DEVICE_MANAGER_CERT;
@@ -124,11 +133,14 @@ void cerberus_protocol_debug_commands_testing_process_get_device_certificate_inv
 void cerberus_protocol_debug_commands_testing_process_get_device_certificate_invalid_cert_num (
 	CuTest *test, struct cmd_interface *cmd, struct device_manager *device_manager)
 {
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_request request;
 	struct cerberus_protocol_header header = {0};
 	int status;
 
 	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
 	header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	header.command = CERBERUS_PROTOCOL_DEBUG_GET_DEVICE_MANAGER_CERT;
@@ -152,11 +164,14 @@ void cerberus_protocol_debug_commands_testing_process_get_device_certificate_inv
 void cerberus_protocol_debug_commands_testing_process_get_device_certificate_get_chain_fail (
 	CuTest *test, struct cmd_interface *cmd)
 {
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_request request;
 	struct cerberus_protocol_header header = {0};
 	int status;
 
 	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
 	header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	header.command = CERBERUS_PROTOCOL_DEBUG_GET_DEVICE_MANAGER_CERT;
@@ -177,11 +192,14 @@ void cerberus_protocol_debug_commands_testing_process_get_device_certificate_get
 void cerberus_protocol_debug_commands_testing_process_get_device_cert_digest (CuTest *test,
 	struct cmd_interface *cmd, struct hash_engine_mock *hash, struct device_manager *device_manager)
 {
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_request request;
 	struct cerberus_protocol_header header = {0};
 	int status;
 
 	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
 	header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	header.command = CERBERUS_PROTOCOL_DEBUG_GET_DEVICE_MANAGER_CERT_DIGEST;
@@ -230,11 +248,14 @@ void cerberus_protocol_debug_commands_testing_process_get_device_cert_digest (Cu
 void cerberus_protocol_debug_commands_testing_process_get_device_cert_digest_invalid_len (
 	CuTest *test, struct cmd_interface *cmd)
 {
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_request request;
 	struct cerberus_protocol_header header = {0};
 	int status;
 
 	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
 	header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	header.command = CERBERUS_PROTOCOL_DEBUG_GET_DEVICE_MANAGER_CERT_DIGEST;
@@ -259,11 +280,14 @@ void cerberus_protocol_debug_commands_testing_process_get_device_cert_digest_inv
 void cerberus_protocol_debug_commands_testing_process_get_device_cert_digest_invalid_cert_num (
 	CuTest *test, struct cmd_interface *cmd, struct device_manager *device_manager)
 {
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_request request;
 	struct cerberus_protocol_header header = {0};
 	int status;
 
 	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
 	header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	header.command = CERBERUS_PROTOCOL_DEBUG_GET_DEVICE_MANAGER_CERT_DIGEST;
@@ -287,11 +311,14 @@ void cerberus_protocol_debug_commands_testing_process_get_device_cert_digest_inv
 void cerberus_protocol_debug_commands_testing_process_get_device_cert_digest_get_chain_fail (
 	CuTest *test, struct cmd_interface *cmd)
 {
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_request request;
 	struct cerberus_protocol_header header = {0};
 	int status;
 
 	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
 	header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	header.command = CERBERUS_PROTOCOL_DEBUG_GET_DEVICE_MANAGER_CERT_DIGEST;
@@ -313,11 +340,14 @@ void cerberus_protocol_debug_commands_testing_process_get_device_cert_digest_has
 	CuTest *test, struct cmd_interface *cmd, struct hash_engine_mock *hash,
 	struct device_manager *device_manager)
 {
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_request request;
 	struct cerberus_protocol_header header = {0};
 	int status;
 
 	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
 	header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	header.command = CERBERUS_PROTOCOL_DEBUG_GET_DEVICE_MANAGER_CERT_DIGEST;
@@ -355,11 +385,14 @@ void cerberus_protocol_debug_commands_testing_process_get_device_challenge (CuTe
 	struct rsa_engine_mock rsa;
 	struct rng_engine_mock rng;
 	struct x509_engine_mock x509;
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_request request;
 	struct cerberus_protocol_header header = {0};
 	int status;
 
 	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
 	header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	header.command = CERBERUS_PROTOCOL_DEBUG_GET_DEVICE_MANAGER_CHALLENGE;
@@ -426,11 +459,14 @@ void cerberus_protocol_debug_commands_testing_process_get_device_challenge (CuTe
 void cerberus_protocol_debug_commands_testing_process_get_device_challenge_invalid_len (
 	CuTest *test, struct cmd_interface *cmd)
 {
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_request request;
 	struct cerberus_protocol_header header = {0};
 	int status;
 
 	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
 	header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	header.command = CERBERUS_PROTOCOL_DEBUG_GET_DEVICE_MANAGER_CHALLENGE;

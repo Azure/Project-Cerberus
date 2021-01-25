@@ -38,6 +38,24 @@ extern const size_t ECC_SIG_BAD_LEN;
 extern const uint8_t ECC_DH_SECRET[];
 extern const size_t ECC_DH_SECRET_LEN;
 
+extern const uint8_t ECC_PRIVKEY_LEADING_ZERO[];
+extern const size_t ECC_PRIVKEY_LEADING_ZERO_LEN;
+
+extern const char ECC_PUBKEY_LEADING_ZERO_PEM[];
+extern const size_t ECC_PUBKEY_LEADING_ZERO_PEM_LEN;
+
+extern const uint8_t ECC_PUBKEY_LEADING_ZERO_DER[];
+extern const size_t ECC_PUBKEY_LEADING_ZERO_DER_LEN;
+
+extern const char ECC_PRIVKEY_LEADING_ZERO_PEM[];
+extern const size_t ECC_PRIVKEY_LEADING_ZERO_PEM_LEN;
+
+extern const uint8_t ECC_PRIVKEY_LEADING_ZERO_DER[];
+extern const size_t ECC_PRIVKEY_LEADING_ZERO_DER_LEN;
+
+extern const uint8_t ECC_DH_SECRET_LEADING_ZERO[];
+extern const size_t ECC_DH_SECRET_LEADING_ZERO_LEN;
+
 extern const uint8_t ECC_PRIVKEY2[];
 extern const size_t ECC_PRIVKEY2_LEN;
 

@@ -65,8 +65,9 @@ static int logging_flash_save_buffer (struct logging_flash *logging)
 		logging->flash_used[curr_sector_num] += write_len;
 
 		if (status == 0) {
-			if (((logging->write_remain < (int) sizeof (struct logging_entry_header)) ||
-				logging->terminated) && (FLASH_SECTOR_OFFSET (logging->next_addr) != 0)) {
+			if ((FLASH_SECTOR_OFFSET (logging->next_addr) != 0) &&
+				((logging->write_remain < (int) sizeof (struct logging_entry_header)) ||
+					logging->terminated)) {
 				logging->next_addr = FLASH_SECTOR_BASE (logging->next_addr) + FLASH_SECTOR_SIZE;
 			}
 
@@ -189,7 +190,6 @@ static int logging_flash_clear (struct logging *logging)
 	}
 
 	memset (flash_log->flash_used, 0, sizeof (flash_log->flash_used));
-	flash_log->next_entry_id = 0;
 	flash_log->log_start = 0;
 
 	flash_log->next_addr = flash_log->base_addr;

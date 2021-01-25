@@ -15,29 +15,40 @@
 /**
  * The maximum size for a single packet sent or received through a command channel.
  */
-#define	CMD_MAX_PACKET_SIZE					MCTP_PROTOCOL_MAX_PACKET_LEN
+#define	CMD_MAX_PACKET_SIZE				MCTP_PROTOCOL_MAX_PACKET_LEN
 
 /**
  * Valid states for a packet.
  */
 enum {
-	CMD_VALID_PACKET = 0,					/**< Valid command packet. */
-	CMD_OVERFLOW_PACKET,					/**< This packet is part of an overflow condition. */
-	CMD_NACK_PACKET,						/**< NACK should be sent, disregard packet data. */
-	CMD_NO_RESPONSE,						/**< No response needed. */
+	CMD_VALID_PACKET = 0,				/**< Valid command packet. */
+	CMD_OVERFLOW_PACKET,				/**< This packet is part of an overflow condition. */
+	CMD_NACK_PACKET,					/**< NACK should be sent, disregard packet data. */
+	CMD_NO_RESPONSE,					/**< No response needed. */
+	CMD_RX_ERROR,						/**< There was a channel error while receiving the packet data. */
 };
 
 /**
  * Information for a single command packet.
  */
 struct cmd_packet {
-	uint8_t data[CMD_MAX_PACKET_SIZE];		/**< Buffer for packet data. */
-	size_t pkt_size;						/**< Total size of the packet data. */
-	uint8_t dest_addr;						/**< The destination address for the packet.  This is
-	 	 	 	 	 	 	 	 	 	 	 	assumed to be a 7-bit address compatible with I2C. */
-	uint8_t state;							/**< The packet state. */
-	platform_clock pkt_timeout;				/**< Time at which processing for the packet must be completed. */
-	bool timeout_valid;						/**< Flag indicating if a packet timeout has been set. */
+	uint8_t data[CMD_MAX_PACKET_SIZE];	/**< Buffer for packet data. */
+	size_t pkt_size;					/**< Total size of the packet data. */
+	uint8_t dest_addr;					/**< The destination address for the packet.  This is
+	 	 	 	 	 	 	 	 	 	 	assumed to be a 7-bit address compatible with I2C. */
+	uint8_t state;						/**< The packet state. */
+	platform_clock pkt_timeout;			/**< Time at which processing for the packet must be completed. */
+	bool timeout_valid;					/**< Flag indicating if a packet timeout has been set. */
+};
+
+/**
+ * Information for a single command message.
+ */
+struct cmd_message {
+	uint8_t *data;						/**< Buffer for the message data. */
+	size_t msg_size;					/**< Total size of the message data. */
+	size_t pkt_size;					/**< Size of each packet in the message. */
+	uint8_t dest_addr;					/**< The destination address for the message. */
 };
 
 

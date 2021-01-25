@@ -20,12 +20,12 @@ struct flush_data_background {
 	SemaphoreHandle_t lock;					/**< Synchronization to protect task deletion. */
 	struct state_manager *system_state;		/**< The manager for system state to persist. */
 	struct state_manager *host_state_0;		/**< The manager for host state to persist for port 0. */
-	struct state_manager *host_state_1;		/**< The manager for host state to persist for port 1. */ 
+	struct state_manager *host_state_1;		/**< The manager for host state to persist for port 1. */
 };
 
 int flush_data_background_init (struct flush_data_background *flush_data,
 	struct logging *logger, struct state_manager *system_state, struct state_manager *host_state_0,
-	struct state_manager *host_state_1);
+	struct state_manager *host_state_1, int priority);
 void flush_data_background_release (struct flush_data_background *flush_data);
 
 

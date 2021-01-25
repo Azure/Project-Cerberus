@@ -55,7 +55,7 @@ static int host_flash_manager_find_flash_version (struct host_flash_manager *man
 {
 	int status;
 
-	status = pfm->get_supported_versions (pfm, versions);
+	status = pfm->get_supported_versions (pfm, NULL, versions);
 	if (status != 0) {
 		return status;
 	}
@@ -97,7 +97,7 @@ static int host_flash_manager_get_image_entry (struct pfm *pfm, struct spi_flash
 {
 	int status;
 
-	status = pfm->get_supported_versions (pfm, versions);
+	status = pfm->get_supported_versions (pfm, NULL, versions);
 	if (status != 0) {
 		return status;
 	}
@@ -107,13 +107,13 @@ static int host_flash_manager_get_image_entry (struct pfm *pfm, struct spi_flash
 		goto free_versions;
 	}
 
-	status = pfm->get_firmware_images (pfm, (*version)->fw_version_id, fw_images);
+	status = pfm->get_firmware_images (pfm, NULL, (*version)->fw_version_id, fw_images);
 	if (status != 0) {
 		goto free_versions;
 	}
 
 	if (writable) {
-		status = pfm->get_read_write_regions (pfm, (*version)->fw_version_id, writable);
+		status = pfm->get_read_write_regions (pfm, NULL, (*version)->fw_version_id, writable);
 		if (status != 0) {
 			goto free_images;
 		}
@@ -226,7 +226,8 @@ int host_flash_manager_validate_pfm (struct pfm *pfm, struct pfm *good_pfm,
 		return status;
 	}
 
-	status = good_pfm->get_firmware_images (good_pfm, version->fw_version_id, &fw_images_good);
+	status = good_pfm->get_firmware_images (good_pfm, NULL, version->fw_version_id,
+		&fw_images_good);
 	if (status == 0) {
 		status = host_fw_are_images_different (&fw_images, &fw_images_good);
 
@@ -298,10 +299,21 @@ static int host_flash_manager_get_flash_read_write_regions (struct host_flash_ma
 		return status;
 	}
 
-	status = pfm->get_read_write_regions (pfm, version->fw_version_id, writable);
+	status = pfm->get_read_write_regions (pfm, NULL, version->fw_version_id, writable);
 
 	pfm->free_fw_versions (pfm, &versions);
 	return status;
+}
+
+static int host_flash_manager_restore_flash_read_write_regions (struct host_flash_manager *manager,
+	struct pfm_read_write_regions *writable)
+{
+	if ((manager == NULL) || (writable == NULL)) {
+		return HOST_FLASH_MGR_INVALID_ARGUMENT;
+	}
+
+	return host_fw_restore_read_write_data (host_flash_manager_get_read_write_flash (manager),
+		host_flash_manager_get_read_only_flash (manager), writable);
 }
 
 /**
@@ -784,6 +796,7 @@ int host_flash_manager_init (struct host_flash_manager *manager, struct spi_flas
 	manager->validate_read_only_flash = host_flash_manager_validate_read_only_flash;
 	manager->validate_read_write_flash = host_flash_manager_validate_read_write_flash;
 	manager->get_flash_read_write_regions = host_flash_manager_get_flash_read_write_regions;
+	manager->restore_flash_read_write_regions = host_flash_manager_restore_flash_read_write_regions;
 	manager->config_spi_filter_flash_type = host_flash_manager_config_spi_filter_flash_type;
 	manager->config_spi_filter_flash_devices = host_flash_manager_config_spi_filter_flash_devices;
 	manager->swap_flash_devices = host_flash_manager_swap_flash_devices;

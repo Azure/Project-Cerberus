@@ -5,6 +5,7 @@
 #define PFM_TESTING_H_
 
 #include <stdint.h>
+#include <stddef.h>
 
 
 extern const uint8_t PFM_DATA[];

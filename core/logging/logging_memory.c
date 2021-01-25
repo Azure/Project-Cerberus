@@ -64,7 +64,6 @@ static int logging_memory_clear (struct logging *logging)
 
 	mem_log->log_start = 0;
 	mem_log->log_end = 0;
-	mem_log->next_entry_id = 0;
 
 	platform_mutex_unlock (&mem_log->lock);
 

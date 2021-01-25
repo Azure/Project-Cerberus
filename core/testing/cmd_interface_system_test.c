@@ -40,8 +40,6 @@
 #include "mock/ecc_mock.h"
 #include "mock/rsa_mock.h"
 #include "mock/host_control_mock.h"
-#include "engines/x509_testing_engine.h"
-#include "riot_core_testing.h"
 #include "mock/recovery_image_manager_mock.h"
 #include "mock/recovery_image_mock.h"
 #include "mock/recovery_image_cmd_interface_mock.h"
@@ -49,6 +47,9 @@
 #include "mock/flash_mock.h"
 #include "mock/cmd_device_mock.h"
 #include "mock/session_manager_mock.h"
+#include "mock/cmd_interface_mock.h"
+#include "engines/x509_testing_engine.h"
+#include "riot_core_testing.h"
 #include "recovery_image_header_testing.h"
 #include "cmd_interface_system_testing.h"
 #include "cerberus_protocol_required_commands_testing.h"
@@ -1138,17 +1139,20 @@ static void cmd_interface_system_test_process_payload_too_short (CuTest *test)
 static void cmd_interface_system_test_process_unsupported_message (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_request request;
-	struct cerberus_protocol_header header = {0};
+	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) data;
 	int status;
 
 	TEST_START;
 
 	memset (&request, 0, sizeof (request));
-	header.msg_type = 0x11;
-	header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	memset (data, 0, sizeof (data));
+	request.data = data;
 
-	memcpy (request.data, &header, sizeof (header));
+	header->msg_type = 0x11;
+	header->pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+
 	request.length = CERBERUS_PROTOCOL_MIN_MSG_LEN;
 	request.source_eid = MCTP_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
@@ -1161,8 +1165,8 @@ static void cmd_interface_system_test_process_unsupported_message (CuTest *test)
 	CuAssertIntEquals (test, CMD_HANDLER_UNSUPPORTED_MSG, status);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 
-	header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
-	header.pci_vendor_id = 0xAA;
+	header->msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	header->pci_vendor_id = 0xAA;
 
 	request.crypto_timeout = true;
 	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
@@ -1175,13 +1179,16 @@ static void cmd_interface_system_test_process_unsupported_message (CuTest *test)
 static void cmd_interface_system_test_process_unknown_command (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_request request;
-	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) request.data;
+	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) data;
 	int status;
 
 	TEST_START;
 
 	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
 	header->msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	header->pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	header->command = 0xFF;
@@ -1204,13 +1211,16 @@ static void cmd_interface_system_test_process_unknown_command (CuTest *test)
 static void cmd_interface_system_test_process_unknown_device (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_request request;
-	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) request.data;
+	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) data;
 	int status;
 
 	TEST_START;
 
 	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
 	header->msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	header->pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	header->command = CERBERUS_PROTOCOL_GET_DIGEST;
@@ -1233,18 +1243,20 @@ static void cmd_interface_system_test_process_unknown_device (CuTest *test)
 static void cmd_interface_system_test_process_error_packet (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_request request;
-	struct cerberus_protocol_header header = {0};
+	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) data;
 	int status;
 
 	TEST_START;
 
 	memset (&request, 0, sizeof (request));
-	header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
-	header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
-	header.command = CERBERUS_PROTOCOL_ERROR;
+	memset (data, 0, sizeof (data));
+	request.data = data;
+	header->msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	header->pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	header->command = CERBERUS_PROTOCOL_ERROR;
 
-	memcpy (request.data, &header, sizeof (header));
 	request.length = CERBERUS_PROTOCOL_MIN_MSG_LEN;
 	request.source_eid = MCTP_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
@@ -1254,7 +1266,7 @@ static void cmd_interface_system_test_process_error_packet (CuTest *test)
 
 	request.crypto_timeout = true;
 	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
-	CuAssertIntEquals (test, CMD_ERROR_MESSAGE_ESCAPE_SEQ, status);
+	CuAssertIntEquals (test, CMD_HANDLER_ERROR_MESSAGE, status);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -1263,19 +1275,21 @@ static void cmd_interface_system_test_process_error_packet (CuTest *test)
 static void cmd_interface_system_test_process_reserved_fields_not_zero (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_request request;
-	struct cerberus_protocol_header header = {0};
+	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) data;
 	int status;
 
 	TEST_START;
 
 	memset (&request, 0, sizeof (request));
-	header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
-	header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
-	header.reserved1 = 1;
-	header.reserved2 = 0;
+	memset (data, 0, sizeof (data));
+	request.data = data;
+	header->msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	header->pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	header->reserved1 = 1;
+	header->reserved2 = 0;
 
-	memcpy (request.data, &header, sizeof (header));
 	request.length = CERBERUS_PROTOCOL_MIN_MSG_LEN;
 	request.source_eid = MCTP_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
@@ -1288,8 +1302,8 @@ static void cmd_interface_system_test_process_reserved_fields_not_zero (CuTest *
 	CuAssertIntEquals (test, CMD_HANDLER_RSVD_NOT_ZERO, status);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 
-	header.reserved1 = 0;
-	header.reserved2 = 1;
+	header->reserved1 = 0;
+	header->reserved2 = 1;
 
 	request.crypto_timeout = true;
 	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
@@ -1302,20 +1316,23 @@ static void cmd_interface_system_test_process_reserved_fields_not_zero (CuTest *
 static void cmd_interface_system_test_process_encrypted_message (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_request request;
+	uint8_t decrypted_data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_request decrypted_request;
+	uint8_t response_data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_request response;
+	uint8_t encrypted_data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_request encrypted_response;
-	struct cerberus_protocol_update_status *req =
-		(struct cerberus_protocol_update_status*) request.data;
+	struct cerberus_protocol_update_status *req = (struct cerberus_protocol_update_status*) data;
 	struct cerberus_protocol_update_status_response *resp =
-		(struct cerberus_protocol_update_status_response*) request.data;
+		(struct cerberus_protocol_update_status_response*) data;
 	struct cerberus_protocol_update_status *plaintext_rq =
-		(struct cerberus_protocol_update_status*) decrypted_request.data;
+		(struct cerberus_protocol_update_status*) decrypted_data;
 	struct cerberus_protocol_update_status_response *plaintext_rsp =
-		(struct cerberus_protocol_update_status_response*) response.data;
+		(struct cerberus_protocol_update_status_response*) response_data;
 	struct cerberus_protocol_update_status_response *ciphertext_rsp =
-		(struct cerberus_protocol_update_status_response*) encrypted_response.data;
+		(struct cerberus_protocol_update_status_response*) encrypted_data;
 	int update_status = 0x00BB11AA;
 	int encrypted_update_status = 0x11223344;
 	int status;
@@ -1326,9 +1343,20 @@ static void cmd_interface_system_test_process_encrypted_message (CuTest *test)
 		true, DEVICE_MANAGER_UPSTREAM, true);
 
 	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
+
 	memset (&decrypted_request, 0, sizeof (decrypted_request));
+	memset (decrypted_data, 0, sizeof (decrypted_data));
+	decrypted_request.data = decrypted_data;
+
 	memset (&response, 0, sizeof (response));
+	memset (response_data, 0, sizeof (response_data));
+	response.data = response_data;
+
 	memset (&encrypted_response, 0, sizeof (encrypted_response));
+	memset (encrypted_data, 0, sizeof (encrypted_data));
+	encrypted_response.data = encrypted_data;
 
 	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
@@ -1378,19 +1406,23 @@ static void cmd_interface_system_test_process_encrypted_message (CuTest *test)
 	encrypted_response.source_eid = MCTP_PROTOCOL_BMC_EID;
 	encrypted_response.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
 
-	status = mock_expect (&cmd.session.mock, cmd.session.base.decrypt_message,
-		&cmd.session, 0, MOCK_ARG_PTR_CONTAINS_TMP (&request, sizeof (request)));
-	status |= mock_expect_output (&cmd.session.mock, 0, &decrypted_request,
-		sizeof (decrypted_request), -1);
+	status = mock_expect (&cmd.session.mock, cmd.session.base.decrypt_message, &cmd.session, 0,
+		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,
+			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+			cmd_interface_mock_duplicate_request));
+	status |= mock_expect_output_deep_copy (&cmd.session.mock, 0, &decrypted_request,
+		sizeof (decrypted_request), cmd_interface_mock_copy_request);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.update.mock, cmd.update.base.get_status, &cmd.update, update_status);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.session.mock, cmd.session.base.encrypt_message,
-		&cmd.session, 0, MOCK_ARG_PTR_CONTAINS_TMP (&response, sizeof (response)));
-	status |= mock_expect_output (&cmd.session.mock, 0, &encrypted_response,
-		sizeof (encrypted_response), -1);
+		&cmd.session, 0, MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request,
+			&response, sizeof (response), cmd_interface_mock_save_request,
+			cmd_interface_mock_free_request, cmd_interface_mock_duplicate_request));
+	status |= mock_expect_output_deep_copy (&cmd.session.mock, 0, &encrypted_response,
+		sizeof (encrypted_response), cmd_interface_mock_copy_request);
 	CuAssertIntEquals (test, 0, status);
 
 	request.new_request = true;
@@ -1417,9 +1449,9 @@ static void cmd_interface_system_test_process_encrypted_message (CuTest *test)
 static void cmd_interface_system_test_process_encrypted_message_decrypt_fail (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_request request;
-	struct cerberus_protocol_update_status *req =
-		(struct cerberus_protocol_update_status*) request.data;
+	struct cerberus_protocol_update_status *req = (struct cerberus_protocol_update_status*) data;
 	int status;
 
 	TEST_START;
@@ -1428,6 +1460,8 @@ static void cmd_interface_system_test_process_encrypted_message_decrypt_fail (Cu
 		true, DEVICE_MANAGER_UPSTREAM, true);
 
 	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
 	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_UPDATE_STATUS;
@@ -1457,15 +1491,17 @@ static void cmd_interface_system_test_process_encrypted_message_decrypt_fail (Cu
 static void cmd_interface_system_test_process_encrypted_message_encrypt_fail (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_request request;
+	uint8_t decrypted_data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_request decrypted_request;
+	uint8_t response_data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_request response;
-	struct cerberus_protocol_update_status *req =
-		(struct cerberus_protocol_update_status*) request.data;
+	struct cerberus_protocol_update_status *req = (struct cerberus_protocol_update_status*) data;
 	struct cerberus_protocol_update_status *plaintext_rq =
-		(struct cerberus_protocol_update_status*) decrypted_request.data;
+		(struct cerberus_protocol_update_status*) decrypted_data;
 	struct cerberus_protocol_update_status_response *plaintext_rsp =
-		(struct cerberus_protocol_update_status_response*) response.data;
+		(struct cerberus_protocol_update_status_response*) response_data;
 	int update_status = 0x00BB11AA;
 	int status;
 
@@ -1475,8 +1511,16 @@ static void cmd_interface_system_test_process_encrypted_message_encrypt_fail (Cu
 		true, DEVICE_MANAGER_UPSTREAM, true);
 
 	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
+
 	memset (&decrypted_request, 0, sizeof (decrypted_request));
+	memset (decrypted_data, 0, sizeof (decrypted_data));
+	decrypted_request.data = decrypted_data;
+
 	memset (&response, 0, sizeof (response));
+	memset (response_data, 0, sizeof (response_data));
+	response.data = response_data;
 
 	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
@@ -1514,10 +1558,12 @@ static void cmd_interface_system_test_process_encrypted_message_encrypt_fail (Cu
 	response.source_eid = MCTP_PROTOCOL_BMC_EID;
 	response.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
 
-	status = mock_expect (&cmd.session.mock, cmd.session.base.decrypt_message,
-		&cmd.session, 0, MOCK_ARG_PTR_CONTAINS_TMP (&request, sizeof (request)));
-	status |= mock_expect_output (&cmd.session.mock, 0, &decrypted_request,
-		sizeof (decrypted_request), -1);
+	status = mock_expect (&cmd.session.mock, cmd.session.base.decrypt_message, &cmd.session, 0,
+		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,
+			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+			cmd_interface_mock_duplicate_request));
+	status |= mock_expect_output_deep_copy (&cmd.session.mock, 0, &decrypted_request,
+		sizeof (decrypted_request), cmd_interface_mock_copy_request);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.update.mock, cmd.update.base.get_status, &cmd.update, update_status);
@@ -1525,7 +1571,9 @@ static void cmd_interface_system_test_process_encrypted_message_encrypt_fail (Cu
 
 	status = mock_expect (&cmd.session.mock, cmd.session.base.encrypt_message,
 		&cmd.session, SESSION_MANAGER_NO_MEMORY,
-		MOCK_ARG_PTR_CONTAINS_TMP (&response, sizeof (response)));
+		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &response,
+			sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+			cmd_interface_mock_duplicate_request));
 	CuAssertIntEquals (test, 0, status);
 
 	request.crypto_timeout = true;
@@ -1539,9 +1587,9 @@ static void cmd_interface_system_test_process_encrypted_message_encrypt_fail (Cu
 static void cmd_interface_system_test_process_encrypted_message_no_session_manager (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_request request;
-	struct cerberus_protocol_update_status *req =
-		(struct cerberus_protocol_update_status*) request.data;
+	struct cerberus_protocol_update_status *req = (struct cerberus_protocol_update_status*) data;
 	int status;
 
 	TEST_START;
@@ -1550,6 +1598,8 @@ static void cmd_interface_system_test_process_encrypted_message_no_session_manag
 		true, DEVICE_MANAGER_UPSTREAM, false);
 
 	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
 	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_UPDATE_STATUS;
@@ -1573,11 +1623,13 @@ static void cmd_interface_system_test_process_encrypted_message_no_session_manag
 static void cmd_interface_system_test_process_encrypted_message_no_response (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_request request;
+	uint8_t decrypted_data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_request decrypted_request;
-	struct cerberus_protocol_clear_log *req = (struct cerberus_protocol_clear_log*) request.data;
+	struct cerberus_protocol_clear_log *req = (struct cerberus_protocol_clear_log*) data;
 	struct cerberus_protocol_clear_log *plaintext_rq =
-		(struct cerberus_protocol_clear_log*) decrypted_request.data;
+		(struct cerberus_protocol_clear_log*) decrypted_data;
 	int status;
 
 	TEST_START;
@@ -1586,7 +1638,12 @@ static void cmd_interface_system_test_process_encrypted_message_no_response (CuT
 		true, DEVICE_MANAGER_UPSTREAM, true);
 
 	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
+
 	memset (&decrypted_request, 0, sizeof (decrypted_request));
+	memset (decrypted_data, 0, sizeof (decrypted_data));
+	decrypted_request.data = decrypted_data;
 
 	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
@@ -1633,15 +1690,18 @@ static void cmd_interface_system_test_process_encrypted_message_no_response (CuT
 static void cmd_interface_system_test_process_encrypted_message_only_header (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_request request;
+	uint8_t decrypted_data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_request decrypted_request;
+	uint8_t response_data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_request response;
 	struct cerberus_protocol_get_attestation_data *req =
-		(struct cerberus_protocol_get_attestation_data*) request.data;
+		(struct cerberus_protocol_get_attestation_data*) data;
 	struct cerberus_protocol_get_attestation_data *plaintext_rq =
-		(struct cerberus_protocol_get_attestation_data*) decrypted_request.data;
+		(struct cerberus_protocol_get_attestation_data*) decrypted_data;
 	struct cerberus_protocol_get_attestation_data_response *resp =
-		(struct cerberus_protocol_get_attestation_data_response*) response.data;
+		(struct cerberus_protocol_get_attestation_data_response*) data;
 	int status;
 
 	TEST_START;
@@ -1650,7 +1710,12 @@ static void cmd_interface_system_test_process_encrypted_message_only_header (CuT
 		true, DEVICE_MANAGER_UPSTREAM, true);
 
 	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
+
 	memset (&decrypted_request, 0, sizeof (decrypted_request));
+	memset (decrypted_data, 0, sizeof (decrypted_data));
+	decrypted_request.data = decrypted_data;
 
 	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
@@ -1682,17 +1747,22 @@ static void cmd_interface_system_test_process_encrypted_message_only_header (CuT
 	decrypted_request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
 
 	memcpy (&response, &decrypted_request, sizeof (response));
-
+	memcpy (&response_data, decrypted_data, sizeof (response_data));
+	response.data = response_data;
 	response.length = sizeof (struct cerberus_protocol_header);
 
-	status = mock_expect (&cmd.session.mock, cmd.session.base.decrypt_message,
-		&cmd.session, 0, MOCK_ARG_PTR_CONTAINS_TMP (&request, sizeof (request)));
-	status |= mock_expect_output (&cmd.session.mock, 0, &decrypted_request,
-		sizeof (decrypted_request), -1);
+	status = mock_expect (&cmd.session.mock, cmd.session.base.decrypt_message, &cmd.session, 0,
+		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,
+			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+			cmd_interface_mock_duplicate_request));
+	status |= mock_expect_output_deep_copy (&cmd.session.mock, 0, &decrypted_request,
+		sizeof (decrypted_request), cmd_interface_mock_copy_request);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.session.mock, cmd.session.base.encrypt_message,
-		&cmd.session, 0, MOCK_ARG_PTR_CONTAINS_TMP (&response, sizeof (response)));
+		&cmd.session, 0, MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request,
+			&response, sizeof (response), cmd_interface_mock_save_request,
+			cmd_interface_mock_free_request, cmd_interface_mock_duplicate_request));
 	CuAssertIntEquals (test, 0, status);
 
 	request.crypto_timeout = true;
@@ -3957,7 +4027,7 @@ static void cmd_interface_system_test_process_log_clear_attestation (CuTest *tes
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, DEVICE_MANAGER_UPSTREAM, true);
-	cerberus_protocol_optional_commands_testing_process_log_clear_attestation (test, 
+	cerberus_protocol_optional_commands_testing_process_log_clear_attestation (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
@@ -4087,7 +4157,7 @@ static void cmd_interface_system_test_process_log_read_attestation (CuTest *test
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, DEVICE_MANAGER_UPSTREAM, true);
-	cerberus_protocol_optional_commands_testing_process_log_read_attestation (test, 
+	cerberus_protocol_optional_commands_testing_process_log_read_attestation (test,
 		&cmd.handler.base, &cmd.hash, &cmd.store);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
@@ -4100,7 +4170,7 @@ static void cmd_interface_system_test_process_log_read_tcg (CuTest *test)
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, DEVICE_MANAGER_UPSTREAM, true);
-	cerberus_protocol_optional_commands_testing_process_log_read_tcg (test, &cmd.handler.base, 
+	cerberus_protocol_optional_commands_testing_process_log_read_tcg (test, &cmd.handler.base,
 		&cmd.store);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
@@ -4113,7 +4183,7 @@ static void cmd_interface_system_test_process_log_read_tcg_fail (CuTest *test)
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, DEVICE_MANAGER_UPSTREAM, true);
-	cerberus_protocol_optional_commands_testing_process_log_read_tcg_fail (test, &cmd.handler.base, 
+	cerberus_protocol_optional_commands_testing_process_log_read_tcg_fail (test, &cmd.handler.base,
 		&cmd.store);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
@@ -4152,7 +4222,7 @@ static void cmd_interface_system_test_process_log_read_attestation_fail (CuTest 
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, DEVICE_MANAGER_UPSTREAM, true);
-	cerberus_protocol_optional_commands_testing_process_log_read_attestation_fail (test, 
+	cerberus_protocol_optional_commands_testing_process_log_read_attestation_fail (test,
 		&cmd.handler.base, &cmd.hash, &cmd.store);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
@@ -6937,7 +7007,7 @@ static void cmd_interface_system_test_process_session_sync_no_session_mgr (CuTes
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, DEVICE_MANAGER_UPSTREAM, false);
 
-	cerberus_protocol_optional_commands_testing_process_session_sync_no_session_mgr (test,	
+	cerberus_protocol_optional_commands_testing_process_session_sync_no_session_mgr (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
@@ -6951,7 +7021,7 @@ static void cmd_interface_system_test_process_session_sync_fail (CuTest *test)
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, DEVICE_MANAGER_UPSTREAM, true);
 
-	cerberus_protocol_optional_commands_testing_process_session_sync_fail (test, &cmd.handler.base, 
+	cerberus_protocol_optional_commands_testing_process_session_sync_fail (test, &cmd.handler.base,
 		&cmd.session);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }

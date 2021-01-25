@@ -23,7 +23,6 @@ static struct pcd* pcd_manager_flash_get_pcd (struct pcd_manager_flash *manager,
 	}
 
 	flash = (struct pcd_flash*) region->manifest;
-
 	return &flash->base;
 }
 
@@ -115,53 +114,6 @@ static int pcd_manager_flash_clear_all_manifests (struct manifest_manager *manag
 }
 
 /**
- * If there is both an active and pending PCD, check that the platform identifier of the pending
- * PCD matches the active.  If not, mark the pending PCD as invalid.
- *
- * @param manager The PCD manager to update.
- *
- * @return 0 if the check completed successfully or an error code.
- */
-static int pcd_manager_flash_check_pending_platform_id (struct manifest_manager_flash *manager)
-{
-	struct manifest_manager_flash_region *active;
-	struct manifest_manager_flash_region *pending;
-	struct pcd_flash *active_pcd;
-	struct pcd_flash *pending_pcd;
-	char *active_id = NULL;
-	char *pending_id = NULL;
-	int status = 0;
-
-	active = manifest_manager_flash_get_region (manager, true);
-	pending = manifest_manager_flash_get_region (manager, false);
-
-	if (active->is_valid && pending->is_valid) {
-		active_pcd = (struct pcd_flash*) active->manifest;
-		pending_pcd = (struct pcd_flash*) pending->manifest;
-
-		status = active_pcd->base.base.get_platform_id (&active_pcd->base.base, &active_id);
-		if (status == 0) {
-			status = pending_pcd->base.base.get_platform_id (&pending_pcd->base.base, &pending_id);
-		}
-
-		if (status == 0) {
-			if (strcmp (active_id, pending_id) != 0) {
-				pending->is_valid = false;
-				status = MANIFEST_MANAGER_INCOMPATIBLE;
-			}
-		}
-		else {
-			pending->is_valid = false;
-		}
-
-		platform_free (active_id);
-		platform_free (pending_id);
-	}
-
-	return status;
-}
-
-/**
  * Initialize the manager for handling PCDs.
  *
  * @param manager The PCD manager to initialize.
@@ -195,9 +147,8 @@ int pcd_manager_flash_init (struct pcd_manager_flash *manager, struct pcd_flash 
 	}
 
 	status = manifest_manager_flash_init (&manager->manifest_manager, &pcd_region1->base.base,
-		&pcd_region2->base.base, state, hash, verification, pcd_flash_get_flash (pcd_region1),
-		pcd_flash_get_addr (pcd_region1), pcd_flash_get_flash (pcd_region2),
-		pcd_flash_get_addr (pcd_region2), SYSTEM_STATE_MANIFEST_PCD);
+		&pcd_region2->base.base, &pcd_region1->base_flash, &pcd_region2->base_flash, state, hash,
+		verification, SYSTEM_STATE_MANIFEST_PCD);
 	if (status != 0) {
 		pcd_manager_release (&manager->base);
 		return status;
@@ -210,8 +161,6 @@ int pcd_manager_flash_init (struct pcd_manager_flash *manager, struct pcd_flash 
 	manager->base.base.write_pending_data = pcd_manager_flash_write_pending_data;
 	manager->base.base.verify_pending_manifest = pcd_manager_flash_verify_pending_pcd;
 	manager->base.base.clear_all_manifests = pcd_manager_flash_clear_all_manifests;
-
-	manager->manifest_manager.post_verify = pcd_manager_flash_check_pending_platform_id;
 
 	status = pcd_manager_flash_activate_pending_pcd (&manager->base.base);
 	if (status == MANIFEST_MANAGER_NONE_PENDING) {

@@ -501,7 +501,7 @@ static void kdf_test_nist800_108_counter_mode_finish_hmac_fail (CuTest *test)
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
 		MOCK_ARG_PTR_CONTAINS (&L, sizeof (L)), MOCK_ARG (sizeof (L)));
 	status |= mock_expect (&hash.mock, hash.base.finish, &hash, HASH_ENGINE_NO_MEMORY,
-		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect (&hash.mock, hash.base.cancel, &hash, 0);
 	CuAssertIntEquals (test, 0, status);
 

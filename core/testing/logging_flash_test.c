@@ -15742,6 +15742,7 @@ static void logging_flash_test_clear_flushed_entry (CuTest *test)
 	uint8_t log_empty[FLASH_SECTOR_SIZE];
 	uint8_t entry[] = {0, 1, 2, 3, 4};
 	uint8_t entry_data[sizeof (entry) + sizeof (struct logging_entry_header)];
+	uint8_t entry_data2[sizeof (entry) + sizeof (struct logging_entry_header)];
 	struct logging_entry_header *header;
 	int i;
 
@@ -15754,6 +15755,12 @@ static void logging_flash_test_clear_flushed_entry (CuTest *test)
 	header->length = sizeof (entry_data);
 	header->entry_id = 0;
 	memcpy (&entry_data[sizeof (struct logging_entry_header)], entry, sizeof (entry));
+
+	header = (struct logging_entry_header*) entry_data2;
+	header->log_magic = 0xCB;
+	header->length = sizeof (entry_data2);
+	header->entry_id = 1;
+	memcpy (&entry_data2[sizeof (struct logging_entry_header)], entry, sizeof (entry));
 
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
@@ -15825,8 +15832,8 @@ static void logging_flash_test_clear_flushed_entry (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_expect_erase_flash_sector (&flash_mock, 0x10000);
-	status |= flash_master_mock_expect_write (&flash_mock, 0x10000, entry_data,
-		sizeof (entry_data));
+	status |= flash_master_mock_expect_write (&flash_mock, 0x10000, entry_data2,
+		sizeof (entry_data2));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -15864,6 +15871,7 @@ static void logging_flash_test_clear_with_entries_then_fill_buffer (CuTest *test
 	int i;
 	int j;
 	uint8_t *pos;
+	uint32_t last_entry;
 
 	TEST_START;
 
@@ -15885,11 +15893,12 @@ static void logging_flash_test_clear_with_entries_then_fill_buffer (CuTest *test
 	}
 
 	pos = entry_data2;
+	last_entry = header->entry_id + 1;
 	for (i = 0; i < entry_count; ++j, ++i) {
 		header = (struct logging_entry_header*) pos;
 		header->log_magic = 0xCB;
 		header->length = entry_len;
-		header->entry_id = i;
+		header->entry_id = last_entry + i;
 		pos += sizeof (struct logging_entry_header);
 
 		memset (entry[j], i, entry_size);
@@ -15900,7 +15909,7 @@ static void logging_flash_test_clear_with_entries_then_fill_buffer (CuTest *test
 	header = (struct logging_entry_header*) entry_data3;
 	header->log_magic = 0xCB;
 	header->length = entry_len;
-	header->entry_id = i;
+	header->entry_id = last_entry + i;
 	memset (entry[j], i, entry_size);
 	memcpy (&entry_data3[sizeof (struct logging_entry_header)], entry[j], entry_size);
 
@@ -16020,6 +16029,7 @@ static void logging_flash_test_clear_with_entries_then_fill_buffer_unused_bytes 
 	int i;
 	int j;
 	uint8_t *pos;
+	uint32_t last_entry;
 
 	TEST_START;
 
@@ -16042,11 +16052,12 @@ static void logging_flash_test_clear_with_entries_then_fill_buffer_unused_bytes 
 	}
 
 	pos = entry_data2;
+	last_entry = header->entry_id + 1;
 	for (i = 0; i < entry_count; ++j, ++i) {
 		header = (struct logging_entry_header*) pos;
 		header->log_magic = 0xCB;
 		header->length = entry_len;
-		header->entry_id = i;
+		header->entry_id = last_entry + i;
 		pos += sizeof (struct logging_entry_header);
 
 		memset (entry[j], i, entry_size);
@@ -16057,7 +16068,7 @@ static void logging_flash_test_clear_with_entries_then_fill_buffer_unused_bytes 
 	header = (struct logging_entry_header*) entry_data3;
 	header->log_magic = 0xCB;
 	header->length = entry_len;
-	header->entry_id = i;
+	header->entry_id = last_entry + i;
 	memset (entry[j], i, entry_size);
 	memcpy (&entry_data3[sizeof (struct logging_entry_header)], entry[j], entry_size);
 
@@ -16178,6 +16189,7 @@ static void logging_flash_test_clear_with_entries_then_fill_buffer_unused_bytes_
 	int i;
 	int j;
 	uint8_t *pos;
+	uint32_t last_entry;
 
 	TEST_START;
 
@@ -16200,12 +16212,13 @@ static void logging_flash_test_clear_with_entries_then_fill_buffer_unused_bytes_
 	}
 
 	pos = entry_data2;
+	last_entry = header->entry_id + 1;
 	for (i = 0; i < entry_count + 1; ++j, ++i) {
 		header = (struct logging_entry_header*) pos;
 		header->log_magic = 0xCB;
 		if (i != entry_count) {
 			header->length = entry_len;
-			header->entry_id = i;
+			header->entry_id = last_entry + i;
 			pos += sizeof (struct logging_entry_header);
 
 			memset (entry[j], i, entry_size);
@@ -16223,7 +16236,7 @@ static void logging_flash_test_clear_with_entries_then_fill_buffer_unused_bytes_
 	header = (struct logging_entry_header*) entry_data3;
 	header->log_magic = 0xCB;
 	header->length = entry_len;
-	header->entry_id = i;
+	header->entry_id = last_entry + i;
 	memset (entry[j], i, entry_size);
 	memcpy (&entry_data3[sizeof (struct logging_entry_header)], entry[j], entry_size);
 
@@ -16344,6 +16357,7 @@ static void logging_flash_test_clear_with_entries_then_fill_buffer_unused_bytes_
 	int i;
 	int j;
 	uint8_t *pos;
+	uint32_t last_entry;
 
 	TEST_START;
 
@@ -16365,12 +16379,13 @@ static void logging_flash_test_clear_with_entries_then_fill_buffer_unused_bytes_
 	}
 
 	pos = entry_data2;
+	last_entry = header->entry_id + 1;
 	for (i = 0; i < entry_count + 1; ++j, ++i) {
 		header = (struct logging_entry_header*) pos;
 		header->log_magic = 0xCB;
 		if (i != entry_count) {
 			header->length = entry_len;
-			header->entry_id = i;
+			header->entry_id = last_entry + i;
 			pos += sizeof (struct logging_entry_header);
 
 			memset (entry[j], i, entry_size);
@@ -16388,7 +16403,7 @@ static void logging_flash_test_clear_with_entries_then_fill_buffer_unused_bytes_
 	header = (struct logging_entry_header*) entry_data3;
 	header->log_magic = 0xCB;
 	header->length = entry_len;
-	header->entry_id = i;
+	header->entry_id = last_entry + i;
 	memset (entry[j], i, entry_size);
 	memcpy (&entry_data3[sizeof (struct logging_entry_header)], entry[j], entry_size);
 
@@ -16508,6 +16523,7 @@ static void logging_flash_test_clear_after_partial_flush_then_fill_buffer (CuTes
 	int i;
 	int j;
 	uint8_t *pos;
+	uint32_t last_entry;
 
 	TEST_START;
 
@@ -16529,11 +16545,12 @@ static void logging_flash_test_clear_after_partial_flush_then_fill_buffer (CuTes
 	}
 
 	pos = entry_data2;
+	last_entry = header->entry_id + 1;
 	for (i = 0; i < entry_count; ++j, ++i) {
 		header = (struct logging_entry_header*) pos;
 		header->log_magic = 0xCB;
 		header->length = entry_len;
-		header->entry_id = i;
+		header->entry_id = last_entry + i;
 		pos += sizeof (struct logging_entry_header);
 
 		memset (entry[j], i, entry_size);
@@ -16544,7 +16561,7 @@ static void logging_flash_test_clear_after_partial_flush_then_fill_buffer (CuTes
 	header = (struct logging_entry_header*) entry_data3;
 	header->log_magic = 0xCB;
 	header->length = entry_len;
-	header->entry_id = i;
+	header->entry_id = last_entry + i;
 	memset (entry[j], i, entry_size);
 	memcpy (&entry_data3[sizeof (struct logging_entry_header)], entry[j], entry_size);
 
@@ -16680,6 +16697,7 @@ static void logging_flash_test_clear_after_partial_flush_then_fill_buffer_unused
 	int i;
 	int j;
 	uint8_t *pos;
+	uint32_t last_entry;
 
 	TEST_START;
 
@@ -16702,11 +16720,12 @@ static void logging_flash_test_clear_after_partial_flush_then_fill_buffer_unused
 	}
 
 	pos = entry_data2;
+	last_entry = header->entry_id + 1;
 	for (i = 0; i < entry_count; ++j, ++i) {
 		header = (struct logging_entry_header*) pos;
 		header->log_magic = 0xCB;
 		header->length = entry_len;
-		header->entry_id = i;
+		header->entry_id = last_entry + i;
 		pos += sizeof (struct logging_entry_header);
 
 		memset (entry[j], i, entry_size);
@@ -16717,7 +16736,7 @@ static void logging_flash_test_clear_after_partial_flush_then_fill_buffer_unused
 	header = (struct logging_entry_header*) entry_data3;
 	header->log_magic = 0xCB;
 	header->length = entry_len;
-	header->entry_id = i;
+	header->entry_id = last_entry + i;
 	memset (entry[j], i, entry_size);
 	memcpy (&entry_data3[sizeof (struct logging_entry_header)], entry[j], entry_size);
 
@@ -16853,6 +16872,7 @@ static void logging_flash_test_clear_after_partial_flush_then_fill_buffer_unused
 	int i;
 	int j;
 	uint8_t *pos;
+	uint32_t last_entry;
 
 	TEST_START;
 
@@ -16875,12 +16895,13 @@ static void logging_flash_test_clear_after_partial_flush_then_fill_buffer_unused
 	}
 
 	pos = entry_data2;
+	last_entry = header->entry_id + 1;
 	for (i = 0; i < entry_count + 1; ++j, ++i) {
 		header = (struct logging_entry_header*) pos;
 		header->log_magic = 0xCB;
 		if (i != entry_count) {
 			header->length = entry_len;
-			header->entry_id = i;
+			header->entry_id = last_entry + i;
 			pos += sizeof (struct logging_entry_header);
 
 			memset (entry[j], i, entry_size);
@@ -16898,7 +16919,7 @@ static void logging_flash_test_clear_after_partial_flush_then_fill_buffer_unused
 	header = (struct logging_entry_header*) entry_data3;
 	header->log_magic = 0xCB;
 	header->length = entry_len;
-	header->entry_id = i;
+	header->entry_id = last_entry + i;
 	memset (entry[j], i, entry_size);
 	memcpy (&entry_data3[sizeof (struct logging_entry_header)], entry[j], entry_size);
 
@@ -17034,6 +17055,7 @@ static void logging_flash_test_clear_after_partial_flush_then_fill_buffer_unused
 	int i;
 	int j;
 	uint8_t *pos;
+	uint32_t last_entry;
 
 	TEST_START;
 
@@ -17055,12 +17077,13 @@ static void logging_flash_test_clear_after_partial_flush_then_fill_buffer_unused
 	}
 
 	pos = entry_data2;
+	last_entry = header->entry_id + 1;
 	for (i = 0; i < entry_count + 1; ++j, ++i) {
 		header = (struct logging_entry_header*) pos;
 		header->log_magic = 0xCB;
 		if (i != entry_count) {
 			header->length = entry_len;
-			header->entry_id = i;
+			header->entry_id = last_entry + i;
 			pos += sizeof (struct logging_entry_header);
 
 			memset (entry[j], i, entry_size);
@@ -17078,7 +17101,7 @@ static void logging_flash_test_clear_after_partial_flush_then_fill_buffer_unused
 	header = (struct logging_entry_header*) entry_data3;
 	header->log_magic = 0xCB;
 	header->length = entry_len;
-	header->entry_id = i;
+	header->entry_id = last_entry + i;
 	memset (entry[j], i, entry_size);
 	memcpy (&entry_data3[sizeof (struct logging_entry_header)], entry[j], entry_size);
 
@@ -17211,6 +17234,7 @@ static void logging_flash_test_clear_full_overwrite (CuTest *test)
 	struct logging_entry_header *header;
 	int i;
 	int j;
+	uint32_t last_entry;
 	uint8_t output[LOGGING_FLASH_SECTORS * FLASH_SECTOR_SIZE];
 
 	TEST_START;
@@ -17226,6 +17250,7 @@ static void logging_flash_test_clear_full_overwrite (CuTest *test)
 			header->length = entry_len;
 			header->entry_id = (LOGGING_FLASH_SECTORS * entry_count) + i +
 				(j * entry_count);
+			last_entry = header->entry_id;
 		}
 	}
 
@@ -17241,7 +17266,7 @@ static void logging_flash_test_clear_full_overwrite (CuTest *test)
 	header = (struct logging_entry_header*) entry_data;
 	header->log_magic = 0xCB;
 	header->length = entry_len;
-	header->entry_id = 0;
+	header->entry_id = last_entry + 1;
 	memset (entry, 0, entry_size);
 	memcpy (&entry_data[sizeof (struct logging_entry_header)], entry, entry_size);
 
@@ -17347,6 +17372,7 @@ static void logging_flash_test_clear_full_overwrite_unused_bytes (CuTest *test)
 	struct logging_entry_header *header;
 	int i;
 	int j;
+	uint32_t last_entry;
 	uint8_t output[LOGGING_FLASH_SECTORS * FLASH_SECTOR_SIZE];
 
 	TEST_START;
@@ -17363,6 +17389,7 @@ static void logging_flash_test_clear_full_overwrite_unused_bytes (CuTest *test)
 			header->length = entry_len;
 			header->entry_id = (LOGGING_FLASH_SECTORS * entry_count) + i +
 				(j * entry_count);
+			last_entry = header->entry_id;
 		}
 	}
 
@@ -17378,7 +17405,7 @@ static void logging_flash_test_clear_full_overwrite_unused_bytes (CuTest *test)
 	header = (struct logging_entry_header*) entry_data;
 	header->log_magic = 0xCB;
 	header->length = entry_len;
-	header->entry_id = 0;
+	header->entry_id = last_entry + 1;
 	memset (entry, 0, entry_size);
 	memcpy (&entry_data[sizeof (struct logging_entry_header)], entry, entry_size);
 
@@ -17484,6 +17511,7 @@ static void logging_flash_test_clear_full_overwrite_unused_bytes_terminator (CuT
 	struct logging_entry_header *header;
 	int i;
 	int j;
+	uint32_t last_entry;
 	uint8_t output[LOGGING_FLASH_SECTORS * FLASH_SECTOR_SIZE];
 
 	TEST_START;
@@ -17501,6 +17529,7 @@ static void logging_flash_test_clear_full_overwrite_unused_bytes_terminator (CuT
 				header->length = entry_len;
 				header->entry_id = (LOGGING_FLASH_SECTORS * entry_count) + i +
 					(j * entry_count);
+				last_entry = header->entry_id;
 			}
 			else {
 				header->length = 0x8000 | sizeof (struct logging_entry_header);
@@ -17527,7 +17556,7 @@ static void logging_flash_test_clear_full_overwrite_unused_bytes_terminator (CuT
 	header = (struct logging_entry_header*) entry_data;
 	header->log_magic = 0xCB;
 	header->length = entry_len;
-	header->entry_id = 0;
+	header->entry_id = last_entry + 1;
 	memset (entry, 0, entry_size);
 	memcpy (&entry_data[sizeof (struct logging_entry_header)], entry, entry_size);
 
@@ -17633,6 +17662,7 @@ static void logging_flash_test_clear_full_overwrite_unused_bytes_terminator_larg
 	struct logging_entry_header *header;
 	int i;
 	int j;
+	uint32_t last_entry;
 	uint8_t output[LOGGING_FLASH_SECTORS * FLASH_SECTOR_SIZE];
 
 	TEST_START;
@@ -17649,6 +17679,7 @@ static void logging_flash_test_clear_full_overwrite_unused_bytes_terminator_larg
 				header->length = entry_len;
 				header->entry_id = (LOGGING_FLASH_SECTORS * entry_count) + i +
 					(j * entry_count);
+				last_entry = header->entry_id;
 			}
 			else {
 				header->length = 0x8000 | sizeof (struct logging_entry_header);
@@ -17675,7 +17706,7 @@ static void logging_flash_test_clear_full_overwrite_unused_bytes_terminator_larg
 	header = (struct logging_entry_header*) entry_data;
 	header->log_magic = 0xCB;
 	header->length = entry_len;
-	header->entry_id = 0;
+	header->entry_id = last_entry + 1;
 	memset (entry, 0, entry_size);
 	memcpy (&entry_data[sizeof (struct logging_entry_header)], entry, entry_size);
 
@@ -17781,6 +17812,7 @@ static void logging_flash_test_clear_full_buffer_flush_after_incomplete_flush (C
 	struct logging_entry_header *header;
 	int i;
 	uint8_t *pos;
+	uint32_t last_entry;
 
 	TEST_START;
 
@@ -17800,10 +17832,11 @@ static void logging_flash_test_clear_full_buffer_flush_after_incomplete_flush (C
 		memcpy (pos, entry[i], entry_size);
 	}
 
+	last_entry = header->entry_id;
 	header = (struct logging_entry_header*) entry_data2;
 	header->log_magic = 0xCB;
 	header->length = entry_len;
-	header->entry_id = 0;
+	header->entry_id = last_entry + 1;
 	memset (entry[i], i, entry_size);
 	memcpy (&entry_data2[sizeof (struct logging_entry_header)], entry[i], entry_size);
 
@@ -17919,6 +17952,7 @@ static void logging_flash_test_clear_full_buffer_flush_after_incomplete_flush_un
 	struct logging_entry_header *header;
 	int i;
 	uint8_t *pos;
+	uint32_t last_entry;
 
 	TEST_START;
 
@@ -17939,10 +17973,11 @@ static void logging_flash_test_clear_full_buffer_flush_after_incomplete_flush_un
 		memcpy (pos, entry[i], entry_size);
 	}
 
+	last_entry = header->entry_id;
 	header = (struct logging_entry_header*) entry_data2;
 	header->log_magic = 0xCB;
 	header->length = entry_len;
-	header->entry_id = 0;
+	header->entry_id = last_entry + 1;
 	memset (entry[i], i, entry_size);
 	memcpy (&entry_data2[sizeof (struct logging_entry_header)], entry[i], entry_size);
 
@@ -18057,6 +18092,7 @@ static void logging_flash_test_clear_full_buffer_flush_after_incomplete_flush_un
 	struct logging_entry_header *header;
 	int i;
 	uint8_t *pos;
+	uint32_t last_entry;
 
 	TEST_START;
 
@@ -18084,10 +18120,11 @@ static void logging_flash_test_clear_full_buffer_flush_after_incomplete_flush_un
 	}
 
 	i--;
+	last_entry = entry_count - 1;
 	header = (struct logging_entry_header*) entry_data2;
 	header->log_magic = 0xCB;
 	header->length = entry_len;
-	header->entry_id = 0;
+	header->entry_id = last_entry + 1;
 	memset (entry[i], i, entry_size);
 	memcpy (&entry_data2[sizeof (struct logging_entry_header)], entry[i], entry_size);
 
@@ -18202,6 +18239,7 @@ static void logging_flash_test_clear_full_buffer_flush_after_incomplete_flush_un
 	struct logging_entry_header *header;
 	int i;
 	uint8_t *pos;
+	uint32_t last_entry;
 
 	TEST_START;
 
@@ -18228,10 +18266,11 @@ static void logging_flash_test_clear_full_buffer_flush_after_incomplete_flush_un
 	}
 
 	i--;
+	last_entry = entry_count - 1;
 	header = (struct logging_entry_header*) entry_data2;
 	header->log_magic = 0xCB;
 	header->length = entry_len;
-	header->entry_id = 0;
+	header->entry_id = last_entry + 1;
 	memset (entry[i], i, entry_size);
 	memcpy (&entry_data2[sizeof (struct logging_entry_header)], entry[i], entry_size);
 

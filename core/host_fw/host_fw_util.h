@@ -37,6 +37,8 @@ int host_fw_migrate_read_write_data (struct spi_flash *dest,
 
 int host_fw_restore_flash_device (struct spi_flash *restore, struct spi_flash *from,
 	const struct pfm_image_list *img_list, const struct pfm_read_write_regions *writable);
+int host_fw_restore_read_write_data (struct spi_flash *restore, struct spi_flash *from,
+	const struct pfm_read_write_regions *writable);
 
 int host_fw_config_spi_filter_read_write_regions (struct spi_filter_interface *filter,
 	const struct pfm_read_write_regions *writable);
@@ -54,6 +56,7 @@ enum {
 	HOST_FW_UTIL_DIFF_REGION_COUNT = HOST_FW_UTIL_ERROR (0x03),		/**< Data migration with a different number of regions. */
 	HOST_FW_UTIL_DIFF_REGION_ADDR = HOST_FW_UTIL_ERROR (0x04),		/**< Data migration with different region addresses. */
 	HOST_FW_UTIL_DIFF_REGION_SIZE = HOST_FW_UTIL_ERROR (0x05),		/**< Data migration with different region sizes. */
+	HOST_FW_UTIL_BAD_IMAGE_HASH = HOST_FW_UTIL_ERROR (0x06),		/**< A host firmware image on flash has an invalid hash. */
 };
 
 

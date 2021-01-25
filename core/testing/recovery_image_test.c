@@ -468,13 +468,9 @@ static void recovery_image_test_verify (CuTest *test)
 	struct recovery_image recovery_image;
 	struct pfm_manager_mock manager;
 	struct pfm_mock pfm;
-	char *platform_id;
 	int status;
 
 	TEST_START;
-
-	platform_id = platform_malloc (strlen (RECOVERY_IMAGE_HEADER_PLATFORM_ID) + 1);
-	strcpy (platform_id, RECOVERY_IMAGE_HEADER_PLATFORM_ID);
 
 	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, &hash, &verification);
 
@@ -508,8 +504,13 @@ static void recovery_image_test_verify (CuTest *test)
 
 	status |= mock_expect (&manager.mock, manager.base.get_active_pfm, &manager, (intptr_t) &pfm);
 
-	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 0, &platform_id, sizeof (void *), -1);
+	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0,
+		MOCK_ARG_PTR_PTR (NULL), MOCK_ARG_ANY);
+	status |= mock_expect_output (&pfm.mock, 0, &RECOVERY_IMAGE_HEADER_PLATFORM_ID, sizeof (void*),
+		-1);
+
+	status |= mock_expect (&pfm.mock, pfm.base.base.free_platform_id, &pfm, 0,
+		MOCK_ARG (RECOVERY_IMAGE_HEADER_PLATFORM_ID));
 
 	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0, MOCK_ARG (&pfm));
 
@@ -545,13 +546,9 @@ static void recovery_image_test_verify_with_multiple_recovery_sections (CuTest *
 	struct recovery_image recovery_image;
 	struct pfm_manager_mock manager;
 	struct pfm_mock pfm;
-	char *platform_id;
 	int status;
 
 	TEST_START;
-
-	platform_id = platform_malloc (strlen (RECOVERY_IMAGE_HEADER_PLATFORM_ID) + 1);
-	strcpy (platform_id, RECOVERY_IMAGE_HEADER_PLATFORM_ID);
 
 	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, &hash, &verification);
 
@@ -585,8 +582,13 @@ static void recovery_image_test_verify_with_multiple_recovery_sections (CuTest *
 
 	status |= mock_expect (&manager.mock, manager.base.get_active_pfm, &manager, (intptr_t) &pfm);
 
-	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 0, &platform_id, sizeof (void *), -1);
+	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0,
+		MOCK_ARG_PTR_PTR (NULL), MOCK_ARG_ANY);
+	status |= mock_expect_output (&pfm.mock, 0, &RECOVERY_IMAGE_HEADER_PLATFORM_ID, sizeof (void*),
+		-1);
+
+	status |= mock_expect (&pfm.mock, pfm.base.base.free_platform_id, &pfm, 0,
+		MOCK_ARG (RECOVERY_IMAGE_HEADER_PLATFORM_ID));
 
 	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0, MOCK_ARG (&pfm));
 
@@ -641,16 +643,12 @@ static void recovery_image_test_verify_second_recovery_section_header_too_long (
 	struct pfm_manager_mock manager;
 	uint8_t bad_image[RECOVERY_IMAGE_DATA_LEN];
 	struct pfm_mock pfm;
-	char *platform_id;
 	int status;
 
 	TEST_START;
 
 	memcpy (bad_image, RECOVERY_IMAGE_DATA2, RECOVERY_IMAGE_DATA_LEN);
 	*((uint16_t*) &bad_image[RECOVERY_IMAGE_DATA2_SECTION_2_OFFSET]) += 1;
-
-	platform_id = platform_malloc (strlen (RECOVERY_IMAGE_HEADER_PLATFORM_ID) + 1);
-	strcpy (platform_id, RECOVERY_IMAGE_HEADER_PLATFORM_ID);
 
 	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, &hash, &verification);
 
@@ -682,8 +680,13 @@ static void recovery_image_test_verify_second_recovery_section_header_too_long (
 
 	status |= mock_expect (&manager.mock, manager.base.get_active_pfm, &manager, (intptr_t) &pfm);
 
-	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 0, &platform_id, sizeof (void *), -1);
+	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0,
+		MOCK_ARG_PTR_PTR (NULL), MOCK_ARG_ANY);
+	status |= mock_expect_output (&pfm.mock, 0, &RECOVERY_IMAGE_HEADER_PLATFORM_ID, sizeof (void*),
+		-1);
+
+	status |= mock_expect (&pfm.mock, pfm.base.base.free_platform_id, &pfm, 0,
+		MOCK_ARG (RECOVERY_IMAGE_HEADER_PLATFORM_ID));
 
 	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0, MOCK_ARG (&pfm));
 
@@ -728,16 +731,12 @@ static void recovery_image_test_verify_image_length_too_long (CuTest *test)
 	uint8_t bad_image[RECOVERY_IMAGE_DATA_LEN];
 	struct pfm_manager_mock manager;
 	struct pfm_mock pfm;
-	char *platform_id;
 	int status;
 
 	TEST_START;
 
 	memcpy (bad_image, RECOVERY_IMAGE_DATA, RECOVERY_IMAGE_DATA_LEN);
 	*((uint32_t*) &bad_image[IMAGE_HEADER_BASE_LEN + CERBERUS_PROTOCOL_FW_VERSION_LEN]) += 1;
-
-	platform_id = platform_malloc (strlen (RECOVERY_IMAGE_HEADER_PLATFORM_ID) + 1);
-	strcpy (platform_id, RECOVERY_IMAGE_HEADER_PLATFORM_ID);
 
 	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, &hash, &verification);
 
@@ -768,8 +767,13 @@ static void recovery_image_test_verify_image_length_too_long (CuTest *test)
 
 	status |= mock_expect (&manager.mock, manager.base.get_active_pfm, &manager, (intptr_t) &pfm);
 
-	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 0, &platform_id, sizeof (void *), -1);
+	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0,
+		MOCK_ARG_PTR_PTR (NULL), MOCK_ARG_ANY);
+	status |= mock_expect_output (&pfm.mock, 0, &RECOVERY_IMAGE_HEADER_PLATFORM_ID, sizeof (void*),
+		-1);
+
+	status |= mock_expect (&pfm.mock, pfm.base.base.free_platform_id, &pfm, 0,
+		MOCK_ARG (RECOVERY_IMAGE_HEADER_PLATFORM_ID));
 
 	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0, MOCK_ARG (&pfm));
 
@@ -809,16 +813,12 @@ static void recovery_image_test_verify_image_length_too_short (CuTest *test)
 	uint8_t bad_image[RECOVERY_IMAGE_DATA_LEN];
 	struct pfm_manager_mock manager;
 	struct pfm_mock pfm;
-	char *platform_id;
 	int status;
 
 	TEST_START;
 
 	memcpy (bad_image, RECOVERY_IMAGE_DATA, RECOVERY_IMAGE_DATA_LEN);
 	*((uint32_t*) &bad_image[IMAGE_HEADER_BASE_LEN + CERBERUS_PROTOCOL_FW_VERSION_LEN]) -= 1;
-
-	platform_id = platform_malloc (strlen (RECOVERY_IMAGE_HEADER_PLATFORM_ID) + 1);
-	strcpy (platform_id, RECOVERY_IMAGE_HEADER_PLATFORM_ID);
 
 	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, &hash, &verification);
 
@@ -849,8 +849,13 @@ static void recovery_image_test_verify_image_length_too_short (CuTest *test)
 
 	status |= mock_expect (&manager.mock, manager.base.get_active_pfm, &manager, (intptr_t) &pfm);
 
-	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 0, &platform_id, sizeof (void *), -1);
+	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0,
+		MOCK_ARG_PTR_PTR (NULL), MOCK_ARG_ANY);
+	status |= mock_expect_output (&pfm.mock, 0, &RECOVERY_IMAGE_HEADER_PLATFORM_ID, sizeof (void*),
+		-1);
+
+	status |= mock_expect (&pfm.mock, pfm.base.base.free_platform_id, &pfm, 0,
+		MOCK_ARG (RECOVERY_IMAGE_HEADER_PLATFORM_ID));
 
 	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0, MOCK_ARG (&pfm));
 
@@ -887,7 +892,6 @@ static void recovery_image_test_verify_section_image_length_too_long (CuTest *te
 	uint8_t bad_image[RECOVERY_IMAGE_DATA_LEN];
 	struct pfm_manager_mock manager;
 	struct pfm_mock pfm;
-	char *platform_id;
 	int status;
 
 	TEST_START;
@@ -895,9 +899,6 @@ static void recovery_image_test_verify_section_image_length_too_long (CuTest *te
 	memcpy (bad_image, RECOVERY_IMAGE_DATA, RECOVERY_IMAGE_DATA_LEN);
 	*((uint32_t*) &bad_image[RECOVERY_IMAGE_HEADER_FORMAT_0_TOTAL_LEN + IMAGE_HEADER_BASE_LEN +	4])
 		+= 1;
-
-	platform_id = platform_malloc (strlen (RECOVERY_IMAGE_HEADER_PLATFORM_ID) + 1);
-	strcpy (platform_id, RECOVERY_IMAGE_HEADER_PLATFORM_ID);
 
 	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, &hash, &verification);
 
@@ -928,8 +929,13 @@ static void recovery_image_test_verify_section_image_length_too_long (CuTest *te
 
 	status |= mock_expect (&manager.mock, manager.base.get_active_pfm, &manager, (intptr_t) &pfm);
 
-	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 0, &platform_id, sizeof (void *), -1);
+	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0,
+		MOCK_ARG_PTR_PTR (NULL), MOCK_ARG_ANY);
+	status |= mock_expect_output (&pfm.mock, 0, &RECOVERY_IMAGE_HEADER_PLATFORM_ID, sizeof (void*),
+		-1);
+
+	status |= mock_expect (&pfm.mock, pfm.base.base.free_platform_id, &pfm, 0,
+		MOCK_ARG (RECOVERY_IMAGE_HEADER_PLATFORM_ID));
 
 	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0, MOCK_ARG (&pfm));
 
@@ -966,7 +972,6 @@ static void recovery_image_test_verify_section_image_length_too_short (CuTest *t
 	uint8_t bad_image[RECOVERY_IMAGE_DATA_LEN];
 	struct pfm_manager_mock manager;
 	struct pfm_mock pfm;
-	char *platform_id;
 	int status;
 
 	TEST_START;
@@ -974,9 +979,6 @@ static void recovery_image_test_verify_section_image_length_too_short (CuTest *t
 	memcpy (bad_image, RECOVERY_IMAGE_DATA, RECOVERY_IMAGE_DATA_LEN);
 	*((uint32_t*) &bad_image[RECOVERY_IMAGE_HEADER_FORMAT_0_TOTAL_LEN + IMAGE_HEADER_BASE_LEN + 4])
 		-= 1;
-
-	platform_id = platform_malloc (strlen (RECOVERY_IMAGE_HEADER_PLATFORM_ID) + 1);
-	strcpy (platform_id, RECOVERY_IMAGE_HEADER_PLATFORM_ID);
 
 	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, &hash, &verification);
 
@@ -1007,8 +1009,13 @@ static void recovery_image_test_verify_section_image_length_too_short (CuTest *t
 
 	status |= mock_expect (&manager.mock, manager.base.get_active_pfm, &manager, (intptr_t) &pfm);
 
-	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 0, &platform_id, sizeof (void *), -1);
+	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0,
+		MOCK_ARG_PTR_PTR (NULL), MOCK_ARG_ANY);
+	status |= mock_expect_output (&pfm.mock, 0, &RECOVERY_IMAGE_HEADER_PLATFORM_ID, sizeof (void*),
+		-1);
+
+	status |= mock_expect (&pfm.mock, pfm.base.base.free_platform_id, &pfm, 0,
+		MOCK_ARG (RECOVERY_IMAGE_HEADER_PLATFORM_ID));
 
 	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0, MOCK_ARG (&pfm));
 
@@ -1376,13 +1383,9 @@ static void recovery_image_test_verify_with_hash_out (CuTest *test)
 	uint8_t hash_out[SHA256_HASH_LENGTH];
 	struct pfm_manager_mock manager;
 	struct pfm_mock pfm;
-	char *platform_id;
 	int status;
 
 	TEST_START;
-
-	platform_id = platform_malloc (strlen (RECOVERY_IMAGE_HEADER_PLATFORM_ID) + 1);
-	strcpy (platform_id, RECOVERY_IMAGE_HEADER_PLATFORM_ID);
 
 	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, &hash, &verification);
 
@@ -1416,8 +1419,13 @@ static void recovery_image_test_verify_with_hash_out (CuTest *test)
 
 	status |= mock_expect (&manager.mock, manager.base.get_active_pfm, &manager, (intptr_t) &pfm);
 
-	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 0, &platform_id, sizeof (void *), -1);
+	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0,
+		MOCK_ARG_PTR_PTR (NULL), MOCK_ARG_ANY);
+	status |= mock_expect_output (&pfm.mock, 0, &RECOVERY_IMAGE_HEADER_PLATFORM_ID, sizeof (void*),
+		-1);
+
+	status |= mock_expect (&pfm.mock, pfm.base.base.free_platform_id, &pfm, 0,
+		MOCK_ARG (RECOVERY_IMAGE_HEADER_PLATFORM_ID));
 
 	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0, MOCK_ARG (&pfm));
 
@@ -1494,13 +1502,9 @@ static void recovery_image_test_verify_signature_read_error (CuTest *test)
 	struct recovery_image recovery_image;
 	struct pfm_manager_mock manager;
 	struct pfm_mock pfm;
-	char *platform_id;
 	int status;
 
 	TEST_START;
-
-	platform_id = platform_malloc (strlen (RECOVERY_IMAGE_HEADER_PLATFORM_ID) + 1);
-	strcpy (platform_id, RECOVERY_IMAGE_HEADER_PLATFORM_ID);
 
 	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, &hash, &verification);
 
@@ -1528,8 +1532,6 @@ static void recovery_image_test_verify_signature_read_error (CuTest *test)
 		&manager.base);
 	CuAssertIntEquals (test, FLASH_READ_FAILED, status);
 
-	platform_free (platform_id);
-
 	complete_recovery_image_test (test, &flash, &pfm, &manager, &hash, &verification,
 		&recovery_image);
 
@@ -1543,13 +1545,9 @@ static void recovery_image_test_verify_no_active_pfm (CuTest *test)
 	struct recovery_image recovery_image;
 	struct pfm_manager_mock manager;
 	struct pfm_mock pfm;
-	char *platform_id;
 	int status;
 
 	TEST_START;
-
-	platform_id = platform_malloc (strlen (RECOVERY_IMAGE_HEADER_PLATFORM_ID) + 1);
-	strcpy (platform_id, RECOVERY_IMAGE_HEADER_PLATFORM_ID);
 
 	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, &hash, &verification);
 
@@ -1603,8 +1601,6 @@ static void recovery_image_test_verify_no_active_pfm (CuTest *test)
 		&manager.base);
 	CuAssertIntEquals (test, 0, status);
 
-	platform_free (platform_id);
-
 	complete_recovery_image_test (test, &flash, &pfm, &manager, &hash, &verification,
 		&recovery_image);
 }
@@ -1617,13 +1613,10 @@ static void recovery_image_test_verify_platform_id_mismatch (CuTest *test)
 	struct recovery_image recovery_image;
 	struct pfm_manager_mock manager;
 	struct pfm_mock pfm;
-	char *platform_id;
+	char *platform_id = "Platform Test2";
 	int status;
 
 	TEST_START;
-
-	platform_id = platform_malloc (strlen (RECOVERY_IMAGE_HEADER_PLATFORM_ID) + 1);
-	strcpy (platform_id, "Platform Test2");
 
 	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, &hash, &verification);
 
@@ -1657,8 +1650,12 @@ static void recovery_image_test_verify_platform_id_mismatch (CuTest *test)
 
 	status |= mock_expect (&manager.mock, manager.base.get_active_pfm, &manager, (intptr_t) &pfm);
 
-	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 0, &platform_id, sizeof (void *), -1);
+	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0,
+		MOCK_ARG_PTR_PTR (NULL), MOCK_ARG_ANY);
+	status |= mock_expect_output (&pfm.mock, 0, &platform_id, sizeof (void*), -1);
+
+	status |= mock_expect (&pfm.mock, pfm.base.base.free_platform_id, &pfm, 0,
+		MOCK_ARG (platform_id));
 
 	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0, MOCK_ARG (&pfm));
 
@@ -1667,6 +1664,65 @@ static void recovery_image_test_verify_platform_id_mismatch (CuTest *test)
 	status = recovery_image.verify (&recovery_image, &hash.base, &verification.base, NULL, 0,
 		&manager.base);
 	CuAssertIntEquals (test, RECOVERY_IMAGE_INCOMPATIBLE, status);
+
+	complete_recovery_image_test (test, &flash, &pfm, &manager, &hash, &verification,
+		&recovery_image);
+}
+
+static void recovery_image_test_verify_platform_id_error (CuTest *test)
+{
+	struct flash_mock flash;
+	HASH_TESTING_ENGINE hash;
+	struct signature_verification_mock verification;
+	struct recovery_image recovery_image;
+	struct pfm_manager_mock manager;
+	struct pfm_mock pfm;
+	int status;
+
+	TEST_START;
+
+	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, &hash, &verification);
+
+	status = recovery_image_init (&recovery_image, &flash.base, 0x10000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (IMAGE_HEADER_BASE_LEN));
+	status |= mock_expect_output (&flash.mock, 1, RECOVERY_IMAGE_DATA,
+		RECOVERY_IMAGE_DATA_LEN, 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
+		MOCK_ARG (0x10000 + IMAGE_HEADER_BASE_LEN), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (RECOVERY_IMAGE_HEADER_FORMAT_0_LEN));
+	status |= mock_expect_output (&flash.mock, 1, RECOVERY_IMAGE_DATA +
+		IMAGE_HEADER_BASE_LEN, RECOVERY_IMAGE_HEADER_FORMAT_0_LEN, 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0,
+		MOCK_ARG (0x10000 + RECOVERY_IMAGE_SIGNATURE_OFFSET), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (RECOVERY_IMAGE_HEADER_SIGNATURE_LEN));
+	status |= mock_expect_output (&flash.mock, 1, RECOVERY_IMAGE_DATA +
+		RECOVERY_IMAGE_SIGNATURE_OFFSET, RECOVERY_IMAGE_HEADER_SIGNATURE_LEN, 2);
+
+	status |= flash_mock_expect_verify_flash (&flash, 0x10000, RECOVERY_IMAGE_DATA,
+		RECOVERY_IMAGE_DATA_LEN - RECOVERY_IMAGE_HEADER_SIGNATURE_LEN);
+
+	status |= mock_expect (&verification.mock, verification.base.verify_signature, &verification, 0,
+		MOCK_ARG_PTR_CONTAINS (RECOVERY_IMAGE_HASH, RECOVERY_IMAGE_HASH_LEN),
+		MOCK_ARG (RECOVERY_IMAGE_HASH_LEN), MOCK_ARG_PTR_CONTAINS (RECOVERY_IMAGE_SIGNATURE,
+		RECOVERY_IMAGE_HEADER_SIGNATURE_LEN), MOCK_ARG (RECOVERY_IMAGE_HEADER_SIGNATURE_LEN));
+
+	status |= mock_expect (&manager.mock, manager.base.get_active_pfm, &manager, (intptr_t) &pfm);
+
+	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm,
+		MANIFEST_GET_PLATFORM_ID_FAILED, MOCK_ARG_PTR_PTR (NULL), MOCK_ARG_ANY);
+
+	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0, MOCK_ARG (&pfm));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image.verify (&recovery_image, &hash.base, &verification.base, NULL, 0,
+		&manager.base);
+	CuAssertIntEquals (test, MANIFEST_GET_PLATFORM_ID_FAILED, status);
 
 	complete_recovery_image_test (test, &flash, &pfm, &manager, &hash, &verification,
 		&recovery_image);
@@ -1681,16 +1737,12 @@ static void recovery_image_test_verify_recovery_section_header_length_too_short 
 	uint8_t bad_image[RECOVERY_IMAGE_DATA_LEN];
 	struct pfm_manager_mock manager;
 	struct pfm_mock pfm;
-	char *platform_id;
 	int status;
 
 	TEST_START;
 
 	memcpy (bad_image, RECOVERY_IMAGE_DATA, RECOVERY_IMAGE_DATA_LEN);
 	*((uint16_t*) &bad_image[RECOVERY_IMAGE_HEADER_FORMAT_0_TOTAL_LEN]) -= 1;
-
-	platform_id = platform_malloc (strlen (RECOVERY_IMAGE_HEADER_PLATFORM_ID) + 1);
-	strcpy (platform_id, RECOVERY_IMAGE_HEADER_PLATFORM_ID);
 
 	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, &hash, &verification);
 
@@ -1721,8 +1773,13 @@ static void recovery_image_test_verify_recovery_section_header_length_too_short 
 
 	status |= mock_expect (&manager.mock, manager.base.get_active_pfm, &manager, (intptr_t) &pfm);
 
-	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 0, &platform_id, sizeof (void *), -1);
+	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0,
+		MOCK_ARG_PTR_PTR (NULL), MOCK_ARG_ANY);
+	status |= mock_expect_output (&pfm.mock, 0, &RECOVERY_IMAGE_HEADER_PLATFORM_ID, sizeof (void*),
+		-1);
+
+	status |= mock_expect (&pfm.mock, pfm.base.base.free_platform_id, &pfm, 0,
+		MOCK_ARG (RECOVERY_IMAGE_HEADER_PLATFORM_ID));
 
 	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0, MOCK_ARG (&pfm));
 
@@ -1752,16 +1809,12 @@ static void recovery_image_test_verify_recovery_section_header_length_too_long (
 	uint8_t bad_image[RECOVERY_IMAGE_DATA_LEN];
 	struct pfm_manager_mock manager;
 	struct pfm_mock pfm;
-	char *platform_id;
 	int status;
 
 	TEST_START;
 
 	memcpy (bad_image, RECOVERY_IMAGE_DATA, RECOVERY_IMAGE_DATA_LEN);
 	*((uint16_t*) &bad_image[RECOVERY_IMAGE_HEADER_FORMAT_0_TOTAL_LEN]) += 1;
-
-	platform_id = platform_malloc (strlen (RECOVERY_IMAGE_HEADER_PLATFORM_ID) + 1);
-	strcpy (platform_id, RECOVERY_IMAGE_HEADER_PLATFORM_ID);
 
 	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, &hash, &verification);
 
@@ -1792,8 +1845,13 @@ static void recovery_image_test_verify_recovery_section_header_length_too_long (
 
 	status |= mock_expect (&manager.mock, manager.base.get_active_pfm, &manager, (intptr_t) &pfm);
 
-	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 0, &platform_id, sizeof (void *), -1);
+	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0,
+		MOCK_ARG_PTR_PTR (NULL), MOCK_ARG_ANY);
+	status |= mock_expect_output (&pfm.mock, 0, &RECOVERY_IMAGE_HEADER_PLATFORM_ID, sizeof (void*),
+		-1);
+
+	status |= mock_expect (&pfm.mock, pfm.base.base.free_platform_id, &pfm, 0,
+		MOCK_ARG (RECOVERY_IMAGE_HEADER_PLATFORM_ID));
 
 	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0, MOCK_ARG (&pfm));
 
@@ -1824,7 +1882,6 @@ static void recovery_image_test_verify_no_recovery_section_image (CuTest *test)
 	uint8_t bad_image[RECOVERY_IMAGE_DATA_LEN - (RECOVERY_IMAGE_DATA_SECTION_1_LEN +
 		RECOVERY_IMAGE_SECTION_HEADER_FORMAT_0_TOTAL_LEN)];
 	struct pfm_mock pfm;
-	char *platform_id;
 	int status;
 
 	TEST_START;
@@ -1834,9 +1891,6 @@ static void recovery_image_test_verify_no_recovery_section_image (CuTest *test)
 		RECOVERY_IMAGE_HEADER_SIGNATURE_LEN);
 	*((uint32_t*) &bad_image[IMAGE_HEADER_BASE_LEN + CERBERUS_PROTOCOL_FW_VERSION_LEN]) =
 		RECOVERY_IMAGE_HEADER_FORMAT_0_TOTAL_LEN + RECOVERY_IMAGE_HEADER_SIGNATURE_LEN;
-
-	platform_id = platform_malloc (strlen (RECOVERY_IMAGE_HEADER_PLATFORM_ID) + 1);
-	strcpy (platform_id, RECOVERY_IMAGE_HEADER_PLATFORM_ID);
 
 	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, &hash, &verification);
 
@@ -1867,8 +1921,13 @@ static void recovery_image_test_verify_no_recovery_section_image (CuTest *test)
 
 	status |= mock_expect (&manager.mock, manager.base.get_active_pfm, &manager, (intptr_t) &pfm);
 
-	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 0, &platform_id, sizeof (void *), -1);
+	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0,
+		MOCK_ARG_PTR_PTR (NULL), MOCK_ARG_ANY);
+	status |= mock_expect_output (&pfm.mock, 0, &RECOVERY_IMAGE_HEADER_PLATFORM_ID, sizeof (void*),
+		-1);
+
+	status |= mock_expect (&pfm.mock, pfm.base.base.free_platform_id, &pfm, 0,
+		MOCK_ARG (RECOVERY_IMAGE_HEADER_PLATFORM_ID));
 
 	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0, MOCK_ARG (&pfm));
 
@@ -1890,13 +1949,9 @@ static void recovery_image_test_verify_read_error (CuTest *test)
 	struct recovery_image recovery_image;
 	struct pfm_manager_mock manager;
 	struct pfm_mock pfm;
-	char *platform_id;
 	int status;
 
 	TEST_START;
-
-	platform_id = platform_malloc (strlen (RECOVERY_IMAGE_HEADER_PLATFORM_ID) + 1);
-	strcpy (platform_id, RECOVERY_IMAGE_HEADER_PLATFORM_ID);
 
 	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, &hash, &verification);
 
@@ -1929,8 +1984,6 @@ static void recovery_image_test_verify_read_error (CuTest *test)
 		&manager.base);
 	CuAssertIntEquals (test, FLASH_READ_FAILED, status);
 
-	platform_free (platform_id);
-
 	complete_recovery_image_test (test, &flash, &pfm, &manager, &hash, &verification,
 		&recovery_image);
 }
@@ -1945,13 +1998,9 @@ static void recovery_image_test_verify_read_error_with_hash_out (CuTest *test)
 	uint8_t empty[sizeof (hash_out)] = {0};
 	struct pfm_manager_mock manager;
 	struct pfm_mock pfm;
-	char *platform_id;
 	int status;
 
 	TEST_START;
-
-	platform_id = platform_malloc (strlen (RECOVERY_IMAGE_HEADER_PLATFORM_ID) + 1);
-	strcpy (platform_id, RECOVERY_IMAGE_HEADER_PLATFORM_ID);
 
 	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, &hash, &verification);
 
@@ -1989,8 +2038,6 @@ static void recovery_image_test_verify_read_error_with_hash_out (CuTest *test)
 
 	status = testing_validate_array (empty, hash_out, sizeof (empty));
 	CuAssertIntEquals (test, 0, status);
-
-	platform_free (platform_id);
 
 	complete_recovery_image_test (test, &flash, &pfm, &manager, &hash, &verification,
 		&recovery_image);
@@ -2040,7 +2087,6 @@ static void recovery_image_test_verify_section_address_overlap (CuTest *test)
 	struct pfm_manager_mock manager;
 	uint8_t bad_image[RECOVERY_IMAGE_DATA_LEN];
 	struct pfm_mock pfm;
-	char *platform_id;
 	uint32_t bad_addr;
 	int status;
 
@@ -2052,9 +2098,6 @@ static void recovery_image_test_verify_section_address_overlap (CuTest *test)
 			RECOVERY_IMAGE_DATA2_SECTION_1_LEN - 1;
 	*((uint32_t*) &bad_image[RECOVERY_IMAGE_DATA2_SECTION_2_OFFSET + IMAGE_HEADER_BASE_LEN]) =
 		bad_addr;
-
-	platform_id = platform_malloc (strlen (RECOVERY_IMAGE_HEADER_PLATFORM_ID) + 1);
-	strcpy (platform_id, RECOVERY_IMAGE_HEADER_PLATFORM_ID);
 
 	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, &hash, &verification);
 
@@ -2086,8 +2129,13 @@ static void recovery_image_test_verify_section_address_overlap (CuTest *test)
 
 	status |= mock_expect (&manager.mock, manager.base.get_active_pfm, &manager, (intptr_t) &pfm);
 
-	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 0, &platform_id, sizeof (void *), -1);
+	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0,
+		MOCK_ARG_PTR_PTR (NULL), MOCK_ARG_ANY);
+	status |= mock_expect_output (&pfm.mock, 0, &RECOVERY_IMAGE_HEADER_PLATFORM_ID, sizeof (void*),
+		-1);
+
+	status |= mock_expect (&pfm.mock, pfm.base.base.free_platform_id, &pfm, 0,
+		MOCK_ARG (RECOVERY_IMAGE_HEADER_PLATFORM_ID));
 
 	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0, MOCK_ARG (&pfm));
 
@@ -2230,13 +2278,9 @@ static void recovery_image_test_get_hash_after_verify (CuTest *test)
 	uint8_t hash_out[SHA256_HASH_LENGTH];
 	struct pfm_manager_mock manager;
 	struct pfm_mock pfm;
-	char *platform_id;
 	int status;
 
 	TEST_START;
-
-	platform_id = platform_malloc (strlen (RECOVERY_IMAGE_HEADER_PLATFORM_ID) + 1);
-	strcpy (platform_id, RECOVERY_IMAGE_HEADER_PLATFORM_ID);
 
 	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, &hash, &verification);
 
@@ -2270,8 +2314,13 @@ static void recovery_image_test_get_hash_after_verify (CuTest *test)
 
 	status |= mock_expect (&manager.mock, manager.base.get_active_pfm, &manager, (intptr_t) &pfm);
 
-	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 0, &platform_id, sizeof (void *), -1);
+	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0,
+		MOCK_ARG_PTR_PTR (NULL), MOCK_ARG_ANY);
+	status |= mock_expect_output (&pfm.mock, 0, &RECOVERY_IMAGE_HEADER_PLATFORM_ID, sizeof (void*),
+		-1);
+
+	status |= mock_expect (&pfm.mock, pfm.base.base.free_platform_id, &pfm, 0,
+		MOCK_ARG (RECOVERY_IMAGE_HEADER_PLATFORM_ID));
 
 	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0, MOCK_ARG (&pfm));
 
@@ -2314,13 +2363,9 @@ static void recovery_image_test_get_hash_after_verify_error (CuTest *test)
 	uint8_t hash_out[SHA256_HASH_LENGTH];
 	struct pfm_manager_mock manager;
 	struct pfm_mock pfm;
-	char *platform_id;
 	int status;
 
 	TEST_START;
-
-	platform_id = platform_malloc (strlen (RECOVERY_IMAGE_HEADER_PLATFORM_ID) + 1);
-	strcpy (platform_id, RECOVERY_IMAGE_HEADER_PLATFORM_ID);
 
 	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, &hash, &verification);
 
@@ -2355,8 +2400,13 @@ static void recovery_image_test_get_hash_after_verify_error (CuTest *test)
 
 	status |= mock_expect (&manager.mock, manager.base.get_active_pfm, &manager, (intptr_t) &pfm);
 
-	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 0, &platform_id, sizeof (void *), -1);
+	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0,
+		MOCK_ARG_PTR_PTR (NULL), MOCK_ARG_ANY);
+	status |= mock_expect_output (&pfm.mock, 0, &RECOVERY_IMAGE_HEADER_PLATFORM_ID, sizeof (void*),
+		-1);
+
+	status |= mock_expect (&pfm.mock, pfm.base.base.free_platform_id, &pfm, 0,
+		MOCK_ARG (RECOVERY_IMAGE_HEADER_PLATFORM_ID));
 
 	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0, MOCK_ARG (&pfm));
 
@@ -2453,7 +2503,6 @@ static void recovery_image_test_get_hash_after_verify_bad_signature (CuTest *tes
 	uint8_t hash_out[SHA256_HASH_LENGTH];
 	struct pfm_manager_mock manager;
 	struct pfm_mock pfm;
-	char *platform_id;
 	uint8_t bad_image[RECOVERY_IMAGE_DATA_LEN];
 	int status;
 
@@ -2461,9 +2510,6 @@ static void recovery_image_test_get_hash_after_verify_bad_signature (CuTest *tes
 
 	memcpy (bad_image, RECOVERY_IMAGE_DATA, RECOVERY_IMAGE_DATA_LEN);
 	bad_image[RECOVERY_IMAGE_SIGNATURE_OFFSET] ^= 0x55;
-
-	platform_id = platform_malloc (strlen (RECOVERY_IMAGE_HEADER_PLATFORM_ID) + 1);
-	strcpy (platform_id, RECOVERY_IMAGE_HEADER_PLATFORM_ID);
 
 	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, &hash, &verification);
 
@@ -2507,8 +2553,6 @@ static void recovery_image_test_get_hash_after_verify_bad_signature (CuTest *tes
 	status = testing_validate_array (RECOVERY_IMAGE_HASH, hash_out, RECOVERY_IMAGE_HASH_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	platform_free (platform_id);
-
     status = flash_mock_validate_and_release (&flash);
     CuAssertIntEquals (test, 0, status);
 
@@ -2534,13 +2578,9 @@ static void recovery_image_test_get_hash_after_verify_sig_read_error (CuTest *te
 	uint8_t hash_out[SHA256_HASH_LENGTH];
 	struct pfm_manager_mock manager;
 	struct pfm_mock pfm;
-	char *platform_id;
 	int status;
 
 	TEST_START;
-
-	platform_id = platform_malloc (strlen (RECOVERY_IMAGE_HEADER_PLATFORM_ID) + 1);
-	strcpy (platform_id, RECOVERY_IMAGE_HEADER_PLATFORM_ID);
 
 	setup_recovery_image_mock_test (test, &flash, &pfm, &manager, &hash, &verification);
 
@@ -2575,8 +2615,13 @@ static void recovery_image_test_get_hash_after_verify_sig_read_error (CuTest *te
 
 	status |= mock_expect (&manager.mock, manager.base.get_active_pfm, &manager, (intptr_t) &pfm);
 
-	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&pfm.mock, 0, &platform_id, sizeof (void *), -1);
+	status |= mock_expect (&pfm.mock, pfm.base.base.get_platform_id, &pfm, 0,
+		MOCK_ARG_PTR_PTR (NULL), MOCK_ARG_ANY);
+	status |= mock_expect_output (&pfm.mock, 0, &RECOVERY_IMAGE_HEADER_PLATFORM_ID, sizeof (void*),
+		-1);
+
+	status |= mock_expect (&pfm.mock, pfm.base.base.free_platform_id, &pfm, 0,
+		MOCK_ARG (RECOVERY_IMAGE_HEADER_PLATFORM_ID));
 
 	status |= mock_expect (&manager.mock, manager.base.free_pfm, &manager, 0, MOCK_ARG (&pfm));
 
@@ -3549,6 +3594,7 @@ CuSuite* get_recovery_image_suite ()
 	SUITE_ADD_TEST (suite, recovery_image_test_verify_signature_read_error);
 	SUITE_ADD_TEST (suite, recovery_image_test_verify_no_active_pfm);
 	SUITE_ADD_TEST (suite, recovery_image_test_verify_platform_id_mismatch);
+	SUITE_ADD_TEST (suite, recovery_image_test_verify_platform_id_error);
 	SUITE_ADD_TEST (suite, recovery_image_test_verify_recovery_section_header_length_too_short);
 	SUITE_ADD_TEST (suite, recovery_image_test_verify_recovery_section_header_length_too_long);
 	SUITE_ADD_TEST (suite, recovery_image_test_verify_no_recovery_section_image);

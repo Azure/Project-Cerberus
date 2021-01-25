@@ -13,46 +13,6 @@
 
 
 /**
- * If there is both an active and pending manifest available, check the ID of the pending manifest
- * to see that it is valid relative to the active manifest. If not, mark the pending manifest as
- * invalid.
- *
- * @param manager The manifest manager to use for validation.
- *
- * @return 0 if the check completed successfully or an error code.
- */
-static int manifest_manager_flash_check_pending_manifest_id (struct manifest_manager_flash *manager)
-{
-	struct manifest_manager_flash_region *active;
-	struct manifest_manager_flash_region *pending;
-	uint32_t active_id;
-	uint32_t pending_id;
-	int status = 0;
-
-	active = manifest_manager_flash_get_region (manager, true);
-	pending = manifest_manager_flash_get_region (manager, false);
-
-	if (active->is_valid && pending->is_valid) {
-		status = active->manifest->get_id (active->manifest, &active_id);
-		if (status == 0) {
-			status = pending->manifest->get_id (pending->manifest, &pending_id);
-		}
-
-		if (status == 0) {
-			if (pending_id <= active_id) {
-				pending->is_valid = false;
-				status = MANIFEST_MANAGER_INVALID_ID;
-			}
-		}
-		else {
-			pending->is_valid = false;
-		}
-	}
-
-	return status;
-}
-
-/**
  * Check if a single manifest flash region contains a valid manifest.
  *
  * @param manager The manifest manager to use for verification.
@@ -81,27 +41,84 @@ static int manifest_manager_flash_verify_manifest (struct manifest_manager_flash
 }
 
 /**
+ * If there is both an active and pending manifest available, check the ID of the pending manifest
+ * to see that it is valid relative to the active manifest. If not, mark the pending manifest as
+ * invalid.
+ *
+ * @param manager The manifest manager to use for validation.
+ *
+ * @return 0 if the check completed successfully or an error code.
+ */
+static int manifest_manager_flash_check_pending_manifest_id (struct manifest_manager_flash *manager)
+{
+	struct manifest_manager_flash_region *active;
+	struct manifest_manager_flash_region *pending;
+	int status = 0;
+
+	active = manifest_manager_flash_get_region (manager, true);
+	pending = manifest_manager_flash_get_region (manager, false);
+
+	if (active->is_valid && pending->is_valid) {
+		status = manifest_flash_compare_id (active->flash, pending->flash);
+		if (status != 0) {
+			pending->is_valid = false;
+			status = MANIFEST_MANAGER_INVALID_ID;
+		}
+	}
+
+	return status;
+}
+
+/**
+ * If there is both an active and pending manifest, check that the platform identifier of the
+ * pending manifest matches the active.  If not, mark the pending manifest as invalid.
+ *
+ * @param manager The manifest manager to use for validation.
+ *
+ * @return 0 if the check completed successfully or an error code.
+ */
+static int manifest_manager_flash_check_pending_platform_id (struct manifest_manager_flash *manager)
+{
+	struct manifest_manager_flash_region *active;
+	struct manifest_manager_flash_region *pending;
+	int status = 0;
+
+	active = manifest_manager_flash_get_region (manager, true);
+	pending = manifest_manager_flash_get_region (manager, false);
+
+	if (active->is_valid && pending->is_valid) {
+		status = manifest_flash_compare_platform_id (active->flash, pending->flash);
+		if (status == 1) {
+			pending->is_valid = false;
+			status = MANIFEST_MANAGER_INCOMPATIBLE;
+		}
+		else if (status != 0) {
+			pending->is_valid = false;
+		}
+	}
+
+	return status;
+}
+
+/**
  * Initialize the manager for handling manifests.
  *
  * @param manager The manifest manager to initialize.
  * @param region1 The manifest instance for the first flash region that can hold a manifest.
  * @param region2 The manifest instance for the second flash region that can hold a manifest.
+ * @param region1_flash Flash access for the region 1 manifest.
+ * @param region2_flash Flash access for the region 2 manifest.
  * @param state The state information for manifest management.
  * @param hash The hash engine to be used for manifest validation.
  * @param verification The module to use for manifest verification.
- * @param region1_flash The flash device containing region 1 manifest
- * @param region1_addr The starting flash address of region 1 manifest
- * @param region2_flash The flash device containing region 2 manifest
- * @param region2_addr The starting flash address of region 2 manifest
  * @param manifest_index State manager manifest index to utilize.
  *
  * @return 0 if the manifest manager was successfully initialized or an error code.
  */
 int manifest_manager_flash_init (struct manifest_manager_flash *manager, struct manifest *region1,
-	struct manifest *region2, struct state_manager *state, struct hash_engine *hash,
-	struct signature_verification *verification, struct spi_flash *region1_flash,
-	uint32_t region1_addr, struct spi_flash *region2_flash, uint32_t region2_addr,
-	uint8_t manifest_index)
+	struct manifest *region2, struct manifest_flash *region1_flash,
+	struct manifest_flash *region2_flash, struct state_manager *state, struct hash_engine *hash,
+	struct signature_verification *verification, uint8_t manifest_index)
 {
 	int status;
 
@@ -110,7 +127,9 @@ int manifest_manager_flash_init (struct manifest_manager_flash *manager, struct 
 	}
 
 	manager->region1.manifest = region1;
+	manager->region1.flash = region1_flash;
 	manager->region2.manifest = region2;
+	manager->region2.flash = region2_flash;
 	manager->state = state;
 	manager->hash = hash;
 	manager->verification = verification;
@@ -136,13 +155,20 @@ int manifest_manager_flash_init (struct manifest_manager_flash *manager, struct 
 		return status;
 	}
 
-	status = flash_updater_init (&manager->region1.updater, &region1_flash->base, region1_addr,
+	status = manifest_manager_flash_check_pending_platform_id (manager);
+	if ((status != 0) && (status != MANIFEST_MANAGER_INCOMPATIBLE)) {
+		return status;
+	}
+
+	status = flash_updater_init (&manager->region1.updater,
+		manifest_flash_get_flash (region1_flash), manifest_flash_get_addr (region1_flash),
 		FLASH_BLOCK_SIZE);
 	if (status != 0) {
 		return status;
 	}
 
-	status = flash_updater_init (&manager->region2.updater, &region2_flash->base, region2_addr,
+	status = flash_updater_init (&manager->region2.updater,
+		manifest_flash_get_flash (region2_flash), manifest_flash_get_addr (region2_flash),
 		FLASH_BLOCK_SIZE);
 	if (status != 0) {
 		goto error_updater;
@@ -395,6 +421,11 @@ int manifest_manager_flash_verify_pending_manifest (struct manifest_manager_flas
 
 	if (status == 0) {
 		status = manifest_manager_flash_check_pending_manifest_id (manager);
+		if (status != 0) {
+			goto exit;
+		}
+
+		status = manifest_manager_flash_check_pending_platform_id (manager);
 		if (status != 0) {
 			goto exit;
 		}

@@ -1,5 +1,6 @@
 .repo
 external
+tools/testing/output
 projects/*
 !projects/freertos
 !projects/gcc

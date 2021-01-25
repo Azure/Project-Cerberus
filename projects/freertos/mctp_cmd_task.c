@@ -28,11 +28,12 @@ static void mctp_cmd_task_loop (void *data)
  * @param task The MCTP command task to initialize.
  * @param channel The command channel for sending and receiving packets.
  * @param mctp The MCTP protocol handler to use for packet processing.
+ * @param priority The priority level for running the command task.
  *
  * @return Initialization status, 0 if success or an error code.
  */
 int mctp_cmd_task_init (struct mctp_cmd_task *task, struct cmd_channel *channel,
-	struct mctp_interface *mctp)
+	struct mctp_interface *mctp, int priority)
 {
 	int status;
 
@@ -45,7 +46,7 @@ int mctp_cmd_task_init (struct mctp_cmd_task *task, struct cmd_channel *channel,
 	task->channel = channel;
 	task->mctp = mctp;
 
-	status = xTaskCreate (mctp_cmd_task_loop, "MCTP_LOOP", 6 * 256, task, CERBERUS_PRIORITY_HIGH,
+	status = xTaskCreate (mctp_cmd_task_loop, "MCTP_LOOP", 6 * 256, task, priority,
 		&task->cmd_loop_task);
 	if (status != pdPASS) {
 		return status;

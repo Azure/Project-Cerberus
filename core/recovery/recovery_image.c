@@ -23,7 +23,7 @@ static int recovery_image_check_platform_id (struct pfm_manager *pfm,
 	struct recovery_image_header *header)
 {
 	struct pfm *manifest;
-	char *pfm_id;
+	char *pfm_id= NULL;
 	char *img_id;
 	int status;
 
@@ -32,7 +32,7 @@ static int recovery_image_check_platform_id (struct pfm_manager *pfm,
 		return 0;
 	}
 
-	status = manifest->base.get_platform_id (&manifest->base, &pfm_id);
+	status = manifest->base.get_platform_id (&manifest->base, &pfm_id, 0);
 	if (status != 0) {
 		goto err_free_pfm;
 	}
@@ -47,7 +47,7 @@ static int recovery_image_check_platform_id (struct pfm_manager *pfm,
 	}
 
 err_free_id:
-	platform_free (pfm_id);
+	manifest->base.free_platform_id (&manifest->base, pfm_id);
 err_free_pfm:
 	pfm->free_pfm (pfm, manifest);
 

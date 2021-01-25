@@ -90,6 +90,7 @@ static int bmc_recovery_on_host_cs1 (struct bmc_recovery *recovery, struct hash_
 	struct rsa_engine *rsa)
 {
 	int status = 0;
+	int time_status = 0;
 
 	if (recovery == NULL) {
 		return 0;
@@ -104,6 +105,7 @@ static int bmc_recovery_on_host_cs1 (struct bmc_recovery *recovery, struct hash_
 		case BMC_RECOVERY_STATE_EXIT_RESET:
 			if (platform_has_timeout_expired (&recovery->timeout) == 1) {
 				recovery->num_wdt = 0;
+				recovery->skip_recovery = false;
 			}
 
 			debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_HOST_FW,
@@ -117,56 +119,48 @@ static int bmc_recovery_on_host_cs1 (struct bmc_recovery *recovery, struct hash_
 				recovery->state = BMC_RECOVERY_STATE_ROLLBACK_DONE;
 			}
 			else {
-				if ((recovery->num_wdt < recovery->rec_ctrl.max_wdt) ||
-					(recovery->rec_ctrl.max_wdt == 0)) {
+				if (recovery->num_wdt == recovery->rec_ctrl.min_wdt) {
+					status = recovery->host->recover_active_read_write_data (recovery->host);
+					if ((status == HOST_PROCESSOR_NO_ACTIVE_RW_DATA) ||
+						(status == HOST_PROCESSOR_RW_RECOVERY_UNSUPPORTED)) {
+						recovery->num_wdt++;
+					}
+				}
+
+				if (recovery->skip_recovery ||
+					(recovery->num_wdt == (recovery->rec_ctrl.min_wdt + 1))) {
 					status = recovery->host->flash_rollback (recovery->host, hash, rsa, false,
 						false);
-					if (status == 0) {
-						recovery->state = BMC_RECOVERY_STATE_ROLLBACK_DONE;
-					}
-					else {
-						if ((IS_VALIDATION_FAILURE (status)) ||
-							(status == HOST_PROCESSOR_NO_ROLLBACK) ||
-							(status == HOST_PROCESSOR_ROLLBACK_DIRTY)) {
-							status = recovery->host->apply_recovery_image (recovery->host, false);
-							if (status == 0) {
-								recovery->state = BMC_RECOVERY_STATE_ROLLBACK_DONE;
-							}
-							else {
-								bmc_recovery_enter_running_state (recovery);
-							}
-						}
-						else {
-							bmc_recovery_enter_running_state (recovery);
-						}
+					if (IS_VALIDATION_FAILURE (status) || (status == HOST_PROCESSOR_NO_ROLLBACK) ||
+						(status == HOST_PROCESSOR_ROLLBACK_DIRTY)) {
+						recovery->num_wdt++;
 					}
 				}
-				else {
-					status = recovery->host->apply_recovery_image (recovery->host, false);
-					if (status == 0) {
-						recovery->state = BMC_RECOVERY_STATE_ROLLBACK_DONE;
-					}
-					else {
-						bmc_recovery_enter_running_state (recovery);
-					}
-				}
-			}
 
-			if (status != 0) {
-				return status;
+				if (!recovery->skip_recovery &&
+					(recovery->num_wdt >= (recovery->rec_ctrl.min_wdt + 2))) {
+					status = recovery->host->apply_recovery_image (recovery->host, false);
+					if ((status == HOST_PROCESSOR_RECOVERY_UNSUPPORTED) ||
+						(status == HOST_PROCESSOR_NO_RECOVERY_IMAGE)) {
+						recovery->skip_recovery = true;
+					}
+				}
+
+				recovery->state = BMC_RECOVERY_STATE_ROLLBACK_DONE;
+				if (status != 0) {
+					recovery->control->hold_processor_in_reset (recovery->control, true);
+					platform_msleep (100);
+					recovery->control->hold_processor_in_reset (recovery->control, false);
+				}
 			}
 
 			recovery->num_wdt++;
-
-			status = platform_init_timeout (recovery->rec_ctrl.msec, &recovery->timeout);
-			if (status) {
-	 			return status;
-			}
+			time_status = platform_init_timeout (recovery->rec_ctrl.msec, &recovery->timeout);
 
 			break;
 	}
 
-	return status;
+	return (status != 0) ? status : time_status;
 }
 
 /**
@@ -186,23 +180,19 @@ int bmc_recovery_init (struct bmc_recovery *recovery, struct host_irq_control *i
 {
 	int status;
 
-	if ((recovery == NULL) || (irq == NULL) || (host == NULL) || (control == NULL)) {
+	if ((recovery == NULL) || (irq == NULL) || (host == NULL) || (control == NULL) ||
+		(rec_ctrl == NULL)) {
 		return BMC_RECOVERY_INVALID_ARGUMENT;
 	}
 
 	memset (recovery, 0, sizeof (struct bmc_recovery));
-	if (rec_ctrl) {
-		if (rec_ctrl->min_wdt > rec_ctrl->max_wdt) {
-			return BMC_RECOVERY_INVALID_MIN_WDT;
-		}
-		memcpy (&recovery->rec_ctrl, rec_ctrl, sizeof (struct bmc_recovery_control));
-	}
 
 	status = irq->enable_exit_reset (irq, true);
 	if (status != 0) {
 		return status;
 	}
 
+	memcpy (&recovery->rec_ctrl, rec_ctrl, sizeof (struct bmc_recovery_control));
 	status = platform_init_current_tick (&recovery->timeout);
 	if (status != 0) {
 		return status;

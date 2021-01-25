@@ -15,6 +15,8 @@ enum {
 	MCTP_LOGGING_ERR_MSG,					/**< Cerberus protocol error message recevied. */
 	MCTP_LOGGING_CONTROL_FAIL,				/**< Failure while processing MCTP control message. */
 	MCTP_LOGGING_PKT_DROPPED,				/**< MCTP packet dropped. */
+	MCTP_LOGGING_CHANNEL,					/**< MCTP command channel identifier. */
+	MCTP_LOGGING_SET_EID_FAIL,				/**< Received an invalid response to a Set EID request. */
 };
 
 

@@ -199,16 +199,16 @@ int session_manager_decrypt_message (struct session_manager *session,
 		return SESSION_MANAGER_MALFORMED_MSG;
 	}
 
-	if ((sizeof (request->data) < (request->length - SESSION_MANAGER_TRAILER_LEN)) ||
-		(request->max_response <= (sizeof (struct cerberus_protocol_header) +
-		SESSION_MANAGER_TRAILER_LEN))) {
+	if ((request->max_response < (request->length - SESSION_MANAGER_TRAILER_LEN)) ||
+		(request->max_response <=
+			(sizeof (struct cerberus_protocol_header) + SESSION_MANAGER_TRAILER_LEN))) {
 		return SESSION_MANAGER_BUF_TOO_SMALL;
 	}
 
 	payload = request->data + sizeof (struct cerberus_protocol_header);
 	payload_len = request->length - sizeof (struct cerberus_protocol_header) -
 		SESSION_MANAGER_TRAILER_LEN;
-	buffer_len = sizeof (request->data) - sizeof (struct cerberus_protocol_header);
+	buffer_len = request->max_response - sizeof (struct cerberus_protocol_header);
 
 	status = session_manager_set_key (session, request->source_eid);
 	if (status != 0) {
@@ -546,17 +546,17 @@ exit:
 }
 
 /**
- * Get session sync hmac. 
+ * Get session sync hmac.
  *
  * @param session Session manager instance to utilize.
- * @param eid Device EID.  
+ * @param eid Device EID.
  * @param rn_req Random number provided by device.
  * @param hmac Buffer to hold generated HMAC.
  * @param hmac_len Size of provided HMAC buffer.
  *
  * @return Size of generated HMAC or an error code.
  */
-int session_manager_session_sync (struct session_manager *session, uint8_t eid, uint32_t rn_req, 
+int session_manager_session_sync (struct session_manager *session, uint8_t eid, uint32_t rn_req,
 	uint8_t *hmac, size_t hmac_len)
 {
 	struct session_manager_entry *req_session;
@@ -575,8 +575,8 @@ int session_manager_session_sync (struct session_manager *session, uint8_t eid, 
 		return SESSION_MANAGER_SESSION_NOT_ESTABLISHED;
 	}
 
-	status = hash_generate_hmac (session->hash, req_session->hmac_key, 
-		sizeof (req_session->hmac_key), (const uint8_t*) &rn_req, sizeof (rn_req), 
+	status = hash_generate_hmac (session->hash, req_session->hmac_key,
+		sizeof (req_session->hmac_key), (const uint8_t*) &rn_req, sizeof (rn_req),
 		req_session->hmac_hash_type, hmac, hmac_len);
 	if (status != 0) {
 		return status;

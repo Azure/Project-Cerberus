@@ -9,6 +9,16 @@
  * will use the default value. */
 
 
+/*******************
+ * Attestation
+ *******************/
+
+/**
+ * The key bit length to use for auxiliary attestation.
+ */
+// #define	AUX_ATTESTATION_KEY_BITS			3072
+
+
 /*************
  * Crypto
  *************/
@@ -40,7 +50,7 @@
 
 /**
  * The maximum time allowed after receiving a completed request before the response must start
- * transmission.  The timout is in milliseconds.
+ * transmission.  The timeout is in milliseconds.
  */
 // #define MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS			100
 

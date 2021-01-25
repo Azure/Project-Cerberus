@@ -6,8 +6,9 @@
 
 #include <stdint.h>
 #include "pfm.h"
+#include "pfm_format.h"
 #include "manifest/manifest_flash.h"
-#include "flash/spi_flash.h"
+#include "flash/flash.h"
 
 
 /**
@@ -16,14 +17,15 @@
 struct pfm_flash {
 	struct pfm base;							/**< The base PFM instance. */
 	struct manifest_flash base_flash;			/**< The base PFM flash instance. */
+	struct pfm_flash_device_element flash_dev;	/**< Flash device element for the PFM. */
+	int flash_dev_format;						/**< Format of the flash device element. */
 };
 
 
-int pfm_flash_init (struct pfm_flash *pfm, struct spi_flash *flash, uint32_t base_addr);
+int pfm_flash_init (struct pfm_flash *pfm, struct flash *flash, struct hash_engine *hash,
+	uint32_t base_addr, uint8_t *signature_cache, size_t max_signature, uint8_t *platform_id_cache,
+	size_t max_platform_id);
 void pfm_flash_release (struct pfm_flash *pfm);
-
-uint32_t pfm_flash_get_addr (struct pfm_flash *pfm);
-struct spi_flash* pfm_flash_get_flash (struct pfm_flash *pfm);
 
 
 #endif //PFM_FLASH_H

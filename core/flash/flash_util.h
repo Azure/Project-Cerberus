@@ -66,6 +66,13 @@ int flash_hash_noncontiguous_contents_at_offset (struct flash *flash, uint32_t o
 	const struct flash_region *regions, size_t count, struct hash_engine *hash, enum hash_type type,
 	uint8_t *hash_out, size_t hash_length);
 
+int flash_hash_update_contents (struct flash *flash, uint32_t start_addr, size_t length,
+	struct hash_engine *hash);
+int flash_hash_update_noncontiguous_contents (struct flash *flash,
+	const struct flash_region *regions, size_t count, struct hash_engine *hash);
+int flash_hash_update_noncontiguous_contents_at_offset (struct flash *flash, uint32_t offset,
+	const struct flash_region *regions, size_t count, struct hash_engine *hash);
+
 int flash_erase_region (struct flash *flash, uint32_t start_addr, size_t length);
 int flash_sector_erase_region (struct flash *flash, uint32_t start_addr, size_t length);
 int flash_blank_check (struct flash *flash, uint32_t start_addr, size_t length);

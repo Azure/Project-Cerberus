@@ -27,43 +27,47 @@
 
 #pragma pack(push, 1)
 /**
- * MCTP control set EID request packet format
+ * MCTP control set EID request format
  */
-struct mctp_control_set_eid_request_packet {
-	uint8_t reserved:6;										// Reserved
-	uint8_t operation:2;									// Operation
-	uint8_t eid;											// EID
+struct mctp_control_set_eid {
+	struct mctp_protocol_control_header header;		/**< Message header */
+	uint8_t operation:2;							/**< EID operation to perform */
+	uint8_t reserved:6;								/**< Reserved */
+	uint8_t eid;									/**< EID assignment */
 };
 
 /**
- * MCTP control set EID request response format
+ * MCTP control set EID response format
  */
-struct mctp_control_set_eid_response_packet {
-	uint8_t completion_code;								// Completion code
-	uint8_t reserved1:2;									// Reserved
-	uint8_t eid_assignment_status:2;						// EID assignment status
-	uint8_t reserved2:2;									// Reserved
-	uint8_t eid_allocation_status:2;						// EID allocation status
-	uint8_t eid_setting;									// EID setting
-	uint8_t eid_pool_size;									// EID pool size
+struct mctp_control_set_eid_response {
+	struct mctp_protocol_control_header header;		/**< Message header */
+	uint8_t completion_code;						/**< Operation completion code */
+	uint8_t eid_allocation_status:2;				/**< Status of EID allocation */
+	uint8_t reserved1:2;							/**< Reserved */
+	uint8_t eid_assignment_status:2;				/**< Status of EID assignment */
+	uint8_t reserved2:2;							/**< Reserved */
+	uint8_t eid_setting;							/**< EID setting */
+	uint8_t eid_pool_size;							/**< EID pool size */
 };
 
 /**
- * MCTP control get vendor defined message support request packet format
+ * MCTP control get vendor defined message support request format
  */
-struct mctp_control_get_vendor_def_msg_support_request_packet {
-	uint8_t vid_set_selector;								// Vendor ID set selector
+struct mctp_control_get_vendor_def_msg_support {
+	struct mctp_protocol_control_header header;		/**< Message header */
+	uint8_t vid_set_selector;						/**< Vendor ID set selector */
 };
 
 /**
  * MCTP control get vendor defined message support response packet format
  */
-struct mctp_control_get_vendor_def_msg_support_response_packet {
-	uint8_t completion_code;								// Completion code
-	uint8_t vid_set_selector;								// Vendor ID set selector
-	uint8_t vid_format;										// Vendor ID format
-	uint16_t vid;											// Vendor ID
-	uint16_t protocol_version;								// Protocol version
+struct mctp_control_get_vendor_def_msg_support_response {
+	struct mctp_protocol_control_header header;		/**< Message header */
+	uint8_t completion_code;						/**< Completion code */
+	uint8_t vid_set_selector;						/**< Vendor ID set selector */
+	uint8_t vid_format;								/**< Vendor ID format */
+	uint16_t vid;									/**< Vendor ID */
+	uint16_t protocol_version;						/**< Protocol version */
 };
 #pragma pack(pop)
 

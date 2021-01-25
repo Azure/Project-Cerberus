@@ -17,7 +17,7 @@
 /**
  * Boolean macro to determine if a status code represents a validation failure of flash.
  */
-#define	IS_VALIDATION_FAILURE(x)	((x == RSA_ENGINE_BAD_SIGNATURE) || (x == FLASH_UTIL_UNEXPECTED_VALUE) || (x == HOST_FW_UTIL_UNSUPPORTED_VERSION))
+#define	IS_VALIDATION_FAILURE(x)	((x == RSA_ENGINE_BAD_SIGNATURE) || (x == HOST_FW_UTIL_BAD_IMAGE_HASH) || (x == FLASH_UTIL_UNEXPECTED_VALUE) || (x == HOST_FW_UTIL_UNSUPPORTED_VERSION))
 
 
 /**
@@ -88,8 +88,8 @@ struct host_processor {
 		struct rsa_engine *rsa);
 
 	/**
-	 * Attempt to rollback to the previous image by switching the roles of the flash devices.  The
-	 * rollback will only be allowed if the read/write flash still contains a valid image.
+	 * Attempt to rollback to a previously valid image.  Rollback will only be allowed to an image
+	 * that can be authenticated.
 	 *
 	 * @param host The instance for the processor that is attempting a rollback.
 	 * @param hash The hash engine to use for firmware validation.
@@ -103,6 +103,15 @@ struct host_processor {
 	 */
 	int (*flash_rollback) (struct host_processor *host, struct hash_engine *hash,
 		struct rsa_engine *rsa, bool disable_bypass, bool no_reset);
+
+	/**
+	 * Recover read/write data for the active image.
+	 *
+	 * @param host The instance for the host processor that will execute recovery.
+	 *
+	 * @return 0 if read/write recovery was successful or an error code.
+	 */
+	int (*recover_active_read_write_data) (struct host_processor *host);
 
 	/**
 	 * Determine the verification actions that will be performed on the next host reset.
@@ -191,6 +200,9 @@ enum {
 	HOST_PROCESSOR_NO_RECOVERY_IMAGE = HOST_PROCESSOR_ERROR (0x0e),			/**< There is no valid recovery image. */
 	HOST_PROCESSOR_BYPASS_FAILED = HOST_PROCESSOR_ERROR (0x0f),				/**< Failed to configure bypass mode. */
 	HOST_PROCESSOR_FLASH_NOT_SUPPORTED = HOST_PROCESSOR_ERROR (0x10),		/**< The flash configuration is not supported. */
+	HOST_PROCESSOR_RW_RECOVERY_FAILED = HOST_PROCESSOR_ERROR (0x11),		/**< Failed to recover active read/write data. */
+	HOST_PROCESSOR_RW_RECOVERY_UNSUPPORTED = HOST_PROCESSOR_ERROR (0x12),	/**< Recovery of active read/write data is not supported. */
+	HOST_PROCESSOR_NO_ACTIVE_RW_DATA = HOST_PROCESSOR_ERROR (0x13),			/**< There is no active image for read/write recovery. */
 };
 
 

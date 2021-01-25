@@ -94,6 +94,14 @@ struct cerberus_protocol_get_cfm_id_platform_response {
 	(len + sizeof (struct cerberus_protocol_get_cfm_id_platform_response) - sizeof (uint8_t))
 
 /**
+ * Maximum amount of component firmware manifest platform ID data that can be returned
+ *
+ * @param req The command request structure containing the message.
+ */
+#define	CERBERUS_PROTOCOL_MAX_CFM_ID_PLATFORM(req)	\
+	((req->max_response - sizeof (struct cerberus_protocol_get_cfm_id_platform_response)) + sizeof (uint8_t))
+
+/**
  * Cerberus protocol prepare component firmware manifest request format
  */
 struct cerberus_protocol_prepare_cfm_update {
@@ -197,6 +205,14 @@ struct cerberus_protocol_get_pcd_id_platform_response {
  */
 #define	cerberus_protocol_get_pcd_id_platform_response_length(len)	\
 	(len + sizeof (struct cerberus_protocol_get_pcd_id_platform_response) - sizeof (uint8_t))
+
+/**
+ * Maximum amount of platform configuration data platform ID data that can be returned
+ *
+ * @param req The command request structure containing the message.
+ */
+#define	CERBERUS_PROTOCOL_MAX_PCD_ID_PLATFORM(req)	\
+	((req->max_response - sizeof (struct cerberus_protocol_get_pcd_id_platform_response)) + sizeof (uint8_t))
 
 /**
  * Cerberus protocol prepare platform configuration data request format

@@ -1077,6 +1077,7 @@ static void logging_memory_test_clear_add_after_clear (CuTest *test)
 	const int entry_full = entry_len * entry_count;
 	uint8_t entry[entry_size];
 	uint8_t entry_data[entry_len];
+	uint8_t entry_data2[entry_len];
 	struct logging_entry_header *header;
 	uint8_t output[entry_full];
 
@@ -1089,6 +1090,12 @@ static void logging_memory_test_clear_add_after_clear (CuTest *test)
 	header->length = entry_len;
 	header->entry_id = 0;
 	memcpy (&entry_data[sizeof (struct logging_entry_header)], entry, sizeof (entry));
+
+	header = (struct logging_entry_header*) entry_data2;
+	header->log_magic = 0xCB;
+	header->length = entry_len;
+	header->entry_id = 1;
+	memcpy (&entry_data2[sizeof (struct logging_entry_header)], entry, sizeof (entry));
 
 	status = logging_memory_init (&logging, entry_count, entry_size);
 	CuAssertIntEquals (test, 0, status);
@@ -1112,9 +1119,9 @@ static void logging_memory_test_clear_add_after_clear (CuTest *test)
 	CuAssertIntEquals (test, sizeof (entry_data), status);
 
 	status = logging.base.read_contents (&logging.base, 0, output, sizeof (output));
-	CuAssertIntEquals (test, sizeof (entry_data), status);
+	CuAssertIntEquals (test, sizeof (entry_data2), status);
 
-	status = testing_validate_array (entry_data, output, status);
+	status = testing_validate_array (entry_data2, output, status);
 	CuAssertIntEquals (test, 0, status);
 
 	logging_memory_release (&logging);

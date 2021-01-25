@@ -32,9 +32,13 @@ static void hash_thread_safe_test_init (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrNotNull (test, engine.base.calculate_sha1);
-	CuAssertPtrNotNull (test, engine.base.calculate_sha256);
 	CuAssertPtrNotNull (test, engine.base.start_sha1);
+	CuAssertPtrNotNull (test, engine.base.calculate_sha256);
 	CuAssertPtrNotNull (test, engine.base.start_sha256);
+	CuAssertPtrNotNull (test, engine.base.calculate_sha384);
+	CuAssertPtrNotNull (test, engine.base.start_sha384);
+	CuAssertPtrNotNull (test, engine.base.calculate_sha512);
+	CuAssertPtrNotNull (test, engine.base.start_sha512);
 	CuAssertPtrNotNull (test, engine.base.update);
 	CuAssertPtrNotNull (test, engine.base.finish);
 	CuAssertPtrNotNull (test, engine.base.cancel);
@@ -267,7 +271,7 @@ static void hash_thread_safe_test_calculate_sha256 (CuTest *test)
 	struct hash_engine_mock mock;
 	int status;
 	char *message = "Test";
-	uint8_t hash[SHA1_HASH_LENGTH];
+	uint8_t hash[SHA256_HASH_LENGTH];
 
 	TEST_START;
 
@@ -301,7 +305,7 @@ static void hash_thread_safe_test_calculate_sha256_error (CuTest *test)
 	struct hash_engine_mock mock;
 	int status;
 	char *message = "Test";
-	uint8_t hash[SHA1_HASH_LENGTH];
+	uint8_t hash[SHA256_HASH_LENGTH];
 
 	TEST_START;
 
@@ -335,7 +339,7 @@ static void hash_thread_safe_test_calculate_sha256_null (CuTest *test)
 	struct hash_engine_mock mock;
 	int status;
 	char *message = "Test";
-	uint8_t hash[SHA1_HASH_LENGTH];
+	uint8_t hash[SHA256_HASH_LENGTH];
 
 	TEST_START;
 
@@ -438,6 +442,384 @@ static void hash_thread_safe_test_start_sha256_null (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha256 (NULL);
+	CuAssertIntEquals (test, HASH_ENGINE_INVALID_ARGUMENT, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Check lock has been released. */
+	engine.base.start_sha256 (&engine.base);
+
+	hash_mock_release (&mock);
+	hash_thread_safe_release (&engine);
+}
+
+static void hash_thread_safe_test_calculate_sha384 (CuTest *test)
+{
+	struct hash_engine_thread_safe engine;
+	struct hash_engine_mock mock;
+	int status;
+	char *message = "Test";
+	uint8_t hash[SHA384_HASH_LENGTH];
+
+	TEST_START;
+
+	status = hash_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_thread_safe_init (&engine, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&mock.mock, mock.base.calculate_sha384, &mock, 0, MOCK_ARG (message),
+		MOCK_ARG (strlen (message)), MOCK_ARG (hash), MOCK_ARG (sizeof (hash)));
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.calculate_sha384 (&engine.base, (uint8_t*) message, strlen (message), hash,
+		sizeof (hash));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Check lock has been released. */
+	engine.base.start_sha256 (&engine.base);
+
+	hash_mock_release (&mock);
+	hash_thread_safe_release (&engine);
+}
+
+static void hash_thread_safe_test_calculate_sha384_error (CuTest *test)
+{
+	struct hash_engine_thread_safe engine;
+	struct hash_engine_mock mock;
+	int status;
+	char *message = "Test";
+	uint8_t hash[SHA384_HASH_LENGTH];
+
+	TEST_START;
+
+	status = hash_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_thread_safe_init (&engine, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&mock.mock, mock.base.calculate_sha384, &mock, HASH_ENGINE_SHA384_FAILED,
+		MOCK_ARG (message), MOCK_ARG (strlen (message)), MOCK_ARG (hash), MOCK_ARG (sizeof (hash)));
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.calculate_sha384 (&engine.base, (uint8_t*) message, strlen (message), hash,
+		sizeof (hash));
+	CuAssertIntEquals (test, HASH_ENGINE_SHA384_FAILED, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Check lock has been released. */
+	engine.base.start_sha256 (&engine.base);
+
+	hash_mock_release (&mock);
+	hash_thread_safe_release (&engine);
+}
+
+static void hash_thread_safe_test_calculate_sha384_null (CuTest *test)
+{
+	struct hash_engine_thread_safe engine;
+	struct hash_engine_mock mock;
+	int status;
+	char *message = "Test";
+	uint8_t hash[SHA384_HASH_LENGTH];
+
+	TEST_START;
+
+	status = hash_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_thread_safe_init (&engine, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.calculate_sha384 (NULL, (uint8_t*) message, strlen (message), hash,
+		sizeof (hash));
+	CuAssertIntEquals (test, HASH_ENGINE_INVALID_ARGUMENT, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Check lock has been released. */
+	engine.base.start_sha256 (&engine.base);
+
+	hash_mock_release (&mock);
+	hash_thread_safe_release (&engine);
+}
+
+static void hash_thread_safe_test_start_sha384 (CuTest *test)
+{
+	struct hash_engine_thread_safe engine;
+	struct hash_engine_mock mock;
+	int status;
+
+	TEST_START;
+
+	status = hash_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_thread_safe_init (&engine, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&mock.mock, mock.base.start_sha384, &mock, 0);
+	status |= mock_expect (&mock.mock, mock.base.cancel, &mock, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.start_sha384 (&engine.base);
+	CuAssertIntEquals (test, 0, status);
+
+	engine.base.cancel (&engine.base);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Check lock has been released. */
+	engine.base.start_sha256 (&engine.base);
+
+	hash_mock_release (&mock);
+	hash_thread_safe_release (&engine);
+}
+
+static void hash_thread_safe_test_start_sha384_error (CuTest *test)
+{
+	struct hash_engine_thread_safe engine;
+	struct hash_engine_mock mock;
+	int status;
+
+	TEST_START;
+
+	status = hash_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_thread_safe_init (&engine, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&mock.mock, mock.base.start_sha384, &mock,
+		HASH_ENGINE_START_SHA384_FAILED);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.start_sha384 (&engine.base);
+	CuAssertIntEquals (test, HASH_ENGINE_START_SHA384_FAILED, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Check lock has been released. */
+	engine.base.start_sha256 (&engine.base);
+
+	hash_mock_release (&mock);
+	hash_thread_safe_release (&engine);
+}
+
+static void hash_thread_safe_test_start_sha384_null (CuTest *test)
+{
+	struct hash_engine_thread_safe engine;
+	struct hash_engine_mock mock;
+	int status;
+
+	TEST_START;
+
+	status = hash_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_thread_safe_init (&engine, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.start_sha384 (NULL);
+	CuAssertIntEquals (test, HASH_ENGINE_INVALID_ARGUMENT, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Check lock has been released. */
+	engine.base.start_sha256 (&engine.base);
+
+	hash_mock_release (&mock);
+	hash_thread_safe_release (&engine);
+}
+
+static void hash_thread_safe_test_calculate_sha512 (CuTest *test)
+{
+	struct hash_engine_thread_safe engine;
+	struct hash_engine_mock mock;
+	int status;
+	char *message = "Test";
+	uint8_t hash[SHA512_HASH_LENGTH];
+
+	TEST_START;
+
+	status = hash_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_thread_safe_init (&engine, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&mock.mock, mock.base.calculate_sha512, &mock, 0, MOCK_ARG (message),
+		MOCK_ARG (strlen (message)), MOCK_ARG (hash), MOCK_ARG (sizeof (hash)));
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.calculate_sha512 (&engine.base, (uint8_t*) message, strlen (message), hash,
+		sizeof (hash));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Check lock has been released. */
+	engine.base.start_sha256 (&engine.base);
+
+	hash_mock_release (&mock);
+	hash_thread_safe_release (&engine);
+}
+
+static void hash_thread_safe_test_calculate_sha512_error (CuTest *test)
+{
+	struct hash_engine_thread_safe engine;
+	struct hash_engine_mock mock;
+	int status;
+	char *message = "Test";
+	uint8_t hash[SHA512_HASH_LENGTH];
+
+	TEST_START;
+
+	status = hash_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_thread_safe_init (&engine, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&mock.mock, mock.base.calculate_sha512, &mock, HASH_ENGINE_SHA512_FAILED,
+		MOCK_ARG (message), MOCK_ARG (strlen (message)), MOCK_ARG (hash), MOCK_ARG (sizeof (hash)));
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.calculate_sha512 (&engine.base, (uint8_t*) message, strlen (message), hash,
+		sizeof (hash));
+	CuAssertIntEquals (test, HASH_ENGINE_SHA512_FAILED, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Check lock has been released. */
+	engine.base.start_sha256 (&engine.base);
+
+	hash_mock_release (&mock);
+	hash_thread_safe_release (&engine);
+}
+
+static void hash_thread_safe_test_calculate_sha512_null (CuTest *test)
+{
+	struct hash_engine_thread_safe engine;
+	struct hash_engine_mock mock;
+	int status;
+	char *message = "Test";
+	uint8_t hash[SHA512_HASH_LENGTH];
+
+	TEST_START;
+
+	status = hash_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_thread_safe_init (&engine, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.calculate_sha512 (NULL, (uint8_t*) message, strlen (message), hash,
+		sizeof (hash));
+	CuAssertIntEquals (test, HASH_ENGINE_INVALID_ARGUMENT, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Check lock has been released. */
+	engine.base.start_sha256 (&engine.base);
+
+	hash_mock_release (&mock);
+	hash_thread_safe_release (&engine);
+}
+
+static void hash_thread_safe_test_start_sha512 (CuTest *test)
+{
+	struct hash_engine_thread_safe engine;
+	struct hash_engine_mock mock;
+	int status;
+
+	TEST_START;
+
+	status = hash_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_thread_safe_init (&engine, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&mock.mock, mock.base.start_sha512, &mock, 0);
+	status |= mock_expect (&mock.mock, mock.base.cancel, &mock, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.start_sha512 (&engine.base);
+	CuAssertIntEquals (test, 0, status);
+
+	engine.base.cancel (&engine.base);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Check lock has been released. */
+	engine.base.start_sha256 (&engine.base);
+
+	hash_mock_release (&mock);
+	hash_thread_safe_release (&engine);
+}
+
+static void hash_thread_safe_test_start_sha512_error (CuTest *test)
+{
+	struct hash_engine_thread_safe engine;
+	struct hash_engine_mock mock;
+	int status;
+
+	TEST_START;
+
+	status = hash_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_thread_safe_init (&engine, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&mock.mock, mock.base.start_sha512, &mock,
+		HASH_ENGINE_START_SHA512_FAILED);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.start_sha512 (&engine.base);
+	CuAssertIntEquals (test, HASH_ENGINE_START_SHA512_FAILED, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Check lock has been released. */
+	engine.base.start_sha256 (&engine.base);
+
+	hash_mock_release (&mock);
+	hash_thread_safe_release (&engine);
+}
+
+static void hash_thread_safe_test_start_sha512_null (CuTest *test)
+{
+	struct hash_engine_thread_safe engine;
+	struct hash_engine_mock mock;
+	int status;
+
+	TEST_START;
+
+	status = hash_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_thread_safe_init (&engine, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.start_sha512 (NULL);
 	CuAssertIntEquals (test, HASH_ENGINE_INVALID_ARGUMENT, status);
 
 	status = mock_validate (&mock.mock);
@@ -726,6 +1108,18 @@ CuSuite* get_hash_thread_safe_suite ()
 	SUITE_ADD_TEST (suite, hash_thread_safe_test_start_sha256);
 	SUITE_ADD_TEST (suite, hash_thread_safe_test_start_sha256_error);
 	SUITE_ADD_TEST (suite, hash_thread_safe_test_start_sha256_null);
+	SUITE_ADD_TEST (suite, hash_thread_safe_test_calculate_sha384);
+	SUITE_ADD_TEST (suite, hash_thread_safe_test_calculate_sha384_error);
+	SUITE_ADD_TEST (suite, hash_thread_safe_test_calculate_sha384_null);
+	SUITE_ADD_TEST (suite, hash_thread_safe_test_start_sha384);
+	SUITE_ADD_TEST (suite, hash_thread_safe_test_start_sha384_error);
+	SUITE_ADD_TEST (suite, hash_thread_safe_test_start_sha384_null);
+	SUITE_ADD_TEST (suite, hash_thread_safe_test_calculate_sha512);
+	SUITE_ADD_TEST (suite, hash_thread_safe_test_calculate_sha512_error);
+	SUITE_ADD_TEST (suite, hash_thread_safe_test_calculate_sha512_null);
+	SUITE_ADD_TEST (suite, hash_thread_safe_test_start_sha512);
+	SUITE_ADD_TEST (suite, hash_thread_safe_test_start_sha512_error);
+	SUITE_ADD_TEST (suite, hash_thread_safe_test_start_sha512_null);
 	SUITE_ADD_TEST (suite, hash_thread_safe_test_update);
 	SUITE_ADD_TEST (suite, hash_thread_safe_test_update_error);
 	SUITE_ADD_TEST (suite, hash_thread_safe_test_update_null);

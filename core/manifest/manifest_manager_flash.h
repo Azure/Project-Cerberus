@@ -7,10 +7,11 @@
 #include <stdint.h>
 #include "platform.h"
 #include "manifest.h"
+#include "manifest_flash.h"
 #include "state_manager/state_manager.h"
 #include "crypto/hash.h"
 #include "common/signature_verification.h"
-#include "flash/spi_flash.h"
+#include "flash/flash.h"
 #include "flash/flash_updater.h"
 
 
@@ -18,7 +19,8 @@
  * Container of information for each managed manifest region on flash.
  */
 struct manifest_manager_flash_region {
-	struct manifest *manifest;						/**< The flash region for the manifest. */
+	struct manifest *manifest;						/**< The manifest instance for the flash region. */
+	struct manifest_flash *flash;					/**< The flash parser for the manifest. */
 	int ref_count;									/**< The number of active references to the manifest region. */
 	bool is_valid;									/**< Flag indicating if the region has a valid manifest. */
 	struct flash_updater updater;					/**< Update manager for the flash region. */
@@ -50,10 +52,9 @@ struct manifest_manager_flash {
 
 
 int manifest_manager_flash_init (struct manifest_manager_flash *manager, struct manifest *region1,
-	struct manifest *region2, struct state_manager *state, struct hash_engine *hash,
-	struct signature_verification *verification, struct spi_flash *region1_flash,
-	uint32_t region1_addr, struct spi_flash *region2_flash, uint32_t region2_addr, 
-	uint8_t manifest_index);
+	struct manifest *region2, struct manifest_flash *region1_flash,
+	struct manifest_flash *region2_flash, struct state_manager *state, struct hash_engine *hash,
+	struct signature_verification *verification, uint8_t manifest_index);
 void manifest_manager_flash_release (struct manifest_manager_flash *manager);
 
 struct manifest_manager_flash_region* manifest_manager_flash_get_region (

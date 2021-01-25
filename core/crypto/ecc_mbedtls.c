@@ -541,11 +541,18 @@ static int ecc_mbedtls_verify (struct ecc_engine *engine, struct ecc_public_key 
 static int ecc_mbedtls_get_shared_secret_max_length (struct ecc_engine *engine,
 	struct ecc_private_key *key)
 {
+	int status;
+
 	if ((engine == NULL) || (key == NULL)) {
 		return ECC_ENGINE_INVALID_ARGUMENT;
 	}
 
-	return mbedtls_pk_get_len ((mbedtls_pk_context*) key->context);
+	status = mbedtls_pk_get_len ((mbedtls_pk_context*) key->context);
+	if (status == 0) {
+		return ECC_ENGINE_SECRET_LENGTH_FAILED;
+	}
+
+	return status;
 }
 
 static int ecc_mbedtls_compute_shared_secret (struct ecc_engine *engine,
@@ -557,10 +564,19 @@ static int ecc_mbedtls_compute_shared_secret (struct ecc_engine *engine,
 	mbedtls_ecp_keypair *pub_ec;
 	mbedtls_mpi out;
 	size_t out_len;
+	int secret_len;
 	int status;
 
 	if ((mbedtls == NULL) || (priv_key == NULL) || (pub_key == NULL) || (secret == NULL)) {
 		return ECC_ENGINE_INVALID_ARGUMENT;
+	}
+
+	secret_len = ecc_mbedtls_get_shared_secret_max_length (engine, priv_key);
+	if (ROT_IS_ERROR (secret_len)) {
+		return secret_len;
+	}
+	if (length < (size_t) secret_len) {
+		return ECC_ENGINE_SECRET_BUFFER_TOO_SMALL;
 	}
 
 	priv_ec = ecc_mbedtls_get_ec_key_pair (priv_key);
@@ -577,15 +593,16 @@ static int ecc_mbedtls_compute_shared_secret (struct ecc_engine *engine,
 	}
 
 	out_len = mbedtls_mpi_size (&out);
-	if (length < out_len) {
+	if (out_len > (size_t) secret_len) {
 		status = ECC_ENGINE_SECRET_BUFFER_TOO_SMALL;
 		goto error;
 	}
 
-	mbedtls_mpi_write_binary (&out, secret, out_len);
+	memset (secret, 0, length);
+	mbedtls_mpi_write_binary (&out, &secret[secret_len - out_len], out_len);
 	mbedtls_mpi_free (&out);
 
-	return out_len;
+	return secret_len;
 
 error:
 	mbedtls_mpi_free (&out);

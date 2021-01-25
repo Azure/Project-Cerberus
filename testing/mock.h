@@ -10,6 +10,8 @@
 #include "status/rot_status.h"
 
 
+struct mock_arg;
+
 /**
  * Signature for a custom validation routine to execute more complicated argument validation.
  *
@@ -29,6 +31,42 @@
 typedef int (*mock_arg_validator) (const char *arg_info, void *expected, void *actual);
 
 /**
+ * Allocate memory and save the data for a pointer argument on a function call.
+ *
+ * @param expected The expectation context for the argument to save.
+ * @param call The calling context for the argument to save.
+ */
+typedef void (*mock_arg_alloc) (const struct mock_arg *expected, struct mock_arg *call);
+
+/**
+ * Allocate memory and save data to be used for argument expectations.
+ *
+ * @param arg_data The data to copy into the expectation argument.
+ * @param arg_length The length of the data to copy.
+ * @param arg_save The argument buffer to copy the data to.
+ *
+ * @return 0 if the data was successfully copied or an error code.
+ */
+typedef int (*mock_arg_alloc_expect) (const void *arg_data, size_t arg_length, void **arg_save);
+
+/**
+ * Release memory for saved pointer argument data.
+ *
+ * @param arg The argument data to free.
+ */
+typedef void (*mock_arg_free) (void *arg);
+
+/**
+ * Copy output data from an expectation to a function argument.
+ *
+ * @param expected The expectation context for the argument to copy.
+ * @param call The calling context to copy into.
+ * @param out_len Buffer space available in the function argument.
+ */
+typedef void (*mock_arg_copy) (const struct mock_arg *expected, struct mock_arg *call,
+	size_t out_len);
+
+/**
  * A container for a function argument description.
  */
 struct mock_arg {
@@ -41,18 +79,24 @@ struct mock_arg {
 	int size_arg;					/**< The argument that defines the provided buffer size. */
 	int save_arg;					/**< The ID to use for saving the value of the called argument. */
 	uint32_t flags;					/**< Validation flags for the argument. */
+	mock_arg_alloc alloc;			/**< Allocation function for saving pointer argument data. */
+	mock_arg_free free;				/**< Function to free saved pointer argument data. */
+	mock_arg_copy copy;				/**< Function to copy data into an output paramater. */
+	mock_arg_free out_free;			/**< Function to free the local copy of output data. */
 };
 
 /**
  * Flags to set on a mock argument.
  */
 enum {
-	MOCK_ARG_FLAG_ANY_VALUE = 0x01,		/**< The argument value does not matter. */
-	MOCK_ARG_FLAG_NOT_NULL = 0x02,		/**< The argument can be anything as long as it is not NULL (0). */
-	MOCK_ARG_FLAG_SAVED_VALUE = 0x04,	/**< The argument should be validated against a saved value. */
-	MOCK_ARG_FLAG_ALLOCATED = 0x08,		/**< The argument pointer is managed by the mock. */
-	MOCK_ARG_FLAG_OUT_ALLOCATED = 0x10,	/**< The argument output data is managed by the mock. */
-	MOCK_ARG_FLAG_PTR_PTR = 0x20,		/**< The argument is a pointer to a pointer that should be dereferenced. */
+	MOCK_ARG_FLAG_ANY_VALUE = 0x01,			/**< The argument value does not matter. */
+	MOCK_ARG_FLAG_NOT_NULL = 0x02,			/**< The argument can be anything as long as it is not NULL (0). */
+	MOCK_ARG_FLAG_SAVED_VALUE = 0x04,		/**< The argument should be validated against a saved value. */
+	MOCK_ARG_FLAG_ALLOCATED = 0x08,			/**< The argument pointer is managed by the mock. */
+	MOCK_ARG_FLAG_OUT_ALLOCATED = 0x10,		/**< The argument output data is managed by the mock. */
+	MOCK_ARG_FLAG_PTR_PTR = 0x20,			/**< The argument is a pointer to a pointer that should be dereferenced. */
+	MOCK_ARG_FLAG_PTR_PTR_NOT_NULL = 0x40,	/**< The pointer referenced by the pointer argument can be anything except NULL (0). */
+	MOCK_ARG_FLAG_OUT_PTR_PTR = 0x80,		/**< The argument output data should be stored at a pointer referenced by another pointer. */
 };
 
 /**
@@ -131,6 +175,9 @@ struct mock_expect_arg {
 	mock_arg_validator validate;	/**< Custom validation routine for the argument. */
 	int save_arg;					/**< The ID of the saved argument entry to use for validation. */
 	uint32_t flags;					/**< Validation flags for the argument. */
+	mock_arg_alloc alloc;			/**< Allocation function for saving pointer argument data. */
+	mock_arg_free free;				/**< Function to free saved pointer argument data. */
+	mock_arg_alloc_expect copy;		/**< Function to make a copy of the argument data. */
 };
 
 /**
@@ -141,7 +188,10 @@ struct mock_expect_arg {
 	.ptr_value_len = 0, \
 	.validate = NULL, \
 	.save_arg = -1, \
-	.flags = 0})
+	.flags = 0, \
+	.alloc = NULL, \
+	.free = NULL, \
+	.copy = NULL})
 
 /**
  * Expectation that an argument can be any value.
@@ -151,7 +201,10 @@ struct mock_expect_arg {
 	.ptr_value_len = 0, \
 	.validate = NULL, \
 	.save_arg = -1, \
-	.flags = MOCK_ARG_FLAG_ANY_VALUE})
+	.flags = MOCK_ARG_FLAG_ANY_VALUE, \
+	.alloc = NULL, \
+	.free = NULL, \
+	.copy = NULL})
 
 /**
  * Expectation that an argument can be any value expect null or 0.
@@ -161,7 +214,10 @@ struct mock_expect_arg {
 	.ptr_value_len = 0, \
 	.validate = NULL, \
 	.save_arg = -1, \
-	.flags = MOCK_ARG_FLAG_NOT_NULL})
+	.flags = MOCK_ARG_FLAG_NOT_NULL, \
+	.alloc = NULL, \
+	.free = NULL, \
+	.copy = NULL})
 
 /**
  * Expectation that an argument is a pointer to a location that contains the expected data.
@@ -171,7 +227,10 @@ struct mock_expect_arg {
 	.ptr_value_len = len, \
 	.validate = NULL, \
 	.save_arg = -1, \
-	.flags = MOCK_ARG_FLAG_NOT_NULL})
+	.flags = MOCK_ARG_FLAG_NOT_NULL, \
+	.alloc = NULL, \
+	.free = NULL, \
+	.copy = NULL})
 
 /**
  * Expectation that an argument is a pointer to a location that contains the expected data.  The
@@ -183,7 +242,10 @@ struct mock_expect_arg {
 	.ptr_value_len = len, \
 	.validate = NULL, \
 	.save_arg = -1, \
-	.flags = MOCK_ARG_FLAG_NOT_NULL | MOCK_ARG_FLAG_ALLOCATED})
+	.flags = MOCK_ARG_FLAG_NOT_NULL | MOCK_ARG_FLAG_ALLOCATED, \
+	.alloc = NULL, \
+	.free = NULL, \
+	.copy = NULL})
 
 /**
  * Expectation that an argument value matches that of a saved argument value.
@@ -193,7 +255,10 @@ struct mock_expect_arg {
 	.ptr_value_len = 0, \
 	.validate = NULL, \
 	.save_arg = id, \
-	.flags = MOCK_ARG_FLAG_SAVED_VALUE})
+	.flags = MOCK_ARG_FLAG_SAVED_VALUE, \
+	.alloc = NULL, \
+	.free = NULL, \
+	.copy = NULL})
 
 /**
  * Expectation that an argument is a pointer to data that will be validated with a custom validation
@@ -204,7 +269,10 @@ struct mock_expect_arg {
 	.ptr_value_len = len, \
 	.validate = func, \
 	.save_arg = -1, \
-	.flags = MOCK_ARG_FLAG_NOT_NULL})
+	.flags = MOCK_ARG_FLAG_NOT_NULL, \
+	.alloc = NULL, \
+	.free = NULL, \
+	.copy = NULL})
 
 /**
  * Expectation that an argument is a pointer to data that will be validated with a custom validation
@@ -217,7 +285,69 @@ struct mock_expect_arg {
 	.ptr_value_len = len, \
 	.validate = func, \
 	.save_arg = -1, \
-	.flags = MOCK_ARG_FLAG_NOT_NULL | MOCK_ARG_FLAG_ALLOCATED})
+	.flags = MOCK_ARG_FLAG_NOT_NULL | MOCK_ARG_FLAG_ALLOCATED, \
+	.alloc = NULL, \
+	.free = NULL, \
+	.copy = NULL})
+
+/**
+ * Expectation that an argument is a pointer to data that will be validated with a custom validation
+ * routine.  The validation routine must comply with {@link mock_arg_validator}.  The argument data
+ * will be copied and released using the provided allocation and free functions.  They can be set to
+ * null to use the default functions.
+ */
+#define	MOCK_ARG_VALIDATOR_DEEP_COPY(func, ptr, len, save, rel)	((struct mock_expect_arg) { \
+	.value = (intptr_t) ptr, \
+	.ptr_value_len = len, \
+	.validate = func, \
+	.save_arg = -1, \
+	.flags = MOCK_ARG_FLAG_NOT_NULL, \
+	.alloc = save, \
+	.free = rel, \
+	.copy = NULL})
+
+/**
+ * Expectation that an argument is a pointer to data that will be validated with a custom validation
+ * routine.  The validation routine must comply with {@link mock_arg_validator}.  The expected data
+ * is stored in a temporary variable that will not be in scope during validation, so the data is
+ * copied into the expectation context.  The argument data will be copied and released using the
+ * provided allocation and free functions.  They can be set to null to use the default functions.
+ */
+#define	MOCK_ARG_VALIDATOR_DEEP_COPY_TMP(func, ptr, len, save, rel, dup)	((struct mock_expect_arg) { \
+	.value = (intptr_t) ptr, \
+	.ptr_value_len = len, \
+	.validate = func, \
+	.save_arg = -1, \
+	.flags = MOCK_ARG_FLAG_NOT_NULL | MOCK_ARG_FLAG_ALLOCATED, \
+	.alloc = save, \
+	.free = rel, \
+	.copy = dup})
+
+/**
+ * Expectation that an argument is a pointer to a pointer to a specific location.
+ */
+#define MOCK_ARG_PTR_PTR(x)	((struct mock_expect_arg) { \
+	.value = (intptr_t) x, \
+	.ptr_value_len = 0, \
+	.validate = NULL, \
+	.save_arg = -1, \
+	.flags = MOCK_ARG_FLAG_NOT_NULL | MOCK_ARG_FLAG_PTR_PTR, \
+	.alloc = NULL, \
+	.free = NULL, \
+	.copy = NULL})
+
+/**
+ * Expectation that an argument is a pointer to a pointer to any location except null or 0.
+ */
+#define MOCK_ARG_PTR_PTR_NOT_NULL	((struct mock_expect_arg) { \
+	.value = 0, \
+	.ptr_value_len = 0, \
+	.validate = NULL, \
+	.save_arg = -1, \
+	.flags = MOCK_ARG_FLAG_NOT_NULL | MOCK_ARG_FLAG_PTR_PTR | MOCK_ARG_FLAG_PTR_PTR_NOT_NULL, \
+	.alloc = NULL, \
+	.free = NULL, \
+	.copy = NULL})
 
 /**
  * Expectation that an argument is a pointer to a pointer to a location that contains the expected
@@ -228,7 +358,10 @@ struct mock_expect_arg {
 	.ptr_value_len = len, \
 	.validate = NULL, \
 	.save_arg = -1, \
-	.flags = MOCK_ARG_FLAG_NOT_NULL | MOCK_ARG_FLAG_PTR_PTR})
+	.flags = MOCK_ARG_FLAG_NOT_NULL | MOCK_ARG_FLAG_PTR_PTR | MOCK_ARG_FLAG_PTR_PTR_NOT_NULL, \
+	.alloc = NULL, \
+	.free = NULL, \
+	.copy = NULL})
 
 /**
  * Expectation that an argument is a pointer to a pointer to a location that contains the expected
@@ -240,7 +373,10 @@ struct mock_expect_arg {
 	.ptr_value_len = len, \
 	.validate = NULL, \
 	.save_arg = -1, \
-	.flags = MOCK_ARG_FLAG_NOT_NULL | MOCK_ARG_FLAG_ALLOCATED | MOCK_ARG_FLAG_PTR_PTR})
+	.flags = MOCK_ARG_FLAG_NOT_NULL | MOCK_ARG_FLAG_ALLOCATED | MOCK_ARG_FLAG_PTR_PTR | MOCK_ARG_FLAG_PTR_PTR_NOT_NULL, \
+	.alloc = NULL, \
+	.free = NULL, \
+	.copy = NULL})
 
 
 int mock_expect (struct mock *mock, void *func_call, void *instance, intptr_t return_val, ...);
@@ -248,6 +384,14 @@ int mock_expect_output (struct mock *mock, int arg, const void *out_data, size_t
 	int length_arg);
 int mock_expect_output_tmp (struct mock *mock, int arg, const void *out_data, size_t out_length,
 	int length_arg);
+int mock_expect_output_ptr (struct mock *mock, int arg, const void *out_data, size_t out_length,
+	int length_arg);
+int mock_expect_output_ptr_tmp (struct mock *mock, int arg, const void *out_data, size_t out_length,
+	int length_arg);
+int mock_expect_output_deep_copy (struct mock *mock, int arg, const void *out_data,
+	size_t out_length, mock_arg_copy copy);
+int mock_expect_output_deep_copy_tmp (struct mock *mock, int arg, const void *out_data,
+	size_t out_length, mock_arg_copy copy, mock_arg_alloc_expect out_copy, mock_arg_free free);
 int mock_expect_save_arg (struct mock *mock, int arg, int id);
 int mock_expect_next_save_id (struct mock *mock);
 int mock_expect_share_save_arg (struct mock *from, int src_id, struct mock *to, int dest_id);
@@ -267,6 +411,7 @@ enum {
 	MOCK_BAD_ARG_INDEX = MOCK_ERROR (0x03),			/**< Argument index is not valid for the call. */
 	MOCK_SAVE_ARG_EXISTS = MOCK_ERROR (0x04),		/**< A saved argument already exists for an ID. */
 	MOCK_NO_SAVE_ARG = MOCK_ERROR (0x05),			/**< No saved argument for an ID. */
+	MOCK_BAD_ARG_LENGTH = MOCK_ERROR (0x06),		/**< Argument data is not a valid length. */
 };
 
 

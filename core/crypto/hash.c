@@ -33,9 +33,85 @@ int hash_start_new_hash (struct hash_engine *engine, enum hash_type type)
 			status = engine->start_sha256 (engine);
 			break;
 
-		default:
-			status = HASH_ENGINE_UNSUPPORTED_HASH;
+#ifdef HASH_ENABLE_SHA384
+		case HASH_TYPE_SHA384:
+			status = engine->start_sha384 (engine);
 			break;
+#endif
+
+#ifdef HASH_ENABLE_SHA512
+		case HASH_TYPE_SHA512:
+			status = engine->start_sha512 (engine);
+			break;
+#endif
+
+		default:
+			status = HASH_ENGINE_UNKNOWN_HASH;
+			break;
+	}
+
+	return status;
+}
+
+/**
+ * Calculate the hash on a complete set of data.
+ *
+ * @param engine The hash engine to use to calculate the hash.
+ * @param type The type of hash to calculate.
+ * @param data The data to hash.
+ * @param length The length of the data.
+ * @param hash The buffer that will contain the generated hash.
+ * @param hash_length The size of the hash buffer.
+ *
+ * @return The length of the calculated hash or an error code.  Use ROT_IS_ERROR to check the return
+ * value.
+ */
+int hash_calculate (struct hash_engine *engine, enum hash_type type, const uint8_t *data,
+	size_t length, uint8_t *hash, size_t hash_length)
+{
+	int status = 0;
+
+	if (engine == NULL) {
+		return HASH_ENGINE_INVALID_ARGUMENT;
+	}
+
+	switch (type) {
+#ifdef HASH_ENABLE_SHA1
+		case HASH_TYPE_SHA1:
+			status = engine->calculate_sha1 (engine, data, length, hash, hash_length);
+			if (status == 0) {
+				status = SHA1_HASH_LENGTH;
+			}
+			break;
+#endif
+
+		case HASH_TYPE_SHA256:
+			status = engine->calculate_sha256 (engine, data, length, hash, hash_length);
+			if (status == 0) {
+				status = SHA256_HASH_LENGTH;
+			}
+			break;
+
+#ifdef HASH_ENABLE_SHA384
+		case HASH_TYPE_SHA384:
+			status = engine->calculate_sha384 (engine, data, length, hash, hash_length);
+			if (status == 0) {
+				status = SHA384_HASH_LENGTH;
+			}
+			break;
+#endif
+
+#ifdef HASH_ENABLE_SHA512
+		case HASH_TYPE_SHA512:
+			status = engine->calculate_sha512 (engine, data, length, hash, hash_length);
+			if (status == 0) {
+				status = SHA512_HASH_LENGTH;
+			}
+			break;
+#endif
+
+		default:
+			status = HASH_ENGINE_UNKNOWN_HASH;
 	}
 
 	return status;
@@ -146,8 +222,48 @@ int hash_hmac_init (struct hmac_engine *engine, struct hash_engine *hash, enum h
 			engine->hash_length = SHA256_HASH_LENGTH;
 			break;
 
+#ifdef HASH_ENABLE_SHA384
+		case HMAC_SHA384:
+			if (key_length > SHA384_BLOCK_SIZE) {
+				status = hash->calculate_sha384 (hash, key, key_length, engine->key,
+					sizeof (engine->key));
+				if (status != 0) {
+					return status;
+				}
+
+				key_length = SHA384_HASH_LENGTH;
+			}
+			else {
+				memcpy (engine->key, key, key_length);
+			}
+
+			engine->block_size = SHA384_BLOCK_SIZE;
+			engine->hash_length = SHA384_HASH_LENGTH;
+			break;
+#endif
+
+#ifdef HASH_ENABLE_SHA512
+		case HMAC_SHA512:
+			if (key_length > SHA512_BLOCK_SIZE) {
+				status = hash->calculate_sha512 (hash, key, key_length, engine->key,
+					sizeof (engine->key));
+				if (status != 0) {
+					return status;
+				}
+
+				key_length = SHA512_HASH_LENGTH;
+			}
+			else {
+				memcpy (engine->key, key, key_length);
+			}
+
+			engine->block_size = SHA512_BLOCK_SIZE;
+			engine->hash_length = SHA512_HASH_LENGTH;
+			break;
+#endif
+
 		default:
-			return HASH_ENGINE_UNSUPPORTED_HASH;
+			return HASH_ENGINE_UNKNOWN_HASH;
 	}
 
 	status = hash_start_new_hash (hash, (enum hash_type) hash_type);
@@ -215,7 +331,7 @@ int hash_hmac_update (struct hmac_engine *engine, const uint8_t *data, size_t le
  */
 int hash_hmac_finish (struct hmac_engine *engine, uint8_t *hmac, size_t hmac_length)
 {
-	uint8_t inner_hash[SHA256_HASH_LENGTH];
+	uint8_t inner_hash[SHA512_HASH_LENGTH];
 	int status;
 
 	if ((engine == NULL) || (hmac == NULL)) {
@@ -226,7 +342,7 @@ int hash_hmac_finish (struct hmac_engine *engine, uint8_t *hmac, size_t hmac_len
 		return HASH_ENGINE_HASH_BUFFER_TOO_SMALL;
 	}
 
-	status = engine->hash->finish (engine->hash, inner_hash, engine->hash_length);
+	status = engine->hash->finish (engine->hash, inner_hash, sizeof (inner_hash));
 	if (status != 0) {
 		goto fail;
 	}

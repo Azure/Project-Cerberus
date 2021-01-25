@@ -23,7 +23,7 @@ static int cmd_interface_slave_process_request (struct cmd_interface *intf,
 
 	status = cmd_interface_process_request (&interface->base, request, &command_id, &command_set,
 		true, true);
-	if (status == CMD_ERROR_MESSAGE_ESCAPE_SEQ) {
+	if (status == CMD_HANDLER_ERROR_MESSAGE) {
 		return CMD_HANDLER_UNKNOWN_COMMAND;
 	}
 	if (status != 0) {

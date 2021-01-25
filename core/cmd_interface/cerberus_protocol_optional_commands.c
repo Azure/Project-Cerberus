@@ -491,7 +491,7 @@ int cerberus_protocol_get_pfm_fw (struct manifest_cmd_interface *pfm_0,
 			goto exit;
 		}
 
-		status = curr_pfm->get_supported_versions (curr_pfm, &supported_ids);
+		status = curr_pfm->get_supported_versions (curr_pfm, NULL, &supported_ids);
 		if (status != 0) {
 			goto exit;
 		}
@@ -1093,6 +1093,8 @@ int cerberus_protocol_key_exchange (struct session_manager *session,
 		(struct cerberus_protocol_key_exchange_type_2*) request->data;
 	int status;
 
+	request->crypto_timeout = true;
+
 	if (session == NULL) {
 		return CMD_HANDLER_UNSUPPORTED_COMMAND;
 	}
@@ -1137,7 +1139,6 @@ int cerberus_protocol_key_exchange (struct session_manager *session,
 
 	if (status == 0) {
 		request->length = sizeof (struct cerberus_protocol_key_exchange_response);
-		request->crypto_timeout = true;
 	}
 
 	return status;
@@ -1159,6 +1160,8 @@ int cerberus_protocol_session_sync (struct session_manager *session,
 		(struct cerberus_protocol_session_sync*) request->data;
 	int status;
 
+	request->crypto_timeout = true;
+
 	if (session == NULL) {
 		return CMD_HANDLER_UNSUPPORTED_COMMAND;
 	}
@@ -1171,8 +1174,8 @@ int cerberus_protocol_session_sync (struct session_manager *session,
 		return CMD_HANDLER_BAD_LENGTH;
 	}
 
-	status = session->session_sync (session, request->source_eid, rq->rn_req, 
-		cerberus_protocol_session_sync_hmac_data (rq), 
+	status = session->session_sync (session, request->source_eid, rq->rn_req,
+		cerberus_protocol_session_sync_hmac_data (rq),
 		CERBERUS_PROTOCOL_MAX_SESSION_SYNC_HMAC_LEN (request));
 	if (ROT_IS_ERROR (status)) {
 		return status;

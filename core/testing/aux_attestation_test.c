@@ -5042,7 +5042,7 @@ static void aux_attestation_test_unseal_validate_finish_error (CuTest *test)
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (SEALING_POLICY, SEALING_POLICY_LEN), MOCK_ARG (SEALING_POLICY_LEN));
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.finish, &aux.hash,
-		HASH_ENGINE_FINISH_FAILED, MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+		HASH_ENGINE_FINISH_FAILED, MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
 
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.cancel, &aux.hash, 0);
 

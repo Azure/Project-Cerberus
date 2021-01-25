@@ -7,6 +7,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
+#include "platform_config.h"
 #include "status/rot_status.h"
 #include "keystore/keystore.h"
 #include "crypto/rsa.h"
@@ -19,6 +20,17 @@
 #include "riot/riot_key_manager.h"
 #include "cmd_interface/cerberus_protocol_optional_commands.h"
 
+
+/* Configurable auxiliary attestation protocol parameters.
+ * Defaults can be overridden in platform_config.h. */
+#ifndef AUX_ATTESTATION_KEY_BITS
+#define	AUX_ATTESTATION_KEY_BITS			3072
+#endif
+
+/**
+ * The number of bytes for the auxiliary attestation key.
+ */
+#define	AUX_ATTESTATION_KEY_BYTES			(AUX_ATTESTATION_KEY_BITS / 8)
 
 /**
  * The types of seeds that can be used for attestation unsealing.

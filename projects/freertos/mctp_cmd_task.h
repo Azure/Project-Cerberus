@@ -10,9 +10,6 @@
 #include "cmd_interface/cmd_channel.h"
 
 
-#define MCTP_RESPONSE_TIMEOUT_MS 	100
-
-
 /**
  * Task context for processing MCTP messages.
  */
@@ -24,7 +21,7 @@ struct mctp_cmd_task {
 
 
 int mctp_cmd_task_init (struct mctp_cmd_task *task, struct cmd_channel *channel,
-	struct mctp_interface *mctp);
+	struct mctp_interface *mctp, int priority);
 void mctp_cmd_task_deinit (struct mctp_cmd_task *task);
 
 

@@ -10,6 +10,20 @@
 
 
 /**
+ * Heap statistics being reported.
+ *
+ * Unknown or unsupported values will be set to 0xffffffff.
+ */
+struct cmd_device_heap_stats {
+	uint32_t total;				/**< Total size of heap memory. */
+	uint32_t free;				/**< Amount of the heap that is currently free. */
+	uint32_t min_free;			/**< The mimimun amount of free heap space. */
+	uint32_t free_blocks;		/**< Number of blocks currently free. */
+	uint32_t max_block;			/**< Size of the largest free block. */
+	uint32_t min_block;			/**< Size of the smallest free block. */
+};
+
+/**
  * A hardware-independent API to handle operations that require device-specific workflows.
  */
 struct cmd_device {
@@ -43,10 +57,20 @@ struct cmd_device {
 	 * @param port The port identifier.
 	 * @param counter The output buffer to store the reset counter data.
 	 *
-	 * @return  0 if the reset counter was successfully retrieved or an error code.
+	 * @return 0 if the reset counter was successfully retrieved or an error code.
 	 */
 	int (*get_reset_counter) (struct cmd_device *device, uint8_t type, uint8_t port,
 		uint16_t *counter);
+
+	/**
+	 * Retrieve current heap usage statistics.
+	 *
+	 * @param device The device command handler.
+	 * @param heap Output for the current heap statistics.
+	 *
+	 * @return 0 if the heap statistics were successfully retrieved or an error code.
+	 */
+	int (*get_heap_stats) (struct cmd_device *device, struct cmd_device_heap_stats *heap);
 };
 
 
@@ -62,6 +86,7 @@ enum {
 	CMD_DEVICE_UUID_BUFFER_TOO_SMALL = CMD_DEVICE_ERROR (0x02),		/**< A buffer for the uuid output data was too small. */
 	CMD_DEVICE_RESET_FAILED = CMD_DEVICE_ERROR (0x03),				/**< Failed to trigger a device reset. */
 	CMD_DEVICE_INVALID_COUNTER = CMD_DEVICE_ERROR (0x04),			/**< Invalid counter type. */
+	CMD_DEVICE_HEAP_FAILED = CMD_DEVICE_ERROR (0x05),				/**< Failed to get heap statistics. */
 };
 
 

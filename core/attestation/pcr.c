@@ -596,15 +596,15 @@ static int pcr_get_measurement_data_internal (struct pcr_bank *pcr, uint8_t meas
 
 			if (offset > (measured_data->data.flash.length - 1)) {
 				status = total_bytes;
-				break;
 			}
+			else {
+				bytes_read = ((measured_data->data.flash.length - offset) > length ? length :
+					(measured_data->data.flash.length - offset));
 
-			bytes_read = ((measured_data->data.flash.length - offset) > length ? length :
-				(measured_data->data.flash.length - offset));
-
-			status = flash_device->read (flash_device, read_addr, buffer, bytes_read);
-			if (status == 0) {
-				status = bytes_read + total_bytes;
+				status = flash_device->read (flash_device, read_addr, buffer, bytes_read);
+				if (status == 0) {
+					status = bytes_read + total_bytes;
+				}
 			}
 
 			*total_len += measured_data->data.flash.length;
@@ -797,19 +797,20 @@ int pcr_unlock (struct pcr_bank *pcr)
  * @param buffer Buffer to populate with requested log entries.
  * @param offset Offset within the log to start reading data.
  * @param length Maximum number of bytes to read from the log.
- * @param total_len Total length of log entries for PCR bank, only valid if the call is successful
- * 	and 0 bytes are read from the log.
+ * @param total_len Total length of log entries for PCR bank.  This is only valid if the call is
+ * successful and 0 bytes are read from the log.
  *
  * @return The number of bytes read from the log or an error code.
  */
 int pcr_get_tcg_log (struct pcr_bank *pcr, uint32_t pcr_num, uint8_t *buffer, size_t offset,
 	size_t length, size_t *total_len)
 {
-	struct pcr_tcg_event2 *entry_ptr = NULL;
 	struct pcr_tcg_event2 entry;
 	size_t num_bytes = 0;
-	size_t i_measurement;
+	size_t i_measurement = 0;
+	uint8_t *entry_ptr = NULL;
 	size_t entry_len;
+	size_t entry_offset;
 	int status = 0;
 
 	if ((pcr == NULL) || (buffer == NULL) || (total_len == NULL)) {
@@ -818,13 +819,17 @@ int pcr_get_tcg_log (struct pcr_bank *pcr, uint32_t pcr_num, uint8_t *buffer, si
 
 	*total_len = 0;
 
+	if (pcr->explicit) {
+		return 0;
+	}
+
 	entry.pcr_bank = pcr_num;
 	entry.digest_count = 1;
 	entry.digest_algorithm_id = PCR_TCG_SHA256_ALG_ID;
 
 	platform_mutex_lock (&pcr->lock);
 
-	for (i_measurement = 0; i_measurement < pcr->num_measurements; ++i_measurement) {
+	while ((i_measurement < pcr->num_measurements) && (length > 0)) {
 		entry.event_type = pcr->measurement_list[i_measurement].event_type;
 
 		memcpy (entry.digest, pcr->measurement_list[i_measurement].digest,
@@ -834,20 +839,18 @@ int pcr_get_tcg_log (struct pcr_bank *pcr, uint32_t pcr_num, uint8_t *buffer, si
 
 		if (offset >= sizeof (struct pcr_tcg_event2)) {
 			offset -= sizeof (struct pcr_tcg_event2);
-			entry_ptr = NULL;
 		}
 		else if (length > 0) {
 			entry_len = min (sizeof (struct pcr_tcg_event2) - offset, length);
-			entry_ptr = (struct pcr_tcg_event2*) buffer;
+			entry_offset = offset;
+			entry_ptr = buffer;
 
-			memcpy (buffer, ((uint8_t*) &entry) + offset, entry_len);
+			/* Do not write the entry yet because we don't know the entry size, but update the state
+			 * as if it was written to ensure everything ends up in the right place. */
 			num_bytes += entry_len;
 			buffer += entry_len;
 			length -= entry_len;
 			offset = 0;
-		}
-		else {
-			goto exit;
 		}
 
 		status = pcr_get_measurement_data_internal (pcr, i_measurement, offset, buffer, length,
@@ -857,7 +860,8 @@ int pcr_get_tcg_log (struct pcr_bank *pcr, uint32_t pcr_num, uint8_t *buffer, si
 		}
 
 		if (entry_ptr != NULL) {
-			entry_ptr->event_size = entry.event_size;
+			memcpy (entry_ptr, ((uint8_t*) &entry) + entry_offset, entry_len);
+			entry_ptr = NULL;
 		}
 
 		*total_len += entry.event_size;
@@ -871,6 +875,8 @@ int pcr_get_tcg_log (struct pcr_bank *pcr, uint32_t pcr_num, uint8_t *buffer, si
 		else {
 			offset -= entry.event_size;
 		}
+
+		i_measurement++;
 	}
 
 exit:
