@@ -68,6 +68,32 @@ static int spi_filter_interface_mock_set_flash_size (struct spi_filter_interface
 		MOCK_ARG_CALL (bytes));
 }
 
+static int spi_filter_interface_mock_get_filter_mode (struct spi_filter_interface *filter,
+	spi_filter_flash_mode *mode)
+{
+	struct spi_filter_interface_mock *mock = (struct spi_filter_interface_mock*) filter;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, spi_filter_interface_mock_get_filter_mode, filter,
+		MOCK_ARG_CALL (mode));
+}
+
+static int spi_filter_interface_mock_set_filter_mode (struct spi_filter_interface *filter,
+	spi_filter_flash_mode mode)
+{
+	struct spi_filter_interface_mock *mock = (struct spi_filter_interface_mock*) filter;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, spi_filter_interface_mock_set_filter_mode, filter,
+		MOCK_ARG_CALL (mode));
+}
+
 static int spi_filter_interface_mock_get_filter_enabled (struct spi_filter_interface *filter,
 	bool *enabled)
 {
@@ -118,60 +144,6 @@ static int spi_filter_interface_mock_set_ro_cs (struct spi_filter_interface *fil
 
 	MOCK_RETURN (&mock->mock, spi_filter_interface_mock_set_ro_cs, filter, MOCK_ARG_CALL (act_sel));
 }
-
-#ifdef SPI_FILTER_SUPPORT_RO_READ_SWITCH
-static int spi_filter_interface_mock_get_ro_read_region (struct spi_filter_interface *filter,
-	spi_filter_device *act_device)
-{
-	struct spi_filter_interface_mock *mock = (struct spi_filter_interface_mock*) filter;
-
-	if (mock == NULL) {
-		return MOCK_INVALID_ARGUMENT;
-	}
-
-	MOCK_RETURN (&mock->mock, spi_filter_interface_mock_get_ro_read_region, filter,
-		MOCK_ARG_CALL (act_device));
-}
-
-static int spi_filter_interface_mock_set_ro_read_region (struct spi_filter_interface *filter,
-	spi_filter_device act_device)
-{
-	struct spi_filter_interface_mock *mock = (struct spi_filter_interface_mock*) filter;
-
-	if (mock == NULL) {
-		return MOCK_INVALID_ARGUMENT;
-	}
-
-	MOCK_RETURN (&mock->mock, spi_filter_interface_mock_set_ro_read_region, filter,
-		MOCK_ARG_CALL (act_device));
-}
-
-static int spi_filter_interface_mock_get_ro_read_region_switch_enabled (
-	struct spi_filter_interface *filter, bool *enabled)
-{
-	struct spi_filter_interface_mock *mock = (struct spi_filter_interface_mock*) filter;
-
-	if (mock == NULL) {
-		return MOCK_INVALID_ARGUMENT;
-	}
-
-	MOCK_RETURN (&mock->mock, spi_filter_interface_mock_get_ro_read_region_switch_enabled, filter,
-		MOCK_ARG_CALL (enabled));
-}
-
-static int spi_filter_interface_mock_enable_ro_read_region_switch (
-	struct spi_filter_interface *filter, bool enable)
-{
-	struct spi_filter_interface_mock *mock = (struct spi_filter_interface_mock*) filter;
-
-	if (mock == NULL) {
-		return MOCK_INVALID_ARGUMENT;
-	}
-
-	MOCK_RETURN (&mock->mock, spi_filter_interface_mock_enable_ro_read_region_switch, filter,
-		MOCK_ARG_CALL (enable));
-}
-#endif
 
 static int spi_filter_interface_mock_get_addr_byte_mode (struct spi_filter_interface *filter,
 	spi_filter_address_mode *mode)
@@ -277,6 +249,32 @@ static int spi_filter_interface_mock_set_reset_addr_byte_mode (struct spi_filter
 		MOCK_ARG_CALL (mode));
 }
 
+static int spi_filter_interface_mock_are_all_single_flash_writes_allowed (
+	struct spi_filter_interface *filter, bool *allowed)
+{
+	struct spi_filter_interface_mock *mock = (struct spi_filter_interface_mock*) filter;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, spi_filter_interface_mock_are_all_single_flash_writes_allowed, filter,
+		MOCK_ARG_CALL (allowed));
+}
+
+static int spi_filter_interface_mock_allow_all_single_flash_writes (
+	struct spi_filter_interface *filter, bool allowed)
+{
+	struct spi_filter_interface_mock *mock = (struct spi_filter_interface_mock*) filter;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, spi_filter_interface_mock_allow_all_single_flash_writes, filter,
+		MOCK_ARG_CALL (allowed));
+}
+
 static int spi_filter_interface_mock_get_write_enable_detected (struct spi_filter_interface *filter,
 	bool *detected)
 {
@@ -312,32 +310,6 @@ static int spi_filter_interface_mock_clear_flash_dirty_state (struct spi_filter_
 	}
 
 	MOCK_RETURN_NO_ARGS (&mock->mock, spi_filter_interface_mock_clear_flash_dirty_state, filter);
-}
-
-static int spi_filter_interface_mock_get_bypass_mode (struct spi_filter_interface *filter,
-	spi_filter_bypass_mode *bypass)
-{
-	struct spi_filter_interface_mock *mock = (struct spi_filter_interface_mock*) filter;
-
-	if (mock == NULL) {
-		return MOCK_INVALID_ARGUMENT;
-	}
-
-	MOCK_RETURN (&mock->mock, spi_filter_interface_mock_get_bypass_mode, filter,
-		MOCK_ARG_CALL (bypass));
-}
-
-static int spi_filter_interface_mock_set_bypass_mode (struct spi_filter_interface *filter,
-	spi_filter_bypass_mode bypass)
-{
-	struct spi_filter_interface_mock *mock = (struct spi_filter_interface_mock*) filter;
-
-	if (mock == NULL) {
-		return MOCK_INVALID_ARGUMENT;
-	}
-
-	MOCK_RETURN (&mock->mock, spi_filter_interface_mock_set_bypass_mode, filter,
-		MOCK_ARG_CALL (bypass));
 }
 
 static int spi_filter_interface_mock_get_filter_rw_region (struct spi_filter_interface *filter,
@@ -387,16 +359,12 @@ static int spi_filter_interface_mock_func_arg_count (void *func)
 		(func == spi_filter_interface_mock_set_mfg_id) ||
 		(func == spi_filter_interface_mock_get_flash_size) ||
 		(func == spi_filter_interface_mock_set_flash_size) ||
+		(func == spi_filter_interface_mock_get_filter_mode) ||
+		(func == spi_filter_interface_mock_set_filter_mode) ||
 		(func == spi_filter_interface_mock_get_filter_enabled) ||
 		(func == spi_filter_interface_mock_enable_filter) ||
 		(func == spi_filter_interface_mock_get_ro_cs) ||
 		(func == spi_filter_interface_mock_set_ro_cs) ||
-#ifdef SPI_FILTER_SUPPORT_RO_READ_SWITCH
-		(func == spi_filter_interface_mock_get_ro_read_region) ||
-		(func == spi_filter_interface_mock_set_ro_read_region) ||
-		(func == spi_filter_interface_mock_get_ro_read_region_switch_enabled) ||
-		(func == spi_filter_interface_mock_enable_ro_read_region_switch) ||
-#endif
 		(func == spi_filter_interface_mock_get_addr_byte_mode) ||
 		(func == spi_filter_interface_mock_get_fixed_addr_byte_mode) ||
 		(func == spi_filter_interface_mock_set_addr_byte_mode) ||
@@ -405,10 +373,10 @@ static int spi_filter_interface_mock_func_arg_count (void *func)
 		(func == spi_filter_interface_mock_require_addr_byte_mode_write_enable) ||
 		(func == spi_filter_interface_mock_get_reset_addr_byte_mode) ||
 		(func == spi_filter_interface_mock_set_reset_addr_byte_mode) ||
+		(func == spi_filter_interface_mock_are_all_single_flash_writes_allowed) ||
+		(func == spi_filter_interface_mock_allow_all_single_flash_writes) ||
 		(func == spi_filter_interface_mock_get_write_enable_detected) ||
-		(func == spi_filter_interface_mock_get_flash_dirty_state) ||
-		(func == spi_filter_interface_mock_get_bypass_mode) ||
-		(func == spi_filter_interface_mock_set_bypass_mode)) {
+		(func == spi_filter_interface_mock_get_flash_dirty_state)) {
 		return 1;
 	}
 	else {
@@ -433,6 +401,12 @@ static const char* spi_filter_interface_mock_func_name_map (void *func)
 	else if (func == spi_filter_interface_mock_set_flash_size) {
 		return "set_flash_size";
 	}
+	else if (func == spi_filter_interface_mock_get_filter_mode) {
+		return "get_filter_mode";
+	}
+	else if (func == spi_filter_interface_mock_set_filter_mode) {
+		return "set_filter_mode";
+	}
 	else if (func == spi_filter_interface_mock_get_filter_enabled) {
 		return "get_filter_enabled";
 	}
@@ -445,20 +419,6 @@ static const char* spi_filter_interface_mock_func_name_map (void *func)
 	else if (func == spi_filter_interface_mock_set_ro_cs) {
 		return "set_ro_cs";
 	}
-#ifdef SPI_FILTER_SUPPORT_RO_READ_SWITCH
-	else if (func == spi_filter_interface_mock_get_ro_read_region) {
-		return "get_ro_read_region";
-	}
-	else if (func == spi_filter_interface_mock_set_ro_read_region) {
-		return "set_ro_read_region";
-	}
-	else if (func == spi_filter_interface_mock_get_ro_read_region_switch_enabled) {
-		return "get_ro_read_region_switch_enabled";
-	}
-	else if (func == spi_filter_interface_mock_enable_ro_read_region_switch) {
-		return "enable_ro_read_region_switch";
-	}
-#endif
 	else if (func == spi_filter_interface_mock_get_addr_byte_mode) {
 		return "get_addr_byte_mode";
 	}
@@ -483,6 +443,12 @@ static const char* spi_filter_interface_mock_func_name_map (void *func)
 	else if (func == spi_filter_interface_mock_set_reset_addr_byte_mode) {
 		return "set_reset_addr_byte_mode";
 	}
+	else if (func == spi_filter_interface_mock_are_all_single_flash_writes_allowed) {
+		return "are_all_single_flash_writes_allowed";
+	}
+	else if (func == spi_filter_interface_mock_allow_all_single_flash_writes) {
+		return "allow_all_single_flash_writes";
+	}
 	else if (func == spi_filter_interface_mock_get_write_enable_detected) {
 		return "get_write_enable_detected";
 	}
@@ -491,12 +457,6 @@ static const char* spi_filter_interface_mock_func_name_map (void *func)
 	}
 	else if (func == spi_filter_interface_mock_clear_flash_dirty_state) {
 		return "clear_flash_dirty_state";
-	}
-	else if (func == spi_filter_interface_mock_get_bypass_mode) {
-		return "get_bypass_mode";
-	}
-	else if (func == spi_filter_interface_mock_set_bypass_mode) {
-		return "set_bypass_mode";
 	}
 	else if (func == spi_filter_interface_mock_get_filter_rw_region) {
 		return "get_filter_rw_region";
@@ -538,6 +498,18 @@ static const char* spi_filter_interface_mock_arg_name_map (void *func, int arg)
 				return "bytes";
 		}
 	}
+	else if (func == spi_filter_interface_mock_get_filter_mode) {
+		switch (arg) {
+			case 0:
+				return "mode";
+		}
+	}
+	else if (func == spi_filter_interface_mock_set_filter_mode) {
+		switch (arg) {
+			case 0:
+				return "mode";
+		}
+	}
 	else if (func == spi_filter_interface_mock_get_filter_enabled) {
 		switch (arg) {
 			case 0:
@@ -562,32 +534,6 @@ static const char* spi_filter_interface_mock_arg_name_map (void *func, int arg)
 				return "act_sel";
 		}
 	}
-#ifdef SPI_FILTER_SUPPORT_RO_READ_SWITCH
-	else if (func == spi_filter_interface_mock_get_ro_read_region) {
-		switch (arg) {
-			case 0:
-				return "act_device";
-		}
-	}
-	else if (func == spi_filter_interface_mock_set_ro_read_region) {
-		switch (arg) {
-			case 0:
-				return "act_device";
-		}
-	}
-	else if (func == spi_filter_interface_mock_get_ro_read_region_switch_enabled) {
-		switch (arg) {
-			case 0:
-				return "enabled";
-		}
-	}
-	else if (func == spi_filter_interface_mock_enable_ro_read_region_switch) {
-		switch (arg) {
-			case 0:
-				return "enable";
-		}
-	}
-#endif
 	else if (func == spi_filter_interface_mock_get_addr_byte_mode) {
 		switch (arg) {
 			case 0:
@@ -636,6 +582,18 @@ static const char* spi_filter_interface_mock_arg_name_map (void *func, int arg)
 				return "mode";
 		}
 	}
+	else if (func == spi_filter_interface_mock_are_all_single_flash_writes_allowed) {
+		switch (arg) {
+			case 0:
+				return "allowed";
+		}
+	}
+	else if (func == spi_filter_interface_mock_allow_all_single_flash_writes) {
+		switch (arg) {
+			case 0:
+				return "allowed";
+		}
+	}
 	else if (func == spi_filter_interface_mock_get_write_enable_detected) {
 		switch (arg) {
 			case 0:
@@ -646,18 +604,6 @@ static const char* spi_filter_interface_mock_arg_name_map (void *func, int arg)
 		switch (arg) {
 			case 0:
 				return "state";
-		}
-	}
-	else if (func == spi_filter_interface_mock_get_bypass_mode) {
-		switch (arg) {
-			case 0:
-				return "bypass";
-		}
-	}
-	else if (func == spi_filter_interface_mock_set_bypass_mode) {
-		switch (arg) {
-			case 0:
-				return "bypass";
 		}
 	}
 	else if (func == spi_filter_interface_mock_get_filter_rw_region) {
@@ -717,18 +663,12 @@ int spi_filter_interface_mock_init (struct spi_filter_interface_mock *mock)
 	mock->base.set_mfg_id = spi_filter_interface_mock_set_mfg_id;
 	mock->base.get_flash_size = spi_filter_interface_mock_get_flash_size;
 	mock->base.set_flash_size = spi_filter_interface_mock_set_flash_size;
+	mock->base.get_filter_mode = spi_filter_interface_mock_get_filter_mode;
+	mock->base.set_filter_mode = spi_filter_interface_mock_set_filter_mode;
 	mock->base.get_filter_enabled = spi_filter_interface_mock_get_filter_enabled;
 	mock->base.enable_filter = spi_filter_interface_mock_enable_filter;
 	mock->base.get_ro_cs = spi_filter_interface_mock_get_ro_cs;
 	mock->base.set_ro_cs = spi_filter_interface_mock_set_ro_cs;
-#ifdef SPI_FILTER_SUPPORT_RO_READ_SWITCH
-	mock->base.get_ro_read_region = spi_filter_interface_mock_get_ro_read_region;
-	mock->base.set_ro_read_region = spi_filter_interface_mock_set_ro_read_region;
-	mock->base.get_ro_read_region_switch_enabled =
-		spi_filter_interface_mock_get_ro_read_region_switch_enabled;
-	mock->base.enable_ro_read_region_switch =
-		spi_filter_interface_mock_enable_ro_read_region_switch;
-#endif
 	mock->base.get_addr_byte_mode = spi_filter_interface_mock_get_addr_byte_mode;
 	mock->base.get_fixed_addr_byte_mode = spi_filter_interface_mock_get_fixed_addr_byte_mode;
 	mock->base.set_addr_byte_mode = spi_filter_interface_mock_set_addr_byte_mode;
@@ -739,11 +679,13 @@ int spi_filter_interface_mock_init (struct spi_filter_interface_mock *mock)
 		spi_filter_interface_mock_require_addr_byte_mode_write_enable;
 	mock->base.get_reset_addr_byte_mode = spi_filter_interface_mock_get_reset_addr_byte_mode;
 	mock->base.set_reset_addr_byte_mode = spi_filter_interface_mock_set_reset_addr_byte_mode;
+	mock->base.are_all_single_flash_writes_allowed =
+		spi_filter_interface_mock_are_all_single_flash_writes_allowed;
+	mock->base.allow_all_single_flash_writes =
+		spi_filter_interface_mock_allow_all_single_flash_writes;
 	mock->base.get_write_enable_detected = spi_filter_interface_mock_get_write_enable_detected;
 	mock->base.get_flash_dirty_state = spi_filter_interface_mock_get_flash_dirty_state;
 	mock->base.clear_flash_dirty_state = spi_filter_interface_mock_clear_flash_dirty_state;
-	mock->base.get_bypass_mode = spi_filter_interface_mock_get_bypass_mode;
-	mock->base.set_bypass_mode = spi_filter_interface_mock_set_bypass_mode;
 	mock->base.get_filter_rw_region = spi_filter_interface_mock_get_filter_rw_region;
 	mock->base.set_filter_rw_region = spi_filter_interface_mock_set_filter_rw_region;
 	mock->base.clear_filter_rw_regions = spi_filter_interface_mock_clear_filter_rw_regions;

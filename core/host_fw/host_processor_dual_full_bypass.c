@@ -10,9 +10,9 @@
 
 static int host_processor_dual_full_bypass_enable_bypass_mode (struct host_processor_dual *host)
 {
-	return host->filter->set_bypass_mode (host->filter,
+	return host->filter->set_filter_mode (host->filter,
 		(host_state_manager_get_read_only_flash (host->state) == SPI_FILTER_CS_0) ?
-			SPI_FILTER_BYPASS_CS0 : SPI_FILTER_BYPASS_CS1);
+			SPI_FILTER_FLASH_BYPASS_CS0 : SPI_FILTER_FLASH_BYPASS_CS1);
 }
 
 /**

@@ -9500,8 +9500,8 @@ static void host_flash_manager_test_initialize_flash_protection_cs0_3byte_cs1_3b
 		&manager.filter, 0);
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_addr_byte_mode,
 		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
-	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_bypass_mode,
-		&manager.filter, 0, MOCK_ARG (SPI_FILTER_OPERATE));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_filter_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_FLASH_DUAL));
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_ro_cs, &manager.filter, 0,
 		MOCK_ARG (SPI_FILTER_CS_0));
 
@@ -9557,8 +9557,8 @@ static void host_flash_manager_test_initialize_flash_protection_cs1_3byte_cs0_3b
 		&manager.filter, 0);
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_addr_byte_mode,
 		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
-	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_bypass_mode,
-		&manager.filter, 0, MOCK_ARG (SPI_FILTER_OPERATE));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_filter_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_FLASH_DUAL));
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_ro_cs, &manager.filter, 0,
 		MOCK_ARG (SPI_FILTER_CS_1));
 
@@ -9620,8 +9620,8 @@ static void host_flash_manager_test_initialize_flash_protection_cs0_4byte_cs1_4b
 		&manager.filter, 0);
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_addr_byte_mode,
 		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_4));
-	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_bypass_mode,
-		&manager.filter, 0, MOCK_ARG (SPI_FILTER_OPERATE));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_filter_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_FLASH_DUAL));
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_ro_cs, &manager.filter, 0,
 		MOCK_ARG (SPI_FILTER_CS_0));
 
@@ -9683,8 +9683,8 @@ static void host_flash_manager_test_initialize_flash_protection_cs1_4byte_cs0_4b
 		&manager.filter, 0);
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_addr_byte_mode,
 		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_4));
-	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_bypass_mode,
-		&manager.filter, 0, MOCK_ARG (SPI_FILTER_OPERATE));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_filter_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_FLASH_DUAL));
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_ro_cs, &manager.filter, 0,
 		MOCK_ARG (SPI_FILTER_CS_1));
 
@@ -9745,8 +9745,8 @@ static void host_flash_manager_test_initialize_flash_protection_cs0_4byte_cs1_3b
 		&manager.filter, 0);
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_addr_byte_mode,
 		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_4));
-	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_bypass_mode,
-		&manager.filter, 0, MOCK_ARG (SPI_FILTER_OPERATE));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_filter_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_FLASH_DUAL));
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_ro_cs, &manager.filter, 0,
 		MOCK_ARG (SPI_FILTER_CS_0));
 
@@ -9807,8 +9807,8 @@ static void host_flash_manager_test_initialize_flash_protection_cs1_4byte_cs0_3b
 		&manager.filter, 0);
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_addr_byte_mode,
 		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_4));
-	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_bypass_mode,
-		&manager.filter, 0, MOCK_ARG (SPI_FILTER_OPERATE));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_filter_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_FLASH_DUAL));
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_ro_cs, &manager.filter, 0,
 		MOCK_ARG (SPI_FILTER_CS_1));
 
@@ -9869,8 +9869,8 @@ static void host_flash_manager_test_initialize_flash_protection_cs0_3byte_cs1_4b
 		&manager.filter, 0);
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_addr_byte_mode,
 		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
-	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_bypass_mode,
-		&manager.filter, 0, MOCK_ARG (SPI_FILTER_OPERATE));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_filter_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_FLASH_DUAL));
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_ro_cs, &manager.filter, 0,
 		MOCK_ARG (SPI_FILTER_CS_0));
 
@@ -9931,8 +9931,8 @@ static void host_flash_manager_test_initialize_flash_protection_cs1_3byte_cs0_4b
 		&manager.filter, 0);
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_addr_byte_mode,
 		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
-	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_bypass_mode,
-		&manager.filter, 0, MOCK_ARG (SPI_FILTER_OPERATE));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_filter_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_FLASH_DUAL));
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_ro_cs, &manager.filter, 0,
 		MOCK_ARG (SPI_FILTER_CS_1));
 
@@ -10011,8 +10011,8 @@ static void host_flash_manager_test_initialize_flash_protection_fixed_3byte (CuT
 
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.clear_flash_dirty_state,
 		&manager.filter, 0);
-	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_bypass_mode,
-		&manager.filter, 0, MOCK_ARG (SPI_FILTER_OPERATE));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_filter_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_FLASH_DUAL));
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_ro_cs, &manager.filter, 0,
 		MOCK_ARG (SPI_FILTER_CS_0));
 
@@ -10091,8 +10091,8 @@ static void host_flash_manager_test_initialize_flash_protection_fixed_4byte (CuT
 
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.clear_flash_dirty_state,
 		&manager.filter, 0);
-	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_bypass_mode,
-		&manager.filter, 0, MOCK_ARG (SPI_FILTER_OPERATE));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_filter_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_FLASH_DUAL));
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_ro_cs, &manager.filter, 0,
 		MOCK_ARG (SPI_FILTER_CS_0));
 
@@ -10170,8 +10170,8 @@ static void host_flash_manager_test_initialize_flash_protection_cs0_multiple_fw 
 		&manager.filter, 0);
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_addr_byte_mode,
 		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
-	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_bypass_mode,
-		&manager.filter, 0, MOCK_ARG (SPI_FILTER_OPERATE));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_filter_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_FLASH_DUAL));
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_ro_cs, &manager.filter, 0,
 		MOCK_ARG (SPI_FILTER_CS_0));
 
@@ -10249,8 +10249,8 @@ static void host_flash_manager_test_initialize_flash_protection_cs1_multiple_fw 
 		&manager.filter, 0);
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_addr_byte_mode,
 		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
-	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_bypass_mode,
-		&manager.filter, 0, MOCK_ARG (SPI_FILTER_OPERATE));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_filter_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_FLASH_DUAL));
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_ro_cs, &manager.filter, 0,
 		MOCK_ARG (SPI_FILTER_CS_1));
 
@@ -10547,15 +10547,15 @@ static void host_flash_manager_test_initialize_flash_protection_bypass_error (Cu
 		&manager.filter, 0);
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_addr_byte_mode,
 		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
-	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_bypass_mode,
-		&manager.filter, SPI_FILTER_SET_BYPASS_FAILED, MOCK_ARG (SPI_FILTER_OPERATE));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_filter_mode,
+		&manager.filter, SPI_FILTER_SET_FILTER_MODE_FAILED, MOCK_ARG (SPI_FILTER_FLASH_DUAL));
 
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
 	status = manager.test.initialize_flash_protection (&manager.test, &rw_host);
-	CuAssertIntEquals (test, SPI_FILTER_SET_BYPASS_FAILED, status);
+	CuAssertIntEquals (test, SPI_FILTER_SET_FILTER_MODE_FAILED, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
 	CuAssertIntEquals (test, SPI_FILTER_CS_0, active);
@@ -10602,8 +10602,8 @@ static void host_flash_manager_test_initialize_flash_protection_filter_error (Cu
 		&manager.filter, 0);
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_addr_byte_mode,
 		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
-	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_bypass_mode,
-		&manager.filter, 0, MOCK_ARG (SPI_FILTER_OPERATE));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_filter_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_FLASH_DUAL));
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_ro_cs, &manager.filter,
 		SPI_FILTER_SET_RO_FAILED, MOCK_ARG (SPI_FILTER_CS_0));
 

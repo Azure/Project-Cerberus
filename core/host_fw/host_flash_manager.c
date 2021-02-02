@@ -761,7 +761,7 @@ static int host_flash_manager_initialize_flash_protection (struct host_flash_man
 	}
 
 	/* Turn on the SPI filter. */
-	status = manager->filter->set_bypass_mode (manager->filter, SPI_FILTER_OPERATE);
+	status = manager->filter->set_filter_mode (manager->filter, SPI_FILTER_FLASH_DUAL);
 	if (status != 0) {
 		return status;
 	}

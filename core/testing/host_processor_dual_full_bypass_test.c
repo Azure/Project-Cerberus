@@ -472,8 +472,8 @@ static void host_processor_dual_full_bypass_test_power_on_reset_no_pfm (CuTest *
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
 
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_bypass_mode, &host.filter, 0,
-		MOCK_ARG (SPI_FILTER_BYPASS_CS0));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter, 0,
+		MOCK_ARG (SPI_FILTER_FLASH_BYPASS_CS0));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_bypass_mode, &host.observer,
 		0);
@@ -524,8 +524,8 @@ static void host_processor_dual_full_bypass_test_power_on_reset_no_pfm_cs1 (CuTe
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
 
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_bypass_mode, &host.filter, 0,
-		MOCK_ARG (SPI_FILTER_BYPASS_CS1));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter, 0,
+		MOCK_ARG (SPI_FILTER_FLASH_BYPASS_CS1));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_bypass_mode, &host.observer,
 		0);
@@ -576,8 +576,8 @@ static void host_processor_dual_full_bypass_test_power_on_reset_no_pfm_no_observ
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
 
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_bypass_mode, &host.filter, 0,
-		MOCK_ARG (SPI_FILTER_BYPASS_CS0));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter, 0,
+		MOCK_ARG (SPI_FILTER_FLASH_BYPASS_CS0));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
 		&host.flash_mgr, 0, MOCK_ARG (&host.control));
@@ -624,8 +624,8 @@ static void host_processor_dual_full_bypass_test_power_on_reset_no_pfm_bypass (C
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
 
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_bypass_mode, &host.filter, 0,
-		MOCK_ARG (SPI_FILTER_BYPASS_CS0));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter, 0,
+		MOCK_ARG (SPI_FILTER_FLASH_BYPASS_CS0));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_bypass_mode, &host.observer,
 		0);
@@ -675,8 +675,8 @@ static void host_processor_dual_full_bypass_test_power_on_reset_no_pfm_checked (
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
 
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_bypass_mode, &host.filter, 0,
-		MOCK_ARG (SPI_FILTER_BYPASS_CS0));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter, 0,
+		MOCK_ARG (SPI_FILTER_FLASH_BYPASS_CS0));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_bypass_mode, &host.observer,
 		0);
@@ -727,8 +727,8 @@ static void host_processor_dual_full_bypass_test_power_on_reset_no_pfm_checked_b
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
 
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_bypass_mode, &host.filter, 0,
-		MOCK_ARG (SPI_FILTER_BYPASS_CS0));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter, 0,
+		MOCK_ARG (SPI_FILTER_FLASH_BYPASS_CS0));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_bypass_mode, &host.observer,
 		0);
@@ -779,8 +779,8 @@ static void host_processor_dual_full_bypass_test_power_on_reset_no_pfm_dirty (Cu
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
 
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_bypass_mode, &host.filter, 0,
-		MOCK_ARG (SPI_FILTER_BYPASS_CS0));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter, 0,
+		MOCK_ARG (SPI_FILTER_FLASH_BYPASS_CS0));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_bypass_mode, &host.observer,
 		0);
@@ -836,8 +836,8 @@ static void host_processor_dual_full_bypass_test_power_on_reset_no_pfm_dirty_byp
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
 
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_bypass_mode, &host.filter, 0,
-		MOCK_ARG (SPI_FILTER_BYPASS_CS0));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter, 0,
+		MOCK_ARG (SPI_FILTER_FLASH_BYPASS_CS0));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_bypass_mode, &host.observer,
 		0);
@@ -893,8 +893,8 @@ static void host_processor_dual_full_bypass_test_power_on_reset_no_pfm_dirty_che
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
 
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_bypass_mode, &host.filter, 0,
-		MOCK_ARG (SPI_FILTER_BYPASS_CS0));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter, 0,
+		MOCK_ARG (SPI_FILTER_FLASH_BYPASS_CS0));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_bypass_mode, &host.observer,
 		0);
@@ -952,8 +952,8 @@ static void host_processor_dual_full_bypass_test_power_on_reset_no_pfm_dirty_che
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
 
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_bypass_mode, &host.filter, 0,
-		MOCK_ARG (SPI_FILTER_BYPASS_CS0));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter, 0,
+		MOCK_ARG (SPI_FILTER_FLASH_BYPASS_CS0));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_bypass_mode, &host.observer,
 		0);
@@ -1004,8 +1004,8 @@ static void host_processor_dual_full_bypass_test_power_on_reset_no_pfm_pulse_res
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
 
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_bypass_mode, &host.filter, 0,
-		MOCK_ARG (SPI_FILTER_BYPASS_CS0));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter, 0,
+		MOCK_ARG (SPI_FILTER_FLASH_BYPASS_CS0));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_bypass_mode, &host.observer,
 		0);
@@ -1055,8 +1055,8 @@ static void host_processor_dual_full_bypass_test_power_on_reset_pending_pfm_no_a
 		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm), MOCK_ARG (NULL),
 		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_bypass_mode, &host.filter, 0,
-		MOCK_ARG (SPI_FILTER_BYPASS_CS0));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter, 0,
+		MOCK_ARG (SPI_FILTER_FLASH_BYPASS_CS0));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_bypass_mode, &host.observer,
 		0);
@@ -1109,8 +1109,8 @@ static void host_processor_dual_full_bypass_test_power_on_reset_pending_pfm_no_a
 		&host.flash_mgr, HOST_FW_UTIL_BAD_IMAGE_HASH, MOCK_ARG (&host.pfm), MOCK_ARG (NULL),
 		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_bypass_mode, &host.filter, 0,
-		MOCK_ARG (SPI_FILTER_BYPASS_CS0));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter, 0,
+		MOCK_ARG (SPI_FILTER_FLASH_BYPASS_CS0));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_bypass_mode, &host.observer,
 		0);
@@ -1163,8 +1163,8 @@ static void host_processor_dual_full_bypass_test_power_on_reset_pending_pfm_no_a
 		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm), MOCK_ARG (NULL),
 		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_bypass_mode, &host.filter, 0,
-		MOCK_ARG (SPI_FILTER_BYPASS_CS0));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter, 0,
+		MOCK_ARG (SPI_FILTER_FLASH_BYPASS_CS0));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_bypass_mode, &host.observer,
 		0);
@@ -1220,8 +1220,8 @@ static void host_processor_dual_full_bypass_test_power_on_reset_pending_pfm_no_a
 		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm), MOCK_ARG (NULL),
 		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_bypass_mode, &host.filter, 0,
-		MOCK_ARG (SPI_FILTER_BYPASS_CS0));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter, 0,
+		MOCK_ARG (SPI_FILTER_FLASH_BYPASS_CS0));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_bypass_mode, &host.observer,
 		0);
@@ -1280,8 +1280,8 @@ static void host_processor_dual_full_bypass_test_power_on_reset_pending_pfm_no_a
 		&host.flash_mgr, HOST_FW_UTIL_BAD_IMAGE_HASH, MOCK_ARG (&host.pfm), MOCK_ARG (NULL),
 		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_bypass_mode, &host.filter, 0,
-		MOCK_ARG (SPI_FILTER_BYPASS_CS0));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter, 0,
+		MOCK_ARG (SPI_FILTER_FLASH_BYPASS_CS0));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_bypass_mode, &host.observer,
 		0);
@@ -1340,8 +1340,8 @@ static void host_processor_dual_full_bypass_test_power_on_reset_pending_pfm_no_a
 		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm), MOCK_ARG (NULL),
 		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_bypass_mode, &host.filter, 0,
-		MOCK_ARG (SPI_FILTER_BYPASS_CS0));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter, 0,
+		MOCK_ARG (SPI_FILTER_FLASH_BYPASS_CS0));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_bypass_mode, &host.observer,
 		0);
@@ -1396,16 +1396,16 @@ static void host_processor_dual_full_bypass_test_power_on_reset_no_pfm_bypass_en
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
 
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_bypass_mode, &host.filter,
-		SPI_FILTER_SET_BYPASS_FAILED, MOCK_ARG (SPI_FILTER_BYPASS_CS0));
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_bypass_mode, &host.filter,
-		SPI_FILTER_SET_BYPASS_FAILED, MOCK_ARG (SPI_FILTER_BYPASS_CS0));
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_bypass_mode, &host.filter,
-		SPI_FILTER_SET_BYPASS_FAILED, MOCK_ARG (SPI_FILTER_BYPASS_CS0));
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_bypass_mode, &host.filter,
-		SPI_FILTER_SET_BYPASS_FAILED, MOCK_ARG (SPI_FILTER_BYPASS_CS0));
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_bypass_mode, &host.filter, 0,
-		MOCK_ARG (SPI_FILTER_BYPASS_CS0));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter,
+		SPI_FILTER_SET_FILTER_MODE_FAILED, MOCK_ARG (SPI_FILTER_FLASH_BYPASS_CS0));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter,
+		SPI_FILTER_SET_FILTER_MODE_FAILED, MOCK_ARG (SPI_FILTER_FLASH_BYPASS_CS0));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter,
+		SPI_FILTER_SET_FILTER_MODE_FAILED, MOCK_ARG (SPI_FILTER_FLASH_BYPASS_CS0));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter,
+		SPI_FILTER_SET_FILTER_MODE_FAILED, MOCK_ARG (SPI_FILTER_FLASH_BYPASS_CS0));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter, 0,
+		MOCK_ARG (SPI_FILTER_FLASH_BYPASS_CS0));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_bypass_mode, &host.observer,
 		0);
@@ -1458,16 +1458,16 @@ static void host_processor_dual_full_bypass_test_power_on_reset_pending_pfm_no_a
 		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm), MOCK_ARG (NULL),
 		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_bypass_mode, &host.filter,
-		SPI_FILTER_SET_BYPASS_FAILED, MOCK_ARG (SPI_FILTER_BYPASS_CS0));
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_bypass_mode, &host.filter,
-		SPI_FILTER_SET_BYPASS_FAILED, MOCK_ARG (SPI_FILTER_BYPASS_CS0));
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_bypass_mode, &host.filter,
-		SPI_FILTER_SET_BYPASS_FAILED, MOCK_ARG (SPI_FILTER_BYPASS_CS0));
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_bypass_mode, &host.filter,
-		SPI_FILTER_SET_BYPASS_FAILED, MOCK_ARG (SPI_FILTER_BYPASS_CS0));
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_bypass_mode, &host.filter,
-		0, MOCK_ARG (SPI_FILTER_BYPASS_CS0));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter,
+		SPI_FILTER_SET_FILTER_MODE_FAILED, MOCK_ARG (SPI_FILTER_FLASH_BYPASS_CS0));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter,
+		SPI_FILTER_SET_FILTER_MODE_FAILED, MOCK_ARG (SPI_FILTER_FLASH_BYPASS_CS0));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter,
+		SPI_FILTER_SET_FILTER_MODE_FAILED, MOCK_ARG (SPI_FILTER_FLASH_BYPASS_CS0));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter,
+		SPI_FILTER_SET_FILTER_MODE_FAILED, MOCK_ARG (SPI_FILTER_FLASH_BYPASS_CS0));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter,
+		0, MOCK_ARG (SPI_FILTER_FLASH_BYPASS_CS0));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_bypass_mode, &host.observer,
 		0);
@@ -1569,8 +1569,8 @@ static void host_processor_dual_full_bypass_test_flash_rollback_active_pfm_not_d
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
 		&host.flash_mgr, 0, MOCK_ARG (&host.control));
 
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_bypass_mode, &host.filter, 0,
-		MOCK_ARG (SPI_FILTER_BYPASS_CS1));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter, 0,
+		MOCK_ARG (SPI_FILTER_FLASH_BYPASS_CS1));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_bypass_mode, &host.observer,
 		0);
@@ -1625,8 +1625,8 @@ static void host_processor_dual_full_bypass_test_flash_rollback_active_pfm_not_d
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
 		&host.flash_mgr, 0, MOCK_ARG (&host.control));
 
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_bypass_mode, &host.filter, 0,
-		MOCK_ARG (SPI_FILTER_BYPASS_CS0));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter, 0,
+		MOCK_ARG (SPI_FILTER_FLASH_BYPASS_CS0));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_bypass_mode, &host.observer,
 		0);
@@ -1681,8 +1681,8 @@ static void host_processor_dual_full_bypass_test_flash_rollback_active_pfm_dirty
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
 		&host.flash_mgr, 0, MOCK_ARG (&host.control));
 
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_bypass_mode, &host.filter, 0,
-		MOCK_ARG (SPI_FILTER_BYPASS_CS1));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter, 0,
+		MOCK_ARG (SPI_FILTER_FLASH_BYPASS_CS1));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_bypass_mode, &host.observer,
 		0);
@@ -1737,16 +1737,16 @@ static void host_processor_dual_full_bypass_test_flash_rollback_active_pfm_not_d
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
 		&host.flash_mgr, 0, MOCK_ARG (&host.control));
 
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_bypass_mode, &host.filter,
-		SPI_FILTER_SET_BYPASS_FAILED, MOCK_ARG (SPI_FILTER_BYPASS_CS1));
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_bypass_mode, &host.filter,
-		SPI_FILTER_SET_BYPASS_FAILED, MOCK_ARG (SPI_FILTER_BYPASS_CS1));
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_bypass_mode, &host.filter,
-		SPI_FILTER_SET_BYPASS_FAILED, MOCK_ARG (SPI_FILTER_BYPASS_CS1));
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_bypass_mode, &host.filter,
-		SPI_FILTER_SET_BYPASS_FAILED, MOCK_ARG (SPI_FILTER_BYPASS_CS1));
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_bypass_mode, &host.filter,
-		0, MOCK_ARG (SPI_FILTER_BYPASS_CS1));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter,
+		SPI_FILTER_SET_FILTER_MODE_FAILED, MOCK_ARG (SPI_FILTER_FLASH_BYPASS_CS1));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter,
+		SPI_FILTER_SET_FILTER_MODE_FAILED, MOCK_ARG (SPI_FILTER_FLASH_BYPASS_CS1));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter,
+		SPI_FILTER_SET_FILTER_MODE_FAILED, MOCK_ARG (SPI_FILTER_FLASH_BYPASS_CS1));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter,
+		SPI_FILTER_SET_FILTER_MODE_FAILED, MOCK_ARG (SPI_FILTER_FLASH_BYPASS_CS1));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter,
+		0, MOCK_ARG (SPI_FILTER_FLASH_BYPASS_CS1));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_bypass_mode, &host.observer,
 		0);
@@ -1786,8 +1786,8 @@ static void host_processor_dual_full_bypass_test_bypass_mode_ro_flash (CuTest *t
 
 	host_processor_dual_full_bypass_testing_init (test, &host);
 
-	status = mock_expect (&host.filter.mock, host.filter.base.set_bypass_mode, &host.filter, 0,
-		MOCK_ARG (SPI_FILTER_BYPASS_CS0));
+	status = mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter, 0,
+		MOCK_ARG (SPI_FILTER_FLASH_BYPASS_CS0));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_bypass_mode, &host.observer,
 		0);
@@ -1821,8 +1821,8 @@ static void host_processor_dual_full_bypass_test_bypass_mode_ro_flash_cs1 (CuTes
 	status = host_state_manager_save_read_only_flash (&host.host_state, SPI_FILTER_CS_1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&host.filter.mock, host.filter.base.set_bypass_mode, &host.filter, 0,
-		MOCK_ARG (SPI_FILTER_BYPASS_CS1));
+	status = mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter, 0,
+		MOCK_ARG (SPI_FILTER_FLASH_BYPASS_CS1));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_bypass_mode, &host.observer,
 		0);
@@ -1853,8 +1853,8 @@ static void host_processor_dual_full_bypass_test_bypass_mode_rw_flash (CuTest *t
 
 	host_processor_dual_full_bypass_testing_init (test, &host);
 
-	status = mock_expect (&host.filter.mock, host.filter.base.set_bypass_mode, &host.filter, 0,
-		MOCK_ARG (SPI_FILTER_BYPASS_CS1));
+	status = mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter, 0,
+		MOCK_ARG (SPI_FILTER_FLASH_BYPASS_CS1));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_bypass_mode, &host.observer,
 		0);
@@ -1891,8 +1891,8 @@ static void host_processor_dual_full_bypass_test_bypass_mode_rw_flash_cs0 (CuTes
 	status = host_state_manager_save_read_only_flash (&host.host_state, SPI_FILTER_CS_1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&host.filter.mock, host.filter.base.set_bypass_mode, &host.filter, 0,
-		MOCK_ARG (SPI_FILTER_BYPASS_CS0));
+	status = mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter, 0,
+		MOCK_ARG (SPI_FILTER_FLASH_BYPASS_CS0));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_bypass_mode, &host.observer,
 		0);
@@ -1926,16 +1926,16 @@ static void host_processor_dual_full_bypass_test_bypass_mode_enable_error (CuTes
 
 	host_processor_dual_full_bypass_testing_init (test, &host);
 
-	status = mock_expect (&host.filter.mock, host.filter.base.set_bypass_mode, &host.filter,
-		SPI_FILTER_SET_BYPASS_FAILED, MOCK_ARG (SPI_FILTER_BYPASS_CS0));
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_bypass_mode, &host.filter,
-		SPI_FILTER_SET_BYPASS_FAILED, MOCK_ARG (SPI_FILTER_BYPASS_CS0));
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_bypass_mode, &host.filter,
-		SPI_FILTER_SET_BYPASS_FAILED, MOCK_ARG (SPI_FILTER_BYPASS_CS0));
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_bypass_mode, &host.filter,
-		SPI_FILTER_SET_BYPASS_FAILED, MOCK_ARG (SPI_FILTER_BYPASS_CS0));
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_bypass_mode, &host.filter, 0,
-		MOCK_ARG (SPI_FILTER_BYPASS_CS0));
+	status = mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter,
+		SPI_FILTER_SET_FILTER_MODE_FAILED, MOCK_ARG (SPI_FILTER_FLASH_BYPASS_CS0));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter,
+		SPI_FILTER_SET_FILTER_MODE_FAILED, MOCK_ARG (SPI_FILTER_FLASH_BYPASS_CS0));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter,
+		SPI_FILTER_SET_FILTER_MODE_FAILED, MOCK_ARG (SPI_FILTER_FLASH_BYPASS_CS0));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter,
+		SPI_FILTER_SET_FILTER_MODE_FAILED, MOCK_ARG (SPI_FILTER_FLASH_BYPASS_CS0));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter, 0,
+		MOCK_ARG (SPI_FILTER_FLASH_BYPASS_CS0));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_bypass_mode, &host.observer,
 		0);
