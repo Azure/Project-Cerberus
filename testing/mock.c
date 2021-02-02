@@ -567,8 +567,8 @@ static int mock_validate_arg (struct mock *mock, int cur_exp, const char *arg_na
 
 	if (!(expected->flags & MOCK_ARG_FLAG_ANY_VALUE)) {
 		if ((expected->flags & MOCK_ARG_FLAG_PTR_PTR) && !(actual->flags & MOCK_ARG_FLAG_PTR_PTR)) {
-			platform_printf ("(%s, %d) Unexpected NULL argument: name=%s" NEWLINE,
-				mock->name, cur_exp, arg_name);
+			platform_printf ("(%s, %d) Unexpected NULL argument: name=%s" NEWLINE, mock->name,
+				cur_exp, arg_name);
 			/* No point to check anything else.  The argument was null. */
 			return 1;
 		}
@@ -577,16 +577,18 @@ static int mock_validate_arg (struct mock *mock, int cur_exp, const char *arg_na
 			if ((expected->flags & MOCK_ARG_FLAG_PTR_PTR) &&
 				!(expected->flags & MOCK_ARG_FLAG_PTR_PTR_NOT_NULL)) {
 				if (expected->value != actual->value) {
-					platform_printf ("(%s, %d) Unexpected pointer argument: name=%s, expected=0x%lx, actual=0x%lx"
-						NEWLINE, mock->name, cur_exp, arg_name, expected->value, actual->value);
+					platform_printf (
+						"(%s, %d) Unexpected pointer argument: name=%s, expected=0x%lx, actual=0x%lx" NEWLINE,
+						mock->name, cur_exp, arg_name, expected->value, actual->value);
 					fail = 1;
 				}
 			}
 			else {
 				if (actual->value == 0) {
 					if (expected->flags & MOCK_ARG_FLAG_PTR_PTR_NOT_NULL) {
-						platform_printf ("(%s, %d) Unexpected pointer to NULL pointer: name=%s"
-							NEWLINE, mock->name, cur_exp, arg_name);
+						platform_printf (
+							"(%s, %d) Unexpected pointer to NULL pointer: name=%s" NEWLINE,
+							mock->name, cur_exp, arg_name);
 					}
 					else {
 						platform_printf ("(%s, %d) Unexpected NULL argument: name=%s" NEWLINE,
@@ -594,11 +596,11 @@ static int mock_validate_arg (struct mock *mock, int cur_exp, const char *arg_na
 					}
 					fail = 1;
 				}
-
-				if (expected->ptr_value_len) {
+				else if (expected->ptr_value_len) {
 					if (actual->ptr_value == NULL) {
-						platform_printf ("(%s, %d) No pointer contents to validate: name=%s"
-							NEWLINE, mock->name, cur_exp, arg_name);
+						platform_printf (
+							"(%s, %d) No pointer contents to validate: name=%s" NEWLINE, mock->name,
+							cur_exp, arg_name);
 						fail = 1;
 					}
 					else {
@@ -624,9 +626,10 @@ static int mock_validate_arg (struct mock *mock, int cur_exp, const char *arg_na
 			if (saved) {
 				if (saved->saved) {
 					if (saved->value != actual->value) {
-						platform_printf ("(%s, %d) Unexpected saved argument: id=%d, name=%s, expected=0x%lx, actual=0x%lx"
-							NEWLINE, mock->name, cur_exp, expected->save_arg, arg_name,
-							saved->value, actual->value);
+						platform_printf (
+							"(%s, %d) Unexpected saved argument: id=%d, name=%s, expected=0x%lx, actual=0x%lx" NEWLINE,
+							mock->name, cur_exp, expected->save_arg, arg_name, saved->value,
+							actual->value);
 						fail = 1;
 					}
 				}
@@ -643,8 +646,9 @@ static int mock_validate_arg (struct mock *mock, int cur_exp, const char *arg_na
 			}
 		}
 		else if (expected->value != actual->value) {
-			platform_printf ("(%s, %d) Unexpected argument: name=%s, expected=0x%lx, actual=0x%lx"
-				NEWLINE, mock->name, cur_exp, arg_name, expected->value, actual->value);
+			platform_printf (
+				"(%s, %d) Unexpected argument: name=%s, expected=0x%lx, actual=0x%lx" NEWLINE,
+				mock->name, cur_exp, arg_name, expected->value, actual->value);
 			fail = 1;
 		}
 	}
@@ -670,8 +674,9 @@ int mock_validate (struct mock *mock)
 
 	if (mock) {
 		if (mock->exp_count != mock->call_count) {
-			platform_printf ("(%s) Unexpected number of function calls: expected=%d, actual=%d"
-				NEWLINE, mock->name, mock->exp_count, mock->call_count);
+			platform_printf (
+				"(%s) Unexpected number of function calls: expected=%d, actual=%d" NEWLINE,
+				mock->name, mock->exp_count, mock->call_count);
 			fail = 1;
 		}
 
@@ -722,14 +727,16 @@ int mock_validate (struct mock *mock)
 
 				if ((exp_pos != NULL) && (call_pos != NULL) && (exp_pos->func == call_pos->func)) {
 					if (exp_pos->instance != call_pos->instance) {
-						platform_printf ("(%s, %d) Unexpected object instance: expected=%p, actual=%p"
-							NEWLINE, mock->name, current, exp_pos->instance, call_pos->instance);
+						platform_printf (
+							"(%s, %d) Unexpected object instance: expected=%p, actual=%p" NEWLINE,
+							mock->name, current, exp_pos->instance, call_pos->instance);
 						fail = 1;
 					}
 
 					if (exp_pos->argc != call_pos->argc) {
-						platform_printf ("(%s, %d) Unexpected number of arguments: expected=%d, actual=%d"
-							NEWLINE, mock->name, current, exp_pos->argc, call_pos->argc);
+						platform_printf (
+							"(%s, %d) Unexpected number of arguments: expected=%d, actual=%d" NEWLINE,
+							mock->name, current, exp_pos->argc, call_pos->argc);
 						fail = 1;
 					}
 					else {

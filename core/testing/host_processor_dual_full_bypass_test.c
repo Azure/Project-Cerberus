@@ -923,7 +923,8 @@ static void host_processor_dual_full_bypass_test_power_on_reset_no_pfm_dirty_che
 	host_processor_dual_full_bypass_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_dual_full_bypass_test_power_on_reset_no_pfm_dirty_checked_bypass (CuTest *test)
+static void host_processor_dual_full_bypass_test_power_on_reset_no_pfm_dirty_checked_bypass (
+	CuTest *test)
 {
 	struct host_processor_dual_full_bypass_testing host;
 	int status;

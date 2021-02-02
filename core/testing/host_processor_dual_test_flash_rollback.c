@@ -1140,6 +1140,7 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty (CuTest
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_host;
 
 	TEST_START;
 
@@ -1154,6 +1155,10 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty (CuTest
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
+	rw_host.pfm = &host.pfm.base;
+	rw_host.writable = &rw_list;
+	rw_host.count = 1;
+
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
 		(intptr_t) &host.pfm);
 
@@ -1166,9 +1171,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty (CuTest
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_write_flash,
 		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
-	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_filter_rw_regions,
 		&host.filter, 0);
@@ -1181,8 +1185,95 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty (CuTest
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
 
-	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
-		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.free_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG (&host.pfm));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (false));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base,
+		false, false);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_is_pfm_dirty (&host.host_state);
+	CuAssertIntEquals (test, true, status);
+
+	status = host_state_manager_is_bypass_mode (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	host_processor_dual_testing_validate_and_release (test, &host);
+}
+
+static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_multiple_fw (CuTest *test)
+{
+	struct host_processor_dual_testing host;
+	int status;
+	struct flash_region rw_region[2];
+	struct pfm_read_write rw_prop[2];
+	struct pfm_read_write_regions rw_list[2];
+	struct host_flash_manager_rw_regions rw_host;
+
+	TEST_START;
+
+	host_processor_dual_testing_init (test, &host);
+
+	rw_region[0].start_addr = 0x200;
+	rw_region[0].length = 0x100;
+	rw_region[1].start_addr = 0x400;
+	rw_region[1].length = 0x100;
+
+	rw_prop[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[1].on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list[0].regions = &rw_region[0];
+	rw_list[0].properties = &rw_prop[0];
+	rw_list[0].count = 1;
+
+	rw_list[1].regions = &rw_region[1];
+	rw_list[1].properties = &rw_prop[1];
+	rw_list[1].count = 1;
+
+	rw_host.pfm = &host.pfm.base;
+	rw_host.writable = rw_list;
+	rw_host.count = 2;
+
+	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
+		(intptr_t) &host.pfm);
+
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (true));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
+		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_write_flash,
+		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
+
+	status |= mock_expect (&host.filter.mock, host.filter.base.clear_filter_rw_regions,
+		&host.filter, 0);
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_rw_region, &host.filter,
+		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_rw_region, &host.filter,
+		0, MOCK_ARG (2), MOCK_ARG (0x400), MOCK_ARG (0x500));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.swap_flash_devices,
+		&host.flash_mgr, 0, MOCK_ARG (NULL), MOCK_ARG (NULL));
+
+	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
+		0);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.free_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
 		MOCK_ARG (&host.pfm));
@@ -1389,6 +1480,7 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_checked
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_host;
 
 	TEST_START;
 
@@ -1405,6 +1497,10 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_checked
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
+	rw_host.pfm = &host.pfm.base;
+	rw_host.writable = &rw_list;
+	rw_host.count = 1;
+
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
 		(intptr_t) &host.pfm);
 
@@ -1417,9 +1513,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_checked
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_write_flash,
 		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
-	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_filter_rw_regions,
 		&host.filter, 0);
@@ -1432,8 +1527,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_checked
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
 
-	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
-		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.free_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
 		MOCK_ARG (&host.pfm));
@@ -1524,6 +1619,7 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_pulse_r
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_host;
 
 	TEST_START;
 
@@ -1538,6 +1634,10 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_pulse_r
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
+	rw_host.pfm = &host.pfm.base;
+	rw_host.writable = &rw_list;
+	rw_host.count = 1;
+
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
 		(intptr_t) &host.pfm);
 
@@ -1547,9 +1647,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_pulse_r
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_write_flash,
 		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
-	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_filter_rw_regions,
 		&host.filter, 0);
@@ -1562,8 +1661,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_pulse_r
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
 
-	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
-		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.free_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
 		MOCK_ARG (&host.pfm));
@@ -1634,6 +1733,7 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_no_rese
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_host;
 
 	TEST_START;
 
@@ -1648,6 +1748,10 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_no_rese
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
+	rw_host.pfm = &host.pfm.base;
+	rw_host.writable = &rw_list;
+	rw_host.count = 1;
+
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
 		(intptr_t) &host.pfm);
 
@@ -1657,9 +1761,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_no_rese
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_write_flash,
 		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
-	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_filter_rw_regions,
 		&host.filter, 0);
@@ -1672,8 +1775,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_no_rese
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
 
-	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
-		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.free_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
 		MOCK_ARG (&host.pfm));
@@ -1704,6 +1807,7 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_no_rese
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_host;
 
 	TEST_START;
 
@@ -1718,6 +1822,10 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_no_rese
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
+	rw_host.pfm = &host.pfm.base;
+	rw_host.writable = &rw_list;
+	rw_host.count = 1;
+
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
 		(intptr_t) &host.pfm);
 
@@ -1727,9 +1835,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_no_rese
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_write_flash,
 		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
-	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_filter_rw_regions,
 		&host.filter, 0);
@@ -1742,8 +1849,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_no_rese
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
 
-	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
-		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.free_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
 		MOCK_ARG (&host.pfm));
@@ -3558,6 +3665,7 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_swap_er
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_host;
 
 	TEST_START;
 
@@ -3572,6 +3680,10 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_swap_er
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
+	rw_host.pfm = &host.pfm.base;
+	rw_host.writable = &rw_list;
+	rw_host.count = 1;
+
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
 		(intptr_t) &host.pfm);
 
@@ -3584,9 +3696,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_swap_er
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_write_flash,
 		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
-	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_filter_rw_regions,
 		&host.filter, 0);
@@ -3607,8 +3718,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_swap_er
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
 
-	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
-		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.free_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
 		MOCK_ARG (&host.pfm));
@@ -3641,6 +3752,7 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_swap_er
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_host;
 
 	TEST_START;
 
@@ -3655,6 +3767,10 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_swap_er
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
+	rw_host.pfm = &host.pfm.base;
+	rw_host.writable = &rw_list;
+	rw_host.count = 1;
+
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
 		(intptr_t) &host.pfm);
 
@@ -3664,9 +3780,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_swap_er
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_write_flash,
 		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
-	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_filter_rw_regions,
 		&host.filter, 0);
@@ -3687,8 +3802,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_swap_er
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
 
-	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
-		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.free_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
 		MOCK_ARG (&host.pfm));
@@ -3723,6 +3838,7 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_filter_
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_host;
 
 	TEST_START;
 
@@ -3737,6 +3853,10 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_filter_
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
+	rw_host.pfm = &host.pfm.base;
+	rw_host.writable = &rw_list;
+	rw_host.count = 1;
+
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
 		(intptr_t) &host.pfm);
 
@@ -3749,9 +3869,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_filter_
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_write_flash,
 		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
-	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_filter_rw_regions,
 		&host.filter, SPI_FILTER_CLEAR_DIRTY_FAILED);
@@ -3772,8 +3891,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_filter_
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
 
-	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
-		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.free_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
 		MOCK_ARG (&host.pfm));
@@ -3806,6 +3925,7 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_filter_
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_host;
 
 	TEST_START;
 
@@ -3820,6 +3940,10 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_filter_
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
+	rw_host.pfm = &host.pfm.base;
+	rw_host.writable = &rw_list;
+	rw_host.count = 1;
+
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
 		(intptr_t) &host.pfm);
 
@@ -3829,9 +3953,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_filter_
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_write_flash,
 		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
-	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_filter_rw_regions,
 		&host.filter, SPI_FILTER_CLEAR_DIRTY_FAILED);
@@ -3852,8 +3975,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_filter_
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
 
-	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
-		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.free_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
 		MOCK_ARG (&host.pfm));
@@ -3889,6 +4012,7 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_host_ac
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_host;
 
 	TEST_START;
 
@@ -3903,6 +4027,10 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_host_ac
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
+	rw_host.pfm = &host.pfm.base;
+	rw_host.writable = &rw_list;
+	rw_host.count = 1;
+
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
 		(intptr_t) &host.pfm);
 
@@ -3915,9 +4043,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_host_ac
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_write_flash,
 		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
-	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_filter_rw_regions,
 		&host.filter, 0);
@@ -3930,8 +4057,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_host_ac
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
 
-	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
-		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.free_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
 		MOCK_ARG (&host.pfm));
@@ -3973,6 +4100,7 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_host_ac
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_host;
 
 	TEST_START;
 
@@ -3987,6 +4115,10 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_host_ac
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
+	rw_host.pfm = &host.pfm.base;
+	rw_host.writable = &rw_list;
+	rw_host.count = 1;
+
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
 		(intptr_t) &host.pfm);
 
@@ -3996,9 +4128,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_host_ac
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.validate_read_write_flash,
 		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
-	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_filter_rw_regions,
 		&host.filter, 0);
@@ -4011,8 +4142,8 @@ static void host_processor_dual_test_flash_rollback_active_pfm_not_dirty_host_ac
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
 
-	status |= mock_expect (&host.pfm.mock, host.pfm.base.free_read_write_regions, &host.pfm, 0,
-		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.free_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
 		MOCK_ARG (&host.pfm));
@@ -4325,6 +4456,8 @@ CuSuite* get_host_processor_dual_flash_rollback_suite ()
 	SUITE_ADD_TEST (suite, host_processor_dual_test_flash_rollback_no_pfm_no_reset_pulse_reset);
 	SUITE_ADD_TEST (suite, host_processor_dual_test_flash_rollback_no_pfm_unsupported_flash);
 	SUITE_ADD_TEST (suite, host_processor_dual_test_flash_rollback_active_pfm_not_dirty);
+	SUITE_ADD_TEST (suite,
+		host_processor_dual_test_flash_rollback_active_pfm_not_dirty_multiple_fw);
 	SUITE_ADD_TEST (suite, host_processor_dual_test_flash_rollback_active_pfm_not_dirty_bypass);
 	SUITE_ADD_TEST (suite, host_processor_dual_test_flash_rollback_active_pfm_not_dirty_bypass_cs1);
 	SUITE_ADD_TEST (suite,

@@ -12052,6 +12052,3102 @@ static void host_fw_restore_read_write_data_test_multiple_regions_error (CuTest 
 	spi_flash_release (&flash2);
 }
 
+static void host_fw_verify_images_multiple_fw_test (CuTest *test)
+{
+	struct flash_region region;
+	struct pfm_image_signature sig;
+	struct pfm_image_list list;
+	struct flash_master_mock flash_mock;
+	struct spi_flash flash;
+	HASH_TESTING_ENGINE hash;
+	RSA_TESTING_ENGINE rsa;
+	int status;
+	char *data = "Test";
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = RSA_TESTING_ENGINE_INIT (&rsa);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &flash_mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) data, strlen (data),
+		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, strlen (data)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	region.start_addr = 0x10000;
+	region.length = strlen (data);
+
+	sig.regions = &region;
+	sig.count = 1;
+	memcpy (&sig.key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig.signature, RSA_SIGNATURE_TEST, RSA_ENCRYPT_LEN);
+	sig.sig_length = RSA_ENCRYPT_LEN;
+	sig.always_validate = 1;
+
+	list.images_sig = &sig;
+	list.images_hash = NULL;
+	list.count = 1;
+
+	status = host_fw_verify_images_multiple_fw (&flash, &list, 1, &hash.base, &rsa.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash);
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+	RSA_TESTING_ENGINE_RELEASE (&rsa);
+}
+
+static void host_fw_verify_images_multiple_fw_test_invalid (CuTest *test)
+{
+	struct flash_region region;
+	struct pfm_image_signature sig;
+	struct pfm_image_list list;
+	struct flash_master_mock flash_mock;
+	struct spi_flash flash;
+	HASH_TESTING_ENGINE hash;
+	RSA_TESTING_ENGINE rsa;
+	int status;
+	char *data = "Test";
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = RSA_TESTING_ENGINE_INIT (&rsa);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &flash_mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) data, strlen (data),
+		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, strlen (data)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	region.start_addr = 0x10000;
+	region.length = strlen (data);
+
+	sig.regions = &region;
+	sig.count = 1;
+	memcpy (&sig.key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig.signature, RSA_SIGNATURE_TEST2, RSA_ENCRYPT_LEN);
+	sig.sig_length = RSA_ENCRYPT_LEN;
+	sig.always_validate = 1;
+
+	list.images_sig = &sig;
+	list.images_hash = NULL;
+	list.count = 1;
+
+	status = host_fw_verify_images_multiple_fw (&flash, &list, 1, &hash.base, &rsa.base);
+	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash);
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+	RSA_TESTING_ENGINE_RELEASE (&rsa);
+}
+
+static void host_fw_verify_images_multiple_fw_test_multiple (CuTest *test)
+{
+	struct flash_region region[3];
+	struct pfm_image_signature sig[3];
+	struct pfm_image_list list[3];
+	struct flash_master_mock flash_mock;
+	struct spi_flash flash;
+	HASH_TESTING_ENGINE hash;
+	RSA_TESTING_ENGINE rsa;
+	int status;
+	char *data1 = "Test";
+	char *data2 = "Test2";
+	char *data3 = "Nope";
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = RSA_TESTING_ENGINE_INIT (&rsa);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &flash_mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) data1, strlen (data1),
+		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, strlen (data1)));
+
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) data2, strlen (data2),
+		FLASH_EXP_READ_CMD (0x03, 0x20000, 0, -1, strlen (data2)));
+
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) data3, strlen (data3),
+		FLASH_EXP_READ_CMD (0x03, 0x30000, 0, -1, strlen (data3)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	region[0].start_addr = 0x10000;
+	region[0].length = strlen (data1);
+	region[1].start_addr = 0x20000;
+	region[1].length = strlen (data2);
+	region[2].start_addr = 0x30000;
+	region[2].length = strlen (data3);
+
+	sig[0].regions = &region[0];
+	sig[0].count = 1;
+	memcpy (&sig[0].key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig[0].signature, RSA_SIGNATURE_TEST, RSA_ENCRYPT_LEN);
+	sig[0].sig_length = RSA_ENCRYPT_LEN;
+	sig[0].always_validate = 1;
+
+	sig[1].regions = &region[1];
+	sig[1].count = 1;
+	memcpy (&sig[1].key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig[1].signature, RSA_SIGNATURE_TEST2, RSA_ENCRYPT_LEN);
+	sig[1].sig_length = RSA_ENCRYPT_LEN;
+	sig[1].always_validate = 1;
+
+	sig[2].regions = &region[2];
+	sig[2].count = 1;
+	memcpy (&sig[2].key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig[2].signature, RSA_SIGNATURE_NOPE, RSA_ENCRYPT_LEN);
+	sig[2].sig_length = RSA_ENCRYPT_LEN;
+	sig[2].always_validate = 1;
+
+	list[0].images_sig = &sig[0];
+	list[0].images_hash = NULL;
+	list[0].count = 1;
+
+	list[1].images_sig = &sig[1];
+	list[1].images_hash = NULL;
+	list[1].count = 1;
+
+	list[2].images_sig = &sig[2];
+	list[2].images_hash = NULL;
+	list[2].count = 1;
+
+	status = host_fw_verify_images_multiple_fw (&flash, list, 3, &hash.base, &rsa.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash);
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+	RSA_TESTING_ENGINE_RELEASE (&rsa);
+}
+
+static void host_fw_verify_images_multiple_fw_test_hashes (CuTest *test)
+{
+	struct flash_region region;
+	struct pfm_image_hash img_hash;
+	struct pfm_image_list list;
+	struct flash_master_mock flash_mock;
+	struct spi_flash flash;
+	HASH_TESTING_ENGINE hash;
+	RSA_TESTING_ENGINE rsa;
+	int status;
+	char *data = "Test";
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = RSA_TESTING_ENGINE_INIT (&rsa);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &flash_mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) data, strlen (data),
+		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, strlen (data)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	region.start_addr = 0x10000;
+	region.length = strlen (data);
+
+	img_hash.regions = &region;
+	img_hash.count = 1;
+	memcpy (img_hash.hash, SHA256_TEST_HASH, SHA256_HASH_LENGTH);
+	img_hash.hash_length = SHA256_HASH_LENGTH;
+	img_hash.hash_type = HASH_TYPE_SHA256;
+	img_hash.always_validate = 1;
+
+	list.images_hash = &img_hash;
+	list.images_sig = NULL;
+	list.count = 1;
+
+	status = host_fw_verify_images_multiple_fw (&flash, &list, 1, &hash.base, &rsa.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash);
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+	RSA_TESTING_ENGINE_RELEASE (&rsa);
+}
+
+static void host_fw_verify_images_multiple_fw_test_hashes_invalid (CuTest *test)
+{
+	struct flash_region region;
+	struct pfm_image_hash img_hash;
+	struct pfm_image_list list;
+	struct flash_master_mock flash_mock;
+	struct spi_flash flash;
+	HASH_TESTING_ENGINE hash;
+	RSA_TESTING_ENGINE rsa;
+	int status;
+	char *data = "Test";
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = RSA_TESTING_ENGINE_INIT (&rsa);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &flash_mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) data, strlen (data),
+		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, strlen (data)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	region.start_addr = 0x10000;
+	region.length = strlen (data);
+
+	img_hash.regions = &region;
+	img_hash.count = 1;
+	memcpy (img_hash.hash, SHA256_TEST2_HASH, SHA256_HASH_LENGTH);
+	img_hash.hash_length = SHA256_HASH_LENGTH;
+	img_hash.hash_type = HASH_TYPE_SHA256;
+	img_hash.always_validate = 1;
+
+	list.images_hash = &img_hash;
+	list.images_sig = NULL;
+	list.count = 1;
+
+	status = host_fw_verify_images_multiple_fw (&flash, &list, 1, &hash.base, &rsa.base);
+	CuAssertIntEquals (test, HOST_FW_UTIL_BAD_IMAGE_HASH, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash);
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+	RSA_TESTING_ENGINE_RELEASE (&rsa);
+}
+
+static void host_fw_verify_images_multiple_fw_test_hashes_multiple (CuTest *test)
+{
+	struct flash_region region[3];
+	struct pfm_image_hash img_hash[3];
+	struct pfm_image_list list[3];
+	struct flash_master_mock flash_mock;
+	struct spi_flash flash;
+	HASH_TESTING_ENGINE hash;
+	RSA_TESTING_ENGINE rsa;
+	int status;
+	char *data1 = "Test";
+	char *data2 = "Test2";
+	char *data3 = "Nope";
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = RSA_TESTING_ENGINE_INIT (&rsa);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &flash_mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) data1, strlen (data1),
+		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, strlen (data1)));
+
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) data2, strlen (data2),
+		FLASH_EXP_READ_CMD (0x03, 0x20000, 0, -1, strlen (data2)));
+
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) data3, strlen (data3),
+		FLASH_EXP_READ_CMD (0x03, 0x30000, 0, -1, strlen (data3)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	region[0].start_addr = 0x10000;
+	region[0].length = strlen (data1);
+	region[1].start_addr = 0x20000;
+	region[1].length = strlen (data2);
+	region[2].start_addr = 0x30000;
+	region[2].length = strlen (data3);
+
+	img_hash[0].regions = &region[0];
+	img_hash[0].count = 1;
+	memcpy (img_hash[0].hash, SHA256_TEST_HASH, SHA256_HASH_LENGTH);
+	img_hash[0].hash_length = SHA256_HASH_LENGTH;
+	img_hash[0].hash_type = HASH_TYPE_SHA256;
+	img_hash[0].always_validate = 1;
+
+	img_hash[1].regions = &region[1];
+	img_hash[1].count = 1;
+	memcpy (img_hash[1].hash, SHA384_TEST2_HASH, SHA384_HASH_LENGTH);
+	img_hash[1].hash_length = SHA384_HASH_LENGTH;
+	img_hash[1].hash_type = HASH_TYPE_SHA384;
+	img_hash[1].always_validate = 1;
+
+	img_hash[2].regions = &region[2];
+	img_hash[2].count = 1;
+	memcpy (img_hash[2].hash, SHA512_NOPE_HASH, SHA512_HASH_LENGTH);
+	img_hash[2].hash_length = SHA512_HASH_LENGTH;
+	img_hash[2].hash_type = HASH_TYPE_SHA512;
+	img_hash[2].always_validate = 1;
+
+	list[0].images_hash = &img_hash[0];
+	list[0].images_sig = NULL;
+	list[0].count = 1;
+
+	list[1].images_hash = &img_hash[1];
+	list[1].images_sig = NULL;
+	list[1].count = 1;
+
+	list[2].images_hash = &img_hash[2];
+	list[2].images_sig = NULL;
+	list[2].count = 1;
+
+	status = host_fw_verify_images_multiple_fw (&flash, list, 3, &hash.base, &rsa.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash);
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+	RSA_TESTING_ENGINE_RELEASE (&rsa);
+}
+
+static void host_fw_verify_images_multiple_fw_test_null (CuTest *test)
+{
+	struct flash_region region;
+	struct pfm_image_signature sig;
+	struct pfm_image_list list;
+	struct flash_master_mock flash_mock;
+	struct spi_flash flash;
+	HASH_TESTING_ENGINE hash;
+	RSA_TESTING_ENGINE rsa;
+	int status;
+	char *data = "Test";
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = RSA_TESTING_ENGINE_INIT (&rsa);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &flash_mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	region.start_addr = 0x10000;
+	region.length = strlen (data);
+
+	sig.regions = &region;
+	sig.count = 1;
+	memcpy (&sig.key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig.signature, RSA_SIGNATURE_TEST, RSA_ENCRYPT_LEN);
+	sig.sig_length = RSA_ENCRYPT_LEN;
+	sig.always_validate = 1;
+
+	list.images_sig = &sig;
+	list.images_hash = NULL;
+	list.count = 1;
+
+	status = host_fw_verify_images_multiple_fw (NULL, &list, 1, &hash.base, &rsa.base);
+	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
+
+	status = host_fw_verify_images_multiple_fw (&flash, NULL, 1, &hash.base, &rsa.base);
+	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
+
+	status = host_fw_verify_images_multiple_fw (&flash, &list, 1, NULL, &rsa.base);
+	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
+
+	status = host_fw_verify_images_multiple_fw (&flash, &list, 1, &hash.base, NULL);
+	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash);
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+	RSA_TESTING_ENGINE_RELEASE (&rsa);
+}
+
+static void host_fw_verify_offset_images_multiple_fw_test (CuTest *test)
+{
+	struct flash_region region;
+	struct pfm_image_signature sig;
+	struct pfm_image_list list;
+	struct flash_master_mock flash_mock;
+	struct spi_flash flash;
+	HASH_TESTING_ENGINE hash;
+	RSA_TESTING_ENGINE rsa;
+	int status;
+	char *data = "Test";
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = RSA_TESTING_ENGINE_INIT (&rsa);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &flash_mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) data, strlen (data),
+		FLASH_EXP_READ_CMD (0x03, 0x410000, 0, -1, strlen (data)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	region.start_addr = 0x10000;
+	region.length = strlen (data);
+
+	sig.regions = &region;
+	sig.count = 1;
+	memcpy (&sig.key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig.signature, RSA_SIGNATURE_TEST, RSA_ENCRYPT_LEN);
+	sig.sig_length = RSA_ENCRYPT_LEN;
+	sig.always_validate = 1;
+
+	list.images_sig = &sig;
+	list.images_hash = NULL;
+	list.count = 1;
+
+	status = host_fw_verify_offset_images_multiple_fw (&flash, &list, 1, 0x400000, &hash.base,
+		&rsa.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash);
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+	RSA_TESTING_ENGINE_RELEASE (&rsa);
+}
+
+static void host_fw_verify_offset_images_multiple_fw_test_no_offset (CuTest *test)
+{
+	struct flash_region region;
+	struct pfm_image_signature sig;
+	struct pfm_image_list list;
+	struct flash_master_mock flash_mock;
+	struct spi_flash flash;
+	HASH_TESTING_ENGINE hash;
+	RSA_TESTING_ENGINE rsa;
+	int status;
+	char *data = "Test";
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = RSA_TESTING_ENGINE_INIT (&rsa);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &flash_mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) data, strlen (data),
+		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, strlen (data)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	region.start_addr = 0x10000;
+	region.length = strlen (data);
+
+	sig.regions = &region;
+	sig.count = 1;
+	memcpy (&sig.key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig.signature, RSA_SIGNATURE_TEST, RSA_ENCRYPT_LEN);
+	sig.sig_length = RSA_ENCRYPT_LEN;
+	sig.always_validate = 1;
+
+	list.images_sig = &sig;
+	list.images_hash = NULL;
+	list.count = 1;
+
+	status = host_fw_verify_offset_images_multiple_fw (&flash, &list, 1, 0, &hash.base, &rsa.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash);
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+	RSA_TESTING_ENGINE_RELEASE (&rsa);
+}
+
+static void host_fw_verify_offset_images_multiple_fw_test_invalid (CuTest *test)
+{
+	struct flash_region region;
+	struct pfm_image_signature sig;
+	struct pfm_image_list list;
+	struct flash_master_mock flash_mock;
+	struct spi_flash flash;
+	HASH_TESTING_ENGINE hash;
+	RSA_TESTING_ENGINE rsa;
+	int status;
+	char *data = "Test";
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = RSA_TESTING_ENGINE_INIT (&rsa);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &flash_mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) data, strlen (data),
+		FLASH_EXP_READ_CMD (0x03, 0x410000, 0, -1, strlen (data)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	region.start_addr = 0x10000;
+	region.length = strlen (data);
+
+	sig.regions = &region;
+	sig.count = 1;
+	memcpy (&sig.key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig.signature, RSA_SIGNATURE_TEST2, RSA_ENCRYPT_LEN);
+	sig.sig_length = RSA_ENCRYPT_LEN;
+	sig.always_validate = 1;
+
+	list.images_sig = &sig;
+	list.images_hash = NULL;
+	list.count = 1;
+
+	status = host_fw_verify_offset_images_multiple_fw (&flash, &list, 1, 0x400000, &hash.base,
+		&rsa.base);
+	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash);
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+	RSA_TESTING_ENGINE_RELEASE (&rsa);
+}
+
+static void host_fw_verify_offset_images_multiple_fw_test_multiple (CuTest *test)
+{
+	struct flash_region region[3];
+	struct pfm_image_signature sig[3];
+	struct pfm_image_list list[3];
+	struct flash_master_mock flash_mock;
+	struct spi_flash flash;
+	HASH_TESTING_ENGINE hash;
+	RSA_TESTING_ENGINE rsa;
+	int status;
+	char *data1 = "Test";
+	char *data2 = "Test2";
+	char *data3 = "Nope";
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = RSA_TESTING_ENGINE_INIT (&rsa);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &flash_mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) data1, strlen (data1),
+		FLASH_EXP_READ_CMD (0x03, 0x410000, 0, -1, strlen (data1)));
+
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) data2, strlen (data2),
+		FLASH_EXP_READ_CMD (0x03, 0x420000, 0, -1, strlen (data2)));
+
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) data3, strlen (data3),
+		FLASH_EXP_READ_CMD (0x03, 0x430000, 0, -1, strlen (data3)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	region[0].start_addr = 0x10000;
+	region[0].length = strlen (data1);
+	region[1].start_addr = 0x20000;
+	region[1].length = strlen (data2);
+	region[2].start_addr = 0x30000;
+	region[2].length = strlen (data3);
+
+	sig[0].regions = &region[0];
+	sig[0].count = 1;
+	memcpy (&sig[0].key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig[0].signature, RSA_SIGNATURE_TEST, RSA_ENCRYPT_LEN);
+	sig[0].sig_length = RSA_ENCRYPT_LEN;
+	sig[0].always_validate = 1;
+
+	sig[1].regions = &region[1];
+	sig[1].count = 1;
+	memcpy (&sig[1].key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig[1].signature, RSA_SIGNATURE_TEST2, RSA_ENCRYPT_LEN);
+	sig[1].sig_length = RSA_ENCRYPT_LEN;
+	sig[1].always_validate = 1;
+
+	sig[2].regions = &region[2];
+	sig[2].count = 1;
+	memcpy (&sig[2].key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig[2].signature, RSA_SIGNATURE_NOPE, RSA_ENCRYPT_LEN);
+	sig[2].sig_length = RSA_ENCRYPT_LEN;
+	sig[2].always_validate = 1;
+
+	list[0].images_sig = &sig[0];
+	list[0].images_hash = NULL;
+	list[0].count = 1;
+
+	list[1].images_sig = &sig[1];
+	list[1].images_hash = NULL;
+	list[1].count = 1;
+
+	list[2].images_sig = &sig[2];
+	list[2].images_hash = NULL;
+	list[2].count = 1;
+
+	status = host_fw_verify_offset_images_multiple_fw (&flash, list, 3, 0x400000, &hash.base,
+		&rsa.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash);
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+	RSA_TESTING_ENGINE_RELEASE (&rsa);
+}
+
+static void host_fw_verify_offset_images_multiple_fw_test_hashes (CuTest *test)
+{
+	struct flash_region region;
+	struct pfm_image_hash img_hash;
+	struct pfm_image_list list;
+	struct flash_master_mock flash_mock;
+	struct spi_flash flash;
+	HASH_TESTING_ENGINE hash;
+	RSA_TESTING_ENGINE rsa;
+	int status;
+	char *data = "Test";
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = RSA_TESTING_ENGINE_INIT (&rsa);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &flash_mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) data, strlen (data),
+		FLASH_EXP_READ_CMD (0x03, 0x410000, 0, -1, strlen (data)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	region.start_addr = 0x10000;
+	region.length = strlen (data);
+
+	img_hash.regions = &region;
+	img_hash.count = 1;
+	memcpy (img_hash.hash, SHA256_TEST_HASH, SHA256_HASH_LENGTH);
+	img_hash.hash_length = SHA256_HASH_LENGTH;
+	img_hash.hash_type = HASH_TYPE_SHA256;
+	img_hash.always_validate = 1;
+
+	list.images_hash = &img_hash;
+	list.images_sig = NULL;
+	list.count = 1;
+
+	status = host_fw_verify_offset_images_multiple_fw (&flash, &list, 1, 0x400000, &hash.base,
+		&rsa.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash);
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+	RSA_TESTING_ENGINE_RELEASE (&rsa);
+}
+
+static void host_fw_verify_offset_images_multiple_fw_test_hashes_no_offset (CuTest *test)
+{
+	struct flash_region region;
+	struct pfm_image_hash img_hash;
+	struct pfm_image_list list;
+	struct flash_master_mock flash_mock;
+	struct spi_flash flash;
+	HASH_TESTING_ENGINE hash;
+	RSA_TESTING_ENGINE rsa;
+	int status;
+	char *data = "Test";
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = RSA_TESTING_ENGINE_INIT (&rsa);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &flash_mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) data, strlen (data),
+		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, strlen (data)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	region.start_addr = 0x10000;
+	region.length = strlen (data);
+
+	img_hash.regions = &region;
+	img_hash.count = 1;
+	memcpy (img_hash.hash, SHA256_TEST_HASH, SHA256_HASH_LENGTH);
+	img_hash.hash_length = SHA256_HASH_LENGTH;
+	img_hash.hash_type = HASH_TYPE_SHA256;
+	img_hash.always_validate = 1;
+
+	list.images_hash = &img_hash;
+	list.images_sig = NULL;
+	list.count = 1;
+
+	status = host_fw_verify_offset_images_multiple_fw (&flash, &list, 1, 0, &hash.base, &rsa.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash);
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+	RSA_TESTING_ENGINE_RELEASE (&rsa);
+}
+
+static void host_fw_verify_offset_images_multiple_fw_test_hashes_invalid (CuTest *test)
+{
+	struct flash_region region;
+	struct pfm_image_hash img_hash;
+	struct pfm_image_list list;
+	struct flash_master_mock flash_mock;
+	struct spi_flash flash;
+	HASH_TESTING_ENGINE hash;
+	RSA_TESTING_ENGINE rsa;
+	int status;
+	char *data = "Test";
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = RSA_TESTING_ENGINE_INIT (&rsa);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &flash_mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) data, strlen (data),
+		FLASH_EXP_READ_CMD (0x03, 0x410000, 0, -1, strlen (data)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	region.start_addr = 0x10000;
+	region.length = strlen (data);
+
+	img_hash.regions = &region;
+	img_hash.count = 1;
+	memcpy (img_hash.hash, SHA256_TEST2_HASH, SHA256_HASH_LENGTH);
+	img_hash.hash_length = SHA256_HASH_LENGTH;
+	img_hash.hash_type = HASH_TYPE_SHA256;
+	img_hash.always_validate = 1;
+
+	list.images_hash = &img_hash;
+	list.images_sig = NULL;
+	list.count = 1;
+
+	status = host_fw_verify_offset_images_multiple_fw (&flash, &list, 1, 0x400000, &hash.base,
+		&rsa.base);
+	CuAssertIntEquals (test, HOST_FW_UTIL_BAD_IMAGE_HASH, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash);
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+	RSA_TESTING_ENGINE_RELEASE (&rsa);
+}
+
+static void host_fw_verify_offset_images_multiple_fw_test_hashes_multiple (CuTest *test)
+{
+	struct flash_region region[3];
+	struct pfm_image_hash img_hash[3];
+	struct pfm_image_list list[3];
+	struct flash_master_mock flash_mock;
+	struct spi_flash flash;
+	HASH_TESTING_ENGINE hash;
+	RSA_TESTING_ENGINE rsa;
+	int status;
+	char *data1 = "Test";
+	char *data2 = "Test2";
+	char *data3 = "Nope";
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = RSA_TESTING_ENGINE_INIT (&rsa);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &flash_mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) data1, strlen (data1),
+		FLASH_EXP_READ_CMD (0x03, 0x410000, 0, -1, strlen (data1)));
+
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) data2, strlen (data2),
+		FLASH_EXP_READ_CMD (0x03, 0x420000, 0, -1, strlen (data2)));
+
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) data3, strlen (data3),
+		FLASH_EXP_READ_CMD (0x03, 0x430000, 0, -1, strlen (data3)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	region[0].start_addr = 0x10000;
+	region[0].length = strlen (data1);
+	region[1].start_addr = 0x20000;
+	region[1].length = strlen (data2);
+	region[2].start_addr = 0x30000;
+	region[2].length = strlen (data3);
+
+	img_hash[0].regions = &region[0];
+	img_hash[0].count = 1;
+	memcpy (img_hash[0].hash, SHA256_TEST_HASH, SHA256_HASH_LENGTH);
+	img_hash[0].hash_length = SHA256_HASH_LENGTH;
+	img_hash[0].hash_type = HASH_TYPE_SHA256;
+	img_hash[0].always_validate = 1;
+
+	img_hash[1].regions = &region[1];
+	img_hash[1].count = 1;
+	memcpy (img_hash[1].hash, SHA384_TEST2_HASH, SHA384_HASH_LENGTH);
+	img_hash[1].hash_length = SHA384_HASH_LENGTH;
+	img_hash[1].hash_type = HASH_TYPE_SHA384;
+	img_hash[1].always_validate = 1;
+
+	img_hash[2].regions = &region[2];
+	img_hash[2].count = 1;
+	memcpy (img_hash[2].hash, SHA512_NOPE_HASH, SHA512_HASH_LENGTH);
+	img_hash[2].hash_length = SHA512_HASH_LENGTH;
+	img_hash[2].hash_type = HASH_TYPE_SHA512;
+	img_hash[2].always_validate = 1;
+
+	list[0].images_hash = &img_hash[0];
+	list[0].images_sig = NULL;
+	list[0].count = 1;
+
+	list[1].images_hash = &img_hash[1];
+	list[1].images_sig = NULL;
+	list[1].count = 1;
+
+	list[2].images_hash = &img_hash[2];
+	list[2].images_sig = NULL;
+	list[2].count = 1;
+
+	status = host_fw_verify_offset_images_multiple_fw (&flash, list, 3, 0x400000, &hash.base,
+		&rsa.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash);
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+	RSA_TESTING_ENGINE_RELEASE (&rsa);
+}
+
+static void host_fw_verify_offset_images_multiple_fw_test_null (CuTest *test)
+{
+	struct flash_region region;
+	struct pfm_image_signature sig;
+	struct pfm_image_list list;
+	struct flash_master_mock flash_mock;
+	struct spi_flash flash;
+	HASH_TESTING_ENGINE hash;
+	RSA_TESTING_ENGINE rsa;
+	int status;
+	char *data = "Test";
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = RSA_TESTING_ENGINE_INIT (&rsa);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &flash_mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	region.start_addr = 0x10000;
+	region.length = strlen (data);
+
+	sig.regions = &region;
+	sig.count = 1;
+	memcpy (&sig.key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig.signature, RSA_SIGNATURE_TEST, RSA_ENCRYPT_LEN);
+	sig.sig_length = RSA_ENCRYPT_LEN;
+	sig.always_validate = 1;
+
+	list.images_sig = &sig;
+	list.images_hash = NULL;
+	list.count = 1;
+
+	status = host_fw_verify_offset_images_multiple_fw (NULL, &list, 1, 0x400000, &hash.base,
+		&rsa.base);
+	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
+
+	status = host_fw_verify_offset_images_multiple_fw (&flash, NULL, 1, 0x400000, &hash.base,
+		&rsa.base);
+	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
+
+	status = host_fw_verify_offset_images_multiple_fw (&flash, &list, 1, 0x400000, NULL,
+		&rsa.base);
+	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
+
+	status = host_fw_verify_offset_images_multiple_fw (&flash, &list, 1, 0x400000, &hash.base,
+		NULL);
+	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash);
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+	RSA_TESTING_ENGINE_RELEASE (&rsa);
+}
+
+static void host_fw_full_flash_verification_multiple_fw_test (CuTest *test)
+{
+	struct flash_region img_region;
+	struct pfm_image_signature sig;
+	struct pfm_image_list img_list;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+	struct flash_master_mock flash_mock;
+	struct spi_flash flash;
+	HASH_TESTING_ENGINE hash;
+	RSA_TESTING_ENGINE rsa;
+	int status;
+	char *data = "Test";
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = RSA_TESTING_ENGINE_INIT (&rsa);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &flash_mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) data, strlen (data),
+		FLASH_EXP_READ_CMD (0x03, 0, 0, -1, strlen (data)));
+
+	status |= flash_master_mock_expect_blank_check (&flash_mock, 0 + strlen (data),
+		0x200 - strlen (data));
+	status |= flash_master_mock_expect_blank_check (&flash_mock, 0x300, 0x1000 - 0x300);
+
+	CuAssertIntEquals (test, 0, status);
+
+	img_region.start_addr = 0;
+	img_region.length = strlen (data);
+
+	sig.regions = &img_region;
+	sig.count = 1;
+	memcpy (&sig.key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig.signature, RSA_SIGNATURE_TEST, RSA_ENCRYPT_LEN);
+	sig.sig_length = RSA_ENCRYPT_LEN;
+	sig.always_validate = 1;
+
+	img_list.images_sig = &sig;
+	img_list.images_hash = NULL;
+	img_list.count = 1;
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = spi_flash_set_device_size (&flash, 0x1000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_fw_full_flash_verification_multiple_fw (&flash, &img_list, &rw_list, 1, 0xff,
+		&hash.base, &rsa.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash);
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+	RSA_TESTING_ENGINE_RELEASE (&rsa);
+}
+
+static void host_fw_full_flash_verification_multiple_fw_test_multiple (CuTest *test)
+{
+	struct flash_region img_region[3];
+	struct pfm_image_signature sig[3];
+	struct pfm_image_list img_list[3];
+	struct flash_region rw_region[4];
+	struct pfm_read_write rw_prop[4];
+	struct pfm_read_write_regions rw_list[3];
+	struct flash_master_mock flash_mock;
+	struct spi_flash flash;
+	HASH_TESTING_ENGINE hash;
+	RSA_TESTING_ENGINE rsa;
+	int status;
+	char *data1 = "Test";
+	char *data2 = "Test2";
+	char *data3 = "Nope";
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = RSA_TESTING_ENGINE_INIT (&rsa);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &flash_mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) data1, strlen (data1),
+		FLASH_EXP_READ_CMD (0x03, 0x100, 0, -1, strlen (data1)));
+
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) data2, strlen (data2),
+		FLASH_EXP_READ_CMD (0x03, 0xa00, 0, -1, strlen (data2)));
+
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) data3, strlen (data3),
+		FLASH_EXP_READ_CMD (0x03, 0x900, 0, -1, strlen (data3)));
+
+	status |= flash_master_mock_expect_blank_check (&flash_mock, 0x100 + strlen (data1),
+		0x300 - strlen (data1));
+	status |= flash_master_mock_expect_blank_check (&flash_mock, 0x500, 0x100);
+	status |= flash_master_mock_expect_blank_check (&flash_mock, 0x700, 0x200);
+	status |= flash_master_mock_expect_blank_check (&flash_mock, 0x900 + strlen (data3),
+		0x100 - strlen (data3));
+	status |= flash_master_mock_expect_blank_check (&flash_mock, 0xa00 + strlen (data2),
+		0x500 - strlen (data2));
+
+	CuAssertIntEquals (test, 0, status);
+
+	img_region[0].start_addr = 0x100;
+	img_region[0].length = strlen (data1);
+	img_region[1].start_addr = 0xa00;
+	img_region[1].length = strlen (data2);
+	img_region[2].start_addr = 0x900;
+	img_region[2].length = strlen (data3);
+
+	sig[0].regions = &img_region[0];
+	sig[0].count = 1;
+	memcpy (&sig[0].key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig[0].signature, RSA_SIGNATURE_TEST, RSA_ENCRYPT_LEN);
+	sig[0].sig_length = RSA_ENCRYPT_LEN;
+	sig[0].always_validate = 1;
+
+	sig[1].regions = &img_region[1];
+	sig[1].count = 1;
+	memcpy (&sig[1].key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig[1].signature, RSA_SIGNATURE_TEST2, RSA_ENCRYPT_LEN);
+	sig[1].sig_length = RSA_ENCRYPT_LEN;
+	sig[1].always_validate = 1;
+
+	sig[2].regions = &img_region[2];
+	sig[2].count = 1;
+	memcpy (&sig[2].key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig[2].signature, RSA_SIGNATURE_NOPE, RSA_ENCRYPT_LEN);
+	sig[2].sig_length = RSA_ENCRYPT_LEN;
+	sig[2].always_validate = 1;
+
+	img_list[0].images_sig = &sig[0];
+	img_list[0].images_hash = NULL;
+	img_list[0].count = 1;
+
+	img_list[1].images_sig = &sig[1];
+	img_list[1].images_hash = NULL;
+	img_list[1].count = 1;
+
+	img_list[2].images_sig = &sig[2];
+	img_list[2].images_hash = NULL;
+	img_list[2].count = 1;
+
+	rw_region[0].start_addr = 0;
+	rw_region[0].length = 0x100;
+	rw_region[1].start_addr = 0x600;
+	rw_region[1].length = 0x100;
+	rw_region[2].start_addr = 0x400;
+	rw_region[2].length = 0x100;
+	rw_region[3].start_addr = 0xf00;
+	rw_region[3].length = 0x100;
+
+	rw_prop[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[2].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[3].on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list[0].regions = &rw_region[0];
+	rw_list[0].properties = &rw_prop[0];
+	rw_list[0].count = 1;
+
+	rw_list[1].regions = &rw_region[1];
+	rw_list[1].properties = &rw_prop[1];
+	rw_list[1].count = 1;
+
+	rw_list[2].regions = &rw_region[2];
+	rw_list[2].properties = &rw_prop[2];
+	rw_list[2].count = 2;
+
+	status = spi_flash_set_device_size (&flash, 0x1000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_fw_full_flash_verification_multiple_fw (&flash, img_list, rw_list, 3, 0xff,
+		&hash.base, &rsa.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash);
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+	RSA_TESTING_ENGINE_RELEASE (&rsa);
+}
+
+static void host_fw_full_flash_verification_multiple_fw_test_hashes (CuTest *test)
+{
+	struct flash_region img_region;
+	struct pfm_image_hash img_hash;
+	struct pfm_image_list img_list;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+	struct flash_master_mock flash_mock;
+	struct spi_flash flash;
+	HASH_TESTING_ENGINE hash;
+	RSA_TESTING_ENGINE rsa;
+	int status;
+	char *data = "Test";
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = RSA_TESTING_ENGINE_INIT (&rsa);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &flash_mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) data, strlen (data),
+		FLASH_EXP_READ_CMD (0x03, 0, 0, -1, strlen (data)));
+
+	status |= flash_master_mock_expect_blank_check (&flash_mock, 0 + strlen (data),
+		0x200 - strlen (data));
+	status |= flash_master_mock_expect_blank_check (&flash_mock, 0x300, 0x1000 - 0x300);
+
+	CuAssertIntEquals (test, 0, status);
+
+	img_region.start_addr = 0;
+	img_region.length = strlen (data);
+
+	img_hash.regions = &img_region;
+	img_hash.count = 1;
+	memcpy (img_hash.hash, SHA256_TEST_HASH, SHA256_HASH_LENGTH);
+	img_hash.hash_length = SHA256_HASH_LENGTH;
+	img_hash.hash_type = HASH_TYPE_SHA256;
+	img_hash.always_validate = 1;
+
+	img_list.images_hash = &img_hash;
+	img_list.images_sig = NULL;
+	img_list.count = 1;
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = spi_flash_set_device_size (&flash, 0x1000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_fw_full_flash_verification_multiple_fw (&flash, &img_list, &rw_list, 1, 0xff,
+		&hash.base, &rsa.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash);
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+	RSA_TESTING_ENGINE_RELEASE (&rsa);
+}
+
+static void host_fw_full_flash_verification_multiple_fw_test_hashes_multiple (CuTest *test)
+{
+	struct flash_region img_region[3];
+	struct pfm_image_hash img_hash[3];
+	struct pfm_image_list img_list[3];
+	struct flash_region rw_region[3];
+	struct pfm_read_write rw_prop[3];
+	struct pfm_read_write_regions rw_list[3];
+	struct flash_master_mock flash_mock;
+	struct spi_flash flash;
+	HASH_TESTING_ENGINE hash;
+	RSA_TESTING_ENGINE rsa;
+	int status;
+	char *data1 = "Test";
+	char *data2 = "Test2";
+	char *data3 = "Nope";
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = RSA_TESTING_ENGINE_INIT (&rsa);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &flash_mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) data1, strlen (data1),
+		FLASH_EXP_READ_CMD (0x03, 0x100, 0, -1, strlen (data1)));
+
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) data2, strlen (data2),
+		FLASH_EXP_READ_CMD (0x03, 0xa00, 0, -1, strlen (data2)));
+
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, (uint8_t*) data3, strlen (data3),
+		FLASH_EXP_READ_CMD (0x03, 0x900, 0, -1, strlen (data3)));
+
+	status |= flash_master_mock_expect_blank_check (&flash_mock, 0x100 + strlen (data1),
+		0x300 - strlen (data1));
+	status |= flash_master_mock_expect_blank_check (&flash_mock, 0x500, 0x100);
+	status |= flash_master_mock_expect_blank_check (&flash_mock, 0x700, 0x200);
+	status |= flash_master_mock_expect_blank_check (&flash_mock, 0x900 + strlen (data3),
+		0x100 - strlen (data3));
+	status |= flash_master_mock_expect_blank_check (&flash_mock, 0xa00 + strlen (data2),
+		0x600 - strlen (data2));
+
+	CuAssertIntEquals (test, 0, status);
+
+	img_region[0].start_addr = 0x100;
+	img_region[0].length = strlen (data1);
+	img_region[1].start_addr = 0xa00;
+	img_region[1].length = strlen (data2);
+	img_region[2].start_addr = 0x900;
+	img_region[2].length = strlen (data3);
+
+	img_hash[0].regions = &img_region[0];
+	img_hash[0].count = 1;
+	memcpy (img_hash[0].hash, SHA256_TEST_HASH, SHA256_HASH_LENGTH);
+	img_hash[0].hash_length = SHA256_HASH_LENGTH;
+	img_hash[0].hash_type = HASH_TYPE_SHA256;
+	img_hash[0].always_validate = 1;
+
+	img_hash[1].regions = &img_region[1];
+	img_hash[1].count = 1;
+	memcpy (img_hash[1].hash, SHA384_TEST2_HASH, SHA384_HASH_LENGTH);
+	img_hash[1].hash_length = SHA384_HASH_LENGTH;
+	img_hash[1].hash_type = HASH_TYPE_SHA384;
+	img_hash[1].always_validate = 1;
+
+	img_hash[2].regions = &img_region[2];
+	img_hash[2].count = 1;
+	memcpy (img_hash[2].hash, SHA512_NOPE_HASH, SHA512_HASH_LENGTH);
+	img_hash[2].hash_length = SHA512_HASH_LENGTH;
+	img_hash[2].hash_type = HASH_TYPE_SHA512;
+	img_hash[2].always_validate = 1;
+
+	img_list[0].images_hash = &img_hash[0];
+	img_list[0].images_sig = NULL;
+	img_list[0].count = 1;
+
+	img_list[1].images_hash = &img_hash[1];
+	img_list[1].images_sig = NULL;
+	img_list[1].count = 1;
+
+	img_list[2].images_hash = &img_hash[2];
+	img_list[2].images_sig = NULL;
+	img_list[2].count = 1;
+
+	rw_region[0].start_addr = 0;
+	rw_region[0].length = 0x100;
+	rw_region[1].start_addr = 0x600;
+	rw_region[1].length = 0x100;
+	rw_region[2].start_addr = 0x400;
+	rw_region[2].length = 0x100;
+
+	rw_prop[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[2].on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list[0].regions = &rw_region[0];
+	rw_list[0].properties = &rw_prop[0];
+	rw_list[0].count = 1;
+
+	rw_list[1].regions = &rw_region[1];
+	rw_list[1].properties = &rw_prop[1];
+	rw_list[1].count = 1;
+
+	rw_list[2].regions = &rw_region[2];
+	rw_list[2].properties = &rw_prop[2];
+	rw_list[2].count = 1;
+
+	status = spi_flash_set_device_size (&flash, 0x1000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_fw_full_flash_verification_multiple_fw (&flash, img_list, rw_list, 3, 0xff,
+		&hash.base, &rsa.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash);
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+	RSA_TESTING_ENGINE_RELEASE (&rsa);
+}
+
+static void host_fw_full_flash_verification_multiple_fw_test_null (CuTest *test)
+{
+	struct flash_region img_region;
+	struct pfm_image_signature sig;
+	struct pfm_image_list img_list;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+	struct flash_master_mock flash_mock;
+	struct spi_flash flash;
+	HASH_TESTING_ENGINE hash;
+	RSA_TESTING_ENGINE rsa;
+	int status;
+	char *data = "Test";
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = RSA_TESTING_ENGINE_INIT (&rsa);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &flash_mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	img_region.start_addr = 0;
+	img_region.length = strlen (data);
+
+	sig.regions = &img_region;
+	sig.count = 1;
+	memcpy (&sig.key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig.signature, RSA_SIGNATURE_TEST, RSA_ENCRYPT_LEN);
+	sig.sig_length = RSA_ENCRYPT_LEN;
+	sig.always_validate = 1;
+
+	img_list.images_sig = &sig;
+	img_list.images_hash = NULL;
+	img_list.count = 1;
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = spi_flash_set_device_size (&flash, 0x1000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_fw_full_flash_verification_multiple_fw (NULL, &img_list, &rw_list, 1, 0xff,
+		&hash.base, &rsa.base);
+	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
+
+	status = host_fw_full_flash_verification_multiple_fw (&flash, NULL, &rw_list, 1, 0xff,
+		&hash.base, &rsa.base);
+	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
+
+	status = host_fw_full_flash_verification_multiple_fw (&flash, &img_list, NULL, 1, 0xff,
+		&hash.base, &rsa.base);
+	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
+
+	status = host_fw_full_flash_verification_multiple_fw (&flash, &img_list, &rw_list, 1, 0xff,
+		NULL, &rsa.base);
+	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
+
+	status = host_fw_full_flash_verification_multiple_fw (&flash, &img_list, &rw_list, 1, 0xff,
+		&hash.base, NULL);
+	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash);
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+	RSA_TESTING_ENGINE_RELEASE (&rsa);
+}
+
+static void host_fw_restore_read_write_data_multiple_fw_test (CuTest *test)
+{
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+	struct flash_master_mock flash_mock1;
+	struct spi_flash flash1;
+	struct flash_master_mock flash_mock2;
+	struct spi_flash flash2;
+	int status;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&flash_mock1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&flash_mock2);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash1, &flash_mock1.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash2, &flash_mock2.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash1, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash2, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_erase_flash_verify (&flash_mock2, 0x10000, 0x10000);
+	CuAssertIntEquals (test, 0, status);
+
+	rw_region.start_addr = 0x10000;
+	rw_region.length = 0x10000;
+
+	rw_prop.on_failure = PFM_RW_ERASE;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = host_fw_restore_read_write_data_multiple_fw (&flash2, &flash1, &rw_list, 1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock2);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash1);
+	spi_flash_release (&flash2);
+}
+
+static void host_fw_restore_read_write_data_multiple_fw_test_no_source_device (CuTest *test)
+{
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+	struct flash_master_mock flash_mock1;
+	struct spi_flash flash1;
+	struct flash_master_mock flash_mock2;
+	struct spi_flash flash2;
+	int status;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&flash_mock1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&flash_mock2);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash1, &flash_mock1.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash2, &flash_mock2.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash1, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash2, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	rw_region.start_addr = 0x10000;
+	rw_region.length = 0x10000;
+
+	rw_prop.on_failure = PFM_RW_RESTORE;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = host_fw_restore_read_write_data_multiple_fw (&flash2, NULL, &rw_list, 1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock2);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash1);
+	spi_flash_release (&flash2);
+}
+
+static void host_fw_restore_read_write_data_multiple_fw_test_multiple (CuTest *test)
+{
+	struct flash_region rw_region[4];
+	struct pfm_read_write rw_prop[4];
+	struct pfm_read_write_regions rw_list[3];
+	struct flash_master_mock flash_mock1;
+	struct spi_flash flash1;
+	struct flash_master_mock flash_mock2;
+	struct spi_flash flash2;
+	int status;
+	uint8_t data[0x10000];
+	size_t i;
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	status = flash_master_mock_init (&flash_mock1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&flash_mock2);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash1, &flash_mock1.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash2, &flash_mock2.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash1, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash2, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	for (i = 0; i < 3; i++) {
+		status |= flash_master_mock_expect_erase_flash (&flash_mock2, 0x40000 + (0x10000 * i));
+	}
+	status |= flash_master_mock_expect_blank_check (&flash_mock2, 0x40000, 0x30000);
+
+	status |= flash_master_mock_expect_erase_flash_verify (&flash_mock2, 0x100000, 0x10000);
+	status |= flash_master_mock_expect_copy_flash_verify (&flash_mock2, &flash_mock1, 0x100000,
+		0x100000, data, sizeof (data));
+
+	CuAssertIntEquals (test, 0, status);
+
+	rw_region[0].start_addr = 0;
+	rw_region[0].length = 0x10000;
+	rw_region[1].start_addr = 0x40000;
+	rw_region[1].length = 0x30000;
+	rw_region[2].start_addr = 0x100000;
+	rw_region[2].length = 0x10000;
+	rw_region[3].start_addr = 0x500000;
+	rw_region[3].length = 0x100000;
+
+	rw_prop[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[1].on_failure = PFM_RW_ERASE;
+	rw_prop[2].on_failure = PFM_RW_RESTORE;
+	rw_prop[3].on_failure = PFM_RW_RESERVED;
+
+	rw_list[0].regions = &rw_region[0];
+	rw_list[0].properties = &rw_prop[0];
+	rw_list[0].count = 1;
+
+	rw_list[1].regions = &rw_region[1];
+	rw_list[1].properties = &rw_prop[1];
+	rw_list[1].count = 1;
+
+	rw_list[2].regions = &rw_region[2];
+	rw_list[2].properties = &rw_prop[2];
+	rw_list[2].count = 2;
+
+	status = host_fw_restore_read_write_data_multiple_fw (&flash2, &flash1, rw_list, 3);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock2);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash1);
+	spi_flash_release (&flash2);
+}
+
+static void host_fw_restore_read_write_data_multiple_fw_test_null (CuTest *test)
+{
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+	struct flash_master_mock flash_mock1;
+	struct spi_flash flash1;
+	struct flash_master_mock flash_mock2;
+	struct spi_flash flash2;
+	int status;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&flash_mock1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&flash_mock2);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash1, &flash_mock1.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash2, &flash_mock2.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash1, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash2, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	rw_region.start_addr = 0x10000;
+	rw_region.length = 0x10000;
+
+	rw_prop.on_failure = PFM_RW_ERASE;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = host_fw_restore_read_write_data_multiple_fw (NULL, &flash1, &rw_list, 1);
+	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
+
+	status = host_fw_restore_read_write_data_multiple_fw (&flash2, &flash1, NULL, 1);
+	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock2);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash1);
+	spi_flash_release (&flash2);
+}
+
+static void host_fw_restore_read_write_data_multiple_fw_test_error (CuTest *test)
+{
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+	struct flash_master_mock flash_mock1;
+	struct spi_flash flash1;
+	struct flash_master_mock flash_mock2;
+	struct spi_flash flash2;
+	int status;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&flash_mock1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&flash_mock2);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash1, &flash_mock1.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash2, &flash_mock2.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash1, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash2, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_xfer (&flash_mock2, FLASH_MASTER_XFER_FAILED,
+		FLASH_EXP_READ_STATUS_REG);
+	CuAssertIntEquals (test, 0, status);
+
+	rw_region.start_addr = 0x10000;
+	rw_region.length = 0x10000;
+
+	rw_prop.on_failure = PFM_RW_ERASE;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = host_fw_restore_read_write_data_multiple_fw (&flash2, &flash1, &rw_list, 1);
+	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock2);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash1);
+	spi_flash_release (&flash2);
+}
+
+static void host_fw_config_spi_filter_read_write_regions_multiple_fw_test (CuTest *test)
+{
+	struct spi_filter_interface_mock filter;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+	int status;
+
+	TEST_START;
+
+	status = spi_filter_interface_mock_init (&filter);
+	CuAssertIntEquals (test, 0, status);
+
+	rw_region.start_addr = 0x10000;
+	rw_region.length = 0x10000;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = mock_expect (&filter.mock, filter.base.clear_filter_rw_regions, &filter, 0);
+	status |= mock_expect (&filter.mock, filter.base.set_filter_rw_region, &filter, 0,
+		MOCK_ARG (1), MOCK_ARG (0x10000), MOCK_ARG (0x20000));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_fw_config_spi_filter_read_write_regions_multiple_fw (&filter.base, &rw_list, 1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_filter_interface_mock_validate_and_release (&filter);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void host_fw_config_spi_filter_read_write_regions_multiple_fw_test_multiple_regions (
+	CuTest *test)
+{
+	struct spi_filter_interface_mock filter;
+	struct flash_region rw_region[3];
+	struct pfm_read_write rw_prop[3];
+	struct pfm_read_write_regions rw_list;
+	int status;
+
+	TEST_START;
+
+	status = spi_filter_interface_mock_init (&filter);
+	CuAssertIntEquals (test, 0, status);
+
+	rw_region[0].start_addr = 0x10000;
+	rw_region[0].length = 0x10000;
+
+	rw_region[1].start_addr = 0x30000;
+	rw_region[1].length = 0x20000;
+
+	rw_region[2].start_addr = 0x60000;
+	rw_region[2].length = 0x30000;
+
+	rw_prop[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[2].on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = rw_region;
+	rw_list.properties = rw_prop;
+	rw_list.count = 3;
+
+	status = mock_expect (&filter.mock, filter.base.clear_filter_rw_regions, &filter, 0);
+	status |= mock_expect (&filter.mock, filter.base.set_filter_rw_region, &filter, 0,
+		MOCK_ARG (1), MOCK_ARG (0x10000), MOCK_ARG (0x20000));
+	status |= mock_expect (&filter.mock, filter.base.set_filter_rw_region, &filter, 0,
+		MOCK_ARG (2), MOCK_ARG (0x30000), MOCK_ARG (0x50000));
+	status |= mock_expect (&filter.mock, filter.base.set_filter_rw_region, &filter, 0,
+		MOCK_ARG (3), MOCK_ARG (0x60000), MOCK_ARG (0x90000));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_fw_config_spi_filter_read_write_regions_multiple_fw (&filter.base, &rw_list, 1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_filter_interface_mock_validate_and_release (&filter);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void host_fw_config_spi_filter_read_write_regions_multiple_fw_test_multiple_fw (
+	CuTest *test)
+{
+	struct spi_filter_interface_mock filter;
+	struct flash_region rw_region[3];
+	struct pfm_read_write rw_prop[3];
+	struct pfm_read_write_regions rw_list[3];
+	int status;
+
+	TEST_START;
+
+	status = spi_filter_interface_mock_init (&filter);
+	CuAssertIntEquals (test, 0, status);
+
+	rw_region[0].start_addr = 0x10000;
+	rw_region[0].length = 0x10000;
+
+	rw_region[1].start_addr = 0x30000;
+	rw_region[1].length = 0x20000;
+
+	rw_region[2].start_addr = 0x60000;
+	rw_region[2].length = 0x30000;
+
+	rw_prop[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[2].on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list[0].regions = &rw_region[0];
+	rw_list[0].properties = &rw_prop[0];
+	rw_list[0].count = 1;
+
+	rw_list[1].regions = &rw_region[1];
+	rw_list[1].properties = &rw_prop[1];
+	rw_list[1].count = 1;
+
+	rw_list[2].regions = &rw_region[2];
+	rw_list[2].properties = &rw_prop[2];
+	rw_list[2].count = 1;
+
+	status = mock_expect (&filter.mock, filter.base.clear_filter_rw_regions, &filter, 0);
+	status |= mock_expect (&filter.mock, filter.base.set_filter_rw_region, &filter, 0,
+		MOCK_ARG (1), MOCK_ARG (0x10000), MOCK_ARG (0x20000));
+	status |= mock_expect (&filter.mock, filter.base.set_filter_rw_region, &filter, 0,
+		MOCK_ARG (2), MOCK_ARG (0x30000), MOCK_ARG (0x50000));
+	status |= mock_expect (&filter.mock, filter.base.set_filter_rw_region, &filter, 0,
+		MOCK_ARG (3), MOCK_ARG (0x60000), MOCK_ARG (0x90000));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_fw_config_spi_filter_read_write_regions_multiple_fw (&filter.base, rw_list, 3);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_filter_interface_mock_validate_and_release (&filter);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void host_fw_config_spi_filter_read_write_regions_multiple_fw_test_multiple_fw_and_regions (
+	CuTest *test)
+{
+	struct spi_filter_interface_mock filter;
+	struct flash_region rw_region[6];
+	struct pfm_read_write rw_prop[6];
+	struct pfm_read_write_regions rw_list[3];
+	int status;
+
+	TEST_START;
+
+	status = spi_filter_interface_mock_init (&filter);
+	CuAssertIntEquals (test, 0, status);
+
+	rw_region[0].start_addr = 0x10000;
+	rw_region[0].length = 0x10000;
+
+	rw_region[1].start_addr = 0x30000;
+	rw_region[1].length = 0x20000;
+
+	rw_region[2].start_addr = 0x60000;
+	rw_region[2].length = 0x30000;
+
+	rw_region[3].start_addr = 0x110000;
+	rw_region[3].length = 0x10000;
+
+	rw_region[4].start_addr = 0x230000;
+	rw_region[4].length = 0x20000;
+
+	rw_region[5].start_addr = 0x360000;
+	rw_region[5].length = 0x30000;
+
+	rw_prop[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[2].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[3].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[4].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[5].on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list[0].regions = &rw_region[0];
+	rw_list[0].properties = &rw_prop[0];
+	rw_list[0].count = 1;
+
+	rw_list[1].regions = &rw_region[1];
+	rw_list[1].properties = &rw_prop[1];
+	rw_list[1].count = 2;
+
+	rw_list[2].regions = &rw_region[3];
+	rw_list[2].properties = &rw_prop[3];
+	rw_list[2].count = 3;
+
+	status = mock_expect (&filter.mock, filter.base.clear_filter_rw_regions, &filter, 0);
+	status |= mock_expect (&filter.mock, filter.base.set_filter_rw_region, &filter, 0,
+		MOCK_ARG (1), MOCK_ARG (0x10000), MOCK_ARG (0x20000));
+	status |= mock_expect (&filter.mock, filter.base.set_filter_rw_region, &filter, 0,
+		MOCK_ARG (2), MOCK_ARG (0x30000), MOCK_ARG (0x50000));
+	status |= mock_expect (&filter.mock, filter.base.set_filter_rw_region, &filter, 0,
+		MOCK_ARG (3), MOCK_ARG (0x60000), MOCK_ARG (0x90000));
+	status |= mock_expect (&filter.mock, filter.base.set_filter_rw_region, &filter, 0,
+		MOCK_ARG (4), MOCK_ARG (0x110000), MOCK_ARG (0x120000));
+	status |= mock_expect (&filter.mock, filter.base.set_filter_rw_region, &filter, 0,
+		MOCK_ARG (5), MOCK_ARG (0x230000), MOCK_ARG (0x250000));
+	status |= mock_expect (&filter.mock, filter.base.set_filter_rw_region, &filter, 0,
+		MOCK_ARG (6), MOCK_ARG (0x360000), MOCK_ARG (0x390000));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_fw_config_spi_filter_read_write_regions_multiple_fw (&filter.base, rw_list, 3);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_filter_interface_mock_validate_and_release (&filter);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void host_fw_config_spi_filter_read_write_regions_multiple_fw_test_combine_multiple_regions (
+	CuTest *test)
+{
+	struct spi_filter_interface_mock filter;
+	struct flash_region rw_region[3];
+	struct pfm_read_write rw_prop[3];
+	struct pfm_read_write_regions rw_list;
+	int status;
+
+	TEST_START;
+
+	status = spi_filter_interface_mock_init (&filter);
+	CuAssertIntEquals (test, 0, status);
+
+	rw_region[0].start_addr = 0x10000;
+	rw_region[0].length = 0x10000;
+
+	rw_region[1].start_addr = 0x20000;
+	rw_region[1].length = 0x20000;
+
+	rw_region[2].start_addr = 0x60000;
+	rw_region[2].length = 0x30000;
+
+	rw_prop[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[2].on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = rw_region;
+	rw_list.properties = rw_prop;
+	rw_list.count = 3;
+
+	status = mock_expect (&filter.mock, filter.base.clear_filter_rw_regions, &filter, 0);
+	status |= mock_expect (&filter.mock, filter.base.set_filter_rw_region, &filter, 0,
+		MOCK_ARG (1), MOCK_ARG (0x10000), MOCK_ARG (0x40000));
+	status |= mock_expect (&filter.mock, filter.base.set_filter_rw_region, &filter, 0,
+		MOCK_ARG (2), MOCK_ARG (0x60000), MOCK_ARG (0x90000));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_fw_config_spi_filter_read_write_regions_multiple_fw (&filter.base, &rw_list, 1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_filter_interface_mock_validate_and_release (&filter);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void host_fw_config_spi_filter_read_write_regions_multiple_fw_test_combine_multiple_fw (
+	CuTest *test)
+{
+	struct spi_filter_interface_mock filter;
+	struct flash_region rw_region[3];
+	struct pfm_read_write rw_prop[3];
+	struct pfm_read_write_regions rw_list[3];
+	int status;
+
+	TEST_START;
+
+	status = spi_filter_interface_mock_init (&filter);
+	CuAssertIntEquals (test, 0, status);
+
+	rw_region[0].start_addr = 0x10000;
+	rw_region[0].length = 0x10000;
+
+	rw_region[1].start_addr = 0x30000;
+	rw_region[1].length = 0x20000;
+
+	rw_region[2].start_addr = 0x50000;
+	rw_region[2].length = 0x30000;
+
+	rw_prop[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[2].on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list[0].regions = &rw_region[0];
+	rw_list[0].properties = &rw_prop[0];
+	rw_list[0].count = 1;
+
+	rw_list[1].regions = &rw_region[1];
+	rw_list[1].properties = &rw_prop[1];
+	rw_list[1].count = 1;
+
+	rw_list[2].regions = &rw_region[2];
+	rw_list[2].properties = &rw_prop[2];
+	rw_list[2].count = 1;
+
+	status = mock_expect (&filter.mock, filter.base.clear_filter_rw_regions, &filter, 0);
+	status |= mock_expect (&filter.mock, filter.base.set_filter_rw_region, &filter, 0,
+		MOCK_ARG (1), MOCK_ARG (0x10000), MOCK_ARG (0x20000));
+	status |= mock_expect (&filter.mock, filter.base.set_filter_rw_region, &filter, 0,
+		MOCK_ARG (2), MOCK_ARG (0x30000), MOCK_ARG (0x80000));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_fw_config_spi_filter_read_write_regions_multiple_fw (&filter.base, rw_list, 3);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_filter_interface_mock_validate_and_release (&filter);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void host_fw_config_spi_filter_read_write_regions_multiple_fw_test_combine_multiple_fw_and_regions (
+	CuTest *test)
+{
+	struct spi_filter_interface_mock filter;
+	struct flash_region rw_region[6];
+	struct pfm_read_write rw_prop[6];
+	struct pfm_read_write_regions rw_list[3];
+	int status;
+
+	TEST_START;
+
+	status = spi_filter_interface_mock_init (&filter);
+	CuAssertIntEquals (test, 0, status);
+
+	rw_region[0].start_addr = 0x10000;
+	rw_region[0].length = 0x10000;
+
+	rw_region[1].start_addr = 0x20000;
+	rw_region[1].length = 0x20000;
+
+	rw_region[2].start_addr = 0x60000;
+	rw_region[2].length = 0x30000;
+
+	rw_region[3].start_addr = 0;
+	rw_region[3].length = 0x10000;
+
+	rw_region[4].start_addr = 0x230000;
+	rw_region[4].length = 0x20000;
+
+	rw_region[5].start_addr = 0x90000;
+	rw_region[5].length = 0x30000;
+
+	rw_prop[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[2].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[3].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[4].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[5].on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list[0].regions = &rw_region[0];
+	rw_list[0].properties = &rw_prop[0];
+	rw_list[0].count = 1;
+
+	rw_list[1].regions = &rw_region[1];
+	rw_list[1].properties = &rw_prop[1];
+	rw_list[1].count = 2;
+
+	rw_list[2].regions = &rw_region[3];
+	rw_list[2].properties = &rw_prop[3];
+	rw_list[2].count = 3;
+
+	status = mock_expect (&filter.mock, filter.base.clear_filter_rw_regions, &filter, 0);
+	status |= mock_expect (&filter.mock, filter.base.set_filter_rw_region, &filter, 0,
+		MOCK_ARG (1), MOCK_ARG (0x00000), MOCK_ARG (0x40000));
+	status |= mock_expect (&filter.mock, filter.base.set_filter_rw_region, &filter, 0,
+		MOCK_ARG (2), MOCK_ARG (0x60000), MOCK_ARG (0xc0000));
+	status |= mock_expect (&filter.mock, filter.base.set_filter_rw_region, &filter, 0,
+		MOCK_ARG (3), MOCK_ARG (0x230000), MOCK_ARG (0x250000));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_fw_config_spi_filter_read_write_regions_multiple_fw (&filter.base, rw_list, 3);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_filter_interface_mock_validate_and_release (&filter);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void host_fw_config_spi_filter_read_write_regions_multiple_fw_test_no_regions (CuTest *test)
+{
+	struct spi_filter_interface_mock filter;
+	struct pfm_read_write_regions rw_list;
+	int status;
+
+	TEST_START;
+
+	status = spi_filter_interface_mock_init (&filter);
+	CuAssertIntEquals (test, 0, status);
+
+	rw_list.regions = NULL;
+	rw_list.properties = NULL;
+	rw_list.count = 0;
+
+	status = mock_expect (&filter.mock, filter.base.clear_filter_rw_regions, &filter, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_fw_config_spi_filter_read_write_regions_multiple_fw (&filter.base, &rw_list, 1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_filter_interface_mock_validate_and_release (&filter);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void host_fw_config_spi_filter_read_write_regions_multiple_fw_test_no_fw (CuTest *test)
+{
+	struct spi_filter_interface_mock filter;
+	int status;
+
+	TEST_START;
+
+	status = spi_filter_interface_mock_init (&filter);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&filter.mock, filter.base.clear_filter_rw_regions, &filter, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_fw_config_spi_filter_read_write_regions_multiple_fw (&filter.base, NULL, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_filter_interface_mock_validate_and_release (&filter);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void host_fw_config_spi_filter_read_write_regions_multiple_fw_test_null (CuTest *test)
+{
+	struct spi_filter_interface_mock filter;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+	int status;
+
+	TEST_START;
+
+	status = spi_filter_interface_mock_init (&filter);
+	CuAssertIntEquals (test, 0, status);
+
+	rw_region.start_addr = 0x10000;
+	rw_region.length = 0x10000;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = host_fw_config_spi_filter_read_write_regions_multiple_fw (NULL, &rw_list, 1);
+	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
+
+	status = host_fw_config_spi_filter_read_write_regions_multiple_fw (&filter.base, NULL, 1);
+	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
+
+	status = spi_filter_interface_mock_validate_and_release (&filter);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void host_fw_config_spi_filter_read_write_regions_multiple_fw_test_clear_error (CuTest *test)
+{
+	struct spi_filter_interface_mock filter;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+	int status;
+
+	TEST_START;
+
+	status = spi_filter_interface_mock_init (&filter);
+	CuAssertIntEquals (test, 0, status);
+
+	rw_region.start_addr = 0x10000;
+	rw_region.length = 0x10000;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = mock_expect (&filter.mock, filter.base.clear_filter_rw_regions, &filter,
+		SPI_FILTER_CLEAR_RW_FAILED);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_fw_config_spi_filter_read_write_regions_multiple_fw (&filter.base, &rw_list, 1);
+	CuAssertIntEquals (test, SPI_FILTER_CLEAR_RW_FAILED, status);
+
+	status = spi_filter_interface_mock_validate_and_release (&filter);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void host_fw_config_spi_filter_read_write_regions_multiple_fw_test_region_filter_error (
+	CuTest *test)
+{
+	struct spi_filter_interface_mock filter;
+	struct flash_region rw_region[3];
+	struct pfm_read_write rw_prop[3];
+	struct pfm_read_write_regions rw_list[3];
+	int status;
+
+	TEST_START;
+
+	status = spi_filter_interface_mock_init (&filter);
+	CuAssertIntEquals (test, 0, status);
+
+	rw_region[0].start_addr = 0x10000;
+	rw_region[0].length = 0x10000;
+
+	rw_region[1].start_addr = 0x30000;
+	rw_region[1].length = 0x20000;
+
+	rw_region[2].start_addr = 0x60000;
+	rw_region[2].length = 0x30000;
+
+	rw_prop[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[2].on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list[0].regions = &rw_region[0];
+	rw_list[0].properties = &rw_prop[0];
+	rw_list[0].count = 1;
+
+	rw_list[1].regions = &rw_region[1];
+	rw_list[1].properties = &rw_prop[1];
+	rw_list[1].count = 1;
+
+	rw_list[2].regions = &rw_region[2];
+	rw_list[2].properties = &rw_prop[2];
+	rw_list[2].count = 1;
+
+	status = mock_expect (&filter.mock, filter.base.clear_filter_rw_regions, &filter, 0);
+	status |= mock_expect (&filter.mock, filter.base.set_filter_rw_region, &filter, 0,
+		MOCK_ARG (1), MOCK_ARG (0x10000), MOCK_ARG (0x20000));
+	status |= mock_expect (&filter.mock, filter.base.set_filter_rw_region, &filter,
+		SPI_FILTER_SET_RW_FAILED, MOCK_ARG (2), MOCK_ARG (0x30000), MOCK_ARG (0x50000));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_fw_config_spi_filter_read_write_regions_multiple_fw (&filter.base, rw_list, 3);
+	CuAssertIntEquals (test, SPI_FILTER_SET_RW_FAILED, status);
+
+	status = spi_filter_interface_mock_validate_and_release (&filter);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void host_fw_config_spi_filter_read_write_regions_multiple_fw_test_last_region_filter_error (
+	CuTest *test)
+{
+	struct spi_filter_interface_mock filter;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+	int status;
+
+	TEST_START;
+
+	status = spi_filter_interface_mock_init (&filter);
+	CuAssertIntEquals (test, 0, status);
+
+	rw_region.start_addr = 0x10000;
+	rw_region.length = 0x10000;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = mock_expect (&filter.mock, filter.base.clear_filter_rw_regions, &filter, 0);
+	status |= mock_expect (&filter.mock, filter.base.set_filter_rw_region, &filter,
+		SPI_FILTER_SET_RW_FAILED, MOCK_ARG (1), MOCK_ARG (0x10000), MOCK_ARG (0x20000));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_fw_config_spi_filter_read_write_regions_multiple_fw (&filter.base, &rw_list, 1);
+	CuAssertIntEquals (test, SPI_FILTER_SET_RW_FAILED, status);
+
+	status = spi_filter_interface_mock_validate_and_release (&filter);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void host_fw_migrate_read_write_data_multiple_fw_test (CuTest *test)
+{
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+	struct flash_master_mock flash_mock1;
+	struct spi_flash flash1;
+	struct flash_master_mock flash_mock2;
+	struct spi_flash flash2;
+	int status;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&flash_mock1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&flash_mock2);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash1, &flash_mock1.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash2, &flash_mock2.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash1, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash2, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_erase_flash_verify (&flash_mock2, 0x10000, RSA_ENCRYPT_LEN);
+	status |= flash_master_mock_expect_copy_flash_verify (&flash_mock2, &flash_mock1, 0x10000,
+		0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
+
+	CuAssertIntEquals (test, 0, status);
+
+	rw_region.start_addr = 0x10000;
+	rw_region.length = RSA_ENCRYPT_LEN;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = host_fw_migrate_read_write_data_multiple_fw (&flash2, &rw_list, 1, &flash1, &rw_list,
+		1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock2);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash1);
+	spi_flash_release (&flash2);
+}
+
+static void host_fw_migrate_read_write_data_multiple_fw_test_multiple (CuTest *test)
+{
+	struct flash_region rw_region[3];
+	struct pfm_read_write rw_prop[3];
+	struct pfm_read_write_regions rw_list[3];
+	struct flash_master_mock flash_mock1;
+	struct spi_flash flash1;
+	struct flash_master_mock flash_mock2;
+	struct spi_flash flash2;
+	int status;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&flash_mock1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&flash_mock2);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash1, &flash_mock1.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash2, &flash_mock2.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash1, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash2, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_erase_flash_verify (&flash_mock2, 0x10000, RSA_ENCRYPT_LEN);
+	status |= flash_master_mock_expect_copy_flash_verify (&flash_mock2, &flash_mock1, 0x10000,
+		0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
+
+	status |= flash_master_mock_expect_erase_flash_verify (&flash_mock2, 0x30000, 16);
+	status |= flash_master_mock_expect_copy_flash_verify (&flash_mock2, &flash_mock1, 0x30000,
+		0x30000, RSA_ENCRYPT_TEST2, 16);
+
+	status |= flash_master_mock_expect_erase_flash_verify (&flash_mock2, 0x50000, 32);
+	status |= flash_master_mock_expect_copy_flash_verify (&flash_mock2, &flash_mock1, 0x50000,
+		0x50000, RSA_ENCRYPT_NOPE, 32);
+
+	CuAssertIntEquals (test, 0, status);
+
+	rw_region[0].start_addr = 0x10000;
+	rw_region[0].length = RSA_ENCRYPT_LEN;
+	rw_region[1].start_addr = 0x30000;
+	rw_region[1].length = 16;
+	rw_region[2].start_addr = 0x50000;
+	rw_region[2].length = 32;
+
+	rw_prop[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[2].on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list[0].regions = &rw_region[0];
+	rw_list[0].properties = &rw_prop[0];
+	rw_list[0].count = 1;
+
+	rw_list[1].regions = &rw_region[1];
+	rw_list[1].properties = &rw_prop[1];
+	rw_list[1].count = 1;
+
+	rw_list[2].regions = &rw_region[2];
+	rw_list[2].properties = &rw_prop[2];
+	rw_list[2].count = 1;
+
+	status = host_fw_migrate_read_write_data_multiple_fw (&flash2, rw_list, 3, &flash1, rw_list, 3);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock2);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash1);
+	spi_flash_release (&flash2);
+}
+
+static void host_fw_migrate_read_write_data_multiple_fw_test_diff_fw_count (CuTest *test)
+{
+	struct flash_region rw_region[3];
+	struct pfm_read_write rw_prop[3];
+	struct pfm_read_write_regions rw_list[3];
+	struct flash_master_mock flash_mock1;
+	struct spi_flash flash1;
+	struct flash_master_mock flash_mock2;
+	struct spi_flash flash2;
+	int status;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&flash_mock1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&flash_mock2);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash1, &flash_mock1.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash2, &flash_mock2.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash1, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash2, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	rw_region[0].start_addr = 0x10000;
+	rw_region[0].length = RSA_ENCRYPT_LEN;
+	rw_region[1].start_addr = 0x30000;
+	rw_region[1].length = 16;
+	rw_region[2].start_addr = 0x50000;
+	rw_region[2].length = 32;
+
+	rw_prop[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[2].on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list[0].regions = &rw_region[0];
+	rw_list[0].properties = &rw_prop[0];
+	rw_list[0].count = 1;
+
+	rw_list[1].regions = &rw_region[1];
+	rw_list[1].properties = &rw_prop[1];
+	rw_list[1].count = 1;
+
+	rw_list[2].regions = &rw_region[2];
+	rw_list[2].properties = &rw_prop[2];
+	rw_list[2].count = 1;
+
+	status = host_fw_migrate_read_write_data_multiple_fw (&flash2, rw_list, 3, &flash1, rw_list, 2);
+	CuAssertIntEquals (test, HOST_FW_UTIL_DIFF_FW_COUNT, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock2);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash1);
+	spi_flash_release (&flash2);
+}
+
+static void host_fw_migrate_read_write_data_multiple_fw_test_diff_regions (CuTest *test)
+{
+	struct flash_region rw_region1[5];
+	struct pfm_read_write rw_prop1[5];
+	struct pfm_read_write_regions rw_list1[4];
+	struct flash_region rw_region2[4];
+	struct pfm_read_write rw_prop2[4];
+	struct pfm_read_write_regions rw_list2[4];
+	struct flash_master_mock flash_mock1;
+	struct spi_flash flash1;
+	struct flash_master_mock flash_mock2;
+	struct spi_flash flash2;
+	int status;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&flash_mock1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&flash_mock2);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash1, &flash_mock1.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash2, &flash_mock2.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash1, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash2, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_erase_flash_verify (&flash_mock2, 0x10000, RSA_ENCRYPT_LEN);
+	status |= flash_master_mock_expect_erase_flash_verify (&flash_mock2, 0x70000, RSA_ENCRYPT_LEN);
+
+	status |= flash_master_mock_expect_erase_flash_verify (&flash_mock2, 0x30000, 16);
+
+	status |= flash_master_mock_expect_erase_flash_verify (&flash_mock2, 0x50000, 64);
+
+	status |= flash_master_mock_expect_erase_flash_verify (&flash_mock2, 0x90000, 32);
+	status |= flash_master_mock_expect_copy_flash_verify (&flash_mock2, &flash_mock1, 0x90000,
+		0x90000, RSA_ENCRYPT_NOPE, 32);
+
+	CuAssertIntEquals (test, 0, status);
+
+	rw_region1[0].start_addr = 0x10000;
+	rw_region1[0].length = RSA_ENCRYPT_LEN;
+	rw_region1[1].start_addr = 0x70000;
+	rw_region1[1].length = RSA_ENCRYPT_LEN;
+	rw_region1[2].start_addr = 0x30000;
+	rw_region1[2].length = 16;
+	rw_region1[3].start_addr = 0x50000;
+	rw_region1[3].length = 64;
+	rw_region1[4].start_addr = 0x90000;
+	rw_region1[4].length = 32;
+
+	rw_prop1[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop1[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop1[2].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop1[3].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop1[4].on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list1[0].regions = &rw_region1[0];
+	rw_list1[0].properties = &rw_prop1[0];
+	rw_list1[0].count = 2;
+
+	rw_list1[1].regions = &rw_region1[2];
+	rw_list1[1].properties = &rw_prop1[2];
+	rw_list1[1].count = 1;
+
+	rw_list1[2].regions = &rw_region1[3];
+	rw_list1[2].properties = &rw_prop1[3];
+	rw_list1[2].count = 1;
+
+	rw_list1[3].regions = &rw_region1[4];
+	rw_list1[3].properties = &rw_prop1[4];
+	rw_list1[3].count = 1;
+
+	rw_region2[0].start_addr = 0x10000;
+	rw_region2[0].length = RSA_ENCRYPT_LEN;
+	rw_region2[1].start_addr = 0x20000;
+	rw_region2[1].length = 16;
+	rw_region2[2].start_addr = 0x50000;
+	rw_region2[2].length = 32;
+	rw_region2[3].start_addr = 0x90000;
+	rw_region2[3].length = 32;
+
+	rw_prop2[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop2[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop2[2].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop2[3].on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list2[0].regions = &rw_region2[0];
+	rw_list2[0].properties = &rw_prop2[0];
+	rw_list2[0].count = 1;
+
+	rw_list2[1].regions = &rw_region2[1];
+	rw_list2[1].properties = &rw_prop2[1];
+	rw_list2[1].count = 1;
+
+	rw_list2[2].regions = &rw_region2[2];
+	rw_list2[2].properties = &rw_prop2[2];
+	rw_list2[2].count = 1;
+
+	rw_list2[3].regions = &rw_region2[3];
+	rw_list2[3].properties = &rw_prop2[3];
+	rw_list2[3].count = 1;
+
+	status = host_fw_migrate_read_write_data_multiple_fw (&flash2, rw_list1, 4, &flash1, rw_list2,
+		4);
+	CuAssertIntEquals (test, HOST_FW_UTIL_DIFF_REGION_SIZE, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock2);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash1);
+	spi_flash_release (&flash2);
+}
+
+static void host_fw_migrate_read_write_data_multiple_fw_test_no_source_regions (CuTest *test)
+{
+	struct flash_region rw_region[3];
+	struct pfm_read_write rw_prop[3];
+	struct pfm_read_write_regions rw_list[3];
+	struct flash_master_mock flash_mock1;
+	struct spi_flash flash1;
+	struct flash_master_mock flash_mock2;
+	struct spi_flash flash2;
+	int status;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&flash_mock1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&flash_mock2);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash1, &flash_mock1.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash2, &flash_mock2.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash1, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash2, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_erase_flash_verify (&flash_mock2, 0x10000, RSA_ENCRYPT_LEN);
+	status |= flash_master_mock_expect_copy_flash_verify (&flash_mock2, &flash_mock1, 0x10000,
+		0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
+
+	status |= flash_master_mock_expect_erase_flash_verify (&flash_mock2, 0x30000, 16);
+	status |= flash_master_mock_expect_copy_flash_verify (&flash_mock2, &flash_mock1, 0x30000,
+		0x30000, RSA_ENCRYPT_TEST2, 16);
+
+	status |= flash_master_mock_expect_erase_flash_verify (&flash_mock2, 0x50000, 32);
+	status |= flash_master_mock_expect_copy_flash_verify (&flash_mock2, &flash_mock1, 0x50000,
+		0x50000, RSA_ENCRYPT_NOPE, 32);
+
+	CuAssertIntEquals (test, 0, status);
+
+	rw_region[0].start_addr = 0x10000;
+	rw_region[0].length = RSA_ENCRYPT_LEN;
+	rw_region[1].start_addr = 0x30000;
+	rw_region[1].length = 16;
+	rw_region[2].start_addr = 0x50000;
+	rw_region[2].length = 32;
+
+	rw_prop[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[2].on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list[0].regions = &rw_region[0];
+	rw_list[0].properties = &rw_prop[0];
+	rw_list[0].count = 1;
+
+	rw_list[1].regions = &rw_region[1];
+	rw_list[1].properties = &rw_prop[1];
+	rw_list[1].count = 1;
+
+	rw_list[2].regions = &rw_region[2];
+	rw_list[2].properties = &rw_prop[2];
+	rw_list[2].count = 1;
+
+	status = host_fw_migrate_read_write_data_multiple_fw (&flash2, rw_list, 3, &flash1, NULL, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock2);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash1);
+	spi_flash_release (&flash2);
+}
+
+static void host_fw_migrate_read_write_data_multiple_fw_test_null (CuTest *test)
+{
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+	struct flash_master_mock flash_mock1;
+	struct spi_flash flash1;
+	struct flash_master_mock flash_mock2;
+	struct spi_flash flash2;
+	int status;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&flash_mock1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&flash_mock2);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash1, &flash_mock1.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash2, &flash_mock2.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash1, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash2, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	rw_region.start_addr = 0x10000;
+	rw_region.length = RSA_ENCRYPT_LEN;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = host_fw_migrate_read_write_data_multiple_fw (NULL, &rw_list, 1, &flash1, &rw_list,
+		1);
+	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
+
+	status = host_fw_migrate_read_write_data_multiple_fw (&flash2, NULL, 1, &flash1, &rw_list,
+		1);
+	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
+
+	status = host_fw_migrate_read_write_data_multiple_fw (&flash2, &rw_list, 1, NULL, &rw_list,
+		1);
+	CuAssertIntEquals (test, HOST_FW_UTIL_INVALID_ARGUMENT, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock2);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash1);
+	spi_flash_release (&flash2);
+}
+
+static void host_fw_migrate_read_write_data_multiple_fw_test_erase_error (CuTest *test)
+{
+	struct flash_region rw_region[3];
+	struct pfm_read_write rw_prop[3];
+	struct pfm_read_write_regions rw_list[3];
+	struct flash_master_mock flash_mock1;
+	struct spi_flash flash1;
+	struct flash_master_mock flash_mock2;
+	struct spi_flash flash2;
+	int status;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&flash_mock1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_init (&flash_mock2);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash1, &flash_mock1.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash2, &flash_mock2.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash1, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash2, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_erase_flash_verify (&flash_mock2, 0x10000, RSA_ENCRYPT_LEN);
+	status |= flash_master_mock_expect_copy_flash_verify (&flash_mock2, &flash_mock1, 0x10000,
+		0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
+
+	status |= flash_master_mock_expect_xfer (&flash_mock2, FLASH_MASTER_XFER_FAILED,
+		FLASH_EXP_READ_STATUS_REG);
+
+	CuAssertIntEquals (test, 0, status);
+
+	rw_region[0].start_addr = 0x10000;
+	rw_region[0].length = RSA_ENCRYPT_LEN;
+	rw_region[1].start_addr = 0x30000;
+	rw_region[1].length = 16;
+	rw_region[2].start_addr = 0x50000;
+	rw_region[2].length = 32;
+
+	rw_prop[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[2].on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list[0].regions = &rw_region[0];
+	rw_list[0].properties = &rw_prop[0];
+	rw_list[0].count = 1;
+
+	rw_list[1].regions = &rw_region[1];
+	rw_list[1].properties = &rw_prop[1];
+	rw_list[1].count = 1;
+
+	rw_list[2].regions = &rw_region[2];
+	rw_list[2].properties = &rw_prop[2];
+	rw_list[2].count = 1;
+
+	status = host_fw_migrate_read_write_data_multiple_fw (&flash2, rw_list, 3, &flash1, rw_list, 3);
+	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock2);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_release (&flash1);
+	spi_flash_release (&flash2);
+}
+
 
 CuSuite* get_host_fw_util_suite ()
 {
@@ -12245,6 +15341,62 @@ CuSuite* get_host_fw_util_suite ()
 	SUITE_ADD_TEST (suite, host_fw_restore_read_write_data_test_erase_flash_error);
 	SUITE_ADD_TEST (suite, host_fw_restore_read_write_data_test_restore_flash_error);
 	SUITE_ADD_TEST (suite, host_fw_restore_read_write_data_test_multiple_regions_error);
+	SUITE_ADD_TEST (suite, host_fw_verify_images_multiple_fw_test);
+	SUITE_ADD_TEST (suite, host_fw_verify_images_multiple_fw_test_invalid);
+	SUITE_ADD_TEST (suite, host_fw_verify_images_multiple_fw_test_multiple);
+	SUITE_ADD_TEST (suite, host_fw_verify_images_multiple_fw_test_hashes);
+	SUITE_ADD_TEST (suite, host_fw_verify_images_multiple_fw_test_hashes_invalid);
+	SUITE_ADD_TEST (suite, host_fw_verify_images_multiple_fw_test_hashes_multiple);
+	SUITE_ADD_TEST (suite, host_fw_verify_images_multiple_fw_test_null);
+	SUITE_ADD_TEST (suite, host_fw_verify_offset_images_multiple_fw_test);
+	SUITE_ADD_TEST (suite, host_fw_verify_offset_images_multiple_fw_test_no_offset);
+	SUITE_ADD_TEST (suite, host_fw_verify_offset_images_multiple_fw_test_invalid);
+	SUITE_ADD_TEST (suite, host_fw_verify_offset_images_multiple_fw_test_multiple);
+	SUITE_ADD_TEST (suite, host_fw_verify_offset_images_multiple_fw_test_hashes);
+	SUITE_ADD_TEST (suite, host_fw_verify_offset_images_multiple_fw_test_hashes_no_offset);
+	SUITE_ADD_TEST (suite, host_fw_verify_offset_images_multiple_fw_test_hashes_invalid);
+	SUITE_ADD_TEST (suite, host_fw_verify_offset_images_multiple_fw_test_hashes_multiple);
+	SUITE_ADD_TEST (suite, host_fw_verify_offset_images_multiple_fw_test_null);
+	SUITE_ADD_TEST (suite, host_fw_full_flash_verification_multiple_fw_test);
+	SUITE_ADD_TEST (suite, host_fw_full_flash_verification_multiple_fw_test_multiple);
+	SUITE_ADD_TEST (suite, host_fw_full_flash_verification_multiple_fw_test_hashes);
+	SUITE_ADD_TEST (suite, host_fw_full_flash_verification_multiple_fw_test_hashes_multiple);
+	SUITE_ADD_TEST (suite, host_fw_full_flash_verification_multiple_fw_test_null);
+	SUITE_ADD_TEST (suite, host_fw_restore_read_write_data_multiple_fw_test);
+	SUITE_ADD_TEST (suite, host_fw_restore_read_write_data_multiple_fw_test_no_source_device);
+	SUITE_ADD_TEST (suite, host_fw_restore_read_write_data_multiple_fw_test_multiple);
+	SUITE_ADD_TEST (suite, host_fw_restore_read_write_data_multiple_fw_test_null);
+	SUITE_ADD_TEST (suite, host_fw_restore_read_write_data_multiple_fw_test_error);
+	SUITE_ADD_TEST (suite, host_fw_config_spi_filter_read_write_regions_multiple_fw_test);
+	SUITE_ADD_TEST (suite,
+		host_fw_config_spi_filter_read_write_regions_multiple_fw_test_multiple_regions);
+	SUITE_ADD_TEST (suite,
+		host_fw_config_spi_filter_read_write_regions_multiple_fw_test_multiple_fw);
+	SUITE_ADD_TEST (suite,
+		host_fw_config_spi_filter_read_write_regions_multiple_fw_test_multiple_fw_and_regions);
+	SUITE_ADD_TEST (suite,
+		host_fw_config_spi_filter_read_write_regions_multiple_fw_test_combine_multiple_regions);
+	SUITE_ADD_TEST (suite,
+		host_fw_config_spi_filter_read_write_regions_multiple_fw_test_combine_multiple_fw);
+	SUITE_ADD_TEST (suite,
+		host_fw_config_spi_filter_read_write_regions_multiple_fw_test_combine_multiple_fw_and_regions);
+	SUITE_ADD_TEST (suite,
+		host_fw_config_spi_filter_read_write_regions_multiple_fw_test_no_regions);
+	SUITE_ADD_TEST (suite, host_fw_config_spi_filter_read_write_regions_multiple_fw_test_no_fw);
+	SUITE_ADD_TEST (suite, host_fw_config_spi_filter_read_write_regions_multiple_fw_test_null);
+	SUITE_ADD_TEST (suite,
+		host_fw_config_spi_filter_read_write_regions_multiple_fw_test_clear_error);
+	SUITE_ADD_TEST (suite,
+		host_fw_config_spi_filter_read_write_regions_multiple_fw_test_region_filter_error);
+	SUITE_ADD_TEST (suite,
+		host_fw_config_spi_filter_read_write_regions_multiple_fw_test_last_region_filter_error);
+	SUITE_ADD_TEST (suite, host_fw_migrate_read_write_data_multiple_fw_test);
+	SUITE_ADD_TEST (suite, host_fw_migrate_read_write_data_multiple_fw_test_multiple);
+	SUITE_ADD_TEST (suite, host_fw_migrate_read_write_data_multiple_fw_test_diff_fw_count);
+	SUITE_ADD_TEST (suite, host_fw_migrate_read_write_data_multiple_fw_test_diff_regions);
+	SUITE_ADD_TEST (suite, host_fw_migrate_read_write_data_multiple_fw_test_no_source_regions);
+	SUITE_ADD_TEST (suite, host_fw_migrate_read_write_data_multiple_fw_test_null);
+	SUITE_ADD_TEST (suite, host_fw_migrate_read_write_data_multiple_fw_test_erase_error);
 
 	return suite;
 }

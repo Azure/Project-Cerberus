@@ -19,6 +19,24 @@
 
 
 /**
+ * Container for the list of read/write regions for the current firmware on flash.
+ */
+struct host_flash_manager_rw_regions {
+	struct pfm *pfm;							/**< PFM instance providing the read/write regions. */
+	struct pfm_read_write_regions *writable;	/**< List of read/write regions from PFM entries. */
+	size_t count;								/**< The number of PFM entries in the list. */
+};
+
+/**
+ * Container for the list of images to authenticate for the current firmware on flash.
+ */
+struct host_flash_manager_images {
+	struct pfm *pfm;							/**< PFM instance providing the image list. */
+	struct pfm_image_list *fw_images;			/**< List of firmware images from PFM entries. */
+	size_t count;								/**< The number of PFM entries in the list. */
+};
+
+/**
  * Manager for protected flash devices for a single host processor.
  */
 struct host_flash_manager {
@@ -54,16 +72,16 @@ struct host_flash_manager {
 	 * @param rsa The RSA engine to use for signature verification.
 	 * @param full_validation Flag indicating if a full flash validation should be run.  If this
 	 * flag is set, optimizations using good_pfm are always skipped.
-	 * @param writable Output that will contain the list of read/write regions for the PFM entry
+	 * @param host_rw Output that will contain the list of read/write regions for the PFM entries
 	 * that validated the flash.  This will be uninitialized if the validation failed.  On
-	 * successful return, this structure must be freed through the PFM instance by the caller.
+	 * successful return, this structure must be free by the caller.
 	 *
 	 * @return 0 if the read-only flash was successfully validated or an error code.  Blank check
 	 * failures will be reported with FLASH_UTIL_UNEXPECTED_VALUE.
 	 */
 	int (*validate_read_only_flash) (struct host_flash_manager *manager, struct pfm *pfm,
 		struct pfm *good_pfm, struct hash_engine *hash, struct rsa_engine *rsa,
-		bool full_validation, struct pfm_read_write_regions *writable);
+		bool full_validation, struct host_flash_manager_rw_regions *host_rw);
 
 	/**
 	 * Validate the read/write flash device.
@@ -72,15 +90,16 @@ struct host_flash_manager {
 	 * @param pfm The PFM to validate the read/write flash against.
 	 * @param hash The hash engine to use for validation.
 	 * @param rsa The RSA engine to use for signature verification.
-	 * @param writable Output that will contain the list of read/write regions for the PFM entry
+	 * @param host_rw Output that will contain the list of read/write regions for the PFM entries
 	 * that validated the flash.  This will be uninitialized if the validation failed.  On
-	 * successful return, this structure must be freed through the PFM instance by the caller.
+	 * successful return, this structure must be freed by the caller.
 	 *
 	 * @return 0 if the read/write flash was successfully validated or an error code.  Blank check
 	 * failures will be reported with FLASH_UTIL_UNEXPECTED_VALUE.
 	 */
 	int (*validate_read_write_flash) (struct host_flash_manager *manager, struct pfm *pfm,
-		struct hash_engine *hash, struct rsa_engine *rsa, struct pfm_read_write_regions *writable);
+		struct hash_engine *hash, struct rsa_engine *rsa,
+		struct host_flash_manager_rw_regions *host_rw);
 
 	/**
 	 * Get the read/write regions defined in a PFM for the firmware on flash.  No validation of the
@@ -91,24 +110,23 @@ struct host_flash_manager {
 	 * @param pfm The PFM that contains the read/write region definitions.
 	 * @param rw_flash Flag indicating that the read/write flash should be checked.  The read-only
 	 * flash will be checked if this flag is not set.
-	 * @param writable Output that will contain the list of read/write regions for the PFM entry
+	 * @param host_rw Output that will contain the list of read/write regions for the PFM entries
 	 * that matches the contents of flash.  This will be uninitialized on error.  On successful
-	 * return, this structure must be freed through the PFM instance by the caller.
+	 * return, this structure must be freed by the caller.
 	 *
 	 * @return 0 if the read/write regions were successfully retrieved or an error code.
 	 */
 	int (*get_flash_read_write_regions) (struct host_flash_manager *manager, struct pfm *pfm,
-		bool rw_flash, struct pfm_read_write_regions *writable);
+		bool rw_flash, struct host_flash_manager_rw_regions *host_rw);
 
 	/**
-	 * Restore the read/write regions from the read-only flash.
+	 * Free a list of host firmware read/write regions.
 	 *
-	 * @param manager The flash manager to use for flash updating.
-	 * @param writable The list of read/write regions to restore.  The region properties decide what
-	 * restore operation, if any, will be executed on each read/write region.
+	 * @param manager The flash manager that allocated the region list.
+	 * @param host_rw The list of read/write regions to free.
 	 */
-	int (*restore_flash_read_write_regions) (struct host_flash_manager *manager,
-		struct pfm_read_write_regions *writable);
+	void (*free_read_write_regions) (struct host_flash_manager *manager,
+		struct host_flash_manager_rw_regions *host_rw);
 
 	/**
 	 * Configure the SPI filter for the ID of the devices that are being protected.
@@ -135,7 +153,7 @@ struct host_flash_manager {
 	 * The host inactive dirty state is cleared as part of the operation.
 	 *
 	 * @param manager The flash manager to update.
-	 * @param writable The list of read/write regions that exist on the new read-only flash.  If
+	 * @param host_rw The list of read/write regions that exist on the new read-only flash.  If
 	 * this is null, no data migration will be performed as part of the swap.
 	 * @param used_pending If a pending PFM was used to authenticate the device being made
 	 * read-only, activate the PFM as part of the device swap.  Make this null if no pending PFM
@@ -144,7 +162,7 @@ struct host_flash_manager {
 	 * @return 0 if the flashes were switched or an error code.
 	 */
 	int (*swap_flash_devices) (struct host_flash_manager *manager,
-		struct pfm_read_write_regions *writable, struct pfm_manager *used_pending);
+		struct host_flash_manager_rw_regions *host_rw, struct pfm_manager *used_pending);
 
 	/**
 	 * Configure the system for first-time flash protection.  This should only be called once for
@@ -154,12 +172,22 @@ struct host_flash_manager {
 	 * The host inactive dirty state is cleared as part of the operation.
 	 *
 	 * @param manager The manager for the flash to initialize.
-	 * @param writable The list of read/write regions in the protected image.
+	 * @param host_rw The list of read/write regions in the protected image.
 	 *
 	 * @return 0 if the flash was successfully initialized or an error code.
 	 */
 	int (*initialize_flash_protection) (struct host_flash_manager *manager,
-		struct pfm_read_write_regions *writable);
+		struct host_flash_manager_rw_regions *host_rw);
+
+	/**
+	 * Restore the read/write regions from the read-only flash.
+	 *
+	 * @param manager The flash manager to use for flash updating.
+	 * @param host_rw The list of read/write regions to restore.  The region properties decide what
+	 * restore operation, if any, will be executed on each read/write region.
+	 */
+	int (*restore_flash_read_write_regions) (struct host_flash_manager *manager,
+		struct host_flash_manager_rw_regions *host_rw);
 
 	/**
 	 * Configure the system for to allow RoT access to the protected flash devices.  This must be
@@ -216,13 +244,13 @@ void host_flash_manager_release (struct host_flash_manager *manager);
 /* Internal functions for use by derived types. */
 int host_flash_manager_validate_flash (struct pfm *pfm, struct hash_engine *hash,
 	struct rsa_engine *rsa, bool full_validation, struct spi_flash *flash,
-	struct pfm_read_write_regions *writable);
+	struct host_flash_manager_rw_regions *host_rw);
 int host_flash_manager_validate_offset_flash (struct pfm *pfm, struct hash_engine *hash,
 	struct rsa_engine *rsa, bool full_validation, struct spi_flash *flash, uint32_t offset,
-	struct pfm_read_write_regions *writable);
+	struct host_flash_manager_rw_regions *host_rw);
 int host_flash_manager_validate_pfm (struct pfm *pfm, struct pfm *good_pfm,
 	struct hash_engine *hash, struct rsa_engine *rsa, struct spi_flash *flash,
-	struct pfm_read_write_regions *writable);
+	struct host_flash_manager_rw_regions *host_rw);
 
 int host_flash_manager_configure_flash_for_rot_access (struct spi_flash *flash);
 

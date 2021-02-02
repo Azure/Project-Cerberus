@@ -381,7 +381,7 @@ static int host_fw_verify_images_on_flash (struct spi_flash *flash,
 int host_fw_verify_images (struct spi_flash *flash, const struct pfm_image_list *img_list,
 	struct hash_engine *hash, struct rsa_engine *rsa)
 {
-	return host_fw_verify_offset_images (flash, img_list, 0, hash, rsa);
+	return host_fw_verify_offset_images_multiple_fw (flash, img_list, 1, 0, hash, rsa);
 }
 
 /**
@@ -400,11 +400,62 @@ int host_fw_verify_images (struct spi_flash *flash, const struct pfm_image_list 
 int host_fw_verify_offset_images (struct spi_flash *flash, const struct pfm_image_list *img_list,
 	uint32_t offset, struct hash_engine *hash, struct rsa_engine *rsa)
 {
+	return host_fw_verify_offset_images_multiple_fw (flash, img_list, 1, offset, hash, rsa);
+}
+
+/**
+ * Verify that images from multiple different firmware components on the flash are valid.  Only
+ * images flagged for validation will be checked.
+ *
+ * @param flash The flash that contains the images to validate.
+ * @param img_list An array of firmware images that should be validated.
+ * @param fw_count The number of firmware components in the list.
+ * @param hash The hashing engine to use for validation.
+ * @param rsa The RSA engine to use for signature checking.
+ *
+ * @return 0 if all images that should be validated are good or an error code.
+ */
+int host_fw_verify_images_multiple_fw (struct spi_flash *flash,
+	const struct pfm_image_list *img_list, size_t fw_count, struct hash_engine *hash,
+	struct rsa_engine *rsa)
+{
+	return host_fw_verify_offset_images_multiple_fw (flash, img_list, fw_count, 0, hash, rsa);
+}
+
+/**
+ * Verify that images from multiple different firmware components on the flash are valid.  Only
+ * images flagged for validation will be checked.
+ *
+ * All image addresses specified in the PFM will be offset by a fixed amount.
+ *
+ * @param flash The flash that contains the images to validate.
+ * @param img_list An array of firmware images that should be validated.
+ * @param fw_count The number of firmware components in the list.
+ * @param offset The offset to apply to image addresses.
+ * @param hash The hashing engine to use for validation.
+ * @param rsa The RSA engine to use for signature checking.
+ *
+ * @return 0 if all images that should be validated are good or an error code.
+ */
+int host_fw_verify_offset_images_multiple_fw (struct spi_flash *flash,
+	const struct pfm_image_list *img_list, size_t fw_count, uint32_t offset,
+	struct hash_engine *hash, struct rsa_engine *rsa)
+{
+	size_t i;
+	int status;
+
 	if ((flash == NULL) || (img_list == NULL) || (hash == NULL) || (rsa == NULL)) {
 		return HOST_FW_UTIL_INVALID_ARGUMENT;
 	}
 
-	return host_fw_verify_images_on_flash (flash, img_list, false, offset, hash, rsa);
+	for (i = 0; i < fw_count; i++) {
+		status = host_fw_verify_images_on_flash (flash, &img_list[i], false, offset, hash, rsa);
+		if (status != 0) {
+			return status;
+		}
+	}
+
+	return 0;
 }
 
 /**
@@ -412,33 +463,37 @@ int host_fw_verify_offset_images (struct spi_flash *flash, const struct pfm_imag
  *
  * @param last_addr The flash address to start looking for the next region.
  * @param img_list The list of firmware images in flash.
+ * @param fw_count The number of image instances.
  *
  * @return The region description for the next defined image region or null if there are no more
  * defined regions.
  */
 static const struct flash_region* host_fw_find_next_img_region (uint32_t last_addr,
-	const struct pfm_image_list *img_list)
+	const struct pfm_image_list *img_list, size_t fw_count)
 {
 	const struct flash_region *next = NULL;
 	const struct flash_region *img_next;
 	size_t i;
+	size_t j;
 
-	for (i = 0; i < img_list->count; i++) {
-		if (img_list->images_sig) {
-			img_next = host_fw_find_next_region (last_addr, img_list->images_sig[i].regions,
-				img_list->images_sig[i].count);
-		}
-		else {
-			img_next = host_fw_find_next_region (last_addr, img_list->images_hash[i].regions,
-				img_list->images_hash[i].count);
-		}
-
-		if (img_next) {
-			if (img_next->start_addr == last_addr) {
-				return img_next;
+	for (i = 0; i < fw_count; i++) {
+		for (j = 0; j < img_list[i].count; j++) {
+			if (img_list[i].images_sig) {
+				img_next = host_fw_find_next_region (last_addr, img_list[i].images_sig[j].regions,
+					img_list[i].images_sig[j].count);
 			}
-			else if (!next || (img_next->start_addr < next->start_addr)) {
-				next = img_next;
+			else {
+				img_next = host_fw_find_next_region (last_addr, img_list[i].images_hash[j].regions,
+					img_list[i].images_hash[j].count);
+			}
+
+			if (img_next) {
+				if (img_next->start_addr == last_addr) {
+					return img_next;
+				}
+				else if (!next || (img_next->start_addr < next->start_addr)) {
+					next = img_next;
+				}
 			}
 		}
 	}
@@ -451,14 +506,32 @@ static const struct flash_region* host_fw_find_next_img_region (uint32_t last_ad
  *
  * @param last_addr The flash address to start looking for the next region.
  * @param writable The list of read/write regions in flash.
+ * @param fw_count The number of read/write region instances.
  *
  * @return The region description for the next defined read/write region or null if there are no
  * more defined regions.
  */
 static const struct flash_region* host_fw_find_next_rw_region (uint32_t last_addr,
-	const struct pfm_read_write_regions *writable)
+	const struct pfm_read_write_regions *writable, size_t fw_count)
 {
-	return host_fw_find_next_region (last_addr, writable->regions, writable->count);
+	const struct flash_region *next = NULL;
+	const struct flash_region *rw_next;
+	size_t i;
+
+	for (i = 0; i < fw_count; i++) {
+		rw_next = host_fw_find_next_region (last_addr, writable[i].regions, writable[i].count);
+
+		if (rw_next) {
+			if (rw_next->start_addr == last_addr) {
+				return rw_next;
+			}
+			else if (!next || (rw_next->start_addr < next->start_addr)) {
+				next = rw_next;
+			}
+		}
+	}
+
+	return next;
 }
 
 /**
@@ -467,22 +540,24 @@ static const struct flash_region* host_fw_find_next_rw_region (uint32_t last_add
  * @param last_addr The flash address to start looking for the next region.
  * @param img_list The list of images in the flash.
  * @param writable The list of read/write regions in the flash.
+ * @param fw_count The number of different firmware instances.
  *
  * @return The region description for the next used region or null if there are no more used
  * regions.
  */
 static const struct flash_region* host_fw_find_next_flash_region (uint32_t last_addr,
-	const struct pfm_image_list *img_list, const struct pfm_read_write_regions *writable)
+	const struct pfm_image_list *img_list, const struct pfm_read_write_regions *writable,
+	size_t fw_count)
 {
 	const struct flash_region *next;
 	const struct flash_region *rw_next;
 
-	next = host_fw_find_next_img_region (last_addr, img_list);
+	next = host_fw_find_next_img_region (last_addr, img_list, fw_count);
 	if (next && (next->start_addr == last_addr)) {
 		return next;
 	}
 
-	rw_next = host_fw_find_next_rw_region (last_addr, writable);
+	rw_next = host_fw_find_next_rw_region (last_addr, writable, fw_count);
 	if (rw_next) {
 		if (!next || (rw_next->start_addr == last_addr)) {
 			next = rw_next;
@@ -496,7 +571,7 @@ static const struct flash_region* host_fw_find_next_flash_region (uint32_t last_
 }
 
 /**
- * Verify that the entire flash contains are good.  All images will be verified and unused regions
+ * Verify that the entire flash contents are good.  All images will be verified and unused regions
  * of read-only flash will be verified to be empty.
  *
  * @param flash The flash that should be validated.
@@ -512,10 +587,38 @@ int host_fw_full_flash_verification (struct spi_flash *flash, const struct pfm_i
 	const struct pfm_read_write_regions *writable, uint8_t unused_byte, struct hash_engine *hash,
 	struct rsa_engine *rsa)
 {
+	return host_fw_full_flash_verification_multiple_fw (flash, img_list, writable, 1,
+		unused_byte, hash, rsa);
+}
+
+/**
+ * Verify that the entire flash contents are good.  All images will be verified and unused regions
+ * of read-only flash will be verified to be empty.
+ *
+ * The flash contains multiple, independent firmware components.
+ *
+ * @param flash The flash that should be validated.
+ * @param img_list The list of images contained in the flash.
+ * @param writable The list of writable regions of flash.
+ * @param img_list An array of firmware images that should be validated.
+ * @param writable An array of writable regions for each firmware component.
+ * @param fw_count The number of firmware components in the list.  Both arrays of firmware
+ * information must be the same length.
+ * @param unused_byte The byte value to check for in unused flash regions.
+ * @param hash The hashing engine to use for validation.
+ * @param rsa The RSA engine to use for signature checking.
+ *
+ * @return 0 if the flash contents are good or an error code.
+ */
+int host_fw_full_flash_verification_multiple_fw (struct spi_flash *flash,
+	const struct pfm_image_list *img_list, const struct pfm_read_write_regions *writable,
+	size_t fw_count, uint8_t unused_byte, struct hash_engine *hash, struct rsa_engine *rsa)
+{
 	const struct flash_region *pos;
 	uint32_t flash_size;
 	uint32_t last_addr;
 	int status;
+	size_t i;
 
 	if ((flash == NULL) || (img_list == NULL) || (writable == NULL) || (hash == NULL) ||
 		(rsa == NULL)) {
@@ -527,13 +630,15 @@ int host_fw_full_flash_verification (struct spi_flash *flash, const struct pfm_i
 		return status;
 	}
 
-	status = host_fw_verify_images_on_flash (flash, img_list, true, 0, hash, rsa);
-	if (status != 0) {
-		return status;
+	for (i = 0; i < fw_count; i++) {
+		status = host_fw_verify_images_on_flash (flash, &img_list[i], true, 0, hash, rsa);
+		if (status != 0) {
+			return status;
+		}
 	}
 
 	last_addr = 0;
-	pos = host_fw_find_next_flash_region (last_addr, img_list, writable);
+	pos = host_fw_find_next_flash_region (last_addr, img_list, writable, fw_count);
 	while (pos) {
 		status = flash_value_check (&flash->base, last_addr, pos->start_addr - last_addr,
 			unused_byte);
@@ -542,7 +647,7 @@ int host_fw_full_flash_verification (struct spi_flash *flash, const struct pfm_i
 		}
 
 		last_addr = pos->start_addr + pos->length;
-		pos = host_fw_find_next_flash_region (last_addr, img_list, writable);
+		pos = host_fw_find_next_flash_region (last_addr, img_list, writable, fw_count);
 	}
 
 	return flash_value_check (&flash->base, last_addr, flash_size - last_addr, unused_byte);
@@ -611,7 +716,7 @@ int host_fw_migrate_read_write_data (struct spi_flash *dest,
 	}
 
 	last_addr = 0;
-	dest_pos = host_fw_find_next_rw_region (last_addr, dest_writable);
+	dest_pos = host_fw_find_next_rw_region (last_addr, dest_writable, 1);
 	while (dest_pos) {
 		status = flash_erase_region_and_verify (&dest->base, dest_pos->start_addr,
 			dest_pos->length);
@@ -620,7 +725,7 @@ int host_fw_migrate_read_write_data (struct spi_flash *dest,
 		}
 
 		if (src_writable && !migrate_fail) {
-			src_pos = host_fw_find_next_rw_region (last_addr, src_writable);
+			src_pos = host_fw_find_next_rw_region (last_addr, src_writable, 1);
 			if (src_pos) {
 				if (dest_pos->start_addr != src_pos->start_addr) {
 					migrate_fail = HOST_FW_UTIL_DIFF_REGION_ADDR;
@@ -632,7 +737,7 @@ int host_fw_migrate_read_write_data (struct spi_flash *dest,
 		}
 
 		last_addr = dest_pos->start_addr + dest_pos->length;
-		dest_pos = host_fw_find_next_rw_region (last_addr, dest_writable);
+		dest_pos = host_fw_find_next_rw_region (last_addr, dest_writable, 1);
 	}
 
 	if (migrate_fail) {
@@ -640,7 +745,7 @@ int host_fw_migrate_read_write_data (struct spi_flash *dest,
 	}
 
 	last_addr = 0;
-	dest_pos = host_fw_find_next_rw_region (last_addr, dest_writable);
+	dest_pos = host_fw_find_next_rw_region (last_addr, dest_writable, 1);
 	while (dest_pos) {
 		status = flash_copy_ext_to_blank_and_verify (&dest->base, dest_pos->start_addr, &src->base,
 			dest_pos->start_addr, dest_pos->length);
@@ -649,10 +754,72 @@ int host_fw_migrate_read_write_data (struct spi_flash *dest,
 		}
 
 		last_addr = dest_pos->start_addr + dest_pos->length;
-		dest_pos = host_fw_find_next_rw_region (last_addr, dest_writable);
+		dest_pos = host_fw_find_next_rw_region (last_addr, dest_writable, 1);
 	}
 
 	return 0;
+}
+
+/**
+ * Migrate the read/write data from one flash device to another.  The migration will only happen if
+ * the read/write regions defined for the two flash devices are exactly the same.  Any change in
+ * defined read/write regions will cause the migration to fail.  It is possible to bypass this error
+ * checking and force the migration, if that behavior is necessary.
+ *
+ * The flash contains multiple firmware components with defined read/write regions.  Comparison for
+ * migration compatibitily will be done for each individual firmware component.
+ *
+ * The read/write regions of the destination flash are always erased, even if the migration can't
+ * happen.  This ensures blank data on the destination read/write regions instead of allowing
+ * data previously in that location to persist.
+ *
+ * @param dest The flash device that will receive the read/write data.
+ * @param dest_writable The read/write regions defined on the destination flash.
+ * @param dest_count The number of firmware components in the destination list.
+ * @param src The flash device that contains the read/write data to migrate.
+ * @param src_writable The read/write regions that should be migrated.  This can be null to force
+ * the migration with no compatibility checking.
+ * @param src_count The number of firmware components in the source list.
+ *
+ * @return 0 if the data migration was successful or an error code.  If the data regions are not
+ * compatible for migration, one of the following errors will be returned:
+ * 		- HOST_FW_UTIL_DIFF_REGION_COUNT
+ * 		- HOST_FW_UTIL_DIFF_REGION_ADDR
+ * 		- HOST_FW_UTIL_DIFF_REGION_SIZE
+ * 		- HOST_FW_UTIL_DIFF_FW_COUNT
+ */
+int host_fw_migrate_read_write_data_multiple_fw (struct spi_flash *dest,
+	const struct pfm_read_write_regions *dest_writable, size_t dest_count, struct spi_flash *src,
+	const struct pfm_read_write_regions *src_writable, size_t src_count)
+{
+	size_t i;
+	int status;
+	int migrate_fail = 0;
+
+	if ((dest == NULL) || (dest_writable == NULL) || (src == NULL)) {
+		return HOST_FW_UTIL_INVALID_ARGUMENT;
+	}
+
+	if (src_writable && (dest_count != src_count)) {
+		return HOST_FW_UTIL_DIFF_FW_COUNT;
+	}
+
+	for (i = 0; i < dest_count; i++) {
+		status = host_fw_migrate_read_write_data (dest, &dest_writable[i], src,
+			(src_writable) ? &src_writable[i] : NULL);
+		if (status != 0) {
+			if ((status == HOST_FW_UTIL_DIFF_REGION_COUNT) ||
+				(status == HOST_FW_UTIL_DIFF_REGION_ADDR) ||
+				(status == HOST_FW_UTIL_DIFF_REGION_SIZE)) {
+				migrate_fail = status;
+			}
+			else {
+				return status;
+			}
+		}
+	}
+
+	return migrate_fail;
 }
 
 /**
@@ -691,7 +858,7 @@ int host_fw_restore_flash_device (struct spi_flash *restore, struct spi_flash *f
 
 	/* Erase all read-only regions. */
 	last_addr = 0;
-	pos = host_fw_find_next_rw_region (last_addr, writable);
+	pos = host_fw_find_next_rw_region (last_addr, writable, 1);
 	while (pos) {
 		status = flash_erase_region (&restore->base, last_addr, pos->start_addr - last_addr);
 		if (status != 0) {
@@ -699,7 +866,7 @@ int host_fw_restore_flash_device (struct spi_flash *restore, struct spi_flash *f
 		}
 
 		last_addr = pos->start_addr + pos->length;
-		pos = host_fw_find_next_rw_region (last_addr, writable);
+		pos = host_fw_find_next_rw_region (last_addr, writable, 1);
 	}
 
 	status = flash_erase_region (&restore->base, last_addr, flash_size - last_addr);
@@ -782,6 +949,41 @@ int host_fw_restore_read_write_data (struct spi_flash *restore, struct spi_flash
 }
 
 /**
+ * Restore the read/write data in a flash device.  Based on the configuration of each region, the
+ * destination flash will either be left unchanged, completely erased, or copied from a different
+ * flash device.
+ *
+ * Read/write data from multiple firmware components will be restored.
+ *
+ * @param restore The flash device that should be restored.
+ * @param from The device to restore data from.  If this is null, regions that are configured to be
+ * copied will instead remain unchanged.
+ * @param writable An array of read/write regions to restore.
+ * @param fw_count The number of firmware components in the list.
+ *
+ * @return 0 if all regions were restored successfully or an error code.
+ */
+int host_fw_restore_read_write_data_multiple_fw (struct spi_flash *restore, struct spi_flash *from,
+	const struct pfm_read_write_regions *writable, size_t fw_count)
+{
+	size_t i;
+	int status;
+
+	if ((restore == NULL) || (writable == NULL)) {
+		return HOST_FW_UTIL_INVALID_ARGUMENT;
+	}
+
+	for (i = 0; i < fw_count; i++) {
+		status = host_fw_restore_read_write_data (restore, from, &writable[i]);
+		if (status != 0) {
+			return status;
+		}
+	}
+
+	return 0;
+}
+
+/**
  * Configure the SPI filter with the read/write region definitions from a PFM entry.
  *
  * @param filter The SPI filter to configure.
@@ -811,6 +1013,72 @@ int host_fw_config_spi_filter_read_write_regions (struct spi_filter_interface *f
 			return status;
 		}
 	}
+
+	return 0;
+}
+
+/**
+ * Configure the SPI filter with the read/write region definitions from the PFM.  The read/write
+ * regions from multiple different firmware components will be inspected to generate the fewest
+ * number of continguous regions for the filter.
+ *
+ * @param filter The SPI filter to configure.
+ * @param writable An array of read/write regions defined for all firmware components.
+ * @param fw_count The number of firmware components in the list.
+ *
+ * @return 0 if the SPI filter was successfully configured or an error code.
+ */
+int host_fw_config_spi_filter_read_write_regions_multiple_fw (struct spi_filter_interface *filter,
+	const struct pfm_read_write_regions *writable, size_t fw_count)
+{
+	uint8_t region_id = 0;
+	uint32_t last_addr = 0;
+	const struct flash_region *next = NULL;
+	const struct flash_region *prev = NULL;
+	size_t total_len;
+	int status;
+
+	if ((filter == NULL) || ((writable == NULL) && (fw_count != 0))) {
+		return HOST_FW_UTIL_INVALID_ARGUMENT;
+	}
+
+	status = filter->clear_filter_rw_regions (filter);
+	if (status != 0) {
+		return status;
+	}
+
+	do {
+		if (!prev) {
+			prev = next;
+		}
+		next = host_fw_find_next_rw_region (last_addr, writable, fw_count);
+
+		if (prev) {
+			if (next && (next->start_addr == last_addr)) {
+				/* The next region is contiguous with the previous one. */
+				total_len += next->length;
+				last_addr += next->length;
+			}
+			else {
+				/* Found the end of a R/W region. */
+				status = filter->set_filter_rw_region (filter, ++region_id, prev->start_addr,
+					prev->start_addr + total_len);
+				if (status != 0) {
+					return status;
+				}
+
+				prev = NULL;
+				if (next) {
+					total_len = next->length;
+					last_addr = next->start_addr + next->length;
+				}
+			}
+		}
+		else if (next) {
+			total_len = next->length;
+			last_addr = next->start_addr + next->length;
+		}
+	} while (prev || next);
 
 	return 0;
 }

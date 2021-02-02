@@ -35,7 +35,7 @@ static struct spi_flash* host_flash_manager_mock_get_read_write_flash (
 
 static int host_flash_manager_mock_validate_read_only_flash (struct host_flash_manager *manager,
 	struct pfm *pfm, struct pfm *good_pfm, struct hash_engine *hash, struct rsa_engine *rsa,
-	bool full_validation, struct pfm_read_write_regions *writable)
+	bool full_validation, struct host_flash_manager_rw_regions *host_rw)
 {
 	struct host_flash_manager_mock *mock = (struct host_flash_manager_mock*) manager;
 
@@ -45,12 +45,12 @@ static int host_flash_manager_mock_validate_read_only_flash (struct host_flash_m
 
 	MOCK_RETURN (&mock->mock, host_flash_manager_mock_validate_read_only_flash, manager,
 		MOCK_ARG_CALL (pfm), MOCK_ARG_CALL (good_pfm), MOCK_ARG_CALL (hash), MOCK_ARG_CALL (rsa),
-		MOCK_ARG_CALL (full_validation), MOCK_ARG_CALL (writable));
+		MOCK_ARG_CALL (full_validation), MOCK_ARG_CALL (host_rw));
 }
 
 static int host_flash_manager_mock_validate_read_write_flash (struct host_flash_manager *manager,
 	struct pfm *pfm, struct hash_engine *hash, struct rsa_engine *rsa,
-	struct pfm_read_write_regions *writable)
+	struct host_flash_manager_rw_regions *host_rw)
 {
 	struct host_flash_manager_mock *mock = (struct host_flash_manager_mock*) manager;
 
@@ -59,11 +59,11 @@ static int host_flash_manager_mock_validate_read_write_flash (struct host_flash_
 	}
 
 	MOCK_RETURN (&mock->mock, host_flash_manager_mock_validate_read_write_flash, manager,
-		MOCK_ARG_CALL (pfm), MOCK_ARG_CALL (hash), MOCK_ARG_CALL (rsa), MOCK_ARG_CALL (writable));
+		MOCK_ARG_CALL (pfm), MOCK_ARG_CALL (hash), MOCK_ARG_CALL (rsa), MOCK_ARG_CALL (host_rw));
 }
 
 static int host_flash_manager_mock_get_flash_read_write_regions (struct host_flash_manager *manager,
-	struct pfm *pfm, bool rw_flash, struct pfm_read_write_regions *writable)
+	struct pfm *pfm, bool rw_flash, struct host_flash_manager_rw_regions *host_rw)
 {
 	struct host_flash_manager_mock *mock = (struct host_flash_manager_mock*) manager;
 
@@ -72,20 +72,20 @@ static int host_flash_manager_mock_get_flash_read_write_regions (struct host_fla
 	}
 
 	MOCK_RETURN (&mock->mock, host_flash_manager_mock_get_flash_read_write_regions, manager,
-		MOCK_ARG_CALL (pfm), MOCK_ARG_CALL (rw_flash), MOCK_ARG_CALL (writable));
+		MOCK_ARG_CALL (pfm), MOCK_ARG_CALL (rw_flash), MOCK_ARG_CALL (host_rw));
 }
 
-static int host_flash_manager_mock_restore_flash_read_write_regions (
-	struct host_flash_manager *manager, struct pfm_read_write_regions *writable)
+static void host_flash_manager_mock_free_read_write_regions (struct host_flash_manager *manager,
+	struct host_flash_manager_rw_regions *host_rw)
 {
 	struct host_flash_manager_mock *mock = (struct host_flash_manager_mock*) manager;
 
 	if (mock == NULL) {
-		return MOCK_INVALID_ARGUMENT;
+		return;
 	}
 
-	MOCK_RETURN (&mock->mock, host_flash_manager_mock_restore_flash_read_write_regions, manager,
-		MOCK_ARG_CALL (writable));
+	MOCK_VOID_RETURN (&mock->mock, host_flash_manager_mock_free_read_write_regions, manager,
+		MOCK_ARG_CALL (host_rw));
 }
 
 static int host_flash_manager_mock_config_spi_filter_flash_type (struct host_flash_manager *manager)
@@ -114,7 +114,7 @@ static int host_flash_manager_mock_config_spi_filter_flash_devices (
 }
 
 static int host_flash_manager_mock_swap_flash_devices (struct host_flash_manager *manager,
-	struct pfm_read_write_regions *writable, struct pfm_manager *used_pending)
+	struct host_flash_manager_rw_regions *host_rw, struct pfm_manager *used_pending)
 {
 	struct host_flash_manager_mock *mock = (struct host_flash_manager_mock*) manager;
 
@@ -123,11 +123,11 @@ static int host_flash_manager_mock_swap_flash_devices (struct host_flash_manager
 	}
 
 	MOCK_RETURN (&mock->mock, host_flash_manager_mock_swap_flash_devices, manager,
-		MOCK_ARG_CALL (writable), MOCK_ARG_CALL (used_pending));
+		MOCK_ARG_CALL (host_rw), MOCK_ARG_CALL (used_pending));
 }
 
 static int host_flash_manager_mock_initialize_flash_protection (struct host_flash_manager *manager,
-	struct pfm_read_write_regions *writable)
+	struct host_flash_manager_rw_regions *host_rw)
 {
 	struct host_flash_manager_mock *mock = (struct host_flash_manager_mock*) manager;
 
@@ -136,7 +136,20 @@ static int host_flash_manager_mock_initialize_flash_protection (struct host_flas
 	}
 
 	MOCK_RETURN (&mock->mock, host_flash_manager_mock_initialize_flash_protection, manager,
-		MOCK_ARG_CALL (writable));
+		MOCK_ARG_CALL (host_rw));
+}
+
+static int host_flash_manager_mock_restore_flash_read_write_regions (
+	struct host_flash_manager *manager, struct host_flash_manager_rw_regions *host_rw)
+{
+	struct host_flash_manager_mock *mock = (struct host_flash_manager_mock*) manager;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, host_flash_manager_mock_restore_flash_read_write_regions, manager,
+		MOCK_ARG_CALL (host_rw));
 }
 
 static int host_flash_manager_mock_set_flash_for_rot_access (struct host_flash_manager *manager,
@@ -196,7 +209,8 @@ static int host_flash_manager_mock_func_arg_count (void *func)
 		(func == host_flash_manager_mock_set_flash_for_rot_access) ||
 		(func == host_flash_manager_mock_set_flash_for_host_access) ||
 		(func == host_flash_manager_mock_host_has_flash_access) ||
-		(func == host_flash_manager_mock_restore_flash_read_write_regions)) {
+		(func == host_flash_manager_mock_restore_flash_read_write_regions) ||
+		(func == host_flash_manager_mock_free_read_write_regions)) {
 		return 1;
 	}
 	else {
@@ -221,8 +235,8 @@ static const char* host_flash_manager_mock_func_name_map (void *func)
 	else if (func == host_flash_manager_mock_get_flash_read_write_regions) {
 		return "get_flash_read_write_regions";
 	}
-	else if (func == host_flash_manager_mock_restore_flash_read_write_regions) {
-		return "restore_flash_read_write_regions";
+	else if (func == host_flash_manager_mock_free_read_write_regions) {
+		return "free_read_write_regions";
 	}
 	else if (func == host_flash_manager_mock_config_spi_filter_flash_type) {
 		return "config_spi_filter_flash_type";
@@ -235,6 +249,9 @@ static const char* host_flash_manager_mock_func_name_map (void *func)
 	}
 	else if (func == host_flash_manager_mock_initialize_flash_protection) {
 		return "initialize_flash_protection";
+	}
+	else if (func == host_flash_manager_mock_restore_flash_read_write_regions) {
+		return "restore_flash_read_write_regions";
 	}
 	else if (func == host_flash_manager_mock_set_flash_for_rot_access) {
 		return "set_flash_for_rot_access";
@@ -270,7 +287,7 @@ static const char* host_flash_manager_mock_arg_name_map (void *func, int arg)
 				return "full_validation";
 
 			case 5:
-				return "writable";
+				return "host_rw";
 		}
 	}
 	else if (func == host_flash_manager_mock_validate_read_write_flash) {
@@ -285,7 +302,7 @@ static const char* host_flash_manager_mock_arg_name_map (void *func, int arg)
 				return "rsa";
 
 			case 3:
-				return "writable";
+				return "host_rw";
 		}
 	}
 	else if (func == host_flash_manager_mock_get_flash_read_write_regions) {
@@ -297,19 +314,19 @@ static const char* host_flash_manager_mock_arg_name_map (void *func, int arg)
 				return "rw_flash";
 
 			case 2:
-				return "writable";
+				return "host_rw";
 		}
 	}
-	else if (func == host_flash_manager_mock_restore_flash_read_write_regions) {
+	else if (func == host_flash_manager_mock_free_read_write_regions) {
 		switch (arg) {
 			case 0:
-				return "writable";
+				return "host_rw";
 		}
 	}
 	else if (func == host_flash_manager_mock_swap_flash_devices) {
 		switch (arg) {
 			case 0:
-				return "writable";
+				return "host_rw";
 
 			case 1:
 				return "used_pending";
@@ -318,7 +335,13 @@ static const char* host_flash_manager_mock_arg_name_map (void *func, int arg)
 	else if (func == host_flash_manager_mock_initialize_flash_protection) {
 		switch (arg) {
 			case 0:
-				return "writable";
+				return "host_rw";
+		}
+	}
+	else if (func == host_flash_manager_mock_restore_flash_read_write_regions) {
+		switch (arg) {
+			case 0:
+				return "host_rw";
 		}
 	}
 	else if (func == host_flash_manager_mock_set_flash_for_rot_access) {
@@ -372,13 +395,14 @@ int host_flash_manager_mock_init (struct host_flash_manager_mock *mock)
 	mock->base.validate_read_only_flash = host_flash_manager_mock_validate_read_only_flash;
 	mock->base.validate_read_write_flash = host_flash_manager_mock_validate_read_write_flash;
 	mock->base.get_flash_read_write_regions = host_flash_manager_mock_get_flash_read_write_regions;
-	mock->base.restore_flash_read_write_regions =
-		host_flash_manager_mock_restore_flash_read_write_regions;
+	mock->base.free_read_write_regions = host_flash_manager_mock_free_read_write_regions;
 	mock->base.config_spi_filter_flash_type = host_flash_manager_mock_config_spi_filter_flash_type;
 	mock->base.config_spi_filter_flash_devices =
 		host_flash_manager_mock_config_spi_filter_flash_devices;
 	mock->base.swap_flash_devices = host_flash_manager_mock_swap_flash_devices;
 	mock->base.initialize_flash_protection = host_flash_manager_mock_initialize_flash_protection;
+	mock->base.restore_flash_read_write_regions =
+		host_flash_manager_mock_restore_flash_read_write_regions;
 	mock->base.set_flash_for_rot_access = host_flash_manager_mock_set_flash_for_rot_access;
 	mock->base.set_flash_for_host_access = host_flash_manager_mock_set_flash_for_host_access;
 	mock->base.host_has_flash_access = host_flash_manager_mock_host_has_flash_access;

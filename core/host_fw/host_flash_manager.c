@@ -44,18 +44,19 @@ static struct spi_flash* host_flash_manager_get_read_write_flash (
  * @param manager THe manager for the flash to inspect.
  * @param pfm The PFM to check the flash contents against.
  * @param rw_flash Flag indicating if the read/write flash should be checked.
+ * @param fw_id Identifier for the firmware type to query in the PFM.
  * @param versions Output for the list of supported versions in the PFM.
  * @param version Output for the version entry that matches the flash contents.
  *
  * @return 0 if a match was found in the PFM or an error code.
  */
 static int host_flash_manager_find_flash_version (struct host_flash_manager *manager,
-	struct pfm *pfm, bool rw_flash, struct pfm_firmware_versions *versions,
+	struct pfm *pfm, bool rw_flash, const char *fw_id, struct pfm_firmware_versions *versions,
 	const struct pfm_firmware_version **version)
 {
 	int status;
 
-	status = pfm->get_supported_versions (pfm, NULL, versions);
+	status = pfm->get_supported_versions (pfm, fw_id, versions);
 	if (status != 0) {
 		return status;
 	}
@@ -82,6 +83,7 @@ static int host_flash_manager_find_flash_version (struct host_flash_manager *man
  * @param pfm The PFM to query for image information.
  * @param flash The flash containing the image.
  * @param offset An offset to apply to version addresses when matching the PFM entry.
+ * @param fw_id Identifier for the firmware type to query in the PFM.
  * @param versions Output for the list of supported versions in the PFM.
  * @param version Output for the version entry for the image on flash.
  * @param fw_images Output for the list of images specified for the version.
@@ -91,13 +93,13 @@ static int host_flash_manager_find_flash_version (struct host_flash_manager *man
  * @return 0 if the entry information was successfully queried or an error code.
  */
 static int host_flash_manager_get_image_entry (struct pfm *pfm, struct spi_flash *flash,
-	uint32_t offset, struct pfm_firmware_versions *versions,
+	uint32_t offset, const char *fw_id, struct pfm_firmware_versions *versions,
 	const struct pfm_firmware_version **version, struct pfm_image_list *fw_images,
 	struct pfm_read_write_regions *writable)
 {
 	int status;
 
-	status = pfm->get_supported_versions (pfm, NULL, versions);
+	status = pfm->get_supported_versions (pfm, fw_id, versions);
 	if (status != 0) {
 		return status;
 	}
@@ -107,13 +109,13 @@ static int host_flash_manager_get_image_entry (struct pfm *pfm, struct spi_flash
 		goto free_versions;
 	}
 
-	status = pfm->get_firmware_images (pfm, NULL, (*version)->fw_version_id, fw_images);
+	status = pfm->get_firmware_images (pfm, fw_id, (*version)->fw_version_id, fw_images);
 	if (status != 0) {
 		goto free_versions;
 	}
 
 	if (writable) {
-		status = pfm->get_read_write_regions (pfm, NULL, (*version)->fw_version_id, writable);
+		status = pfm->get_read_write_regions (pfm, fw_id, (*version)->fw_version_id, writable);
 		if (status != 0) {
 			goto free_images;
 		}
@@ -129,6 +131,90 @@ free_versions:
 }
 
 /**
+ * Get the list of firmware components expected on flash and initialize containers for PFM entries.
+ *
+ * @param pfm The PFM to query for firmware information.
+ * @param host_fw Output for the list of host firmware.
+ * @param host_img Output for the container of host firmware images.  Null if not necessary.
+ * @param host_rw Output for the container of host read/write regions.  Null if not necessary.
+ *
+ * @return 0 if the operation was successful or an error code.
+ */
+static int host_flash_manager_get_firmware_types (struct pfm *pfm, struct pfm_firmware *host_fw,
+	struct host_flash_manager_images *host_img, struct host_flash_manager_rw_regions *host_rw)
+{
+	int status;
+
+	status = pfm->get_firmware (pfm, host_fw);
+	if (status != 0) {
+		return status;
+	}
+
+	if (host_img) {
+		host_img->pfm = pfm;
+		host_img->count = 0;
+		host_img->fw_images = platform_calloc (host_fw->count, sizeof (struct pfm_image_list));
+		if (host_img->fw_images == NULL) {
+			goto free_firmware;
+		}
+	}
+
+	if (host_rw) {
+		host_rw->pfm = pfm;
+		host_rw->count = 0;
+		host_rw->writable = platform_calloc (host_fw->count,
+			sizeof (struct pfm_read_write_regions));
+		if (host_rw->writable == NULL) {
+			goto free_img;
+		}
+	}
+
+	return 0;
+
+free_img:
+	platform_free (host_img->fw_images);
+free_firmware:
+	pfm->free_firmware (pfm, host_fw);
+	return HOST_FLASH_MGR_NO_MEMORY;
+}
+
+static void host_flash_manager_free_read_write_regions (struct host_flash_manager *manager,
+	struct host_flash_manager_rw_regions *host_rw)
+{
+	size_t i;
+
+	if (host_rw && host_rw->pfm) {
+		if (host_rw->writable) {
+			for (i = 0; i < host_rw->count; i++) {
+				host_rw->pfm->free_read_write_regions (host_rw->pfm, &host_rw->writable[i]);
+			}
+
+			platform_free (host_rw->writable);
+		}
+
+		memset (host_rw, 0, sizeof (*host_rw));
+	}
+}
+
+/**
+ * Free a list of authenticated firmware images on flash.
+ *
+ * @param host_img The list to free.
+ */
+static void host_flash_manager_free_images (struct host_flash_manager_images *host_img)
+{
+	size_t i;
+
+	if (host_img->fw_images) {
+		for (i = 0; i < host_img->count; i++) {
+			host_img->pfm->free_firmware_images (host_img->pfm, &host_img->fw_images[i]);
+		}
+
+		platform_free (host_img->fw_images);
+	}
+}
+
+/**
  * Validate the image on a flash device.
  *
  * @param pfm The PFM to use for validation.
@@ -136,17 +222,17 @@ free_versions:
  * @param rsa The RSA engine to use for signature verification.
  * @param full_validation Flag to control level of flash validation.
  * @param flash The flash device to validate.
- * @param writable Output for the read/write regions of the validated flash.  This will only be
+ * @param host_rw Output for the read/write regions of the validated flash.  This will only be
  * valid if the flash is successfully validated.  This can be null if full_validation is false.
  *
  * @return 0 if the validation was successful or an error code.
  */
 int host_flash_manager_validate_flash (struct pfm *pfm, struct hash_engine *hash,
 	struct rsa_engine *rsa, bool full_validation, struct spi_flash *flash,
-	struct pfm_read_write_regions *writable)
+	struct host_flash_manager_rw_regions *host_rw)
 {
 	return host_flash_manager_validate_offset_flash (pfm, hash, rsa, full_validation, flash, 0,
-		writable);
+		host_rw);
 }
 
 /**
@@ -159,40 +245,58 @@ int host_flash_manager_validate_flash (struct pfm *pfm, struct hash_engine *hash
  * @param flash The flash device to validate.
  * @param offset An offset in flash for images that will be validated.  Ignored if full_validation
  * is set.
- * @param writable Output for the read/write regions of the validated flash.  This will only be
+ * @param host_rw Output for the read/write regions of the validated flash.  This will only be
  * valid if the flash is successfully validated.  This can be null if full_validation is false.
  *
  * @return 0 if the validation was successful or an error code.
  */
 int host_flash_manager_validate_offset_flash (struct pfm *pfm, struct hash_engine *hash,
 	struct rsa_engine *rsa, bool full_validation, struct spi_flash *flash, uint32_t offset,
-	struct pfm_read_write_regions *writable)
+	struct host_flash_manager_rw_regions *host_rw)
 {
+	struct pfm_firmware host_fw;
 	struct pfm_firmware_versions versions;
 	const struct pfm_firmware_version *version;
-	struct pfm_image_list fw_images;
+	struct host_flash_manager_images host_img;
+	size_t i;
 	int status;
 
-	status = host_flash_manager_get_image_entry (pfm, flash, offset, &versions, &version,
-		&fw_images, writable);
+	status = host_flash_manager_get_firmware_types (pfm, &host_fw, &host_img, host_rw);
 	if (status != 0) {
 		return status;
 	}
 
+	for (i = 0; i < host_fw.count; i++) {
+		status = host_flash_manager_get_image_entry (pfm, flash, offset, host_fw.ids[i], &versions,
+			&version, &host_img.fw_images[i], (host_rw) ? &host_rw->writable[i] : NULL);
+		if (status != 0) {
+			goto free_host;
+		}
+
+		host_img.count++;
+		if (host_rw) {
+			host_rw->count++;
+		}
+
+		pfm->free_fw_versions (pfm, &versions);
+	}
+
 	if (full_validation) {
-		status = host_fw_full_flash_verification (flash, &fw_images, writable, version->blank_byte,
-			hash, rsa);
+		status = host_fw_full_flash_verification_multiple_fw (flash, host_img.fw_images,
+			host_rw->writable, host_fw.count, version->blank_byte, hash, rsa);
 	}
 	else {
-		status = host_fw_verify_offset_images (flash, &fw_images, offset, hash, rsa);
+		status = host_fw_verify_offset_images_multiple_fw (flash, host_img.fw_images,
+			host_img.count, offset, hash, rsa);
 	}
 
-	if ((status != 0) && writable) {
-		pfm->free_read_write_regions (pfm, writable);
+free_host:
+	if ((status != 0) && host_rw) {
+		host_flash_manager_free_read_write_regions (NULL, host_rw);
 	}
 
-	pfm->free_firmware_images (pfm, &fw_images);
-	pfm->free_fw_versions (pfm, &versions);
+	host_flash_manager_free_images (&host_img);
+	pfm->free_firmware (pfm, &host_fw);
 	return status;
 }
 
@@ -205,66 +309,88 @@ int host_flash_manager_validate_offset_flash (struct pfm *pfm, struct hash_engin
  * @param hash The hash to use for image validation.
  * @param rsa The RSA engine to use for signature verification.
  * @param flash The flash device to validate.
- * @param writable Output for the read/write regions of the validated flash.  This will only be
+ * @param host_rw Output for the read/write regions of the validated flash.  This will only be
  * valid if the flash is successfully validated.  This can be null.
  *
  * @return 0 if the validation was successful or an error code.
  */
 int host_flash_manager_validate_pfm (struct pfm *pfm, struct pfm *good_pfm,
 	struct hash_engine *hash, struct rsa_engine *rsa, struct spi_flash *flash,
-	struct pfm_read_write_regions *writable)
+	struct host_flash_manager_rw_regions *host_rw)
 {
+	struct pfm_firmware host_fw;
 	struct pfm_firmware_versions versions;
 	const struct pfm_firmware_version *version;
-	struct pfm_image_list fw_images;
+	struct host_flash_manager_images host_img;
 	struct pfm_image_list fw_images_good;
+	size_t i;
 	int status;
+	int match_status = 0;
 
-	status = host_flash_manager_get_image_entry (pfm, flash, 0, &versions, &version, &fw_images,
-		writable);
+	status = host_flash_manager_get_firmware_types (pfm, &host_fw, &host_img, host_rw);
 	if (status != 0) {
 		return status;
 	}
 
-	status = good_pfm->get_firmware_images (good_pfm, NULL, version->fw_version_id,
-		&fw_images_good);
-	if (status == 0) {
-		status = host_fw_are_images_different (&fw_images, &fw_images_good);
+	for (i = 0; i <host_fw.count; i++) {
+		status = host_flash_manager_get_image_entry (pfm, flash, 0, host_fw.ids[i], &versions,
+			&version, &host_img.fw_images[i], (host_rw) ? &host_rw->writable[i] : NULL);
+		if (status != 0) {
+			goto free_host;
+		}
 
-		good_pfm->free_firmware_images (good_pfm, &fw_images_good);
+		host_img.count++;
+		if (host_rw) {
+			host_rw->count++;
+		}
+
+		if (match_status == 0) {
+			match_status = good_pfm->get_firmware_images (good_pfm, host_fw.ids[i],
+				version->fw_version_id, &fw_images_good);
+			if (match_status == 0) {
+				match_status = host_fw_are_images_different (&host_img.fw_images[i],
+					&fw_images_good);
+
+				good_pfm->free_firmware_images (good_pfm, &fw_images_good);
+			}
+		}
+
+		pfm->free_fw_versions (pfm, &versions);
 	}
 
-	if (status != 0) {
-		status = host_fw_verify_images (flash, &fw_images, hash, rsa);
+	if (match_status != 0) {
+		status = host_fw_verify_images_multiple_fw (flash, host_img.fw_images, host_img.count, hash,
+			rsa);
 	}
 
-	if ((status != 0) && writable) {
-		pfm->free_read_write_regions (pfm, writable);
+free_host:
+	if ((status != 0) && host_rw) {
+		host_flash_manager_free_read_write_regions (NULL, host_rw);
 	}
 
-	pfm->free_firmware_images (pfm, &fw_images);
-	pfm->free_fw_versions (pfm, &versions);
+	host_flash_manager_free_images (&host_img);
+	pfm->free_firmware (pfm, &host_fw);
 	return status;
 }
 
 static int host_flash_manager_validate_read_only_flash (struct host_flash_manager *manager,
 	struct pfm *pfm, struct pfm *good_pfm, struct hash_engine *hash, struct rsa_engine *rsa,
-	bool full_validation, struct pfm_read_write_regions *writable)
+	bool full_validation, struct host_flash_manager_rw_regions *host_rw)
 {
 	int status;
 
 	if ((manager == NULL) || (pfm == NULL) || (hash == NULL) || (rsa == NULL) ||
-		(writable == NULL)) {
+		(host_rw == NULL)) {
 		return HOST_FLASH_MGR_INVALID_ARGUMENT;
 	}
 
 	if (good_pfm && !full_validation) {
 		status = host_flash_manager_validate_pfm (pfm, good_pfm, hash, rsa,
-			host_flash_manager_get_read_only_flash (manager), writable);
+			host_flash_manager_get_read_only_flash (manager), host_rw);
 	}
 	else {
 		status = host_flash_manager_validate_flash (pfm, hash, rsa, full_validation,
-			host_flash_manager_get_read_only_flash (manager), writable);
+			host_flash_manager_get_read_only_flash (manager), host_rw);
 	}
 
 	return status;
@@ -272,48 +398,57 @@ static int host_flash_manager_validate_read_only_flash (struct host_flash_manage
 
 static int host_flash_manager_validate_read_write_flash (struct host_flash_manager *manager,
 	struct pfm *pfm, struct hash_engine *hash, struct rsa_engine *rsa,
-	struct pfm_read_write_regions *writable)
+	struct host_flash_manager_rw_regions *host_rw)
 {
 	if ((manager == NULL) || (pfm == NULL) || (hash == NULL) || (rsa == NULL) ||
-		(writable == NULL)) {
+		(host_rw == NULL)) {
 		return HOST_FLASH_MGR_INVALID_ARGUMENT;
 	}
 
 	return host_flash_manager_validate_flash (pfm, hash, rsa, true,
-		host_flash_manager_get_read_write_flash (manager), writable);
+		host_flash_manager_get_read_write_flash (manager), host_rw);
 }
 
 static int host_flash_manager_get_flash_read_write_regions (struct host_flash_manager *manager,
-	struct pfm *pfm, bool rw_flash, struct pfm_read_write_regions *writable)
+	struct pfm *pfm, bool rw_flash, struct host_flash_manager_rw_regions *host_rw)
 {
+	struct pfm_firmware host_fw;
 	struct pfm_firmware_versions versions;
 	const struct pfm_firmware_version *version;
+	size_t i;
 	int status;
 
-	if ((manager == NULL) || (pfm == NULL) || (writable == NULL)) {
+	if ((manager == NULL) || (pfm == NULL) || (host_rw == NULL)) {
 		return HOST_FLASH_MGR_INVALID_ARGUMENT;
 	}
 
-	status = host_flash_manager_find_flash_version (manager, pfm, rw_flash, &versions, &version);
+	status = host_flash_manager_get_firmware_types (pfm, &host_fw, NULL, host_rw);
 	if (status != 0) {
 		return status;
 	}
 
-	status = pfm->get_read_write_regions (pfm, NULL, version->fw_version_id, writable);
+	for (i = 0; i < host_fw.count; i++, host_rw->count++) {
+		status = host_flash_manager_find_flash_version (manager, pfm, rw_flash, host_fw.ids[i],
+			&versions, &version);
+		if (status != 0) {
+			goto free_rw;
+		}
 
-	pfm->free_fw_versions (pfm, &versions);
-	return status;
-}
-
-static int host_flash_manager_restore_flash_read_write_regions (struct host_flash_manager *manager,
-	struct pfm_read_write_regions *writable)
-{
-	if ((manager == NULL) || (writable == NULL)) {
-		return HOST_FLASH_MGR_INVALID_ARGUMENT;
+		status = pfm->get_read_write_regions (pfm, host_fw.ids[i], version->fw_version_id,
+			&host_rw->writable[i]);
+		pfm->free_fw_versions (pfm, &versions);
+		if (status != 0) {
+			goto free_rw;
+		}
 	}
 
-	return host_fw_restore_read_write_data (host_flash_manager_get_read_write_flash (manager),
-		host_flash_manager_get_read_only_flash (manager), writable);
+free_rw:
+	if (status != 0) {
+		host_flash_manager_free_read_write_regions (manager, host_rw);
+	}
+
+	pfm->free_firmware (pfm, &host_fw);
+	return status;
 }
 
 /**
@@ -506,24 +641,24 @@ static int host_flash_manager_config_spi_filter_flash_devices (struct host_flash
  * @return 0 if the data migration was successful or an error code.
  */
 static int host_flash_manager_migrate_rw_data (struct host_flash_manager *manager,
-	spi_filter_cs from, struct pfm_read_write_regions *writable)
+	spi_filter_cs from, struct host_flash_manager_rw_regions *host_rw)
 {
 	int status;
 
 	if (from == SPI_FILTER_CS_0) {
-		status = host_fw_migrate_read_write_data (manager->flash_cs1, writable,
-			manager->flash_cs0, NULL);
+		status = host_fw_migrate_read_write_data_multiple_fw (manager->flash_cs1, host_rw->writable,
+			host_rw->count, manager->flash_cs0, NULL, 0);
 	}
 	else {
-		status = host_fw_migrate_read_write_data (manager->flash_cs0, writable,
-			manager->flash_cs1, NULL);
+		status = host_fw_migrate_read_write_data_multiple_fw (manager->flash_cs0, host_rw->writable,
+			host_rw->count, manager->flash_cs1, NULL, 0);
 	}
 
 	return status;
 }
 
 static int host_flash_manager_swap_flash_devices (struct host_flash_manager *manager,
-	struct pfm_read_write_regions *writable, struct pfm_manager *used_pending)
+	struct host_flash_manager_rw_regions *host_rw, struct pfm_manager *used_pending)
 {
 	spi_filter_cs rw;
 	int status;
@@ -547,8 +682,8 @@ static int host_flash_manager_swap_flash_devices (struct host_flash_manager *man
 	}
 
 	/* Migrate the R/W data to the new write flash. */
-	if (writable) {
-		status = host_flash_manager_migrate_rw_data (manager, rw, writable);
+	if (host_rw) {
+		status = host_flash_manager_migrate_rw_data (manager, rw, host_rw);
 	}
 
 	/* Save the current flash configuration. */
@@ -569,7 +704,7 @@ static int host_flash_manager_swap_flash_devices (struct host_flash_manager *man
 }
 
 static int host_flash_manager_initialize_flash_protection (struct host_flash_manager *manager,
-	struct pfm_read_write_regions *writable)
+	struct host_flash_manager_rw_regions *host_rw)
 {
 	spi_filter_cs ro;
 	struct spi_flash *ro_flash;
@@ -577,7 +712,7 @@ static int host_flash_manager_initialize_flash_protection (struct host_flash_man
 	int status;
 	int addr_4byte;
 
-	if ((manager == NULL) || (writable == NULL)) {
+	if ((manager == NULL) || (host_rw == NULL)) {
 		return HOST_FLASH_MGR_INVALID_ARGUMENT;
 	}
 
@@ -600,7 +735,7 @@ static int host_flash_manager_initialize_flash_protection (struct host_flash_man
 	/* Make the R/W data available on the R/W flash device. */
 	ro = host_state_manager_get_read_only_flash (manager->host_state);
 
-	status = host_flash_manager_migrate_rw_data (manager, ro, writable);
+	status = host_flash_manager_migrate_rw_data (manager, ro, host_rw);
 	if (status != 0) {
 		return status;
 	}
@@ -632,6 +767,18 @@ static int host_flash_manager_initialize_flash_protection (struct host_flash_man
 	}
 
 	return manager->filter->set_ro_cs (manager->filter, ro);
+}
+
+static int host_flash_manager_restore_flash_read_write_regions (struct host_flash_manager *manager,
+	struct host_flash_manager_rw_regions *host_rw)
+{
+	if ((manager == NULL) || (host_rw == NULL)) {
+		return HOST_FLASH_MGR_INVALID_ARGUMENT;
+	}
+
+	return host_fw_restore_read_write_data_multiple_fw (
+		host_flash_manager_get_read_write_flash (manager),
+		host_flash_manager_get_read_only_flash (manager), host_rw->writable, host_rw->count);
 }
 
 /**
@@ -796,11 +943,12 @@ int host_flash_manager_init (struct host_flash_manager *manager, struct spi_flas
 	manager->validate_read_only_flash = host_flash_manager_validate_read_only_flash;
 	manager->validate_read_write_flash = host_flash_manager_validate_read_write_flash;
 	manager->get_flash_read_write_regions = host_flash_manager_get_flash_read_write_regions;
-	manager->restore_flash_read_write_regions = host_flash_manager_restore_flash_read_write_regions;
+	manager->free_read_write_regions = host_flash_manager_free_read_write_regions;
 	manager->config_spi_filter_flash_type = host_flash_manager_config_spi_filter_flash_type;
 	manager->config_spi_filter_flash_devices = host_flash_manager_config_spi_filter_flash_devices;
 	manager->swap_flash_devices = host_flash_manager_swap_flash_devices;
 	manager->initialize_flash_protection = host_flash_manager_initialize_flash_protection;
+	manager->restore_flash_read_write_regions = host_flash_manager_restore_flash_read_write_regions;
 	manager->set_flash_for_rot_access = host_flash_manager_set_flash_for_rot_access;
 	manager->set_flash_for_host_access = host_flash_manager_set_flash_for_host_access;
 	manager->host_has_flash_access = host_flash_manager_host_has_flash_access;

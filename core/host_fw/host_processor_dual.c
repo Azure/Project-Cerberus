@@ -115,7 +115,7 @@ static void host_processor_dual_set_host_flash_access (struct host_processor_dua
  * Configure the filter for bypass mode.
  *
  * This will spin indefinitely until it is successful.  Setting bypass mode is only dependent on the
- * SPI filter, which should be highly reliable.  Plus, this mode is one that needs to work.  If  the
+ * SPI filter, which should be highly reliable.  Plus, this mode is one that needs to work.  If the
  * filter is being configured in bypass mode, that means that no other flow will successfully
  * execute.
  *
@@ -158,7 +158,7 @@ static void host_processor_dual_config_bypass (struct host_processor_dual *host)
  * @param rw_list The list of read/write regions defined on the new flash.
  */
 static void host_processor_dual_initialize_protection (struct host_processor_dual *host,
-	struct pfm_read_write_regions *rw_list)
+	struct host_flash_manager_rw_regions *rw_list)
 {
 	int status;
 	int log_status = 0;
@@ -193,7 +193,7 @@ static void host_processor_dual_initialize_protection (struct host_processor_dua
  * @param rw_list The list of read/write regions defined on the new flash.
  */
 static void host_processor_dual_config_rw (struct host_processor_dual *host,
-	struct pfm_read_write_regions *rw_list)
+	struct host_flash_manager_rw_regions *rw_list)
 {
 	int status;
 	int log_status = 0;
@@ -201,7 +201,8 @@ static void host_processor_dual_config_rw (struct host_processor_dual *host,
 
 	do {
 		retries++;
-		status = host_fw_config_spi_filter_read_write_regions (host->filter, rw_list);
+		status = host_fw_config_spi_filter_read_write_regions_multiple_fw (host->filter,
+			rw_list->writable, rw_list->count);
 		if (status != log_status) {
 			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_HOST_FW,
 				HOST_LOGGING_FILTER_RW_REGIONS_ERROR, host->base.port, status);
@@ -290,7 +291,7 @@ static void host_processor_dual_config_flash (struct host_processor_dual *host)
  * @param no_migrate Flag to indicate data migration should not happen.
  */
 static void host_processor_dual_swap_flash (struct host_processor_dual *host,
-	struct pfm_read_write_regions *rw_list, struct pfm_manager *pfm, bool no_migrate)
+	struct host_flash_manager_rw_regions *rw_list, struct pfm_manager *pfm, bool no_migrate)
 {
 	int status;
 	int log_status = 0;
@@ -319,6 +320,10 @@ static void host_processor_dual_swap_flash (struct host_processor_dual *host,
 /**
  * Restore read/write data for the current read only image.
  *
+ * Failures in this flow will cause retries, but will not retry indefinitely.  If the read/write
+ * regions cannot be restored, system boot will be allowed to proceed and the host firmware must be
+ * able to handle the possible data corruption or have some other recovery flow.
+ *
  * @param host The host processor instance to execute.
  * @param rw_list The list of read/write regions defined for the current image.  This can be null if
  * the list is not already known.
@@ -328,9 +333,9 @@ static void host_processor_dual_swap_flash (struct host_processor_dual *host,
  * @return 0 if the data was successfully restored or an error code.
  */
 static int host_processor_dual_restore_read_write_data (struct host_processor_dual *host,
-	struct pfm_read_write_regions *rw_list, struct pfm *pfm)
+	struct host_flash_manager_rw_regions *rw_list, struct pfm *pfm)
 {
-	struct pfm_read_write_regions restore;
+	struct host_flash_manager_rw_regions restore;
 	int status;
 	int retries = 3;
 
@@ -361,7 +366,7 @@ static int host_processor_dual_restore_read_write_data (struct host_processor_du
 	} while ((status != 0) && (--retries > 0));
 
 	if (pfm != NULL) {
-		pfm->free_read_write_regions (pfm, rw_list);
+		host->flash->free_read_write_regions (host->flash, rw_list);
 	}
 
 	return status;
@@ -394,7 +399,7 @@ static int host_processor_dual_validate_flash (struct host_processor_dual *host,
 	bool is_pending, bool is_bypass, bool skip_ro, bool skip_ro_config, bool apply_filter_cfg,
 	bool is_validated, bool *config_fail)
 {
-	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_list;
 	int status = HOST_PROCESSOR_RW_SKIPPED;
 	int dirty_fail = 0;
 	bool checked_rw = true;
@@ -462,26 +467,26 @@ static int host_processor_dual_validate_flash (struct host_processor_dual *host,
 				}
 			}
 
-			pfm->free_read_write_regions (pfm, &rw_list);
+			host->flash->free_read_write_regions (host->flash, &rw_list);
 
 			if (status != 0) {
 				goto exit;
 			}
 		}
-		else if (IS_VALIDATION_FAILURE (status)) {
-			dirty_fail = status;
-
-			if (!is_pending || is_validated) {
-				status = host->filter->clear_flash_dirty_state (host->filter);
-				if (status == 0) {
-					host_state_manager_save_inactive_dirty (host->state, false);
-				}
+		else {
+			if (((skip_ro && !is_pending) || is_validated) && apply_filter_cfg) {
+				/* R/W verification failed with no RO verification going to take place.  We need to
+				 * restore R/W regions here using the active PFM. */
+				host_processor_dual_restore_read_write_data (host, NULL,
+					(is_pending) ? active : pfm);
 			}
 
-			status = dirty_fail;
-		}
-		else if (is_pending && !is_validated) {
-			host_state_manager_set_pfm_dirty (host->state, true);
+			if (IS_VALIDATION_FAILURE (status)) {
+				dirty_fail = status;
+			}
+			else if (is_pending && !is_validated) {
+				host_state_manager_set_pfm_dirty (host->state, true);
+			}
 		}
 	}
 	else {
@@ -509,38 +514,26 @@ static int host_processor_dual_validate_flash (struct host_processor_dual *host,
 			if (is_bypass) {
 				host_processor_dual_initialize_protection (host, &rw_list);
 			}
+			else if (apply_filter_cfg && failed_rw) {
+				host_processor_dual_restore_read_write_data (host, &rw_list, NULL);
+			}
 
 			if (is_pending) {
 				host->pfm->base.activate_pending_manifest (&host->pfm->base);
-
-				if (dirty_fail != 0) {
-					status = host->filter->clear_flash_dirty_state (host->filter);
-					if (status == 0) {
-						host_state_manager_save_inactive_dirty (host->state, false);
-					}
-
-					status = 0;
-				}
 			}
 
 			if (apply_filter_cfg) {
-				if (failed_rw) {
-					host_processor_dual_restore_read_write_data (host, &rw_list, NULL);
-				}
-
 				if (!is_bypass && !skip_ro_config) {
 					host_processor_dual_config_flash (host);
 				}
 
-				if (is_bypass || !skip_ro_config) {
-					host_processor_dual_config_rw (host, &rw_list);
-				}
+				host_processor_dual_config_rw (host, &rw_list);
 
 				observable_notify_observers (&host->base.observable,
 					offsetof (struct host_processor_observer, on_active_mode));
 			}
 
-			pfm->free_read_write_regions (pfm, &rw_list);
+			host->flash->free_read_write_regions (host->flash, &rw_list);
 		}
 		else if (is_pending && IS_VALIDATION_FAILURE (status) &&
 			(!checked_rw || (checked_rw && (dirty_fail != 0)))) {
@@ -549,10 +542,15 @@ static int host_processor_dual_validate_flash (struct host_processor_dual *host,
 			host_state_manager_set_pfm_dirty (host->state, false);
 		}
 	}
-	else if (skip_ro && !is_pending && failed_rw && apply_filter_cfg) {
-		/* Active R/W verification failed with no RO verification.  We need to restore R/W regions
-		 * here. */
-		host_processor_dual_restore_read_write_data (host, NULL, pfm);
+
+	/* Handle situations where the flash dirty state needs to be cleared.  Do this last to ensure
+	 * all other operations fully complete before we wipe the indication that flash had been
+	 * modified and needed authentication. */
+	if (checked_rw && (!is_pending || is_validated || (status == 0)) && (dirty_fail != 0)) {
+		dirty_fail = host->filter->clear_flash_dirty_state (host->filter);
+		if (dirty_fail == 0) {
+			host_state_manager_save_inactive_dirty (host->state, false);
+		}
 	}
 
 exit:
@@ -798,10 +796,6 @@ static int host_processor_dual_soft_reset (struct host_processor *host, struct h
 			status = host_processor_dual_validate_flash (dual, hash, rsa, active_pfm, NULL, false,
 				bypass, !bypass, true, true, prevalidated, NULL);
 		}
-		else if (active_pfm && only_validated && (status != 0)) {
-			/* If something went wrong with the prevalidated flash, restore the read/write data. */
-			host_processor_dual_restore_read_write_data (dual, NULL, active_pfm);
-		}
 
 return_flash:
 		observable_notify_observers (&dual->base.observable,
@@ -950,7 +944,7 @@ static int host_processor_dual_flash_rollback (struct host_processor *host,
 {
 	struct host_processor_dual *dual = (struct host_processor_dual*) host;
 	struct pfm *active_pfm;
-	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_list;
 	struct spi_flash *ro_flash;
 	struct spi_flash *rw_flash;
 	uint32_t dev_size;
@@ -997,7 +991,7 @@ static int host_processor_dual_flash_rollback (struct host_processor *host,
 					rsa, &rw_list);
 				if (status == 0) {
 					host_processor_dual_swap_flash (dual, &rw_list, NULL, true);
-					active_pfm->free_read_write_regions (active_pfm, &rw_list);
+					dual->flash->free_read_write_regions (dual->flash, &rw_list);
 
 					observable_notify_observers (&dual->base.observable,
 						offsetof (struct host_processor_observer, on_active_mode));

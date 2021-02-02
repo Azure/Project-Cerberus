@@ -402,11 +402,12 @@ static void host_flash_manager_test_init (CuTest *test)
 	CuAssertPtrNotNull (test, manager.test.validate_read_only_flash);
 	CuAssertPtrNotNull (test, manager.test.validate_read_write_flash);
 	CuAssertPtrNotNull (test, manager.test.get_flash_read_write_regions);
-	CuAssertPtrNotNull (test, manager.test.restore_flash_read_write_regions);
+	CuAssertPtrNotNull (test, manager.test.free_read_write_regions);
 	CuAssertPtrNotNull (test, manager.test.config_spi_filter_flash_type);
 	CuAssertPtrNotNull (test, manager.test.config_spi_filter_flash_devices);
 	CuAssertPtrNotNull (test, manager.test.swap_flash_devices);
 	CuAssertPtrNotNull (test, manager.test.initialize_flash_protection);
+	CuAssertPtrNotNull (test, manager.test.restore_flash_read_write_regions);
 	CuAssertPtrNotNull (test, manager.test.set_flash_for_rot_access);
 	CuAssertPtrNotNull (test, manager.test.set_flash_for_host_access);
 	CuAssertPtrNotNull (test, manager.test.host_has_flash_access);
@@ -469,11 +470,12 @@ static void host_flash_manager_test_init_with_managed_flash_initialization (CuTe
 	CuAssertPtrNotNull (test, manager.test.validate_read_only_flash);
 	CuAssertPtrNotNull (test, manager.test.validate_read_write_flash);
 	CuAssertPtrNotNull (test, manager.test.get_flash_read_write_regions);
-	CuAssertPtrNotNull (test, manager.test.restore_flash_read_write_regions);
+	CuAssertPtrNotNull (test, manager.test.free_read_write_regions);
 	CuAssertPtrNotNull (test, manager.test.config_spi_filter_flash_type);
 	CuAssertPtrNotNull (test, manager.test.config_spi_filter_flash_devices);
 	CuAssertPtrNotNull (test, manager.test.swap_flash_devices);
 	CuAssertPtrNotNull (test, manager.test.initialize_flash_protection);
+	CuAssertPtrNotNull (test, manager.test.restore_flash_read_write_regions);
 	CuAssertPtrNotNull (test, manager.test.set_flash_for_rot_access);
 	CuAssertPtrNotNull (test, manager.test.set_flash_for_host_access);
 	CuAssertPtrNotNull (test, manager.test.host_has_flash_access);
@@ -632,6 +634,7 @@ static void host_flash_manager_test_swap_flash_devices_cs1 (CuTest *test)
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_host;
 	spi_filter_cs active;
 
 	TEST_START;
@@ -648,6 +651,10 @@ static void host_flash_manager_test_swap_flash_devices_cs1 (CuTest *test)
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
+	rw_host.pfm = &manager.pfm.base;
+	rw_host.writable = &rw_list;
+	rw_host.count = 1;
+
 	status = mock_expect (&manager.filter.mock, manager.filter.base.clear_flash_dirty_state,
 		&manager.filter, 0);
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_ro_cs, &manager.filter, 0,
@@ -662,7 +669,7 @@ static void host_flash_manager_test_swap_flash_devices_cs1 (CuTest *test)
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.swap_flash_devices (&manager.test, &rw_list, NULL);
+	status = manager.test.swap_flash_devices (&manager.test, &rw_host, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -685,6 +692,7 @@ static void host_flash_manager_test_swap_flash_devices_cs0 (CuTest *test)
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_host;
 	spi_filter_cs active;
 
 	TEST_START;
@@ -701,6 +709,10 @@ static void host_flash_manager_test_swap_flash_devices_cs0 (CuTest *test)
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
+	rw_host.pfm = &manager.pfm.base;
+	rw_host.writable = &rw_list;
+	rw_host.count = 1;
+
 	status = mock_expect (&manager.filter.mock, manager.filter.base.clear_flash_dirty_state,
 		&manager.filter, 0);
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_ro_cs, &manager.filter, 0,
@@ -715,7 +727,7 @@ static void host_flash_manager_test_swap_flash_devices_cs0 (CuTest *test)
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.swap_flash_devices (&manager.test, &rw_list, NULL);
+	status = manager.test.swap_flash_devices (&manager.test, &rw_host, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -738,6 +750,7 @@ static void host_flash_manager_test_swap_flash_devices_activate_pending_pfm (CuT
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_host;
 	struct pfm_manager_mock pending;
 	spi_filter_cs active;
 
@@ -758,6 +771,10 @@ static void host_flash_manager_test_swap_flash_devices_activate_pending_pfm (CuT
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
+	rw_host.pfm = &manager.pfm.base;
+	rw_host.writable = &rw_list;
+	rw_host.count = 1;
+
 	status = mock_expect (&manager.filter.mock, manager.filter.base.clear_flash_dirty_state,
 		&manager.filter, 0);
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_ro_cs, &manager.filter, 0,
@@ -774,7 +791,7 @@ static void host_flash_manager_test_swap_flash_devices_activate_pending_pfm (CuT
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.swap_flash_devices (&manager.test, &rw_list, &pending.base);
+	status = manager.test.swap_flash_devices (&manager.test, &rw_host, &pending.base);
 	CuAssertIntEquals (test, 0, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -829,6 +846,166 @@ static void host_flash_manager_test_swap_flash_devices_no_data_migration (CuTest
 	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
+static void host_flash_manager_test_swap_flash_devices_cs1_multiple_fw (CuTest *test)
+{
+	struct host_flash_manager_testing manager;
+	int status;
+	struct flash_region rw_region[3];
+	struct pfm_read_write rw_prop[3];
+	struct pfm_read_write_regions rw_list[3];
+	struct host_flash_manager_rw_regions rw_host;
+	spi_filter_cs active;
+
+	TEST_START;
+
+	host_flash_manager_testing_init (test, &manager, false);
+	host_state_manager_save_inactive_dirty (&manager.host_state, true);
+
+	rw_region[0].start_addr = 0x10000;
+	rw_region[0].length = RSA_ENCRYPT_LEN;
+	rw_region[1].start_addr = 0x30000;
+	rw_region[1].length = 16;
+	rw_region[2].start_addr = 0x50000;
+	rw_region[2].length = 32;
+
+	rw_prop[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[2].on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list[0].regions = &rw_region[0];
+	rw_list[0].properties = &rw_prop[0];
+	rw_list[0].count = 1;
+
+	rw_list[1].regions = &rw_region[1];
+	rw_list[1].properties = &rw_prop[1];
+	rw_list[1].count = 1;
+
+	rw_list[2].regions = &rw_region[2];
+	rw_list[2].properties = &rw_prop[2];
+	rw_list[2].count = 1;
+
+	rw_host.pfm = &manager.pfm.base;
+	rw_host.writable = rw_list;
+	rw_host.count = 3;
+
+	status = mock_expect (&manager.filter.mock, manager.filter.base.clear_flash_dirty_state,
+		&manager.filter, 0);
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_ro_cs, &manager.filter, 0,
+		MOCK_ARG (SPI_FILTER_CS_1));
+
+	status |= flash_master_mock_expect_erase_flash_verify (&manager.flash_mock0, 0x10000,
+		RSA_ENCRYPT_LEN);
+	status |= flash_master_mock_expect_copy_flash_verify (&manager.flash_mock0,
+		&manager.flash_mock1, 0x10000, 0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
+
+	status |= flash_master_mock_expect_erase_flash_verify (&manager.flash_mock0, 0x30000, 16);
+	status |= flash_master_mock_expect_copy_flash_verify (&manager.flash_mock0,
+		&manager.flash_mock1, 0x30000, 0x30000, RSA_ENCRYPT_TEST2, 16);
+
+	status |= flash_master_mock_expect_erase_flash_verify (&manager.flash_mock0, 0x50000, 32);
+	status |= flash_master_mock_expect_copy_flash_verify (&manager.flash_mock0,
+		&manager.flash_mock1, 0x50000, 0x50000, RSA_ENCRYPT_NOPE, 32);
+
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
+
+	status = manager.test.swap_flash_devices (&manager.test, &rw_host, NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	active = host_state_manager_get_read_only_flash (&manager.host_state);
+	CuAssertIntEquals (test, SPI_FILTER_CS_1, active);
+
+	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
+
+	status = mock_validate (&manager.flash_mock_state.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	host_flash_manager_testing_check_state_persistence (test, &manager);
+
+	host_flash_manager_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_test_swap_flash_devices_cs0_multiple_fw (CuTest *test)
+{
+	struct host_flash_manager_testing manager;
+	int status;
+	struct flash_region rw_region[3];
+	struct pfm_read_write rw_prop[3];
+	struct pfm_read_write_regions rw_list[3];
+	struct host_flash_manager_rw_regions rw_host;
+	spi_filter_cs active;
+
+	TEST_START;
+
+	host_flash_manager_testing_init (test, &manager, true);
+	host_state_manager_save_inactive_dirty (&manager.host_state, true);
+
+	rw_region[0].start_addr = 0x10000;
+	rw_region[0].length = RSA_ENCRYPT_LEN;
+	rw_region[1].start_addr = 0x30000;
+	rw_region[1].length = 16;
+	rw_region[2].start_addr = 0x50000;
+	rw_region[2].length = 32;
+
+	rw_prop[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[2].on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list[0].regions = &rw_region[0];
+	rw_list[0].properties = &rw_prop[0];
+	rw_list[0].count = 1;
+
+	rw_list[1].regions = &rw_region[1];
+	rw_list[1].properties = &rw_prop[1];
+	rw_list[1].count = 1;
+
+	rw_list[2].regions = &rw_region[2];
+	rw_list[2].properties = &rw_prop[2];
+	rw_list[2].count = 1;
+
+	rw_host.pfm = &manager.pfm.base;
+	rw_host.writable = rw_list;
+	rw_host.count = 3;
+
+	status = mock_expect (&manager.filter.mock, manager.filter.base.clear_flash_dirty_state,
+		&manager.filter, 0);
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_ro_cs, &manager.filter, 0,
+		MOCK_ARG (SPI_FILTER_CS_0));
+
+	status |= flash_master_mock_expect_erase_flash_verify (&manager.flash_mock1, 0x10000,
+		RSA_ENCRYPT_LEN);
+	status |= flash_master_mock_expect_copy_flash_verify (&manager.flash_mock1,
+		&manager.flash_mock0, 0x10000, 0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
+
+	status |= flash_master_mock_expect_erase_flash_verify (&manager.flash_mock1, 0x30000, 16);
+	status |= flash_master_mock_expect_copy_flash_verify (&manager.flash_mock1,
+		&manager.flash_mock0, 0x30000, 0x30000, RSA_ENCRYPT_TEST2, 16);
+
+	status |= flash_master_mock_expect_erase_flash_verify (&manager.flash_mock1, 0x50000, 32);
+	status |= flash_master_mock_expect_copy_flash_verify (&manager.flash_mock1,
+		&manager.flash_mock0, 0x50000, 0x50000, RSA_ENCRYPT_NOPE, 32);
+
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
+
+	status = manager.test.swap_flash_devices (&manager.test, &rw_host, NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	active = host_state_manager_get_read_only_flash (&manager.host_state);
+	CuAssertIntEquals (test, SPI_FILTER_CS_0, active);
+
+	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
+
+	status = mock_validate (&manager.flash_mock_state.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	host_flash_manager_testing_check_state_persistence (test, &manager);
+
+	host_flash_manager_testing_validate_and_release (test, &manager);
+}
+
 static void host_flash_manager_test_swap_flash_devices_null (CuTest *test)
 {
 	struct host_flash_manager_testing manager;
@@ -836,6 +1013,7 @@ static void host_flash_manager_test_swap_flash_devices_null (CuTest *test)
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_host;
 	spi_filter_cs active;
 
 	TEST_START;
@@ -852,7 +1030,11 @@ static void host_flash_manager_test_swap_flash_devices_null (CuTest *test)
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = manager.test.swap_flash_devices (NULL, &rw_list, NULL);
+	rw_host.pfm = &manager.pfm.base;
+	rw_host.writable = &rw_list;
+	rw_host.count = 1;
+
+	status = manager.test.swap_flash_devices (NULL, &rw_host, NULL);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -875,6 +1057,7 @@ static void host_flash_manager_test_swap_flash_devices_dirty_clear_error (CuTest
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_host;
 	spi_filter_cs active;
 
 	TEST_START;
@@ -891,6 +1074,10 @@ static void host_flash_manager_test_swap_flash_devices_dirty_clear_error (CuTest
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
+	rw_host.pfm = &manager.pfm.base;
+	rw_host.writable = &rw_list;
+	rw_host.count = 1;
+
 	status = mock_expect (&manager.filter.mock, manager.filter.base.clear_flash_dirty_state,
 		&manager.filter, SPI_FILTER_CLEAR_DIRTY_FAILED);
 
@@ -898,7 +1085,7 @@ static void host_flash_manager_test_swap_flash_devices_dirty_clear_error (CuTest
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.swap_flash_devices (&manager.test, &rw_list, NULL);
+	status = manager.test.swap_flash_devices (&manager.test, &rw_host, NULL);
 	CuAssertIntEquals (test, SPI_FILTER_CLEAR_DIRTY_FAILED, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -921,6 +1108,7 @@ static void host_flash_manager_test_swap_flash_devices_spi_filter_error (CuTest 
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_host;
 	spi_filter_cs active;
 
 	TEST_START;
@@ -937,6 +1125,10 @@ static void host_flash_manager_test_swap_flash_devices_spi_filter_error (CuTest 
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
+	rw_host.pfm = &manager.pfm.base;
+	rw_host.writable = &rw_list;
+	rw_host.count = 1;
+
 	status = mock_expect (&manager.filter.mock, manager.filter.base.clear_flash_dirty_state,
 		&manager.filter, 0);
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_ro_cs, &manager.filter,
@@ -946,7 +1138,7 @@ static void host_flash_manager_test_swap_flash_devices_spi_filter_error (CuTest 
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.swap_flash_devices (&manager.test, &rw_list, NULL);
+	status = manager.test.swap_flash_devices (&manager.test, &rw_host, NULL);
 	CuAssertIntEquals (test, SPI_FILTER_SET_RO_FAILED, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -969,6 +1161,7 @@ static void host_flash_manager_test_swap_flash_devices_cs1_data_copy_error (CuTe
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_host;
 	spi_filter_cs active;
 
 	TEST_START;
@@ -985,6 +1178,10 @@ static void host_flash_manager_test_swap_flash_devices_cs1_data_copy_error (CuTe
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
+	rw_host.pfm = &manager.pfm.base;
+	rw_host.writable = &rw_list;
+	rw_host.count = 1;
+
 	status = mock_expect (&manager.filter.mock, manager.filter.base.clear_flash_dirty_state,
 		&manager.filter, 0);
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_ro_cs, &manager.filter, 0,
@@ -997,7 +1194,7 @@ static void host_flash_manager_test_swap_flash_devices_cs1_data_copy_error (CuTe
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.swap_flash_devices (&manager.test, &rw_list, NULL);
+	status = manager.test.swap_flash_devices (&manager.test, &rw_host, NULL);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -1020,6 +1217,7 @@ static void host_flash_manager_test_swap_flash_devices_cs0_data_copy_error (CuTe
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_host;
 	spi_filter_cs active;
 
 	TEST_START;
@@ -1036,6 +1234,10 @@ static void host_flash_manager_test_swap_flash_devices_cs0_data_copy_error (CuTe
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
+	rw_host.pfm = &manager.pfm.base;
+	rw_host.writable = &rw_list;
+	rw_host.count = 1;
+
 	status = mock_expect (&manager.filter.mock, manager.filter.base.clear_flash_dirty_state,
 		&manager.filter, 0);
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_ro_cs, &manager.filter, 0,
@@ -1048,7 +1250,7 @@ static void host_flash_manager_test_swap_flash_devices_cs0_data_copy_error (CuTe
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.swap_flash_devices (&manager.test, &rw_list, NULL);
+	status = manager.test.swap_flash_devices (&manager.test, &rw_host, NULL);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -1071,6 +1273,7 @@ static void host_flash_manager_test_swap_flash_devices_activate_pending_pfm_erro
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_host;
 	struct pfm_manager_mock pending;
 	spi_filter_cs active;
 
@@ -1091,6 +1294,10 @@ static void host_flash_manager_test_swap_flash_devices_activate_pending_pfm_erro
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
+	rw_host.pfm = &manager.pfm.base;
+	rw_host.writable = &rw_list;
+	rw_host.count = 1;
+
 	status = mock_expect (&manager.filter.mock, manager.filter.base.clear_flash_dirty_state,
 		&manager.filter, 0);
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_ro_cs, &manager.filter, 0,
@@ -1108,7 +1315,7 @@ static void host_flash_manager_test_swap_flash_devices_activate_pending_pfm_erro
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.swap_flash_devices (&manager.test, &rw_list, &pending.base);
+	status = manager.test.swap_flash_devices (&manager.test, &rw_host, &pending.base);
 	CuAssertIntEquals (test, 0, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -1221,6 +1428,8 @@ static void host_flash_manager_test_config_spi_filter_flash_devices_error (CuTes
 static void host_flash_manager_test_validate_read_only_flash_cs0 (CuTest *test)
 {
 	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
@@ -1231,12 +1440,15 @@ static void host_flash_manager_test_validate_read_only_flash_cs0 (CuTest *test)
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
-	struct pfm_read_write_regions rw_output;
+	struct host_flash_manager_rw_regions rw_output;
 	int status;
 
 	TEST_START;
 
 	host_flash_manager_testing_init (test, &manager, false);
+
+	fw_list.ids = &fw_exp;
+	fw_list.count = 1;
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -1271,7 +1483,12 @@ static void host_flash_manager_test_validate_read_only_flash_cs0 (CuTest *test)
 	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
 		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
@@ -1287,20 +1504,23 @@ static void host_flash_manager_test_validate_read_only_flash_cs0 (CuTest *test)
 	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list, sizeof (img_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
 
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
+
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) img_data,
 		strlen (img_data), FLASH_EXP_READ_CMD (0x03, 0, 0, -1, strlen (img_data)));
 
-	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
-		MOCK_ARG (&rw_output));
-	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
-
-	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
-		0, MOCK_ARG_SAVED_ARG (1));
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
 		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (3));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1308,12 +1528,34 @@ static void host_flash_manager_test_validate_read_only_flash_cs0 (CuTest *test)
 		&manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
+	CuAssertIntEquals (test, 1, rw_output.count);
+	CuAssertPtrNotNull (test, rw_output.writable);
+	CuAssertPtrEquals (test, &manager.pfm, rw_output.pfm);
+
+	CuAssertIntEquals (test, 1, rw_output.writable->count);
+	CuAssertPtrEquals (test, &rw_region, (void*) rw_output.writable->regions);
+	CuAssertPtrEquals (test, &rw_prop, (void*) rw_output.writable->properties);
+
+	status = mock_validate (&manager.flash_mock0.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&manager.pfm.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (2));
+	CuAssertIntEquals (test, 0, status);
+
+	manager.test.free_read_write_regions (&manager.test, &rw_output);
+
 	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_validate_read_only_flash_cs1 (CuTest *test)
 {
 	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
@@ -1324,12 +1566,15 @@ static void host_flash_manager_test_validate_read_only_flash_cs1 (CuTest *test)
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
-	struct pfm_read_write_regions rw_output;
+	struct host_flash_manager_rw_regions rw_output;
 	int status;
 
 	TEST_START;
 
 	host_flash_manager_testing_init (test, &manager, true);
+
+	fw_list.ids = &fw_exp;
+	fw_list.count = 1;
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -1364,7 +1609,12 @@ static void host_flash_manager_test_validate_read_only_flash_cs1 (CuTest *test)
 	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
 		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
@@ -1380,20 +1630,23 @@ static void host_flash_manager_test_validate_read_only_flash_cs1 (CuTest *test)
 	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list, sizeof (img_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
 
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
+
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) img_data,
 		strlen (img_data), FLASH_EXP_READ_CMD (0x03, 0, 0, -1, strlen (img_data)));
 
-	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
-		MOCK_ARG (&rw_output));
-	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
-
-	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
-		0, MOCK_ARG_SAVED_ARG (1));
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
 		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (3));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1401,12 +1654,34 @@ static void host_flash_manager_test_validate_read_only_flash_cs1 (CuTest *test)
 		&manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
+	CuAssertIntEquals (test, 1, rw_output.count);
+	CuAssertPtrNotNull (test, rw_output.writable);
+	CuAssertPtrEquals (test, &manager.pfm, rw_output.pfm);
+
+	CuAssertIntEquals (test, 1, rw_output.writable->count);
+	CuAssertPtrEquals (test, &rw_region, (void*) rw_output.writable->regions);
+	CuAssertPtrEquals (test, &rw_prop, (void*) rw_output.writable->properties);
+
+	status = mock_validate (&manager.flash_mock1.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&manager.pfm.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (2));
+	CuAssertIntEquals (test, 0, status);
+
+	manager.test.free_read_write_regions (&manager.test, &rw_output);
+
 	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_validate_read_only_flash_cs0_full_validation (CuTest *test)
+static void host_flash_manager_test_validate_read_only_flash_single_fw (CuTest *test)
 {
 	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp = "fw1";
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
@@ -1417,12 +1692,405 @@ static void host_flash_manager_test_validate_read_only_flash_cs0_full_validation
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
-	struct pfm_read_write_regions rw_output;
+	struct host_flash_manager_rw_regions rw_output;
 	int status;
 
 	TEST_START;
 
 	host_flash_manager_testing_init (test, &manager, false);
+
+	fw_list.ids = &fw_exp;
+	fw_list.count = 1;
+
+	version.fw_version_id = version_exp;
+	version.version_addr = 0x123;
+
+	version_list.versions = &version;
+	version_list.count = 1;
+
+	img_region.start_addr = 0;
+	img_region.length = strlen (img_data);
+
+	sig.regions = &img_region;
+	sig.count = 1;
+	memcpy (&sig.key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig.signature, RSA_SIGNATURE_TEST, RSA_ENCRYPT_LEN);
+	sig.sig_length = RSA_ENCRYPT_LEN;
+	sig.always_validate = 1;
+
+	img_list.images_sig = &sig;
+	img_list.images_hash = NULL;
+	img_list.count = 1;
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp, strlen (fw_exp) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp,
+		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
+		MOCK_ARG_PTR_CONTAINS (fw_exp, strlen (fw_exp) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list, sizeof (img_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp, strlen (fw_exp) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) img_data,
+		strlen (img_data), FLASH_EXP_READ_CMD (0x03, 0, 0, -1, strlen (img_data)));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (3));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base, NULL,
+		&manager.hash.base, &manager.rsa.base, false, &rw_output);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, 1, rw_output.count);
+	CuAssertPtrNotNull (test, rw_output.writable);
+	CuAssertPtrEquals (test, &manager.pfm, rw_output.pfm);
+
+	CuAssertIntEquals (test, 1, rw_output.writable->count);
+	CuAssertPtrEquals (test, &rw_region, (void*) rw_output.writable->regions);
+	CuAssertPtrEquals (test, &rw_prop, (void*) rw_output.writable->properties);
+
+	status = mock_validate (&manager.flash_mock0.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&manager.pfm.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (2));
+	CuAssertIntEquals (test, 0, status);
+
+	manager.test.free_read_write_regions (&manager.test, &rw_output);
+
+	host_flash_manager_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_test_validate_read_only_flash_multiple_fw (CuTest *test)
+{
+	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp[3] = {"fw1", "fw2", "fw3"};
+	struct pfm_firmware_version version[3];
+	struct pfm_firmware_versions version_list[3];
+	const char *version_exp1 = "1234";
+	const char *version_exp2 = "5678";
+	const char *version_exp3 = "90ab";
+	struct flash_region img_region[3];
+	struct pfm_image_signature sig[3];
+	struct pfm_image_list img_list[3];
+	char *img_data1 = "Test";
+	char *img_data2 = "Test2";
+	char *img_data3 = "Nope";
+	struct flash_region rw_region[3];
+	struct pfm_read_write rw_prop[3];
+	struct pfm_read_write_regions rw_list[3];
+	struct host_flash_manager_rw_regions rw_output;
+	int status;
+
+	TEST_START;
+
+	host_flash_manager_testing_init (test, &manager, false);
+
+	fw_list.ids = fw_exp;
+	fw_list.count = 3;
+
+	version[0].fw_version_id = version_exp1;
+	version[0].version_addr = 0x123;
+	version[1].fw_version_id = version_exp2;
+	version[1].version_addr = 0x456;
+	version[2].fw_version_id = version_exp3;
+	version[2].version_addr = 0x789;
+
+	version_list[0].versions = &version[0];
+	version_list[0].count = 1;
+	version_list[1].versions = &version[1];
+	version_list[1].count = 1;
+	version_list[2].versions = &version[2];
+	version_list[2].count = 1;
+
+	img_region[0].start_addr = 0;
+	img_region[0].length = strlen (img_data1);
+
+	sig[0].regions = &img_region[0];
+	sig[0].count = 1;
+	memcpy (&sig[0].key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig[0].signature, RSA_SIGNATURE_TEST, RSA_ENCRYPT_LEN);
+	sig[0].sig_length = RSA_ENCRYPT_LEN;
+	sig[0].always_validate = 1;
+
+	img_list[0].images_sig = &sig[0];
+	img_list[0].images_hash = NULL;
+	img_list[0].count = 1;
+
+	img_region[1].start_addr = 0x300;
+	img_region[1].length = strlen (img_data2);
+
+	sig[1].regions = &img_region[1];
+	sig[1].count = 1;
+	memcpy (&sig[1].key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig[1].signature, RSA_SIGNATURE_TEST2, RSA_ENCRYPT_LEN);
+	sig[1].sig_length = RSA_ENCRYPT_LEN;
+	sig[1].always_validate = 1;
+
+	img_list[1].images_sig = &sig[1];
+	img_list[1].images_hash = NULL;
+	img_list[1].count = 1;
+
+	img_region[2].start_addr = 0x600;
+	img_region[2].length = strlen (img_data3);
+
+	sig[2].regions = &img_region[2];
+	sig[2].count = 1;
+	memcpy (&sig[2].key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig[2].signature, RSA_SIGNATURE_NOPE, RSA_ENCRYPT_LEN);
+	sig[2].sig_length = RSA_ENCRYPT_LEN;
+	sig[2].always_validate = 1;
+
+	img_list[2].images_sig = &sig[2];
+	img_list[2].images_hash = NULL;
+	img_list[2].count = 1;
+
+	rw_region[0].start_addr = 0x200;
+	rw_region[0].length = 0x100;
+	rw_region[1].start_addr = 0x500;
+	rw_region[1].length = 0x100;
+	rw_region[2].start_addr = 0x800;
+	rw_region[2].length = 0x100;
+
+	rw_prop[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[2].on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list[0].regions = &rw_region[0];
+	rw_list[0].properties = &rw_prop[0];
+	rw_list[0].count = 1;
+
+	rw_list[1].regions = &rw_region[1];
+	rw_list[1].properties = &rw_prop[1];
+	rw_list[1].count = 1;
+
+	rw_list[2].regions = &rw_region[2];
+	rw_list[2].properties = &rw_prop[2];
+	rw_list[2].count = 1;
+
+	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
+
+	/* FW 1 */
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[0], strlen (fw_exp[0]) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list[0], sizeof (version_list[0]),
+		-1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp1,
+		strlen (version_exp1), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp1)));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
+		MOCK_ARG_PTR_CONTAINS (fw_exp[0], strlen (fw_exp[0]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp1, strlen (version_exp1) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list[0], sizeof (img_list[0]), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[0], strlen (fw_exp[0]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp1, strlen (version_exp1) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list[0], sizeof (rw_list[0]), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	/* FW 2 */
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[1], strlen (fw_exp[1]) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list[1], sizeof (version_list[1]),
+		-1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 4);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp2,
+		strlen (version_exp2), FLASH_EXP_READ_CMD (0x03, 0x456, 0, -1, strlen (version_exp2)));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
+		MOCK_ARG_PTR_CONTAINS (fw_exp[1], strlen (fw_exp[1]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp2, strlen (version_exp2) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list[1], sizeof (img_list[1]), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 5);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[1], strlen (fw_exp[1]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp2, strlen (version_exp2) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list[1], sizeof (rw_list[1]), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 6);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (4));
+
+	/* FW 3 */
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[2], strlen (fw_exp[2]) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list[2], sizeof (version_list[2]),
+		-1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 7);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp3,
+		strlen (version_exp3), FLASH_EXP_READ_CMD (0x03, 0x789, 0, -1, strlen (version_exp3)));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
+		MOCK_ARG_PTR_CONTAINS (fw_exp[2], strlen (fw_exp[2]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp3, strlen (version_exp3) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list[2], sizeof (img_list[2]), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 8);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[2], strlen (fw_exp[2]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp3, strlen (version_exp3) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list[2], sizeof (rw_list[2]), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 9);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) img_data1,
+		strlen (img_data1), FLASH_EXP_READ_CMD (0x03, 0x000, 0, -1, strlen (img_data1)));
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) img_data2,
+		strlen (img_data2), FLASH_EXP_READ_CMD (0x03, 0x300, 0, -1, strlen (img_data2)));
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) img_data3,
+		strlen (img_data3), FLASH_EXP_READ_CMD (0x03, 0x600, 0, -1, strlen (img_data3)));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (7));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (5));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (8));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (3));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base, NULL,
+		&manager.hash.base, &manager.rsa.base, false, &rw_output);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, 3, rw_output.count);
+	CuAssertPtrNotNull (test, rw_output.writable);
+	CuAssertPtrEquals (test, &manager.pfm, rw_output.pfm);
+
+	CuAssertIntEquals (test, 1, rw_output.writable[0].count);
+	CuAssertPtrEquals (test, &rw_region[0], (void*) rw_output.writable[0].regions);
+	CuAssertPtrEquals (test, &rw_prop[0], (void*) rw_output.writable[0].properties);
+
+	CuAssertIntEquals (test, 1, rw_output.writable[1].count);
+	CuAssertPtrEquals (test, &rw_region[1], (void*) rw_output.writable[1].regions);
+	CuAssertPtrEquals (test, &rw_prop[1], (void*) rw_output.writable[1].properties);
+
+	CuAssertIntEquals (test, 1, rw_output.writable[2].count);
+	CuAssertPtrEquals (test, &rw_region[2], (void*) rw_output.writable[2].regions);
+	CuAssertPtrEquals (test, &rw_prop[2], (void*) rw_output.writable[2].properties);
+
+	status = mock_validate (&manager.flash_mock0.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&manager.pfm.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (2));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions,
+		&manager.pfm, 0, MOCK_ARG_SAVED_ARG (6));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions,
+		&manager.pfm, 0, MOCK_ARG_SAVED_ARG (9));
+
+	CuAssertIntEquals (test, 0, status);
+
+	manager.test.free_read_write_regions (&manager.test, &rw_output);
+
+	host_flash_manager_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_test_validate_read_only_flash_cs0_full_validation (CuTest *test)
+{
+	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp = NULL;
+	struct pfm_firmware_version version;
+	struct pfm_firmware_versions version_list;
+	const char *version_exp = "1234";
+	struct flash_region img_region;
+	struct pfm_image_signature sig;
+	struct pfm_image_list img_list;
+	char *img_data = "Test";
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_output;
+	int status;
+
+	TEST_START;
+
+	host_flash_manager_testing_init (test, &manager, false);
+
+	fw_list.ids = &fw_exp;
+	fw_list.count = 1;
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -1458,7 +2126,12 @@ static void host_flash_manager_test_validate_read_only_flash_cs0_full_validation
 	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
 		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
@@ -1476,8 +2149,9 @@ static void host_flash_manager_test_validate_read_only_flash_cs0_full_validation
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
 		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
-		MOCK_ARG (&rw_output));
+		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
 
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
@@ -1488,10 +2162,12 @@ static void host_flash_manager_test_validate_read_only_flash_cs0_full_validation
 		0x200 - strlen (img_data));
 	status |= flash_master_mock_expect_blank_check (&manager.flash_mock0, 0x300, 0x1000 - 0x300);
 
-	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
-		0, MOCK_ARG_SAVED_ARG (1));
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
 		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (3));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1499,12 +2175,34 @@ static void host_flash_manager_test_validate_read_only_flash_cs0_full_validation
 		&manager.hash.base, &manager.rsa.base, true, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
+	CuAssertIntEquals (test, 1, rw_output.count);
+	CuAssertPtrNotNull (test, rw_output.writable);
+	CuAssertPtrEquals (test, &manager.pfm, rw_output.pfm);
+
+	CuAssertIntEquals (test, 1, rw_output.writable->count);
+	CuAssertPtrEquals (test, &rw_region, (void*) rw_output.writable->regions);
+	CuAssertPtrEquals (test, &rw_prop, (void*) rw_output.writable->properties);
+
+	status = mock_validate (&manager.flash_mock0.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&manager.pfm.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (2));
+	CuAssertIntEquals (test, 0, status);
+
+	manager.test.free_read_write_regions (&manager.test, &rw_output);
+
 	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_validate_read_only_flash_cs1_full_validation (CuTest *test)
 {
 	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
@@ -1515,12 +2213,15 @@ static void host_flash_manager_test_validate_read_only_flash_cs1_full_validation
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
-	struct pfm_read_write_regions rw_output;
+	struct host_flash_manager_rw_regions rw_output;
 	int status;
 
 	TEST_START;
 
 	host_flash_manager_testing_init (test, &manager, true);
+
+	fw_list.ids = &fw_exp;
+	fw_list.count = 1;
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -1556,7 +2257,12 @@ static void host_flash_manager_test_validate_read_only_flash_cs1_full_validation
 	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
 		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
@@ -1574,8 +2280,9 @@ static void host_flash_manager_test_validate_read_only_flash_cs1_full_validation
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
 		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
-		MOCK_ARG (&rw_output));
+		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
 
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
@@ -1586,16 +2293,38 @@ static void host_flash_manager_test_validate_read_only_flash_cs1_full_validation
 		0x200 - strlen (img_data));
 	status |= flash_master_mock_expect_blank_check (&manager.flash_mock1, 0x300, 0x1000 - 0x300);
 
-	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
-		0, MOCK_ARG_SAVED_ARG (1));
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
 		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (3));
 
 	CuAssertIntEquals (test, 0, status);
 
 	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base, NULL,
 		&manager.hash.base, &manager.rsa.base, true, &rw_output);
 	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, 1, rw_output.count);
+	CuAssertPtrNotNull (test, rw_output.writable);
+	CuAssertPtrEquals (test, &manager.pfm, rw_output.pfm);
+
+	CuAssertIntEquals (test, 1, rw_output.writable->count);
+	CuAssertPtrEquals (test, &rw_region, (void*) rw_output.writable->regions);
+	CuAssertPtrEquals (test, &rw_prop, (void*) rw_output.writable->properties);
+
+	status = mock_validate (&manager.flash_mock1.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&manager.pfm.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (2));
+	CuAssertIntEquals (test, 0, status);
+
+	manager.test.free_read_write_regions (&manager.test, &rw_output);
 
 	host_flash_manager_testing_validate_and_release (test, &manager);
 }
@@ -1604,6 +2333,8 @@ static void host_flash_manager_test_validate_read_only_flash_full_validation_not
 	CuTest *test)
 {
 	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
@@ -1614,12 +2345,15 @@ static void host_flash_manager_test_validate_read_only_flash_full_validation_not
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
-	struct pfm_read_write_regions rw_output;
+	struct host_flash_manager_rw_regions rw_output;
 	int status;
 
 	TEST_START;
 
 	host_flash_manager_testing_init (test, &manager, false);
+
+	fw_list.ids = &fw_exp;
+	fw_list.count = 1;
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -1655,7 +2389,12 @@ static void host_flash_manager_test_validate_read_only_flash_full_validation_not
 	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
 		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
@@ -1673,8 +2412,9 @@ static void host_flash_manager_test_validate_read_only_flash_full_validation_not
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
 		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
-		MOCK_ARG (&rw_output));
+		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
 
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
@@ -1686,10 +2426,12 @@ static void host_flash_manager_test_validate_read_only_flash_full_validation_not
 	status |= flash_master_mock_expect_value_check (&manager.flash_mock0, 0x300, 0x1000 - 0x300,
 		0x45);
 
-	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
-		0, MOCK_ARG_SAVED_ARG (1));
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
 		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (3));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1697,444 +2439,35 @@ static void host_flash_manager_test_validate_read_only_flash_full_validation_not
 		&manager.hash.base, &manager.rsa.base, true, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
-}
+	CuAssertIntEquals (test, 1, rw_output.count);
+	CuAssertPtrNotNull (test, rw_output.writable);
+	CuAssertPtrEquals (test, &manager.pfm, rw_output.pfm);
 
-static void host_flash_manager_test_validate_read_only_flash_cs0_good_pfm (CuTest *test)
-{
-	struct host_flash_manager_testing manager;
-	struct pfm_firmware_version version;
-	struct pfm_firmware_versions version_list;
-	const char *version_exp = "1234";
-	struct flash_region img_region;
-	struct pfm_image_signature sig;
-	struct pfm_image_list img_list;
-	struct flash_region rw_region;
-	struct pfm_read_write rw_prop;
-	struct pfm_read_write_regions rw_list;
-	struct pfm_read_write_regions rw_output;
-	int status;
+	CuAssertIntEquals (test, 1, rw_output.writable->count);
+	CuAssertPtrEquals (test, &rw_region, (void*) rw_output.writable->regions);
+	CuAssertPtrEquals (test, &rw_prop, (void*) rw_output.writable->properties);
 
-	TEST_START;
-
-	host_flash_manager_testing_init (test, &manager, false);
-
-	version.fw_version_id = version_exp;
-	version.version_addr = 0x123;
-
-	version_list.versions = &version;
-	version_list.count = 1;
-
-	img_region.start_addr = 0;
-	img_region.length = 0x100;
-
-	sig.regions = &img_region;
-	sig.count = 1;
-	memcpy (&sig.key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
-	memcpy (&sig.signature, RSA_SIGNATURE_TEST, RSA_ENCRYPT_LEN);
-	sig.sig_length = RSA_ENCRYPT_LEN;
-	sig.always_validate = 1;
-
-	img_list.images_sig = &sig;
-	img_list.images_hash = NULL;
-	img_list.count = 1;
-
-	rw_region.start_addr = 0x200;
-	rw_region.length = 0x100;
-
-	rw_prop.on_failure = PFM_RW_DO_NOTHING;
-
-	rw_list.regions = &rw_region;
-	rw_list.properties = &rw_prop;
-	rw_list.count = 1;
-
-	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
-	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
+	status = mock_validate (&manager.flash_mock0.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
-	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
-
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp,
-		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
-
-	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
-		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
-			MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list, sizeof (img_list), -1);
-	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
-
-	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
-		MOCK_ARG (&rw_output));
-	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
-
-	status |= mock_expect (&manager.pfm_good.mock, manager.pfm_good.base.get_firmware_images,
-		&manager.pfm_good, 0, MOCK_ARG (NULL),
-		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&manager.pfm_good.mock, 2, &img_list, sizeof (img_list), -1);
-	status |= mock_expect_save_arg (&manager.pfm_good.mock, 2, 1);
-
-	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
-		0, MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
-		MOCK_ARG_SAVED_ARG (0));
-
-	status |= mock_expect (&manager.pfm_good.mock, manager.pfm_good.base.free_firmware_images,
-		&manager.pfm_good, 0, MOCK_ARG_SAVED_ARG (1));
-
+	status = mock_validate (&manager.pfm.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base,
-		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false, &rw_output);
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (2));
 	CuAssertIntEquals (test, 0, status);
+
+	manager.test.free_read_write_regions (&manager.test, &rw_output);
 
 	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_validate_read_only_flash_cs1_good_pfm (CuTest *test)
-{
-	struct host_flash_manager_testing manager;
-	struct pfm_firmware_version version;
-	struct pfm_firmware_versions version_list;
-	const char *version_exp = "1234";
-	struct flash_region img_region;
-	struct pfm_image_signature sig;
-	struct pfm_image_list img_list;
-	struct flash_region rw_region;
-	struct pfm_read_write rw_prop;
-	struct pfm_read_write_regions rw_list;
-	struct pfm_read_write_regions rw_output;
-	int status;
-
-	TEST_START;
-
-	host_flash_manager_testing_init (test, &manager, true);
-
-	version.fw_version_id = version_exp;
-	version.version_addr = 0x123;
-
-	version_list.versions = &version;
-	version_list.count = 1;
-
-	img_region.start_addr = 0;
-	img_region.length = 0x100;
-
-	sig.regions = &img_region;
-	sig.count = 1;
-	memcpy (&sig.key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
-	memcpy (&sig.signature, RSA_SIGNATURE_TEST, RSA_ENCRYPT_LEN);
-	sig.sig_length = RSA_ENCRYPT_LEN;
-	sig.always_validate = 1;
-
-	img_list.images_sig = &sig;
-	img_list.images_hash = NULL;
-	img_list.count = 1;
-
-	rw_region.start_addr = 0x200;
-	rw_region.length = 0x100;
-
-	rw_prop.on_failure = PFM_RW_DO_NOTHING;
-
-	rw_list.regions = &rw_region;
-	rw_list.properties = &rw_prop;
-	rw_list.count = 1;
-
-	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
-	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
-	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
-
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) version_exp,
-		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
-
-	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
-		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list, sizeof (img_list), -1);
-	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
-
-	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
-		MOCK_ARG (&rw_output));
-	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
-
-	status |= mock_expect (&manager.pfm_good.mock, manager.pfm_good.base.get_firmware_images,
-		&manager.pfm_good, 0, MOCK_ARG (NULL),
-		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&manager.pfm_good.mock, 2, &img_list, sizeof (img_list), -1);
-	status |= mock_expect_save_arg (&manager.pfm_good.mock, 2, 1);
-
-	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
-		0, MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
-		MOCK_ARG_SAVED_ARG (0));
-
-	status |= mock_expect (&manager.pfm_good.mock, manager.pfm_good.base.free_firmware_images,
-		&manager.pfm_good, 0, MOCK_ARG_SAVED_ARG (1));
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base,
-		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false, &rw_output);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_validate_and_release (test, &manager);
-}
-
-static void host_flash_manager_test_validate_read_only_flash_cs0_good_pfm_no_match_image (
+static void host_flash_manager_test_validate_read_only_flash_full_validation_single_fw (
 	CuTest *test)
 {
 	struct host_flash_manager_testing manager;
-	struct pfm_firmware_version version;
-	struct pfm_firmware_versions version_list;
-	const char *version_exp = "1234";
-	char *img_data = "Test";
-	struct flash_region img_region1;
-	struct pfm_image_signature sig1;
-	struct pfm_image_list img_list1;
-	struct flash_region rw_region;
-	struct pfm_read_write rw_prop;
-	struct pfm_read_write_regions rw_list;
-	struct flash_region img_region2;
-	struct pfm_image_signature sig2;
-	struct pfm_image_list img_list2;
-	struct pfm_read_write_regions rw_output;
-	int status;
-
-	TEST_START;
-
-	host_flash_manager_testing_init (test, &manager, false);
-
-	version.fw_version_id = version_exp;
-	version.version_addr = 0x123;
-
-	version_list.versions = &version;
-	version_list.count = 1;
-
-	img_region1.start_addr = 0;
-	img_region1.length = strlen (img_data);
-
-	sig1.regions = &img_region1;
-	sig1.count = 1;
-	memcpy (&sig1.key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
-	memcpy (&sig1.signature, RSA_SIGNATURE_TEST, RSA_ENCRYPT_LEN);
-	sig1.sig_length = RSA_ENCRYPT_LEN;
-	sig1.always_validate = 1;
-
-	img_list1.images_sig = &sig1;
-	img_list1.images_hash = NULL;
-	img_list1.count = 1;
-
-	rw_region.start_addr = 0x200;
-	rw_region.length = 0x100;
-
-	rw_prop.on_failure = PFM_RW_DO_NOTHING;
-
-	rw_list.regions = &rw_region;
-	rw_list.properties = &rw_prop;
-	rw_list.count = 1;
-
-	img_region2.start_addr = 0;
-	img_region2.length = strlen (img_data);
-
-	sig2.regions = &img_region2;
-	sig2.count = 1;
-	memcpy (&sig2.key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
-	memcpy (&sig2.signature, RSA_SIGNATURE_TEST2, RSA_ENCRYPT_LEN);
-	sig2.sig_length = RSA_ENCRYPT_LEN;
-	sig2.always_validate = 1;
-
-	img_list2.images_sig = &sig2;
-	img_list2.images_hash = NULL;
-	img_list2.count = 1;
-
-	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
-	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
-	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
-
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp,
-		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
-
-	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
-		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list1, sizeof (img_list1), -1);
-	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
-
-	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
-		MOCK_ARG (&rw_output));
-	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
-
-	status |= mock_expect (&manager.pfm_good.mock, manager.pfm_good.base.get_firmware_images,
-		&manager.pfm_good, 0, MOCK_ARG (NULL),
-		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&manager.pfm_good.mock, 2, &img_list2, sizeof (img_list2), -1);
-	status |= mock_expect_save_arg (&manager.pfm_good.mock, 2, 1);
-
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) img_data,
-		strlen (img_data), FLASH_EXP_READ_CMD (0x03, 0, 0, -1, strlen (img_data)));
-
-	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
-		0, MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
-		MOCK_ARG_SAVED_ARG (0));
-
-	status |= mock_expect (&manager.pfm_good.mock, manager.pfm_good.base.free_firmware_images,
-		&manager.pfm_good, 0, MOCK_ARG_SAVED_ARG (1));
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base,
-		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false, &rw_output);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_validate_and_release (test, &manager);
-}
-
-static void host_flash_manager_test_validate_read_only_flash_cs1_good_pfm_no_match_image (
-	CuTest *test)
-{
-	struct host_flash_manager_testing manager;
-	struct pfm_firmware_version version;
-	struct pfm_firmware_versions version_list;
-	const char *version_exp = "1234";
-	char *img_data = "Test";
-	struct flash_region img_region1;
-	struct pfm_image_signature sig1;
-	struct pfm_image_list img_list1;
-	struct flash_region rw_region;
-	struct pfm_read_write rw_prop;
-	struct pfm_read_write_regions rw_list;
-	struct flash_region img_region2;
-	struct pfm_image_signature sig2;
-	struct pfm_image_list img_list2;
-	struct pfm_read_write_regions rw_output;
-	int status;
-
-	TEST_START;
-
-	host_flash_manager_testing_init (test, &manager, true);
-
-	version.fw_version_id = version_exp;
-	version.version_addr = 0x123;
-
-	version_list.versions = &version;
-	version_list.count = 1;
-
-	img_region1.start_addr = 0;
-	img_region1.length = strlen (img_data);
-
-	sig1.regions = &img_region1;
-	sig1.count = 1;
-	memcpy (&sig1.key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
-	memcpy (&sig1.signature, RSA_SIGNATURE_TEST, RSA_ENCRYPT_LEN);
-	sig1.sig_length = RSA_ENCRYPT_LEN;
-	sig1.always_validate = 1;
-
-	img_list1.images_sig = &sig1;
-	img_list1.images_hash = NULL;
-	img_list1.count = 1;
-
-	rw_region.start_addr = 0x200;
-	rw_region.length = 0x100;
-
-	rw_prop.on_failure = PFM_RW_DO_NOTHING;
-
-	rw_list.regions = &rw_region;
-	rw_list.properties = &rw_prop;
-	rw_list.count = 1;
-
-	img_region2.start_addr = 0;
-	img_region2.length = strlen (img_data);
-
-	sig2.regions = &img_region2;
-	sig2.count = 1;
-	memcpy (&sig2.key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
-	memcpy (&sig2.signature, RSA_SIGNATURE_TEST2, RSA_ENCRYPT_LEN);
-	sig2.sig_length = RSA_ENCRYPT_LEN;
-	sig2.always_validate = 1;
-
-	img_list2.images_sig = &sig2;
-	img_list2.images_hash = NULL;
-	img_list2.count = 1;
-
-	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
-	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
-	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
-
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) version_exp,
-		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
-
-	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
-		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list1, sizeof (img_list1), -1);
-	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
-
-	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
-		MOCK_ARG (&rw_output));
-	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
-
-	status |= mock_expect (&manager.pfm_good.mock, manager.pfm_good.base.get_firmware_images,
-		&manager.pfm_good, 0, MOCK_ARG (NULL),
-		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&manager.pfm_good.mock, 2, &img_list2, sizeof (img_list2), -1);
-	status |= mock_expect_save_arg (&manager.pfm_good.mock, 2, 1);
-
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) img_data,
-		strlen (img_data), FLASH_EXP_READ_CMD (0x03, 0, 0, -1, strlen (img_data)));
-
-	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
-		0, MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
-		MOCK_ARG_SAVED_ARG (0));
-
-	status |= mock_expect (&manager.pfm_good.mock, manager.pfm_good.base.free_firmware_images,
-		&manager.pfm_good, 0, MOCK_ARG_SAVED_ARG (1));
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base,
-		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false, &rw_output);
-	CuAssertIntEquals (test, 0, status);
-
-	host_flash_manager_testing_validate_and_release (test, &manager);
-}
-
-static void host_flash_manager_test_validate_read_only_flash_good_pfm_full_validation (CuTest *test)
-{
-	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp = "fw1";
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
@@ -2145,12 +2478,15 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_full_valid
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
-	struct pfm_read_write_regions rw_output;
+	struct host_flash_manager_rw_regions rw_output;
 	int status;
 
 	TEST_START;
 
 	host_flash_manager_testing_init (test, &manager, false);
+
+	fw_list.ids = &fw_exp;
+	fw_list.count = 1;
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -2186,7 +2522,419 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_full_valid
 	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp, strlen (fw_exp) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp,
+		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
+		MOCK_ARG_PTR_CONTAINS (fw_exp, strlen (fw_exp) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list, sizeof (img_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp, strlen (fw_exp) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) img_data,
+		strlen (img_data), FLASH_EXP_READ_CMD (0x03, 0, 0, -1, strlen (img_data)));
+
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock0, 0 + strlen (img_data),
+		0x200 - strlen (img_data));
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock0, 0x300, 0x1000 - 0x300);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (3));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base, NULL,
+		&manager.hash.base, &manager.rsa.base, true, &rw_output);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, 1, rw_output.count);
+	CuAssertPtrNotNull (test, rw_output.writable);
+	CuAssertPtrEquals (test, &manager.pfm, rw_output.pfm);
+
+	CuAssertIntEquals (test, 1, rw_output.writable->count);
+	CuAssertPtrEquals (test, &rw_region, (void*) rw_output.writable->regions);
+	CuAssertPtrEquals (test, &rw_prop, (void*) rw_output.writable->properties);
+
+	status = mock_validate (&manager.flash_mock0.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&manager.pfm.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (2));
+	CuAssertIntEquals (test, 0, status);
+
+	manager.test.free_read_write_regions (&manager.test, &rw_output);
+
+	host_flash_manager_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_test_validate_read_only_flash_full_validation_multiple_fw (
+	CuTest *test)
+{
+	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp[3] = {"fw1", "fw2", "fw3"};
+	struct pfm_firmware_version version[3];
+	struct pfm_firmware_versions version_list[3];
+	const char *version_exp1 = "1234";
+	const char *version_exp2 = "5678";
+	const char *version_exp3 = "90ab";
+	struct flash_region img_region[3];
+	struct pfm_image_signature sig[3];
+	struct pfm_image_list img_list[3];
+	char *img_data1 = "Test";
+	char *img_data2 = "Test2";
+	char *img_data3 = "Nope";
+	struct flash_region rw_region[3];
+	struct pfm_read_write rw_prop[3];
+	struct pfm_read_write_regions rw_list[3];
+	struct host_flash_manager_rw_regions rw_output;
+	int status;
+
+	TEST_START;
+
+	host_flash_manager_testing_init (test, &manager, false);
+
+	fw_list.ids = fw_exp;
+	fw_list.count = 3;
+
+	version[0].fw_version_id = version_exp1;
+	version[0].version_addr = 0x123;
+	version[0].blank_byte = 0xff;
+
+	version[1].fw_version_id = version_exp2;
+	version[1].version_addr = 0x456;
+	version[1].blank_byte = 0xff;
+
+	version[2].fw_version_id = version_exp3;
+	version[2].version_addr = 0x789;
+	version[2].blank_byte = 0xff;
+
+	version_list[0].versions = &version[0];
+	version_list[0].count = 1;
+	version_list[1].versions = &version[1];
+	version_list[1].count = 1;
+	version_list[2].versions = &version[2];
+	version_list[2].count = 1;
+
+	img_region[0].start_addr = 0;
+	img_region[0].length = strlen (img_data1);
+
+	sig[0].regions = &img_region[0];
+	sig[0].count = 1;
+	memcpy (&sig[0].key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig[0].signature, RSA_SIGNATURE_TEST, RSA_ENCRYPT_LEN);
+	sig[0].sig_length = RSA_ENCRYPT_LEN;
+	sig[0].always_validate = 1;
+
+	img_list[0].images_sig = &sig[0];
+	img_list[0].images_hash = NULL;
+	img_list[0].count = 1;
+
+	img_region[1].start_addr = 0x300;
+	img_region[1].length = strlen (img_data2);
+
+	sig[1].regions = &img_region[1];
+	sig[1].count = 1;
+	memcpy (&sig[1].key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig[1].signature, RSA_SIGNATURE_TEST2, RSA_ENCRYPT_LEN);
+	sig[1].sig_length = RSA_ENCRYPT_LEN;
+	sig[1].always_validate = 1;
+
+	img_list[1].images_sig = &sig[1];
+	img_list[1].images_hash = NULL;
+	img_list[1].count = 1;
+
+	img_region[2].start_addr = 0x600;
+	img_region[2].length = strlen (img_data3);
+
+	sig[2].regions = &img_region[2];
+	sig[2].count = 1;
+	memcpy (&sig[2].key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig[2].signature, RSA_SIGNATURE_NOPE, RSA_ENCRYPT_LEN);
+	sig[2].sig_length = RSA_ENCRYPT_LEN;
+	sig[2].always_validate = 1;
+
+	img_list[2].images_sig = &sig[2];
+	img_list[2].images_hash = NULL;
+	img_list[2].count = 1;
+
+	rw_region[0].start_addr = 0x200;
+	rw_region[0].length = 0x100;
+	rw_region[1].start_addr = 0x500;
+	rw_region[1].length = 0x100;
+	rw_region[2].start_addr = 0x800;
+	rw_region[2].length = 0x100;
+
+	rw_prop[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[2].on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list[0].regions = &rw_region[0];
+	rw_list[0].properties = &rw_prop[0];
+	rw_list[0].count = 1;
+
+	rw_list[1].regions = &rw_region[1];
+	rw_list[1].properties = &rw_prop[1];
+	rw_list[1].count = 1;
+
+	rw_list[2].regions = &rw_region[2];
+	rw_list[2].properties = &rw_prop[2];
+	rw_list[2].count = 1;
+
+	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
+
+	/* FW 1 */
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[0], strlen (fw_exp[0]) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list[0], sizeof (version_list[0]),
+		-1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp1,
+		strlen (version_exp1), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp1)));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
+		MOCK_ARG_PTR_CONTAINS (fw_exp[0], strlen (fw_exp[0]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp1, strlen (version_exp1) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list[0], sizeof (img_list[0]), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[0], strlen (fw_exp[0]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp1, strlen (version_exp1) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list[0], sizeof (rw_list[0]), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	/* FW 2 */
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[1], strlen (fw_exp[1]) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list[1], sizeof (version_list[1]),
+		-1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 4);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp2,
+		strlen (version_exp2), FLASH_EXP_READ_CMD (0x03, 0x456, 0, -1, strlen (version_exp2)));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
+		MOCK_ARG_PTR_CONTAINS (fw_exp[1], strlen (fw_exp[1]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp2, strlen (version_exp2) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list[1], sizeof (img_list[1]), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 5);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[1], strlen (fw_exp[1]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp2, strlen (version_exp2) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list[1], sizeof (rw_list[1]), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 6);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (4));
+
+	/* FW 3 */
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[2], strlen (fw_exp[2]) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list[2], sizeof (version_list[2]),
+		-1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 7);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp3,
+		strlen (version_exp3), FLASH_EXP_READ_CMD (0x03, 0x789, 0, -1, strlen (version_exp3)));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
+		MOCK_ARG_PTR_CONTAINS (fw_exp[2], strlen (fw_exp[2]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp3, strlen (version_exp3) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list[2], sizeof (img_list[2]), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 8);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[2], strlen (fw_exp[2]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp3, strlen (version_exp3) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list[2], sizeof (rw_list[2]), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 9);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (7));
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) img_data1,
+		strlen (img_data1), FLASH_EXP_READ_CMD (0x03, 0x000, 0, -1, strlen (img_data1)));
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) img_data2,
+		strlen (img_data2), FLASH_EXP_READ_CMD (0x03, 0x300, 0, -1, strlen (img_data2)));
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) img_data3,
+		strlen (img_data3), FLASH_EXP_READ_CMD (0x03, 0x600, 0, -1, strlen (img_data3)));
+
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock0,
+		0x000 + strlen (img_data1), 0x200 - strlen (img_data1));
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock0,
+		0x300 + strlen (img_data2), 0x200 - strlen (img_data2));
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock0,
+		0x600 + strlen (img_data3), 0x200 - strlen (img_data3));
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock0, 0x900, 0x1000 - 0x900);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (5));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (8));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (3));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base, NULL,
+		&manager.hash.base, &manager.rsa.base, true, &rw_output);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, 3, rw_output.count);
+	CuAssertPtrNotNull (test, rw_output.writable);
+	CuAssertPtrEquals (test, &manager.pfm, rw_output.pfm);
+
+	CuAssertIntEquals (test, 1, rw_output.writable[0].count);
+	CuAssertPtrEquals (test, &rw_region[0], (void*) rw_output.writable[0].regions);
+	CuAssertPtrEquals (test, &rw_prop[0], (void*) rw_output.writable[0].properties);
+
+	CuAssertIntEquals (test, 1, rw_output.writable[1].count);
+	CuAssertPtrEquals (test, &rw_region[1], (void*) rw_output.writable[1].regions);
+	CuAssertPtrEquals (test, &rw_prop[1], (void*) rw_output.writable[1].properties);
+
+	CuAssertIntEquals (test, 1, rw_output.writable[2].count);
+	CuAssertPtrEquals (test, &rw_region[2], (void*) rw_output.writable[2].regions);
+	CuAssertPtrEquals (test, &rw_prop[2], (void*) rw_output.writable[2].properties);
+
+	status = mock_validate (&manager.flash_mock0.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&manager.pfm.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (2));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions,
+		&manager.pfm, 0, MOCK_ARG_SAVED_ARG (6));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions,
+		&manager.pfm, 0, MOCK_ARG_SAVED_ARG (9));
+
+	CuAssertIntEquals (test, 0, status);
+
+	manager.test.free_read_write_regions (&manager.test, &rw_output);
+
+	host_flash_manager_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_test_validate_read_only_flash_cs0_good_pfm (CuTest *test)
+{
+	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp = NULL;
+	struct pfm_firmware_version version;
+	struct pfm_firmware_versions version_list;
+	const char *version_exp = "1234";
+	struct flash_region img_region;
+	struct pfm_image_signature sig;
+	struct pfm_image_list img_list;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_output;
+	int status;
+
+	TEST_START;
+
+	host_flash_manager_testing_init (test, &manager, false);
+
+	fw_list.ids = &fw_exp;
+	fw_list.count = 1;
+
+	version.fw_version_id = version_exp;
+	version.version_addr = 0x123;
+
+	version_list.versions = &version;
+	version_list.count = 1;
+
+	img_region.start_addr = 0;
+	img_region.length = 0x100;
+
+	sig.regions = &img_region;
+	sig.count = 1;
+	memcpy (&sig.key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig.signature, RSA_SIGNATURE_TEST, RSA_ENCRYPT_LEN);
+	sig.sig_length = RSA_ENCRYPT_LEN;
+	sig.always_validate = 1;
+
+	img_list.images_sig = &sig;
+	img_list.images_hash = NULL;
+	img_list.count = 1;
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
 		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
@@ -2204,8 +2952,1276 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_full_valid
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
 		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
-		MOCK_ARG (&rw_output));
+		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
+
+	status |= mock_expect (&manager.pfm_good.mock, manager.pfm_good.base.get_firmware_images,
+		&manager.pfm_good, 0, MOCK_ARG (NULL),
+		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm_good.mock, 2, &img_list, sizeof (img_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm_good.mock, 2, 1);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (3));
+
+	status |= mock_expect (&manager.pfm_good.mock, manager.pfm_good.base.free_firmware_images,
+		&manager.pfm_good, 0, MOCK_ARG_SAVED_ARG (1));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base,
+		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false, &rw_output);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, 1, rw_output.count);
+	CuAssertPtrNotNull (test, rw_output.writable);
+	CuAssertPtrEquals (test, &manager.pfm, rw_output.pfm);
+
+	CuAssertIntEquals (test, 1, rw_output.writable->count);
+	CuAssertPtrEquals (test, &rw_region, (void*) rw_output.writable->regions);
+	CuAssertPtrEquals (test, &rw_prop, (void*) rw_output.writable->properties);
+
+	status = mock_validate (&manager.flash_mock0.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&manager.pfm.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (2));
+	CuAssertIntEquals (test, 0, status);
+
+	manager.test.free_read_write_regions (&manager.test, &rw_output);
+
+	host_flash_manager_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_test_validate_read_only_flash_cs1_good_pfm (CuTest *test)
+{
+	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp = NULL;
+	struct pfm_firmware_version version;
+	struct pfm_firmware_versions version_list;
+	const char *version_exp = "1234";
+	struct flash_region img_region;
+	struct pfm_image_signature sig;
+	struct pfm_image_list img_list;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_output;
+	int status;
+
+	TEST_START;
+
+	host_flash_manager_testing_init (test, &manager, true);
+
+	fw_list.ids = &fw_exp;
+	fw_list.count = 1;
+
+	version.fw_version_id = version_exp;
+	version.version_addr = 0x123;
+
+	version_list.versions = &version;
+	version_list.count = 1;
+
+	img_region.start_addr = 0;
+	img_region.length = 0x100;
+
+	sig.regions = &img_region;
+	sig.count = 1;
+	memcpy (&sig.key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig.signature, RSA_SIGNATURE_TEST, RSA_ENCRYPT_LEN);
+	sig.sig_length = RSA_ENCRYPT_LEN;
+	sig.always_validate = 1;
+
+	img_list.images_sig = &sig;
+	img_list.images_hash = NULL;
+	img_list.count = 1;
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) version_exp,
+		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
+		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list, sizeof (img_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
+
+	status |= mock_expect (&manager.pfm_good.mock, manager.pfm_good.base.get_firmware_images,
+		&manager.pfm_good, 0, MOCK_ARG (NULL),
+		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm_good.mock, 2, &img_list, sizeof (img_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm_good.mock, 2, 1);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (3));
+
+	status |= mock_expect (&manager.pfm_good.mock, manager.pfm_good.base.free_firmware_images,
+		&manager.pfm_good, 0, MOCK_ARG_SAVED_ARG (1));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base,
+		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false, &rw_output);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, 1, rw_output.count);
+	CuAssertPtrNotNull (test, rw_output.writable);
+	CuAssertPtrEquals (test, &manager.pfm, rw_output.pfm);
+
+	CuAssertIntEquals (test, 1, rw_output.writable->count);
+	CuAssertPtrEquals (test, &rw_region, (void*) rw_output.writable->regions);
+	CuAssertPtrEquals (test, &rw_prop, (void*) rw_output.writable->properties);
+
+	status = mock_validate (&manager.flash_mock1.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&manager.pfm.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (2));
+	CuAssertIntEquals (test, 0, status);
+
+	manager.test.free_read_write_regions (&manager.test, &rw_output);
+
+	host_flash_manager_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_test_validate_read_only_flash_good_pfm_single_fw (CuTest *test)
+{
+	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp = "fw1";;
+	struct pfm_firmware_version version;
+	struct pfm_firmware_versions version_list;
+	const char *version_exp = "1234";
+	struct flash_region img_region;
+	struct pfm_image_signature sig;
+	struct pfm_image_list img_list;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_output;
+	int status;
+
+	TEST_START;
+
+	host_flash_manager_testing_init (test, &manager, false);
+
+	fw_list.ids = &fw_exp;
+	fw_list.count = 1;
+
+	version.fw_version_id = version_exp;
+	version.version_addr = 0x123;
+
+	version_list.versions = &version;
+	version_list.count = 1;
+
+	img_region.start_addr = 0;
+	img_region.length = 0x100;
+
+	sig.regions = &img_region;
+	sig.count = 1;
+	memcpy (&sig.key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig.signature, RSA_SIGNATURE_TEST, RSA_ENCRYPT_LEN);
+	sig.sig_length = RSA_ENCRYPT_LEN;
+	sig.always_validate = 1;
+
+	img_list.images_sig = &sig;
+	img_list.images_hash = NULL;
+	img_list.count = 1;
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp, strlen (fw_exp) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp,
+		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
+		MOCK_ARG_PTR_CONTAINS (fw_exp, strlen (fw_exp) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list, sizeof (img_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp, strlen (fw_exp) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
+
+	status |= mock_expect (&manager.pfm_good.mock, manager.pfm_good.base.get_firmware_images,
+		&manager.pfm_good, 0, MOCK_ARG_PTR_CONTAINS (fw_exp, strlen (fw_exp) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm_good.mock, 2, &img_list, sizeof (img_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm_good.mock, 2, 1);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (3));
+
+	status |= mock_expect (&manager.pfm_good.mock, manager.pfm_good.base.free_firmware_images,
+		&manager.pfm_good, 0, MOCK_ARG_SAVED_ARG (1));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base,
+		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false, &rw_output);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, 1, rw_output.count);
+	CuAssertPtrNotNull (test, rw_output.writable);
+	CuAssertPtrEquals (test, &manager.pfm, rw_output.pfm);
+
+	CuAssertIntEquals (test, 1, rw_output.writable->count);
+	CuAssertPtrEquals (test, &rw_region, (void*) rw_output.writable->regions);
+	CuAssertPtrEquals (test, &rw_prop, (void*) rw_output.writable->properties);
+
+	status = mock_validate (&manager.flash_mock0.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&manager.pfm.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (2));
+	CuAssertIntEquals (test, 0, status);
+
+	manager.test.free_read_write_regions (&manager.test, &rw_output);
+
+	host_flash_manager_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_test_validate_read_only_flash_good_pfm_multiple_fw (CuTest *test)
+{
+	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp[3] = {"fw1", "fw2", "fw3"};
+	struct pfm_firmware_version version[3];
+	struct pfm_firmware_versions version_list[3];
+	const char *version_exp1 = "1234";
+	const char *version_exp2 = "5678";
+	const char *version_exp3 = "90ab";
+	struct flash_region img_region[3];
+	struct pfm_image_signature sig[3];
+	struct pfm_image_list img_list[3];
+	char *img_data1 = "Test";
+	char *img_data2 = "Test2";
+	char *img_data3 = "Nope";
+	struct flash_region rw_region[3];
+	struct pfm_read_write rw_prop[3];
+	struct pfm_read_write_regions rw_list[3];
+	struct host_flash_manager_rw_regions rw_output;
+	int status;
+
+	TEST_START;
+
+	host_flash_manager_testing_init (test, &manager, false);
+
+	fw_list.ids = fw_exp;
+	fw_list.count = 3;
+
+	version[0].fw_version_id = version_exp1;
+	version[0].version_addr = 0x123;
+	version[1].fw_version_id = version_exp2;
+	version[1].version_addr = 0x456;
+	version[2].fw_version_id = version_exp3;
+	version[2].version_addr = 0x789;
+
+	version_list[0].versions = &version[0];
+	version_list[0].count = 1;
+	version_list[1].versions = &version[1];
+	version_list[1].count = 1;
+	version_list[2].versions = &version[2];
+	version_list[2].count = 1;
+
+	img_region[0].start_addr = 0;
+	img_region[0].length = strlen (img_data1);
+
+	sig[0].regions = &img_region[0];
+	sig[0].count = 1;
+	memcpy (&sig[0].key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig[0].signature, RSA_SIGNATURE_TEST, RSA_ENCRYPT_LEN);
+	sig[0].sig_length = RSA_ENCRYPT_LEN;
+	sig[0].always_validate = 1;
+
+	img_list[0].images_sig = &sig[0];
+	img_list[0].images_hash = NULL;
+	img_list[0].count = 1;
+
+	img_region[1].start_addr = 0x300;
+	img_region[1].length = strlen (img_data2);
+
+	sig[1].regions = &img_region[1];
+	sig[1].count = 1;
+	memcpy (&sig[1].key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig[1].signature, RSA_SIGNATURE_TEST2, RSA_ENCRYPT_LEN);
+	sig[1].sig_length = RSA_ENCRYPT_LEN;
+	sig[1].always_validate = 1;
+
+	img_list[1].images_sig = &sig[1];
+	img_list[1].images_hash = NULL;
+	img_list[1].count = 1;
+
+	img_region[2].start_addr = 0x600;
+	img_region[2].length = strlen (img_data3);
+
+	sig[2].regions = &img_region[2];
+	sig[2].count = 1;
+	memcpy (&sig[2].key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig[2].signature, RSA_SIGNATURE_NOPE, RSA_ENCRYPT_LEN);
+	sig[2].sig_length = RSA_ENCRYPT_LEN;
+	sig[2].always_validate = 1;
+
+	img_list[2].images_sig = &sig[2];
+	img_list[2].images_hash = NULL;
+	img_list[2].count = 1;
+
+	rw_region[0].start_addr = 0x200;
+	rw_region[0].length = 0x100;
+	rw_region[1].start_addr = 0x500;
+	rw_region[1].length = 0x100;
+	rw_region[2].start_addr = 0x800;
+	rw_region[2].length = 0x100;
+
+	rw_prop[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[2].on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list[0].regions = &rw_region[0];
+	rw_list[0].properties = &rw_prop[0];
+	rw_list[0].count = 1;
+
+	rw_list[1].regions = &rw_region[1];
+	rw_list[1].properties = &rw_prop[1];
+	rw_list[1].count = 1;
+
+	rw_list[2].regions = &rw_region[2];
+	rw_list[2].properties = &rw_prop[2];
+	rw_list[2].count = 1;
+
+	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
+
+	/* FW 1 */
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[0], strlen (fw_exp[0]) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list[0], sizeof (version_list[0]),
+		-1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp1,
+		strlen (version_exp1), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp1)));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
+		MOCK_ARG_PTR_CONTAINS (fw_exp[0], strlen (fw_exp[0]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp1, strlen (version_exp1) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list[0], sizeof (img_list[0]), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[0], strlen (fw_exp[0]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp1, strlen (version_exp1) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list[0], sizeof (rw_list[0]), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
+
+	status |= mock_expect (&manager.pfm_good.mock, manager.pfm_good.base.get_firmware_images,
+		&manager.pfm_good, 0, MOCK_ARG_PTR_CONTAINS (fw_exp[0], strlen (fw_exp[0]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp1, strlen (version_exp1) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm_good.mock, 2, &img_list[0], sizeof (img_list[0]),
+		-1);
+	status |= mock_expect_save_arg (&manager.pfm_good.mock, 2, 1);
+
+	status |= mock_expect (&manager.pfm_good.mock, manager.pfm_good.base.free_firmware_images,
+		&manager.pfm_good, 0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	/* FW 2 */
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[1], strlen (fw_exp[1]) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list[1], sizeof (version_list[1]),
+		-1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 4);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp2,
+		strlen (version_exp2), FLASH_EXP_READ_CMD (0x03, 0x456, 0, -1, strlen (version_exp2)));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
+		MOCK_ARG_PTR_CONTAINS (fw_exp[1], strlen (fw_exp[1]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp2, strlen (version_exp2) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list[1], sizeof (img_list[1]), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 5);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[1], strlen (fw_exp[1]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp2, strlen (version_exp2) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list[1], sizeof (rw_list[1]), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 6);
+
+	status |= mock_expect (&manager.pfm_good.mock, manager.pfm_good.base.get_firmware_images,
+		&manager.pfm_good, 0, MOCK_ARG_PTR_CONTAINS (fw_exp[1], strlen (fw_exp[1]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp2, strlen (version_exp2) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm_good.mock, 2, &img_list[1], sizeof (img_list[1]),
+		-1);
+	status |= mock_expect_save_arg (&manager.pfm_good.mock, 2, 5);
+
+	status |= mock_expect (&manager.pfm_good.mock, manager.pfm_good.base.free_firmware_images,
+		&manager.pfm_good, 0, MOCK_ARG_SAVED_ARG (5));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (4));
+
+	/* FW 3 */
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[2], strlen (fw_exp[2]) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list[2], sizeof (version_list[2]),
+		-1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 7);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp3,
+		strlen (version_exp3), FLASH_EXP_READ_CMD (0x03, 0x789, 0, -1, strlen (version_exp3)));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
+		MOCK_ARG_PTR_CONTAINS (fw_exp[2], strlen (fw_exp[2]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp3, strlen (version_exp3) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list[2], sizeof (img_list[2]), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 8);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[2], strlen (fw_exp[2]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp3, strlen (version_exp3) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list[2], sizeof (rw_list[2]), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 9);
+
+	status |= mock_expect (&manager.pfm_good.mock, manager.pfm_good.base.get_firmware_images,
+		&manager.pfm_good, 0, MOCK_ARG_PTR_CONTAINS (fw_exp[2], strlen (fw_exp[2]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp3, strlen (version_exp3) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm_good.mock, 2, &img_list[2], sizeof (img_list[2]),
+		-1);
+	status |= mock_expect_save_arg (&manager.pfm_good.mock, 2, 8);
+
+	status |= mock_expect (&manager.pfm_good.mock, manager.pfm_good.base.free_firmware_images,
+		&manager.pfm_good, 0, MOCK_ARG_SAVED_ARG (8));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (7));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (5));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (8));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (3));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base,
+		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false, &rw_output);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, 3, rw_output.count);
+	CuAssertPtrNotNull (test, rw_output.writable);
+	CuAssertPtrEquals (test, &manager.pfm, rw_output.pfm);
+
+	CuAssertIntEquals (test, 1, rw_output.writable[0].count);
+	CuAssertPtrEquals (test, &rw_region[0], (void*) rw_output.writable[0].regions);
+	CuAssertPtrEquals (test, &rw_prop[0], (void*) rw_output.writable[0].properties);
+
+	CuAssertIntEquals (test, 1, rw_output.writable[1].count);
+	CuAssertPtrEquals (test, &rw_region[1], (void*) rw_output.writable[1].regions);
+	CuAssertPtrEquals (test, &rw_prop[1], (void*) rw_output.writable[1].properties);
+
+	CuAssertIntEquals (test, 1, rw_output.writable[2].count);
+	CuAssertPtrEquals (test, &rw_region[2], (void*) rw_output.writable[2].regions);
+	CuAssertPtrEquals (test, &rw_prop[2], (void*) rw_output.writable[2].properties);
+
+	status = mock_validate (&manager.flash_mock0.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&manager.pfm.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (2));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions,
+		&manager.pfm, 0, MOCK_ARG_SAVED_ARG (6));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions,
+		&manager.pfm, 0, MOCK_ARG_SAVED_ARG (9));
+
+	CuAssertIntEquals (test, 0, status);
+
+	manager.test.free_read_write_regions (&manager.test, &rw_output);
+
+	host_flash_manager_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_test_validate_read_only_flash_cs0_good_pfm_no_match_image (
+	CuTest *test)
+{
+	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp = NULL;
+	struct pfm_firmware_version version;
+	struct pfm_firmware_versions version_list;
+	const char *version_exp = "1234";
+	char *img_data = "Test";
+	struct flash_region img_region1;
+	struct pfm_image_signature sig1;
+	struct pfm_image_list img_list1;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+	struct flash_region img_region2;
+	struct pfm_image_signature sig2;
+	struct pfm_image_list img_list2;
+	struct host_flash_manager_rw_regions rw_output;
+	int status;
+
+	TEST_START;
+
+	host_flash_manager_testing_init (test, &manager, false);
+
+	fw_list.ids = &fw_exp;
+	fw_list.count = 1;
+
+	version.fw_version_id = version_exp;
+	version.version_addr = 0x123;
+
+	version_list.versions = &version;
+	version_list.count = 1;
+
+	img_region1.start_addr = 0;
+	img_region1.length = strlen (img_data);
+
+	sig1.regions = &img_region1;
+	sig1.count = 1;
+	memcpy (&sig1.key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig1.signature, RSA_SIGNATURE_TEST, RSA_ENCRYPT_LEN);
+	sig1.sig_length = RSA_ENCRYPT_LEN;
+	sig1.always_validate = 1;
+
+	img_list1.images_sig = &sig1;
+	img_list1.images_hash = NULL;
+	img_list1.count = 1;
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	img_region2.start_addr = 0;
+	img_region2.length = strlen (img_data);
+
+	sig2.regions = &img_region2;
+	sig2.count = 1;
+	memcpy (&sig2.key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig2.signature, RSA_SIGNATURE_TEST2, RSA_ENCRYPT_LEN);
+	sig2.sig_length = RSA_ENCRYPT_LEN;
+	sig2.always_validate = 1;
+
+	img_list2.images_sig = &sig2;
+	img_list2.images_hash = NULL;
+	img_list2.count = 1;
+
+	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp,
+		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
+		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list1, sizeof (img_list1), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
+
+	status |= mock_expect (&manager.pfm_good.mock, manager.pfm_good.base.get_firmware_images,
+		&manager.pfm_good, 0, MOCK_ARG (NULL),
+		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm_good.mock, 2, &img_list2, sizeof (img_list2), -1);
+	status |= mock_expect_save_arg (&manager.pfm_good.mock, 2, 1);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) img_data,
+		strlen (img_data), FLASH_EXP_READ_CMD (0x03, 0, 0, -1, strlen (img_data)));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (3));
+
+	status |= mock_expect (&manager.pfm_good.mock, manager.pfm_good.base.free_firmware_images,
+		&manager.pfm_good, 0, MOCK_ARG_SAVED_ARG (1));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base,
+		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false, &rw_output);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, 1, rw_output.count);
+	CuAssertPtrNotNull (test, rw_output.writable);
+	CuAssertPtrEquals (test, &manager.pfm, rw_output.pfm);
+
+	CuAssertIntEquals (test, 1, rw_output.writable->count);
+	CuAssertPtrEquals (test, &rw_region, (void*) rw_output.writable->regions);
+	CuAssertPtrEquals (test, &rw_prop, (void*) rw_output.writable->properties);
+
+	status = mock_validate (&manager.flash_mock0.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&manager.pfm.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (2));
+	CuAssertIntEquals (test, 0, status);
+
+	manager.test.free_read_write_regions (&manager.test, &rw_output);
+
+	host_flash_manager_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_test_validate_read_only_flash_cs1_good_pfm_no_match_image (
+	CuTest *test)
+{
+	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp = NULL;
+	struct pfm_firmware_version version;
+	struct pfm_firmware_versions version_list;
+	const char *version_exp = "1234";
+	char *img_data = "Test";
+	struct flash_region img_region1;
+	struct pfm_image_signature sig1;
+	struct pfm_image_list img_list1;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+	struct flash_region img_region2;
+	struct pfm_image_signature sig2;
+	struct pfm_image_list img_list2;
+	struct host_flash_manager_rw_regions rw_output;
+	int status;
+
+	TEST_START;
+
+	host_flash_manager_testing_init (test, &manager, true);
+
+	fw_list.ids = &fw_exp;
+	fw_list.count = 1;
+
+	version.fw_version_id = version_exp;
+	version.version_addr = 0x123;
+
+	version_list.versions = &version;
+	version_list.count = 1;
+
+	img_region1.start_addr = 0;
+	img_region1.length = strlen (img_data);
+
+	sig1.regions = &img_region1;
+	sig1.count = 1;
+	memcpy (&sig1.key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig1.signature, RSA_SIGNATURE_TEST, RSA_ENCRYPT_LEN);
+	sig1.sig_length = RSA_ENCRYPT_LEN;
+	sig1.always_validate = 1;
+
+	img_list1.images_sig = &sig1;
+	img_list1.images_hash = NULL;
+	img_list1.count = 1;
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	img_region2.start_addr = 0;
+	img_region2.length = strlen (img_data);
+
+	sig2.regions = &img_region2;
+	sig2.count = 1;
+	memcpy (&sig2.key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig2.signature, RSA_SIGNATURE_TEST2, RSA_ENCRYPT_LEN);
+	sig2.sig_length = RSA_ENCRYPT_LEN;
+	sig2.always_validate = 1;
+
+	img_list2.images_sig = &sig2;
+	img_list2.images_hash = NULL;
+	img_list2.count = 1;
+
+	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) version_exp,
+		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
+		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list1, sizeof (img_list1), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
+
+	status |= mock_expect (&manager.pfm_good.mock, manager.pfm_good.base.get_firmware_images,
+		&manager.pfm_good, 0, MOCK_ARG (NULL),
+		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm_good.mock, 2, &img_list2, sizeof (img_list2), -1);
+	status |= mock_expect_save_arg (&manager.pfm_good.mock, 2, 1);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) img_data,
+		strlen (img_data), FLASH_EXP_READ_CMD (0x03, 0, 0, -1, strlen (img_data)));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (3));
+
+	status |= mock_expect (&manager.pfm_good.mock, manager.pfm_good.base.free_firmware_images,
+		&manager.pfm_good, 0, MOCK_ARG_SAVED_ARG (1));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base,
+		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false, &rw_output);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, 1, rw_output.count);
+	CuAssertPtrNotNull (test, rw_output.writable);
+	CuAssertPtrEquals (test, &manager.pfm, rw_output.pfm);
+
+	CuAssertIntEquals (test, 1, rw_output.writable->count);
+	CuAssertPtrEquals (test, &rw_region, (void*) rw_output.writable->regions);
+	CuAssertPtrEquals (test, &rw_prop, (void*) rw_output.writable->properties);
+
+	status = mock_validate (&manager.flash_mock1.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&manager.pfm.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (2));
+	CuAssertIntEquals (test, 0, status);
+
+	manager.test.free_read_write_regions (&manager.test, &rw_output);
+
+	host_flash_manager_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_test_validate_read_only_flash_good_pfm_no_match_image_multiple_fw (
+	CuTest *test)
+{
+	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp[3] = {"fw1", "fw2", "fw3"};
+	struct pfm_firmware_version version[3];
+	struct pfm_firmware_versions version_list[3];
+	const char *version_exp1 = "1234";
+	const char *version_exp2 = "5678";
+	const char *version_exp3 = "90ab";
+	struct flash_region img_region[3];
+	struct pfm_image_signature sig[4];
+	struct pfm_image_list img_list[4];
+	char *img_data1 = "Test";
+	char *img_data2 = "Test2";
+	char *img_data3 = "Nope";
+	struct flash_region rw_region[3];
+	struct pfm_read_write rw_prop[3];
+	struct pfm_read_write_regions rw_list[3];
+	struct host_flash_manager_rw_regions rw_output;
+	int status;
+
+	TEST_START;
+
+	host_flash_manager_testing_init (test, &manager, false);
+
+	fw_list.ids = fw_exp;
+	fw_list.count = 3;
+
+	version[0].fw_version_id = version_exp1;
+	version[0].version_addr = 0x123;
+	version[1].fw_version_id = version_exp2;
+	version[1].version_addr = 0x456;
+	version[2].fw_version_id = version_exp3;
+	version[2].version_addr = 0x789;
+
+	version_list[0].versions = &version[0];
+	version_list[0].count = 1;
+	version_list[1].versions = &version[1];
+	version_list[1].count = 1;
+	version_list[2].versions = &version[2];
+	version_list[2].count = 1;
+
+	img_region[0].start_addr = 0;
+	img_region[0].length = strlen (img_data1);
+
+	sig[0].regions = &img_region[0];
+	sig[0].count = 1;
+	memcpy (&sig[0].key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig[0].signature, RSA_SIGNATURE_TEST, RSA_ENCRYPT_LEN);
+	sig[0].sig_length = RSA_ENCRYPT_LEN;
+	sig[0].always_validate = 1;
+
+	img_list[0].images_sig = &sig[0];
+	img_list[0].images_hash = NULL;
+	img_list[0].count = 1;
+
+	img_region[1].start_addr = 0x300;
+	img_region[1].length = strlen (img_data2);
+
+	sig[1].regions = &img_region[1];
+	sig[1].count = 1;
+	memcpy (&sig[1].key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig[1].signature, RSA_SIGNATURE_TEST2, RSA_ENCRYPT_LEN);
+	sig[1].sig_length = RSA_ENCRYPT_LEN;
+	sig[1].always_validate = 1;
+
+	img_list[1].images_sig = &sig[1];
+	img_list[1].images_hash = NULL;
+	img_list[1].count = 1;
+
+	img_region[2].start_addr = 0x600;
+	img_region[2].length = strlen (img_data3);
+
+	sig[2].regions = &img_region[2];
+	sig[2].count = 1;
+	memcpy (&sig[2].key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig[2].signature, RSA_SIGNATURE_NOPE, RSA_ENCRYPT_LEN);
+	sig[2].sig_length = RSA_ENCRYPT_LEN;
+	sig[2].always_validate = 1;
+
+	img_list[2].images_sig = &sig[2];
+	img_list[2].images_hash = NULL;
+	img_list[2].count = 1;
+
+	sig[3].regions = &img_region[1];
+	sig[3].count = 1;
+	memcpy (&sig[3].key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig[3].signature, RSA_SIGNATURE_BAD, RSA_ENCRYPT_LEN);
+	sig[3].sig_length = RSA_ENCRYPT_LEN;
+	sig[3].always_validate = 1;
+
+	img_list[3].images_sig = &sig[3];
+	img_list[3].images_hash = NULL;
+	img_list[3].count = 1;
+
+	rw_region[0].start_addr = 0x200;
+	rw_region[0].length = 0x100;
+	rw_region[1].start_addr = 0x500;
+	rw_region[1].length = 0x100;
+	rw_region[2].start_addr = 0x800;
+	rw_region[2].length = 0x100;
+
+	rw_prop[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[2].on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list[0].regions = &rw_region[0];
+	rw_list[0].properties = &rw_prop[0];
+	rw_list[0].count = 1;
+
+	rw_list[1].regions = &rw_region[1];
+	rw_list[1].properties = &rw_prop[1];
+	rw_list[1].count = 1;
+
+	rw_list[2].regions = &rw_region[2];
+	rw_list[2].properties = &rw_prop[2];
+	rw_list[2].count = 1;
+
+	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
+
+	/* FW 1 */
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[0], strlen (fw_exp[0]) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list[0], sizeof (version_list[0]),
+		-1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp1,
+		strlen (version_exp1), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp1)));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
+		MOCK_ARG_PTR_CONTAINS (fw_exp[0], strlen (fw_exp[0]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp1, strlen (version_exp1) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list[0], sizeof (img_list[0]), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[0], strlen (fw_exp[0]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp1, strlen (version_exp1) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list[0], sizeof (rw_list[0]), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
+
+	status |= mock_expect (&manager.pfm_good.mock, manager.pfm_good.base.get_firmware_images,
+		&manager.pfm_good, 0, MOCK_ARG_PTR_CONTAINS (fw_exp[0], strlen (fw_exp[0]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp1, strlen (version_exp1) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm_good.mock, 2, &img_list[0], sizeof (img_list[0]),
+		-1);
+	status |= mock_expect_save_arg (&manager.pfm_good.mock, 2, 1);
+
+	status |= mock_expect (&manager.pfm_good.mock, manager.pfm_good.base.free_firmware_images,
+		&manager.pfm_good, 0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	/* FW 2 */
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[1], strlen (fw_exp[1]) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list[1], sizeof (version_list[1]),
+		-1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 4);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp2,
+		strlen (version_exp2), FLASH_EXP_READ_CMD (0x03, 0x456, 0, -1, strlen (version_exp2)));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
+		MOCK_ARG_PTR_CONTAINS (fw_exp[1], strlen (fw_exp[1]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp2, strlen (version_exp2) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list[1], sizeof (img_list[1]), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 5);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[1], strlen (fw_exp[1]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp2, strlen (version_exp2) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list[1], sizeof (rw_list[1]), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 6);
+
+	status |= mock_expect (&manager.pfm_good.mock, manager.pfm_good.base.get_firmware_images,
+		&manager.pfm_good, 0, MOCK_ARG_PTR_CONTAINS (fw_exp[1], strlen (fw_exp[1]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp2, strlen (version_exp2) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm_good.mock, 2, &img_list[3], sizeof (img_list[3]),
+		-1);
+	status |= mock_expect_save_arg (&manager.pfm_good.mock, 2, 5);
+
+	status |= mock_expect (&manager.pfm_good.mock, manager.pfm_good.base.free_firmware_images,
+		&manager.pfm_good, 0, MOCK_ARG_SAVED_ARG (5));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (4));
+
+	/* FW 3 */
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[2], strlen (fw_exp[2]) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list[2], sizeof (version_list[2]),
+		-1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 7);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp3,
+		strlen (version_exp3), FLASH_EXP_READ_CMD (0x03, 0x789, 0, -1, strlen (version_exp3)));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
+		MOCK_ARG_PTR_CONTAINS (fw_exp[2], strlen (fw_exp[2]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp3, strlen (version_exp3) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list[2], sizeof (img_list[2]), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 8);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[2], strlen (fw_exp[2]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp3, strlen (version_exp3) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list[2], sizeof (rw_list[2]), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 9);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) img_data1,
+		strlen (img_data1), FLASH_EXP_READ_CMD (0x03, 0x000, 0, -1, strlen (img_data1)));
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) img_data2,
+		strlen (img_data2), FLASH_EXP_READ_CMD (0x03, 0x300, 0, -1, strlen (img_data2)));
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) img_data3,
+		strlen (img_data3), FLASH_EXP_READ_CMD (0x03, 0x600, 0, -1, strlen (img_data3)));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (7));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (5));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (8));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (3));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base,
+		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false, &rw_output);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, 3, rw_output.count);
+	CuAssertPtrNotNull (test, rw_output.writable);
+	CuAssertPtrEquals (test, &manager.pfm, rw_output.pfm);
+
+	CuAssertIntEquals (test, 1, rw_output.writable[0].count);
+	CuAssertPtrEquals (test, &rw_region[0], (void*) rw_output.writable[0].regions);
+	CuAssertPtrEquals (test, &rw_prop[0], (void*) rw_output.writable[0].properties);
+
+	CuAssertIntEquals (test, 1, rw_output.writable[1].count);
+	CuAssertPtrEquals (test, &rw_region[1], (void*) rw_output.writable[1].regions);
+	CuAssertPtrEquals (test, &rw_prop[1], (void*) rw_output.writable[1].properties);
+
+	CuAssertIntEquals (test, 1, rw_output.writable[2].count);
+	CuAssertPtrEquals (test, &rw_region[2], (void*) rw_output.writable[2].regions);
+	CuAssertPtrEquals (test, &rw_prop[2], (void*) rw_output.writable[2].properties);
+
+	status = mock_validate (&manager.flash_mock0.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&manager.pfm.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (2));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions,
+		&manager.pfm, 0, MOCK_ARG_SAVED_ARG (6));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions,
+		&manager.pfm, 0, MOCK_ARG_SAVED_ARG (9));
+
+	CuAssertIntEquals (test, 0, status);
+
+	manager.test.free_read_write_regions (&manager.test, &rw_output);
+
+	host_flash_manager_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_test_validate_read_only_flash_good_pfm_full_validation (CuTest *test)
+{
+	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp = NULL;
+	struct pfm_firmware_version version;
+	struct pfm_firmware_versions version_list;
+	const char *version_exp = "1234";
+	struct flash_region img_region;
+	struct pfm_image_signature sig;
+	struct pfm_image_list img_list;
+	char *img_data = "Test";
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_output;
+	int status;
+
+	TEST_START;
+
+	host_flash_manager_testing_init (test, &manager, false);
+
+	fw_list.ids = &fw_exp;
+	fw_list.count = 1;
+
+	version.fw_version_id = version_exp;
+	version.version_addr = 0x123;
+	version.blank_byte = 0xff;
+
+	version_list.versions = &version;
+	version_list.count = 1;
+
+	img_region.start_addr = 0;
+	img_region.length = strlen (img_data);
+
+	sig.regions = &img_region;
+	sig.count = 1;
+	memcpy (&sig.key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig.signature, RSA_SIGNATURE_TEST, RSA_ENCRYPT_LEN);
+	sig.sig_length = RSA_ENCRYPT_LEN;
+	sig.always_validate = 1;
+
+	img_list.images_sig = &sig;
+	img_list.images_hash = NULL;
+	img_list.count = 1;
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp,
+		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
+		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list, sizeof (img_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
 
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
@@ -2216,10 +4232,12 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_full_valid
 		0x200 - strlen (img_data));
 	status |= flash_master_mock_expect_blank_check (&manager.flash_mock0, 0x300, 0x1000 - 0x300);
 
-	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
-		0, MOCK_ARG_SAVED_ARG (1));
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
 		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (3));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2227,13 +4245,33 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_full_valid
 		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, true, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
+	CuAssertIntEquals (test, 1, rw_output.count);
+	CuAssertPtrNotNull (test, rw_output.writable);
+	CuAssertPtrEquals (test, &manager.pfm, rw_output.pfm);
+
+	CuAssertIntEquals (test, 1, rw_output.writable->count);
+	CuAssertPtrEquals (test, &rw_region, (void*) rw_output.writable->regions);
+	CuAssertPtrEquals (test, &rw_prop, (void*) rw_output.writable->properties);
+
+	status = mock_validate (&manager.flash_mock0.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&manager.pfm.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (2));
+	CuAssertIntEquals (test, 0, status);
+
+	manager.test.free_read_write_regions (&manager.test, &rw_output);
+
 	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_validate_read_only_flash_null (CuTest *test)
 {
 	struct host_flash_manager_testing manager;
-	struct pfm_read_write_regions rw_output;
+	struct host_flash_manager_rw_regions rw_output;
 	int status;
 
 	TEST_START;
@@ -2263,18 +4301,250 @@ static void host_flash_manager_test_validate_read_only_flash_null (CuTest *test)
 	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_validate_read_only_flash_pfm_version_error (CuTest *test)
+static void host_flash_manager_test_validate_read_only_flash_pfm_firmware_error (CuTest *test)
 {
 	struct host_flash_manager_testing manager;
-	struct pfm_read_write_regions rw_output;
+	struct host_flash_manager_rw_regions rw_output;
 	int status;
 
 	TEST_START;
 
 	host_flash_manager_testing_init (test, &manager, false);
 
-	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm,
+		PFM_GET_FW_FAILED, MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base, NULL,
+		&manager.hash.base, &manager.rsa.base, false, &rw_output);
+	CuAssertIntEquals (test, PFM_GET_FW_FAILED, status);
+
+	host_flash_manager_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_test_validate_read_only_flash_pfm_version_error (CuTest *test)
+{
+	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp = NULL;
+	struct host_flash_manager_rw_regions rw_output;
+	int status;
+
+	TEST_START;
+
+	host_flash_manager_testing_init (test, &manager, false);
+
+	fw_list.ids = &fw_exp;
+	fw_list.count = 1;
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
 		PFM_GET_VERSIONS_FAILED, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (3));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base, NULL,
+		&manager.hash.base, &manager.rsa.base, false, &rw_output);
+	CuAssertIntEquals (test, PFM_GET_VERSIONS_FAILED, status);
+
+	host_flash_manager_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_test_validate_read_only_flash_pfm_version_error_multiple_fw (
+	CuTest *test)
+{
+	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp[3] = {"fw1", "fw2", "fw3"};
+	struct pfm_firmware_version version[3];
+	struct pfm_firmware_versions version_list[3];
+	const char *version_exp1 = "1234";
+	const char *version_exp2 = "5678";
+	const char *version_exp3 = "90ab";
+	struct flash_region img_region[3];
+	struct pfm_image_signature sig[3];
+	struct pfm_image_list img_list[3];
+	char *img_data1 = "Test";
+	char *img_data2 = "Test2";
+	char *img_data3 = "Nope";
+	struct flash_region rw_region[3];
+	struct pfm_read_write rw_prop[3];
+	struct pfm_read_write_regions rw_list[3];
+	struct host_flash_manager_rw_regions rw_output;
+	int status;
+
+	TEST_START;
+
+	host_flash_manager_testing_init (test, &manager, false);
+
+	fw_list.ids = fw_exp;
+	fw_list.count = 3;
+
+	version[0].fw_version_id = version_exp1;
+	version[0].version_addr = 0x123;
+	version[1].fw_version_id = version_exp2;
+	version[1].version_addr = 0x456;
+	version[2].fw_version_id = version_exp3;
+	version[2].version_addr = 0x789;
+
+	version_list[0].versions = &version[0];
+	version_list[0].count = 1;
+	version_list[1].versions = &version[1];
+	version_list[1].count = 1;
+	version_list[2].versions = &version[2];
+	version_list[2].count = 1;
+
+	img_region[0].start_addr = 0;
+	img_region[0].length = strlen (img_data1);
+
+	sig[0].regions = &img_region[0];
+	sig[0].count = 1;
+	memcpy (&sig[0].key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig[0].signature, RSA_SIGNATURE_TEST, RSA_ENCRYPT_LEN);
+	sig[0].sig_length = RSA_ENCRYPT_LEN;
+	sig[0].always_validate = 1;
+
+	img_list[0].images_sig = &sig[0];
+	img_list[0].images_hash = NULL;
+	img_list[0].count = 1;
+
+	img_region[1].start_addr = 0x300;
+	img_region[1].length = strlen (img_data2);
+
+	sig[1].regions = &img_region[1];
+	sig[1].count = 1;
+	memcpy (&sig[1].key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig[1].signature, RSA_SIGNATURE_TEST2, RSA_ENCRYPT_LEN);
+	sig[1].sig_length = RSA_ENCRYPT_LEN;
+	sig[1].always_validate = 1;
+
+	img_list[1].images_sig = &sig[1];
+	img_list[1].images_hash = NULL;
+	img_list[1].count = 1;
+
+	img_region[2].start_addr = 0x600;
+	img_region[2].length = strlen (img_data3);
+
+	sig[2].regions = &img_region[2];
+	sig[2].count = 1;
+	memcpy (&sig[2].key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig[2].signature, RSA_SIGNATURE_NOPE, RSA_ENCRYPT_LEN);
+	sig[2].sig_length = RSA_ENCRYPT_LEN;
+	sig[2].always_validate = 1;
+
+	img_list[2].images_sig = &sig[2];
+	img_list[2].images_hash = NULL;
+	img_list[2].count = 1;
+
+	rw_region[0].start_addr = 0x200;
+	rw_region[0].length = 0x100;
+	rw_region[1].start_addr = 0x500;
+	rw_region[1].length = 0x100;
+	rw_region[2].start_addr = 0x800;
+	rw_region[2].length = 0x100;
+
+	rw_prop[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[2].on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list[0].regions = &rw_region[0];
+	rw_list[0].properties = &rw_prop[0];
+	rw_list[0].count = 1;
+
+	rw_list[1].regions = &rw_region[1];
+	rw_list[1].properties = &rw_prop[1];
+	rw_list[1].count = 1;
+
+	rw_list[2].regions = &rw_region[2];
+	rw_list[2].properties = &rw_prop[2];
+	rw_list[2].count = 1;
+
+	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
+
+	/* FW 1 */
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[0], strlen (fw_exp[0]) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list[0], sizeof (version_list[0]),
+		-1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp1,
+		strlen (version_exp1), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp1)));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
+		MOCK_ARG_PTR_CONTAINS (fw_exp[0], strlen (fw_exp[0]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp1, strlen (version_exp1) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list[0], sizeof (img_list[0]), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[0], strlen (fw_exp[0]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp1, strlen (version_exp1) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list[0], sizeof (rw_list[0]), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	/* FW 2 */
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[1], strlen (fw_exp[1]) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list[1], sizeof (version_list[1]),
+		-1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 4);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp2,
+		strlen (version_exp2), FLASH_EXP_READ_CMD (0x03, 0x456, 0, -1, strlen (version_exp2)));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
+		MOCK_ARG_PTR_CONTAINS (fw_exp[1], strlen (fw_exp[1]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp2, strlen (version_exp2) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list[1], sizeof (img_list[1]), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 5);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[1], strlen (fw_exp[1]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp2, strlen (version_exp2) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list[1], sizeof (rw_list[1]), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 6);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (4));
+
+	/* FW 3 */
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		PFM_GET_VERSIONS_FAILED, MOCK_ARG_PTR_CONTAINS (fw_exp[2], strlen (fw_exp[2]) + 1),
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions,
+		&manager.pfm, 0, MOCK_ARG_SAVED_ARG (2));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions,
+		&manager.pfm, 0, MOCK_ARG_SAVED_ARG (6));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (5));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (3));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2288,15 +4558,20 @@ static void host_flash_manager_test_validate_read_only_flash_pfm_version_error (
 static void host_flash_manager_test_validate_read_only_flash_pfm_images_error (CuTest *test)
 {
 	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
-	struct pfm_read_write_regions rw_output;
+	struct host_flash_manager_rw_regions rw_output;
 	int status;
 
 	TEST_START;
 
 	host_flash_manager_testing_init (test, &manager, false);
+
+	fw_list.ids = &fw_exp;
+	fw_list.count = 1;
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -2304,7 +4579,12 @@ static void host_flash_manager_test_validate_read_only_flash_pfm_images_error (C
 	version_list.versions = &version;
 	version_list.count = 1;
 
-	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
 		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
@@ -2320,6 +4600,8 @@ static void host_flash_manager_test_validate_read_only_flash_pfm_images_error (C
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
 		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (3));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2333,6 +4615,8 @@ static void host_flash_manager_test_validate_read_only_flash_pfm_images_error (C
 static void host_flash_manager_test_validate_read_only_flash_pfm_rw_error (CuTest *test)
 {
 	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
@@ -2340,12 +4624,15 @@ static void host_flash_manager_test_validate_read_only_flash_pfm_rw_error (CuTes
 	struct pfm_image_signature sig;
 	struct pfm_image_list img_list;
 	char *img_data = "Test";
-	struct pfm_read_write_regions rw_output;
+	struct host_flash_manager_rw_regions rw_output;
 	int status;
 
 	TEST_START;
 
 	host_flash_manager_testing_init (test, &manager, false);
+
+	fw_list.ids = &fw_exp;
+	fw_list.count = 1;
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -2367,7 +4654,12 @@ static void host_flash_manager_test_validate_read_only_flash_pfm_rw_error (CuTes
 	img_list.images_hash = NULL;
 	img_list.count = 1;
 
-	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
 		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
@@ -2385,12 +4677,14 @@ static void host_flash_manager_test_validate_read_only_flash_pfm_rw_error (CuTes
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
 		PFM_GET_READ_WRITE_FAILED, MOCK_ARG (NULL),
-		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG (&rw_output));
+		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
 		0, MOCK_ARG_SAVED_ARG (1));
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
 		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (3));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2404,15 +4698,20 @@ static void host_flash_manager_test_validate_read_only_flash_pfm_rw_error (CuTes
 static void host_flash_manager_test_validate_read_only_flash_flash_version_error (CuTest *test)
 {
 	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
-	struct pfm_read_write_regions rw_output;
+	struct host_flash_manager_rw_regions rw_output;
 	int status;
 
 	TEST_START;
 
 	host_flash_manager_testing_init (test, &manager, false);
+
+	fw_list.ids = &fw_exp;
+	fw_list.count = 1;
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -2420,7 +4719,12 @@ static void host_flash_manager_test_validate_read_only_flash_flash_version_error
 	version_list.versions = &version;
 	version_list.count = 1;
 
-	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
 		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
@@ -2430,6 +4734,8 @@ static void host_flash_manager_test_validate_read_only_flash_flash_version_error
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
 		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (3));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2443,6 +4749,8 @@ static void host_flash_manager_test_validate_read_only_flash_flash_version_error
 static void host_flash_manager_test_validate_read_only_flash_flash_image_error (CuTest *test)
 {
 	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
@@ -2453,12 +4761,15 @@ static void host_flash_manager_test_validate_read_only_flash_flash_image_error (
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
-	struct pfm_read_write_regions rw_output;
+	struct host_flash_manager_rw_regions rw_output;
 	int status;
 
 	TEST_START;
 
 	host_flash_manager_testing_init (test, &manager, false);
+
+	fw_list.ids = &fw_exp;
+	fw_list.count = 1;
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -2493,7 +4804,12 @@ static void host_flash_manager_test_validate_read_only_flash_flash_image_error (
 	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
 		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
@@ -2511,19 +4827,21 @@ static void host_flash_manager_test_validate_read_only_flash_flash_image_error (
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
 		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
-		MOCK_ARG (&rw_output));
+		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
 
 	status |= flash_master_mock_expect_xfer (&manager.flash_mock0, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions,
 		&manager.pfm, 0, MOCK_ARG_SAVED_ARG (2));
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
 		0, MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
-		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (3));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2537,6 +4855,8 @@ static void host_flash_manager_test_validate_read_only_flash_flash_image_error (
 static void host_flash_manager_test_validate_read_only_flash_full_flash_image_error (CuTest *test)
 {
 	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
@@ -2547,12 +4867,15 @@ static void host_flash_manager_test_validate_read_only_flash_full_flash_image_er
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
-	struct pfm_read_write_regions rw_output;
+	struct host_flash_manager_rw_regions rw_output;
 	int status;
 
 	TEST_START;
 
 	host_flash_manager_testing_init (test, &manager, false);
+
+	fw_list.ids = &fw_exp;
+	fw_list.count = 1;
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -2587,7 +4910,12 @@ static void host_flash_manager_test_validate_read_only_flash_full_flash_image_er
 	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
 		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
@@ -2605,19 +4933,21 @@ static void host_flash_manager_test_validate_read_only_flash_full_flash_image_er
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
 		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
-		MOCK_ARG (&rw_output));
+		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
 
 	status |= flash_master_mock_expect_xfer (&manager.flash_mock0, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions,
 		&manager.pfm, 0, MOCK_ARG_SAVED_ARG (2));
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
 		0, MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
-		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (3));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2628,23 +4958,272 @@ static void host_flash_manager_test_validate_read_only_flash_full_flash_image_er
 	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_validate_read_only_flash_good_pfm_pfm_version_error (
+static void host_flash_manager_test_validate_read_only_flash_good_pfm_pfm_firmware_error (
 	CuTest *test)
 {
 	struct host_flash_manager_testing manager;
-	struct pfm_read_write_regions rw_output;
+	struct host_flash_manager_rw_regions rw_output;
 	int status;
 
 	TEST_START;
 
 	host_flash_manager_testing_init (test, &manager, false);
 
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm,
+		PFM_GET_FW_FAILED, MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base,
+		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false, &rw_output);
+	CuAssertIntEquals (test, PFM_GET_FW_FAILED, status);
+
+	host_flash_manager_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_test_validate_read_only_flash_good_pfm_pfm_version_error (
+	CuTest *test)
+{
+	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp = NULL;
+	struct host_flash_manager_rw_regions rw_output;
+	int status;
+
+	TEST_START;
+
+	host_flash_manager_testing_init (test, &manager, false);
+
+	fw_list.ids = &fw_exp;
+	fw_list.count = 1;
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		PFM_GET_VERSIONS_FAILED, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (3));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base,
+		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false, &rw_output);
+	CuAssertIntEquals (test, PFM_GET_VERSIONS_FAILED, status);
+
+	host_flash_manager_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_test_validate_read_only_flash_good_pfm_pfm_version_error_multiple_fw (
+	CuTest *test)
+{
+	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp[3] = {"fw1", "fw2", "fw3"};
+	struct pfm_firmware_version version[3];
+	struct pfm_firmware_versions version_list[3];
+	const char *version_exp1 = "1234";
+	const char *version_exp2 = "5678";
+	const char *version_exp3 = "90ab";
+	struct flash_region img_region[3];
+	struct pfm_image_signature sig[3];
+	struct pfm_image_list img_list[3];
+	char *img_data1 = "Test";
+	char *img_data2 = "Test2";
+	char *img_data3 = "Nope";
+	struct flash_region rw_region[3];
+	struct pfm_read_write rw_prop[3];
+	struct pfm_read_write_regions rw_list[3];
+	struct host_flash_manager_rw_regions rw_output;
+	int status;
+
+	TEST_START;
+
+	host_flash_manager_testing_init (test, &manager, false);
+
+	fw_list.ids = fw_exp;
+	fw_list.count = 3;
+
+	version[0].fw_version_id = version_exp1;
+	version[0].version_addr = 0x123;
+	version[1].fw_version_id = version_exp2;
+	version[1].version_addr = 0x456;
+	version[2].fw_version_id = version_exp3;
+	version[2].version_addr = 0x789;
+
+	version_list[0].versions = &version[0];
+	version_list[0].count = 1;
+	version_list[1].versions = &version[1];
+	version_list[1].count = 1;
+	version_list[2].versions = &version[2];
+	version_list[2].count = 1;
+
+	img_region[0].start_addr = 0;
+	img_region[0].length = strlen (img_data1);
+
+	sig[0].regions = &img_region[0];
+	sig[0].count = 1;
+	memcpy (&sig[0].key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig[0].signature, RSA_SIGNATURE_TEST, RSA_ENCRYPT_LEN);
+	sig[0].sig_length = RSA_ENCRYPT_LEN;
+	sig[0].always_validate = 1;
+
+	img_list[0].images_sig = &sig[0];
+	img_list[0].images_hash = NULL;
+	img_list[0].count = 1;
+
+	img_region[1].start_addr = 0x300;
+	img_region[1].length = strlen (img_data2);
+
+	sig[1].regions = &img_region[1];
+	sig[1].count = 1;
+	memcpy (&sig[1].key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig[1].signature, RSA_SIGNATURE_TEST2, RSA_ENCRYPT_LEN);
+	sig[1].sig_length = RSA_ENCRYPT_LEN;
+	sig[1].always_validate = 1;
+
+	img_list[1].images_sig = &sig[1];
+	img_list[1].images_hash = NULL;
+	img_list[1].count = 1;
+
+	img_region[2].start_addr = 0x600;
+	img_region[2].length = strlen (img_data3);
+
+	sig[2].regions = &img_region[2];
+	sig[2].count = 1;
+	memcpy (&sig[2].key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig[2].signature, RSA_SIGNATURE_NOPE, RSA_ENCRYPT_LEN);
+	sig[2].sig_length = RSA_ENCRYPT_LEN;
+	sig[2].always_validate = 1;
+
+	img_list[2].images_sig = &sig[2];
+	img_list[2].images_hash = NULL;
+	img_list[2].count = 1;
+
+	rw_region[0].start_addr = 0x200;
+	rw_region[0].length = 0x100;
+	rw_region[1].start_addr = 0x500;
+	rw_region[1].length = 0x100;
+	rw_region[2].start_addr = 0x800;
+	rw_region[2].length = 0x100;
+
+	rw_prop[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[2].on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list[0].regions = &rw_region[0];
+	rw_list[0].properties = &rw_prop[0];
+	rw_list[0].count = 1;
+
+	rw_list[1].regions = &rw_region[1];
+	rw_list[1].properties = &rw_prop[1];
+	rw_list[1].count = 1;
+
+	rw_list[2].regions = &rw_region[2];
+	rw_list[2].properties = &rw_prop[2];
+	rw_list[2].count = 1;
+
 	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
 	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
-		PFM_GET_VERSIONS_FAILED, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
+
+	/* FW 1 */
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[0], strlen (fw_exp[0]) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list[0], sizeof (version_list[0]),
+		-1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp1,
+		strlen (version_exp1), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp1)));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
+		MOCK_ARG_PTR_CONTAINS (fw_exp[0], strlen (fw_exp[0]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp1, strlen (version_exp1) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list[0], sizeof (img_list[0]), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[0], strlen (fw_exp[0]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp1, strlen (version_exp1) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list[0], sizeof (rw_list[0]), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
+
+	status |= mock_expect (&manager.pfm_good.mock, manager.pfm_good.base.get_firmware_images,
+		&manager.pfm_good, 0, MOCK_ARG_PTR_CONTAINS (fw_exp[0], strlen (fw_exp[0]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp1, strlen (version_exp1) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm_good.mock, 2, &img_list[0], sizeof (img_list[0]),
+		-1);
+	status |= mock_expect_save_arg (&manager.pfm_good.mock, 2, 1);
+
+	status |= mock_expect (&manager.pfm_good.mock, manager.pfm_good.base.free_firmware_images,
+		&manager.pfm_good, 0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	/* FW 2 */
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[1], strlen (fw_exp[1]) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list[1], sizeof (version_list[1]),
+		-1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 4);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp2,
+		strlen (version_exp2), FLASH_EXP_READ_CMD (0x03, 0x456, 0, -1, strlen (version_exp2)));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
+		MOCK_ARG_PTR_CONTAINS (fw_exp[1], strlen (fw_exp[1]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp2, strlen (version_exp2) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list[1], sizeof (img_list[1]), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 5);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[1], strlen (fw_exp[1]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp2, strlen (version_exp2) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list[1], sizeof (rw_list[1]), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 6);
+
+	status |= mock_expect (&manager.pfm_good.mock, manager.pfm_good.base.get_firmware_images,
+		&manager.pfm_good, 0, MOCK_ARG_PTR_CONTAINS (fw_exp[1], strlen (fw_exp[1]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp2, strlen (version_exp2) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm_good.mock, 2, &img_list[1], sizeof (img_list[1]),
+		-1);
+	status |= mock_expect_save_arg (&manager.pfm_good.mock, 2, 5);
+
+	status |= mock_expect (&manager.pfm_good.mock, manager.pfm_good.base.free_firmware_images,
+		&manager.pfm_good, 0, MOCK_ARG_SAVED_ARG (5));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (4));
+
+	/* FW 3 */
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		PFM_GET_VERSIONS_FAILED, MOCK_ARG_PTR_CONTAINS (fw_exp[2], strlen (fw_exp[2]) + 1),
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions,
+		&manager.pfm, 0, MOCK_ARG_SAVED_ARG (2));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions,
+		&manager.pfm, 0, MOCK_ARG_SAVED_ARG (6));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (5));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (3));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2659,15 +5238,20 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_flash_vers
 	CuTest *test)
 {
 	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
-	struct pfm_read_write_regions rw_output;
+	struct host_flash_manager_rw_regions rw_output;
 	int status;
 
 	TEST_START;
 
 	host_flash_manager_testing_init (test, &manager, false);
+
+	fw_list.ids = &fw_exp;
+	fw_list.count = 1;
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -2679,7 +5263,12 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_flash_vers
 	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
 		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
@@ -2689,6 +5278,8 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_flash_vers
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
 		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (3));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2703,15 +5294,20 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_pfm_images
 	CuTest *test)
 {
 	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
-	struct pfm_read_write_regions rw_output;
+	struct host_flash_manager_rw_regions rw_output;
 	int status;
 
 	TEST_START;
 
 	host_flash_manager_testing_init (test, &manager, false);
+
+	fw_list.ids = &fw_exp;
+	fw_list.count = 1;
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -2723,7 +5319,12 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_pfm_images
 	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
 		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
@@ -2739,6 +5340,8 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_pfm_images
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
 		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (3));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2752,18 +5355,23 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_pfm_images
 static void host_flash_manager_test_validate_read_only_flash_good_pfm_pfm_rw_error (CuTest *test)
 {
 	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
 	struct flash_region img_region;
 	struct pfm_image_signature sig;
 	struct pfm_image_list img_list;
-	struct pfm_read_write_regions rw_output;
+	struct host_flash_manager_rw_regions rw_output;
 	int status;
 
 	TEST_START;
 
 	host_flash_manager_testing_init (test, &manager, false);
+
+	fw_list.ids = &fw_exp;
+	fw_list.count = 1;
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -2789,7 +5397,12 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_pfm_rw_err
 	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
 		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
@@ -2807,12 +5420,14 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_pfm_rw_err
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
 		PFM_GET_READ_WRITE_FAILED, MOCK_ARG (NULL),
-		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG (&rw_output));
+		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
 		0, MOCK_ARG_SAVED_ARG (1));
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
 		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (3));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2827,6 +5442,8 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_good_image
 	CuTest *test)
 {
 	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
@@ -2837,12 +5454,15 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_good_image
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
-	struct pfm_read_write_regions rw_output;
+	struct host_flash_manager_rw_regions rw_output;
 	int status;
 
 	TEST_START;
 
 	host_flash_manager_testing_init (test, &manager, false);
+
+	fw_list.ids = &fw_exp;
+	fw_list.count = 1;
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -2877,7 +5497,12 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_good_image
 	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
 		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
@@ -2895,8 +5520,9 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_good_image
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
 		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
-		MOCK_ARG (&rw_output));
+		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
 
 	status |= mock_expect (&manager.pfm_good.mock, manager.pfm_good.base.get_firmware_images,
 		&manager.pfm_good, PFM_GET_FW_IMAGES_FAILED, MOCK_ARG (NULL),
@@ -2907,16 +5533,38 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_good_image
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) img_data,
 		strlen (img_data), FLASH_EXP_READ_CMD (0x03, 0, 0, -1, strlen (img_data)));
 
-	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
-		0, MOCK_ARG_SAVED_ARG (1));
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
 		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (3));
 
 	CuAssertIntEquals (test, 0, status);
 
 	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base,
 		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, 1, rw_output.count);
+	CuAssertPtrNotNull (test, rw_output.writable);
+	CuAssertPtrEquals (test, &manager.pfm, rw_output.pfm);
+
+	CuAssertIntEquals (test, 1, rw_output.writable->count);
+	CuAssertPtrEquals (test, &rw_region, (void*) rw_output.writable->regions);
+	CuAssertPtrEquals (test, &rw_prop, (void*) rw_output.writable->properties);
+
+	status = mock_validate (&manager.flash_mock0.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&manager.pfm.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (2));
+	CuAssertIntEquals (test, 0, status);
+
+	manager.test.free_read_write_regions (&manager.test, &rw_output);
 
 	host_flash_manager_testing_validate_and_release (test, &manager);
 }
@@ -2925,6 +5573,8 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_flash_imag
 	CuTest *test)
 {
 	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
@@ -2938,12 +5588,15 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_flash_imag
 	struct flash_region img_region2;
 	struct pfm_image_signature sig2;
 	struct pfm_image_list img_list2;
-	struct pfm_read_write_regions rw_output;
+	struct host_flash_manager_rw_regions rw_output;
 	int status;
 
 	TEST_START;
 
 	host_flash_manager_testing_init (test, &manager, false);
+
+	fw_list.ids = &fw_exp;
+	fw_list.count = 1;
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -2992,7 +5645,12 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_flash_imag
 	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
 		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
@@ -3010,8 +5668,9 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_flash_imag
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
 		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
-		MOCK_ARG (&rw_output));
+		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
 
 	status |= mock_expect (&manager.pfm_good.mock, manager.pfm_good.base.get_firmware_images,
 		&manager.pfm_good, 0, MOCK_ARG (NULL),
@@ -3022,12 +5681,14 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_flash_imag
 	status |= flash_master_mock_expect_xfer (&manager.flash_mock0, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
-	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions,
-		&manager.pfm, 0, MOCK_ARG (&rw_output));
-	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
-		0, MOCK_ARG_SAVED_ARG (1));
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
 		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions,
+		&manager.pfm, 0, MOCK_ARG_SAVED_ARG (2));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (3));
 
 	status |= mock_expect (&manager.pfm_good.mock, manager.pfm_good.base.free_firmware_images,
 		&manager.pfm_good, 0, MOCK_ARG_SAVED_ARG (1));
@@ -3044,6 +5705,8 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_flash_imag
 static void host_flash_manager_test_validate_read_write_flash_cs1 (CuTest *test)
 {
 	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
@@ -3054,12 +5717,15 @@ static void host_flash_manager_test_validate_read_write_flash_cs1 (CuTest *test)
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
-	struct pfm_read_write_regions rw_output;
+	struct host_flash_manager_rw_regions rw_output;
 	int status;
 
 	TEST_START;
 
 	host_flash_manager_testing_init (test, &manager, false);
+
+	fw_list.ids = &fw_exp;
+	fw_list.count = 1;
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -3095,7 +5761,12 @@ static void host_flash_manager_test_validate_read_write_flash_cs1 (CuTest *test)
 	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
 		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
@@ -3113,8 +5784,9 @@ static void host_flash_manager_test_validate_read_write_flash_cs1 (CuTest *test)
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
 		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
-		MOCK_ARG (&rw_output));
+		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
 
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
@@ -3125,10 +5797,12 @@ static void host_flash_manager_test_validate_read_write_flash_cs1 (CuTest *test)
 		0x200 - strlen (img_data));
 	status |= flash_master_mock_expect_blank_check (&manager.flash_mock1, 0x300, 0x1000 - 0x300);
 
-	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
-		0, MOCK_ARG_SAVED_ARG (1));
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
 		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (3));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3136,12 +5810,34 @@ static void host_flash_manager_test_validate_read_write_flash_cs1 (CuTest *test)
 		&manager.hash.base, &manager.rsa.base, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
+	CuAssertIntEquals (test, 1, rw_output.count);
+	CuAssertPtrNotNull (test, rw_output.writable);
+	CuAssertPtrEquals (test, &manager.pfm, rw_output.pfm);
+
+	CuAssertIntEquals (test, 1, rw_output.writable->count);
+	CuAssertPtrEquals (test, &rw_region, (void*) rw_output.writable->regions);
+	CuAssertPtrEquals (test, &rw_prop, (void*) rw_output.writable->properties);
+
+	status = mock_validate (&manager.flash_mock1.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&manager.pfm.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (2));
+	CuAssertIntEquals (test, 0, status);
+
+	manager.test.free_read_write_regions (&manager.test, &rw_output);
+
 	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_validate_read_write_flash_cs0 (CuTest *test)
 {
 	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
@@ -3152,12 +5848,15 @@ static void host_flash_manager_test_validate_read_write_flash_cs0 (CuTest *test)
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
-	struct pfm_read_write_regions rw_output;
+	struct host_flash_manager_rw_regions rw_output;
 	int status;
 
 	TEST_START;
 
 	host_flash_manager_testing_init (test, &manager, true);
+
+	fw_list.ids = &fw_exp;
+	fw_list.count = 1;
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -3193,7 +5892,12 @@ static void host_flash_manager_test_validate_read_write_flash_cs0 (CuTest *test)
 	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
 		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
@@ -3211,8 +5915,9 @@ static void host_flash_manager_test_validate_read_write_flash_cs0 (CuTest *test)
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
 		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
-		MOCK_ARG (&rw_output));
+		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
 
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
@@ -3223,10 +5928,12 @@ static void host_flash_manager_test_validate_read_write_flash_cs0 (CuTest *test)
 		0x200 - strlen (img_data));
 	status |= flash_master_mock_expect_blank_check (&manager.flash_mock0, 0x300, 0x1000 - 0x300);
 
-	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
-		0, MOCK_ARG_SAVED_ARG (1));
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
 		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (3));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3234,12 +5941,34 @@ static void host_flash_manager_test_validate_read_write_flash_cs0 (CuTest *test)
 		&manager.hash.base, &manager.rsa.base, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
+	CuAssertIntEquals (test, 1, rw_output.count);
+	CuAssertPtrNotNull (test, rw_output.writable);
+	CuAssertPtrEquals (test, &manager.pfm, rw_output.pfm);
+
+	CuAssertIntEquals (test, 1, rw_output.writable->count);
+	CuAssertPtrEquals (test, &rw_region, (void*) rw_output.writable->regions);
+	CuAssertPtrEquals (test, &rw_prop, (void*) rw_output.writable->properties);
+
+	status = mock_validate (&manager.flash_mock0.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&manager.pfm.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (2));
+	CuAssertIntEquals (test, 0, status);
+
+	manager.test.free_read_write_regions (&manager.test, &rw_output);
+
 	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_validate_read_write_flash_not_blank_byte (CuTest *test)
 {
 	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
@@ -3250,12 +5979,15 @@ static void host_flash_manager_test_validate_read_write_flash_not_blank_byte (Cu
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
-	struct pfm_read_write_regions rw_output;
+	struct host_flash_manager_rw_regions rw_output;
 	int status;
 
 	TEST_START;
 
 	host_flash_manager_testing_init (test, &manager, false);
+
+	fw_list.ids = &fw_exp;
+	fw_list.count = 1;
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -3291,7 +6023,12 @@ static void host_flash_manager_test_validate_read_write_flash_not_blank_byte (Cu
 	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
 		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
@@ -3309,8 +6046,9 @@ static void host_flash_manager_test_validate_read_write_flash_not_blank_byte (Cu
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
 		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
-		MOCK_ARG (&rw_output));
+		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
 
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
@@ -3322,10 +6060,12 @@ static void host_flash_manager_test_validate_read_write_flash_not_blank_byte (Cu
 	status |= flash_master_mock_expect_value_check (&manager.flash_mock1, 0x300, 0x1000 - 0x300,
 		0xaa);
 
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
 		0, MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
-		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (3));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3333,225 +6073,34 @@ static void host_flash_manager_test_validate_read_write_flash_not_blank_byte (Cu
 		&manager.hash.base, &manager.rsa.base, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
-}
+	CuAssertIntEquals (test, 1, rw_output.count);
+	CuAssertPtrNotNull (test, rw_output.writable);
+	CuAssertPtrEquals (test, &manager.pfm, rw_output.pfm);
 
-static void host_flash_manager_test_validate_read_write_flash_null (CuTest *test)
-{
-	struct host_flash_manager_testing manager;
-	struct pfm_read_write_regions rw_output;
-	int status;
+	CuAssertIntEquals (test, 1, rw_output.writable->count);
+	CuAssertPtrEquals (test, &rw_region, (void*) rw_output.writable->regions);
+	CuAssertPtrEquals (test, &rw_prop, (void*) rw_output.writable->properties);
 
-	TEST_START;
-
-	host_flash_manager_testing_init (test, &manager, false);
-
-	status = manager.test.validate_read_write_flash (NULL, &manager.pfm.base,
-		&manager.hash.base, &manager.rsa.base, &rw_output);
-	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
-
-	status = manager.test.validate_read_write_flash (&manager.test, NULL,
-		&manager.hash.base, &manager.rsa.base, &rw_output);
-	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
-
-	status = manager.test.validate_read_write_flash (&manager.test, &manager.pfm.base,
-		NULL, &manager.rsa.base, &rw_output);
-	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
-
-	status = manager.test.validate_read_write_flash (&manager.test, &manager.pfm.base,
-		&manager.hash.base, NULL, &rw_output);
-	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
-
-	status = manager.test.validate_read_write_flash (&manager.test, &manager.pfm.base,
-		&manager.hash.base, &manager.rsa.base, NULL);
-	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
-
-	host_flash_manager_testing_validate_and_release (test, &manager);
-}
-
-static void host_flash_manager_test_validate_read_write_flash_pfm_version_error (CuTest *test)
-{
-	struct host_flash_manager_testing manager;
-	struct pfm_read_write_regions rw_output;
-	int status;
-
-	TEST_START;
-
-	host_flash_manager_testing_init (test, &manager, false);
-
-	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
-		PFM_GET_VERSIONS_FAILED, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
-
+	status = mock_validate (&manager.flash_mock1.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.validate_read_write_flash (&manager.test, &manager.pfm.base,
-		&manager.hash.base, &manager.rsa.base, &rw_output);
-	CuAssertIntEquals (test, PFM_GET_VERSIONS_FAILED, status);
-
-	host_flash_manager_testing_validate_and_release (test, &manager);
-}
-
-static void host_flash_manager_test_validate_read_write_flash_pfm_images_error (CuTest *test)
-{
-	struct host_flash_manager_testing manager;
-	struct pfm_firmware_version version;
-	struct pfm_firmware_versions version_list;
-	const char *version_exp = "1234";
-	struct pfm_read_write_regions rw_output;
-	int status;
-
-	TEST_START;
-
-	host_flash_manager_testing_init (test, &manager, false);
-
-	version.fw_version_id = version_exp;
-	version.version_addr = 0x123;
-	version.blank_byte = 0xff;
-
-	version_list.versions = &version;
-	version_list.count = 1;
-
-	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
-	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
-
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) version_exp,
-		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
-
-	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm,
-		PFM_GET_FW_IMAGES_FAILED, MOCK_ARG (NULL),
-		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
-
-	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
-		MOCK_ARG_SAVED_ARG (0));
-
+	status = mock_validate (&manager.pfm.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.validate_read_write_flash (&manager.test, &manager.pfm.base,
-		&manager.hash.base, &manager.rsa.base, &rw_output);
-	CuAssertIntEquals (test, PFM_GET_FW_IMAGES_FAILED, status);
-
-	host_flash_manager_testing_validate_and_release (test, &manager);
-}
-
-static void host_flash_manager_test_validate_read_write_flash_pfm_rw_error (CuTest *test)
-{
-	struct host_flash_manager_testing manager;
-	struct pfm_firmware_version version;
-	struct pfm_firmware_versions version_list;
-	const char *version_exp = "1234";
-	struct flash_region img_region;
-	struct pfm_image_signature sig;
-	struct pfm_image_list img_list;
-	char *img_data = "Test";
-	struct pfm_read_write_regions rw_output;
-	int status;
-
-	TEST_START;
-
-	host_flash_manager_testing_init (test, &manager, false);
-
-	version.fw_version_id = version_exp;
-	version.version_addr = 0x123;
-	version.blank_byte = 0xff;
-
-	version_list.versions = &version;
-	version_list.count = 1;
-
-	img_region.start_addr = 0;
-	img_region.length = strlen (img_data);
-
-	sig.regions = &img_region;
-	sig.count = 1;
-	memcpy (&sig.key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
-	memcpy (&sig.signature, RSA_SIGNATURE_TEST, RSA_ENCRYPT_LEN);
-	sig.sig_length = RSA_ENCRYPT_LEN;
-	sig.always_validate = 1;
-
-	img_list.images_sig = &sig;
-	img_list.images_hash = NULL;
-	img_list.count = 1;
-
-	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
-	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
-
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) version_exp,
-		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
-
-	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
-		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list, sizeof (img_list), -1);
-	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
-
-	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
-		PFM_GET_READ_WRITE_FAILED, MOCK_ARG (NULL),
-		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG (&rw_output));
-
-	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
-		0, MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
-		MOCK_ARG_SAVED_ARG (0));
-
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.validate_read_write_flash (&manager.test, &manager.pfm.base,
-		&manager.hash.base, &manager.rsa.base, &rw_output);
-	CuAssertIntEquals (test, PFM_GET_READ_WRITE_FAILED, status);
+	manager.test.free_read_write_regions (&manager.test, &rw_output);
 
 	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_validate_read_write_flash_version_error (CuTest *test)
+static void host_flash_manager_test_validate_read_write_flash_single_fw (CuTest *test)
 {
 	struct host_flash_manager_testing manager;
-	struct pfm_firmware_version version;
-	struct pfm_firmware_versions version_list;
-	const char *version_exp = "1234";
-	struct pfm_read_write_regions rw_output;
-	int status;
-
-	TEST_START;
-
-	host_flash_manager_testing_init (test, &manager, false);
-
-	version.fw_version_id = version_exp;
-	version.version_addr = 0x123;
-	version.blank_byte = 0xff;
-
-	version_list.versions = &version;
-	version_list.count = 1;
-
-	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
-	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
-
-	status |= flash_master_mock_expect_xfer (&manager.flash_mock1, FLASH_MASTER_XFER_FAILED,
-		FLASH_EXP_READ_STATUS_REG);
-
-	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
-		MOCK_ARG_SAVED_ARG (0));
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = manager.test.validate_read_write_flash (&manager.test, &manager.pfm.base,
-		&manager.hash.base, &manager.rsa.base, &rw_output);
-	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
-
-	host_flash_manager_testing_validate_and_release (test, &manager);
-}
-
-static void host_flash_manager_test_validate_read_write_flash_verify_error (CuTest *test)
-{
-	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp = "fw1";
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
@@ -3562,12 +6111,15 @@ static void host_flash_manager_test_validate_read_write_flash_verify_error (CuTe
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
-	struct pfm_read_write_regions rw_output;
+	struct host_flash_manager_rw_regions rw_output;
 	int status;
 
 	TEST_START;
 
 	host_flash_manager_testing_init (test, &manager, false);
+
+	fw_list.ids = &fw_exp;
+	fw_list.count = 1;
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -3603,7 +6155,906 @@ static void host_flash_manager_test_validate_read_write_flash_verify_error (CuTe
 	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp, strlen (fw_exp) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) version_exp,
+		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
+		MOCK_ARG_PTR_CONTAINS (fw_exp, strlen (fw_exp) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list, sizeof (img_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp, strlen (fw_exp) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) img_data,
+		strlen (img_data), FLASH_EXP_READ_CMD (0x03, 0, 0, -1, strlen (img_data)));
+
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock1, 0 + strlen (img_data),
+		0x200 - strlen (img_data));
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock1, 0x300, 0x1000 - 0x300);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (3));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.validate_read_write_flash (&manager.test, &manager.pfm.base,
+		&manager.hash.base, &manager.rsa.base, &rw_output);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, 1, rw_output.count);
+	CuAssertPtrNotNull (test, rw_output.writable);
+	CuAssertPtrEquals (test, &manager.pfm, rw_output.pfm);
+
+	CuAssertIntEquals (test, 1, rw_output.writable->count);
+	CuAssertPtrEquals (test, &rw_region, (void*) rw_output.writable->regions);
+	CuAssertPtrEquals (test, &rw_prop, (void*) rw_output.writable->properties);
+
+	status = mock_validate (&manager.flash_mock1.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&manager.pfm.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (2));
+	CuAssertIntEquals (test, 0, status);
+
+	manager.test.free_read_write_regions (&manager.test, &rw_output);
+
+	host_flash_manager_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_test_validate_read_write_flash_multiple_fw (CuTest *test)
+{
+	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp[3] = {"fw1", "fw2", "fw3"};
+	struct pfm_firmware_version version[3];
+	struct pfm_firmware_versions version_list[3];
+	const char *version_exp1 = "1234";
+	const char *version_exp2 = "5678";
+	const char *version_exp3 = "90ab";
+	struct flash_region img_region[3];
+	struct pfm_image_signature sig[3];
+	struct pfm_image_list img_list[3];
+	char *img_data1 = "Test";
+	char *img_data2 = "Test2";
+	char *img_data3 = "Nope";
+	struct flash_region rw_region[3];
+	struct pfm_read_write rw_prop[3];
+	struct pfm_read_write_regions rw_list[3];
+	struct host_flash_manager_rw_regions rw_output;
+	int status;
+
+	TEST_START;
+
+	host_flash_manager_testing_init (test, &manager, false);
+
+	fw_list.ids = fw_exp;
+	fw_list.count = 3;
+
+	version[0].fw_version_id = version_exp1;
+	version[0].version_addr = 0x123;
+	version[0].blank_byte = 0xff;
+
+	version[1].fw_version_id = version_exp2;
+	version[1].version_addr = 0x456;
+	version[1].blank_byte = 0xff;
+
+	version[2].fw_version_id = version_exp3;
+	version[2].version_addr = 0x789;
+	version[2].blank_byte = 0xff;
+
+	version_list[0].versions = &version[0];
+	version_list[0].count = 1;
+	version_list[1].versions = &version[1];
+	version_list[1].count = 1;
+	version_list[2].versions = &version[2];
+	version_list[2].count = 1;
+
+	img_region[0].start_addr = 0;
+	img_region[0].length = strlen (img_data1);
+
+	sig[0].regions = &img_region[0];
+	sig[0].count = 1;
+	memcpy (&sig[0].key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig[0].signature, RSA_SIGNATURE_TEST, RSA_ENCRYPT_LEN);
+	sig[0].sig_length = RSA_ENCRYPT_LEN;
+	sig[0].always_validate = 1;
+
+	img_list[0].images_sig = &sig[0];
+	img_list[0].images_hash = NULL;
+	img_list[0].count = 1;
+
+	img_region[1].start_addr = 0x300;
+	img_region[1].length = strlen (img_data2);
+
+	sig[1].regions = &img_region[1];
+	sig[1].count = 1;
+	memcpy (&sig[1].key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig[1].signature, RSA_SIGNATURE_TEST2, RSA_ENCRYPT_LEN);
+	sig[1].sig_length = RSA_ENCRYPT_LEN;
+	sig[1].always_validate = 1;
+
+	img_list[1].images_sig = &sig[1];
+	img_list[1].images_hash = NULL;
+	img_list[1].count = 1;
+
+	img_region[2].start_addr = 0x600;
+	img_region[2].length = strlen (img_data3);
+
+	sig[2].regions = &img_region[2];
+	sig[2].count = 1;
+	memcpy (&sig[2].key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig[2].signature, RSA_SIGNATURE_NOPE, RSA_ENCRYPT_LEN);
+	sig[2].sig_length = RSA_ENCRYPT_LEN;
+	sig[2].always_validate = 1;
+
+	img_list[2].images_sig = &sig[2];
+	img_list[2].images_hash = NULL;
+	img_list[2].count = 1;
+
+	rw_region[0].start_addr = 0x200;
+	rw_region[0].length = 0x100;
+	rw_region[1].start_addr = 0x500;
+	rw_region[1].length = 0x100;
+	rw_region[2].start_addr = 0x800;
+	rw_region[2].length = 0x100;
+
+	rw_prop[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[2].on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list[0].regions = &rw_region[0];
+	rw_list[0].properties = &rw_prop[0];
+	rw_list[0].count = 1;
+
+	rw_list[1].regions = &rw_region[1];
+	rw_list[1].properties = &rw_prop[1];
+	rw_list[1].count = 1;
+
+	rw_list[2].regions = &rw_region[2];
+	rw_list[2].properties = &rw_prop[2];
+	rw_list[2].count = 1;
+
+	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
+
+	/* FW 1 */
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[0], strlen (fw_exp[0]) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list[0], sizeof (version_list[0]),
+		-1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) version_exp1,
+		strlen (version_exp1), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp1)));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
+		MOCK_ARG_PTR_CONTAINS (fw_exp[0], strlen (fw_exp[0]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp1, strlen (version_exp1) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list[0], sizeof (img_list[0]), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[0], strlen (fw_exp[0]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp1, strlen (version_exp1) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list[0], sizeof (rw_list[0]), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	/* FW 2 */
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[1], strlen (fw_exp[1]) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list[1], sizeof (version_list[1]),
+		-1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 4);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) version_exp2,
+		strlen (version_exp2), FLASH_EXP_READ_CMD (0x03, 0x456, 0, -1, strlen (version_exp2)));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
+		MOCK_ARG_PTR_CONTAINS (fw_exp[1], strlen (fw_exp[1]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp2, strlen (version_exp2) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list[1], sizeof (img_list[1]), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 5);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[1], strlen (fw_exp[1]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp2, strlen (version_exp2) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list[1], sizeof (rw_list[1]), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 6);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (4));
+
+	/* FW 3 */
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[2], strlen (fw_exp[2]) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list[2], sizeof (version_list[2]),
+		-1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 7);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) version_exp3,
+		strlen (version_exp3), FLASH_EXP_READ_CMD (0x03, 0x789, 0, -1, strlen (version_exp3)));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
+		MOCK_ARG_PTR_CONTAINS (fw_exp[2], strlen (fw_exp[2]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp3, strlen (version_exp3) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list[2], sizeof (img_list[2]), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 8);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[2], strlen (fw_exp[2]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp3, strlen (version_exp3) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list[2], sizeof (rw_list[2]), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 9);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (7));
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) img_data1,
+		strlen (img_data1), FLASH_EXP_READ_CMD (0x03, 0x000, 0, -1, strlen (img_data1)));
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) img_data2,
+		strlen (img_data2), FLASH_EXP_READ_CMD (0x03, 0x300, 0, -1, strlen (img_data2)));
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) img_data3,
+		strlen (img_data3), FLASH_EXP_READ_CMD (0x03, 0x600, 0, -1, strlen (img_data3)));
+
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock1,
+		0x000 + strlen (img_data1), 0x200 - strlen (img_data1));
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock1,
+		0x300 + strlen (img_data2), 0x200 - strlen (img_data2));
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock1,
+		0x600 + strlen (img_data3), 0x200 - strlen (img_data3));
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock1, 0x900, 0x1000 - 0x900);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (5));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (8));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (3));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.validate_read_write_flash (&manager.test, &manager.pfm.base,
+		&manager.hash.base, &manager.rsa.base, &rw_output);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, 3, rw_output.count);
+	CuAssertPtrNotNull (test, rw_output.writable);
+	CuAssertPtrEquals (test, &manager.pfm, rw_output.pfm);
+
+	CuAssertIntEquals (test, 1, rw_output.writable[0].count);
+	CuAssertPtrEquals (test, &rw_region[0], (void*) rw_output.writable[0].regions);
+	CuAssertPtrEquals (test, &rw_prop[0], (void*) rw_output.writable[0].properties);
+
+	CuAssertIntEquals (test, 1, rw_output.writable[1].count);
+	CuAssertPtrEquals (test, &rw_region[1], (void*) rw_output.writable[1].regions);
+	CuAssertPtrEquals (test, &rw_prop[1], (void*) rw_output.writable[1].properties);
+
+	CuAssertIntEquals (test, 1, rw_output.writable[2].count);
+	CuAssertPtrEquals (test, &rw_region[2], (void*) rw_output.writable[2].regions);
+	CuAssertPtrEquals (test, &rw_prop[2], (void*) rw_output.writable[2].properties);
+
+	status = mock_validate (&manager.flash_mock1.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&manager.pfm.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (2));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions,
+		&manager.pfm, 0, MOCK_ARG_SAVED_ARG (6));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions,
+		&manager.pfm, 0, MOCK_ARG_SAVED_ARG (9));
+
+	CuAssertIntEquals (test, 0, status);
+
+	manager.test.free_read_write_regions (&manager.test, &rw_output);
+
+	host_flash_manager_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_test_validate_read_write_flash_null (CuTest *test)
+{
+	struct host_flash_manager_testing manager;
+	struct host_flash_manager_rw_regions rw_output;
+	int status;
+
+	TEST_START;
+
+	host_flash_manager_testing_init (test, &manager, false);
+
+	status = manager.test.validate_read_write_flash (NULL, &manager.pfm.base,
+		&manager.hash.base, &manager.rsa.base, &rw_output);
+	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
+
+	status = manager.test.validate_read_write_flash (&manager.test, NULL,
+		&manager.hash.base, &manager.rsa.base, &rw_output);
+	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
+
+	status = manager.test.validate_read_write_flash (&manager.test, &manager.pfm.base,
+		NULL, &manager.rsa.base, &rw_output);
+	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
+
+	status = manager.test.validate_read_write_flash (&manager.test, &manager.pfm.base,
+		&manager.hash.base, NULL, &rw_output);
+	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
+
+	status = manager.test.validate_read_write_flash (&manager.test, &manager.pfm.base,
+		&manager.hash.base, &manager.rsa.base, NULL);
+	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
+
+	host_flash_manager_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_test_validate_read_write_flash_pfm_firmware_error (CuTest *test)
+{
+	struct host_flash_manager_testing manager;
+	struct host_flash_manager_rw_regions rw_output;
+	int status;
+
+	TEST_START;
+
+	host_flash_manager_testing_init (test, &manager, false);
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm,
+		PFM_GET_FW_FAILED, MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.validate_read_write_flash (&manager.test, &manager.pfm.base,
+		&manager.hash.base, &manager.rsa.base, &rw_output);
+	CuAssertIntEquals (test, PFM_GET_FW_FAILED, status);
+
+	host_flash_manager_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_test_validate_read_write_flash_pfm_version_error (CuTest *test)
+{
+	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp = NULL;
+	struct host_flash_manager_rw_regions rw_output;
+	int status;
+
+	TEST_START;
+
+	host_flash_manager_testing_init (test, &manager, false);
+
+	fw_list.ids = &fw_exp;
+	fw_list.count = 1;
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		PFM_GET_VERSIONS_FAILED, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (3));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.validate_read_write_flash (&manager.test, &manager.pfm.base,
+		&manager.hash.base, &manager.rsa.base, &rw_output);
+	CuAssertIntEquals (test, PFM_GET_VERSIONS_FAILED, status);
+
+	host_flash_manager_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_test_validate_read_write_flash_pfm_version_error_multiple_fw (
+	CuTest *test)
+{
+	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp[3] = {"fw1", "fw2", "fw3"};
+	struct pfm_firmware_version version[3];
+	struct pfm_firmware_versions version_list[3];
+	const char *version_exp1 = "1234";
+	const char *version_exp2 = "5678";
+	const char *version_exp3 = "90ab";
+	struct flash_region img_region[3];
+	struct pfm_image_signature sig[3];
+	struct pfm_image_list img_list[3];
+	char *img_data1 = "Test";
+	char *img_data2 = "Test2";
+	char *img_data3 = "Nope";
+	struct flash_region rw_region[3];
+	struct pfm_read_write rw_prop[3];
+	struct pfm_read_write_regions rw_list[3];
+	struct host_flash_manager_rw_regions rw_output;
+	int status;
+
+	TEST_START;
+
+	host_flash_manager_testing_init (test, &manager, false);
+
+	fw_list.ids = fw_exp;
+	fw_list.count = 3;
+
+	version[0].fw_version_id = version_exp1;
+	version[0].version_addr = 0x123;
+	version[0].blank_byte = 0xff;
+
+	version[1].fw_version_id = version_exp2;
+	version[1].version_addr = 0x456;
+	version[1].blank_byte = 0xff;
+
+	version[2].fw_version_id = version_exp3;
+	version[2].version_addr = 0x789;
+	version[2].blank_byte = 0xff;
+
+	version_list[0].versions = &version[0];
+	version_list[0].count = 1;
+	version_list[1].versions = &version[1];
+	version_list[1].count = 1;
+	version_list[2].versions = &version[2];
+	version_list[2].count = 1;
+
+	img_region[0].start_addr = 0;
+	img_region[0].length = strlen (img_data1);
+
+	sig[0].regions = &img_region[0];
+	sig[0].count = 1;
+	memcpy (&sig[0].key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig[0].signature, RSA_SIGNATURE_TEST, RSA_ENCRYPT_LEN);
+	sig[0].sig_length = RSA_ENCRYPT_LEN;
+	sig[0].always_validate = 1;
+
+	img_list[0].images_sig = &sig[0];
+	img_list[0].images_hash = NULL;
+	img_list[0].count = 1;
+
+	img_region[1].start_addr = 0x300;
+	img_region[1].length = strlen (img_data2);
+
+	sig[1].regions = &img_region[1];
+	sig[1].count = 1;
+	memcpy (&sig[1].key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig[1].signature, RSA_SIGNATURE_TEST2, RSA_ENCRYPT_LEN);
+	sig[1].sig_length = RSA_ENCRYPT_LEN;
+	sig[1].always_validate = 1;
+
+	img_list[1].images_sig = &sig[1];
+	img_list[1].images_hash = NULL;
+	img_list[1].count = 1;
+
+	img_region[2].start_addr = 0x600;
+	img_region[2].length = strlen (img_data3);
+
+	sig[2].regions = &img_region[2];
+	sig[2].count = 1;
+	memcpy (&sig[2].key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig[2].signature, RSA_SIGNATURE_NOPE, RSA_ENCRYPT_LEN);
+	sig[2].sig_length = RSA_ENCRYPT_LEN;
+	sig[2].always_validate = 1;
+
+	img_list[2].images_sig = &sig[2];
+	img_list[2].images_hash = NULL;
+	img_list[2].count = 1;
+
+	rw_region[0].start_addr = 0x200;
+	rw_region[0].length = 0x100;
+	rw_region[1].start_addr = 0x500;
+	rw_region[1].length = 0x100;
+	rw_region[2].start_addr = 0x800;
+	rw_region[2].length = 0x100;
+
+	rw_prop[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[2].on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list[0].regions = &rw_region[0];
+	rw_list[0].properties = &rw_prop[0];
+	rw_list[0].count = 1;
+
+	rw_list[1].regions = &rw_region[1];
+	rw_list[1].properties = &rw_prop[1];
+	rw_list[1].count = 1;
+
+	rw_list[2].regions = &rw_region[2];
+	rw_list[2].properties = &rw_prop[2];
+	rw_list[2].count = 1;
+
+	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
+
+	/* FW 1 */
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[0], strlen (fw_exp[0]) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list[0], sizeof (version_list[0]),
+		-1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) version_exp1,
+		strlen (version_exp1), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp1)));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
+		MOCK_ARG_PTR_CONTAINS (fw_exp[0], strlen (fw_exp[0]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp1, strlen (version_exp1) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list[0], sizeof (img_list[0]), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[0], strlen (fw_exp[0]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp1, strlen (version_exp1) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list[0], sizeof (rw_list[0]), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	/* FW 2 */
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[1], strlen (fw_exp[1]) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list[1], sizeof (version_list[1]),
+		-1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 4);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) version_exp2,
+		strlen (version_exp2), FLASH_EXP_READ_CMD (0x03, 0x456, 0, -1, strlen (version_exp2)));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
+		MOCK_ARG_PTR_CONTAINS (fw_exp[1], strlen (fw_exp[1]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp2, strlen (version_exp2) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list[1], sizeof (img_list[1]), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 5);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[1], strlen (fw_exp[1]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp2, strlen (version_exp2) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list[1], sizeof (rw_list[1]), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 6);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (4));
+
+	/* FW 3 */
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		PFM_GET_VERSIONS_FAILED, MOCK_ARG_PTR_CONTAINS (fw_exp[2], strlen (fw_exp[2]) + 1),
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions,
+		&manager.pfm, 0, MOCK_ARG_SAVED_ARG (2));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions,
+		&manager.pfm, 0, MOCK_ARG_SAVED_ARG (6));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (5));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (3));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.validate_read_write_flash (&manager.test, &manager.pfm.base,
+		&manager.hash.base, &manager.rsa.base, &rw_output);
+	CuAssertIntEquals (test, PFM_GET_VERSIONS_FAILED, status);
+
+	host_flash_manager_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_test_validate_read_write_flash_pfm_images_error (CuTest *test)
+{
+	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp = NULL;
+	struct pfm_firmware_version version;
+	struct pfm_firmware_versions version_list;
+	const char *version_exp = "1234";
+	struct host_flash_manager_rw_regions rw_output;
+	int status;
+
+	TEST_START;
+
+	host_flash_manager_testing_init (test, &manager, false);
+
+	fw_list.ids = &fw_exp;
+	fw_list.count = 1;
+
+	version.fw_version_id = version_exp;
+	version.version_addr = 0x123;
+	version.blank_byte = 0xff;
+
+	version_list.versions = &version;
+	version_list.count = 1;
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) version_exp,
+		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm,
+		PFM_GET_FW_IMAGES_FAILED, MOCK_ARG (NULL),
+		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (3));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.validate_read_write_flash (&manager.test, &manager.pfm.base,
+		&manager.hash.base, &manager.rsa.base, &rw_output);
+	CuAssertIntEquals (test, PFM_GET_FW_IMAGES_FAILED, status);
+
+	host_flash_manager_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_test_validate_read_write_flash_pfm_rw_error (CuTest *test)
+{
+	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp = NULL;
+	struct pfm_firmware_version version;
+	struct pfm_firmware_versions version_list;
+	const char *version_exp = "1234";
+	struct flash_region img_region;
+	struct pfm_image_signature sig;
+	struct pfm_image_list img_list;
+	char *img_data = "Test";
+	struct host_flash_manager_rw_regions rw_output;
+	int status;
+
+	TEST_START;
+
+	host_flash_manager_testing_init (test, &manager, false);
+
+	fw_list.ids = &fw_exp;
+	fw_list.count = 1;
+
+	version.fw_version_id = version_exp;
+	version.version_addr = 0x123;
+	version.blank_byte = 0xff;
+
+	version_list.versions = &version;
+	version_list.count = 1;
+
+	img_region.start_addr = 0;
+	img_region.length = strlen (img_data);
+
+	sig.regions = &img_region;
+	sig.count = 1;
+	memcpy (&sig.key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig.signature, RSA_SIGNATURE_TEST, RSA_ENCRYPT_LEN);
+	sig.sig_length = RSA_ENCRYPT_LEN;
+	sig.always_validate = 1;
+
+	img_list.images_sig = &sig;
+	img_list.images_hash = NULL;
+	img_list.count = 1;
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) version_exp,
+		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
+		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list, sizeof (img_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		PFM_GET_READ_WRITE_FAILED, MOCK_ARG (NULL),
+		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (3));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.validate_read_write_flash (&manager.test, &manager.pfm.base,
+		&manager.hash.base, &manager.rsa.base, &rw_output);
+	CuAssertIntEquals (test, PFM_GET_READ_WRITE_FAILED, status);
+
+	host_flash_manager_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_test_validate_read_write_flash_version_error (CuTest *test)
+{
+	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp = NULL;
+	struct pfm_firmware_version version;
+	struct pfm_firmware_versions version_list;
+	const char *version_exp = "1234";
+	struct host_flash_manager_rw_regions rw_output;
+	int status;
+
+	TEST_START;
+
+	host_flash_manager_testing_init (test, &manager, false);
+
+	fw_list.ids = &fw_exp;
+	fw_list.count = 1;
+
+	version.fw_version_id = version_exp;
+	version.version_addr = 0x123;
+	version.blank_byte = 0xff;
+
+	version_list.versions = &version;
+	version_list.count = 1;
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
+
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock1, FLASH_MASTER_XFER_FAILED,
+		FLASH_EXP_READ_STATUS_REG);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (3));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.validate_read_write_flash (&manager.test, &manager.pfm.base,
+		&manager.hash.base, &manager.rsa.base, &rw_output);
+	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
+
+	host_flash_manager_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_test_validate_read_write_flash_verify_error (CuTest *test)
+{
+	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp = NULL;
+	struct pfm_firmware_version version;
+	struct pfm_firmware_versions version_list;
+	const char *version_exp = "1234";
+	struct flash_region img_region;
+	struct pfm_image_signature sig;
+	struct pfm_image_list img_list;
+	char *img_data = "Test";
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_output;
+	int status;
+
+	TEST_START;
+
+	host_flash_manager_testing_init (test, &manager, false);
+
+	fw_list.ids = &fw_exp;
+	fw_list.count = 1;
+
+	version.fw_version_id = version_exp;
+	version.version_addr = 0x123;
+	version.blank_byte = 0xff;
+
+	version_list.versions = &version;
+	version_list.count = 1;
+
+	img_region.start_addr = 0;
+	img_region.length = strlen (img_data);
+
+	sig.regions = &img_region;
+	sig.count = 1;
+	memcpy (&sig.key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig.signature, RSA_SIGNATURE_TEST, RSA_ENCRYPT_LEN);
+	sig.sig_length = RSA_ENCRYPT_LEN;
+	sig.always_validate = 1;
+
+	img_list.images_sig = &sig;
+	img_list.images_hash = NULL;
+	img_list.count = 1;
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
 		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
@@ -3621,24 +7072,118 @@ static void host_flash_manager_test_validate_read_write_flash_verify_error (CuTe
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
 		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
-		MOCK_ARG (&rw_output));
+		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
 
 	status |= flash_master_mock_expect_xfer (&manager.flash_mock1, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
-	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions,
-		&manager.pfm, 0, MOCK_ARG (&rw_output));
-	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
-		0, MOCK_ARG_SAVED_ARG (1));
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
 		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions,
+		&manager.pfm, 0, MOCK_ARG_SAVED_ARG (2));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (3));
 
 	CuAssertIntEquals (test, 0, status);
 
 	status = manager.test.validate_read_write_flash (&manager.test, &manager.pfm.base,
 		&manager.hash.base, &manager.rsa.base, &rw_output);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
+
+	host_flash_manager_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_test_free_read_write_regions_null (CuTest *test)
+{
+	struct host_flash_manager_testing manager;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions *rw_list;
+	struct host_flash_manager_rw_regions rw_host;
+	int status;
+
+	TEST_START;
+
+	host_flash_manager_testing_init (test, &manager, false);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list = platform_malloc (sizeof (struct pfm_read_write_regions));
+	CuAssertPtrNotNull (test, rw_list);
+
+	rw_list->regions = &rw_region;
+	rw_list->properties = &rw_prop;
+	rw_list->count = 1;
+
+	rw_host.pfm = &manager.pfm.base;
+	rw_host.writable = rw_list;
+	rw_host.count = 1;
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions, &manager.pfm,
+		0, MOCK_ARG (rw_list));
+	CuAssertIntEquals (test, 0, status);
+
+	manager.test.free_read_write_regions (NULL, &rw_host);
+
+	status = mock_validate (&manager.pfm.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	manager.test.free_read_write_regions (&manager.test, NULL);
+
+	host_flash_manager_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_test_free_read_write_regions_null_list (CuTest *test)
+{
+	struct host_flash_manager_testing manager;
+	struct host_flash_manager_rw_regions rw_host;
+
+	TEST_START;
+
+	host_flash_manager_testing_init (test, &manager, false);
+
+	rw_host.pfm = &manager.pfm.base;
+	rw_host.writable = NULL;
+	rw_host.count = 1;
+
+	manager.test.free_read_write_regions (&manager.test, &rw_host);
+
+	host_flash_manager_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_test_free_read_write_regions_null_pfm (CuTest *test)
+{
+	struct host_flash_manager_testing manager;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_host;
+
+	TEST_START;
+
+	host_flash_manager_testing_init (test, &manager, false);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	rw_host.pfm = NULL;
+	rw_host.writable = &rw_list;
+	rw_host.count = 1;
+
+	manager.test.free_read_write_regions (&manager.test, &rw_host);
 
 	host_flash_manager_testing_validate_and_release (test, &manager);
 }
@@ -5925,6 +9470,7 @@ static void host_flash_manager_test_initialize_flash_protection_cs0_3byte_cs1_3b
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_host;
 	spi_filter_cs active;
 
 	TEST_START;
@@ -5940,6 +9486,10 @@ static void host_flash_manager_test_initialize_flash_protection_cs0_3byte_cs1_3b
 	rw_list.regions = &rw_region;
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
+
+	rw_host.pfm = &manager.pfm.base;
+	rw_host.writable = &rw_list;
+	rw_host.count = 1;
 
 	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock1, 0x10000,
 		RSA_ENCRYPT_LEN);
@@ -5959,7 +9509,7 @@ static void host_flash_manager_test_initialize_flash_protection_cs0_3byte_cs1_3b
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.initialize_flash_protection (&manager.test, &rw_list);
+	status = manager.test.initialize_flash_protection (&manager.test, &rw_host);
 	CuAssertIntEquals (test, 0, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -5977,6 +9527,7 @@ static void host_flash_manager_test_initialize_flash_protection_cs1_3byte_cs0_3b
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_host;
 	spi_filter_cs active;
 
 	TEST_START;
@@ -5992,6 +9543,10 @@ static void host_flash_manager_test_initialize_flash_protection_cs1_3byte_cs0_3b
 	rw_list.regions = &rw_region;
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
+
+	rw_host.pfm = &manager.pfm.base;
+	rw_host.writable = &rw_list;
+	rw_host.count = 1;
 
 	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock0, 0x10000,
 		RSA_ENCRYPT_LEN);
@@ -6011,7 +9566,7 @@ static void host_flash_manager_test_initialize_flash_protection_cs1_3byte_cs0_3b
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.initialize_flash_protection (&manager.test, &rw_list);
+	status = manager.test.initialize_flash_protection (&manager.test, &rw_host);
 	CuAssertIntEquals (test, 0, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -6029,6 +9584,7 @@ static void host_flash_manager_test_initialize_flash_protection_cs0_4byte_cs1_4b
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_host;
 	spi_filter_cs active;
 
 	TEST_START;
@@ -6051,6 +9607,10 @@ static void host_flash_manager_test_initialize_flash_protection_cs0_4byte_cs1_4b
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
+	rw_host.pfm = &manager.pfm.base;
+	rw_host.writable = &rw_list;
+	rw_host.count = 1;
+
 	status = flash_master_mock_expect_erase_flash_verify_4byte (&manager.flash_mock1, 0x10000,
 		RSA_ENCRYPT_LEN);
 	status |= flash_master_mock_expect_copy_flash_verify_4byte (&manager.flash_mock1,
@@ -6069,7 +9629,7 @@ static void host_flash_manager_test_initialize_flash_protection_cs0_4byte_cs1_4b
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.initialize_flash_protection (&manager.test, &rw_list);
+	status = manager.test.initialize_flash_protection (&manager.test, &rw_host);
 	CuAssertIntEquals (test, 0, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -6087,6 +9647,7 @@ static void host_flash_manager_test_initialize_flash_protection_cs1_4byte_cs0_4b
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_host;
 	spi_filter_cs active;
 
 	TEST_START;
@@ -6109,6 +9670,10 @@ static void host_flash_manager_test_initialize_flash_protection_cs1_4byte_cs0_4b
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
+	rw_host.pfm = &manager.pfm.base;
+	rw_host.writable = &rw_list;
+	rw_host.count = 1;
+
 	status = flash_master_mock_expect_erase_flash_verify_4byte (&manager.flash_mock0, 0x10000,
 		RSA_ENCRYPT_LEN);
 	status |= flash_master_mock_expect_copy_flash_verify_4byte (&manager.flash_mock0,
@@ -6127,7 +9692,7 @@ static void host_flash_manager_test_initialize_flash_protection_cs1_4byte_cs0_4b
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.initialize_flash_protection (&manager.test, &rw_list);
+	status = manager.test.initialize_flash_protection (&manager.test, &rw_host);
 	CuAssertIntEquals (test, 0, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -6145,6 +9710,7 @@ static void host_flash_manager_test_initialize_flash_protection_cs0_4byte_cs1_3b
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_host;
 	spi_filter_cs active;
 
 	TEST_START;
@@ -6163,6 +9729,10 @@ static void host_flash_manager_test_initialize_flash_protection_cs0_4byte_cs1_3b
 	rw_list.regions = &rw_region;
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
+
+	rw_host.pfm = &manager.pfm.base;
+	rw_host.writable = &rw_list;
+	rw_host.count = 1;
 
 	status = flash_master_mock_expect_xfer (&manager.flash_mock1, 0, FLASH_EXP_OPCODE (0xb7));
 
@@ -6184,7 +9754,7 @@ static void host_flash_manager_test_initialize_flash_protection_cs0_4byte_cs1_3b
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.initialize_flash_protection (&manager.test, &rw_list);
+	status = manager.test.initialize_flash_protection (&manager.test, &rw_host);
 	CuAssertIntEquals (test, 0, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -6202,6 +9772,7 @@ static void host_flash_manager_test_initialize_flash_protection_cs1_4byte_cs0_3b
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_host;
 	spi_filter_cs active;
 
 	TEST_START;
@@ -6220,6 +9791,10 @@ static void host_flash_manager_test_initialize_flash_protection_cs1_4byte_cs0_3b
 	rw_list.regions = &rw_region;
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
+
+	rw_host.pfm = &manager.pfm.base;
+	rw_host.writable = &rw_list;
+	rw_host.count = 1;
 
 	status = flash_master_mock_expect_xfer (&manager.flash_mock0, 0, FLASH_EXP_OPCODE (0xb7));
 
@@ -6241,7 +9816,7 @@ static void host_flash_manager_test_initialize_flash_protection_cs1_4byte_cs0_3b
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.initialize_flash_protection (&manager.test, &rw_list);
+	status = manager.test.initialize_flash_protection (&manager.test, &rw_host);
 	CuAssertIntEquals (test, 0, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -6259,6 +9834,7 @@ static void host_flash_manager_test_initialize_flash_protection_cs0_3byte_cs1_4b
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_host;
 	spi_filter_cs active;
 
 	TEST_START;
@@ -6277,6 +9853,10 @@ static void host_flash_manager_test_initialize_flash_protection_cs0_3byte_cs1_4b
 	rw_list.regions = &rw_region;
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
+
+	rw_host.pfm = &manager.pfm.base;
+	rw_host.writable = &rw_list;
+	rw_host.count = 1;
 
 	status = flash_master_mock_expect_xfer (&manager.flash_mock1, 0, FLASH_EXP_OPCODE (0xe9));
 
@@ -6298,7 +9878,7 @@ static void host_flash_manager_test_initialize_flash_protection_cs0_3byte_cs1_4b
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.initialize_flash_protection (&manager.test, &rw_list);
+	status = manager.test.initialize_flash_protection (&manager.test, &rw_host);
 	CuAssertIntEquals (test, 0, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -6316,6 +9896,7 @@ static void host_flash_manager_test_initialize_flash_protection_cs1_3byte_cs0_4b
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_host;
 	spi_filter_cs active;
 
 	TEST_START;
@@ -6334,6 +9915,10 @@ static void host_flash_manager_test_initialize_flash_protection_cs1_3byte_cs0_4b
 	rw_list.regions = &rw_region;
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
+
+	rw_host.pfm = &manager.pfm.base;
+	rw_host.writable = &rw_list;
+	rw_host.count = 1;
 
 	status = flash_master_mock_expect_xfer (&manager.flash_mock0, 0, FLASH_EXP_OPCODE (0xe9));
 
@@ -6355,7 +9940,7 @@ static void host_flash_manager_test_initialize_flash_protection_cs1_3byte_cs0_4b
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.initialize_flash_protection (&manager.test, &rw_list);
+	status = manager.test.initialize_flash_protection (&manager.test, &rw_host);
 	CuAssertIntEquals (test, 0, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -6390,6 +9975,7 @@ static void host_flash_manager_test_initialize_flash_protection_fixed_3byte (CuT
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_host;
 	spi_filter_cs active;
 
 	TEST_START;
@@ -6414,6 +10000,10 @@ static void host_flash_manager_test_initialize_flash_protection_fixed_3byte (CuT
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
+	rw_host.pfm = &manager.pfm.base;
+	rw_host.writable = &rw_list;
+	rw_host.count = 1;
+
 	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock1, 0x10000,
 		RSA_ENCRYPT_LEN);
 	status |= flash_master_mock_expect_copy_flash_verify (&manager.flash_mock1,
@@ -6430,7 +10020,7 @@ static void host_flash_manager_test_initialize_flash_protection_fixed_3byte (CuT
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.initialize_flash_protection (&manager.test, &rw_list);
+	status = manager.test.initialize_flash_protection (&manager.test, &rw_host);
 	CuAssertIntEquals (test, 0, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -6465,6 +10055,7 @@ static void host_flash_manager_test_initialize_flash_protection_fixed_4byte (CuT
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_host;
 	spi_filter_cs active;
 
 	TEST_START;
@@ -6489,6 +10080,10 @@ static void host_flash_manager_test_initialize_flash_protection_fixed_4byte (CuT
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
+	rw_host.pfm = &manager.pfm.base;
+	rw_host.writable = &rw_list;
+	rw_host.count = 1;
+
 	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock1, 0x10000,
 		RSA_ENCRYPT_LEN);
 	status |= flash_master_mock_expect_copy_flash_verify (&manager.flash_mock1,
@@ -6505,11 +10100,169 @@ static void host_flash_manager_test_initialize_flash_protection_fixed_4byte (CuT
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.initialize_flash_protection (&manager.test, &rw_list);
+	status = manager.test.initialize_flash_protection (&manager.test, &rw_host);
 	CuAssertIntEquals (test, 0, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
 	CuAssertIntEquals (test, SPI_FILTER_CS_0, active);
+
+	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
+
+	host_flash_manager_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_test_initialize_flash_protection_cs0_multiple_fw (CuTest *test)
+{
+	struct host_flash_manager_testing manager;
+	int status;
+	struct flash_region rw_region[3];
+	struct pfm_read_write rw_prop[3];
+	struct pfm_read_write_regions rw_list[3];
+	struct host_flash_manager_rw_regions rw_host;
+	spi_filter_cs active;
+
+	TEST_START;
+
+	host_flash_manager_testing_init (test, &manager, false);
+	host_state_manager_save_inactive_dirty (&manager.host_state, true);
+
+	rw_region[0].start_addr = 0x10000;
+	rw_region[0].length = RSA_ENCRYPT_LEN;
+	rw_region[1].start_addr = 0x30000;
+	rw_region[1].length = 16;
+	rw_region[2].start_addr = 0x50000;
+	rw_region[2].length = 32;
+
+	rw_prop[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[2].on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list[0].regions = &rw_region[0];
+	rw_list[0].properties = &rw_prop[0];
+	rw_list[0].count = 1;
+
+	rw_list[1].regions = &rw_region[1];
+	rw_list[1].properties = &rw_prop[1];
+	rw_list[1].count = 1;
+
+	rw_list[2].regions = &rw_region[2];
+	rw_list[2].properties = &rw_prop[2];
+	rw_list[2].count = 1;
+
+	rw_host.pfm = &manager.pfm.base;
+	rw_host.writable = rw_list;
+	rw_host.count = 3;
+
+	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock1, 0x10000,
+		RSA_ENCRYPT_LEN);
+	status |= flash_master_mock_expect_copy_flash_verify (&manager.flash_mock1,
+		&manager.flash_mock0, 0x10000, 0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
+
+	status |= flash_master_mock_expect_erase_flash_verify (&manager.flash_mock1, 0x30000, 16);
+	status |= flash_master_mock_expect_copy_flash_verify (&manager.flash_mock1,
+		&manager.flash_mock0, 0x30000, 0x30000, RSA_ENCRYPT_TEST2, 16);
+
+	status |= flash_master_mock_expect_erase_flash_verify (&manager.flash_mock1, 0x50000, 32);
+	status |= flash_master_mock_expect_copy_flash_verify (&manager.flash_mock1,
+		&manager.flash_mock0, 0x50000, 0x50000, RSA_ENCRYPT_NOPE, 32);
+
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.clear_flash_dirty_state,
+		&manager.filter, 0);
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_addr_byte_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_bypass_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_OPERATE));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_ro_cs, &manager.filter, 0,
+		MOCK_ARG (SPI_FILTER_CS_0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
+
+	status = manager.test.initialize_flash_protection (&manager.test, &rw_host);
+	CuAssertIntEquals (test, 0, status);
+
+	active = host_state_manager_get_read_only_flash (&manager.host_state);
+	CuAssertIntEquals (test, SPI_FILTER_CS_0, active);
+
+	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
+
+	host_flash_manager_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_test_initialize_flash_protection_cs1_multiple_fw (CuTest *test)
+{
+	struct host_flash_manager_testing manager;
+	int status;
+	struct flash_region rw_region[3];
+	struct pfm_read_write rw_prop[3];
+	struct pfm_read_write_regions rw_list[3];
+	struct host_flash_manager_rw_regions rw_host;
+	spi_filter_cs active;
+
+	TEST_START;
+
+	host_flash_manager_testing_init (test, &manager, true);
+	host_state_manager_save_inactive_dirty (&manager.host_state, true);
+
+	rw_region[0].start_addr = 0x10000;
+	rw_region[0].length = RSA_ENCRYPT_LEN;
+	rw_region[1].start_addr = 0x30000;
+	rw_region[1].length = 16;
+	rw_region[2].start_addr = 0x50000;
+	rw_region[2].length = 32;
+
+	rw_prop[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[2].on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list[0].regions = &rw_region[0];
+	rw_list[0].properties = &rw_prop[0];
+	rw_list[0].count = 1;
+
+	rw_list[1].regions = &rw_region[1];
+	rw_list[1].properties = &rw_prop[1];
+	rw_list[1].count = 1;
+
+	rw_list[2].regions = &rw_region[2];
+	rw_list[2].properties = &rw_prop[2];
+	rw_list[2].count = 1;
+
+	rw_host.pfm = &manager.pfm.base;
+	rw_host.writable = rw_list;
+	rw_host.count = 3;
+
+	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock0, 0x10000,
+		RSA_ENCRYPT_LEN);
+	status |= flash_master_mock_expect_copy_flash_verify (&manager.flash_mock0,
+		&manager.flash_mock1, 0x10000, 0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
+
+	status |= flash_master_mock_expect_erase_flash_verify (&manager.flash_mock0, 0x30000, 16);
+	status |= flash_master_mock_expect_copy_flash_verify (&manager.flash_mock0,
+		&manager.flash_mock1, 0x30000, 0x30000, RSA_ENCRYPT_TEST2, 16);
+
+	status |= flash_master_mock_expect_erase_flash_verify (&manager.flash_mock0, 0x50000, 32);
+	status |= flash_master_mock_expect_copy_flash_verify (&manager.flash_mock0,
+		&manager.flash_mock1, 0x50000, 0x50000, RSA_ENCRYPT_NOPE, 32);
+
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.clear_flash_dirty_state,
+		&manager.filter, 0);
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_addr_byte_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_bypass_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_OPERATE));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_ro_cs, &manager.filter, 0,
+		MOCK_ARG (SPI_FILTER_CS_1));
+
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
+
+	status = manager.test.initialize_flash_protection (&manager.test, &rw_host);
+	CuAssertIntEquals (test, 0, status);
+
+	active = host_state_manager_get_read_only_flash (&manager.host_state);
+	CuAssertIntEquals (test, SPI_FILTER_CS_1, active);
 
 	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
 
@@ -6523,6 +10276,7 @@ static void host_flash_manager_test_initialize_flash_protection_null (CuTest *te
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_host;
 	spi_filter_cs active;
 
 	TEST_START;
@@ -6539,7 +10293,11 @@ static void host_flash_manager_test_initialize_flash_protection_null (CuTest *te
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = manager.test.initialize_flash_protection (NULL, &rw_list);
+	rw_host.pfm = &manager.pfm.base;
+	rw_host.writable = &rw_list;
+	rw_host.count = 1;
+
+	status = manager.test.initialize_flash_protection (NULL, &rw_host);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
 	status = manager.test.initialize_flash_protection (&manager.test, NULL);
@@ -6560,6 +10318,7 @@ static void host_flash_manager_test_initialize_flash_protection_flash_mode_error
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_host;
 	spi_filter_cs active;
 
 	TEST_START;
@@ -6579,6 +10338,10 @@ static void host_flash_manager_test_initialize_flash_protection_flash_mode_error
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
+	rw_host.pfm = &manager.pfm.base;
+	rw_host.writable = &rw_list;
+	rw_host.count = 1;
+
 	status = flash_master_mock_expect_xfer (&manager.flash_mock1, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_OPCODE (0xb7));
 
@@ -6586,7 +10349,7 @@ static void host_flash_manager_test_initialize_flash_protection_flash_mode_error
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.initialize_flash_protection (&manager.test, &rw_list);
+	status = manager.test.initialize_flash_protection (&manager.test, &rw_host);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -6604,6 +10367,7 @@ static void host_flash_manager_test_initialize_flash_protection_data_copy_error 
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_host;
 	spi_filter_cs active;
 
 	TEST_START;
@@ -6620,6 +10384,10 @@ static void host_flash_manager_test_initialize_flash_protection_data_copy_error 
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
+	rw_host.pfm = &manager.pfm.base;
+	rw_host.writable = &rw_list;
+	rw_host.count = 1;
+
 	status = flash_master_mock_expect_xfer (&manager.flash_mock1, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
@@ -6627,7 +10395,7 @@ static void host_flash_manager_test_initialize_flash_protection_data_copy_error 
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.initialize_flash_protection (&manager.test, &rw_list);
+	status = manager.test.initialize_flash_protection (&manager.test, &rw_host);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -6645,6 +10413,7 @@ static void host_flash_manager_test_initialize_flash_protection_dirty_clear_erro
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_host;
 	spi_filter_cs active;
 
 	TEST_START;
@@ -6661,6 +10430,10 @@ static void host_flash_manager_test_initialize_flash_protection_dirty_clear_erro
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
+	rw_host.pfm = &manager.pfm.base;
+	rw_host.writable = &rw_list;
+	rw_host.count = 1;
+
 	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock1, 0x10000,
 		RSA_ENCRYPT_LEN);
 	status |= flash_master_mock_expect_copy_flash_verify (&manager.flash_mock1,
@@ -6673,7 +10446,7 @@ static void host_flash_manager_test_initialize_flash_protection_dirty_clear_erro
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.initialize_flash_protection (&manager.test, &rw_list);
+	status = manager.test.initialize_flash_protection (&manager.test, &rw_host);
 	CuAssertIntEquals (test, SPI_FILTER_CLEAR_DIRTY_FAILED, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -6691,6 +10464,7 @@ static void host_flash_manager_test_initialize_flash_protection_filter_mode_erro
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_host;
 	spi_filter_cs active;
 
 	TEST_START;
@@ -6707,6 +10481,10 @@ static void host_flash_manager_test_initialize_flash_protection_filter_mode_erro
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
+	rw_host.pfm = &manager.pfm.base;
+	rw_host.writable = &rw_list;
+	rw_host.count = 1;
+
 	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock1, 0x10000,
 		RSA_ENCRYPT_LEN);
 	status |= flash_master_mock_expect_copy_flash_verify (&manager.flash_mock1,
@@ -6721,7 +10499,7 @@ static void host_flash_manager_test_initialize_flash_protection_filter_mode_erro
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.initialize_flash_protection (&manager.test, &rw_list);
+	status = manager.test.initialize_flash_protection (&manager.test, &rw_host);
 	CuAssertIntEquals (test, SPI_FILTER_SET_ADDR_MODE_FAILED, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -6739,6 +10517,7 @@ static void host_flash_manager_test_initialize_flash_protection_bypass_error (Cu
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_host;
 	spi_filter_cs active;
 
 	TEST_START;
@@ -6754,6 +10533,10 @@ static void host_flash_manager_test_initialize_flash_protection_bypass_error (Cu
 	rw_list.regions = &rw_region;
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
+
+	rw_host.pfm = &manager.pfm.base;
+	rw_host.writable = &rw_list;
+	rw_host.count = 1;
 
 	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock1, 0x10000,
 		RSA_ENCRYPT_LEN);
@@ -6771,7 +10554,7 @@ static void host_flash_manager_test_initialize_flash_protection_bypass_error (Cu
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.initialize_flash_protection (&manager.test, &rw_list);
+	status = manager.test.initialize_flash_protection (&manager.test, &rw_host);
 	CuAssertIntEquals (test, SPI_FILTER_SET_BYPASS_FAILED, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -6789,6 +10572,7 @@ static void host_flash_manager_test_initialize_flash_protection_filter_error (Cu
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_host;
 	spi_filter_cs active;
 
 	TEST_START;
@@ -6804,6 +10588,10 @@ static void host_flash_manager_test_initialize_flash_protection_filter_error (Cu
 	rw_list.regions = &rw_region;
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
+
+	rw_host.pfm = &manager.pfm.base;
+	rw_host.writable = &rw_list;
+	rw_host.count = 1;
 
 	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock1, 0x10000,
 		RSA_ENCRYPT_LEN);
@@ -6823,7 +10611,7 @@ static void host_flash_manager_test_initialize_flash_protection_filter_error (Cu
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.initialize_flash_protection (&manager.test, &rw_list);
+	status = manager.test.initialize_flash_protection (&manager.test, &rw_host);
 	CuAssertIntEquals (test, SPI_FILTER_SET_RO_FAILED, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -6837,18 +10625,23 @@ static void host_flash_manager_test_initialize_flash_protection_filter_error (Cu
 static void host_flash_manager_test_get_flash_read_write_regions_ro_flash_cs0 (CuTest *test)
 {
 	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
-	struct pfm_read_write_regions rw_output;
+	struct host_flash_manager_rw_regions rw_output;
 	int status;
 
 	TEST_START;
 
 	host_flash_manager_testing_init (test, &manager, false);
+
+	fw_list.ids = &fw_exp;
+	fw_list.count = 1;
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -6869,7 +10662,12 @@ static void host_flash_manager_test_get_flash_read_write_regions_ro_flash_cs0 (C
 	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 2);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
 		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
@@ -6881,17 +10679,40 @@ static void host_flash_manager_test_get_flash_read_write_regions_ro_flash_cs0 (C
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
 		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
-			MOCK_ARG (&rw_output));
+		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
 		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (2));
 
 	CuAssertIntEquals (test, 0, status);
 
 	status = manager.test.get_flash_read_write_regions (&manager.test, &manager.pfm.base, false,
 		&rw_output);
 	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, 1, rw_output.count);
+	CuAssertPtrNotNull (test, rw_output.writable);
+	CuAssertPtrEquals (test, &manager.pfm, rw_output.pfm);
+
+	CuAssertIntEquals (test, 1, rw_output.writable->count);
+	CuAssertPtrEquals (test, &rw_region, (void*) rw_output.writable->regions);
+	CuAssertPtrEquals (test, &rw_prop, (void*) rw_output.writable->properties);
+
+	status = mock_validate (&manager.flash_mock0.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&manager.pfm.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	CuAssertIntEquals (test, 0, status);
+
+	manager.test.free_read_write_regions (&manager.test, &rw_output);
 
 	host_flash_manager_testing_validate_and_release (test, &manager);
 }
@@ -6899,18 +10720,23 @@ static void host_flash_manager_test_get_flash_read_write_regions_ro_flash_cs0 (C
 static void host_flash_manager_test_get_flash_read_write_regions_ro_flash_cs1 (CuTest *test)
 {
 	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
-	struct pfm_read_write_regions rw_output;
+	struct host_flash_manager_rw_regions rw_output;
 	int status;
 
 	TEST_START;
 
 	host_flash_manager_testing_init (test, &manager, true);
+
+	fw_list.ids = &fw_exp;
+	fw_list.count = 1;
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -6931,7 +10757,12 @@ static void host_flash_manager_test_get_flash_read_write_regions_ro_flash_cs1 (C
 	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 2);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
 		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
@@ -6943,11 +10774,14 @@ static void host_flash_manager_test_get_flash_read_write_regions_ro_flash_cs1 (C
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
 		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
-		MOCK_ARG (&rw_output));
+		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
 		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (2));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -6955,24 +10789,49 @@ static void host_flash_manager_test_get_flash_read_write_regions_ro_flash_cs1 (C
 		&rw_output);
 	CuAssertIntEquals (test, 0, status);
 
+	CuAssertIntEquals (test, 1, rw_output.count);
+	CuAssertPtrNotNull (test, rw_output.writable);
+	CuAssertPtrEquals (test, &manager.pfm, rw_output.pfm);
+
+	CuAssertIntEquals (test, 1, rw_output.writable->count);
+	CuAssertPtrEquals (test, &rw_region, (void*) rw_output.writable->regions);
+	CuAssertPtrEquals (test, &rw_prop, (void*) rw_output.writable->properties);
+
+	status = mock_validate (&manager.flash_mock1.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&manager.pfm.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	CuAssertIntEquals (test, 0, status);
+
+	manager.test.free_read_write_regions (&manager.test, &rw_output);
+
 	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_get_flash_read_write_regions_rw_flash_cs1 (CuTest *test)
+static void host_flash_manager_test_get_flash_read_write_regions_ro_flash_single_fw (CuTest *test)
 {
 	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp = "fw1";
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
-	struct pfm_read_write_regions rw_output;
+	struct host_flash_manager_rw_regions rw_output;
 	int status;
 
 	TEST_START;
 
 	host_flash_manager_testing_init (test, &manager, false);
+
+	fw_list.ids = &fw_exp;
+	fw_list.count = 1;
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -6993,7 +10852,284 @@ static void host_flash_manager_test_get_flash_read_write_regions_rw_flash_cs1 (C
 	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 2);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp, strlen (fw_exp) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp,
+		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp, strlen (fw_exp) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (2));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.get_flash_read_write_regions (&manager.test, &manager.pfm.base, false,
+		&rw_output);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, 1, rw_output.count);
+	CuAssertPtrNotNull (test, rw_output.writable);
+	CuAssertPtrEquals (test, &manager.pfm, rw_output.pfm);
+
+	CuAssertIntEquals (test, 1, rw_output.writable->count);
+	CuAssertPtrEquals (test, &rw_region, (void*) rw_output.writable->regions);
+	CuAssertPtrEquals (test, &rw_prop, (void*) rw_output.writable->properties);
+
+	status = mock_validate (&manager.flash_mock0.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&manager.pfm.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	CuAssertIntEquals (test, 0, status);
+
+	manager.test.free_read_write_regions (&manager.test, &rw_output);
+
+	host_flash_manager_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_test_get_flash_read_write_regions_ro_flash_multiple_fw (CuTest *test)
+{
+	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp[3] = {"fw1", "fw2", "fw3"};
+	struct pfm_firmware_version version[3];
+	struct pfm_firmware_versions version_list[3];
+	const char *version_exp1 = "1234";
+	const char *version_exp2 = "5678";
+	const char *version_exp3 = "90ab";
+	struct flash_region rw_region[3];
+	struct pfm_read_write rw_prop[3];
+	struct pfm_read_write_regions rw_list[3];
+	struct host_flash_manager_rw_regions rw_output;
+	int status;
+
+	TEST_START;
+
+	host_flash_manager_testing_init (test, &manager, false);
+
+	fw_list.ids = fw_exp;
+	fw_list.count = 3;
+
+	version[0].fw_version_id = version_exp1;
+	version[0].version_addr = 0x123;
+	version[1].fw_version_id = version_exp2;
+	version[1].version_addr = 0x456;
+	version[2].fw_version_id = version_exp3;
+	version[2].version_addr = 0x789;
+
+	version_list[0].versions = &version[0];
+	version_list[0].count = 1;
+	version_list[1].versions = &version[1];
+	version_list[1].count = 1;
+	version_list[2].versions = &version[2];
+	version_list[2].count = 1;
+
+	rw_region[0].start_addr = 0x200;
+	rw_region[0].length = 0x100;
+	rw_region[1].start_addr = 0x500;
+	rw_region[1].length = 0x100;
+	rw_region[2].start_addr = 0x800;
+	rw_region[2].length = 0x100;
+
+	rw_prop[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[2].on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list[0].regions = &rw_region[0];
+	rw_list[0].properties = &rw_prop[0];
+	rw_list[0].count = 1;
+
+	rw_list[1].regions = &rw_region[1];
+	rw_list[1].properties = &rw_prop[1];
+	rw_list[1].count = 1;
+
+	rw_list[2].regions = &rw_region[2];
+	rw_list[2].properties = &rw_prop[2];
+	rw_list[2].count = 1;
+
+	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 2);
+
+	/* FW 1 */
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[0], strlen (fw_exp[0]) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list[0], sizeof (version_list[0]),
+		-1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp1,
+		strlen (version_exp1), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp1)));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[0], strlen (fw_exp[0]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp1, strlen (version_exp1) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list[0], sizeof (rw_list[0]), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	/* FW 2 */
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[1], strlen (fw_exp[1]) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list[1], sizeof (version_list[1]),
+		-1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 3);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp2,
+		strlen (version_exp2), FLASH_EXP_READ_CMD (0x03, 0x456, 0, -1, strlen (version_exp2)));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[1], strlen (fw_exp[1]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp2, strlen (version_exp2) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list[1], sizeof (rw_list[1]), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 4);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (3));
+
+	/* FW 3 */
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[2], strlen (fw_exp[2]) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list[2], sizeof (version_list[2]),
+		-1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 5);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp3,
+		strlen (version_exp3), FLASH_EXP_READ_CMD (0x03, 0x789, 0, -1, strlen (version_exp3)));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[2], strlen (fw_exp[2]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp3, strlen (version_exp3) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list[2], sizeof (rw_list[2]), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 6);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (5));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (2));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.get_flash_read_write_regions (&manager.test, &manager.pfm.base, false,
+		&rw_output);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, 3, rw_output.count);
+	CuAssertPtrNotNull (test, rw_output.writable);
+	CuAssertPtrEquals (test, &manager.pfm, rw_output.pfm);
+
+	CuAssertIntEquals (test, 1, rw_output.writable[0].count);
+	CuAssertPtrEquals (test, &rw_region[0], (void*) rw_output.writable[0].regions);
+	CuAssertPtrEquals (test, &rw_prop[0], (void*) rw_output.writable[0].properties);
+
+	CuAssertIntEquals (test, 1, rw_output.writable[1].count);
+	CuAssertPtrEquals (test, &rw_region[1], (void*) rw_output.writable[1].regions);
+	CuAssertPtrEquals (test, &rw_prop[1], (void*) rw_output.writable[1].properties);
+
+	CuAssertIntEquals (test, 1, rw_output.writable[2].count);
+	CuAssertPtrEquals (test, &rw_region[2], (void*) rw_output.writable[2].regions);
+	CuAssertPtrEquals (test, &rw_prop[2], (void*) rw_output.writable[2].properties);
+
+	status = mock_validate (&manager.flash_mock0.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&manager.pfm.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions,
+		&manager.pfm, 0, MOCK_ARG_SAVED_ARG (4));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions,
+		&manager.pfm, 0, MOCK_ARG_SAVED_ARG (6));
+
+	CuAssertIntEquals (test, 0, status);
+
+	manager.test.free_read_write_regions (&manager.test, &rw_output);
+
+	host_flash_manager_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_test_get_flash_read_write_regions_rw_flash_cs1 (CuTest *test)
+{
+	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp = NULL;
+	struct pfm_firmware_version version;
+	struct pfm_firmware_versions version_list;
+	const char *version_exp = "1234";
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_output;
+	int status;
+
+	TEST_START;
+
+	host_flash_manager_testing_init (test, &manager, false);
+
+	fw_list.ids = &fw_exp;
+	fw_list.count = 1;
+
+	version.fw_version_id = version_exp;
+	version.version_addr = 0x123;
+
+	version_list.versions = &version;
+	version_list.count = 1;
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 2);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
 		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
@@ -7005,11 +11141,14 @@ static void host_flash_manager_test_get_flash_read_write_regions_rw_flash_cs1 (C
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
 		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
-		MOCK_ARG (&rw_output));
+		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
 		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (2));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -7017,24 +11156,49 @@ static void host_flash_manager_test_get_flash_read_write_regions_rw_flash_cs1 (C
 		&rw_output);
 	CuAssertIntEquals (test, 0, status);
 
+	CuAssertIntEquals (test, 1, rw_output.count);
+	CuAssertPtrNotNull (test, rw_output.writable);
+	CuAssertPtrEquals (test, &manager.pfm, rw_output.pfm);
+
+	CuAssertIntEquals (test, 1, rw_output.writable->count);
+	CuAssertPtrEquals (test, &rw_region, (void*) rw_output.writable->regions);
+	CuAssertPtrEquals (test, &rw_prop, (void*) rw_output.writable->properties);
+
+	status = mock_validate (&manager.flash_mock1.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&manager.pfm.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	CuAssertIntEquals (test, 0, status);
+
+	manager.test.free_read_write_regions (&manager.test, &rw_output);
+
 	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_get_flash_read_write_regions_rw_flash_cs0 (CuTest *test)
 {
 	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
-	struct pfm_read_write_regions rw_output;
+	struct host_flash_manager_rw_regions rw_output;
 	int status;
 
 	TEST_START;
 
 	host_flash_manager_testing_init (test, &manager, true);
+
+	fw_list.ids = &fw_exp;
+	fw_list.count = 1;
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -7055,7 +11219,12 @@ static void host_flash_manager_test_get_flash_read_write_regions_rw_flash_cs0 (C
 	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 2);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
 		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
@@ -7067,11 +11236,14 @@ static void host_flash_manager_test_get_flash_read_write_regions_rw_flash_cs0 (C
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
 		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
-			MOCK_ARG (&rw_output));
+		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
 		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (2));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -7079,13 +11251,305 @@ static void host_flash_manager_test_get_flash_read_write_regions_rw_flash_cs0 (C
 		&rw_output);
 	CuAssertIntEquals (test, 0, status);
 
+	CuAssertIntEquals (test, 1, rw_output.count);
+	CuAssertPtrNotNull (test, rw_output.writable);
+	CuAssertPtrEquals (test, &manager.pfm, rw_output.pfm);
+
+	CuAssertIntEquals (test, 1, rw_output.writable->count);
+	CuAssertPtrEquals (test, &rw_region, (void*) rw_output.writable->regions);
+	CuAssertPtrEquals (test, &rw_prop, (void*) rw_output.writable->properties);
+
+	status = mock_validate (&manager.flash_mock0.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&manager.pfm.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	CuAssertIntEquals (test, 0, status);
+
+	manager.test.free_read_write_regions (&manager.test, &rw_output);
+
+	host_flash_manager_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_test_get_flash_read_write_regions_rw_flash_single_fw (CuTest *test)
+{
+	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp = "fw1";
+	struct pfm_firmware_version version;
+	struct pfm_firmware_versions version_list;
+	const char *version_exp = "1234";
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_output;
+	int status;
+
+	TEST_START;
+
+	host_flash_manager_testing_init (test, &manager, false);
+
+	fw_list.ids = &fw_exp;
+	fw_list.count = 1;
+
+	version.fw_version_id = version_exp;
+	version.version_addr = 0x123;
+
+	version_list.versions = &version;
+	version_list.count = 1;
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 2);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp, strlen (fw_exp) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) version_exp,
+		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp, strlen (fw_exp) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (2));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.get_flash_read_write_regions (&manager.test, &manager.pfm.base, true,
+		&rw_output);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, 1, rw_output.count);
+	CuAssertPtrNotNull (test, rw_output.writable);
+	CuAssertPtrEquals (test, &manager.pfm, rw_output.pfm);
+
+	CuAssertIntEquals (test, 1, rw_output.writable->count);
+	CuAssertPtrEquals (test, &rw_region, (void*) rw_output.writable->regions);
+	CuAssertPtrEquals (test, &rw_prop, (void*) rw_output.writable->properties);
+
+	status = mock_validate (&manager.flash_mock1.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&manager.pfm.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	CuAssertIntEquals (test, 0, status);
+
+	manager.test.free_read_write_regions (&manager.test, &rw_output);
+
+	host_flash_manager_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_test_get_flash_read_write_regions_rw_flash_multiple_fw (CuTest *test)
+{
+	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp[3] = {"fw1", "fw2", "fw3"};
+	struct pfm_firmware_version version[3];
+	struct pfm_firmware_versions version_list[3];
+	const char *version_exp1 = "1234";
+	const char *version_exp2 = "5678";
+	const char *version_exp3 = "90ab";
+	struct flash_region rw_region[3];
+	struct pfm_read_write rw_prop[3];
+	struct pfm_read_write_regions rw_list[3];
+	struct host_flash_manager_rw_regions rw_output;
+	int status;
+
+	TEST_START;
+
+	host_flash_manager_testing_init (test, &manager, false);
+
+	fw_list.ids = fw_exp;
+	fw_list.count = 3;
+
+	version[0].fw_version_id = version_exp1;
+	version[0].version_addr = 0x123;
+	version[1].fw_version_id = version_exp2;
+	version[1].version_addr = 0x456;
+	version[2].fw_version_id = version_exp3;
+	version[2].version_addr = 0x789;
+
+	version_list[0].versions = &version[0];
+	version_list[0].count = 1;
+	version_list[1].versions = &version[1];
+	version_list[1].count = 1;
+	version_list[2].versions = &version[2];
+	version_list[2].count = 1;
+
+	rw_region[0].start_addr = 0x200;
+	rw_region[0].length = 0x100;
+	rw_region[1].start_addr = 0x500;
+	rw_region[1].length = 0x100;
+	rw_region[2].start_addr = 0x800;
+	rw_region[2].length = 0x100;
+
+	rw_prop[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[2].on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list[0].regions = &rw_region[0];
+	rw_list[0].properties = &rw_prop[0];
+	rw_list[0].count = 1;
+
+	rw_list[1].regions = &rw_region[1];
+	rw_list[1].properties = &rw_prop[1];
+	rw_list[1].count = 1;
+
+	rw_list[2].regions = &rw_region[2];
+	rw_list[2].properties = &rw_prop[2];
+	rw_list[2].count = 1;
+
+	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 2);
+
+	/* FW 1 */
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[0], strlen (fw_exp[0]) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list[0], sizeof (version_list[0]),
+		-1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) version_exp1,
+		strlen (version_exp1), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp1)));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[0], strlen (fw_exp[0]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp1, strlen (version_exp1) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list[0], sizeof (rw_list[0]), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	/* FW 2 */
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[1], strlen (fw_exp[1]) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list[1], sizeof (version_list[1]),
+		-1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 3);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) version_exp2,
+		strlen (version_exp2), FLASH_EXP_READ_CMD (0x03, 0x456, 0, -1, strlen (version_exp2)));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[1], strlen (fw_exp[1]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp2, strlen (version_exp2) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list[1], sizeof (rw_list[1]), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 4);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (3));
+
+	/* FW 3 */
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[2], strlen (fw_exp[2]) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list[2], sizeof (version_list[2]),
+		-1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 5);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) version_exp3,
+		strlen (version_exp3), FLASH_EXP_READ_CMD (0x03, 0x789, 0, -1, strlen (version_exp3)));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[2], strlen (fw_exp[2]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp3, strlen (version_exp3) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list[2], sizeof (rw_list[2]), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 6);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (5));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (2));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.get_flash_read_write_regions (&manager.test, &manager.pfm.base, true,
+		&rw_output);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, 3, rw_output.count);
+	CuAssertPtrNotNull (test, rw_output.writable);
+	CuAssertPtrEquals (test, &manager.pfm, rw_output.pfm);
+
+	CuAssertIntEquals (test, 1, rw_output.writable[0].count);
+	CuAssertPtrEquals (test, &rw_region[0], (void*) rw_output.writable[0].regions);
+	CuAssertPtrEquals (test, &rw_prop[0], (void*) rw_output.writable[0].properties);
+
+	CuAssertIntEquals (test, 1, rw_output.writable[1].count);
+	CuAssertPtrEquals (test, &rw_region[1], (void*) rw_output.writable[1].regions);
+	CuAssertPtrEquals (test, &rw_prop[1], (void*) rw_output.writable[1].properties);
+
+	CuAssertIntEquals (test, 1, rw_output.writable[2].count);
+	CuAssertPtrEquals (test, &rw_region[2], (void*) rw_output.writable[2].regions);
+	CuAssertPtrEquals (test, &rw_prop[2], (void*) rw_output.writable[2].properties);
+
+	status = mock_validate (&manager.flash_mock1.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&manager.pfm.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions,
+		&manager.pfm, 0, MOCK_ARG_SAVED_ARG (4));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions,
+		&manager.pfm, 0, MOCK_ARG_SAVED_ARG (6));
+
+	CuAssertIntEquals (test, 0, status);
+
+	manager.test.free_read_write_regions (&manager.test, &rw_output);
+
 	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_test_get_flash_read_write_regions_null (CuTest *test)
 {
 	struct host_flash_manager_testing manager;
-	struct pfm_read_write_regions rw_output;
+	struct host_flash_manager_rw_regions rw_output;
 	int status;
 
 	TEST_START;
@@ -7107,18 +11571,186 @@ static void host_flash_manager_test_get_flash_read_write_regions_null (CuTest *t
 	host_flash_manager_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_get_flash_read_write_regions_pfm_version_error (CuTest *test)
+static void host_flash_manager_test_get_flash_read_write_regions_pfm_firmware_error (CuTest *test)
 {
 	struct host_flash_manager_testing manager;
-	struct pfm_read_write_regions rw_output;
+	struct host_flash_manager_rw_regions rw_output;
 	int status;
 
 	TEST_START;
 
 	host_flash_manager_testing_init (test, &manager, false);
 
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm,
+		PFM_GET_FW_FAILED, MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.get_flash_read_write_regions (&manager.test, &manager.pfm.base, false,
+		&rw_output);
+	CuAssertIntEquals (test, PFM_GET_FW_FAILED, status);
+
+	host_flash_manager_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_test_get_flash_read_write_regions_pfm_version_error (CuTest *test)
+{
+	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp = NULL;
+	struct host_flash_manager_rw_regions rw_output;
+	int status;
+
+	TEST_START;
+
+	host_flash_manager_testing_init (test, &manager, false);
+
+	fw_list.ids = &fw_exp;
+	fw_list.count = 1;
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 2);
+
 	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
 		PFM_GET_VERSIONS_FAILED, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (2));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.get_flash_read_write_regions (&manager.test, &manager.pfm.base, false,
+		&rw_output);
+	CuAssertIntEquals (test, PFM_GET_VERSIONS_FAILED, status);
+
+	host_flash_manager_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_test_get_flash_read_write_regions_pfm_version_error_multiple_fw (
+	CuTest *test)
+{
+	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp[3] = {"fw1", "fw2", "fw3"};
+	struct pfm_firmware_version version[3];
+	struct pfm_firmware_versions version_list[3];
+	const char *version_exp1 = "1234";
+	const char *version_exp2 = "5678";
+	const char *version_exp3 = "90ab";
+	struct flash_region rw_region[3];
+	struct pfm_read_write rw_prop[3];
+	struct pfm_read_write_regions rw_list[3];
+	struct host_flash_manager_rw_regions rw_output;
+	int status;
+
+	TEST_START;
+
+	host_flash_manager_testing_init (test, &manager, false);
+
+	fw_list.ids = fw_exp;
+	fw_list.count = 3;
+
+	version[0].fw_version_id = version_exp1;
+	version[0].version_addr = 0x123;
+	version[1].fw_version_id = version_exp2;
+	version[1].version_addr = 0x456;
+	version[2].fw_version_id = version_exp3;
+	version[2].version_addr = 0x789;
+
+	version_list[0].versions = &version[0];
+	version_list[0].count = 1;
+	version_list[1].versions = &version[1];
+	version_list[1].count = 1;
+	version_list[2].versions = &version[2];
+	version_list[2].count = 1;
+
+	rw_region[0].start_addr = 0x200;
+	rw_region[0].length = 0x100;
+	rw_region[1].start_addr = 0x500;
+	rw_region[1].length = 0x100;
+	rw_region[2].start_addr = 0x800;
+	rw_region[2].length = 0x100;
+
+	rw_prop[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[2].on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list[0].regions = &rw_region[0];
+	rw_list[0].properties = &rw_prop[0];
+	rw_list[0].count = 1;
+
+	rw_list[1].regions = &rw_region[1];
+	rw_list[1].properties = &rw_prop[1];
+	rw_list[1].count = 1;
+
+	rw_list[2].regions = &rw_region[2];
+	rw_list[2].properties = &rw_prop[2];
+	rw_list[2].count = 1;
+
+	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 2);
+
+	/* FW 1 */
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[0], strlen (fw_exp[0]) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list[0], sizeof (version_list[0]),
+		-1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp1,
+		strlen (version_exp1), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp1)));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[0], strlen (fw_exp[0]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp1, strlen (version_exp1) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list[0], sizeof (rw_list[0]), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	/* FW 2 */
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[1], strlen (fw_exp[1]) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list[1], sizeof (version_list[1]),
+		-1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 3);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp2,
+		strlen (version_exp2), FLASH_EXP_READ_CMD (0x03, 0x456, 0, -1, strlen (version_exp2)));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[1], strlen (fw_exp[1]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp2, strlen (version_exp2) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list[1], sizeof (rw_list[1]), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 4);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (3));
+
+	/* FW 3 */
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		PFM_GET_VERSIONS_FAILED, MOCK_ARG_PTR_CONTAINS (fw_exp[2], strlen (fw_exp[2]) + 1),
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions,
+		&manager.pfm, 0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions,
+		&manager.pfm, 0, MOCK_ARG_SAVED_ARG (4));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (2));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -7133,15 +11765,20 @@ static void host_flash_manager_test_get_flash_read_write_regions_ro_flash_versio
 	CuTest *test)
 {
 	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
-	struct pfm_read_write_regions rw_output;
+	struct host_flash_manager_rw_regions rw_output;
 	int status;
 
 	TEST_START;
 
 	host_flash_manager_testing_init (test, &manager, false);
+
+	fw_list.ids = &fw_exp;
+	fw_list.count = 1;
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -7153,7 +11790,12 @@ static void host_flash_manager_test_get_flash_read_write_regions_ro_flash_versio
 	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 2);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
 		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
@@ -7163,6 +11805,8 @@ static void host_flash_manager_test_get_flash_read_write_regions_ro_flash_versio
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
 		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (2));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -7177,15 +11821,20 @@ static void host_flash_manager_test_get_flash_read_write_regions_rw_flash_versio
 	CuTest *test)
 {
 	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
-	struct pfm_read_write_regions rw_output;
+	struct host_flash_manager_rw_regions rw_output;
 	int status;
 
 	TEST_START;
 
 	host_flash_manager_testing_init (test, &manager, false);
+
+	fw_list.ids = &fw_exp;
+	fw_list.count = 1;
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -7197,7 +11846,12 @@ static void host_flash_manager_test_get_flash_read_write_regions_rw_flash_versio
 	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 2);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
 		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
@@ -7207,6 +11861,8 @@ static void host_flash_manager_test_get_flash_read_write_regions_rw_flash_versio
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
 		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (2));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -7220,15 +11876,20 @@ static void host_flash_manager_test_get_flash_read_write_regions_rw_flash_versio
 static void host_flash_manager_test_get_flash_read_write_regions_pfm_rw_error (CuTest *test)
 {
 	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	const char *version_exp = "1234";
-	struct pfm_read_write_regions rw_output;
+	struct host_flash_manager_rw_regions rw_output;
 	int status;
 
 	TEST_START;
 
 	host_flash_manager_testing_init (test, &manager, false);
+
+	fw_list.ids = &fw_exp;
+	fw_list.count = 1;
 
 	version.fw_version_id = version_exp;
 	version.version_addr = 0x123;
@@ -7240,7 +11901,12 @@ static void host_flash_manager_test_get_flash_read_write_regions_pfm_rw_error (C
 	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 2);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
 		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
@@ -7252,10 +11918,136 @@ static void host_flash_manager_test_get_flash_read_write_regions_pfm_rw_error (C
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
 		PFM_GET_READ_WRITE_FAILED, MOCK_ARG (NULL),
-		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG (&rw_output));
+		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
 		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (2));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.get_flash_read_write_regions (&manager.test, &manager.pfm.base, false,
+		&rw_output);
+	CuAssertIntEquals (test, PFM_GET_READ_WRITE_FAILED, status);
+
+	host_flash_manager_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_test_get_flash_read_write_regions_pfm_rw_error_multiple_fw (
+	CuTest *test)
+{
+	struct host_flash_manager_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp[3] = {"fw1", "fw2", "fw3"};
+	struct pfm_firmware_version version[3];
+	struct pfm_firmware_versions version_list[3];
+	const char *version_exp1 = "1234";
+	const char *version_exp2 = "5678";
+	const char *version_exp3 = "90ab";
+	struct flash_region rw_region[3];
+	struct pfm_read_write rw_prop[3];
+	struct pfm_read_write_regions rw_list[3];
+	struct host_flash_manager_rw_regions rw_output;
+	int status;
+
+	TEST_START;
+
+	host_flash_manager_testing_init (test, &manager, false);
+
+	fw_list.ids = fw_exp;
+	fw_list.count = 3;
+
+	version[0].fw_version_id = version_exp1;
+	version[0].version_addr = 0x123;
+	version[1].fw_version_id = version_exp2;
+	version[1].version_addr = 0x456;
+	version[2].fw_version_id = version_exp3;
+	version[2].version_addr = 0x789;
+
+	version_list[0].versions = &version[0];
+	version_list[0].count = 1;
+	version_list[1].versions = &version[1];
+	version_list[1].count = 1;
+	version_list[2].versions = &version[2];
+	version_list[2].count = 1;
+
+	rw_region[0].start_addr = 0x200;
+	rw_region[0].length = 0x100;
+	rw_region[1].start_addr = 0x500;
+	rw_region[1].length = 0x100;
+	rw_region[2].start_addr = 0x800;
+	rw_region[2].length = 0x100;
+
+	rw_prop[0].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[1].on_failure = PFM_RW_DO_NOTHING;
+	rw_prop[2].on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list[0].regions = &rw_region[0];
+	rw_list[0].properties = &rw_prop[0];
+	rw_list[0].count = 1;
+
+	rw_list[1].regions = &rw_region[1];
+	rw_list[1].properties = &rw_prop[1];
+	rw_list[1].count = 1;
+
+	rw_list[2].regions = &rw_region[2];
+	rw_list[2].properties = &rw_prop[2];
+	rw_list[2].count = 1;
+
+	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 2);
+
+	/* FW 1 */
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[0], strlen (fw_exp[0]) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list[0], sizeof (version_list[0]),
+		-1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp1,
+		strlen (version_exp1), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp1)));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[0], strlen (fw_exp[0]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp1, strlen (version_exp1) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list[0], sizeof (rw_list[0]), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	/* FW 2 */
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG_PTR_CONTAINS (fw_exp[1], strlen (fw_exp[1]) + 1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list[1], sizeof (version_list[1]),
+		-1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 3);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp2,
+		strlen (version_exp2), FLASH_EXP_READ_CMD (0x03, 0x456, 0, -1, strlen (version_exp2)));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		PFM_GET_READ_WRITE_FAILED, MOCK_ARG_PTR_CONTAINS (fw_exp[1], strlen (fw_exp[1]) + 1),
+		MOCK_ARG_PTR_CONTAINS (version_exp2, strlen (version_exp2) + 1), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (3));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions,
+		&manager.pfm, 0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (2));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -7410,6 +12202,7 @@ static void host_flash_manager_test_restore_flash_read_write_regions_cs1 (CuTest
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_host;
 	int status;
 
 	TEST_START;
@@ -7425,10 +12218,14 @@ static void host_flash_manager_test_restore_flash_read_write_regions_cs1 (CuTest
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
+	rw_host.pfm = &manager.pfm.base;
+	rw_host.writable = &rw_list;
+	rw_host.count = 1;
+
 	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock1, 0x20000, 0x10000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.restore_flash_read_write_regions (&manager.test, &rw_list);
+	status = manager.test.restore_flash_read_write_regions (&manager.test, &rw_host);
 	CuAssertIntEquals (test, 0, status);
 
 	host_flash_manager_testing_validate_and_release (test, &manager);
@@ -7440,6 +12237,7 @@ static void host_flash_manager_test_restore_flash_read_write_regions_cs0 (CuTest
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_host;
 	int status;
 	uint8_t data[0x10000];
 	size_t i;
@@ -7461,13 +12259,121 @@ static void host_flash_manager_test_restore_flash_read_write_regions_cs0 (CuTest
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
+	rw_host.pfm = &manager.pfm.base;
+	rw_host.writable = &rw_list;
+	rw_host.count = 1;
+
 	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock0, 0x20000, 0x10000);
 	status |= flash_master_mock_expect_copy_flash_verify (&manager.flash_mock0,
 		&manager.flash_mock1, 0x20000, 0x20000, data, sizeof (data));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.restore_flash_read_write_regions (&manager.test, &rw_list);
+	status = manager.test.restore_flash_read_write_regions (&manager.test, &rw_host);
+	CuAssertIntEquals (test, 0, status);
+
+	host_flash_manager_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_test_restore_flash_read_write_regions_cs1_multiple_fw (CuTest *test)
+{
+	struct host_flash_manager_testing manager;
+	struct flash_region rw_region[3];
+	struct pfm_read_write rw_prop[3];
+	struct pfm_read_write_regions rw_list[3];
+	struct host_flash_manager_rw_regions rw_host;
+	int status;
+
+	TEST_START;
+
+	host_flash_manager_testing_init (test, &manager, false);
+
+	rw_region[0].start_addr = 0;
+	rw_region[0].length = 0x10000;
+	rw_region[1].start_addr = 0x40000;
+	rw_region[1].length = 0x10000;
+	rw_region[2].start_addr = 0x100000;
+	rw_region[2].length = 0x10000;
+
+	rw_prop[0].on_failure = PFM_RW_ERASE;
+	rw_prop[1].on_failure = PFM_RW_ERASE;
+	rw_prop[2].on_failure = PFM_RW_ERASE;
+
+	rw_list[0].regions = &rw_region[0];
+	rw_list[0].properties = &rw_prop[0];
+	rw_list[0].count = 1;
+
+	rw_list[1].regions = &rw_region[1];
+	rw_list[1].properties = &rw_prop[1];
+	rw_list[1].count = 1;
+
+	rw_list[2].regions = &rw_region[2];
+	rw_list[2].properties = &rw_prop[2];
+	rw_list[2].count = 1;
+
+	rw_host.pfm = &manager.pfm.base;
+	rw_host.writable = rw_list;
+	rw_host.count = 3;
+
+	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock1, 0x00000, 0x10000);
+	status |= flash_master_mock_expect_erase_flash_verify (&manager.flash_mock1, 0x40000, 0x10000);
+	status |= flash_master_mock_expect_erase_flash_verify (&manager.flash_mock1, 0x100000, 0x10000);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.restore_flash_read_write_regions (&manager.test, &rw_host);
+	CuAssertIntEquals (test, 0, status);
+
+	host_flash_manager_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_test_restore_flash_read_write_regions_cs0_multiple_fw (CuTest *test)
+{
+	struct host_flash_manager_testing manager;
+	struct flash_region rw_region[3];
+	struct pfm_read_write rw_prop[3];
+	struct pfm_read_write_regions rw_list[3];
+	struct host_flash_manager_rw_regions rw_host;
+	int status;
+
+	TEST_START;
+
+	host_flash_manager_testing_init (test, &manager, true);
+
+	rw_region[0].start_addr = 0;
+	rw_region[0].length = 0x10000;
+	rw_region[1].start_addr = 0x40000;
+	rw_region[1].length = 0x10000;
+	rw_region[2].start_addr = 0x100000;
+	rw_region[2].length = 0x10000;
+
+	rw_prop[0].on_failure = PFM_RW_ERASE;
+	rw_prop[1].on_failure = PFM_RW_ERASE;
+	rw_prop[2].on_failure = PFM_RW_ERASE;
+
+	rw_list[0].regions = &rw_region[0];
+	rw_list[0].properties = &rw_prop[0];
+	rw_list[0].count = 1;
+
+	rw_list[1].regions = &rw_region[1];
+	rw_list[1].properties = &rw_prop[1];
+	rw_list[1].count = 1;
+
+	rw_list[2].regions = &rw_region[2];
+	rw_list[2].properties = &rw_prop[2];
+	rw_list[2].count = 1;
+
+	rw_host.pfm = &manager.pfm.base;
+	rw_host.writable = rw_list;
+	rw_host.count = 3;
+
+	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock0, 0x00000, 0x10000);
+	status |= flash_master_mock_expect_erase_flash_verify (&manager.flash_mock0, 0x40000, 0x10000);
+	status |= flash_master_mock_expect_erase_flash_verify (&manager.flash_mock0, 0x100000, 0x10000);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.restore_flash_read_write_regions (&manager.test, &rw_host);
 	CuAssertIntEquals (test, 0, status);
 
 	host_flash_manager_testing_validate_and_release (test, &manager);
@@ -7479,6 +12385,7 @@ static void host_flash_manager_test_restore_flash_read_write_regions_null (CuTes
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_host;
 	int status;
 
 	TEST_START;
@@ -7494,7 +12401,11 @@ static void host_flash_manager_test_restore_flash_read_write_regions_null (CuTes
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = manager.test.restore_flash_read_write_regions (NULL, &rw_list);
+	rw_host.pfm = &manager.pfm.base;
+	rw_host.writable = &rw_list;
+	rw_host.count = 1;
+
+	status = manager.test.restore_flash_read_write_regions (NULL, &rw_host);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
 	status = manager.test.restore_flash_read_write_regions (&manager.test, NULL);
@@ -7509,6 +12420,7 @@ static void host_flash_manager_test_restore_flash_read_write_regions_flash_error
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_host;
 	int status;
 
 	TEST_START;
@@ -7524,11 +12436,15 @@ static void host_flash_manager_test_restore_flash_read_write_regions_flash_error
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
+	rw_host.pfm = &manager.pfm.base;
+	rw_host.writable = &rw_list;
+	rw_host.count = 1;
+
 	status = flash_master_mock_expect_xfer (&manager.flash_mock1, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.restore_flash_read_write_regions (&manager.test, &rw_list);
+	status = manager.test.restore_flash_read_write_regions (&manager.test, &rw_host);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
 	host_flash_manager_testing_validate_and_release (test, &manager);
@@ -7554,6 +12470,8 @@ CuSuite* get_host_flash_manager_suite ()
 	SUITE_ADD_TEST (suite, host_flash_manager_test_swap_flash_devices_cs0);
 	SUITE_ADD_TEST (suite, host_flash_manager_test_swap_flash_devices_activate_pending_pfm);
 	SUITE_ADD_TEST (suite, host_flash_manager_test_swap_flash_devices_no_data_migration);
+	SUITE_ADD_TEST (suite, host_flash_manager_test_swap_flash_devices_cs1_multiple_fw);
+	SUITE_ADD_TEST (suite, host_flash_manager_test_swap_flash_devices_cs0_multiple_fw);
 	SUITE_ADD_TEST (suite, host_flash_manager_test_swap_flash_devices_null);
 	SUITE_ADD_TEST (suite, host_flash_manager_test_swap_flash_devices_dirty_clear_error);
 	SUITE_ADD_TEST (suite, host_flash_manager_test_swap_flash_devices_spi_filter_error);
@@ -7566,27 +12484,44 @@ CuSuite* get_host_flash_manager_suite ()
 	SUITE_ADD_TEST (suite, host_flash_manager_test_config_spi_filter_flash_devices_error);
 	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_only_flash_cs0);
 	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_only_flash_cs1);
+	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_only_flash_single_fw);
+	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_only_flash_multiple_fw);
 	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_only_flash_cs0_full_validation);
 	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_only_flash_cs1_full_validation);
 	SUITE_ADD_TEST (suite,
 		host_flash_manager_test_validate_read_only_flash_full_validation_not_blank_byte);
+	SUITE_ADD_TEST (suite,
+		host_flash_manager_test_validate_read_only_flash_full_validation_single_fw);
+	SUITE_ADD_TEST (suite,
+		host_flash_manager_test_validate_read_only_flash_full_validation_multiple_fw);
 	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_only_flash_cs0_good_pfm);
 	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_only_flash_cs1_good_pfm);
+	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_only_flash_good_pfm_single_fw);
+	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_only_flash_good_pfm_multiple_fw);
 	SUITE_ADD_TEST (suite,
 		host_flash_manager_test_validate_read_only_flash_cs0_good_pfm_no_match_image);
 	SUITE_ADD_TEST (suite,
 		host_flash_manager_test_validate_read_only_flash_cs1_good_pfm_no_match_image);
 	SUITE_ADD_TEST (suite,
+		host_flash_manager_test_validate_read_only_flash_good_pfm_no_match_image_multiple_fw);
+	SUITE_ADD_TEST (suite,
 		host_flash_manager_test_validate_read_only_flash_good_pfm_full_validation);
 	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_only_flash_null);
+	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_only_flash_pfm_firmware_error);
 	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_only_flash_pfm_version_error);
+	SUITE_ADD_TEST (suite,
+		host_flash_manager_test_validate_read_only_flash_pfm_version_error_multiple_fw);
 	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_only_flash_pfm_images_error);
 	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_only_flash_pfm_rw_error);
 	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_only_flash_flash_version_error);
 	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_only_flash_flash_image_error);
 	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_only_flash_full_flash_image_error);
 	SUITE_ADD_TEST (suite,
+		host_flash_manager_test_validate_read_only_flash_good_pfm_pfm_firmware_error);
+	SUITE_ADD_TEST (suite,
 		host_flash_manager_test_validate_read_only_flash_good_pfm_pfm_version_error);
+	SUITE_ADD_TEST (suite,
+		host_flash_manager_test_validate_read_only_flash_good_pfm_pfm_version_error_multiple_fw);
 	SUITE_ADD_TEST (suite,
 		host_flash_manager_test_validate_read_only_flash_good_pfm_flash_version_error);
 	SUITE_ADD_TEST (suite,
@@ -7600,12 +12535,20 @@ CuSuite* get_host_flash_manager_suite ()
 	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_write_flash_cs1);
 	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_write_flash_cs0);
 	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_write_flash_not_blank_byte);
+	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_write_flash_single_fw);
+	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_write_flash_multiple_fw);
 	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_write_flash_null);
+	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_write_flash_pfm_firmware_error);
 	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_write_flash_pfm_version_error);
+	SUITE_ADD_TEST (suite,
+		host_flash_manager_test_validate_read_write_flash_pfm_version_error_multiple_fw);
 	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_write_flash_pfm_images_error);
 	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_write_flash_pfm_rw_error);
 	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_write_flash_version_error);
 	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_write_flash_verify_error);
+	SUITE_ADD_TEST (suite, host_flash_manager_test_free_read_write_regions_null);
+	SUITE_ADD_TEST (suite, host_flash_manager_test_free_read_write_regions_null_list);
+	SUITE_ADD_TEST (suite, host_flash_manager_test_free_read_write_regions_null_pfm);
 	SUITE_ADD_TEST (suite, host_flash_manager_test_set_flash_for_rot_access);
 	SUITE_ADD_TEST (suite, host_flash_manager_test_set_flash_for_rot_access_not_initilized_device);
 	SUITE_ADD_TEST (suite, host_flash_manager_test_set_flash_for_rot_access_check_qspi_error);
@@ -7666,8 +12609,6 @@ CuSuite* get_host_flash_manager_suite ()
 		host_flash_manager_test_config_spi_filter_flash_type_diff_addr_mode_error);
 	SUITE_ADD_TEST (suite,
 		host_flash_manager_test_config_spi_filter_flash_type_reset_addr_mode0_error);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_initialize_flash_protection_fixed_3byte);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_initialize_flash_protection_fixed_4byte);
 	SUITE_ADD_TEST (suite,
 		host_flash_manager_test_config_spi_filter_flash_type_reset_addr_mode1_error);
 	SUITE_ADD_TEST (suite, host_flash_manager_test_config_spi_filter_flash_type_filter_error);
@@ -7689,6 +12630,10 @@ CuSuite* get_host_flash_manager_suite ()
 	SUITE_ADD_TEST (suite, host_flash_manager_test_initialize_flash_protection_cs1_4byte_cs0_3byte);
 	SUITE_ADD_TEST (suite, host_flash_manager_test_initialize_flash_protection_cs0_3byte_cs1_4byte);
 	SUITE_ADD_TEST (suite, host_flash_manager_test_initialize_flash_protection_cs1_3byte_cs0_4byte);
+	SUITE_ADD_TEST (suite, host_flash_manager_test_initialize_flash_protection_fixed_3byte);
+	SUITE_ADD_TEST (suite, host_flash_manager_test_initialize_flash_protection_fixed_4byte);
+	SUITE_ADD_TEST (suite, host_flash_manager_test_initialize_flash_protection_cs0_multiple_fw);
+	SUITE_ADD_TEST (suite, host_flash_manager_test_initialize_flash_protection_cs1_multiple_fw);
 	SUITE_ADD_TEST (suite, host_flash_manager_test_initialize_flash_protection_null);
 	SUITE_ADD_TEST (suite, host_flash_manager_test_initialize_flash_protection_flash_mode_error);
 	SUITE_ADD_TEST (suite, host_flash_manager_test_initialize_flash_protection_data_copy_error);
@@ -7698,15 +12643,26 @@ CuSuite* get_host_flash_manager_suite ()
 	SUITE_ADD_TEST (suite, host_flash_manager_test_initialize_flash_protection_filter_error);
 	SUITE_ADD_TEST (suite, host_flash_manager_test_get_flash_read_write_regions_ro_flash_cs0);
 	SUITE_ADD_TEST (suite, host_flash_manager_test_get_flash_read_write_regions_ro_flash_cs1);
+	SUITE_ADD_TEST (suite, host_flash_manager_test_get_flash_read_write_regions_ro_flash_single_fw);
+	SUITE_ADD_TEST (suite,
+		host_flash_manager_test_get_flash_read_write_regions_ro_flash_multiple_fw);
 	SUITE_ADD_TEST (suite, host_flash_manager_test_get_flash_read_write_regions_rw_flash_cs1);
 	SUITE_ADD_TEST (suite, host_flash_manager_test_get_flash_read_write_regions_rw_flash_cs0);
+	SUITE_ADD_TEST (suite, host_flash_manager_test_get_flash_read_write_regions_rw_flash_single_fw);
+	SUITE_ADD_TEST (suite,
+		host_flash_manager_test_get_flash_read_write_regions_rw_flash_multiple_fw);
 	SUITE_ADD_TEST (suite, host_flash_manager_test_get_flash_read_write_regions_null);
+	SUITE_ADD_TEST (suite, host_flash_manager_test_get_flash_read_write_regions_pfm_firmware_error);
 	SUITE_ADD_TEST (suite, host_flash_manager_test_get_flash_read_write_regions_pfm_version_error);
+	SUITE_ADD_TEST (suite,
+		host_flash_manager_test_get_flash_read_write_regions_pfm_version_error_multiple_fw);
 	SUITE_ADD_TEST (suite,
 		host_flash_manager_test_get_flash_read_write_regions_ro_flash_version_error);
 	SUITE_ADD_TEST (suite,
 		host_flash_manager_test_get_flash_read_write_regions_rw_flash_version_error);
 	SUITE_ADD_TEST (suite, host_flash_manager_test_get_flash_read_write_regions_pfm_rw_error);
+	SUITE_ADD_TEST (suite,
+		host_flash_manager_test_get_flash_read_write_regions_pfm_rw_error_multiple_fw);
 	SUITE_ADD_TEST (suite, host_flash_manager_test_host_has_flash_access);
 	SUITE_ADD_TEST (suite, host_flash_manager_test_host_has_flash_access_rot_access);
 	SUITE_ADD_TEST (suite, host_flash_manager_test_host_has_flash_access_filter_disabled);
@@ -7715,6 +12671,10 @@ CuSuite* get_host_flash_manager_suite ()
 	SUITE_ADD_TEST (suite, host_flash_manager_test_host_has_flash_access_filter_check_error);
 	SUITE_ADD_TEST (suite, host_flash_manager_test_restore_flash_read_write_regions_cs1);
 	SUITE_ADD_TEST (suite, host_flash_manager_test_restore_flash_read_write_regions_cs0);
+	SUITE_ADD_TEST (suite,
+		host_flash_manager_test_restore_flash_read_write_regions_cs1_multiple_fw);
+	SUITE_ADD_TEST (suite,
+		host_flash_manager_test_restore_flash_read_write_regions_cs0_multiple_fw);
 	SUITE_ADD_TEST (suite, host_flash_manager_test_restore_flash_read_write_regions_null);
 	SUITE_ADD_TEST (suite, host_flash_manager_test_restore_flash_read_write_regions_flash_error);
 
