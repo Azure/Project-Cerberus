@@ -13,6 +13,9 @@ import argparse
 import manifest_types
 import manifest_common
 from Crypto.PublicKey import RSA
+from Crypto.Hash import SHA256
+from Crypto.Hash import SHA384
+from Crypto.Hash import SHA512
 
 
 PFM_CONFIG_FILENAME = "pfm_generator.config"
@@ -75,6 +78,44 @@ class pfm_platform_header(ctypes.LittleEndianStructure):
                 ('id_length', ctypes.c_ubyte),
                 ('reserved', ctypes.c_ubyte)]
 
+class pfm_v2_platform_header(ctypes.LittleEndianStructure):
+    _pack_ = 1
+    _fields_ = [('id_length', ctypes.c_ubyte),
+                ('reserved', ctypes.c_ubyte * 3)]
+
+class pfm_v2_flash_device_element(ctypes.LittleEndianStructure):
+    _pack_ = 1
+    _fields_ = [('blank_byte', ctypes.c_ubyte),
+                ('fw_count', ctypes.c_ubyte),
+                ('reserved', ctypes.c_ushort)]
+
+class pfm_v2_fw_id_header(ctypes.LittleEndianStructure):
+    _pack_ = 1
+    _fields_ = [('version_count', ctypes.c_ubyte),
+                ('fw_id_length', ctypes.c_ubyte),
+                ('fw_flags', ctypes.c_ubyte),
+                ('reserved', ctypes.c_ubyte)]
+
+class pfm_v2_fw_header(ctypes.LittleEndianStructure):
+    _pack_ = 1
+    _fields_ = [('image_count', ctypes.c_ubyte),
+                ('rw_count', ctypes.c_ubyte),
+                ('version_length', ctypes.c_ubyte),
+                ('reserved', ctypes.c_ubyte)]
+
+class pfm_rw_flash_region(ctypes.LittleEndianStructure):
+    _pack_ = 1
+    _fields_ = [('flags', ctypes.c_ubyte),
+                ('reserved', ctypes.c_ubyte * 3),
+                ('start_addr', ctypes.c_uint),
+                ('end_addr', ctypes.c_uint)]
+
+class pfm_v2_image_header(ctypes.LittleEndianStructure):
+    _pack_ = 1
+    _fields_ = [('hash_type', ctypes.c_ubyte),
+                ('region_count', ctypes.c_ubyte),
+                ('flags', ctypes.c_ubyte),
+                ('reserved', ctypes.c_ubyte)]
 
 def process_pbkey(xml_list):
     """
@@ -168,10 +209,41 @@ def generate_flash_region(filename, region_list):
 
     return flash_list
 
-def generate_img_instance(filename, img, regions, signature):
+def generate_rw_flash_region(filename, region_list):
+    """
+    Create a list of flash region struct instances from region list
+
+    :param filename: XML file
+    :param region_list: List of R/W flash regions
+
+    :return List of R/W flash region struct instances
+    """
+
+    flash_list = []
+
+    for region in region_list:
+        start_addr = int(region["start"], 16)
+        end_addr = int(region["end"], 16)
+
+        if end_addr <= start_addr:
+            raise ValueError("Failed to generate PFM: Image has an invalid R/W flash region - {0}"
+                .format(filename))
+
+        operation_on_fail = int(region["operation_fail"], 16)
+
+        reserved_buf = (ctypes.c_ubyte * 3)()
+        ctypes.memset(reserved_buf, 0, 3)
+        flash_list.append(pfm_rw_flash_region(operation_on_fail, reserved_buf, start_addr, end_addr))
+
+    return flash_list
+
+def generate_img_instance(filename, img, regions, signature, xml_version):
     """
     Create a list of signed image instances
 
+    :param filename: Parsed XML file
+    :param img: Signed or hashed image for which an image instance to generated
+    :param signature: Buffer containing either signature or hash of the image
     :param region_list: List of flash regions
 
     :return List of signed image instances
@@ -179,28 +251,38 @@ def generate_img_instance(filename, img, regions, signature):
 
     if "validate" not in img:
         raise KeyError("Failed to generate PFM: Image has no validate flag - {0}".format(filename))
-    if "pbkey_index" not in img:
+    if xml_version == manifest_types.VERSION_1 and "pbkey_index" not in img:
         raise KeyError("Failed to generate PFM: Image has no public key index - {0}".format(
             filename))
+    if  xml_version == manifest_types.VERSION_2 and "hash_type" not in img:
+        raise KeyError("Failed to generate PFM: Image has no hash type - {0}".format(filename))
+
 
     flags = 1 if img["validate"] == "true" else 0
-    header = pfm_image_header(0, flags, img["pbkey_index"], len(regions), len(signature))
+    if xml_version == manifest_types.VERSION_1:
+        header = pfm_image_header(0, flags, img["pbkey_index"], len(regions), len(signature))
+    else:
+        hash_type = int(img["hash_type"], 16)
+        header = pfm_v2_image_header(hash_type, len(regions), flags, 0)
+
     sig_arr = (ctypes.c_ubyte * len(signature)).from_buffer_copy(signature)
     region_arr = (pfm_flash_region * len(regions))(*regions)
 
     class pfm_signed_img(ctypes.LittleEndianStructure):
         _pack_ = 1
-        _fields_ = [('header', pfm_image_header),
+        _fields_ = [('header', pfm_image_header if xml_version is manifest_types.VERSION_1 else pfm_v2_image_header),
                     ('img_signature', ctypes.c_ubyte * len(signature)),
                     ('flash_regions', pfm_flash_region * len(regions))]
 
     return pfm_signed_img(header, sig_arr, region_arr)
 
-def generate_signed_image(filename, img_list):
+def generate_signed_image(filename, img_list, xml_version):
     """
     Create a list of signed image struct instances from image list
 
+    :param filename: parsed XML file
     :param img_list: List of allowable firmware images
+    :param xml_version: XML file version
 
     :return List of signed image struct instances
     """
@@ -212,21 +294,123 @@ def generate_signed_image(filename, img_list):
             raise KeyError("Failed to generate PFM: Image has no regions list - {0}".format(
                 filename))
 
-        if "signature" not in img:
+        if xml_version == manifest_types.VERSION_1 and "signature" not in img:
             raise KeyError("Failed to generate PFM: Image has no signature - {0}".format(filename))
+        elif xml_version == manifest_types.VERSION_2 and "hash" not in img:
+            raise KeyError("Failed to generate PFM: Image has no hash - {0}".format(filename))
 
         regions = generate_flash_region(filename, img["regions"])
-        img_instance = generate_img_instance(filename, img, regions, img["signature"])
-        img_instance.header.length = ctypes.sizeof(img_instance)
+        buffer = img["signature"] if xml_version == manifest_types.VERSION_1 else img["hash"]
+        img_instance = generate_img_instance(filename, img, regions, buffer, xml_version)
+        if xml_version is manifest_types.VERSION_1:
+            img_instance.header.length = ctypes.sizeof(img_instance)
         signed_list.append(img_instance)
 
     return signed_list
 
-def generate_allowable_fw_list(xml_list):
+def check_xml_validity(xml, xml_version):
+    """
+    Create a list of allowable firmware from parsed XML list
+
+    :param xml: parsed XML of firmware to be included in PFM
+    :param xml_version: Parsed XML version
+
+    """
+    if "version_id" not in xml:
+            raise KeyError("Failed to generate PFM: XML has no version id - {0}".format(filename))
+
+    if "version_addr" not in xml:
+        raise KeyError("Failed to generate PFM: XML has no version address - {0}".format(
+            filename))
+
+    if "signed_imgs" not in xml:
+        raise KeyError("Failed to generate PFM: XML has no signed images list - {0}".format(
+            filename))
+
+    if "unused_byte" not in xml:
+        raise KeyError("Failed to generate PFM: Unused byte value not known - {0}".format(
+            filename))
+
+    if xml_version == manifest_types.VERSION_2 and "fw_type" not in xml:
+        raise KeyError("Failed to generate PFM: XML has no firmware type - {0}".format(
+            filename))
+
+    if "rw_regions" not in xml:
+            xml["rw_regions"]= []
+
+def generate_image_and_rw_region_list(filename, xml, version_addr, version_length):
+    """
+    Create a list of signed images and RW regions from parsed XML
+
+    :param filename: parsed XML filename
+    :param xml: Parsed XML
+    :param version_addr: Address of the version string
+    :param version_length: Length of the version string
+
+    :return signed images list, rw regions list, rw regions array
+    """
+    signed_imgs_list = []
+    rw_regions_list = []
+    rw_regions_arr = None
+    all_regions = []
+
+    if "fw_type" not in xml:
+        rw_regions_list = generate_flash_region(filename, xml["rw_regions"])
+        rw_regions_arr = (pfm_flash_region * len(rw_regions_list))(*rw_regions_list)
+        signed_imgs_list = generate_signed_image(filename, xml["signed_imgs"],
+            manifest_types.VERSION_1)
+    else:
+        rw_regions_list = generate_rw_flash_region(filename, xml["rw_regions"])
+        rw_regions_arr = (pfm_rw_flash_region * len(rw_regions_list))(*rw_regions_list)
+        signed_imgs_list = generate_signed_image(filename, xml["signed_imgs"],
+            manifest_types.VERSION_2)
+
+    for region in rw_regions_list:
+        if region.start_addr & 0xFFFF:
+            raise ValueError("Failed to generate PFM: RW Start address (0x{0}) is not 64kB aligned - {1}"
+                .format(format(region.start_addr, '08x'), filename))
+
+        if (region.end_addr & 0xFFFF) != 0xFFFF:
+            raise ValueError("Failed to generate PFM: RW End address (0x{0}) is not 64kB aligned - {1}"
+                .format(format(region.end_addr, '08x'), filename))
+
+        all_regions.append([region.start_addr, region.end_addr])
+
+    flags = 0
+    for img in signed_imgs_list:
+        flags |= (img.header.flags & VALIDATE_ON_BOOT_FLAG)
+        for region in img.flash_regions:
+            all_regions.append([region.start_addr, region.end_addr])
+
+            if (img.header.flags & VALIDATE_ON_BOOT_FLAG) == VALIDATE_ON_BOOT_FLAG:
+                if ((version_addr + version_length - 1) <= region.end_addr and
+                    version_addr >= region.start_addr):
+                    version_addr_valid = True
+
+    if not version_addr_valid:
+        raise ValueError("Failed to generate PFM: Version address not in a signed image with validate on boot flag set - {0}"
+            .format(filename))
+
+    if flags == 0:
+        raise ValueError("Failed to generate PFM: XML has no signed images with validate on boot flag set - {0}"
+            .format(filename))
+
+    all_regions.sort()
+
+    for i_region, region in enumerate(all_regions):
+        for i_comp in range(i_region + 1, len(all_regions)):
+            if region[1] >= all_regions[i_comp][0]:
+                raise ValueError("Failed to generate PFM: XML has overlapping regions - {0}"
+                    .format(filename))
+
+    return rw_regions_arr, len(rw_regions_list), signed_imgs_list
+
+def generate_allowable_fw_list(xml_list, xml_version):
     """
     Create a list of allowable firmware from parsed XML list
 
     :param xml_list: List of parsed XML of firmware to be included in PFM
+    :param xml_version: Parsed XML version
 
     :return list of allowable firmware struct instances
     """
@@ -234,26 +418,8 @@ def generate_allowable_fw_list(xml_list):
     fw_list = []
 
     for filename, xml in xml_list.items():
-        if "version_id" not in xml:
-            raise KeyError("Failed to generate PFM: XML has no version id - {0}".format(filename))
+        check_xml_validity (xml, xml_version)
 
-        if "version_addr" not in xml:
-            raise KeyError("Failed to generate PFM: XML has no version address - {0}".format(
-                filename))
-
-        if "signed_imgs" not in xml:
-            raise KeyError("Failed to generate PFM: XML has no signed images list - {0}".format(
-                filename))
-
-        if "unused_byte" not in xml:
-            raise KeyError("Failed to generate PFM: Unused byte value not known - {0}".format(
-                filename))
-
-        if "rw_regions" not in xml:
-            xml["rw_regions"]= []
-
-        all_regions = []
-        flags = 0
         version_addr = int(xml["version_addr"], 16)
         unused_byte = int(xml["unused_byte"], 16)
         version_addr_valid = False
@@ -272,48 +438,14 @@ def generate_allowable_fw_list(xml_list):
             raise ValueError("Unused byte value ({0}) is not valid - {1}".format(
                 format(unused_byte, '02x'), filename))
 
+        if len(xml["version_id"]) > 255:
+            raise ValueError("Version ID length ({0}) is not valid - {1}".format(len(xml["version_id"]), filename))
+
         header = pfm_fw_header(0, len(xml["version_id"]), unused_byte, version_addr,
             len(xml["signed_imgs"]), len(xml["rw_regions"]), 0)
-        rw_regions_list = generate_flash_region(filename, xml["rw_regions"])
-        rw_regions_arr = (pfm_flash_region * len(rw_regions_list))(*rw_regions_list)
-        signed_imgs_list = generate_signed_image(filename, xml["signed_imgs"])
 
-        for region in rw_regions_list:
-            if region.start_addr & 0xFFFF:
-                raise ValueError("Failed to generate PFM: RW Start address (0x{0}) is not 64kB aligned - {1}"
-                    .format(format(region.start_addr, '08x'), filename))
-
-            if (region.end_addr & 0xFFFF) != 0xFFFF:
-                raise ValueError("Failed to generate PFM: RW End address (0x{0}) is not 64kB aligned - {1}"
-                    .format(format(region.end_addr, '08x'), filename))
-
-            all_regions.append([region.start_addr, region.end_addr])
-
-        for img in signed_imgs_list:
-            flags |= (img.header.flags & VALIDATE_ON_BOOT_FLAG)
-            for region in img.flash_regions:
-                all_regions.append([region.start_addr, region.end_addr])
-
-                if (img.header.flags & VALIDATE_ON_BOOT_FLAG) == VALIDATE_ON_BOOT_FLAG:
-                    if ((version_addr + header.version_length - 1) <= region.end_addr and
-                        version_addr >= region.start_addr):
-                        version_addr_valid = True
-
-        if not version_addr_valid:
-            raise ValueError("Failed to generate PFM: Version address not in a signed image with validate on boot flag set - {0}"
-                .format(filename))
-
-        if flags == 0:
-            raise ValueError("Failed to generate PFM: XML has no signed images with validate on boot flag set - {0}"
-                .format(filename))
-
-        all_regions.sort()
-
-        for i_region, region in enumerate(all_regions):
-            for i_comp in range(i_region + 1, len(all_regions)):
-                if region[1] >= all_regions[i_comp][0]:
-                    raise ValueError("Failed to generate PFM: XML has overlapping regions - {0}"
-                        .format(filename))
+        rw_regions_buf, rw_regions_size, signed_imgs_list = generate_image_and_rw_region_list(filename, xml,
+            version_addr, header.version_length)
 
         signed_imgs_size = 0
         for img in signed_imgs_list:
@@ -337,15 +469,121 @@ def generate_allowable_fw_list(xml_list):
             _fields_ = [('header', pfm_fw_header),
                         ('version_id', ctypes.c_char * len(xml["version_id"])),
                         ('alignment', ctypes.c_ubyte * num_alignment),
-                        ('rw_regions', pfm_flash_region * len(rw_regions_list)),
+                        ('rw_regions', pfm_flash_region * rw_regions_size),
                         ('signed_imgs', ctypes.c_ubyte * signed_imgs_size)]
 
-        fw = pfm_allowable_fw(header, xml["version_id"], alignment_buf, rw_regions_arr,
+        fw = pfm_allowable_fw(header, xml["version_id"], alignment_buf, rw_regions_buf,
             signed_imgs_buf)
         fw.header.length = ctypes.sizeof(pfm_allowable_fw)
         fw_list.append(fw)
 
     return fw_list
+
+def generate_allowable_fw_list_v2(xml_list, xml_version):
+    """
+    Create a list of allowable firmware from parsed XML list
+
+    :param xml_list: List of parsed XML of firmware to be included in PFM
+
+    :return list of allowable firmware struct instances
+    """
+
+    fw_list = {}
+    fw_type = {}
+    fw_flags = {}
+    fw_type_version_list = {}
+    unused_byte_list = []
+
+    for filename, xml in xml_list.items():
+        check_xml_validity (xml, xml_version)
+
+        if len(xml["fw_type"]) > 255:
+            raise ValueError("FW Type string ({0}) length ({1}) is not valid - {2}".format(
+                xml["fw_type"], len(xml["fw_type"], filename)))
+
+        if xml["fw_type"] not in fw_list:
+            fw_list[xml["fw_type"]] = list()
+
+        all_regions = []
+        flags = 0
+        version_addr = int(xml["version_addr"], 16)
+        unused_byte = int(xml["unused_byte"], 16)
+        runtime_update = 0 if xml["runtime_update"] == 'false' else 1
+        version_addr_valid = False
+
+        if xml["fw_type"] not in fw_type_version_list:
+            fw_type_version_list[xml["fw_type"]] = list()
+            fw_type_version_list[xml["fw_type"]].append(xml["version_id"])
+        else:
+            for version_list in fw_type_version_list[xml["fw_type"]]:
+                for version in version_list:
+                    if version == xml["version_id"]:
+                        raise KeyError("Failed to generate PFM: Duplicate version ID - {0}".format (
+                            xml["version_id"]))
+                    elif version.startswith(xml["version_id"]) or xml["version_id"].startswith(version):
+                        raise ValueError("Failed to generate PFM: Ambiguous version ID - {0}, {1}".format (
+                            xml["version_id"], version))
+
+        if unused_byte > 255:
+            raise ValueError("Unused byte value ({0}) is not valid - {1}".format(
+                format(unused_byte, '02x'), filename))
+
+        if len(xml["version_id"]) > 255:
+            raise ValueError("Version ID length ({0}) is not valid - {1}".format(len(xml["version_id"]),
+                filename))
+
+        for unused_byte_val in unused_byte_list:
+            if unused_byte_val != unused_byte:
+                raise KeyError("Failed to generate PFM: Different Unused byte value - {0} {1}".format (
+                    xml["version_id"], xml["fw_type"]))
+
+        unused_byte_list.append (unused_byte)
+
+        fw_type[xml["fw_type"]] = fw_type.get(xml["fw_type"], 0) + 1
+        if xml["fw_type"] in fw_flags:
+            if fw_flags[xml["fw_type"]] != runtime_update:
+                 raise ValueError("Runtime update policy has different values, current: ({0}) new: {1}".format(
+                    fw_flags[xml["fw_type"]], runtime_update))
+        else:
+            fw_flags[xml["fw_type"]] = runtime_update
+
+        v2_header = pfm_v2_fw_header(len(xml["signed_imgs"]), len(xml["rw_regions"]),
+                len(xml["version_id"]), 0)
+
+        rw_regions_buf, rw_regions_size, signed_imgs_list = generate_image_and_rw_region_list (filename, xml,
+            version_addr, v2_header.version_length)
+
+        signed_imgs_size = 0
+        for img in signed_imgs_list:
+            signed_imgs_size = signed_imgs_size + ctypes.sizeof(img)
+
+        offset = 0
+        signed_imgs_buf = (ctypes.c_ubyte * signed_imgs_size)()
+
+        for img in signed_imgs_list:
+            ctypes.memmove(ctypes.addressof(signed_imgs_buf) + offset, ctypes.addressof(img),
+                ctypes.sizeof(img))
+            offset += ctypes.sizeof(img)
+
+        num_alignment = len(xml["version_id"])  % 4
+        num_alignment = 0 if (num_alignment == 0) else (4 - num_alignment)
+        alignment_buf = (ctypes.c_ubyte * num_alignment)()
+        ctypes.memset(alignment_buf, 0, num_alignment)
+
+        class pfm_allowable_fw(ctypes.LittleEndianStructure):
+            _pack_ = 1
+            _fields_ = [('header', pfm_v2_fw_header),
+                        ('version_addr', ctypes.c_uint),
+                        ('version_id', ctypes.c_char * len(xml["version_id"])),
+                        ('alignment', ctypes.c_ubyte * num_alignment),
+                        ('rw_regions', pfm_rw_flash_region * rw_regions_size),
+                        ('signed_imgs', ctypes.c_ubyte * signed_imgs_size)]
+
+        fw = pfm_allowable_fw(v2_header, version_addr, xml["version_id"], alignment_buf, rw_regions_buf,
+            signed_imgs_buf)
+        fw_list[xml["fw_type"]].append(fw)
+
+    return fw_list, fw_type, fw_flags, unused_byte
 
 def generate_allowable_fw_header(fw_list):
     """
@@ -421,55 +659,150 @@ def generate_pbkey_header(keys_list):
 
     return pfm_key_manifest_header(size, len(keys_list), 0)
 
-def get_platform_id(xml_list):
+def generate_firmware_elements(fw_id_list, fw_flags_list):
     """
-    Determine the platform ID for the manifest
-
-    :param xml_list: List of parse XML files with version information.
-
-    :return The platform ID
-    """
-
-    platform_id = None
-    for filename, xml in xml_list.items():
-        if "platform_id" not in xml:
-            raise KeyError("Failed to generate PFM: XML has no platform id - {0}".format(filename))
-
-        if platform_id:
-            if platform_id != xml["platform_id"]:
-                raise ValueError("Failed to generate PFM: Version platform ids don't match - ({0}, {1})"
-                    .format(platform_id, xml["platform_id"]))
-        else:
-            platform_id = xml["platform_id"]
-
-    return platform_id
-
-def generate_platform_info(platform_id):
-    """
-    Create the platform information section of the PFM.
+    Create the platform information section of the PFM v2.
 
     :param platform_id: ID for the platform
 
     :return Platform manifest section
     """
 
-    header = pfm_platform_header(0, len(platform_id), 0)
+    fw_elements = {}
 
-    num_alignment = len(platform_id)  % 4
-    num_alignment = 0 if (num_alignment == 0) else (4 - num_alignment)
-    alignment_buf = (ctypes.c_ubyte * num_alignment)()
-    ctypes.memset(alignment_buf, 0, num_alignment)
+    if len(fw_id_list) != len(fw_flags_list):
+        raise ValueError("Failed to generate PFM: FW count and FW Flags don't match - ({0}, {1})"
+            .format(len(fw_id_list), len(fw_flags_list)))
 
-    class pfm_platform_id(ctypes.LittleEndianStructure):
+    for fw_id, count in fw_id_list.items():
+        if fw_id not in fw_flags:
+            raise ValueError ("Failed to generate PFM: No FW Flags found corresponding to the FW ID - {0})"
+                .format(fw_id))
+
+        element_header = pfm_v2_fw_id_header(count, len(fw_id), fw_flags_list[fw_id], 0)
+
+        num_alignment = len(fw_id)  % 4
+        num_alignment = 0 if (num_alignment == 0) else (4 - num_alignment)
+        alignment_buf = (ctypes.c_ubyte * num_alignment)()
+        ctypes.memset(alignment_buf, 0, num_alignment)
+
+        class pfm_v2_fw_id(ctypes.LittleEndianStructure):
+            _pack_ = 1
+            _fields_ = [('header', pfm_v2_fw_id_header),
+                        ('platform_id', ctypes.c_char * len(fw_id)),
+                        ('alignment', ctypes.c_ubyte * num_alignment)]
+
+        fw_element = pfm_v2_fw_id(element_header, fw_id, alignment_buf)
+        fw_elements[fw_id] = fw_element
+
+    return fw_elements
+
+def generate_pfm_v2(pfm_header_instance, toc_header_instance, toc_element_list, toc_elements_hash_list,
+    platform_id_header_instance, flash_device_instance, allowable_fw_list, fw_id_list, hash_type):
+    """
+    Create a PFM V2 object from all the different PFM components
+
+    :param pfm_header_instance: Instance of a PFM header
+    :param toc_header_instance: Instance of a TOC header
+    :param toc_element_list: List of TOC elements to be included in PFM
+    :param toc_elements_hash_list: List of TOC hashes to be included in PFM
+    :param platform_id_header_instance: Instance of a PFM platform header
+    :param flash_device_instance: Instance of a PFM flash device header
+    :param allowable_fw_list: List of all allowable FWs to be included in PFM
+    :param fw_id_list: List of all FW ID instances
+    :hash_type: Hashing algorithm to be used for hashing TOC elements
+
+
+    :return Instance of a PFM object
+    """
+    hash_algo = None
+
+    if hash_type == 2:
+        hash_algo = SHA512
+    elif hash_type == 1:
+        hash_algo = SHA384
+    elif hash_type == 0:
+        hash_algo = SHA256
+    else:
+        raise ValueError ("Invalid manifest hash type: {0}".format (hash_type))
+
+    toc_elements_size = ctypes.sizeof(toc_element_list[0]) * len (toc_element_list)
+    toc_hash_size = ctypes.sizeof(toc_elements_hash_list[0]) * len (toc_elements_hash_list)
+
+    # Table Hash
+    table_hash_buf = (ctypes.c_ubyte * ctypes.sizeof(toc_header))()
+    ctypes.memmove(ctypes.addressof(table_hash_buf), ctypes.addressof(toc_header), ctypes.sizeof(toc_header))
+    table_hash_object = hash_algo.new(table_hash_buf)
+
+    offset = 0
+    toc_elements_buf = (ctypes.c_ubyte * toc_elements_size)()
+    for toc_element in toc_elements_list:
+        ctypes.memmove(ctypes.addressof(toc_elements_buf) + offset, ctypes.addressof(toc_element), ctypes.sizeof(toc_element))
+        offset += ctypes.sizeof(toc_element)
+
+    # Update table hash with TOC elements
+    table_hash_object.update(toc_elements_buf)
+
+    toc_hash_buf = (ctypes.c_ubyte * toc_hash_size)()
+    offset = 0
+    for toc_hash in toc_elements_hash_list:
+        ctypes.memmove(ctypes.addressof(toc_hash_buf) + offset, ctypes.addressof(toc_hash), ctypes.sizeof(toc_hash))
+        offset += ctypes.sizeof(toc_hash)
+
+    # Update table hash with TOC
+    table_hash_object.update(toc_hash_buf)
+    table_hash_buf_size = ctypes.c_ubyte * table_hash_object.digest_size
+    table_hash_buf = (ctypes.c_ubyte * table_hash_object.digest_size).from_buffer_copy(table_hash_object.digest())
+    table_hash_buf_size = ctypes.sizeof(table_hash_buf)
+
+    platform_id_size = ctypes.sizeof(platform_id_header_instance)
+    platform_id_buf = (ctypes.c_ubyte * platform_id_size)()
+    ctypes.memmove(ctypes.addressof(platform_id_buf), ctypes.addressof(platform_id_header_instance), platform_id_size)
+
+    allowable_fw_size = 0
+    for fw_id in fw_id_list.values():
+        allowable_fw_size += ctypes.sizeof(fw_id)
+
+    for fw_list in allowable_fw_list.values():
+        for allowable_fw in fw_list:
+            allowable_fw_size += ctypes.sizeof(allowable_fw)
+
+    flash_device_size = 0
+    if flash_device_instance is not None:
+        flash_device_size = ctypes.sizeof(flash_device_instance)
+
+    flash_device_buf = (ctypes.c_ubyte * flash_device_size)()
+    if flash_device_size:
+        ctypes.memmove(ctypes.addressof(flash_device_buf), ctypes.addressof(flash_device_instance), flash_device_size)
+
+
+    class pfm_v2(ctypes.LittleEndianStructure):
         _pack_ = 1
-        _fields_ = [('header', pfm_platform_header),
-                    ('platform_id', ctypes.c_char * len(platform_id)),
-                    ('alignment', ctypes.c_ubyte * num_alignment)]
+        _fields_ = [('manifest_header', manifest_common.manifest_header),
+                    ('toc_header', manifest_common.manifest_toc_header),
+                    ('toc_elements', ctypes.c_ubyte * toc_elements_size),
+                    ('toc_hash', ctypes.c_ubyte * toc_hash_size),
+                    ('table_hash', ctypes.c_ubyte * table_hash_buf_size),
+                    ('platform_id', ctypes.c_ubyte * platform_id_size),
+                    ('flash_device', ctypes.c_ubyte * flash_device_size),
+                    ('allowable_fw', ctypes.c_ubyte * allowable_fw_size)]
 
-    platform = pfm_platform_id(header, platform_id, alignment_buf)
-    platform.header.length = ctypes.sizeof(pfm_platform_id)
 
-    return platform
+    offset = 0
+    fw_buf = (ctypes.c_ubyte * allowable_fw_size)()
+
+    for fw_type, fw_id in fw_id_list.items():
+        ctypes.memmove(ctypes.addressof(fw_buf) + offset, ctypes.addressof(fw_id), ctypes.sizeof(fw_id))
+        offset += ctypes.sizeof(fw_id)
+
+        fw_list = allowable_fw_list.get(fw_type)
+        for allowed_fw in fw_list:
+            ctypes.memmove(ctypes.addressof(fw_buf) + offset, ctypes.addressof(allowed_fw), ctypes.sizeof(allowed_fw))
+            offset += ctypes.sizeof(allowed_fw)
+
+    return pfm_v2(pfm_header_instance, toc_header_instance, toc_elements_buf, toc_hash_buf, table_hash_buf,
+        platform_id_buf, flash_device_buf, fw_buf)
+
 
 #*************************************** Start of Script ***************************************
 
@@ -479,35 +812,98 @@ parser.add_argument('config', nargs = '?', default = default_config,
     help = 'Path to configurtaion file')
 parser.add_argument('--bypass', action = 'store_true', help = 'Create a bypass mode PFM')
 args = parser.parse_args()
+platform_header = None
+allowable_fw_list = None
+pfm = None
 
-processed_xml, sign, key_size, key, pfm_id, output = manifest_common.load_xmls (args.config, None,
-    manifest_types.PFM)
+processed_xml, sign, key_size, key, key_type, hash_type, pfm_id, output, xml_version = manifest_common.load_xmls (
+    args.config, None, manifest_types.PFM)
 
-process_pbkey(processed_xml)
+pfm_header_instance = manifest_common.generate_manifest_header(pfm_id, key_size, manifest_types.PFM,
+    hash_type, key_type, xml_version)
 
-if (args.bypass):
-    allowable_fw_list = []
+platform_id = manifest_common.get_platform_id(processed_xml)
+
+if xml_version == manifest_types.VERSION_2:
+    flash_device = None
+    if (args.bypass):
+        allowable_fw_list = {}
+        fw_types = {}
+        fw_flags = {}
+    else:
+        allowable_fw_list, fw_types, fw_flags, unused_byte = generate_allowable_fw_list_v2(processed_xml, xml_version)
+        flash_device = pfm_v2_flash_device_element(unused_byte, len(fw_types), 0)
+
+    reserved_buf = (ctypes.c_ubyte * 3)()
+    ctypes.memset(reserved_buf, 0, 3)
+    platform_id_header = pfm_v2_platform_header (len(platform_id), reserved_buf)
+    platform_header = manifest_common.generate_platform_info(platform_id_header, platform_id)
+
+    toc_header = manifest_common.generate_manifest_toc_header (fw_types, hash_type, args.bypass)
+
+    fw_elements = generate_firmware_elements (fw_types, fw_flags)
+
+    toc_elements_list, toc_elements_hash_list, hash_len = manifest_common.generate_manifest_toc(ctypes.sizeof(pfm_header_instance),
+        toc_header, platform_header, flash_device, fw_elements, fw_types,
+        allowable_fw_list, hash_type)
+
+    flash_device_size = 0 if args.bypass else ctypes.sizeof(flash_device)
+    pfm_header_instance.length = ctypes.sizeof(pfm_header_instance) + ctypes.sizeof(toc_header) + \
+        ((toc_header.hash_count + 1) * hash_len) + ctypes.sizeof(platform_header) + flash_device_size + \
+        pfm_header_instance.sig_length
+
+    toc_element_size = 0
+    for toc_element in toc_elements_list:
+        toc_element_size += ctypes.sizeof(toc_element)
+
+    pfm_header_instance.length += toc_element_size
+
+    fw_id_element_size = 0
+    for fw_id in fw_elements.values():
+        fw_id_element_size += ctypes.sizeof(fw_id)
+
+    pfm_header_instance.length += fw_id_element_size
+
+    all_allowable_fw_size = 0
+    for fw_list in allowable_fw_list.values():
+        for allowable_fw in fw_list:
+            all_allowable_fw_size += ctypes.sizeof(allowable_fw)
+
+    pfm_header_instance.length += all_allowable_fw_size
+
+    pfm = generate_pfm_v2(pfm_header_instance, toc_header, toc_elements_list, toc_elements_hash_list, platform_header,
+        flash_device, allowable_fw_list, fw_elements, hash_type)
+
 else:
-    allowable_fw_list = generate_allowable_fw_list(processed_xml)
-allowable_fw_header = generate_allowable_fw_header(allowable_fw_list)
+    process_pbkey(processed_xml)
 
-if (args.bypass):
-    keys_list = []
-else:
-    keys_list = generate_pbkey_list()
-keys_header = generate_pbkey_header(keys_list)
+    if (args.bypass):
+        allowable_fw_list = []
+    else:
+        allowable_fw_list = generate_allowable_fw_list(processed_xml, xml_version)
+    allowable_fw_header = generate_allowable_fw_header(allowable_fw_list)
 
-platform_id = get_platform_id(processed_xml)
-platform_header = generate_platform_info(platform_id)
+    if (args.bypass):
+        keys_list = []
+    else:
+        keys_list = generate_pbkey_list()
+    keys_header = generate_pbkey_header(keys_list)
 
-pfm_header_instance = manifest_common.generate_manifest_header(pfm_id, key_size, manifest_types.PFM)
-pfm_header_instance.length = ctypes.sizeof(pfm_header_instance) + keys_header.length + \
-    allowable_fw_header.length + pfm_header_instance.sig_length + platform_header.header.length
+    platform_id_header = pfm_platform_header(0, len(platform_id), 0)
+    platform_header = manifest_common.generate_platform_info(platform_id_header, platform_id)
 
-pfm = generate_pfm(pfm_header_instance, allowable_fw_header, allowable_fw_list, keys_header,
-    keys_list, platform_header)
+    platform_header_length = ctypes.sizeof(platform_header)
+    platform_header_length_buf = platform_header_length.to_bytes(ctypes.sizeof(ctypes.c_ushort), byteorder = "little")
+    platform_header.header[0] = platform_header_length_buf[0]
+    platform_header.header[1] = platform_header_length_buf[1]
 
-manifest_common.write_manifest(sign, pfm, key, output,
+    pfm_header_instance.length = ctypes.sizeof(pfm_header_instance) + keys_header.length + \
+        allowable_fw_header.length + pfm_header_instance.sig_length + platform_header_length
+
+    pfm = generate_pfm(pfm_header_instance, allowable_fw_header, allowable_fw_list, keys_header,
+        keys_list, platform_header)
+
+manifest_common.write_manifest(xml_version, sign, pfm, key, key_size, key_type, output,
     pfm_header_instance.length - pfm_header_instance.sig_length,
     pfm_header_instance.sig_length)
 

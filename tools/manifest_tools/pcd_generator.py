@@ -112,7 +112,7 @@ def generate_ports_buf (xml_ports):
     :param xml_ports: List of parsed XML of ports to be included in PCD
 
     :return Ports buffer, number of ports
-    """ 
+    """
 
     if xml_ports is None or len (xml_ports) < 1:
         return None, 0
@@ -123,10 +123,10 @@ def generate_ports_buf (xml_ports):
     for id, port in xml_ports.items ():
         freq = int (get_key_from_dict (port, "spifreq", "Port"))
 
-        port_body = pcd_port_header (ctypes.sizeof (pcd_port_header), 
+        port_body = pcd_port_header (ctypes.sizeof (pcd_port_header),
             ctypes.sizeof (pcd_port_header), 0, int (id), 0, 0, freq)
-        
-        ctypes.memmove (ctypes.addressof (ports_buf) + ports_len, ctypes.addressof (port_body), 
+
+        ctypes.memmove (ctypes.addressof (ports_buf) + ports_len, ctypes.addressof (port_body),
             ctypes.sizeof (pcd_port_header))
         ports_len += ctypes.sizeof (pcd_port_header)
 
@@ -142,12 +142,12 @@ def generate_rot_header (xml_rot, xml_rot_interface, xml_cpld, xml_policy, num_p
     :param xml_policy: List of parsed XML of policy to be included in PCD
     :param num_ports: Number of RoT ports
 
-    :return PCD RoT header instance    
+    :return PCD RoT header instance
     """
 
     is_pa_rot = bool (get_key_from_dict (xml_rot, "is_pa_rot", "PA RoT Flag"))
     addr = int (get_key_from_dict (xml_rot_interface, "address", "RoT interface"), base=16)
-    bmc_i2c_addr = int (get_key_from_dict (xml_rot_interface, "bmc_address", "RoT interface"), 
+    bmc_i2c_addr = int (get_key_from_dict (xml_rot_interface, "bmc_address", "RoT interface"),
         base=16)
     cpld_addr = int (get_key_from_dict (xml_cpld, "address", "CPLD"), base=16)
     cpld_channel = int (get_key_from_dict (xml_cpld, "channel", "CPLD"))
@@ -159,8 +159,8 @@ def generate_rot_header (xml_rot, xml_rot_interface, xml_cpld, xml_policy, num_p
     flags = 0
     flags |= (is_pa_rot << 0)
 
-    return pcd_rot_header (ports_buf_len + ctypes.sizeof (pcd_rot_header), 
-        ctypes.sizeof (pcd_rot_header), 0, num_ports, addr, bmc_i2c_addr, cpld_addr, cpld_channel, 
+    return pcd_rot_header (ports_buf_len + ctypes.sizeof (pcd_rot_header),
+        ctypes.sizeof (pcd_rot_header), 0, num_ports, addr, bmc_i2c_addr, cpld_addr, cpld_channel,
         active, failure_action, flags)
 
 def generate_muxes_buf (xml_muxes):
@@ -170,7 +170,7 @@ def generate_muxes_buf (xml_muxes):
     :param xml_muxes: List of parsed XML of muxes to be included in PCD
 
     :return Muxes buffer, number of muxes
-    """ 
+    """
 
     if xml_muxes is None or len (xml_muxes) < 1:
         return None, 0
@@ -184,8 +184,8 @@ def generate_muxes_buf (xml_muxes):
 
         mux_body = pcd_mux_header (ctypes.sizeof (pcd_mux_header), ctypes.sizeof (pcd_mux_header),
             0, addr, channel, int (level))
-        
-        ctypes.memmove (ctypes.addressof (muxes_buf) + muxes_len, ctypes.addressof (mux_body), 
+
+        ctypes.memmove (ctypes.addressof (muxes_buf) + muxes_len, ctypes.addressof (mux_body),
             ctypes.sizeof (pcd_mux_header))
         muxes_len += ctypes.sizeof (pcd_mux_header)
 
@@ -213,11 +213,11 @@ def generate_components_buf (xml_components):
         i2c_mode = int (get_key_from_dict (component, "i2cmode", "Component"), base=10)
         eid = int (get_key_from_dict (component, "eid", "Component"), base=16)
         powerctrl = get_key_from_dict (component, "powerctrl", "Component")
-        powerctrl_reg = int (get_key_from_dict (powerctrl, "register", "Component PowerCtrl"), 
+        powerctrl_reg = int (get_key_from_dict (powerctrl, "register", "Component PowerCtrl"),
             base=16)
         powerctrl_mask = int (get_key_from_dict (powerctrl, "mask", "Component PowerCtrl"), base=16)
 
-        flags = 0 
+        flags = 0
         flags |= (i2c_mode << 0)
 
         muxes = get_key_from_dict (component, "muxes", "Component", required=False)
@@ -228,22 +228,22 @@ def generate_components_buf (xml_components):
             num_muxes = 0
 
         class pcd_component (ctypes.LittleEndianStructure):
-            _pack_ = 1  
+            _pack_ = 1
             _fields_ = [('component_header', pcd_component_header),
                         ('muxes', ctypes.c_ubyte * ctypes.sizeof (muxes_buf))]
 
-        component_header = pcd_component_header (ctypes.sizeof (pcd_component), 
-        	ctypes.sizeof (pcd_component_header), 0, num_muxes, address, bus, flags, eid, 
+        component_header = pcd_component_header (ctypes.sizeof (pcd_component),
+        	ctypes.sizeof (pcd_component_header), 0, num_muxes, address, bus, flags, eid,
             powerctrl_reg, powerctrl_mask, device_type)
         component_section = pcd_component (component_header, muxes_buf)
         components_list.append (component_section)
         components_len += ctypes.sizeof (component_section)
-        
+
     components_buf = (ctypes.c_ubyte * components_len) ()
     offset = 0
 
     for component in components_list:
-        ctypes.memmove (ctypes.addressof (components_buf) + offset, ctypes.addressof (component), 
+        ctypes.memmove (ctypes.addressof (components_buf) + offset, ctypes.addressof (component),
             ctypes.sizeof (component))
         offset += ctypes.sizeof (component)
 
@@ -256,10 +256,10 @@ def generate_components_header (components_len, num_components):
     :param components_len: Length of components buffer
     :param num_components: Number of components in PCD
 
-    :return PCD components header instance    
+    :return PCD components header instance
     """
 
-    return pcd_components_header (components_len + ctypes.sizeof (pcd_components_header), 
+    return pcd_components_header (components_len + ctypes.sizeof (pcd_components_header),
         ctypes.sizeof (pcd_components_header), 0, num_components, 0, 0)
 
 def generate_platform_id_header (id_len):
@@ -268,10 +268,14 @@ def generate_platform_id_header (id_len):
 
     :param id_len: Length of platform ID buffer
 
-    :return PCD platform ID header instance    
+    :return PCD platform ID header instance
     """
 
-    return pcd_platform_id_header (id_len + ctypes.sizeof (pcd_platform_id_header), 
+    if id_len > 255:
+        raise ValueError("Failed to generate PCD: Invalid platform id length - ({0})"
+            .format(id_len))
+
+    return pcd_platform_id_header (id_len + ctypes.sizeof (pcd_platform_id_header),
         ctypes.sizeof (pcd_platform_id_header), 0, id_len, 0, 0)
 
 def generate_pcd_header (pcd_length):
@@ -280,13 +284,13 @@ def generate_pcd_header (pcd_length):
 
     :param pcd_length: Length of PCD
 
-    :return PCD header instance    
+    :return PCD header instance
     """
 
-    return pcd_header (pcd_length + ctypes.sizeof (pcd_header), ctypes.sizeof (pcd_header), 
+    return pcd_header (pcd_length + ctypes.sizeof (pcd_header), ctypes.sizeof (pcd_header),
         0, 0, 0, 0)
 
-def generate_pcd (manifest_header, header, rot_header, ports, components_header, 
+def generate_pcd (manifest_header, header, rot_header, ports, components_header,
     components, platform_id_header, platform_id):
     """
     Create a PCD object from all the different PCD sections
@@ -308,7 +312,7 @@ def generate_pcd (manifest_header, header, rot_header, ports, components_header,
     components_len = components_header.length - components_header.header_len
     components_buf = (ctypes.c_ubyte * components_len) ()
 
-    ctypes.memmove (ctypes.addressof (components_buf), ctypes.addressof (components), 
+    ctypes.memmove (ctypes.addressof (components_buf), ctypes.addressof (components),
         components_len)
 
     class pcd (ctypes.LittleEndianStructure):
@@ -321,8 +325,8 @@ def generate_pcd (manifest_header, header, rot_header, ports, components_header,
                     ('components', ctypes.c_ubyte * components_len),
                     ('platform_id_header', pcd_platform_id_header),
                     ('platform_id', ctypes.c_char * len (platform_id))]
-    
-    return pcd (manifest_header, header, rot_header, ports, components_header, components_buf, 
+
+    return pcd (manifest_header, header, rot_header, ports, components_header, components_buf,
         platform_id_header, platform_id.encode('utf-8'))
 
 #*************************************** Start of Script ***************************************
@@ -332,7 +336,7 @@ if len (sys.argv) < 2:
 else:
     path = os.path.abspath (sys.argv[1])
 
-processed_xml, sign, key_size, key, id, output = manifest_common.load_xmls (path, 1, 
+processed_xml, sign, key_size, key, id, output = manifest_common.load_xmls (path, 1,
     manifest_types.PCD)
 
 processed_xml = list(processed_xml.items())[0][1]
@@ -342,29 +346,29 @@ num_ports = 0
 
 if "ports" in processed_xml["rot"]:
     ports, num_ports = generate_ports_buf (processed_xml["rot"]["ports"])
-	
+
 components = (ctypes.c_ubyte * 0)()
 num_components = 0
-	
+
 if "components" in processed_xml:
     components, num_components = generate_components_buf (
         processed_xml["components"])
-	
+
 components_header = generate_components_header (ctypes.sizeof (components), num_components)
 
-rot_header = generate_rot_header (processed_xml["rot"], processed_xml["rot"]["interface"], 
+rot_header = generate_rot_header (processed_xml["rot"], processed_xml["rot"]["interface"],
                                   processed_xml["cpld"], processed_xml["policy"], num_ports)
-	
+
 platform_id_header = generate_platform_id_header (len (processed_xml["platform_id"]))
 
 header = generate_pcd_header (rot_header.length + components_header.length + \
                               platform_id_header.length)
-manifest_header = manifest_common.generate_manifest_header (id, key_size, 
+manifest_header = manifest_common.generate_manifest_header (id, key_size,
                                                             manifest_types.PCD)
 manifest_header.length = ctypes.sizeof (manifest_header) + header.length + \
     manifest_header.sig_length
 
-pcd = generate_pcd (manifest_header, header, rot_header, ports, components_header, 
+pcd = generate_pcd (manifest_header, header, rot_header, ports, components_header,
                     components, platform_id_header, processed_xml["platform_id"])
 
 manifest_common.write_manifest (sign, pcd, key, output, manifest_header.length - \
