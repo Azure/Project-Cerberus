@@ -125,6 +125,19 @@ static void pfm_mock_free_fw_versions (struct pfm *pfm, struct pfm_firmware_vers
 	MOCK_VOID_RETURN (&mock->mock, pfm_mock_free_fw_versions, pfm, MOCK_ARG_CALL (ver_list));
 }
 
+static int pfm_mock_buffer_supported_versions (struct pfm *pfm, const char *fw, size_t offset,
+	size_t length, uint8_t *ver_list)
+{
+	struct pfm_mock *mock = (struct pfm_mock*) pfm;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, pfm_mock_buffer_supported_versions, pfm, MOCK_ARG_CALL (fw),
+		MOCK_ARG_CALL (offset), MOCK_ARG_CALL (length), MOCK_ARG_CALL (ver_list));
+}
+
 static int pfm_mock_get_read_write_regions (struct pfm *pfm, const char *fw, const char *version,
 	struct pfm_read_write_regions *writable)
 {
@@ -176,7 +189,7 @@ static void pfm_mock_free_firmware_images (struct pfm *pfm, struct pfm_image_lis
 
 static int pfm_mock_func_arg_count (void *func)
 {
-	if (func == pfm_mock_verify) {
+	if ((func == pfm_mock_verify) || (func == pfm_mock_buffer_supported_versions)) {
 		return 4;
 	}
 	else if ((func == pfm_mock_get_hash) || (func == pfm_mock_get_read_write_regions) ||
@@ -229,6 +242,9 @@ static const char* pfm_mock_func_name_map (void *func)
 	}
 	else if (func == pfm_mock_free_fw_versions) {
 		return "free_fw_versions";
+	}
+	else if (func == pfm_mock_buffer_supported_versions) {
+		return "buffer_supported_versions";
 	}
 	else if (func == pfm_mock_get_read_write_regions) {
 		return "get_read_write_regions";
@@ -333,6 +349,21 @@ static const char* pfm_mock_arg_name_map (void *func, int arg)
 				return "ver_list";
 		}
 	}
+	else if (func == pfm_mock_buffer_supported_versions) {
+		switch (arg) {
+			case 0:
+				return "fw";
+
+			case 1:
+				return "offset";
+
+			case 2:
+				return "length";
+
+			case 3:
+				return "ver_list";
+		}
+	}
 	else if (func == pfm_mock_get_read_write_regions) {
 		switch (arg) {
 			case 0:
@@ -408,6 +439,7 @@ int pfm_mock_init (struct pfm_mock *mock)
 	mock->base.free_firmware = pfm_mock_free_firmware;
 	mock->base.get_supported_versions = pfm_mock_get_supported_versions;
 	mock->base.free_fw_versions = pfm_mock_free_fw_versions;
+	mock->base.buffer_supported_versions = pfm_mock_buffer_supported_versions;
 	mock->base.get_read_write_regions = pfm_mock_get_read_write_regions;
 	mock->base.free_read_write_regions = pfm_mock_free_read_write_regions;
 	mock->base.get_firmware_images = pfm_mock_get_firmware_images;

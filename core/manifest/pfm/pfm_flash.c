@@ -5,10 +5,12 @@
 #include <stddef.h>
 #include <string.h>
 #include "platform.h"
+#include "pfm_flash.h"
+#include "pfm_format.h"
 #include "flash/flash_util.h"
 #include "manifest/manifest_flash.h"
-#include "pfm_format.h"
-#include "pfm_flash.h"
+#include "common/buffer_util.h"
+
 
 
 /**
@@ -319,17 +321,23 @@ static void pfm_flash_free_fw_versions (struct pfm *pfm, struct pfm_firmware_ver
  * Get the list of supported firmware versions from a v1 formatted PFM.
  *
  * @param pfm The PFM to query.
- * @param ver_list Output for the list of supported firmware versions.
+ * @param ver_list Output for the list of supported firmware versions.  Null to buffer the output.
+ * @param offset Offset to start buffering version strings.
+ * @param length Maximum length of version strings to buffer.
+ * @param ver_out Output for buffering the list of versions.  Not used if allocating a list.
+ * @param bytes Output for the number of bytes that were buffered.
  *
  * @return 0 if the version list was successfully generated or an error code.
  */
 static int pfm_flash_get_supported_versions_v1 (struct pfm_flash *pfm,
-	struct pfm_firmware_versions *ver_list)
+	struct pfm_firmware_versions *ver_list, size_t offset, size_t length, uint8_t *ver_out,
+	int *bytes)
 {
 	struct manifest_header header;
 	struct pfm_allowable_firmware_header fw_section;
 	struct pfm_firmware_header fw_header;
 	struct pfm_firmware_version *version_list;
+	uint8_t version_str[MANIFEST_MAX_STRING];
 	int i;
 	uint32_t next_addr;
 	int status;
@@ -352,45 +360,56 @@ static int pfm_flash_get_supported_versions_v1 (struct pfm_flash *pfm,
 	}
 
 	if (fw_section.fw_count == 0) {
-		memset (ver_list, 0, sizeof (*ver_list));
+		if (ver_list) {
+			memset (ver_list, 0, sizeof (*ver_list));
+		}
 		return 0;
 	}
 
-	version_list = platform_calloc (fw_section.fw_count, sizeof (struct pfm_firmware_version));
-	if (version_list == NULL) {
-		return PFM_NO_MEMORY;
-	}
+	if (ver_list) {
+		version_list = platform_calloc (fw_section.fw_count, sizeof (struct pfm_firmware_version));
+		if (version_list == NULL) {
+			return PFM_NO_MEMORY;
+		}
 
-	ver_list->versions = version_list;
-	ver_list->count = fw_section.fw_count;
+		ver_list->versions = version_list;
+		ver_list->count = fw_section.fw_count;
+	}
 
 	next_addr = pfm->base_flash.addr + sizeof (struct manifest_header) +
 		sizeof (struct pfm_allowable_firmware_header);
-	for (i = 0; i < fw_section.fw_count; i++) {
+	i = 0;
+	while ((i < fw_section.fw_count) && (length > 0)) {
 		status = pfm->base_flash.flash->read (pfm->base_flash.flash, next_addr,
 			(uint8_t*) &fw_header, sizeof (fw_header));
 		if (status != 0) {
 			goto error;
 		}
 
-		version_list[i].fw_version_id = platform_malloc (fw_header.version_length + 1);
-		if (version_list[i].fw_version_id == NULL) {
-			status = PFM_NO_MEMORY;
-			goto error;
-		}
-
 		status = pfm->base_flash.flash->read (pfm->base_flash.flash,
-			next_addr + sizeof (struct pfm_firmware_header),
-			(uint8_t*) version_list[i].fw_version_id, fw_header.version_length);
+			next_addr + sizeof (struct pfm_firmware_header), version_str, fw_header.version_length);
 		if (status != 0) {
 			goto error;
 		}
 
-		((char*) version_list[i].fw_version_id)[fw_header.version_length] = '\0';
-		version_list[i].version_addr = fw_header.version_addr;
-		version_list[i].blank_byte = fw_header.blank_byte;
+		version_str[fw_header.version_length] = '\0';
+
+		if (ver_list) {
+			version_list[i].version_addr = fw_header.version_addr;
+			version_list[i].blank_byte = fw_header.blank_byte;
+			version_list[i].fw_version_id = strdup ((char*) version_str);
+			if (version_list[i].fw_version_id == NULL) {
+				status = PFM_NO_MEMORY;
+				goto error;
+			}
+		}
+		else {
+			*bytes += buffer_copy (version_str, fw_header.version_length + 1, &offset, &length,
+				&ver_out[*bytes]);
+		}
 
 		next_addr += fw_header.length;
+		i++;
 	}
 
 	return 0;
@@ -485,12 +504,17 @@ static int pfm_flash_read_firmware_version_element_v2 (struct pfm_flash *pfm, ui
  *
  * @param pfm The PFM to query.
  * @param fw The firmware ID to query.  This can be null to default to the first firmware ID.
- * @param ver_list Output for the list of supported firmware versions.
+ * @param ver_list Output for the list of supported firmware versions.  Null to buffer the output.
+ * @param offset Offset to start buffering version strings.  Updated on output.
+ * @param length Maximum length of version strings to buffer.  Updated on output.
+ * @param ver_out Output for buffering the list of versions.  Not used if allocating a list.
+ * @param bytes Output for the number of bytes that were buffered.
  *
  * @return 0 if the version list was successfully generated or an error code.
  */
 static int pfm_flash_get_supported_versions_v2 (struct pfm_flash *pfm, const char *fw,
-	struct pfm_firmware_versions *ver_list)
+	struct pfm_firmware_versions *ver_list, size_t *offset, size_t *length, uint8_t *ver_out,
+	int *bytes)
 {
 	union {
 		struct pfm_firmware_element fw_element;
@@ -498,12 +522,15 @@ static int pfm_flash_get_supported_versions_v2 (struct pfm_flash *pfm, const cha
 	} buffer;
 	struct pfm_firmware_version *version_list;
 	uint8_t entry;
-	size_t i;
+	int i;
+	int count;
 	int status;
 
 	if ((pfm->flash_dev_format < 0) || (pfm->flash_dev.fw_count == 0)) {
 		if (fw == NULL) {
-			memset (ver_list, 0, sizeof (*ver_list));
+			if (ver_list) {
+				memset (ver_list, 0, sizeof (*ver_list));
+			}
 			return 0;
 		}
 		else {
@@ -517,19 +544,25 @@ static int pfm_flash_get_supported_versions_v2 (struct pfm_flash *pfm, const cha
 	}
 
 	if (buffer.fw_element.version_count == 0) {
-		memset (ver_list, 0, sizeof (*ver_list));
+		if (ver_list) {
+			memset (ver_list, 0, sizeof (*ver_list));
+		}
 		return 0;
 	}
 
-	ver_list->count = buffer.fw_element.version_count;
-	version_list = platform_calloc (ver_list->count, sizeof (struct pfm_firmware_version));
-	if (version_list == NULL) {
-		return PFM_NO_MEMORY;
+	count = buffer.fw_element.version_count;
+	if (ver_list) {
+		ver_list->count = count;
+		version_list = platform_calloc (ver_list->count, sizeof (struct pfm_firmware_version));
+		if (version_list == NULL) {
+			return PFM_NO_MEMORY;
+		}
+
+		ver_list->versions = version_list;
 	}
 
-	ver_list->versions = version_list;
-
-	for (i = 0; i < ver_list->count; i++, entry++) {
+	i = 0;
+	while ((i < count) && ((length == NULL) || (*length > 0))) {
 		status = pfm_flash_read_firmware_version_element_v2 (pfm, &entry, &buffer.ver_element,
 			NULL);
 		if (status != 0) {
@@ -538,13 +571,22 @@ static int pfm_flash_get_supported_versions_v2 (struct pfm_flash *pfm, const cha
 
 		buffer.ver_element.version[buffer.ver_element.version_length] = '\0';
 
-		version_list[i].blank_byte = pfm->flash_dev.blank_byte;
-		version_list[i].version_addr = buffer.ver_element.version_addr;
-		version_list[i].fw_version_id = strdup ((char*) buffer.ver_element.version);
-		if (version_list[i].fw_version_id == NULL) {
-			status = PFM_NO_MEMORY;
-			goto error;
+		if (ver_list) {
+			version_list[i].blank_byte = pfm->flash_dev.blank_byte;
+			version_list[i].version_addr = buffer.ver_element.version_addr;
+			version_list[i].fw_version_id = strdup ((char*) buffer.ver_element.version);
+			if (version_list[i].fw_version_id == NULL) {
+				status = PFM_NO_MEMORY;
+				goto error;
+			}
 		}
+		else {
+			*bytes += buffer_copy (buffer.ver_element.version,
+				buffer.ver_element.version_length + 1, offset, length, &ver_out[*bytes]);
+		}
+
+		i++;
+		entry++;
 	}
 
 	return 0;
@@ -568,11 +610,68 @@ static int pfm_flash_get_supported_versions (struct pfm *pfm, const char *fw,
 	}
 
 	if (pfm_flash->base_flash.header.magic == PFM_MAGIC_NUM) {
-		return pfm_flash_get_supported_versions_v1 (pfm_flash, ver_list);
+		return pfm_flash_get_supported_versions_v1 (pfm_flash, ver_list, 0, 1, NULL, NULL);
 	}
 	else {
-		return pfm_flash_get_supported_versions_v2 (pfm_flash, fw, ver_list);
+		return pfm_flash_get_supported_versions_v2 (pfm_flash, fw, ver_list, NULL, NULL, NULL,
+			NULL);
 	}
+}
+
+static int pfm_flash_buffer_supported_versions (struct pfm *pfm, const char *fw, size_t offset,
+	size_t length, uint8_t *ver_list)
+{
+	struct pfm_flash *pfm_flash = (struct pfm_flash*) pfm;
+	struct pfm_firmware fw_list;
+	int bytes = 0;
+	int status = 0;
+	size_t i;
+
+	if ((pfm_flash == NULL) || (ver_list == NULL)) {
+		return PFM_INVALID_ARGUMENT;
+	}
+
+	if (!pfm_flash->base_flash.manifest_valid) {
+		return MANIFEST_NO_MANIFEST;
+	}
+
+	if (pfm_flash->base_flash.header.magic == PFM_MAGIC_NUM) {
+		if (fw != NULL) {
+			return PFM_UNKNOWN_FIRMWARE;
+		}
+
+		status = pfm_flash_get_supported_versions_v1 (pfm_flash, NULL, offset, length, ver_list,
+			&bytes);
+	}
+	else {
+		if (fw == NULL) {
+			status = pfm_flash_get_firmware_v2 (pfm_flash, &fw_list);
+			if (status != 0) {
+				return status;
+			}
+
+			i = 0;
+			while ((i < fw_list.count) && (length > 0) && (status == 0)) {
+				bytes += buffer_copy ((const uint8_t*) fw_list.ids[i], strlen (fw_list.ids[i]) + 1,
+					&offset, &length, &ver_list[bytes]);
+
+				if (length > 0) {
+					status = pfm_flash_get_supported_versions_v2 (pfm_flash, fw_list.ids[i], NULL,
+						&offset, &length, ver_list, &bytes);
+				}
+
+				i++;
+			}
+
+			pfm_flash_free_firmware (pfm, &fw_list);
+		}
+		else {
+			status = pfm_flash_get_supported_versions_v2 (pfm_flash, fw, NULL, &offset, &length,
+				ver_list, &bytes);
+		}
+	}
+
+	return (status == 0) ? bytes : status;
 }
 
 /**
@@ -1397,6 +1496,7 @@ int pfm_flash_init (struct pfm_flash *pfm, struct flash *flash, struct hash_engi
 	pfm->base.free_firmware = pfm_flash_free_firmware;
 	pfm->base.get_supported_versions = pfm_flash_get_supported_versions;
 	pfm->base.free_fw_versions = pfm_flash_free_fw_versions;
+	pfm->base.buffer_supported_versions = pfm_flash_buffer_supported_versions;
 	pfm->base.get_read_write_regions = pfm_flash_get_read_write_regions;
 	pfm->base.free_read_write_regions = pfm_flash_free_read_write_regions;
 	pfm->base.get_firmware_images = pfm_flash_get_firmware_images;

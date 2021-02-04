@@ -147,6 +147,26 @@ struct pfm {
 	void (*free_fw_versions) (struct pfm *pfm, struct pfm_firmware_versions *ver_list);
 
 	/**
+	 * Get the list of supported firmware versions advertised int the PFM, but the list of version
+	 * strings will be populated directly in the provided buffer instead of allocating a PFM
+	 * structure.
+	 *
+	 * @param pfm The PFM to query.
+	 * @param fw The firmware to query.  If this is null, all firmware components will be queried
+	 * and the firmware IDs will also be stored in the buffer.
+	 * @param offset The offset within the overall list of firmware versions that should be
+	 * returned.
+	 * @param length The maximum length of version information that should be returned.
+	 * @param ver_list Output buffer for the list of supported versions.  This buffer can overlap
+	 * with the firmware ID, allowing the caller to use a single buffer for both input and output.
+	 *
+	 * @return The number of bytes written to the output buffer or an error code.  Use ROT_IS_ERROR
+	 * to check the return value.
+	 */
+	int (*buffer_supported_versions) (struct pfm *pfm, const char *fw, size_t offset, size_t length,
+		uint8_t *ver_list);
+
+	/**
 	 * Get the list of all read/write regions defined for a specific version of firmware.
 	 *
 	 * @param pfm The PFM to query.

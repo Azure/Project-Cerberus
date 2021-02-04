@@ -189,7 +189,8 @@ struct cerberus_protocol_get_pfm_id_platform_response {
 	((req->max_response - sizeof (struct cerberus_protocol_get_pfm_id_platform_response)) + sizeof (uint8_t))
 
 /**
- * Cerberus protocol get platform firmware manifest supported FW request format
+ * Cerberus protocol get platform firmware manifest supported FW request format.  This is the
+ * minimum length of the command and does not include optional arguments.
  */
 struct cerberus_protocol_get_pfm_supported_fw {
 	struct cerberus_protocol_header header;					/**< Message header */
@@ -206,6 +207,23 @@ struct cerberus_protocol_get_pfm_supported_fw_response {
 	uint8_t valid;											/**< Port contains valid PFM */
 	uint32_t version;										/**< PFM version identifier */
 };
+
+/**
+ * Get the length of the firmware ID being queried
+ */
+#define	cerberus_protocol_get_pfm_supported_fw_id_length(req)	*(((uint8_t*) req) + sizeof (*req))
+
+/**
+ * Get the buffer containing the firmware ID string being queried
+ */
+#define	cerberus_protocol_get_pfm_supported_fw_id(req)	\
+	(((char*) req) + sizeof (*req) + sizeof (uint8_t))
+
+/**
+ * Get the total length of a supported FW request that includes the option firmware ID.
+ */
+#define	cerberus_protocol_get_pfm_supported_fw_request_length_with_id(req) \
+	(sizeof (*req) + sizeof (uint8_t) + cerberus_protocol_get_pfm_supported_fw_id_length (req))
 
 /**
  * Get the buffer containing the support FW versions

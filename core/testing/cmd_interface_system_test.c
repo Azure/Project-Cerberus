@@ -3291,6 +3291,33 @@ static void cmd_interface_system_test_process_get_pfm_supported_fw_port1_region1
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
+static void cmd_interface_system_test_process_get_pfm_supported_fw_with_firmware_id (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM, true);
+	cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_with_firmware_id (test,
+		&cmd.handler.base, &cmd.pfm_manager_0);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_pfm_supported_fw_zero_length_firmware_id (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM, true);
+	cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_zero_length_firmware_id (
+		test, &cmd.handler.base, &cmd.pfm_manager_0);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
 static void cmd_interface_system_test_process_get_pfm_supported_fw_nonzero_offset (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
@@ -3471,19 +3498,6 @@ static void cmd_interface_system_test_process_get_pfm_supported_fw_invalid_regio
 		true, DEVICE_MANAGER_UPSTREAM, true);
 	cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_invalid_region (test,
 		&cmd.handler.base);
-	complete_cmd_interface_system_mock_test (test, &cmd);
-}
-
-static void cmd_interface_system_test_process_get_pfm_supported_fw_invalid_offset (CuTest *test)
-{
-	struct cmd_interface_system_testing cmd;
-
-	TEST_START;
-
-	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
-	cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_invalid_offset (test,
-		&cmd.handler.base, &cmd.pfm_manager_0);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -7450,6 +7464,9 @@ CuSuite* get_cmd_interface_system_suite ()
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_pfm_supported_fw_port0_region1);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_pfm_supported_fw_port1_region0);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_pfm_supported_fw_port1_region1);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_pfm_supported_fw_with_firmware_id);
+	SUITE_ADD_TEST (suite,
+		cmd_interface_system_test_process_get_pfm_supported_fw_zero_length_firmware_id);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_pfm_supported_fw_nonzero_offset);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_pfm_supported_fw_limited_response);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_pfm_supported_fw_empty_list);
@@ -7469,7 +7486,6 @@ CuSuite* get_cmd_interface_system_suite ()
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_pfm_supported_fw_fail);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_pfm_supported_fw_invalid_len);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_pfm_supported_fw_invalid_region);
-	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_pfm_supported_fw_invalid_offset);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_pfm_supported_fw_invalid_port);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_cfm_update_init);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_cfm_update_init_invalid_len);

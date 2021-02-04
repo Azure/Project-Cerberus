@@ -115,6 +115,7 @@
 //#define	TESTING_RUN_FLASH_STORE_SUITE
 //#define	TESTING_RUN_FLASH_STORE_ENCRYPTED_SUITE
 //#define	TESTING_RUN_KDF_SUITE
+//#define	TESTING_RUN_BUFFER_UTIL_SUITE
 
 
 CuSuite* get_flash_common_suite (void);
@@ -233,6 +234,7 @@ CuSuite* get_x509_thread_safe_suite (void);
 CuSuite* get_flash_store_suite (void);
 CuSuite* get_flash_store_encrypted_suite (void);
 CuSuite* get_kdf_suite (void);
+CuSuite* get_buffer_util_suite (void);
 
 void add_all_tests (CuSuite *suite)
 {
@@ -565,6 +567,9 @@ void add_all_tests (CuSuite *suite)
 #endif
 #ifdef TESTING_RUN_KDF_SUITE
 	CuSuiteAddSuite (suite, get_kdf_suite ());
+#endif
+#ifdef TESTING_RUN_BUFFER_UTIL_SUITE
+	CuSuiteAddSuite (suite, get_buffer_util_suite ());
 #endif
 
 	add_all_platform_tests (suite);

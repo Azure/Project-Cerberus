@@ -446,18 +446,18 @@ int cerberus_protocol_get_pfm_fw (struct manifest_cmd_interface *pfm_0,
 		(struct cerberus_protocol_get_pfm_supported_fw*) request->data;
 	struct cerberus_protocol_get_pfm_supported_fw_response *rsp =
 		(struct cerberus_protocol_get_pfm_supported_fw_response*) request->data;
-	struct pfm_firmware_versions supported_ids;
 	struct pfm *curr_pfm = NULL;
-	uint32_t fw_length = 0;
-	uint32_t offset;
+	size_t offset;
 	uint32_t port;
-	uint16_t length;
-	char *out_buf_ptr;
-	char *out_buf_ptr2;
+	char *fw_id = NULL;
 	int status;
-	int i;
 
-	if (request->length != sizeof (struct cerberus_protocol_get_pfm_supported_fw)) {
+	if (request->length < sizeof (struct cerberus_protocol_get_pfm_supported_fw)) {
+		return CMD_HANDLER_BAD_LENGTH;
+	}
+
+	if ((request->length > sizeof (struct cerberus_protocol_get_pfm_supported_fw)) &&
+		(request->length != cerberus_protocol_get_pfm_supported_fw_request_length_with_id (rq))) {
 		return CMD_HANDLER_BAD_LENGTH;
 	}
 
@@ -491,47 +491,19 @@ int cerberus_protocol_get_pfm_fw (struct manifest_cmd_interface *pfm_0,
 			goto exit;
 		}
 
-		status = curr_pfm->get_supported_versions (curr_pfm, NULL, &supported_ids);
-		if (status != 0) {
+		if ((request->length > sizeof (struct cerberus_protocol_get_pfm_supported_fw)) &&
+			(cerberus_protocol_get_pfm_supported_fw_id_length (rq) != 0)) {
+			fw_id = cerberus_protocol_get_pfm_supported_fw_id (rq);
+		}
+
+		status = curr_pfm->buffer_supported_versions (curr_pfm, fw_id, offset,
+			CERBERUS_PROTOCOL_MAX_PFM_VERSIONS (request), cerberus_protocol_pfm_supported_fw (rsp));
+		if (ROT_IS_ERROR (status)) {
 			goto exit;
 		}
 
-		/* TODO: Improve the efficiency here.  Loop through the versions once, starting to copy data
-		 * directly into the command buffer after 'offset' bytes and stop at the buffer size.  Avoid
-		 * the malloc. */
-
-		for (i = 0; i < (int) supported_ids.count; ++i) {
-			fw_length += strlen (supported_ids.versions[i].fw_version_id);
-			++fw_length;
-		}
-
-		if (offset >= fw_length) {
-			request->length = cerberus_protocol_get_pfm_supported_fw_response_length (0);
-			goto cleanup_fw_versions;
-		}
-
-		out_buf_ptr = platform_malloc (fw_length);
-		if (out_buf_ptr == NULL) {
-			status = CMD_HANDLER_NO_MEMORY;
-			goto cleanup_fw_versions;
-		}
-
-		out_buf_ptr2 = out_buf_ptr;
-
-		for (i = 0; i < (int) supported_ids.count; ++i, ++out_buf_ptr2) {
-			strcpy (out_buf_ptr2, supported_ids.versions[i].fw_version_id);
-			out_buf_ptr2 += strlen (supported_ids.versions[i].fw_version_id);
-			*out_buf_ptr2 = '\0';
-		}
-
-		length = min (CERBERUS_PROTOCOL_MAX_PFM_VERSIONS (request), fw_length - offset);
-		memcpy (cerberus_protocol_pfm_supported_fw (rsp), &out_buf_ptr[offset], length);
-
-		request->length = cerberus_protocol_get_pfm_supported_fw_response_length (length);
-
-		platform_free (out_buf_ptr);
-	cleanup_fw_versions:
-		curr_pfm->free_fw_versions (curr_pfm, &supported_ids);
+		request->length = cerberus_protocol_get_pfm_supported_fw_response_length (status);
+		status = 0;
 	}
 	else {
 		rsp->valid = 0;

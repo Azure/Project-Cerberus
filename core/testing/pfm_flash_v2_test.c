@@ -10936,6 +10936,1111 @@ static void pfm_flash_v2_test_get_firmware_images_additional_element_read_bad_fw
 	pfm_flash_v2_testing_validate_and_release (test, &pfm);
 }
 
+static void pfm_flash_v2_test_buffer_supported_versions (CuTest *test)
+{
+	struct pfm_flash_v2_testing pfm;
+	const struct pfm_v2_testing_data *test_pfm = &PFM_V2;
+	int fw_index = 0;
+	int status;
+	uint8_t ver_list[256];
+	uint8_t expected[256];
+	int expected_len = 0;
+	int i;
+
+	TEST_START;
+
+	for (i = 0; i < test_pfm->fw[fw_index].version_count; i++) {
+		strcpy ((char*) &expected[expected_len], test_pfm->fw[fw_index].version[i].version_str);
+		expected_len += test_pfm->fw[fw_index].version[i].version_str_len + 1;
+	}
+
+	pfm_flash_v2_testing_init_and_verify (test, &pfm, 0x10000, test_pfm, 0, false, 0);
+
+	pfm_flash_v2_testing_find_firmware_entry (test, &pfm, test_pfm, fw_index);
+
+	manifest_flash_v2_testing_read_element (test, &pfm.manifest, &test_pfm->manifest,
+		test_pfm->fw[fw_index].version[0].fw_version_entry, test_pfm->fw[fw_index].fw_entry + 1,
+		test_pfm->fw[fw_index].version[0].fw_version_hash,
+		test_pfm->fw[fw_index].version[0].fw_version_offset,
+		test_pfm->fw[fw_index].version[0].fw_version_len,
+		test_pfm->fw[fw_index].version[0].fw_version_len, 0);
+
+	status = pfm.test.base.buffer_supported_versions (&pfm.test.base,
+		test_pfm->fw[fw_index].fw_id_str, 0, sizeof (ver_list), ver_list);
+	CuAssertIntEquals (test, expected_len, status);
+
+	status = testing_validate_array (expected, ver_list, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pfm_flash_v2_testing_validate_and_release (test, &pfm);
+}
+
+static void pfm_flash_v2_test_buffer_supported_versions_multiple_fw (CuTest *test)
+{
+	struct pfm_flash_v2_testing pfm;
+	const struct pfm_v2_testing_data *test_pfm = &PFM_V2_TWO_FW;
+	int fw_index = 1;
+	int status;
+	uint8_t ver_list[256];
+	uint8_t expected[256];
+	int expected_len = 0;
+	int i;
+
+	TEST_START;
+
+	for (i = 0; i < test_pfm->fw[fw_index].version_count; i++) {
+		strcpy ((char*) &expected[expected_len], test_pfm->fw[fw_index].version[i].version_str);
+		expected_len += test_pfm->fw[fw_index].version[i].version_str_len + 1;
+	}
+
+	pfm_flash_v2_testing_init_and_verify (test, &pfm, 0x10000, test_pfm, 0, false, 0);
+
+	pfm_flash_v2_testing_find_firmware_entry (test, &pfm, test_pfm, fw_index);
+
+	manifest_flash_v2_testing_read_element (test, &pfm.manifest, &test_pfm->manifest,
+		test_pfm->fw[fw_index].version[0].fw_version_entry, test_pfm->fw[fw_index].fw_entry + 1,
+		test_pfm->fw[fw_index].version[0].fw_version_hash,
+		test_pfm->fw[fw_index].version[0].fw_version_offset,
+		test_pfm->fw[fw_index].version[0].fw_version_len,
+		test_pfm->fw[fw_index].version[0].fw_version_len, 0);
+
+	status = pfm.test.base.buffer_supported_versions (&pfm.test.base,
+		test_pfm->fw[fw_index].fw_id_str, 0, sizeof (ver_list), ver_list);
+	CuAssertIntEquals (test, expected_len, status);
+
+	status = testing_validate_array (expected, ver_list, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pfm_flash_v2_testing_validate_and_release (test, &pfm);
+}
+
+static void pfm_flash_v2_test_buffer_supported_versions_multiple_versions (CuTest *test)
+{
+	struct pfm_flash_v2_testing pfm;
+	const struct pfm_v2_testing_data *test_pfm = &PFM_V2_MULTIPLE;
+	int fw_index = 2;
+	int status;
+	uint8_t ver_list[256];
+	uint8_t expected[256];
+	int expected_len = 0;
+	int i;
+
+	TEST_START;
+
+	for (i = 0; i < test_pfm->fw[fw_index].version_count; i++) {
+		strcpy ((char*) &expected[expected_len], test_pfm->fw[fw_index].version[i].version_str);
+		expected_len += test_pfm->fw[fw_index].version[i].version_str_len + 1;
+	}
+
+	pfm_flash_v2_testing_init_and_verify (test, &pfm, 0x10000, test_pfm, 0, false, 0);
+
+	pfm_flash_v2_testing_find_firmware_entry (test, &pfm, test_pfm, fw_index);
+
+	manifest_flash_v2_testing_read_element (test, &pfm.manifest, &test_pfm->manifest,
+		test_pfm->fw[fw_index].version[0].fw_version_entry, test_pfm->fw[fw_index].fw_entry + 1,
+		test_pfm->fw[fw_index].version[0].fw_version_hash,
+		test_pfm->fw[fw_index].version[0].fw_version_offset,
+		test_pfm->fw[fw_index].version[0].fw_version_len,
+		test_pfm->fw[fw_index].version[0].fw_version_len, 0);
+
+	manifest_flash_v2_testing_read_element (test, &pfm.manifest, &test_pfm->manifest,
+		test_pfm->fw[fw_index].version[1].fw_version_entry,
+		test_pfm->fw[fw_index].version[0].fw_version_entry + 1,
+		test_pfm->fw[fw_index].version[1].fw_version_hash,
+		test_pfm->fw[fw_index].version[1].fw_version_offset,
+		test_pfm->fw[fw_index].version[1].fw_version_len,
+		test_pfm->fw[fw_index].version[1].fw_version_len, 0);
+
+	manifest_flash_v2_testing_read_element (test, &pfm.manifest, &test_pfm->manifest,
+		test_pfm->fw[fw_index].version[2].fw_version_entry,
+		test_pfm->fw[fw_index].version[1].fw_version_entry + 1,
+		test_pfm->fw[fw_index].version[2].fw_version_hash,
+		test_pfm->fw[fw_index].version[2].fw_version_offset,
+		test_pfm->fw[fw_index].version[2].fw_version_len,
+		test_pfm->fw[fw_index].version[2].fw_version_len, 0);
+
+	status = pfm.test.base.buffer_supported_versions (&pfm.test.base,
+		test_pfm->fw[fw_index].fw_id_str, 0, sizeof (ver_list), ver_list);
+	CuAssertIntEquals (test, expected_len, status);
+
+	status = testing_validate_array (expected, ver_list, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pfm_flash_v2_testing_validate_and_release (test, &pfm);
+}
+
+static void pfm_flash_v2_test_buffer_supported_versions_no_versions (CuTest *test)
+{
+	struct pfm_flash_v2_testing pfm;
+	const struct pfm_v2_testing_data *test_pfm = &PFM_V2_THREE_FW_NO_VER;
+	int fw_index = 2;
+	int status;
+	uint8_t ver_list[256];
+
+	TEST_START;
+
+	pfm_flash_v2_testing_init_and_verify (test, &pfm, 0x10000, test_pfm, 0, false, 0);
+
+	pfm_flash_v2_testing_find_firmware_entry (test, &pfm, test_pfm, fw_index);
+
+	status = pfm.test.base.buffer_supported_versions (&pfm.test.base,
+		test_pfm->fw[fw_index].fw_id_str, 0, sizeof (ver_list), ver_list);
+	CuAssertIntEquals (test, 0, status);
+
+	pfm_flash_v2_testing_validate_and_release (test, &pfm);
+}
+
+static void pfm_flash_v2_test_buffer_supported_versions_partial (CuTest *test)
+{
+	struct pfm_flash_v2_testing pfm;
+	const struct pfm_v2_testing_data *test_pfm = &PFM_V2;
+	int fw_index = 0;
+	int status;
+	uint8_t ver_list[256];
+	uint8_t expected[256];
+	int expected_len = 2;
+
+	TEST_START;
+
+	memcpy (expected, &test_pfm->fw[fw_index].version[0].version_str[1], 2);
+
+	pfm_flash_v2_testing_init_and_verify (test, &pfm, 0x10000, test_pfm, 0, false, 0);
+
+	pfm_flash_v2_testing_find_firmware_entry (test, &pfm, test_pfm, fw_index);
+
+	manifest_flash_v2_testing_read_element (test, &pfm.manifest, &test_pfm->manifest,
+		test_pfm->fw[fw_index].version[0].fw_version_entry, test_pfm->fw[fw_index].fw_entry + 1,
+		test_pfm->fw[fw_index].version[0].fw_version_hash,
+		test_pfm->fw[fw_index].version[0].fw_version_offset,
+		test_pfm->fw[fw_index].version[0].fw_version_len,
+		test_pfm->fw[fw_index].version[0].fw_version_len, 0);
+
+	status = pfm.test.base.buffer_supported_versions (&pfm.test.base,
+		test_pfm->fw[fw_index].fw_id_str, 1, 2, ver_list);
+	CuAssertIntEquals (test, expected_len, status);
+
+	status = testing_validate_array (expected, ver_list, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pfm_flash_v2_testing_validate_and_release (test, &pfm);
+}
+
+static void pfm_flash_v2_test_buffer_supported_versions_multiple_versions_partial (CuTest *test)
+{
+	struct pfm_flash_v2_testing pfm;
+	const struct pfm_v2_testing_data *test_pfm = &PFM_V2_MULTIPLE;
+	int fw_index = 2;
+	int status;
+	uint8_t ver_list[256];
+	uint8_t expected[256];
+	int expected_len = 4;
+
+	TEST_START;
+
+	memcpy (expected, &test_pfm->fw[fw_index].version[1].version_str[1], 4);
+
+	pfm_flash_v2_testing_init_and_verify (test, &pfm, 0x10000, test_pfm, 0, false, 0);
+
+	pfm_flash_v2_testing_find_firmware_entry (test, &pfm, test_pfm, fw_index);
+
+	manifest_flash_v2_testing_read_element (test, &pfm.manifest, &test_pfm->manifest,
+		test_pfm->fw[fw_index].version[0].fw_version_entry, test_pfm->fw[fw_index].fw_entry + 1,
+		test_pfm->fw[fw_index].version[0].fw_version_hash,
+		test_pfm->fw[fw_index].version[0].fw_version_offset,
+		test_pfm->fw[fw_index].version[0].fw_version_len,
+		test_pfm->fw[fw_index].version[0].fw_version_len, 0);
+
+	manifest_flash_v2_testing_read_element (test, &pfm.manifest, &test_pfm->manifest,
+		test_pfm->fw[fw_index].version[1].fw_version_entry,
+		test_pfm->fw[fw_index].version[0].fw_version_entry + 1,
+		test_pfm->fw[fw_index].version[1].fw_version_hash,
+		test_pfm->fw[fw_index].version[1].fw_version_offset,
+		test_pfm->fw[fw_index].version[1].fw_version_len,
+		test_pfm->fw[fw_index].version[1].fw_version_len, 0);
+
+	status = pfm.test.base.buffer_supported_versions (&pfm.test.base,
+		test_pfm->fw[fw_index].fw_id_str, test_pfm->fw[fw_index].version[0].version_str_len + 1 + 1,
+		4, ver_list);
+	CuAssertIntEquals (test, expected_len, status);
+
+	status = testing_validate_array (expected, ver_list, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pfm_flash_v2_testing_validate_and_release (test, &pfm);
+}
+
+static void pfm_flash_v2_test_buffer_supported_versions_null_firmware_id (CuTest *test)
+{
+	struct pfm_flash_v2_testing pfm;
+	const struct pfm_v2_testing_data *test_pfm = &PFM_V2_TWO_FW;
+	int status;
+	uint8_t ver_list[256];
+	uint8_t expected[256];
+	int expected_len = 0;
+	int i;
+	int j;
+
+	TEST_START;
+
+	for (i = 0; i < test_pfm->fw_count; i++) {
+		strcpy ((char*) &expected[expected_len], test_pfm->fw[i].fw_id_str);
+		expected_len += test_pfm->fw[i].fw_id_str_len + 1;
+
+		for (j = 0; j < test_pfm->fw[i].version_count; j++) {
+			strcpy ((char*) &expected[expected_len], test_pfm->fw[i].version[j].version_str);
+			expected_len += test_pfm->fw[i].version[j].version_str_len + 1;
+		}
+	}
+
+	pfm_flash_v2_testing_init_and_verify (test, &pfm, 0x10000, test_pfm, 0, false, 0);
+
+	/* Get the list of all FW entries. */
+	pfm_flash_v2_testing_find_firmware_entry (test, &pfm, test_pfm, test_pfm->fw_count - 1);
+
+	for (i = 0; i < test_pfm->fw_count; i++) {
+		/* Read all version for each firmware component. */
+		pfm_flash_v2_testing_find_version_entry (test, &pfm, test_pfm, i,
+			test_pfm->fw[i].version_count - 1);
+	}
+
+	status = pfm.test.base.buffer_supported_versions (&pfm.test.base, NULL, 0, sizeof (ver_list),
+		ver_list);
+	CuAssertIntEquals (test, expected_len, status);
+
+	status = testing_validate_array (expected, ver_list, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pfm_flash_v2_testing_validate_and_release (test, &pfm);
+}
+
+static void pfm_flash_v2_test_buffer_supported_versions_null_firmware_id_multiple_versions (
+	CuTest *test)
+{
+	struct pfm_flash_v2_testing pfm;
+	const struct pfm_v2_testing_data *test_pfm = &PFM_V2_MULTIPLE;
+	int status;
+	uint8_t ver_list[256];
+	uint8_t expected[256];
+	int expected_len = 0;
+	int i;
+	int j;
+
+	TEST_START;
+
+	for (i = 0; i < test_pfm->fw_count; i++) {
+		strcpy ((char*) &expected[expected_len], test_pfm->fw[i].fw_id_str);
+		expected_len += test_pfm->fw[i].fw_id_str_len + 1;
+
+		for (j = 0; j < test_pfm->fw[i].version_count; j++) {
+			strcpy ((char*) &expected[expected_len], test_pfm->fw[i].version[j].version_str);
+			expected_len += test_pfm->fw[i].version[j].version_str_len + 1;
+		}
+	}
+
+	pfm_flash_v2_testing_init_and_verify (test, &pfm, 0x10000, test_pfm, 0, false, 0);
+
+	/* Get the list of all FW entries. */
+	pfm_flash_v2_testing_find_firmware_entry (test, &pfm, test_pfm, test_pfm->fw_count - 1);
+
+	for (i = 0; i < test_pfm->fw_count; i++) {
+		/* Read all version for each firmware component. */
+		pfm_flash_v2_testing_find_version_entry (test, &pfm, test_pfm, i,
+			test_pfm->fw[i].version_count - 1);
+	}
+
+	status = pfm.test.base.buffer_supported_versions (&pfm.test.base, NULL, 0, sizeof (ver_list),
+		ver_list);
+	CuAssertIntEquals (test, expected_len, status);
+
+	status = testing_validate_array (expected, ver_list, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pfm_flash_v2_testing_validate_and_release (test, &pfm);
+}
+
+static void pfm_flash_v2_test_buffer_supported_versions_no_flash_dev_element_null_firmware_id (
+	CuTest *test)
+{
+	struct pfm_flash_v2_testing pfm;
+	const struct pfm_v2_testing_data *test_pfm = &PFM_V2_NO_FLASH_DEV;
+	int status;
+	uint8_t ver_list[256];
+
+	TEST_START;
+
+	pfm_flash_v2_testing_init_and_verify (test, &pfm, 0x10000, test_pfm, 0, false, 0);
+
+	status = pfm.test.base.buffer_supported_versions (&pfm.test.base, NULL, 0, sizeof (ver_list),
+		ver_list);
+	CuAssertIntEquals (test, 0, status);
+
+	pfm_flash_v2_testing_validate_and_release (test, &pfm);
+}
+
+static void pfm_flash_v2_test_buffer_supported_versions_no_firmware_entries_null_firmware_id (
+	CuTest *test)
+{
+	struct pfm_flash_v2_testing pfm;
+	const struct pfm_v2_testing_data *test_pfm = &PFM_V2_EMPTY;
+	int status;
+	uint8_t ver_list[256];
+
+	TEST_START;
+
+	pfm_flash_v2_testing_init_and_verify (test, &pfm, 0x10000, test_pfm, 0, false, 0);
+
+	status = pfm.test.base.buffer_supported_versions (&pfm.test.base, NULL, 0, sizeof (ver_list),
+		ver_list);
+	CuAssertIntEquals (test, 0, status);
+
+	pfm_flash_v2_testing_validate_and_release (test, &pfm);
+}
+
+static void pfm_flash_v2_test_buffer_supported_versions_null_firmware_id_partial (CuTest *test)
+{
+	struct pfm_flash_v2_testing pfm;
+	const struct pfm_v2_testing_data *test_pfm = &PFM_V2_TWO_FW;
+	int status;
+	uint8_t ver_list[256];
+	uint8_t expected[256];
+	int offset = 0;
+	int i;
+
+	TEST_START;
+
+	memcpy (expected, &test_pfm->fw[1].fw_id_str[1], test_pfm->fw[1].fw_id_str_len - 2);
+
+	offset += test_pfm->fw[0].fw_id_str_len + 1;
+	for (i = 0; i < test_pfm->fw[i].version_count; i++) {
+		offset += test_pfm->fw[0].version[i].version_str_len + 1;
+	}
+	offset++;
+
+	pfm_flash_v2_testing_init_and_verify (test, &pfm, 0x10000, test_pfm, 0, false, 0);
+
+	/* Get the list of all FW entries. */
+	pfm_flash_v2_testing_find_firmware_entry (test, &pfm, test_pfm, test_pfm->fw_count - 1);
+
+	pfm_flash_v2_testing_find_version_entry (test, &pfm, test_pfm, 0,
+		test_pfm->fw[0].version_count - 1);
+
+	status = pfm.test.base.buffer_supported_versions (&pfm.test.base, NULL, offset,
+		test_pfm->fw[1].fw_id_str_len - 2, ver_list);
+	CuAssertIntEquals (test, test_pfm->fw[1].fw_id_str_len - 2, status);
+
+	status = testing_validate_array (expected, ver_list, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pfm_flash_v2_testing_validate_and_release (test, &pfm);
+}
+
+static void pfm_flash_v2_test_buffer_supported_versions_null_firmware_id_multiple_versions_partial (
+	CuTest *test)
+{
+	struct pfm_flash_v2_testing pfm;
+	const struct pfm_v2_testing_data *test_pfm = &PFM_V2_MULTIPLE;
+	int status;
+	uint8_t ver_list[256];
+	uint8_t expected[256];
+	int offset = 0;
+	int i;
+	int j;
+
+	TEST_START;
+
+	memcpy (expected, &test_pfm->fw[1].version[1].version_str[1],
+		test_pfm->fw[1].version[1].version_str_len - 2);
+
+	for (i = 0; i < 2; i++) {
+		offset += test_pfm->fw[i].fw_id_str_len + 1;
+		for (j = 0; j < ((i == 1) ? 1 : test_pfm->fw[i].version_count); j++) {
+			offset += test_pfm->fw[i].version[j].version_str_len + 1;
+		}
+	}
+	offset++;
+
+	pfm_flash_v2_testing_init_and_verify (test, &pfm, 0x10000, test_pfm, 0, false, 0);
+
+	/* Get the list of all FW entries. */
+	pfm_flash_v2_testing_find_firmware_entry (test, &pfm, test_pfm, test_pfm->fw_count - 1);
+
+	pfm_flash_v2_testing_find_version_entry (test, &pfm, test_pfm, 0,
+		test_pfm->fw[0].version_count - 1);
+
+	pfm_flash_v2_testing_find_firmware_entry (test, &pfm, test_pfm, 1);
+
+	manifest_flash_v2_testing_read_element (test, &pfm.manifest, &test_pfm->manifest,
+		test_pfm->fw[1].version[0].fw_version_entry, test_pfm->fw[1].fw_entry + 1,
+		test_pfm->fw[1].version[0].fw_version_hash,
+		test_pfm->fw[1].version[0].fw_version_offset,
+		test_pfm->fw[1].version[0].fw_version_len,
+		test_pfm->fw[1].version[0].fw_version_len, 0);
+
+	manifest_flash_v2_testing_read_element (test, &pfm.manifest, &test_pfm->manifest,
+		test_pfm->fw[1].version[1].fw_version_entry,
+		test_pfm->fw[1].version[0].fw_version_entry + 1,
+		test_pfm->fw[1].version[1].fw_version_hash,
+		test_pfm->fw[1].version[1].fw_version_offset,
+		test_pfm->fw[1].version[1].fw_version_len,
+		test_pfm->fw[1].version[1].fw_version_len, 0);
+
+	status = pfm.test.base.buffer_supported_versions (&pfm.test.base, NULL, offset,
+		test_pfm->fw[1].version[1].version_str_len - 2, ver_list);
+	CuAssertIntEquals (test, test_pfm->fw[1].version[1].version_str_len - 2, status);
+
+	status = testing_validate_array (expected, ver_list, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pfm_flash_v2_testing_validate_and_release (test, &pfm);
+}
+
+static void pfm_flash_v2_test_buffer_supported_versions_null (CuTest *test)
+{
+	struct pfm_flash_v2_testing pfm;
+	const struct pfm_v2_testing_data *test_pfm = &PFM_V2;
+	int fw_index = 0;
+	int status;
+	uint8_t ver_list[256];
+
+	TEST_START;
+
+	pfm_flash_v2_testing_init_and_verify (test, &pfm, 0x10000, test_pfm, 0, false, 0);
+
+	status = pfm.test.base.buffer_supported_versions (NULL,
+		test_pfm->fw[fw_index].fw_id_str, 0, sizeof (ver_list), ver_list);
+	CuAssertIntEquals (test, PFM_INVALID_ARGUMENT, status);
+
+	status = pfm.test.base.buffer_supported_versions (&pfm.test.base,
+		test_pfm->fw[fw_index].fw_id_str, 0, sizeof (ver_list), NULL);
+	CuAssertIntEquals (test, PFM_INVALID_ARGUMENT, status);
+
+	pfm_flash_v2_testing_validate_and_release (test, &pfm);
+}
+
+static void pfm_flash_v2_test_buffer_supported_versions_verify_never_run (CuTest *test)
+{
+	struct pfm_flash_v2_testing pfm;
+	const struct pfm_v2_testing_data *test_pfm = &PFM_V2;
+	int fw_index = 0;
+	int status;
+	uint8_t ver_list[256];
+
+	TEST_START;
+
+	pfm_flash_v2_testing_init (test, &pfm, 0x10000);
+
+	status = pfm.test.base.buffer_supported_versions (&pfm.test.base,
+		test_pfm->fw[fw_index].fw_id_str, 0, sizeof (ver_list), ver_list);
+	CuAssertIntEquals (test, MANIFEST_NO_MANIFEST, status);
+
+
+	pfm_flash_v2_testing_validate_and_release (test, &pfm);
+}
+
+static void pfm_flash_v2_test_buffer_supported_versions_no_flash_dev_element (CuTest *test)
+{
+	struct pfm_flash_v2_testing pfm;
+	const struct pfm_v2_testing_data *test_pfm = &PFM_V2_NO_FLASH_DEV;
+	int fw_index = 0;
+	int status;
+	uint8_t ver_list[256];
+
+	TEST_START;
+
+	pfm_flash_v2_testing_init_and_verify (test, &pfm, 0x10000, test_pfm, 0, false, 0);
+
+	status = pfm.test.base.buffer_supported_versions (&pfm.test.base,
+		test_pfm->fw[fw_index].fw_id_str, 0, sizeof (ver_list), ver_list);
+	CuAssertIntEquals (test, PFM_UNKNOWN_FIRMWARE, status);
+
+	pfm_flash_v2_testing_validate_and_release (test, &pfm);
+}
+
+static void pfm_flash_v2_test_buffer_supported_versions_no_firmware_entries (CuTest *test)
+{
+	struct pfm_flash_v2_testing pfm;
+	const struct pfm_v2_testing_data *test_pfm = &PFM_V2_EMPTY;
+	int status;
+	uint8_t ver_list[256];
+
+	TEST_START;
+
+	pfm_flash_v2_testing_init_and_verify (test, &pfm, 0x10000, test_pfm, 0, false, 0);
+
+	status = pfm.test.base.buffer_supported_versions (&pfm.test.base, "Empty", 0, sizeof (ver_list),
+		ver_list);
+	CuAssertIntEquals (test, PFM_UNKNOWN_FIRMWARE, status);
+
+	pfm_flash_v2_testing_validate_and_release (test, &pfm);
+}
+
+static void pfm_flash_v2_test_buffer_supported_versions_unknown_firmware (CuTest *test)
+{
+	struct pfm_flash_v2_testing pfm;
+	const struct pfm_v2_testing_data *test_pfm = &PFM_V2;
+	int fw_index = 0;
+	int status;
+	uint8_t ver_list[256];
+
+	TEST_START;
+
+	pfm_flash_v2_testing_init_and_verify (test, &pfm, 0x10000, test_pfm, 0, false, 0);
+
+	pfm_flash_v2_testing_find_firmware_entry (test, &pfm, test_pfm, fw_index);
+	manifest_flash_v2_testing_read_element (test, &pfm.manifest, &test_pfm->manifest, -1,
+		test_pfm->fw[fw_index].fw_entry + 1, -1, 0, 0, 0, 0);
+
+	status = pfm.test.base.buffer_supported_versions (&pfm.test.base, "Bad", 0, sizeof (ver_list),
+		ver_list);
+	CuAssertIntEquals (test, PFM_UNKNOWN_FIRMWARE, status);
+
+	pfm_flash_v2_testing_validate_and_release (test, &pfm);
+}
+
+static void pfm_flash_v2_test_buffer_supported_versions_find_firmware_error (CuTest *test)
+{
+	struct pfm_flash_v2_testing pfm;
+	const struct pfm_v2_testing_data *test_pfm = &PFM_V2;
+	int fw_index = 0;
+	int status;
+	uint8_t ver_list[256];
+
+	TEST_START;
+
+	pfm_flash_v2_testing_init_and_verify (test, &pfm, 0x10000, test_pfm, 0, false, 0);
+
+	status = mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
+		&pfm.manifest.flash, FLASH_READ_FAILED,
+		MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_ENTRY_OFFSET), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm.test.base.buffer_supported_versions (&pfm.test.base,
+		test_pfm->fw[fw_index].fw_id_str, 0, sizeof (ver_list), ver_list);
+	CuAssertIntEquals (test, FLASH_READ_FAILED, status);
+
+	pfm_flash_v2_testing_validate_and_release (test, &pfm);
+}
+
+static void pfm_flash_v2_test_buffer_supported_versions_read_element_error (CuTest *test)
+{
+	struct pfm_flash_v2_testing pfm;
+	const struct pfm_v2_testing_data *test_pfm = &PFM_V2;
+	int fw_index = 0;
+	int status;
+	uint8_t ver_list[256];
+
+	TEST_START;
+
+	pfm_flash_v2_testing_init_and_verify (test, &pfm, 0x10000, test_pfm, 0, false, 0);
+
+	pfm_flash_v2_testing_find_firmware_entry (test, &pfm, test_pfm, fw_index);
+
+	status = mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
+		&pfm.manifest.flash, FLASH_READ_FAILED,
+		MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_ENTRY_OFFSET), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE * (test_pfm->fw[fw_index].fw_entry + 1)));
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm.test.base.buffer_supported_versions (&pfm.test.base,
+		test_pfm->fw[fw_index].fw_id_str, 0, sizeof (ver_list), ver_list);
+	CuAssertIntEquals (test, FLASH_READ_FAILED, status);
+
+	pfm_flash_v2_testing_validate_and_release (test, &pfm);
+}
+
+static void pfm_flash_v2_test_buffer_supported_versions_bad_firmware_element_length_less_than_min (
+	CuTest *test)
+{
+	struct pfm_flash_v2_testing pfm;
+	const struct pfm_v2_testing_data *test_pfm = &PFM_V2;
+	int fw_index = 0;
+	int status;
+	uint8_t ver_list[256];
+	struct manifest_flash_v2_testing *manifest = &pfm.manifest;
+	const struct manifest_v2_testing_data *data = &test_pfm->manifest;
+	int start = 0;
+	int entry = test_pfm->fw[fw_index].fw_entry;
+	uint32_t offset = test_pfm->fw[fw_index].fw_offset;
+	size_t read_len = PFM_V2_FIRMWARE_HDR_SIZE - 1;
+	uint32_t toc_entry_offset = MANIFEST_V2_TOC_ENTRY_OFFSET;
+	uint32_t first_entry = toc_entry_offset + (MANIFEST_V2_TOC_ENTRY_SIZE * start);
+	uint32_t last_entry = toc_entry_offset + (MANIFEST_V2_TOC_ENTRY_SIZE * (entry + 1));
+	const struct manifest_toc_entry *toc_entries =
+		(struct manifest_toc_entry*) (data->raw + toc_entry_offset);
+	int i;
+	struct manifest_toc_entry bad_entry;
+
+	TEST_START;
+
+	memcpy (&bad_entry, &toc_entries[entry], sizeof (bad_entry));
+	bad_entry.hash_id = 0xff;
+	bad_entry.length = read_len;
+
+	pfm_flash_v2_testing_init_and_verify (test, &pfm, 0x10000, test_pfm, 0, true, 0);
+
+	status = mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha256,
+		&manifest->hash_mock, 0);
+	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.update,
+		&manifest->hash_mock, 0, MOCK_ARG_PTR_CONTAINS (data->toc, MANIFEST_V2_TOC_HEADER_SIZE),
+		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
+
+	status |= flash_mock_expect_verify_flash_and_hash (&manifest->flash, &manifest->hash_mock,
+		manifest->addr + toc_entry_offset, data->raw + toc_entry_offset,
+		first_entry - toc_entry_offset);
+
+	for (i = start; i < entry; i++) {
+		status |= mock_expect (&manifest->flash.mock, manifest->flash.base.read, &manifest->flash,
+			0, MOCK_ARG (manifest->addr + toc_entry_offset + (i * MANIFEST_V2_TOC_ENTRY_SIZE)),
+			MOCK_ARG_NOT_NULL, MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
+		status |= mock_expect_output (&manifest->flash.mock, 1, &toc_entries[i],
+			MANIFEST_V2_TOC_ENTRY_SIZE, 2);
+
+		status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.update,
+			&manifest->hash_mock, 0,
+			MOCK_ARG_PTR_CONTAINS (&toc_entries[i], MANIFEST_V2_TOC_ENTRY_SIZE),
+			MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
+	}
+
+	status |= mock_expect (&manifest->flash.mock, manifest->flash.base.read, &manifest->flash,
+			0, MOCK_ARG (manifest->addr + toc_entry_offset + (i * MANIFEST_V2_TOC_ENTRY_SIZE)),
+			MOCK_ARG_NOT_NULL, MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
+	status |= mock_expect_output (&manifest->flash.mock, 1, &bad_entry, sizeof (bad_entry), 2);
+
+	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.update,
+		&manifest->hash_mock, 0,
+		MOCK_ARG_PTR_CONTAINS (&bad_entry, sizeof (bad_entry)),
+		MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
+
+	status |= flash_mock_expect_verify_flash_and_hash (&manifest->flash, &manifest->hash_mock,
+		manifest->addr + last_entry, data->raw + last_entry, data->toc_hash_offset - last_entry);
+
+	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.finish,
+		&manifest->hash_mock, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+	status |= mock_expect_output (&manifest->hash_mock.mock, 0, data->toc_hash, data->toc_hash_len,
+		1);
+
+	status |= mock_expect (&manifest->flash.mock, manifest->flash.base.read, &manifest->flash, 0,
+		MOCK_ARG (manifest->addr + offset), MOCK_ARG_NOT_NULL, MOCK_ARG (read_len));
+	status |= mock_expect_output (&manifest->flash.mock, 1, data->raw + offset,
+		data->length - offset, 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm.test.base.buffer_supported_versions (&pfm.test.base,
+		test_pfm->fw[fw_index].fw_id_str, 0, sizeof (ver_list), ver_list);
+	CuAssertIntEquals (test, PFM_MALFORMED_FIRMWARE_ELEMENT, status);
+
+	pfm_flash_v2_testing_validate_and_release (test, &pfm);
+}
+
+static void pfm_flash_v2_test_buffer_supported_versions_bad_firmware_element_length_less_than_id (
+	CuTest *test)
+{
+	struct pfm_flash_v2_testing pfm;
+	const struct pfm_v2_testing_data *test_pfm = &PFM_V2;
+	int fw_index = 0;
+	int status;
+	uint8_t ver_list[256];
+	struct manifest_flash_v2_testing *manifest = &pfm.manifest;
+	const struct manifest_v2_testing_data *data = &test_pfm->manifest;
+	int start = 0;
+	int entry = test_pfm->fw[fw_index].fw_entry;
+	uint32_t offset = test_pfm->fw[fw_index].fw_offset;
+	size_t read_len = test_pfm->fw[fw_index].fw_len - 1;
+	uint32_t toc_entry_offset = MANIFEST_V2_TOC_ENTRY_OFFSET;
+	uint32_t first_entry = toc_entry_offset + (MANIFEST_V2_TOC_ENTRY_SIZE * start);
+	uint32_t last_entry = toc_entry_offset + (MANIFEST_V2_TOC_ENTRY_SIZE * (entry + 1));
+	const struct manifest_toc_entry *toc_entries =
+		(struct manifest_toc_entry*) (data->raw + toc_entry_offset);
+	int i;
+	struct manifest_toc_entry bad_entry;
+
+	TEST_START;
+
+	memcpy (&bad_entry, &toc_entries[entry], sizeof (bad_entry));
+	bad_entry.hash_id = 0xff;
+	bad_entry.length = read_len;
+
+	pfm_flash_v2_testing_init_and_verify (test, &pfm, 0x10000, test_pfm, 0, true, 0);
+
+	status = mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha256,
+		&manifest->hash_mock, 0);
+	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.update,
+		&manifest->hash_mock, 0, MOCK_ARG_PTR_CONTAINS (data->toc, MANIFEST_V2_TOC_HEADER_SIZE),
+		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
+
+	status |= flash_mock_expect_verify_flash_and_hash (&manifest->flash, &manifest->hash_mock,
+		manifest->addr + toc_entry_offset, data->raw + toc_entry_offset,
+		first_entry - toc_entry_offset);
+
+	for (i = start; i < entry; i++) {
+		status |= mock_expect (&manifest->flash.mock, manifest->flash.base.read, &manifest->flash,
+			0, MOCK_ARG (manifest->addr + toc_entry_offset + (i * MANIFEST_V2_TOC_ENTRY_SIZE)),
+			MOCK_ARG_NOT_NULL, MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
+		status |= mock_expect_output (&manifest->flash.mock, 1, &toc_entries[i],
+			MANIFEST_V2_TOC_ENTRY_SIZE, 2);
+
+		status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.update,
+			&manifest->hash_mock, 0,
+			MOCK_ARG_PTR_CONTAINS (&toc_entries[i], MANIFEST_V2_TOC_ENTRY_SIZE),
+			MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
+	}
+
+	status |= mock_expect (&manifest->flash.mock, manifest->flash.base.read, &manifest->flash,
+			0, MOCK_ARG (manifest->addr + toc_entry_offset + (i * MANIFEST_V2_TOC_ENTRY_SIZE)),
+			MOCK_ARG_NOT_NULL, MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
+	status |= mock_expect_output (&manifest->flash.mock, 1, &bad_entry, sizeof (bad_entry), 2);
+
+	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.update,
+		&manifest->hash_mock, 0,
+		MOCK_ARG_PTR_CONTAINS (&bad_entry, sizeof (bad_entry)),
+		MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
+
+	status |= flash_mock_expect_verify_flash_and_hash (&manifest->flash, &manifest->hash_mock,
+		manifest->addr + last_entry, data->raw + last_entry, data->toc_hash_offset - last_entry);
+
+	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.finish,
+		&manifest->hash_mock, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+	status |= mock_expect_output (&manifest->hash_mock.mock, 0, data->toc_hash, data->toc_hash_len,
+		1);
+
+	status |= mock_expect (&manifest->flash.mock, manifest->flash.base.read, &manifest->flash, 0,
+		MOCK_ARG (manifest->addr + offset), MOCK_ARG_NOT_NULL, MOCK_ARG (read_len));
+	status |= mock_expect_output (&manifest->flash.mock, 1, data->raw + offset,
+		data->length - offset, 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm.test.base.buffer_supported_versions (&pfm.test.base,
+		test_pfm->fw[fw_index].fw_id_str, 0, sizeof (ver_list), ver_list);
+	CuAssertIntEquals (test, PFM_MALFORMED_FIRMWARE_ELEMENT, status);
+
+	pfm_flash_v2_testing_validate_and_release (test, &pfm);
+}
+
+static void pfm_flash_v2_test_buffer_supported_versions_bad_fw_version_element_length_less_than_min (
+	CuTest *test)
+{
+	struct pfm_flash_v2_testing pfm;
+	const struct pfm_v2_testing_data *test_pfm = &PFM_V2;
+	int fw_index = 0;
+	int status;
+	uint8_t ver_list[256];
+	struct manifest_flash_v2_testing *manifest = &pfm.manifest;
+	const struct manifest_v2_testing_data *data = &test_pfm->manifest;
+	int start = test_pfm->fw[fw_index].fw_entry + 1;
+	int entry = test_pfm->fw[fw_index].version[0].fw_version_entry;
+	uint32_t offset = test_pfm->fw[fw_index].version[0].fw_version_offset;
+	size_t read_len = PFM_V2_FW_VERSION_HDR_SIZE - 1;
+	uint32_t toc_entry_offset = MANIFEST_V2_TOC_ENTRY_OFFSET;
+	uint32_t first_entry = toc_entry_offset + (MANIFEST_V2_TOC_ENTRY_SIZE * start);
+	uint32_t last_entry = toc_entry_offset + (MANIFEST_V2_TOC_ENTRY_SIZE * (entry + 1));
+	const struct manifest_toc_entry *toc_entries =
+		(struct manifest_toc_entry*) (data->raw + toc_entry_offset);
+	int i;
+	struct manifest_toc_entry bad_entry;
+
+	TEST_START;
+
+	memcpy (&bad_entry, &toc_entries[entry], sizeof (bad_entry));
+	bad_entry.hash_id = 0xff;
+	bad_entry.length = read_len;
+
+	pfm_flash_v2_testing_init_and_verify (test, &pfm, 0x10000, test_pfm, 0, true, 0);
+
+	pfm_flash_v2_testing_find_firmware_entry_mocked_hash (test, &pfm, test_pfm, fw_index);
+
+	status = mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha256,
+		&manifest->hash_mock, 0);
+	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.update,
+		&manifest->hash_mock, 0, MOCK_ARG_PTR_CONTAINS (data->toc, MANIFEST_V2_TOC_HEADER_SIZE),
+		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
+
+	status |= flash_mock_expect_verify_flash_and_hash (&manifest->flash, &manifest->hash_mock,
+		manifest->addr + toc_entry_offset, data->raw + toc_entry_offset,
+		first_entry - toc_entry_offset);
+
+	for (i = start; i < entry; i++) {
+		status |= mock_expect (&manifest->flash.mock, manifest->flash.base.read, &manifest->flash,
+			0, MOCK_ARG (manifest->addr + toc_entry_offset + (i * MANIFEST_V2_TOC_ENTRY_SIZE)),
+			MOCK_ARG_NOT_NULL, MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
+		status |= mock_expect_output (&manifest->flash.mock, 1, &toc_entries[i],
+			MANIFEST_V2_TOC_ENTRY_SIZE, 2);
+
+		status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.update,
+			&manifest->hash_mock, 0,
+			MOCK_ARG_PTR_CONTAINS (&toc_entries[i], MANIFEST_V2_TOC_ENTRY_SIZE),
+			MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
+	}
+
+	status |= mock_expect (&manifest->flash.mock, manifest->flash.base.read, &manifest->flash,
+			0, MOCK_ARG (manifest->addr + toc_entry_offset + (i * MANIFEST_V2_TOC_ENTRY_SIZE)),
+			MOCK_ARG_NOT_NULL, MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
+	status |= mock_expect_output (&manifest->flash.mock, 1, &bad_entry, sizeof (bad_entry), 2);
+
+	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.update,
+		&manifest->hash_mock, 0,
+		MOCK_ARG_PTR_CONTAINS (&bad_entry, sizeof (bad_entry)),
+		MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
+
+	status |= flash_mock_expect_verify_flash_and_hash (&manifest->flash, &manifest->hash_mock,
+		manifest->addr + last_entry, data->raw + last_entry, data->toc_hash_offset - last_entry);
+
+	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.finish,
+		&manifest->hash_mock, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+	status |= mock_expect_output (&manifest->hash_mock.mock, 0, data->toc_hash, data->toc_hash_len,
+		1);
+
+	status |= mock_expect (&manifest->flash.mock, manifest->flash.base.read, &manifest->flash, 0,
+		MOCK_ARG (manifest->addr + offset), MOCK_ARG_NOT_NULL, MOCK_ARG (read_len));
+	status |= mock_expect_output (&manifest->flash.mock, 1, data->raw + offset,
+		data->length - offset, 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm.test.base.buffer_supported_versions (&pfm.test.base,
+		test_pfm->fw[fw_index].fw_id_str, 0, sizeof (ver_list), ver_list);
+	CuAssertIntEquals (test, PFM_MALFORMED_FW_VER_ELEMENT, status);
+
+	pfm_flash_v2_testing_validate_and_release (test, &pfm);
+}
+
+static void pfm_flash_v2_test_buffer_supported_versions_bad_fw_version_element_length_less_than_version (
+	CuTest *test)
+{
+	struct pfm_flash_v2_testing pfm;
+	const struct pfm_v2_testing_data *test_pfm = &PFM_V2;
+	int fw_index = 0;
+	int status;
+	uint8_t ver_list[256];
+	struct manifest_flash_v2_testing *manifest = &pfm.manifest;
+	const struct manifest_v2_testing_data *data = &test_pfm->manifest;
+	int start = test_pfm->fw[fw_index].fw_entry + 1;
+	int entry = test_pfm->fw[fw_index].version[0].fw_version_entry;
+	uint32_t offset = test_pfm->fw[fw_index].version[0].fw_version_offset;
+	size_t read_len = PFM_V2_FW_VERSION_HDR_SIZE +
+		test_pfm->fw[fw_index].version[0].version_str_len +
+		test_pfm->fw[fw_index].version[0].version_str_pad - 1;
+	uint32_t toc_entry_offset = MANIFEST_V2_TOC_ENTRY_OFFSET;
+	uint32_t first_entry = toc_entry_offset + (MANIFEST_V2_TOC_ENTRY_SIZE * start);
+	uint32_t last_entry = toc_entry_offset + (MANIFEST_V2_TOC_ENTRY_SIZE * (entry + 1));
+	const struct manifest_toc_entry *toc_entries =
+		(struct manifest_toc_entry*) (data->raw + toc_entry_offset);
+	int i;
+	struct manifest_toc_entry bad_entry;
+
+	TEST_START;
+
+	memcpy (&bad_entry, &toc_entries[entry], sizeof (bad_entry));
+	bad_entry.hash_id = 0xff;
+	bad_entry.length = read_len;
+
+	pfm_flash_v2_testing_init_and_verify (test, &pfm, 0x10000, test_pfm, 0, true, 0);
+
+	pfm_flash_v2_testing_find_firmware_entry_mocked_hash (test, &pfm, test_pfm, fw_index);
+
+	status = mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha256,
+		&manifest->hash_mock, 0);
+	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.update,
+		&manifest->hash_mock, 0, MOCK_ARG_PTR_CONTAINS (data->toc, MANIFEST_V2_TOC_HEADER_SIZE),
+		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
+
+	status |= flash_mock_expect_verify_flash_and_hash (&manifest->flash, &manifest->hash_mock,
+		manifest->addr + toc_entry_offset, data->raw + toc_entry_offset,
+		first_entry - toc_entry_offset);
+
+	for (i = start; i < entry; i++) {
+		status |= mock_expect (&manifest->flash.mock, manifest->flash.base.read, &manifest->flash,
+			0, MOCK_ARG (manifest->addr + toc_entry_offset + (i * MANIFEST_V2_TOC_ENTRY_SIZE)),
+			MOCK_ARG_NOT_NULL, MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
+		status |= mock_expect_output (&manifest->flash.mock, 1, &toc_entries[i],
+			MANIFEST_V2_TOC_ENTRY_SIZE, 2);
+
+		status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.update,
+			&manifest->hash_mock, 0,
+			MOCK_ARG_PTR_CONTAINS (&toc_entries[i], MANIFEST_V2_TOC_ENTRY_SIZE),
+			MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
+	}
+
+	status |= mock_expect (&manifest->flash.mock, manifest->flash.base.read, &manifest->flash,
+			0, MOCK_ARG (manifest->addr + toc_entry_offset + (i * MANIFEST_V2_TOC_ENTRY_SIZE)),
+			MOCK_ARG_NOT_NULL, MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
+	status |= mock_expect_output (&manifest->flash.mock, 1, &bad_entry, sizeof (bad_entry), 2);
+
+	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.update,
+		&manifest->hash_mock, 0,
+		MOCK_ARG_PTR_CONTAINS (&bad_entry, sizeof (bad_entry)),
+		MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
+
+	status |= flash_mock_expect_verify_flash_and_hash (&manifest->flash, &manifest->hash_mock,
+		manifest->addr + last_entry, data->raw + last_entry, data->toc_hash_offset - last_entry);
+
+	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.finish,
+		&manifest->hash_mock, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+	status |= mock_expect_output (&manifest->hash_mock.mock, 0, data->toc_hash, data->toc_hash_len,
+		1);
+
+	status |= mock_expect (&manifest->flash.mock, manifest->flash.base.read, &manifest->flash, 0,
+		MOCK_ARG (manifest->addr + offset), MOCK_ARG_NOT_NULL, MOCK_ARG (read_len));
+	status |= mock_expect_output (&manifest->flash.mock, 1, data->raw + offset,
+		data->length - offset, 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm.test.base.buffer_supported_versions (&pfm.test.base,
+		test_pfm->fw[fw_index].fw_id_str, 0, sizeof (ver_list), ver_list);
+	CuAssertIntEquals (test, PFM_MALFORMED_FW_VER_ELEMENT, status);
+
+	pfm_flash_v2_testing_validate_and_release (test, &pfm);
+}
+
+static void pfm_flash_v2_test_buffer_supported_versions_bad_fw_version_element_length_less_than_rw (
+	CuTest *test)
+{
+	struct pfm_flash_v2_testing pfm;
+	const struct pfm_v2_testing_data *test_pfm = &PFM_V2;
+	int fw_index = 0;
+	int status;
+	uint8_t ver_list[256];
+	struct manifest_flash_v2_testing *manifest = &pfm.manifest;
+	const struct manifest_v2_testing_data *data = &test_pfm->manifest;
+	int start = test_pfm->fw[fw_index].fw_entry + 1;
+	int entry = test_pfm->fw[fw_index].version[0].fw_version_entry;
+	uint32_t offset = test_pfm->fw[fw_index].version[0].fw_version_offset;
+	size_t read_len = PFM_V2_FW_VERSION_HDR_SIZE +
+		test_pfm->fw[fw_index].version[0].version_str_len +
+		test_pfm->fw[fw_index].version[0].version_str_pad +
+		(PFM_V2_RW_REGION_SIZE * test_pfm->fw[fw_index].version[0].rw_count) - 1;
+	uint32_t toc_entry_offset = MANIFEST_V2_TOC_ENTRY_OFFSET;
+	uint32_t first_entry = toc_entry_offset + (MANIFEST_V2_TOC_ENTRY_SIZE * start);
+	uint32_t last_entry = toc_entry_offset + (MANIFEST_V2_TOC_ENTRY_SIZE * (entry + 1));
+	const struct manifest_toc_entry *toc_entries =
+		(struct manifest_toc_entry*) (data->raw + toc_entry_offset);
+	int i;
+	struct manifest_toc_entry bad_entry;
+
+	TEST_START;
+
+	memcpy (&bad_entry, &toc_entries[entry], sizeof (bad_entry));
+	bad_entry.hash_id = 0xff;
+	bad_entry.length = read_len;
+
+	pfm_flash_v2_testing_init_and_verify (test, &pfm, 0x10000, test_pfm, 0, true, 0);
+
+	pfm_flash_v2_testing_find_firmware_entry_mocked_hash (test, &pfm, test_pfm, fw_index);
+
+	status = mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha256,
+		&manifest->hash_mock, 0);
+	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.update,
+		&manifest->hash_mock, 0, MOCK_ARG_PTR_CONTAINS (data->toc, MANIFEST_V2_TOC_HEADER_SIZE),
+		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
+
+	status |= flash_mock_expect_verify_flash_and_hash (&manifest->flash, &manifest->hash_mock,
+		manifest->addr + toc_entry_offset, data->raw + toc_entry_offset,
+		first_entry - toc_entry_offset);
+
+	for (i = start; i < entry; i++) {
+		status |= mock_expect (&manifest->flash.mock, manifest->flash.base.read, &manifest->flash,
+			0, MOCK_ARG (manifest->addr + toc_entry_offset + (i * MANIFEST_V2_TOC_ENTRY_SIZE)),
+			MOCK_ARG_NOT_NULL, MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
+		status |= mock_expect_output (&manifest->flash.mock, 1, &toc_entries[i],
+			MANIFEST_V2_TOC_ENTRY_SIZE, 2);
+
+		status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.update,
+			&manifest->hash_mock, 0,
+			MOCK_ARG_PTR_CONTAINS (&toc_entries[i], MANIFEST_V2_TOC_ENTRY_SIZE),
+			MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
+	}
+
+	status |= mock_expect (&manifest->flash.mock, manifest->flash.base.read, &manifest->flash,
+			0, MOCK_ARG (manifest->addr + toc_entry_offset + (i * MANIFEST_V2_TOC_ENTRY_SIZE)),
+			MOCK_ARG_NOT_NULL, MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
+	status |= mock_expect_output (&manifest->flash.mock, 1, &bad_entry, sizeof (bad_entry), 2);
+
+	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.update,
+		&manifest->hash_mock, 0,
+		MOCK_ARG_PTR_CONTAINS (&bad_entry, sizeof (bad_entry)),
+		MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
+
+	status |= flash_mock_expect_verify_flash_and_hash (&manifest->flash, &manifest->hash_mock,
+		manifest->addr + last_entry, data->raw + last_entry, data->toc_hash_offset - last_entry);
+
+	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.finish,
+		&manifest->hash_mock, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+	status |= mock_expect_output (&manifest->hash_mock.mock, 0, data->toc_hash, data->toc_hash_len,
+		1);
+
+	status |= mock_expect (&manifest->flash.mock, manifest->flash.base.read, &manifest->flash, 0,
+		MOCK_ARG (manifest->addr + offset), MOCK_ARG_NOT_NULL, MOCK_ARG (read_len));
+	status |= mock_expect_output (&manifest->flash.mock, 1, data->raw + offset,
+		data->length - offset, 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm.test.base.buffer_supported_versions (&pfm.test.base,
+		test_pfm->fw[fw_index].fw_id_str, 0, sizeof (ver_list), ver_list);
+	CuAssertIntEquals (test, PFM_MALFORMED_FW_VER_ELEMENT, status);
+
+	pfm_flash_v2_testing_validate_and_release (test, &pfm);
+}
+
+static void pfm_flash_v2_test_buffer_supported_versions_null_firmware_id_fw_list_error (
+		CuTest *test)
+{
+	struct pfm_flash_v2_testing pfm;
+	const struct pfm_v2_testing_data *test_pfm = &PFM_V2_TWO_FW;
+	int status;
+	uint8_t ver_list[256];
+
+	TEST_START;
+
+	pfm_flash_v2_testing_init_and_verify (test, &pfm, 0x10000, test_pfm, 0, false, 0);
+
+	status = mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
+		&pfm.manifest.flash, FLASH_READ_FAILED,
+		MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_ENTRY_OFFSET), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm.test.base.buffer_supported_versions (&pfm.test.base, NULL, 0, sizeof (ver_list),
+		ver_list);
+	CuAssertIntEquals (test, FLASH_READ_FAILED, status);
+
+	pfm_flash_v2_testing_validate_and_release (test, &pfm);
+}
+
+static void pfm_flash_v2_test_buffer_supported_versions_null_firmware_id_read_element_error (
+	CuTest *test)
+{
+	struct pfm_flash_v2_testing pfm;
+	const struct pfm_v2_testing_data *test_pfm = &PFM_V2_TWO_FW;
+	int fw_index = 0;
+	int status;
+	uint8_t ver_list[256];
+
+	TEST_START;
+
+	pfm_flash_v2_testing_init_and_verify (test, &pfm, 0x10000, test_pfm, 0, false, 0);
+
+	/* Get the list of all FW entries. */
+	pfm_flash_v2_testing_find_firmware_entry (test, &pfm, test_pfm, test_pfm->fw_count - 1);
+
+	pfm_flash_v2_testing_find_firmware_entry (test, &pfm, test_pfm, fw_index);
+
+	status = mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
+		&pfm.manifest.flash, FLASH_READ_FAILED,
+		MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_ENTRY_OFFSET), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE * (test_pfm->fw[fw_index].fw_entry + 1)));
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm.test.base.buffer_supported_versions (&pfm.test.base, NULL, 0, sizeof (ver_list),
+		ver_list);
+	CuAssertIntEquals (test, FLASH_READ_FAILED, status);
+
+	pfm_flash_v2_testing_validate_and_release (test, &pfm);
+}
+
 
 CuSuite* get_pfm_flash_v2_suite ()
 {
@@ -11085,6 +12190,44 @@ CuSuite* get_pfm_flash_v2_suite ()
 		pfm_flash_v2_test_get_firmware_images_additional_element_read_bad_fw_version_element_length_less_than_img_min);
 	SUITE_ADD_TEST (suite,
 		pfm_flash_v2_test_get_firmware_images_additional_element_read_bad_fw_version_element_length_less_than_img);
+	SUITE_ADD_TEST (suite, pfm_flash_v2_test_buffer_supported_versions);
+	SUITE_ADD_TEST (suite, pfm_flash_v2_test_buffer_supported_versions_multiple_fw);
+	SUITE_ADD_TEST (suite, pfm_flash_v2_test_buffer_supported_versions_multiple_versions);
+	SUITE_ADD_TEST (suite, pfm_flash_v2_test_buffer_supported_versions_no_versions);
+	SUITE_ADD_TEST (suite, pfm_flash_v2_test_buffer_supported_versions_partial);
+	SUITE_ADD_TEST (suite, pfm_flash_v2_test_buffer_supported_versions_multiple_versions_partial);
+	SUITE_ADD_TEST (suite, pfm_flash_v2_test_buffer_supported_versions_null_firmware_id);
+	SUITE_ADD_TEST (suite,
+		pfm_flash_v2_test_buffer_supported_versions_null_firmware_id_multiple_versions);
+	SUITE_ADD_TEST (suite,
+		pfm_flash_v2_test_buffer_supported_versions_no_flash_dev_element_null_firmware_id);
+	SUITE_ADD_TEST (suite,
+		pfm_flash_v2_test_buffer_supported_versions_no_firmware_entries_null_firmware_id);
+	SUITE_ADD_TEST (suite,
+		pfm_flash_v2_test_buffer_supported_versions_null_firmware_id_partial);
+	SUITE_ADD_TEST (suite,
+		pfm_flash_v2_test_buffer_supported_versions_null_firmware_id_multiple_versions_partial);
+	SUITE_ADD_TEST (suite, pfm_flash_v2_test_buffer_supported_versions_null);
+	SUITE_ADD_TEST (suite, pfm_flash_v2_test_buffer_supported_versions_verify_never_run);
+	SUITE_ADD_TEST (suite, pfm_flash_v2_test_buffer_supported_versions_no_flash_dev_element);
+	SUITE_ADD_TEST (suite, pfm_flash_v2_test_buffer_supported_versions_no_firmware_entries);
+	SUITE_ADD_TEST (suite, pfm_flash_v2_test_buffer_supported_versions_unknown_firmware);
+	SUITE_ADD_TEST (suite, pfm_flash_v2_test_buffer_supported_versions_find_firmware_error);
+	SUITE_ADD_TEST (suite, pfm_flash_v2_test_buffer_supported_versions_read_element_error);
+	SUITE_ADD_TEST (suite,
+		pfm_flash_v2_test_buffer_supported_versions_bad_firmware_element_length_less_than_min);
+	SUITE_ADD_TEST (suite,
+		pfm_flash_v2_test_buffer_supported_versions_bad_firmware_element_length_less_than_id);
+	SUITE_ADD_TEST (suite,
+		pfm_flash_v2_test_buffer_supported_versions_bad_fw_version_element_length_less_than_min);
+	SUITE_ADD_TEST (suite,
+		pfm_flash_v2_test_buffer_supported_versions_bad_fw_version_element_length_less_than_version);
+	SUITE_ADD_TEST (suite,
+		pfm_flash_v2_test_buffer_supported_versions_bad_fw_version_element_length_less_than_rw);
+	SUITE_ADD_TEST (suite,
+		pfm_flash_v2_test_buffer_supported_versions_null_firmware_id_fw_list_error);
+	SUITE_ADD_TEST (suite,
+		pfm_flash_v2_test_buffer_supported_versions_null_firmware_id_read_element_error);
 
 	return suite;
 }
