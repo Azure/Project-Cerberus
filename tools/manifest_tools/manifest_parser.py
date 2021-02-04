@@ -464,3 +464,16 @@ def load_and_process_xml (xml_file, xml_type):
         traceback.print_exc ()
 
         return None
+
+def get_manifest_format (xml_file):
+    root = et.parse(xml_file).getroot()
+    fw_type = xml_extract_attrib (root, XML_FW_TYPE_ATTRIB, True, False)
+    return manifest_types.VERSION_1 if fw_type is None else manifest_types.VERSION_2
+
+def get_manifest_version (xml_file):
+    root = et.parse(xml_file).getroot()
+    return xml_extract_attrib (root, XML_VERSION_ATTRIB, True, False)
+
+def get_manifest_type (xml_file):
+    root = et.parse(xml_file).getroot()
+    return xml_extract_attrib (root, XML_FW_TYPE_ATTRIB, True, False)
