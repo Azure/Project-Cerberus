@@ -18,92 +18,20 @@ from Crypto.PublicKey import RSA
 PCD_CONFIG_FILENAME = "pcd_generator.config"
 
 
-class pcd_header(ctypes.LittleEndianStructure):
+class pcd_port (ctypes.LittleEndianStructure):
     _pack_ = 1
-    _fields_ = [('length', ctypes.c_ushort),
-                ('header_len', ctypes.c_ushort),
-                ('format_id', ctypes.c_ubyte),
-                ('reserved1', ctypes.c_ubyte),
-                ('reserved2', ctypes.c_ubyte),
-                ('reserved3', ctypes.c_ubyte)]
+    _fields_ = [('port_id', ctypes.c_ubyte),
+                ('port_flags', ctypes.c_ubyte),
+                ('policy', ctypes.c_ubyte),
+                ('reserved', ctypes.c_ubyte),
+    			('spi_frequency_hz', ctypes.c_uint)]
 
-class pcd_rot_header(ctypes.LittleEndianStructure):
+class pcd_mux (ctypes.LittleEndianStructure):
     _pack_ = 1
-    _fields_ = [('length', ctypes.c_ushort),
-                ('header_len', ctypes.c_ushort),
-                ('format_id', ctypes.c_ubyte),
-                ('num_ports', ctypes.c_ubyte),
-                ('addr', ctypes.c_ubyte),
-                ('bmc_i2c_addr', ctypes.c_ubyte),
-                ('cpld_addr', ctypes.c_ubyte),
-                ('cpld_channel', ctypes.c_ubyte),
-                ('active', ctypes.c_ubyte),
-                ('default_failure_action', ctypes.c_ubyte),
-                ('flags', ctypes.c_ubyte),
-                ('reserved1', ctypes.c_ubyte),
-                ('reserved2', ctypes.c_ubyte),
-                ('reserved3', ctypes.c_ubyte)]
+    _fields_ = [('mux_address', ctypes.c_ubyte),
+                ('mux_channel', ctypes.c_ubyte),
+                ('reserved', ctypes.c_ushort)]
 
-class pcd_port_header(ctypes.LittleEndianStructure):
-    _pack_ = 1
-    _fields_ = [('length', ctypes.c_ushort),
-                ('header_len', ctypes.c_ushort),
-                ('format_id', ctypes.c_ubyte),
-                ('id', ctypes.c_ubyte),
-                ('reserved1', ctypes.c_ubyte),
-                ('reserved2', ctypes.c_ubyte),
-    			('frequency', ctypes.c_ulong)]
-
-class pcd_components_header(ctypes.LittleEndianStructure):
-    _pack_ = 1
-    _fields_ = [('length', ctypes.c_ushort),
-                ('header_len', ctypes.c_ushort),
-                ('format_id', ctypes.c_ubyte),
-                ('num_components', ctypes.c_ubyte),
-                ('reserved1', ctypes.c_ubyte),
-                ('reserved2', ctypes.c_ubyte)]
-
-class pcd_component_header(ctypes.LittleEndianStructure):
-    _pack_ = 1
-    _fields_ = [('length', ctypes.c_ushort),
-                ('header_len', ctypes.c_ushort),
-                ('format_id', ctypes.c_ubyte),
-                ('num_muxes', ctypes.c_ubyte),
-                ('addr', ctypes.c_ubyte),
-                ('channel', ctypes.c_ubyte),
-                ('flags', ctypes.c_ubyte),
-    			('eid', ctypes.c_ubyte),
-                ('power_ctrl_reg', ctypes.c_ubyte),
-                ('power_ctrl_mask', ctypes.c_ubyte),
-                ('id', ctypes.c_ulong)]
-
-class pcd_mux_header(ctypes.LittleEndianStructure):
-    _pack_ = 1
-    _fields_ = [('length', ctypes.c_ushort),
-                ('header_len', ctypes.c_ushort),
-                ('format_id', ctypes.c_ubyte),
-                ('addr', ctypes.c_ubyte),
-                ('channel', ctypes.c_ubyte),
-                ('mux_level', ctypes.c_ubyte),]
-
-class pcd_platform_id_header(ctypes.LittleEndianStructure):
-    _pack_ = 1
-    _fields_ = [('length', ctypes.c_ushort),
-                ('header_len', ctypes.c_ushort),
-                ('format_id', ctypes.c_ubyte),
-                ('id_len', ctypes.c_ubyte),
-                ('reserved1', ctypes.c_ubyte),
-                ('reserved2', ctypes.c_ubyte)]
-
-
-def get_key_from_dict (dictionary, key, group, required=True):
-    if key not in dictionary:
-        if required:
-            raise KeyError ("Failed to generate PCD: {0} missing {1}".format (group, key))
-        else:
-            return None
-    else:
-        return dictionary[key]
 
 def generate_ports_buf (xml_ports):
     """
@@ -117,51 +45,76 @@ def generate_ports_buf (xml_ports):
     if xml_ports is None or len (xml_ports) < 1:
         return None, 0
 
-    ports_buf = (ctypes.c_ubyte * (ctypes.sizeof (pcd_port_header) * len (xml_ports))) ()
+    num_ports = len (xml_ports)
+    ports_buf = (ctypes.c_ubyte * (ctypes.sizeof (pcd_port) * num_ports)) ()
     ports_len = 0
 
     for id, port in xml_ports.items ():
-        freq = int (get_key_from_dict (port, "spifreq", "Port"))
+        spifreq = int (manifest_common.get_key_from_dict (port, "spifreq", "Port"))
+        resetctrl = int (manifest_common.get_key_from_dict (port, "resetctrl", "Port"))
+        flashmode = int (manifest_common.get_key_from_dict (port, "flashmode", "Port"))
+        policy = int (manifest_common.get_key_from_dict (port, "policy", "Port"))
 
-        port_body = pcd_port_header (ctypes.sizeof (pcd_port_header),
-            ctypes.sizeof (pcd_port_header), 0, int (id), 0, 0, freq)
+        portflags = (flashmode << 2) | resetctrl 
+
+        port_body = pcd_port (int (id), portflags, policy, 0, spifreq)
 
         ctypes.memmove (ctypes.addressof (ports_buf) + ports_len, ctypes.addressof (port_body),
-            ctypes.sizeof (pcd_port_header))
-        ports_len += ctypes.sizeof (pcd_port_header)
+            ctypes.sizeof (pcd_port))
+        ports_len += ctypes.sizeof (pcd_port)
 
-    return ports_buf, len (xml_ports)
+    return ports_buf, num_ports
 
-def generate_rot_header (xml_rot, xml_rot_interface, xml_cpld, xml_policy, num_ports):
+def generate_rot (xml_rot, num_components, hash_engine):
     """
-    Create a PCD RoT header
+    Create an RoT object from parsed XML list and ports buffer
 
-    :param xml_rot: List of parsed XML of RoT to be included in PCD
-    :param xml_rot_interface: List of parsed XML of RoT interface to be included in PCD
-    :param xml_cpld: List of parsed XML of CPLD to be included in PCD
-    :param xml_policy: List of parsed XML of policy to be included in PCD
-    :param num_ports: Number of RoT ports
+    :param xml_rot: List of parsed XML of RoT to be included in RoT object
+    :param num_components: Number of components
+    :param hash_engine: Hashing engine
 
-    :return PCD RoT header instance
+    :return Instance of an RoT object, RoT's TOC entry, RoT hash
     """
 
-    is_pa_rot = bool (get_key_from_dict (xml_rot, "is_pa_rot", "PA RoT Flag"))
-    addr = int (get_key_from_dict (xml_rot_interface, "address", "RoT interface"), base=16)
-    bmc_i2c_addr = int (get_key_from_dict (xml_rot_interface, "bmc_address", "RoT interface"),
-        base=16)
-    cpld_addr = int (get_key_from_dict (xml_cpld, "address", "CPLD"), base=16)
-    cpld_channel = int (get_key_from_dict (xml_cpld, "channel", "CPLD"))
-    active = bool (get_key_from_dict (xml_policy, "active", "Policy"))
-    failure_action = int (get_key_from_dict (xml_policy, "defaultfailureaction", "Policy"))
+    rottype = int (manifest_common.get_key_from_dict (xml_rot, "type", "RoT"))
+    rotaddress = int (manifest_common.get_key_from_dict (xml_rot["interface"], "address", 
+        "RoT interface"))
+    roteid = int (manifest_common.get_key_from_dict (xml_rot["interface"], "roteid", 
+        "RoT interface"))
+    bridgeeid = int (manifest_common.get_key_from_dict (xml_rot["interface"], "bridgeeid", 
+        "RoT interface"))
+    bridgeaddress = int (manifest_common.get_key_from_dict (xml_rot["interface"], "bridgeaddress", 
+        "RoT interface"))
 
-    ports_buf_len = ctypes.sizeof (pcd_port_header) * num_ports
+    rotflags = rottype
 
-    flags = 0
-    flags |= (is_pa_rot << 0)
+    if "ports" in xml_rot:
+        ports, num_ports = generate_ports_buf (xml_rot["ports"])
+    else:
+        ports = (ctypes.c_ubyte * 0) ()
+        num_ports = 0
 
-    return pcd_rot_header (ports_buf_len + ctypes.sizeof (pcd_rot_header),
-        ctypes.sizeof (pcd_rot_header), 0, num_ports, addr, bmc_i2c_addr, cpld_addr, cpld_channel,
-        active, failure_action, flags)
+    class pcd_rot_element (ctypes.LittleEndianStructure):
+        _pack_ = 1
+        _fields_ = [('rot_flags', ctypes.c_ubyte),
+                    ('port_count', ctypes.c_ubyte),
+                    ('components_count', ctypes.c_ubyte),
+                    ('rot_address', ctypes.c_ubyte),
+                    ('rot_eid', ctypes.c_ubyte),
+                    ('bridge_address', ctypes.c_ubyte),
+                    ('bridge_eid', ctypes.c_ubyte),
+                    ('reserved', ctypes.c_ubyte),
+                    ('ports', ctypes.c_ubyte * ctypes.sizeof (ports))]
+
+    rot = pcd_rot_element (rotflags, num_ports, num_components, rotaddress, roteid, bridgeaddress, 
+        bridgeeid, 0, ports)
+    rot_len = ctypes.sizeof (rot)
+    rot_toc_entry = manifest_common.manifest_toc_entry (manifest_common.PCD_V2_ROT_TYPE_ID, 
+        manifest_common.V2_BASE_TYPE_ID, 1, 0, 0, rot_len)
+
+    rot_hash = manifest_common.generate_hash (rot, hash_engine)
+
+    return rot, rot_toc_entry, rot_hash
 
 def generate_muxes_buf (xml_muxes):
     """
@@ -169,165 +122,264 @@ def generate_muxes_buf (xml_muxes):
 
     :param xml_muxes: List of parsed XML of muxes to be included in PCD
 
-    :return Muxes buffer, number of muxes
+    :return Muxes buffer, length of muxes buffer, number of muxes
     """
 
     if xml_muxes is None or len (xml_muxes) < 1:
         return None, 0
 
-    muxes_buf = (ctypes.c_ubyte * (ctypes.sizeof (pcd_mux_header) * len (xml_muxes))) ()
+    num_muxes = len (xml_muxes)
+    muxes_buf = (ctypes.c_ubyte * (ctypes.sizeof (pcd_mux) * num_muxes)) ()
     muxes_len = 0
 
-    for level, mux in xml_muxes.items ():
-        addr = int (get_key_from_dict (mux, "address", "Mux"), base=16)
-        channel = int (get_key_from_dict (mux, "channel", "Mux"))
+    for mux in sorted (xml_muxes.items ()):
+        address = int (manifest_common.get_key_from_dict (mux[1], "address", "Mux"))
+        channel = int (manifest_common.get_key_from_dict (mux[1], "channel", "Mux"))
 
-        mux_body = pcd_mux_header (ctypes.sizeof (pcd_mux_header), ctypes.sizeof (pcd_mux_header),
-            0, addr, channel, int (level))
+        mux_body = pcd_mux (address, channel, 0)
 
         ctypes.memmove (ctypes.addressof (muxes_buf) + muxes_len, ctypes.addressof (mux_body),
-            ctypes.sizeof (pcd_mux_header))
-        muxes_len += ctypes.sizeof (pcd_mux_header)
+            ctypes.sizeof (pcd_mux))
+        muxes_len += ctypes.sizeof (pcd_mux)
 
-    return muxes_buf, len (xml_muxes)
+    return muxes_buf, muxes_len, num_muxes
 
-def generate_components_buf (xml_components):
+def generate_cpld (xml_cpld, hash_engine):
+    """
+    Create a CPLD object from parsed XML list
+
+    :param xml_cpld: List of parsed XML of CPLD to be included in CPLD object
+    :param hash_engine: Hashing engine
+
+    :return Instance of a CPLD object, CPLD's TOC entry, hash of CPLD object
+    """
+
+    if xml_cpld["interface"]["type"] is not 0:
+        raise ValueError ("Unsupported CPLD interface type: {0}".format (
+            xml_cpld["interface"]["type"]))
+
+    if "muxes" in xml_cpld["interface"]:
+        muxes, muxes_len, num_muxes = generate_muxes_buf (xml_cpld["interface"]["muxes"])
+    else:
+        muxes = (ctypes.c_ubyte * 0)()
+        muxes_len = 0
+        num_muxes = 0
+
+    bus = int (manifest_common.get_key_from_dict (xml_cpld["interface"], "bus", "CPLD interface"))
+    address = int (manifest_common.get_key_from_dict (xml_cpld["interface"], "address", 
+        "CPLD interface"))
+    eid = int (manifest_common.get_key_from_dict (xml_cpld["interface"], "eid", 
+        "CPLD interface"))
+    i2cmode = int (manifest_common.get_key_from_dict (xml_cpld["interface"], "i2cmode", 
+        "CPLD interface"))
+
+    i2c_flags = i2cmode 
+
+    class pcd_cpld_element (ctypes.LittleEndianStructure):
+        _pack_ = 1
+        _fields_ = [('mux_count', ctypes.c_ubyte, 4),
+                    ('i2c_flags', ctypes.c_ubyte, 4),
+                    ('bus', ctypes.c_ubyte),
+                    ('address', ctypes.c_ubyte),
+                    ('eid', ctypes.c_ubyte),
+                    ('muxes', ctypes.c_ubyte * muxes_len)]
+
+    cpld = pcd_cpld_element (num_muxes, i2c_flags, bus, address, eid, muxes)
+    cpld_len = ctypes.sizeof (cpld)
+    cpld_toc_entry = manifest_common.manifest_toc_entry (manifest_common.PCD_V2_I2C_CPLD_TYPE_ID, 
+        manifest_common.V2_BASE_TYPE_ID, 1, 0, 0, cpld_len)
+
+    cpld_hash = manifest_common.generate_hash (cpld, hash_engine)
+
+    return cpld, cpld_toc_entry, cpld_hash
+
+def generate_direct_component_buf (xml_component):
+    """
+    Create a direct component object from parsed XML list
+
+    :param xml_component: List of parsed XML of component to be included in direct component object
+
+    :return Instance of a component object, component's TOC entry, component hash
+    """
+
+    if xml_component["interface"]["type"] is not 0:
+        raise ValueError ("Unsupported direct component interface type: {0}".format (
+            xml_component["interface"]["type"]))
+
+    policy = int (manifest_common.get_key_from_dict (xml_component, "policy", "Direct Component"))
+    powerctrl_reg = int (manifest_common.get_key_from_dict (xml_component["powerctrl"], "register",
+        "Direct Component"))
+    powerctrl_mask = int (manifest_common.get_key_from_dict (xml_component["powerctrl"], "mask",
+        "Direct Component"))
+    component_type = manifest_common.get_key_from_dict (xml_component, "type", "Direct Component")
+    i2cmode = int (manifest_common.get_key_from_dict (xml_component["interface"], "i2cmode", 
+        "Direct Component"))
+    bus = int (manifest_common.get_key_from_dict (xml_component["interface"], "bus", 
+        "Direct Component"))
+    address = int (manifest_common.get_key_from_dict (xml_component["interface"], "address", 
+        "Direct Component"))
+    eid = int (manifest_common.get_key_from_dict (xml_component["interface"], "eid", 
+        "Direct Component"))
+
+    type_len = len (component_type)
+    i2c_flags = i2cmode 
+
+    padding_len = ((type_len + 3) & (~3)) - type_len
+    padding = (ctypes.c_ubyte * padding_len) ()
+    ctypes.memset (padding, 0, ctypes.sizeof (ctypes.c_ubyte) * padding_len)
+
+    if "muxes" in xml_component["interface"]:
+        muxes, muxes_len, num_muxes = generate_muxes_buf (xml_component["interface"]["muxes"])
+    else:
+        muxes = (ctypes.c_ubyte * 0) ()
+        muxes_len = 0
+        num_muxes = 0
+
+    class pcd_direct_i2c_component_element (ctypes.LittleEndianStructure):
+        _pack_ = 1
+        _fields_ = [('policy', ctypes.c_ubyte),
+                    ('power_ctrl_reg', ctypes.c_ubyte),
+                    ('power_ctrl_mask', ctypes.c_ubyte),
+                    ('type_len', ctypes.c_ubyte),
+                    ('type', ctypes.c_char * type_len),
+                    ('type_padding', ctypes.c_ubyte * padding_len),
+                    ('mux_count', ctypes.c_ubyte, 4),
+                    ('i2c_flags', ctypes.c_ubyte, 4),
+                    ('bus', ctypes.c_ubyte),
+                    ('address', ctypes.c_ubyte),
+                    ('eid', ctypes.c_ubyte),
+                    ('muxes', ctypes.c_ubyte * muxes_len)]
+
+    component = pcd_direct_i2c_component_element (policy, powerctrl_reg, powerctrl_mask, type_len, 
+        component_type.encode ('utf-8'), padding, num_muxes, i2c_flags, bus, address, eid, muxes)
+    component_len = ctypes.sizeof (component)
+
+    component_toc_entry = manifest_common.manifest_toc_entry (
+        manifest_common.PCD_V2_DIRECT_COMPONENT_TYPE_ID, manifest_common.V2_BASE_TYPE_ID, 1, 
+        0, 0, component_len)
+
+    component_hash = manifest_common.generate_hash (component, hash_engine)
+
+    return component, component_toc_entry, component_hash
+
+def generate_mctp_bridge_component_buf (xml_component):
+    """
+    Create an MCTP bridges component object from parsed XML list
+
+    :param xml_component: List of parsed XML of component to be included in MCTP bridge component 
+        object
+
+    :return Instance of a component object, component's TOC entry, component hash
+    """
+
+    policy = int (manifest_common.get_key_from_dict (xml_component, "policy", 
+        "MCTP Bridge Component"))
+    powerctrl_reg = int (manifest_common.get_key_from_dict (xml_component["powerctrl"], "register",
+        "MCTP Bridge Component"))
+    powerctrl_mask = int (manifest_common.get_key_from_dict (xml_component["powerctrl"], "mask",
+        "MCTP Bridge Component"))
+    component_type = manifest_common.get_key_from_dict (xml_component, "type", 
+        "MCTP Bridge Component")
+    device_id = int (manifest_common.get_key_from_dict (xml_component, "deviceid", 
+        "MCTP Bridge Component"))
+    vendor_id = int (manifest_common.get_key_from_dict (xml_component, "vendorid", 
+        "MCTP Bridge Component"))
+    sub_device_id = int (manifest_common.get_key_from_dict (xml_component, "subdeviceid", 
+        "MCTP Bridge Component"))
+    sub_vendor_id = int (manifest_common.get_key_from_dict (xml_component, "subvendorid", 
+        "MCTP Bridge Component"))
+    sub_vendor_id = int (manifest_common.get_key_from_dict (xml_component, "subvendorid", 
+        "MCTP Bridge Component"))
+    components_count = int (manifest_common.get_key_from_dict (xml_component, "count", 
+        "MCTP Bridge Component"))
+    eid = int (manifest_common.get_key_from_dict (xml_component, "eid", "MCTP Bridge Component"))
+
+    type_len = len (component_type)
+
+    padding_len = ((type_len + 3) & (~3)) - type_len
+    padding = (ctypes.c_ubyte * padding_len) ()
+    ctypes.memset (padding, 0, ctypes.sizeof (ctypes.c_ubyte) * padding_len)
+
+    class pcd_mctp_bridge_component_element (ctypes.LittleEndianStructure):
+        _pack_ = 1
+        _fields_ = [('policy', ctypes.c_ubyte),
+                    ('power_ctrl_reg', ctypes.c_ubyte),
+                    ('power_ctrl_mask', ctypes.c_ubyte),
+                    ('type_len', ctypes.c_ubyte),
+                    ('type', ctypes.c_char * type_len),
+                    ('type_padding', ctypes.c_ubyte * padding_len),
+                    ('device_id', ctypes.c_ushort),
+                    ('vendor_id', ctypes.c_ushort),
+                    ('subsystem_device_id', ctypes.c_ushort),
+                    ('subsystem_vendor_id', ctypes.c_ushort),
+                    ('components_count', ctypes.c_ubyte),
+                    ('eid', ctypes.c_ubyte),
+                    ('reserved', ctypes.c_ushort)]
+
+    component = pcd_mctp_bridge_component_element (policy, powerctrl_reg, powerctrl_mask, type_len, 
+        component_type.encode ('utf-8'), padding, device_id, vendor_id, sub_device_id, 
+        sub_vendor_id, components_count, eid, 0)
+    component_len = ctypes.sizeof (component)
+
+    component_toc_entry = manifest_common.manifest_toc_entry (
+        manifest_common.PCD_V2_MCTP_BRIDGE_COMPONENT_TYPE_ID, manifest_common.V2_BASE_TYPE_ID, 1, 
+        0, 0, component_len)
+
+    component_hash = manifest_common.generate_hash (component, hash_engine)
+
+    return component, component_toc_entry, component_hash
+
+def generate_components (xml_components, hash_engine):
     """
     Create a buffer of component section struct instances from parsed XML list
 
     :param xml_components: List of parsed XML of components to be included in PCD
+    :param hash_engine: Hashing engine
 
-    :return Components buffer, number of components
+    :return Components buffer, number of components, list of component TOC entries, 
+        list of component hashes
     """
 
     if xml_components is None or len (xml_components) < 1:
         return None, 0, 0
 
     components_list = []
+    components_toc_list = []
+    hash_list = []
     components_len = 0
 
     for component in xml_components:
-        device_type = int (get_key_from_dict (component, "devicetype", "Component"), base=16)
-        bus = int (get_key_from_dict (component, "bus", "Component"))
-        address = int (get_key_from_dict (component, "address", "Component"), base=16)
-        i2c_mode = int (get_key_from_dict (component, "i2cmode", "Component"), base=10)
-        eid = int (get_key_from_dict (component, "eid", "Component"), base=16)
-        powerctrl = get_key_from_dict (component, "powerctrl", "Component")
-        powerctrl_reg = int (get_key_from_dict (powerctrl, "register", "Component PowerCtrl"),
-            base=16)
-        powerctrl_mask = int (get_key_from_dict (powerctrl, "mask", "Component PowerCtrl"), base=16)
+        connection = manifest_common.get_key_from_dict (component, "connection", "Component")
 
-        flags = 0
-        flags |= (i2c_mode << 0)
+        if connection is manifest_parser.PCD_COMPONENT_CONNECTION_DIRECT:
+            component_buf, component_toc_entry, component_hash = generate_direct_component_buf (
+                component)
 
-        muxes = get_key_from_dict (component, "muxes", "Component", required=False)
-        muxes_buf, num_muxes = generate_muxes_buf (muxes)
+        elif connection is manifest_parser.PCD_COMPONENT_CONNECTION_MCTP_BRIDGE:
+            component_buf, component_toc_entry, component_hash = \
+                generate_mctp_bridge_component_buf (component)
 
-        if muxes_buf is None:
-            muxes_buf = (ctypes.c_ubyte * 0)()
-            num_muxes = 0
+        else:
+            raise ValueError ("Unsupported component connection type: {0}".format (connection))
+        
+        components_list.append (component_buf)
+        components_toc_list.append (component_toc_entry)
+        hash_list.append (component_hash)
 
-        class pcd_component (ctypes.LittleEndianStructure):
-            _pack_ = 1
-            _fields_ = [('component_header', pcd_component_header),
-                        ('muxes', ctypes.c_ubyte * ctypes.sizeof (muxes_buf))]
-
-        component_header = pcd_component_header (ctypes.sizeof (pcd_component),
-        	ctypes.sizeof (pcd_component_header), 0, num_muxes, address, bus, flags, eid,
-            powerctrl_reg, powerctrl_mask, device_type)
-        component_section = pcd_component (component_header, muxes_buf)
-        components_list.append (component_section)
-        components_len += ctypes.sizeof (component_section)
+        components_len += ctypes.sizeof (component_buf)
 
     components_buf = (ctypes.c_ubyte * components_len) ()
     offset = 0
 
     for component in components_list:
+        component_len = ctypes.sizeof (component)
         ctypes.memmove (ctypes.addressof (components_buf) + offset, ctypes.addressof (component),
-            ctypes.sizeof (component))
-        offset += ctypes.sizeof (component)
+            component_len)
 
-    return components_buf, len (xml_components)
+        offset += component_len
 
-def generate_components_header (components_len, num_components):
-    """
-    Create a PCD components header
+    return components_buf, len (xml_components), components_toc_list, hash_list
 
-    :param components_len: Length of components buffer
-    :param num_components: Number of components in PCD
-
-    :return PCD components header instance
-    """
-
-    return pcd_components_header (components_len + ctypes.sizeof (pcd_components_header),
-        ctypes.sizeof (pcd_components_header), 0, num_components, 0, 0)
-
-def generate_platform_id_header (id_len):
-    """
-    Create a PCD platform ID header
-
-    :param id_len: Length of platform ID buffer
-
-    :return PCD platform ID header instance
-    """
-
-    if id_len > 255:
-        raise ValueError("Failed to generate PCD: Invalid platform id length - ({0})"
-            .format(id_len))
-
-    return pcd_platform_id_header (id_len + ctypes.sizeof (pcd_platform_id_header),
-        ctypes.sizeof (pcd_platform_id_header), 0, id_len, 0, 0)
-
-def generate_pcd_header (pcd_length):
-    """
-    Create a PCD header
-
-    :param pcd_length: Length of PCD
-
-    :return PCD header instance
-    """
-
-    return pcd_header (pcd_length + ctypes.sizeof (pcd_header), ctypes.sizeof (pcd_header),
-        0, 0, 0, 0)
-
-def generate_pcd (manifest_header, header, rot_header, ports, components_header,
-    components, platform_id_header, platform_id):
-    """
-    Create a PCD object from all the different PCD sections
-
-    :param manifest_header: Instance of a manifest header
-    :param header: Instance of a PCD header
-    :param rot_header: Instance of a PCD RoT header
-    :param ports: Ports section buffer
-    :param components_header: Instance of a PCD components header
-    :param components: Components section buffer
-    :param platform_id_header: Instance of a PCD platform ID header
-    :param platform_id: PCD platform ID
-
-    :return Instance of a PCD object
-    """
-
-    ports_len = ctypes.sizeof (pcd_port_header) * rot_header.num_ports
-
-    components_len = components_header.length - components_header.header_len
-    components_buf = (ctypes.c_ubyte * components_len) ()
-
-    ctypes.memmove (ctypes.addressof (components_buf), ctypes.addressof (components),
-        components_len)
-
-    class pcd (ctypes.LittleEndianStructure):
-        _pack_ = 1
-        _fields_ = [('manifest_header', manifest_common.manifest_header),
-                    ('header', pcd_header),
-                    ('rot_header', pcd_rot_header),
-                    ('ports', ctypes.c_ubyte * ports_len),
-                    ('components_header', pcd_components_header),
-                    ('components', ctypes.c_ubyte * components_len),
-                    ('platform_id_header', pcd_platform_id_header),
-                    ('platform_id', ctypes.c_char * len (platform_id))]
-
-    return pcd (manifest_header, header, rot_header, ports, components_header, components_buf,
-        platform_id_header, platform_id.encode('utf-8'))
 
 #*************************************** Start of Script ***************************************
 
@@ -336,44 +388,81 @@ if len (sys.argv) < 2:
 else:
     path = os.path.abspath (sys.argv[1])
 
-processed_xml, sign, key_size, key, id, output = manifest_common.load_xmls (path, 1,
-    manifest_types.PCD)
+processed_xml, sign, key_size, key, key_type, hash_type, pcd_id, output, xml_version = \
+    manifest_common.load_xmls (path, 1, manifest_types.PCD)
 
-processed_xml = list(processed_xml.items())[0][1]
+hash_engine = manifest_common.get_hash_engine (hash_type)
 
-ports = (ctypes.c_ubyte * 0)()
-num_ports = 0
+processed_xml = list (processed_xml.items())[0][1]
 
-if "ports" in processed_xml["rot"]:
-    ports, num_ports = generate_ports_buf (processed_xml["rot"]["ports"])
-
-components = (ctypes.c_ubyte * 0)()
 num_components = 0
+pcd_len = 0
+elements_list = []
+toc_list = []
+hash_list = []
+
+manifest_header = manifest_common.generate_manifest_header (pcd_id, key_size, manifest_types.PCD, 
+    hash_type, key_type, xml_version)
+manifest_header_len = ctypes.sizeof (manifest_header)
+pcd_len += manifest_header_len
+
+platform_id, platform_id_toc_entry, platform_id_hash = manifest_common.generate_platform_id_buf (
+    processed_xml, hash_engine)
+    
+pcd_len += ctypes.sizeof (platform_id)
+elements_list.append (platform_id)
+toc_list.append (platform_id_toc_entry)
+hash_list.append (platform_id_hash)
+
+if "cpld" in processed_xml:
+    cpld, cpld_toc_entry, cpld_hash = generate_cpld (processed_xml["cpld"], hash_engine)
+    
+    pcd_len += ctypes.sizeof (cpld)
+    elements_list.append (cpld)
+    toc_list.append (cpld_toc_entry)
+    hash_list.append (cpld_hash)
 
 if "components" in processed_xml:
-    components, num_components = generate_components_buf (
-        processed_xml["components"])
+    components, num_components, components_toc_list, components_hash_list = generate_components (
+        processed_xml["components"], hash_engine)
 
-components_header = generate_components_header (ctypes.sizeof (components), num_components)
+    pcd_len += ctypes.sizeof (components)
+    elements_list.append (components)
+    toc_list.extend (components_toc_list)
+    hash_list.extend (components_hash_list)
 
-rot_header = generate_rot_header (processed_xml["rot"], processed_xml["rot"]["interface"],
-                                  processed_xml["cpld"], processed_xml["policy"], num_ports)
+rot, rot_toc_entry, rot_hash = generate_rot (processed_xml["rot"], num_components, hash_engine)
+    
+pcd_len += ctypes.sizeof (rot)
+elements_list.append (rot)
+toc_list.append (rot_toc_entry)
+hash_list.append (rot_hash)
 
-platform_id_header = generate_platform_id_header (len (processed_xml["platform_id"]))
+toc = manifest_common.generate_toc (hash_engine, hash_type, toc_list, hash_list)
+toc_len = ctypes.sizeof (toc)
+pcd_len += toc_len
 
-header = generate_pcd_header (rot_header.length + components_header.length + \
-                              platform_id_header.length)
-manifest_header = manifest_common.generate_manifest_header (id, key_size,
-                                                            manifest_types.PCD)
-manifest_header.length = ctypes.sizeof (manifest_header) + header.length + \
-    manifest_header.sig_length
+manifest_header.length = pcd_len + manifest_header.sig_length
 
-pcd = generate_pcd (manifest_header, header, rot_header, ports, components_header,
-                    components, platform_id_header, processed_xml["platform_id"])
+pcd_buf = (ctypes.c_ubyte * pcd_len) ()
+offset = 0
 
-manifest_common.write_manifest (sign, pcd, key, output, manifest_header.length - \
-                                manifest_header.sig_length, manifest_header.sig_length)
+ctypes.memmove (ctypes.addressof (pcd_buf) + offset, ctypes.addressof (manifest_header), 
+    manifest_header_len)
+offset += manifest_header_len
 
-print ("Completed PCD generation: {0}".format(output))
+ctypes.memmove (ctypes.addressof (pcd_buf) + offset, ctypes.addressof (toc), toc_len)
+offset += toc_len
+
+for element in elements_list:
+    element_len = ctypes.sizeof (element)
+    ctypes.memmove (ctypes.addressof (pcd_buf) + offset, ctypes.addressof (element), element_len)
+
+    offset += element_len
+
+manifest_common.write_manifest (xml_version, sign, pcd_buf, key, key_size, key_type, output, 
+    manifest_header.length - manifest_header.sig_length, manifest_header.sig_length)
+
+print ("Completed PCD generation: {0}".format (output))
 
 

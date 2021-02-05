@@ -1,0 +1,29 @@
+<Firmware type="BMC" platform="Server-BMC" version="1.00.0">
+  <VersionAddr>0x00000001</VersionAddr>
+  <RuntimeUpdate>false</RuntimeUpdate>
+  <ReadWrite>
+    <Region>
+      <StartAddr>0x00050000</StartAddr>
+      <EndAddr>0x000FFFFF</EndAddr>
+      <OperationOnFailure>Restore</OperationOnFailure>
+    </Region>
+    <Region>
+      <StartAddr>0x00F00000</StartAddr>
+      <EndAddr>0x00FFFFFF</EndAddr>
+      <OperationOnFailure>Nothing</OperationOnFailure>
+    </Region>
+  </ReadWrite>
+  <SignedImage>
+    <Hash>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA</Hash>
+    <HashType>SHA256</HashType>
+    <Region>
+      <StartAddr>0x00000000</StartAddr>
+      <EndAddr>0x0004FFFF</EndAddr>
+    </Region>
+    <Region>
+      <StartAddr>0x00100000</StartAddr>
+      <EndAddr>0x00EFFFFF</EndAddr>
+    </Region>
+    <ValidateOnBoot>true</ValidateOnBoot>
+  </SignedImage>
+</Firmware>

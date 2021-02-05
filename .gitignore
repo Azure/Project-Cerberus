@@ -9,3 +9,6 @@ projects/*
 build
 .vscode
 *~
+*.bin
+*.pyc
+

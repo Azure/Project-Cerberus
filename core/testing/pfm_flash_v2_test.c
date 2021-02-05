@@ -6032,7 +6032,7 @@ static void pfm_flash_v2_test_verify_empty_manifest (CuTest *test)
 	pfm_flash_v2_testing_validate_and_release (test, &pfm);
 }
 
-static void pfm_flash_v2_test_verify_no_firware_entries (CuTest *test)
+static void pfm_flash_v2_test_verify_no_firmware_entries (CuTest *test)
 {
 	struct pfm_flash_v2_testing pfm;
 	int status;
@@ -12051,7 +12051,7 @@ CuSuite* get_pfm_flash_v2_suite ()
 	SUITE_ADD_TEST (suite, pfm_flash_v2_test_verify_two_firmware_types);
 	SUITE_ADD_TEST (suite, pfm_flash_v2_test_verify_no_flash_device_element);
 	SUITE_ADD_TEST (suite, pfm_flash_v2_test_verify_empty_manifest);
-	SUITE_ADD_TEST (suite, pfm_flash_v2_test_verify_no_firware_entries);
+	SUITE_ADD_TEST (suite, pfm_flash_v2_test_verify_no_firmware_entries);
 	SUITE_ADD_TEST (suite, pfm_flash_v2_test_verify_three_firmware_no_versions);
 	SUITE_ADD_TEST (suite, pfm_flash_v2_test_verify_multiple_firmware_versions_regions);
 	SUITE_ADD_TEST (suite, pfm_flash_v2_test_verify_max_firmware_versions);

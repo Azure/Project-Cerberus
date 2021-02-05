@@ -803,15 +803,93 @@ def generate_pfm_v2(pfm_header_instance, toc_header_instance, toc_element_list, 
     return pfm_v2(pfm_header_instance, toc_header_instance, toc_elements_buf, toc_hash_buf, table_hash_buf,
         platform_id_buf, flash_device_buf, fw_buf)
 
+def generate_pfm_toc (manifest_header_len, toc_header, platform_id_element, flash_device_element,
+    fw_id_element_list, fw_id_list, allowable_fw_list, hash_type):
+    """
+    Create a manifest table of contents
+
+    :param manifest_header_len: Length of the manifest header
+    :param toc_header: Table of contents header
+    :platform_id_element_len: Platform ID header instance
+    :flash_device_header_len: Flash device header instance
+    :param fw_id_list: List of FW with different FW IDs
+    :param hash_type: Hash to be used
+
+    :return List of a manifest table of contents instances
+    """
+    toc_elements_list = []
+    toc_elements_hash_list = []
+    hash_id = 0
+    hash_len = None
+
+    if hash_type == 2:
+        hash_algo = SHA512
+        hash_len = 64
+    elif hash_type == 1:
+        hash_algo = SHA384
+        hash_len = 48
+    elif hash_type == 0:
+        hash_algo = SHA256
+        hash_len = 32
+    else:
+        raise ValueError ("Invalid manifest hash type: {0}".format (hash_type))
+
+    offset = manifest_header_len + ctypes.sizeof (toc_header) + \
+        (toc_header.entry_count * ctypes.sizeof (manifest_common.manifest_toc_entry)) + \
+        (hash_len * (toc_header.hash_count + 1))
+
+    platform_id_entry = manifest_common.manifest_toc_entry (manifest_common.V2_PLATFORM_TYPE_ID, 
+        manifest_common.V2_BASE_TYPE_ID, 1, hash_id, offset, ctypes.sizeof (platform_id_element))
+    toc_elements_list.append(platform_id_entry)
+    hash_id += 1
+    offset += platform_id_entry.length
+
+    toc_elements_hash_list.append(manifest_common.generate_hash(platform_id_element, hash_algo))
+
+    if flash_device_element is not None:
+        flash_device_entry = manifest_common.manifest_toc_entry (
+            manifest_common.PFM_V2_FLASH_DEVICE_TYPE_ID, manifest_common.V2_BASE_TYPE_ID, 0, 
+            hash_id, offset, ctypes.sizeof (flash_device_element))
+        toc_elements_list.append(flash_device_entry)
+        hash_id += 1
+        offset += flash_device_entry.length
+
+        toc_elements_hash_list.append(manifest_common.generate_hash(flash_device_element, 
+            hash_algo))
+
+        for fw_type, count in fw_id_list.items ():
+            fw_id_entry = manifest_common.manifest_toc_entry (manifest_common.PFM_V2_FW_TYPE_ID, 
+                manifest_common.V2_BASE_TYPE_ID, 1, hash_id, offset, 
+                ctypes.sizeof (fw_id_element_list[fw_type]))
+            toc_elements_list.append(fw_id_entry)
+
+            hash_id += 1
+            offset += fw_id_entry.length
+
+            toc_elements_hash_list.append(manifest_common.generate_hash(fw_id_element_list[fw_type], 
+                hash_algo))
+
+            fw_list = allowable_fw_list.get (fw_type)
+            for num in range (0, count):
+                fw_version_element = manifest_common.manifest_toc_entry (
+                    manifest_common.PFM_V2_FW_VERSION_TYPE_ID, manifest_common.PFM_V2_FW_TYPE_ID, 1, 
+                    hash_id, offset, ctypes.sizeof (fw_list[num]))
+                toc_elements_list.append(fw_version_element)
+                hash_id += 1
+                offset += fw_version_element.length
+                toc_elements_hash_list.append(manifest_common.generate_hash(fw_list[num], 
+                    hash_algo))
+
+    return toc_elements_list, toc_elements_hash_list, hash_len
 
 #*************************************** Start of Script ***************************************
 
-default_config = os.path.join(os.path.dirname(os.path.abspath(__file__)), PFM_CONFIG_FILENAME)
-parser = argparse.ArgumentParser(description = 'Create a PFM')
-parser.add_argument('config', nargs = '?', default = default_config,
+default_config = os.path.join (os.path.dirname (os.path.abspath (__file__)), PFM_CONFIG_FILENAME)
+parser = argparse.ArgumentParser (description = 'Create a PFM')
+parser.add_argument ('config', nargs = '?', default = default_config,
     help = 'Path to configurtaion file')
-parser.add_argument('--bypass', action = 'store_true', help = 'Create a bypass mode PFM')
-args = parser.parse_args()
+parser.add_argument ('--bypass', action = 'store_true', help = 'Create a bypass mode PFM')
+args = parser.parse_args ()
 platform_header = None
 allowable_fw_list = None
 pfm = None
@@ -819,10 +897,10 @@ pfm = None
 processed_xml, sign, key_size, key, key_type, hash_type, pfm_id, output, xml_version = manifest_common.load_xmls (
     args.config, None, manifest_types.PFM)
 
-pfm_header_instance = manifest_common.generate_manifest_header(pfm_id, key_size, manifest_types.PFM,
-    hash_type, key_type, xml_version)
+pfm_header_instance = manifest_common.generate_manifest_header (pfm_id, key_size, 
+    manifest_types.PFM, hash_type, key_type, xml_version)
 
-platform_id = manifest_common.get_platform_id(processed_xml)
+platform_id = manifest_common.get_platform_id (processed_xml)
 
 if xml_version == manifest_types.VERSION_2:
     flash_device = None
@@ -831,19 +909,20 @@ if xml_version == manifest_types.VERSION_2:
         fw_types = {}
         fw_flags = {}
     else:
-        allowable_fw_list, fw_types, fw_flags, unused_byte = generate_allowable_fw_list_v2(processed_xml, xml_version)
-        flash_device = pfm_v2_flash_device_element(unused_byte, len(fw_types), 0)
+        allowable_fw_list, fw_types, fw_flags, unused_byte = generate_allowable_fw_list_v2 (
+            processed_xml, xml_version)
+        flash_device = pfm_v2_flash_device_element (unused_byte, len (fw_types), 0)
 
-    reserved_buf = (ctypes.c_ubyte * 3)()
-    ctypes.memset(reserved_buf, 0, 3)
-    platform_id_header = pfm_v2_platform_header (len(platform_id), reserved_buf)
-    platform_header = manifest_common.generate_platform_info(platform_id_header, platform_id)
+    reserved_buf = (ctypes.c_ubyte * 3) ()
+    ctypes.memset (reserved_buf, 0, 3)
+    platform_id_header = pfm_v2_platform_header (len (platform_id), reserved_buf)
+    platform_header = manifest_common.generate_platform_info (platform_id_header, platform_id)
 
     toc_header = manifest_common.generate_manifest_toc_header (fw_types, hash_type, args.bypass)
 
     fw_elements = generate_firmware_elements (fw_types, fw_flags)
 
-    toc_elements_list, toc_elements_hash_list, hash_len = manifest_common.generate_manifest_toc(ctypes.sizeof(pfm_header_instance),
+    toc_elements_list, toc_elements_hash_list, hash_len = generate_pfm_toc(ctypes.sizeof(pfm_header_instance),
         toc_header, platform_header, flash_device, fw_elements, fw_types,
         allowable_fw_list, hash_type)
 

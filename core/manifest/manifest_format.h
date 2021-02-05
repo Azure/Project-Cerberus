@@ -19,8 +19,8 @@
 #define	PFM_V2_MAGIC_NUM			0x706D
 #define CFM_MAGIC_NUM				0xA592
 #define	CFM_V2_MAGIC_NUM			MANIFEST_NOT_SUPPORTED
-#define PCD_MAGIC_NUM				0x8EBC
-#define	PCD_V2_MAGIC_NUM			MANIFEST_NOT_SUPPORTED
+#define PCD_MAGIC_NUM				MANIFEST_NOT_SUPPORTED
+#define	PCD_V2_MAGIC_NUM			0x1029
 
 /**
  * Identifier for the hash algorithm used for signatures and other verificitaion hashes in

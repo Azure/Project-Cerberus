@@ -7,26 +7,31 @@
 #include <string.h>
 
 
-#include "..\..\core\manifest\manifest_format.h"
-#include "..\..\core\manifest\pfm\pfm_format.h"
-#include "..\..\core\manifest\cfm\cfm_format.h"
-#include "..\..\core\manifest\pcd\pcd_format.h"
-#include "..\..\core\manifest\pcd\pcd.h"
+#include "manifest/manifest_format.h"
+#include "manifest/pfm/pfm_format.h"
+#include "manifest/cfm/cfm_format.h"
+#include "manifest/pcd/pcd_format.h"
+#include "manifest/pcd/pcd.h"
+#include "crypto/hash.h"
+
+
+uint8_t *element_types = NULL;
+int entry_count = 0;
 
 
 enum {
 	MANIFEST_TYPE_PFM = 0,
 	MANIFEST_TYPE_CFM,
-	MANIFEST_TYPE_PCD
+	MANIFEST_TYPE_PCD,
 };
 
 
-size_t visualize_pfm (uint8_t *pfm) 
+int32_t visualize_pfm (uint8_t *pfm) 
 {
 	struct pfm_allowable_firmware_header *allowable_fw_header = 
 		(struct pfm_allowable_firmware_header*) pfm;
 	uint8_t* pointer = ((uint8_t*)allowable_fw_header) +
-		sizeof(struct pfm_allowable_firmware_header);
+		sizeof (struct pfm_allowable_firmware_header);
 
 	printf ("pfm_allowable_firmware_header\n");
 	printf ("{");
@@ -40,7 +45,7 @@ size_t visualize_pfm (uint8_t *pfm)
 
 	for (int i = 0; i < allowable_fw_header->fw_count; ++i)
 	{
-		struct pfm_firmware_header *fw_header = (struct pfm_firmware_header*)pointer;
+		struct pfm_firmware_header *fw_header = (struct pfm_firmware_header*) pointer;
 		char *version_id = (char*)malloc (fw_header->version_length + 1);
 		if(version_id == NULL)
 		{
@@ -48,12 +53,12 @@ size_t visualize_pfm (uint8_t *pfm)
 			return -1;
 		}
 
-		strncpy(version_id, (char*)((uint8_t*)fw_header + sizeof(struct pfm_firmware_header)),
+		strncpy(version_id, (char*)((uint8_t*)fw_header + sizeof (struct pfm_firmware_header)),
             fw_header->version_length);
 		version_id[fw_header->version_length] = '\0';
 		int alignment = fw_header->version_length % 4;
 		alignment = (alignment == 0) ? 0 : (4 - alignment);
-		pointer = (uint8_t*)fw_header + sizeof(struct pfm_firmware_header) +
+		pointer = (uint8_t*)fw_header + sizeof (struct pfm_firmware_header) +
 			fw_header->version_length + alignment;
 
 		printf ("\t{\n");
@@ -75,9 +80,9 @@ size_t visualize_pfm (uint8_t *pfm)
 
 		for (int j = 0; j < fw_header->rw_count; ++j)
 		{
-			uint32_t start_addr = *((uint32_t*)pointer);
-			uint32_t end_addr = *((uint32_t*)pointer + 1);
-			pointer = (uint8_t*)((uint32_t*)pointer + 2);
+			uint32_t start_addr = *((uint32_t*) pointer);
+			uint32_t end_addr = *((uint32_t*) pointer + 1);
+			pointer = (uint8_t*)((uint32_t*) pointer + 2);
 
 			printf ("\t\t\t{\n");
 			printf ("\t\t\t\tpfm_flash_region\n");
@@ -101,7 +106,7 @@ size_t visualize_pfm (uint8_t *pfm)
 			}
 
 			memcpy(sig, img_header + 1, img_header->sig_length);
-			pointer = (uint8_t*)img_header + sizeof(struct pfm_image_header) +
+			pointer = (uint8_t*)img_header + sizeof (struct pfm_image_header) +
 				img_header->sig_length;
 
 			printf ("\t\tpfm_image_header\n");
@@ -130,9 +135,9 @@ size_t visualize_pfm (uint8_t *pfm)
 			for (int k = 0; k < img_header->region_count; ++k)
 			{
 				printf ("\t\t\t{\n");
-				uint32_t start_addr = *((uint32_t*)pointer);
-				uint32_t end_addr = *((uint32_t*)pointer + 1);
-				pointer = (uint8_t*)((uint32_t*)pointer + 2);
+				uint32_t start_addr = *((uint32_t*) pointer);
+				uint32_t end_addr = *((uint32_t*) pointer + 1);
+				pointer = (uint8_t*)((uint32_t*) pointer + 2);
 				printf ("\t\t\t\tpfm_flash_region\n");
 				printf ("\t\t\t\t{\n");
 				printf ("\t\t\t\t\tstart_addr: 0x%x\n", start_addr);
@@ -149,8 +154,8 @@ size_t visualize_pfm (uint8_t *pfm)
 
 	printf ("]\n");
 
-	struct pfm_key_manifest_header *key_manifest_header = (struct pfm_key_manifest_header *)pointer;
-	pointer = (uint8_t*)pointer + sizeof(struct pfm_key_manifest_header);
+	struct pfm_key_manifest_header *key_manifest_header = (struct pfm_key_manifest_header *) pointer;
+	pointer = (uint8_t*) pointer + sizeof (struct pfm_key_manifest_header);
 
 	printf ("pfm_key_manifest_header\n");
 	printf ("{\n");
@@ -163,7 +168,7 @@ size_t visualize_pfm (uint8_t *pfm)
 
 	for (int i = 0; i < key_manifest_header->key_count; ++i)
 	{
-		struct pfm_public_key_header *key_header = (struct pfm_public_key_header*)pointer;
+		struct pfm_public_key_header *key_header = (struct pfm_public_key_header*) pointer;
 
 		printf ("\t{\n");
 		printf ("\t\tpfm_key_manifest_header\n");
@@ -183,7 +188,7 @@ size_t visualize_pfm (uint8_t *pfm)
 		}
 
 		memcpy(modulus, key_header + 1, key_header->key_length);
-		pointer = (uint8_t*)key_header + sizeof(struct pfm_public_key_header) +
+		pointer = (uint8_t*)key_header + sizeof (struct pfm_public_key_header) +
 			key_header->key_length;
 
 		printf ("\t\tmodulus:");
@@ -204,8 +209,8 @@ size_t visualize_pfm (uint8_t *pfm)
 
 	printf ("]\n");
 
-	struct pfm_platform_header *platform_header = (struct pfm_platform_header *)pointer;
-	pointer = (uint8_t*)pointer + sizeof(struct pfm_platform_header);
+	struct pfm_platform_header *platform_header = (struct pfm_platform_header *) pointer;
+	pointer = (uint8_t*) pointer + sizeof (struct pfm_platform_header);
 
 	printf ("pfm_platform_header\n");
 	printf ("{\n");
@@ -234,10 +239,10 @@ size_t visualize_pfm (uint8_t *pfm)
 	return (pointer - pfm);
 }
 
-size_t visualize_cfm (uint8_t *cfm) 
+int32_t visualize_cfm (uint8_t *cfm) 
 {
 	struct cfm_components_header *components_header = (struct cfm_components_header*)cfm;
-	uint8_t* pointer = ((uint8_t*)components_header) + sizeof(struct cfm_components_header);
+	uint8_t* pointer = ((uint8_t*)components_header) + sizeof (struct cfm_components_header);
 
 	printf ("cfm_components_header\n");
 	printf ("{");
@@ -251,7 +256,7 @@ size_t visualize_cfm (uint8_t *cfm)
 
 	for (int i = 0; i < components_header->components_count; ++i)
 	{
-		struct cfm_component_header *component_header = (struct cfm_component_header*)pointer;
+		struct cfm_component_header *component_header = (struct cfm_component_header*) pointer;
 		printf ("\t{\n");
 		printf ("\t\tcfm_component_header\n");
 		printf ("\t\t{\n");
@@ -261,7 +266,7 @@ size_t visualize_cfm (uint8_t *cfm)
 		printf ("\t\t\tcomponent_id: 0x%x\n", component_header->component_id);
 		printf ("\t\t}\n");
 		
-		pointer += sizeof(struct cfm_component_header);
+		pointer += sizeof (struct cfm_component_header);
 
 		printf ("\t\tFirmware\n");
 		printf ("\t\t[\n");
@@ -276,13 +281,13 @@ size_t visualize_cfm (uint8_t *cfm)
 				return -1;
 			}
 
-			strncpy (version_id, (char*)((uint8_t*)fw_header + sizeof(struct cfm_fw_header)),
+			strncpy (version_id, (char*)((uint8_t*)fw_header + sizeof (struct cfm_fw_header)),
             	fw_header->version_length);
 			version_id[fw_header->version_length] = '\0';
 
 			int alignment = fw_header->version_length % 4;
 			alignment = (alignment == 0) ? 0 : (4 - alignment);
-			pointer += sizeof(struct cfm_fw_header) + fw_header->version_length + alignment;
+			pointer += sizeof (struct cfm_fw_header) + fw_header->version_length + alignment;
 
 			printf ("\t\t\t{\n");
 			printf ("\t\t\t\tcfm_fw_header\n");
@@ -309,10 +314,10 @@ size_t visualize_cfm (uint8_t *cfm)
 					return -1;
 				}
 
-				memcpy(digest, (char*)((uint8_t*)img_header + sizeof(struct cfm_img_header)),
+				memcpy(digest, (char*)((uint8_t*)img_header + sizeof (struct cfm_img_header)),
 					img_header->digest_length);
 
-				pointer += sizeof(struct cfm_img_header) + img_header->digest_length;
+				pointer += sizeof (struct cfm_img_header) + img_header->digest_length;
 
 				printf ("\t\t\t\t\t{\n");
 				printf ("\t\t\t\t\t\tcfm_img_header\n");
@@ -350,169 +355,384 @@ size_t visualize_cfm (uint8_t *cfm)
 	return (pointer - cfm);
 }
 
-size_t visualize_pcd (uint8_t *pcd) 
+int32_t visualize_toc (uint8_t *start)
 {
-	struct pcd_header *pcd_header = (struct pcd_header*) pcd;
-	uint8_t* pointer = pcd + sizeof(struct pcd_header);
+	struct manifest_toc_header *toc_header = (struct manifest_toc_header*) start;
+	uint8_t* pointer = start + sizeof (struct manifest_toc_header);
+	int hash_len;
 
-	printf ("PCD\n");
+	printf ("manifest_toc_header\n");
 	printf ("{\n");
-	printf ("\tpcd_header\n");
-	printf ("\t{\n");
-	printf ("\t\tlength: %i\n", pcd_header->length);
-	printf ("\t\theader_len: %i\n", pcd_header->header_len);
-	printf ("\t\tformat_id: %i\n", pcd_header->format_id);
-	printf ("\t\treserved1: %i\n", pcd_header->reserved1);
-	printf ("\t\treserved2: %i\n", pcd_header->reserved2);
-	printf ("\t\treserved3: %i\n", pcd_header->reserved3);
-	printf ("\t}\n");
+	printf ("\tentry_count: %i\n", toc_header->entry_count);
+	printf ("\thash_count: %i\n", toc_header->hash_count);
+	printf ("\thash_type: %i\n", toc_header->hash_type);
+	printf ("\treserved: %i\n", toc_header->reserved);
 
-	struct pcd_rot_header *rot_header = (struct pcd_rot_header*) pointer;
-	pointer += sizeof(struct pcd_rot_header);
+	entry_count = toc_header->entry_count;
+	element_types = malloc (sizeof (uint8_t) * entry_count);
 
-	printf ("\tpcd_rot_header\n");
-	printf ("\t{\n");
-	printf ("\t\tlength: %i\n", rot_header->length);
-	printf ("\t\theader_len: %i\n", rot_header->header_len);
-	printf ("\t\tformat_id: %i\n", rot_header->format_id);
-	printf ("\t\tnum_ports: %i\n", rot_header->num_ports);
-	printf ("\t\taddr: 0x%x\n", rot_header->addr);
-	printf ("\t\tbmc_i2c_addr: 0x%x\n", rot_header->bmc_i2c_addr);
-	printf ("\t\tcpld_addr: 0x%x\n", rot_header->cpld_addr);
-	printf ("\t\tcpld_channel: %i\n", rot_header->cpld_channel);
-	printf ("\t\tactive: %i\n", rot_header->active);
-	printf ("\t\tdefault_failure_action: %i\n", rot_header->default_failure_action);
-	printf ("\t\tflags: 0x%x\n", rot_header->flags);
-	printf ("\t\treserved1: %i\n", rot_header->reserved1);
-	printf ("\t\treserved2: %i\n", rot_header->reserved2);
-	printf ("\t\treserved3: %i\n", rot_header->reserved3);
-	printf ("\t}\n");
+	switch (toc_header->hash_type) {
+		case MANIFEST_HASH_SHA256:
+			hash_len = SHA256_HASH_LENGTH;
+			break;
+		case MANIFEST_HASH_SHA384:
+			hash_len = SHA384_HASH_LENGTH;
+			break;
+		case MANIFEST_HASH_SHA512:
+			hash_len = SHA512_HASH_LENGTH;
+			break;
+		default:
+			printf ("Unsupported hash type selected: %i\n", toc_header->hash_type);
+			return -1;
+	}
 
-	printf ("\tPorts\n");
+	printf ("\tEntries\n");
 	printf ("\t[\n");
 
-	for (int i = 0; i < rot_header->num_ports; ++i)
-	{
-		struct pcd_port_header *port = (struct pcd_port_header*)pointer;
-		pointer += sizeof(struct pcd_port_header);
+	for (int i = 0; i < toc_header->entry_count; ++i) {
+		struct manifest_toc_entry *entry = (struct manifest_toc_entry*) pointer;
+		pointer += sizeof (struct manifest_toc_entry);
 
-		printf ("\t\tpcd_port_header\n");
+		element_types[i] = entry->type_id;
+
+		printf ("\t\tmanifest_toc_entry\n");
 		printf ("\t\t{\n");
-		printf ("\t\t\tlength: %i\n", port->length);
-		printf ("\t\t\theader_len: %i\n", port->header_len);
-		printf ("\t\t\tformat_id: %i\n", port->format_id);
-		printf ("\t\t\tid: %i\n", port->id);
-		printf ("\t\t\treserved1: %i\n", port->reserverd1);
-		printf ("\t\t\treserved2: %i\n", port->reserverd2);
-		printf ("\t\t\tfrequency: %i\n", port->frequency);
+		printf ("\t\t\ttype_id: %i\n", entry->type_id);
+		printf ("\t\t\tparent: %i\n", entry->parent);
+		printf ("\t\t\tformat: %i\n", entry->format);
+		printf ("\t\t\thash_id: %i\n", entry->hash_id);
+		printf ("\t\t\toffset: %i\n", entry->offset);
+		printf ("\t\t\tlength: %i\n", entry->length);
 		printf ("\t\t}\n");
 	}
 
-	printf ("\t]\n");
+	printf ("\t]\n");	
 
-	struct pcd_components_header *components_header = (struct pcd_components_header*) pointer;
-	pointer += sizeof(struct pcd_components_header);
-
-	printf ("\tpcd_components_header\n");
-	printf ("\t{\n");
-	printf ("\t\tlength: %i\n", components_header->length);
-	printf ("\t\theader_len: %i\n", components_header->header_len);
-	printf ("\t\tformat_id: %i\n", components_header->format_id);
-	printf ("\t\tnum_components: %i\n", components_header->num_components);
-	printf ("\t\treserved1: %i\n", components_header->reserved1);
-	printf ("\t\treserved2: %i\n", components_header->reserved2);
-	printf ("\t}\n");
-
-	printf ("\tComponents\n");
+	printf ("\tHash\n");
 	printf ("\t[\n");
 
-	for (int i = 0; i < components_header->num_components; ++i)
-	{
-		struct pcd_component_header *component_header = (struct pcd_component_header*)pointer;
-		pointer += sizeof(struct pcd_component_header);
-
-		printf ("\t\t{\n");
-		printf ("\t\t\tpcd_component_header\n");
-		printf ("\t\t\t{\n");
-		printf ("\t\t\t\tlength: %i\n", component_header->length);
-		printf ("\t\t\t\theader_len: %i\n", component_header->header_len);
-		printf ("\t\t\t\tformat_id: %i\n", component_header->format_id);
-		printf ("\t\t\t\tnum_muxes: %i\n", component_header->num_muxes);
-		printf ("\t\t\t\taddr: 0x%x\n", component_header->addr);
-		printf ("\t\t\t\tchannel: %i\n", component_header->channel);
-		printf ("\t\t\t\tflags: %i\n", component_header->flags);
-		printf ("\t\t\t\teid: 0x%x\n", component_header->eid);
-		printf ("\t\t\t\tpower_ctrl_reg: 0x%x\n", component_header->power_ctrl_reg);
-		printf ("\t\t\t\tpower_ctrl_mask: 0x%x\n", component_header->power_ctrl_mask);
-		printf ("\t\t\t\tid: %i\n", component_header->id);
-		printf ("\t\t\t}\n");
-
-		printf ("\t\t\tMuxes\n");
-		printf ("\t\t\t[\n");
-
-		for (int i = 0; i < component_header->num_muxes; ++i)
+	for (int i = 0; i < toc_header->hash_count; ++i) {
+		printf ("\t\tHash %i\n", i);
+		printf ("\t\t{");
+		for (int j = 0; j < hash_len; ++j, ++pointer)
 		{
-			struct pcd_mux_header *mux = (struct pcd_mux_header*)pointer;
-			pointer += sizeof(struct pcd_mux_header);
+			if ((j % 32) == 0)
+			{
+				printf ("\n\t\t\t");
+			}
 
-			printf ("\t\t\t\t\tpcd_mux_header\n");
-			printf ("\t\t\t\t\t{\n");
-			printf ("\t\t\t\t\t\tlength: %i\n", mux->length);
-			printf ("\t\t\t\t\t\theader_len: %i\n", mux->header_len);
-			printf ("\t\t\t\t\t\tformat_id: %i\n", mux->format_id);
-			printf ("\t\t\t\t\t\taddr: 0x%x\n", mux->addr);
-			printf ("\t\t\t\t\t\tchannel: %i\n", mux->channel);
-			printf ("\t\t\t\t\t\tmux_level: %i\n", mux->mux_level);
-			printf ("\t\t\t\t\t}\n");
+			printf ("%02x", *pointer);
+		}
+		printf ("\n");
+		printf ("\t\t}\n");
+	}
+
+	printf ("\t\tTable Hash\n");
+	printf ("\t\t{");
+	for (int i = 0; i < hash_len; ++i, ++pointer) {
+		if ((i % 32) == 0) {
+			printf ("\n\t\t\t");
 		}
 
-		printf ("\t\t\t]\n");
-		printf ("\t\t}\n");
+		printf ("%02x", *pointer);
+	}
+	printf ("\n");
+	printf ("\t\t}\n");
+
+	printf ("\t]\n");	
+
+	printf ("}\n");
+
+	return (pointer - start);
+}
+
+int32_t visualize_pcd_rot_element (uint8_t *start, const char* prefix)
+{
+	uint8_t *pointer = start;
+	struct pcd_rot_element *rot = (struct pcd_rot_element*) pointer;
+
+	pointer += sizeof (struct pcd_rot_element);
+
+	printf ("%spcd_rot_element\n", prefix);
+	printf ("%s{\n", prefix);
+	printf ("%s\trot_flags: 0x%x\n", prefix, rot->rot_flags);
+	printf ("%s\tport_count: %i\n", prefix, rot->port_count);
+	printf ("%s\tcomponents_count: %i\n", prefix, rot->components_count);
+	printf ("%s\trot_address: 0x%x\n", prefix, rot->rot_address);
+	printf ("%s\trot_eid: 0x%x\n", prefix, rot->rot_eid);
+	printf ("%s\tbridge_address: 0x%x\n", prefix, rot->bridge_address);
+	printf ("%s\tbridge_eid: 0x%x\n", prefix, rot->bridge_eid);
+	printf ("%s\treserved: %i\n", prefix, rot->reserved);
+
+	printf ("%s\tPorts\n", prefix);
+	printf ("%s\t[\n", prefix);
+
+	for (int i = 0; i < rot->port_count; ++i) {
+		struct pcd_port *port = (struct pcd_port*) pointer;
+		pointer += sizeof (struct pcd_port);
+
+		printf ("%s\t\tpcd_port\n", prefix);
+		printf ("%s\t\t{\n", prefix);
+		printf ("%s\t\t\tport_id: %i\n", prefix, port->port_id);
+		printf ("%s\t\t\tport_flags: 0x%x\n", prefix, port->port_flags);
+		printf ("%s\t\t\tpolicy: 0x%x\n", prefix, port->policy);
+		printf ("%s\t\t\treserved: %i\n", prefix, port->reserved);
+		printf ("%s\t\t\tspi_frequency_hz: %i\n", prefix, port->spi_frequency_hz);
+		printf ("%s\t\t}\n", prefix);
 	}
 
-	printf ("\t]\n");
+	printf ("%s\t]\n", prefix);
+	printf ("%s}\n", prefix);
 
-	struct pcd_platform_header *platform_header = (struct pcd_platform_header*) pointer;
-	pointer += sizeof(struct pcd_platform_header);
+	return (pointer - start);
+}
 
-	printf ("\tpcd_platform_header\n");
-	printf ("\t{\n");
-	printf ("\t\tlength: %i\n", platform_header->length);
-	printf ("\t\theader_len: %i\n", platform_header->header_len);
-	printf ("\t\tformat_id: %i\n", platform_header->format_id);
-	printf ("\t\tid_len: %i\n", platform_header->id_len);
-	printf ("\t\treserved1: %i\n", platform_header->reserved1);
-	printf ("\t\treserved2: %i\n", platform_header->reserved2);
-	printf ("\t}\n");
+int32_t visualize_pcd_cpld_element (uint8_t *start, const char* prefix)
+{
+	uint8_t *pointer = start;
+	struct pcd_cpld_element *cpld = (struct pcd_cpld_element*) pointer;
 
-	char *platform_id = malloc (platform_header->id_len + 1);
-	if (platform_id == NULL) {
-		printf ("Failed to allocate platform id buffer.\n");
+	pointer += sizeof (struct pcd_cpld_element);
+
+	printf ("%spcd_cpld_element\n", prefix);
+	printf ("%s{\n", prefix);
+	printf ("%s\tmux_count: %i\n", prefix, cpld->interface.mux_count);
+	printf ("%s\ti2c_flags: 0x%x\n", prefix, cpld->interface.i2c_flags);
+	printf ("%s\tbus: %i\n", prefix, cpld->interface.bus);
+	printf ("%s\taddress: 0x%x\n", prefix, cpld->interface.address);
+	printf ("%s\teid: 0x%x\n", prefix, cpld->interface.eid);
+
+	printf ("%s\tMuxes\n", prefix);
+	printf ("%s\t[\n", prefix);
+
+	for (int i = 0; i < cpld->interface.mux_count; ++i) {
+		struct pcd_mux *mux = (struct pcd_mux*) pointer;
+		pointer += sizeof (struct pcd_mux);
+
+		printf ("%s\t\tpcd_mux\n", prefix);
+		printf ("%s\t\t{\n", prefix);
+		printf ("%s\t\t\tmux_address: 0x%x\n", prefix, mux->mux_address);
+		printf ("%s\t\t\tmux_channel: %i\n", prefix, mux->mux_channel);
+		printf ("%s\t\t\treserved: %i\n", prefix, mux->reserved);
+		printf ("%s\t\t}\n", prefix);
+	}
+
+	printf ("%s\t]\n", prefix);
+	printf ("%s}\n", prefix);
+
+	return (pointer - start);
+}
+
+int32_t visualize_pcd_direct_i2c_component_element (uint8_t *start, const char* prefix)
+{
+	uint8_t *pointer = start;
+	struct pcd_component_common *component = (struct pcd_component_common*) pointer;
+	struct pcd_i2c_interface *interface;
+	char* type;
+	size_t type_len;
+
+	pointer += (sizeof (struct pcd_component_common) - MANIFEST_MAX_STRING);
+
+	printf ("%spcd_direct_i2c_component_element\n", prefix);
+	printf ("%s{\n", prefix);
+	printf ("%s\tpolicy: 0x%x\n", prefix, component->policy);
+	printf ("%s\tpower_ctrl_reg: 0x%x\n", prefix, component->power_ctrl_reg);
+	printf ("%s\tpower_ctrl_mask: 0x%x\n", prefix, component->power_ctrl_mask);
+	printf ("%s\ttype_len: %i\n", prefix, component->type_len);
+
+	type = malloc (component->type_len + 1);
+	if (type == NULL) {
+		printf ("Failed to allocate type buffer.\n");
 		return -1;
 	}
 
-	memcpy (platform_id, pointer, platform_header->id_len);
-	platform_id[platform_header->id_len] = '\0';
-	pointer += platform_header->id_len;
+	memcpy (type, pointer, component->type_len);
+	type[component->type_len] = '\0';
 
-	printf ("\tPlatform ID: %s\n", platform_id);
-	free (platform_id);
-	printf ("}\n");
+	printf ("%s\tType: %s\n", prefix, type);
+	free (type);
 
-	return (pointer - pcd);
+	type_len = ((component->type_len + 3) & ~((size_t) 3));
+	pointer += type_len;
+
+	interface = (struct pcd_i2c_interface*) pointer;
+	pointer += sizeof (struct pcd_i2c_interface);
+
+	printf ("%s\tmux_count: %i\n", prefix, interface->mux_count);
+	printf ("%s\ti2c_flags: 0x%x\n", prefix, interface->i2c_flags);
+	printf ("%s\tbus: %i\n", prefix, interface->bus);
+	printf ("%s\taddress: 0x%x\n", prefix, interface->address);
+	printf ("%s\teid: 0x%x\n", prefix, interface->eid);
+
+	printf ("%s\tMuxes\n", prefix);
+	printf ("%s\t[\n", prefix);
+
+	for (int i = 0; i < interface->mux_count; ++i) {
+		struct pcd_mux *mux = (struct pcd_mux*) pointer;
+		pointer += sizeof (struct pcd_mux);
+
+		printf ("%s\t\tpcd_mux\n", prefix);
+		printf ("%s\t\t{\n", prefix);
+		printf ("%s\t\t\tmux_address: 0x%x\n", prefix, mux->mux_address);
+		printf ("%s\t\t\tmux_channel: %i\n", prefix, mux->mux_channel);
+		printf ("%s\t\t\treserved: %i\n", prefix, mux->reserved);
+		printf ("%s\t\t}\n", prefix);
+	}
+
+	printf ("%s\t]\n", prefix);
+	printf ("%s}\n", prefix);
+
+	return (pointer - start);
+}
+
+int32_t visualize_pcd_mctp_bridge_component_element (uint8_t *start, const char* prefix)
+{
+	uint8_t *pointer = start;
+	struct pcd_component_common *component = (struct pcd_component_common*) pointer;
+	char* type;
+	size_t type_len;
+
+	pointer += (sizeof (struct pcd_component_common) - MANIFEST_MAX_STRING);
+
+	printf ("%spcd_mctp_bridge_component_element\n", prefix);
+	printf ("%s{\n", prefix);
+	printf ("%s\tpolicy: 0x%x\n", prefix, component->policy);
+	printf ("%s\tpower_ctrl_reg: 0x%x\n", prefix, component->power_ctrl_reg);
+	printf ("%s\tpower_ctrl_mask: 0x%x\n", prefix, component->power_ctrl_mask);
+	printf ("%s\ttype_len: %i\n", prefix, component->type_len);
+
+	type = malloc (component->type_len + 1);
+	if (type == NULL) {
+		printf ("Failed to allocate type buffer.\n");
+		return -1;
+	}
+
+	memcpy (type, pointer, component->type_len);
+	type[component->type_len] = '\0';
+
+	printf ("%s\tType: %s\n", prefix, type);
+	free (type);
+
+	type_len = ((component->type_len + 3) & ~((size_t) 3));
+	pointer += type_len;
+
+	printf ("%s\tdevice_id: 0x%x\n", prefix, *((uint16_t*) pointer));
+	pointer += 2;
+	printf ("%s\tvendor_id: 0x%x\n", prefix, *((uint16_t*) pointer));
+	pointer += 2;
+	printf ("%s\tsubsystem_device_id: 0x%x\n", prefix, *((uint16_t*) pointer));
+	pointer += 2;
+	printf ("%s\tsubsystem_vendor_id: 0x%x\n", prefix, *((uint16_t*) pointer));
+	pointer += 2;
+	printf ("%s\tcomponents_count: %i\n", prefix, *((uint8_t*) pointer++));
+	printf ("%s\teid: 0x%x\n", prefix, *((uint8_t*) pointer++));
+	printf ("%s\treserved: %i\n", prefix, *((uint16_t*) pointer));
+	pointer += 2;
+
+	printf ("%s}\n", prefix);
+
+	return (pointer - start);
+}
+
+int32_t visualize_platform_id (uint8_t *start, const char *prefix)
+{
+	uint8_t *pointer = start;
+	struct manifest_platform_id *platform_id = (struct manifest_platform_id*) pointer;
+	uint8_t *id;
+	size_t id_len;
+
+	pointer += sizeof (struct manifest_platform_id);
+
+	printf ("%smanifest_platform_id\n", prefix);
+	printf ("%s{\n", prefix);
+	printf ("%s\tid_length: %i\n", prefix, platform_id->id_length);
+	printf ("%s\treserved1: %i\n", prefix, platform_id->reserved[0]);
+	printf ("%s\treserved2: %i\n", prefix, platform_id->reserved[1]);
+	printf ("%s\treserved3: %i\n", prefix, platform_id->reserved[2]);
+
+	id = malloc (platform_id->id_length + 1);
+	if (id == NULL) {
+		printf ("Failed to allocate platform ID buffer.\n");
+		return -1;
+	}
+
+	memcpy (id, pointer, platform_id->id_length);
+	id[platform_id->id_length] = '\0';
+
+	printf ("%s\tPlatform ID: %s\n", prefix, id);
+	free (id);
+
+	id_len = ((platform_id->id_length + 3) & ~((size_t) 3));
+	pointer += id_len;
+	
+	printf ("%s}\n", prefix);
+
+	return (pointer - start);
+}
+
+int32_t visualize_common_element (uint8_t type, uint8_t *pointer, const char *prefix)
+{
+	switch (type) {
+		case MANIFEST_PLATFORM_ID:
+			return visualize_platform_id (pointer, prefix);
+		default:
+			printf ("Unsupported element type: 0x%x\n", type);
+			return -1;
+	}
+}
+
+int32_t visualize_pcd (uint8_t *start) 
+{
+	uint8_t *pointer = start;
+	int32_t offset;
+
+	offset = visualize_toc (pointer);
+	if (offset == -1) {
+		return offset;
+	}
+
+	pointer += offset;
+
+	for (int i = 0; i < entry_count; ++i) {
+		switch (element_types[i]) {
+			case PCD_ROT:
+				offset = visualize_pcd_rot_element (pointer, "");
+				break;
+			case PCD_CPLD:
+				offset = visualize_pcd_cpld_element (pointer, "");
+				break;
+			case PCD_COMPONENT_DIRECT:
+				offset = visualize_pcd_direct_i2c_component_element (pointer, "");
+				break;
+			case PCD_COMPONENT_MCTP_BRIDGE:
+				offset = visualize_pcd_mctp_bridge_component_element (pointer, "");
+				break;
+			default:
+				offset = visualize_common_element (element_types[i], pointer, "");
+				break;
+		}
+
+		if (offset == -1) {
+			return -1;
+		}
+
+		pointer += offset;
+	}
+
+	return (pointer - start);
 }
 
 int main (int argc, char** argv)
 {
 	FILE *fp;
-	size_t offset;
+	int32_t offset;
 	uint8_t manifest_type;
 	uint8_t *pointer;
 	uint8_t *manifest;
 	unsigned long fileLen;
 
 	if (argc < 3 || argv == NULL) {
-		printf ("No PCD file passed in.\n");
+		printf ("No manifest file passed in.\n");
 		return -1;
 	}
 
@@ -532,7 +752,7 @@ int main (int argc, char** argv)
 
 	fp = fopen (argv[1], "rb");
 	if (fp == NULL) {
-		printf ("Failed to open PCD file.\n");
+		printf ("Failed to open manifest file.\n");
 		return -1;
 	}
 
@@ -542,7 +762,7 @@ int main (int argc, char** argv)
 
 	manifest = (uint8_t*) malloc (fileLen + 1);
 	if (manifest == NULL) {
-		printf ("Failed to allocate PCD buffer.\n");
+		printf ("Failed to allocate manifest buffer.\n");
 		return -1;
 	}
 
@@ -556,6 +776,7 @@ int main (int argc, char** argv)
 	printf ("\tmagic: 0x%x\n", header->magic);
 	printf ("\tid: %i\n", header->id);
 	printf ("\tsig_length: %i\n", header->sig_length);
+	printf ("\tsig_type: %i\n", header->sig_type);
 	printf ("\treserved: %i\n", header->reserved);
 	printf ("}\n");
 
@@ -574,6 +795,10 @@ int main (int argc, char** argv)
 			goto exit;
 	} 
 
+	if (offset == -1) {
+		goto exit;
+	}
+
 	pointer = manifest + offset + sizeof (struct manifest_header);
 
 	printf ("Signature:");
@@ -588,5 +813,11 @@ int main (int argc, char** argv)
 	printf ("\n");
 
 exit:
-	free (manifest);
+	if (manifest != NULL) {
+		free (manifest);
+	}
+
+	if (element_types != NULL) {
+		free (element_types);
+	}
 }
