@@ -118,6 +118,16 @@ struct flash_store {
 	 */
 	int (*get_flash_size) (struct flash_store *flash);
 
+	/**
+	 * Get the number of managed data blocks.
+	 *
+	 * @param flash The flash to query.
+	 *
+	 * @return The number of managed data blocks or an error code. Use ROT_IS_ERROR to check the
+	 * return value.
+	 */
+	int (*get_num_blocks) (struct flash_store *flash);
+
 	struct flash *flash;		/**< Flash device used for storage. */
 	struct hash_engine *hash;	/**< Hash engine for integrity checking. */
 	uint32_t base_addr;			/**< Base flash address for data storage. */
@@ -184,6 +194,7 @@ enum {
 	FLASH_STORE_CORRUPT_DATA = FLASH_STORE_ERROR (0x11),			/**< Data stored in flash is corrupt. */
 	FLASH_STORE_BUFFER_TOO_SMALL = FLASH_STORE_ERROR (0x12),		/**< Output buffer is not large enough for stored data. */
 	FLASH_STORE_NO_DATA = FLASH_STORE_ERROR (0x13),					/**< No data is stored in the flash block. */
+	FLASH_STORE_NUM_BLOCKS_FAILED = FLASH_STORE_ERROR (0x14),		/**< Failed to determine the number of managed data blocks. */
 };
 
 

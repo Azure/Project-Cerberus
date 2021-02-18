@@ -429,6 +429,15 @@ static int flash_store_get_flash_size (struct flash_store *flash)
 	return flash->block_size * flash->blocks;
 }
 
+static int flash_store_get_num_blocks (struct flash_store *flash)
+{
+	if (flash == NULL) {
+		return FLASH_STORE_INVALID_ARGUMENT;
+	}
+
+	return flash->blocks;
+}
+
 /**
  * Initialize flash storage for blocks of data.
  *
@@ -523,6 +532,7 @@ int flash_store_init_storage_common (struct flash_store *store, struct flash *fl
 	store->has_data_stored = flash_store_has_data_stored;
 	store->get_max_data_length = flash_store_get_max_data_length;
 	store->get_flash_size = flash_store_get_flash_size;
+	store->get_num_blocks = flash_store_get_num_blocks; 
 
 	store->flash = flash;
 	store->base_addr = base_addr;

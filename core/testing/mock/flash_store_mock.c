@@ -98,6 +98,17 @@ static int flash_store_mock_get_flash_size (struct flash_store *flash)
 	MOCK_RETURN_NO_ARGS (&mock->mock, flash_store_mock_get_flash_size, flash);
 }
 
+static int flash_store_mock_get_num_blocks (struct flash_store *flash)
+{
+	struct flash_store_mock *mock = (struct flash_store_mock*) flash;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN_NO_ARGS (&mock->mock, flash_store_mock_get_num_blocks, flash);
+}
+
 static int flash_store_mock_func_arg_count (void *func)
 {
 	if ((func == flash_store_mock_write) || (func == flash_store_mock_read)) {
@@ -137,6 +148,9 @@ static const char* flash_store_mock_func_name_map (void *func)
 	}
 	else if (func == flash_store_mock_get_flash_size) {
 		return "get_flash_size";
+	}
+	else if (func == flash_store_mock_get_num_blocks) {
+		return "get_num_blocks";
 	}
 	else {
 		return "unknown";
@@ -223,6 +237,7 @@ int flash_store_mock_init (struct flash_store_mock *mock)
 	mock->base.has_data_stored = flash_store_mock_has_data_stored;
 	mock->base.get_max_data_length = flash_store_mock_get_max_data_length;
 	mock->base.get_flash_size = flash_store_mock_get_flash_size;
+	mock->base.get_num_blocks = flash_store_mock_get_num_blocks;
 
 	mock->mock.func_arg_count = flash_store_mock_func_arg_count;
 	mock->mock.func_name_map = flash_store_mock_func_name_map;

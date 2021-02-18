@@ -18,6 +18,7 @@ enum {
 	TPM_LOGGING_SOFT_RESET_ERROR,			/**< Error during reset processing. */
 	TPM_LOGGING_NO_HEADER,					/**< TPM header not available. */
 	TPM_LOGGING_NO_SEGMENT_DATA,			/**< TPM storage segment had no data. */
+	TPM_LOGGING_ERASE_FAILED,				/**< TPM erase failed. */
 };
 
 

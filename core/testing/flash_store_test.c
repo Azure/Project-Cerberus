@@ -128,12 +128,16 @@ static void flash_store_test_init_fixed_storage_no_hash (CuTest *test)
 	CuAssertPtrNotNull (test, store.test.has_data_stored);
 	CuAssertPtrNotNull (test, store.test.get_max_data_length);
 	CuAssertPtrNotNull (test, store.test.get_flash_size);
+	CuAssertPtrNotNull (test, store.test.get_num_blocks);
 
 	status = store.test.get_max_data_length (&store.test);
 	CuAssertIntEquals (test, 256, status);
 
 	status = store.test.get_flash_size (&store.test);
 	CuAssertIntEquals (test, 3 * sector, status);
+
+	status = store.test.get_num_blocks (&store.test);
+	CuAssertIntEquals (test, 3, status);
 
 	flash_store_testing_release_dependencies (test, &store);
 
@@ -173,12 +177,16 @@ static void flash_store_test_init_fixed_storage_with_hash (CuTest *test)
 	CuAssertPtrNotNull (test, store.test.has_data_stored);
 	CuAssertPtrNotNull (test, store.test.get_max_data_length);
 	CuAssertPtrNotNull (test, store.test.get_flash_size);
+	CuAssertPtrNotNull (test, store.test.get_num_blocks);
 
 	status = store.test.get_max_data_length (&store.test);
 	CuAssertIntEquals (test, 256, status);
 
 	status = store.test.get_flash_size (&store.test);
 	CuAssertIntEquals (test, 3 * sector, status);
+
+	status = store.test.get_num_blocks (&store.test);
+	CuAssertIntEquals (test, 3, status);
 
 	flash_store_testing_release_dependencies (test, &store);
 
@@ -216,6 +224,9 @@ static void flash_store_test_init_fixed_storage_one_sector_per_block_max_space (
 	status = store.test.get_flash_size (&store.test);
 	CuAssertIntEquals (test, 3 * sector, status);
 
+	status = store.test.get_num_blocks (&store.test);
+	CuAssertIntEquals (test, 3, status);
+
 	flash_store_testing_release_dependencies (test, &store);
 
 	flash_store_release (&store.test);
@@ -251,6 +262,9 @@ static void flash_store_test_init_fixed_storage_one_sector_with_hash_max_space (
 
 	status = store.test.get_flash_size (&store.test);
 	CuAssertIntEquals (test, 3 * sector, status);
+
+	status = store.test.get_num_blocks (&store.test);
+	CuAssertIntEquals (test, 3, status);
 
 	flash_store_testing_release_dependencies (test, &store);
 
@@ -288,6 +302,9 @@ static void flash_store_test_init_fixed_storage_multiple_sector_per_block_max_sp
 	status = store.test.get_flash_size (&store.test);
 	CuAssertIntEquals (test, 3 * 1024, status);
 
+	status = store.test.get_num_blocks (&store.test);
+	CuAssertIntEquals (test, 3, status);
+
 	flash_store_testing_release_dependencies (test, &store);
 
 	flash_store_release (&store.test);
@@ -322,6 +339,9 @@ static void flash_store_test_init_fixed_storage_data_not_sector_aligned_max_spac
 
 	status = store.test.get_flash_size (&store.test);
 	CuAssertIntEquals (test, 3 * (sector * 2), status);
+
+	status = store.test.get_num_blocks (&store.test);
+	CuAssertIntEquals (test, 3, status);
 
 	flash_store_testing_release_dependencies (test, &store);
 
@@ -361,6 +381,9 @@ static void flash_store_test_init_fixed_storage_extra_sector_for_hash_max_space 
 	status = store.test.get_flash_size (&store.test);
 	CuAssertIntEquals (test, 3 * (sector * 2), status);
 
+	status = store.test.get_num_blocks (&store.test);
+	CuAssertIntEquals (test, 3, status);
+
 	flash_store_release (&store.test);
 }
 
@@ -394,6 +417,9 @@ static void flash_store_test_init_fixed_storage_max_data_no_hash (CuTest *test)
 
 	status = store.test.get_flash_size (&store.test);
 	CuAssertIntEquals (test, 3 * 0x10000, status);
+
+	status = store.test.get_num_blocks (&store.test);
+	CuAssertIntEquals (test, 3, status);
 
 	flash_store_testing_release_dependencies (test, &store);
 
@@ -430,6 +456,9 @@ static void flash_store_test_init_fixed_storage_max_data_with_hash (CuTest *test
 
 	status = store.test.get_flash_size (&store.test);
 	CuAssertIntEquals (test, 3 * 0x11000, status);
+
+	status = store.test.get_num_blocks (&store.test);
+	CuAssertIntEquals (test, 3, status);
 
 	flash_store_testing_release_dependencies (test, &store);
 
@@ -762,12 +791,16 @@ static void flash_store_test_init_fixed_storage_decreasing_no_hash (CuTest *test
 	CuAssertPtrNotNull (test, store.test.has_data_stored);
 	CuAssertPtrNotNull (test, store.test.get_max_data_length);
 	CuAssertPtrNotNull (test, store.test.get_flash_size);
+	CuAssertPtrNotNull (test, store.test.get_num_blocks);
 
 	status = store.test.get_max_data_length (&store.test);
 	CuAssertIntEquals (test, 256, status);
 
 	status = store.test.get_flash_size (&store.test);
 	CuAssertIntEquals (test, 3 * sector, status);
+
+	status = store.test.get_num_blocks (&store.test);
+	CuAssertIntEquals (test, 3, status);
 
 	flash_store_testing_release_dependencies (test, &store);
 
@@ -807,12 +840,16 @@ static void flash_store_test_init_fixed_storage_decreasing_with_hash (CuTest *te
 	CuAssertPtrNotNull (test, store.test.has_data_stored);
 	CuAssertPtrNotNull (test, store.test.get_max_data_length);
 	CuAssertPtrNotNull (test, store.test.get_flash_size);
+	CuAssertPtrNotNull (test, store.test.get_num_blocks);
 
 	status = store.test.get_max_data_length (&store.test);
 	CuAssertIntEquals (test, 256, status);
 
 	status = store.test.get_flash_size (&store.test);
 	CuAssertIntEquals (test, 3 * sector, status);
+
+	status = store.test.get_num_blocks (&store.test);
+	CuAssertIntEquals (test, 3, status);
 
 	flash_store_testing_release_dependencies (test, &store);
 
@@ -851,6 +888,9 @@ static void flash_store_test_init_fixed_storage_decreasing_one_sector_per_block_
 	status = store.test.get_flash_size (&store.test);
 	CuAssertIntEquals (test, 3 * sector, status);
 
+	status = store.test.get_num_blocks (&store.test);
+	CuAssertIntEquals (test, 3, status);
+
 	flash_store_testing_release_dependencies (test, &store);
 
 	flash_store_release (&store.test);
@@ -887,6 +927,9 @@ static void flash_store_test_init_fixed_storage_decreasing_one_sector_with_hash_
 
 	status = store.test.get_flash_size (&store.test);
 	CuAssertIntEquals (test, 3 * sector, status);
+
+	status = store.test.get_num_blocks (&store.test);
+	CuAssertIntEquals (test, 3, status);
 
 	flash_store_testing_release_dependencies (test, &store);
 
@@ -925,6 +968,9 @@ static void flash_store_test_init_fixed_storage_decreasing_multiple_sector_per_b
 	status = store.test.get_flash_size (&store.test);
 	CuAssertIntEquals (test, 3 * 1024, status);
 
+	status = store.test.get_num_blocks (&store.test);
+	CuAssertIntEquals (test, 3, status);
+
 	flash_store_testing_release_dependencies (test, &store);
 
 	flash_store_release (&store.test);
@@ -961,6 +1007,9 @@ static void flash_store_test_init_fixed_storage_decreasing_data_not_sector_align
 
 	status = store.test.get_flash_size (&store.test);
 	CuAssertIntEquals (test, 3 * (sector * 2), status);
+
+	status = store.test.get_num_blocks (&store.test);
+	CuAssertIntEquals (test, 3, status);
 
 	flash_store_testing_release_dependencies (test, &store);
 
@@ -999,6 +1048,9 @@ static void flash_store_test_init_fixed_storage_decreasing_extra_sector_for_hash
 	status = store.test.get_flash_size (&store.test);
 	CuAssertIntEquals (test, 3 * (sector * 2), status);
 
+	status = store.test.get_num_blocks (&store.test);
+	CuAssertIntEquals (test, 3, status);
+
 	flash_store_testing_release_dependencies (test, &store);
 
 	flash_store_release (&store.test);
@@ -1035,6 +1087,9 @@ static void flash_store_test_init_fixed_storage_decreasing_max_data_no_hash (CuT
 	status = store.test.get_flash_size (&store.test);
 	CuAssertIntEquals (test, 3 * 0x10000, status);
 
+	status = store.test.get_num_blocks (&store.test);
+	CuAssertIntEquals (test, 3, status);
+
 	flash_store_testing_release_dependencies (test, &store);
 
 	flash_store_release (&store.test);
@@ -1070,6 +1125,9 @@ static void flash_store_test_init_fixed_storage_decreasing_max_data_with_hash (C
 
 	status = store.test.get_flash_size (&store.test);
 	CuAssertIntEquals (test, 3 * 0x11000, status);
+
+	status = store.test.get_num_blocks (&store.test);
+	CuAssertIntEquals (test, 3, status);
 
 	flash_store_testing_release_dependencies (test, &store);
 
@@ -1432,12 +1490,16 @@ static void flash_store_test_init_variable_storage_no_hash (CuTest *test)
 	CuAssertPtrNotNull (test, store.test.has_data_stored);
 	CuAssertPtrNotNull (test, store.test.get_max_data_length);
 	CuAssertPtrNotNull (test, store.test.get_flash_size);
+	CuAssertPtrNotNull (test, store.test.get_num_blocks);
 
 	status = store.test.get_max_data_length (&store.test);
 	CuAssertIntEquals (test, sector - sizeof (struct flash_store_header), status);
 
 	status = store.test.get_flash_size (&store.test);
 	CuAssertIntEquals (test, 3 * sector, status);
+
+	status = store.test.get_num_blocks (&store.test);
+	CuAssertIntEquals (test, 3, status);
 
 	flash_store_testing_release_dependencies (test, &store);
 
@@ -1477,12 +1539,16 @@ static void flash_store_test_init_variable_storage_with_hash (CuTest *test)
 	CuAssertPtrNotNull (test, store.test.has_data_stored);
 	CuAssertPtrNotNull (test, store.test.get_max_data_length);
 	CuAssertPtrNotNull (test, store.test.get_flash_size);
+	CuAssertPtrNotNull (test, store.test.get_num_blocks);
 
 	status = store.test.get_max_data_length (&store.test);
 	CuAssertIntEquals (test, sector - sizeof (struct flash_store_header) - 32, status);
 
 	status = store.test.get_flash_size (&store.test);
 	CuAssertIntEquals (test, 3 * sector, status);
+
+	status = store.test.get_num_blocks (&store.test);
+	CuAssertIntEquals (test, 3, status);
 
 	flash_store_testing_release_dependencies (test, &store);
 
@@ -1520,6 +1586,9 @@ static void flash_store_test_init_variable_storage_one_sector_per_block_max_spac
 	status = store.test.get_flash_size (&store.test);
 	CuAssertIntEquals (test, 3 * sector, status);
 
+	status = store.test.get_num_blocks (&store.test);
+	CuAssertIntEquals (test, 3, status);
+
 	flash_store_testing_release_dependencies (test, &store);
 
 	flash_store_release (&store.test);
@@ -1555,6 +1624,9 @@ static void flash_store_test_init_variable_storage_one_sector_with_hash_max_spac
 
 	status = store.test.get_flash_size (&store.test);
 	CuAssertIntEquals (test, 3 * sector, status);
+
+	status = store.test.get_num_blocks (&store.test);
+	CuAssertIntEquals (test, 3, status);
 
 	flash_store_testing_release_dependencies (test, &store);
 
@@ -1593,6 +1665,9 @@ static void flash_store_test_init_variable_storage_multiple_sector_per_block_max
 	status = store.test.get_flash_size (&store.test);
 	CuAssertIntEquals (test, 3 * 1024, status);
 
+	status = store.test.get_num_blocks (&store.test);
+	CuAssertIntEquals (test, 3, status);
+
 	flash_store_testing_release_dependencies (test, &store);
 
 	flash_store_release (&store.test);
@@ -1628,6 +1703,9 @@ static void flash_store_test_init_variable_storage_data_not_sector_aligned_max_s
 
 	status = store.test.get_flash_size (&store.test);
 	CuAssertIntEquals (test, 3 * (sector * 2), status);
+
+	status = store.test.get_num_blocks (&store.test);
+	CuAssertIntEquals (test, 3, status);
 
 	flash_store_testing_release_dependencies (test, &store);
 
@@ -1667,6 +1745,9 @@ static void flash_store_test_init_variable_storage_extra_sector_for_hash_max_spa
 	status = store.test.get_flash_size (&store.test);
 	CuAssertIntEquals (test, 3 * (sector * 2), status);
 
+	status = store.test.get_num_blocks (&store.test);
+	CuAssertIntEquals (test, 3, status);
+
 	flash_store_release (&store.test);
 }
 
@@ -1703,6 +1784,9 @@ static void flash_store_test_init_variable_storage_extra_sector_for_header_max_s
 	status = store.test.get_flash_size (&store.test);
 	CuAssertIntEquals (test, 3 * (sector * 2), status);
 
+	status = store.test.get_num_blocks (&store.test);
+	CuAssertIntEquals (test, 3, status);
+
 	flash_store_release (&store.test);
 }
 
@@ -1736,6 +1820,9 @@ static void flash_store_test_init_variable_storage_max_data_no_hash (CuTest *tes
 
 	status = store.test.get_flash_size (&store.test);
 	CuAssertIntEquals (test, 3 * 0x10000, status);
+
+	status = store.test.get_num_blocks (&store.test);
+	CuAssertIntEquals (test, 3, status);
 
 	flash_store_testing_release_dependencies (test, &store);
 
@@ -1772,6 +1859,9 @@ static void flash_store_test_init_variable_storage_max_data_with_hash (CuTest *t
 
 	status = store.test.get_flash_size (&store.test);
 	CuAssertIntEquals (test, 3 * 0x10000, status);
+
+	status = store.test.get_num_blocks (&store.test);
+	CuAssertIntEquals (test, 3, status);
 
 	flash_store_testing_release_dependencies (test, &store);
 
@@ -2192,12 +2282,16 @@ static void flash_store_test_init_variable_storage_decreasing_no_hash (CuTest *t
 	CuAssertPtrNotNull (test, store.test.has_data_stored);
 	CuAssertPtrNotNull (test, store.test.get_max_data_length);
 	CuAssertPtrNotNull (test, store.test.get_flash_size);
+	CuAssertPtrNotNull (test, store.test.get_num_blocks);
 
 	status = store.test.get_max_data_length (&store.test);
 	CuAssertIntEquals (test, sector - sizeof (struct flash_store_header), status);
 
 	status = store.test.get_flash_size (&store.test);
 	CuAssertIntEquals (test, 3 * sector, status);
+
+	status = store.test.get_num_blocks (&store.test);
+	CuAssertIntEquals (test, 3, status);
 
 	flash_store_testing_release_dependencies (test, &store);
 
@@ -2237,12 +2331,16 @@ static void flash_store_test_init_variable_storage_decreasing_with_hash (CuTest 
 	CuAssertPtrNotNull (test, store.test.has_data_stored);
 	CuAssertPtrNotNull (test, store.test.get_max_data_length);
 	CuAssertPtrNotNull (test, store.test.get_flash_size);
+	CuAssertPtrNotNull (test, store.test.get_num_blocks);
 
 	status = store.test.get_max_data_length (&store.test);
 	CuAssertIntEquals (test, sector - sizeof (struct flash_store_header) - 32, status);
 
 	status = store.test.get_flash_size (&store.test);
 	CuAssertIntEquals (test, 3 * sector, status);
+
+	status = store.test.get_num_blocks (&store.test);
+	CuAssertIntEquals (test, 3, status);
 
 	flash_store_testing_release_dependencies (test, &store);
 
@@ -2281,6 +2379,9 @@ static void flash_store_test_init_variable_storage_decreasing_one_sector_per_blo
 	status = store.test.get_flash_size (&store.test);
 	CuAssertIntEquals (test, 3 * sector, status);
 
+	status = store.test.get_num_blocks (&store.test);
+	CuAssertIntEquals (test, 3, status);
+
 	flash_store_testing_release_dependencies (test, &store);
 
 	flash_store_release (&store.test);
@@ -2317,6 +2418,9 @@ static void flash_store_test_init_variable_storage_decreasing_one_sector_with_ha
 
 	status = store.test.get_flash_size (&store.test);
 	CuAssertIntEquals (test, 3 * sector, status);
+
+	status = store.test.get_num_blocks (&store.test);
+	CuAssertIntEquals (test, 3, status);
 
 	flash_store_testing_release_dependencies (test, &store);
 
@@ -2355,6 +2459,9 @@ static void flash_store_test_init_variable_storage_decreasing_multiple_sector_pe
 	status = store.test.get_flash_size (&store.test);
 	CuAssertIntEquals (test, 3 * 1024, status);
 
+	status = store.test.get_num_blocks (&store.test);
+	CuAssertIntEquals (test, 3, status);
+
 	flash_store_testing_release_dependencies (test, &store);
 
 	flash_store_release (&store.test);
@@ -2391,6 +2498,9 @@ static void flash_store_test_init_variable_storage_decreasing_data_not_sector_al
 
 	status = store.test.get_flash_size (&store.test);
 	CuAssertIntEquals (test, 3 * (sector * 2), status);
+
+	status = store.test.get_num_blocks (&store.test);
+	CuAssertIntEquals (test, 3, status);
 
 	flash_store_testing_release_dependencies (test, &store);
 
@@ -2431,6 +2541,9 @@ static void flash_store_test_init_variable_storage_decreasing_extra_sector_for_h
 	status = store.test.get_flash_size (&store.test);
 	CuAssertIntEquals (test, 3 * (sector * 2), status);
 
+	status = store.test.get_num_blocks (&store.test);
+	CuAssertIntEquals (test, 3, status);
+
 	flash_store_release (&store.test);
 }
 
@@ -2468,6 +2581,9 @@ static void flash_store_test_init_variable_storage_decreasing_extra_sector_for_h
 	status = store.test.get_flash_size (&store.test);
 	CuAssertIntEquals (test, 3 * (sector * 2), status);
 
+	status = store.test.get_num_blocks (&store.test);
+	CuAssertIntEquals (test, 3, status);
+
 	flash_store_release (&store.test);
 }
 
@@ -2501,6 +2617,9 @@ static void flash_store_test_init_variable_storage_decreasing_max_data_no_hash (
 
 	status = store.test.get_flash_size (&store.test);
 	CuAssertIntEquals (test, 3 * 0x10000, status);
+
+	status = store.test.get_num_blocks (&store.test);
+	CuAssertIntEquals (test, 3, status);
 
 	flash_store_testing_release_dependencies (test, &store);
 
@@ -2537,6 +2656,9 @@ static void flash_store_test_init_variable_storage_decreasing_max_data_with_hash
 
 	status = store.test.get_flash_size (&store.test);
 	CuAssertIntEquals (test, 3 * 0x10000, status);
+
+	status = store.test.get_num_blocks (&store.test);
+	CuAssertIntEquals (test, 3, status);
 
 	flash_store_testing_release_dependencies (test, &store);
 
@@ -2965,6 +3087,26 @@ static void flash_store_test_get_flash_size_null (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.get_flash_size (NULL);
+	CuAssertIntEquals (test, FLASH_STORE_INVALID_ARGUMENT, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_get_num_blocks_null (CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+
+	TEST_START;
+
+	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+
+	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3, 256, NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.get_num_blocks (NULL);
 	CuAssertIntEquals (test, FLASH_STORE_INVALID_ARGUMENT, status);
 
 	flash_store_testing_release_dependencies (test, &store);
@@ -11526,6 +11668,7 @@ CuSuite* get_flash_store_suite ()
 	SUITE_ADD_TEST (suite, flash_store_test_release_null);
 	SUITE_ADD_TEST (suite, flash_store_test_get_max_data_length_null);
 	SUITE_ADD_TEST (suite, flash_store_test_get_flash_size_null);
+	SUITE_ADD_TEST (suite, flash_store_test_get_num_blocks_null);
 	SUITE_ADD_TEST (suite, flash_store_test_write_fixed_storage_no_hash);
 	SUITE_ADD_TEST (suite, flash_store_test_write_fixed_storage_no_hash_last_block);
 	SUITE_ADD_TEST (suite, flash_store_test_write_fixed_storage_no_hash_multiple_sectors);

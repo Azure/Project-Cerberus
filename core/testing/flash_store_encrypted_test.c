@@ -143,12 +143,16 @@ static void flash_store_encrypted_test_init_fixed_storage (CuTest *test)
 	CuAssertPtrNotNull (test, store.test.base.has_data_stored);
 	CuAssertPtrNotNull (test, store.test.base.get_max_data_length);
 	CuAssertPtrNotNull (test, store.test.base.get_flash_size);
+	CuAssertPtrNotNull (test, store.test.base.get_num_blocks);
 
 	status = store.test.base.get_max_data_length (&store.test.base);
 	CuAssertIntEquals (test, 256, status);
 
 	status = store.test.base.get_flash_size (&store.test.base);
 	CuAssertIntEquals (test, 3 * sector, status);
+
+	status = store.test.base.get_num_blocks (&store.test.base);
+	CuAssertIntEquals (test, 3, status);
 
 	flash_store_encrypted_testing_release_dependencies (test, &store);
 
@@ -187,6 +191,9 @@ static void flash_store_encrypted_test_init_fixed_storage_one_sector_per_block_m
 	status = store.test.base.get_flash_size (&store.test.base);
 	CuAssertIntEquals (test, 3 * sector, status);
 
+	status = store.test.base.get_num_blocks (&store.test.base);
+	CuAssertIntEquals (test, 3, status);
+
 	flash_store_encrypted_testing_release_dependencies (test, &store);
 
 	flash_store_encrypted_release (&store.test);
@@ -224,6 +231,9 @@ static void flash_store_encrypted_test_init_fixed_storage_multiple_sector_per_bl
 	status = store.test.base.get_flash_size (&store.test.base);
 	CuAssertIntEquals (test, 3 * 1024, status);
 
+	status = store.test.base.get_num_blocks (&store.test.base);
+	CuAssertIntEquals (test, 3, status);
+
 	flash_store_encrypted_testing_release_dependencies (test, &store);
 
 	flash_store_encrypted_release (&store.test);
@@ -260,6 +270,9 @@ static void flash_store_encrypted_test_init_fixed_storage_data_not_sector_aligne
 
 	status = store.test.base.get_flash_size (&store.test.base);
 	CuAssertIntEquals (test, 3 * (sector * 2), status);
+
+	status = store.test.base.get_num_blocks (&store.test.base);
+	CuAssertIntEquals (test, 3, status);
 
 	flash_store_encrypted_testing_release_dependencies (test, &store);
 
@@ -300,6 +313,9 @@ static void flash_store_encrypted_test_init_fixed_storage_extra_sector_for_tag_m
 	status = store.test.base.get_flash_size (&store.test.base);
 	CuAssertIntEquals (test, 3 * (sector * 2), status);
 
+	status = store.test.base.get_num_blocks (&store.test.base);
+	CuAssertIntEquals (test, 3, status);
+
 	flash_store_encrypted_release (&store.test);
 }
 
@@ -333,6 +349,9 @@ static void flash_store_encrypted_test_init_fixed_storage_max_data (CuTest *test
 
 	status = store.test.base.get_flash_size (&store.test.base);
 	CuAssertIntEquals (test, 3 * 0x11000, status);
+
+	status = store.test.base.get_num_blocks (&store.test.base);
+	CuAssertIntEquals (test, 3, status);
 
 	flash_store_encrypted_testing_release_dependencies (test, &store);
 
@@ -646,12 +665,16 @@ static void flash_store_encrypted_test_init_fixed_storage_decreasing (CuTest *te
 	CuAssertPtrNotNull (test, store.test.base.has_data_stored);
 	CuAssertPtrNotNull (test, store.test.base.get_max_data_length);
 	CuAssertPtrNotNull (test, store.test.base.get_flash_size);
+	CuAssertPtrNotNull (test, store.test.base.get_num_blocks);
 
 	status = store.test.base.get_max_data_length (&store.test.base);
 	CuAssertIntEquals (test, 256, status);
 
 	status = store.test.base.get_flash_size (&store.test.base);
 	CuAssertIntEquals (test, 3 * sector, status);
+
+	status = store.test.base.get_num_blocks (&store.test.base);
+	CuAssertIntEquals (test, 3, status);
 
 	flash_store_encrypted_testing_release_dependencies (test, &store);
 
@@ -690,6 +713,9 @@ static void flash_store_encrypted_test_init_fixed_storage_decreasing_one_sector_
 	status = store.test.base.get_flash_size (&store.test.base);
 	CuAssertIntEquals (test, 3 * sector, status);
 
+	status = store.test.base.get_num_blocks (&store.test.base);
+	CuAssertIntEquals (test, 3, status);
+
 	flash_store_encrypted_testing_release_dependencies (test, &store);
 
 	flash_store_encrypted_release (&store.test);
@@ -727,6 +753,9 @@ static void flash_store_encrypted_test_init_fixed_storage_decreasing_multiple_se
 	status = store.test.base.get_flash_size (&store.test.base);
 	CuAssertIntEquals (test, 3 * 1024, status);
 
+	status = store.test.base.get_num_blocks (&store.test.base);
+	CuAssertIntEquals (test, 3, status);
+
 	flash_store_encrypted_testing_release_dependencies (test, &store);
 
 	flash_store_encrypted_release (&store.test);
@@ -763,6 +792,9 @@ static void flash_store_encrypted_test_init_fixed_storage_decreasing_data_not_se
 
 	status = store.test.base.get_flash_size (&store.test.base);
 	CuAssertIntEquals (test, 3 * (sector * 2), status);
+
+	status = store.test.base.get_num_blocks (&store.test.base);
+	CuAssertIntEquals (test, 3, status);
 
 	flash_store_encrypted_testing_release_dependencies (test, &store);
 
@@ -803,6 +835,9 @@ static void flash_store_encrypted_test_init_fixed_storage_decreasing_extra_secto
 	status = store.test.base.get_flash_size (&store.test.base);
 	CuAssertIntEquals (test, 3 * (sector * 2), status);
 
+	status = store.test.base.get_num_blocks (&store.test.base);
+	CuAssertIntEquals (test, 3, status);
+
 	flash_store_encrypted_release (&store.test);
 }
 
@@ -836,6 +871,9 @@ static void flash_store_encrypted_test_init_fixed_storage_decreasing_max_data (C
 
 	status = store.test.base.get_flash_size (&store.test.base);
 	CuAssertIntEquals (test, 3 * 0x11000, status);
+
+	status = store.test.base.get_num_blocks (&store.test.base);
+	CuAssertIntEquals (test, 3, status);
 
 	flash_store_encrypted_testing_release_dependencies (test, &store);
 
@@ -1153,6 +1191,7 @@ static void flash_store_encrypted_test_init_variable_storage (CuTest *test)
 	CuAssertPtrNotNull (test, store.test.base.has_data_stored);
 	CuAssertPtrNotNull (test, store.test.base.get_max_data_length);
 	CuAssertPtrNotNull (test, store.test.base.get_flash_size);
+	CuAssertPtrNotNull (test, store.test.base.get_num_blocks);
 
 	status = store.test.base.get_max_data_length (&store.test.base);
 	CuAssertIntEquals (test,
@@ -1160,6 +1199,9 @@ static void flash_store_encrypted_test_init_variable_storage (CuTest *test)
 
 	status = store.test.base.get_flash_size (&store.test.base);
 	CuAssertIntEquals (test, 3 * sector, status);
+
+	status = store.test.base.get_num_blocks (&store.test.base);
+	CuAssertIntEquals (test, 3, status);
 
 	flash_store_encrypted_testing_release_dependencies (test, &store);
 
@@ -1198,6 +1240,9 @@ static void flash_store_encrypted_test_init_variable_storage_one_sector_per_bloc
 
 	status = store.test.base.get_flash_size (&store.test.base);
 	CuAssertIntEquals (test, 3 * sector, status);
+
+	status = store.test.base.get_num_blocks (&store.test.base);
+	CuAssertIntEquals (test, 3, status);
 
 	flash_store_encrypted_testing_release_dependencies (test, &store);
 
@@ -1238,6 +1283,9 @@ static void flash_store_encrypted_test_init_variable_storage_multiple_sector_per
 	status = store.test.base.get_flash_size (&store.test.base);
 	CuAssertIntEquals (test, 3 * 1024, status);
 
+	status = store.test.base.get_num_blocks (&store.test.base);
+	CuAssertIntEquals (test, 3, status);
+
 	flash_store_encrypted_testing_release_dependencies (test, &store);
 
 	flash_store_encrypted_release (&store.test);
@@ -1276,6 +1324,9 @@ static void flash_store_encrypted_test_init_variable_storage_data_not_sector_ali
 
 	status = store.test.base.get_flash_size (&store.test.base);
 	CuAssertIntEquals (test, 3 * (sector * 2), status);
+
+	status = store.test.base.get_num_blocks (&store.test.base);
+	CuAssertIntEquals (test, 3, status);
 
 	flash_store_encrypted_testing_release_dependencies (test, &store);
 
@@ -1318,6 +1369,9 @@ static void flash_store_encrypted_test_init_variable_storage_extra_sector_for_ta
 	status = store.test.base.get_flash_size (&store.test.base);
 	CuAssertIntEquals (test, 3 * (sector * 2), status);
 
+	status = store.test.base.get_num_blocks (&store.test.base);
+	CuAssertIntEquals (test, 3, status);
+
 	flash_store_encrypted_release (&store.test);
 }
 
@@ -1357,6 +1411,9 @@ static void flash_store_encrypted_test_init_variable_storage_extra_sector_for_he
 	status = store.test.base.get_flash_size (&store.test.base);
 	CuAssertIntEquals (test, 3 * (sector * 2), status);
 
+	status = store.test.base.get_num_blocks (&store.test.base);
+	CuAssertIntEquals (test, 3, status);
+
 	flash_store_encrypted_release (&store.test);
 }
 
@@ -1393,6 +1450,9 @@ static void flash_store_encrypted_test_init_variable_storage_max_data (CuTest *t
 
 	status = store.test.base.get_flash_size (&store.test.base);
 	CuAssertIntEquals (test, 3 * 0x10000, status);
+
+	status = store.test.base.get_num_blocks (&store.test.base);
+	CuAssertIntEquals (test, 3, status);
 
 	flash_store_encrypted_testing_release_dependencies (test, &store);
 
@@ -1765,6 +1825,7 @@ static void flash_store_encrypted_test_init_variable_storage_decreasing (CuTest 
 	CuAssertPtrNotNull (test, store.test.base.has_data_stored);
 	CuAssertPtrNotNull (test, store.test.base.get_max_data_length);
 	CuAssertPtrNotNull (test, store.test.base.get_flash_size);
+	CuAssertPtrNotNull (test, store.test.base.get_num_blocks);
 
 	status = store.test.base.get_max_data_length (&store.test.base);
 	CuAssertIntEquals (test,
@@ -1772,6 +1833,9 @@ static void flash_store_encrypted_test_init_variable_storage_decreasing (CuTest 
 
 	status = store.test.base.get_flash_size (&store.test.base);
 	CuAssertIntEquals (test, 3 * sector, status);
+
+	status = store.test.base.get_num_blocks (&store.test.base);
+	CuAssertIntEquals (test, 3, status);
 
 	flash_store_encrypted_testing_release_dependencies (test, &store);
 
@@ -1810,6 +1874,9 @@ static void flash_store_encrypted_test_init_variable_storage_decreasing_one_sect
 
 	status = store.test.base.get_flash_size (&store.test.base);
 	CuAssertIntEquals (test, 3 * sector, status);
+
+	status = store.test.base.get_num_blocks (&store.test.base);
+	CuAssertIntEquals (test, 3, status);
 
 	flash_store_encrypted_testing_release_dependencies (test, &store);
 
@@ -1850,6 +1917,9 @@ static void flash_store_encrypted_test_init_variable_storage_decreasing_multiple
 	status = store.test.base.get_flash_size (&store.test.base);
 	CuAssertIntEquals (test, 3 * 1024, status);
 
+	status = store.test.base.get_num_blocks (&store.test.base);
+	CuAssertIntEquals (test, 3, status);
+
 	flash_store_encrypted_testing_release_dependencies (test, &store);
 
 	flash_store_encrypted_release (&store.test);
@@ -1888,6 +1958,9 @@ static void flash_store_encrypted_test_init_variable_storage_decreasing_data_not
 
 	status = store.test.base.get_flash_size (&store.test.base);
 	CuAssertIntEquals (test, 3 * (sector * 2), status);
+
+	status = store.test.base.get_num_blocks (&store.test.base);
+	CuAssertIntEquals (test, 3, status);
 
 	flash_store_encrypted_testing_release_dependencies (test, &store);
 
@@ -1930,6 +2003,9 @@ static void flash_store_encrypted_test_init_variable_storage_decreasing_extra_se
 	status = store.test.base.get_flash_size (&store.test.base);
 	CuAssertIntEquals (test, 3 * (sector * 2), status);
 
+	status = store.test.base.get_num_blocks (&store.test.base);
+	CuAssertIntEquals (test, 3, status);
+
 	flash_store_encrypted_release (&store.test);
 }
 
@@ -1969,6 +2045,9 @@ static void flash_store_encrypted_test_init_variable_storage_decreasing_extra_se
 	status = store.test.base.get_flash_size (&store.test.base);
 	CuAssertIntEquals (test, 3 * (sector * 2), status);
 
+	status = store.test.base.get_num_blocks (&store.test.base);
+	CuAssertIntEquals (test, 3, status);
+
 	flash_store_encrypted_release (&store.test);
 }
 
@@ -2006,6 +2085,9 @@ static void flash_store_encrypted_test_init_variable_storage_decreasing_max_data
 
 	status = store.test.base.get_flash_size (&store.test.base);
 	CuAssertIntEquals (test, 3 * 0x10000, status);
+
+	status = store.test.base.get_num_blocks (&store.test.base);
+	CuAssertIntEquals (test, 3, status);
 
 	flash_store_encrypted_testing_release_dependencies (test, &store);
 
@@ -2392,6 +2474,27 @@ static void flash_store_encrypted_test_get_flash_size_null (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.get_flash_size (NULL);
+	CuAssertIntEquals (test, FLASH_STORE_INVALID_ARGUMENT, status);
+
+	flash_store_encrypted_testing_release_dependencies (test, &store);
+
+	flash_store_encrypted_release (&store.test);
+}
+
+static void flash_store_encrypted_test_get_num_blocks_null (CuTest *test)
+{
+	struct flash_store_encrypted_testing store;
+	int status;
+
+	TEST_START;
+
+	flash_store_encrypted_testing_prepare_init (test, &store, 0x1000, 0x100000);
+
+	status = flash_store_encrypted_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
+		256, &store.aes.base, &store.rng.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.base.get_num_blocks (NULL);
 	CuAssertIntEquals (test, FLASH_STORE_INVALID_ARGUMENT, status);
 
 	flash_store_encrypted_testing_release_dependencies (test, &store);
@@ -8642,6 +8745,7 @@ CuSuite* get_flash_store_encrypted_suite ()
 	SUITE_ADD_TEST (suite, flash_store_encrypted_test_release_null);
 	SUITE_ADD_TEST (suite, flash_store_encrypted_test_get_max_data_length_null);
 	SUITE_ADD_TEST (suite, flash_store_encrypted_test_get_flash_size_null);
+	SUITE_ADD_TEST (suite, flash_store_encrypted_test_get_num_blocks_null);
 	SUITE_ADD_TEST (suite, flash_store_encrypted_test_write_fixed_storage);
 	SUITE_ADD_TEST (suite, flash_store_encrypted_test_write_fixed_storage_last_block);
 	SUITE_ADD_TEST (suite, flash_store_encrypted_test_write_fixed_storage_multiple_sectors);

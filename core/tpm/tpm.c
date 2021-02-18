@@ -27,15 +27,27 @@
 static int tpm_init_header (struct tpm *tpm, bool clear, bool write)
 {
 	struct tpm_header *header = (struct tpm_header*) tpm->buffer;
+	int id;
+	int erase_status = 0;
 	int status;
 
 	if (clear) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_TPM,
 			TPM_LOGGING_CLEAR_TPM, 0, 0);
 
-		status = tpm->flash->erase_all (tpm->flash);
-		if (status != 0) {
+		status = tpm->flash->get_num_blocks (tpm->flash);
+		if (ROT_IS_ERROR (status)) {
 			return status;
+		}
+
+		memset (tpm->buffer, 0xff, sizeof (tpm->buffer));
+		for (id = status - 1; id > 0; id--) {
+			status = tpm->flash->write (tpm->flash, id, tpm->buffer, sizeof (tpm->buffer));
+			if (status != 0) {
+				erase_status = status;
+				debug_log_create_entry (DEBUG_LOG_SEVERITY_WARNING, DEBUG_LOG_COMPONENT_TPM,
+					TPM_LOGGING_ERASE_FAILED, id, status);
+			}
 		}
 	}
 	else {
@@ -48,11 +60,13 @@ static int tpm_init_header (struct tpm *tpm, bool clear, bool write)
 	header->format_id = TPM_HEADER_FORMAT;
 
 	if (write) {
-		return tpm->flash->write (tpm->flash, 0, tpm->buffer, sizeof (tpm->buffer));
+		status = tpm->flash->write (tpm->flash, 0, tpm->buffer, sizeof (tpm->buffer));
+		if (status != 0) {
+			return status;
+		}
 	}
-	else {
-		return 0;
-	}
+
+	return erase_status;
 }
 
 /**

@@ -238,9 +238,11 @@ static void tpm_test_init_no_header_corrupt_data (CuTest *test)
 static void tpm_test_init_clear (CuTest *test)
 {
 	uint8_t segment[512] = {0};
+	uint8_t empty_buffer[512] = {0};
 	struct tpm_header *header = (struct tpm_header*) segment;
 	struct flash_store_mock flash;
 	struct tpm tpm;
+	int id;
 	int status;
 
 	TEST_START;
@@ -258,7 +260,13 @@ static void tpm_test_init_clear (CuTest *test)
 		MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (segment)));
 	status |= mock_expect_output_tmp (&flash.mock, 1, (uint8_t*) header, sizeof (segment), 2);
 
-	status |= mock_expect (&flash.mock, flash.base.erase_all, &flash, 0);
+	status |= mock_expect (&flash.mock, flash.base.get_num_blocks, &flash, 3);
+
+	memset (empty_buffer, 0xff, sizeof (empty_buffer));
+	for (id = 2; id > 0; id--) {
+		status |= mock_expect (&flash.mock, flash.base.write, &flash, 0, MOCK_ARG (id),
+			MOCK_ARG_PTR_CONTAINS (empty_buffer, sizeof (empty_buffer)), MOCK_ARG (sizeof (empty_buffer)));
+	}
 
 	header->clear = 0;
 	status |= mock_expect (&flash.mock, flash.base.write, &flash, 0, MOCK_ARG (0),
@@ -395,12 +403,14 @@ static void tpm_test_init_no_header_write_fail (CuTest *test)
 	complete_tpm_mock_test (test, &tpm, &flash);
 }
 
-static void tpm_test_init_clear_erase_fail (CuTest *test)
+static void tpm_test_init_clear_write_empty_buffer_fail (CuTest *test)
 {
 	uint8_t segment[512] = {0};
+	uint8_t empty_buffer[512] = {0};
 	struct tpm_header *header = (struct tpm_header*) segment;
 	struct flash_store_mock flash;
 	struct tpm tpm;
+	int id;
 	int status;
 
 	TEST_START;
@@ -418,22 +428,37 @@ static void tpm_test_init_clear_erase_fail (CuTest *test)
 		MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (segment)));
 	status |= mock_expect_output_tmp (&flash.mock, 1, (uint8_t*) header, sizeof (segment), 2);
 
-	status |= mock_expect (&flash.mock, flash.base.erase_all, &flash, FLASH_STORE_ERASE_ALL_FAILED);
+	status |= mock_expect (&flash.mock, flash.base.get_num_blocks, &flash, 3);
+
+	memset (empty_buffer, 0xff, sizeof (empty_buffer));
+	for (id = 2; id > 0; id--) {
+		status |= mock_expect (&flash.mock, flash.base.write, &flash, FLASH_STORE_WRITE_FAILED,
+			MOCK_ARG (id), MOCK_ARG_PTR_CONTAINS (empty_buffer, sizeof (empty_buffer)),
+			MOCK_ARG (sizeof (empty_buffer)));
+	}
+
+	CuAssertIntEquals (test, 0, status);
+
+	header->clear = 0;
+	status |= mock_expect (&flash.mock, flash.base.write, &flash, 0, MOCK_ARG (0),
+		MOCK_ARG_PTR_CONTAINS (segment, sizeof (segment)), MOCK_ARG (sizeof (segment)));
 
 	CuAssertIntEquals (test, 0, status);
 
 	status = tpm_init (&tpm, &flash.base);
-	CuAssertIntEquals (test, FLASH_STORE_ERASE_ALL_FAILED, status);
+	CuAssertIntEquals (test, FLASH_STORE_WRITE_FAILED, status);
 
 	complete_tpm_mock_test (test, &tpm, &flash);
 }
 
-static void tpm_test_init_clear_write_fail (CuTest *test)
+static void tpm_test_init_clear_write_header_fail (CuTest *test)
 {
 	uint8_t segment[512] = {0};
+	uint8_t empty_buffer[512] = {0};
 	struct tpm_header *header = (struct tpm_header*) segment;
 	struct flash_store_mock flash;
 	struct tpm tpm;
+	int id;
 	int status;
 
 	TEST_START;
@@ -451,7 +476,13 @@ static void tpm_test_init_clear_write_fail (CuTest *test)
 		MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (segment)));
 	status |= mock_expect_output_tmp (&flash.mock, 1, (uint8_t*) header, sizeof (segment), 2);
 
-	status |= mock_expect (&flash.mock, flash.base.erase_all, &flash, 0);
+	status |= mock_expect (&flash.mock, flash.base.get_num_blocks, &flash, 3);
+
+	memset (empty_buffer, 0xff, sizeof (empty_buffer));
+	for (id = 2; id > 0; id--) {
+		status |= mock_expect (&flash.mock, flash.base.write, &flash, 0, MOCK_ARG (id),
+			MOCK_ARG_PTR_CONTAINS (empty_buffer, sizeof (empty_buffer)), MOCK_ARG (sizeof (empty_buffer)));
+	}
 
 	header->clear = 0;
 	status |= mock_expect (&flash.mock, flash.base.write, &flash, FLASH_STORE_WRITE_FAILED,
@@ -462,6 +493,87 @@ static void tpm_test_init_clear_write_fail (CuTest *test)
 
 	status = tpm_init (&tpm, &flash.base);
 	CuAssertIntEquals (test, FLASH_STORE_WRITE_FAILED, status);
+
+	complete_tpm_mock_test (test, &tpm, &flash);
+}
+
+static void tpm_test_init_clear_write_empty_buffer_and_header_fail (CuTest *test)
+{
+	uint8_t segment[512] = {0};
+	uint8_t empty_buffer[512] = {0};
+	struct tpm_header *header = (struct tpm_header*) segment;
+	struct flash_store_mock flash;
+	struct tpm tpm;
+	int id;
+	int status;
+
+	TEST_START;
+
+	header->magic = TPM_MAGIC;
+	header->format_id = TPM_HEADER_FORMAT;
+	header->clear = 1;
+
+	status = flash_store_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&flash.mock, flash.base.get_max_data_length, &flash, sizeof (segment));
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, sizeof (segment), MOCK_ARG (0),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (segment)));
+	status |= mock_expect_output_tmp (&flash.mock, 1, (uint8_t*) header, sizeof (segment), 2);
+
+	status |= mock_expect (&flash.mock, flash.base.get_num_blocks, &flash, 3);
+
+	memset (empty_buffer, 0xff, sizeof (empty_buffer));
+	for (id = 2; id > 0; id--) {
+		status |= mock_expect (&flash.mock, flash.base.write, &flash, FLASH_STORE_BAD_DATA_LENGTH,
+			MOCK_ARG (id), MOCK_ARG_PTR_CONTAINS (empty_buffer, sizeof (empty_buffer)),
+			MOCK_ARG (sizeof (empty_buffer)));
+	}
+
+	header->clear = 0;
+	status |= mock_expect (&flash.mock, flash.base.write, &flash, FLASH_STORE_WRITE_FAILED,
+		MOCK_ARG (0), MOCK_ARG_PTR_CONTAINS (segment, sizeof (segment)),
+		MOCK_ARG (sizeof (segment)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = tpm_init (&tpm, &flash.base);
+	CuAssertIntEquals (test, FLASH_STORE_WRITE_FAILED, status);
+
+	complete_tpm_mock_test (test, &tpm, &flash);
+}
+
+static void tpm_test_init_clear_num_blocks_fail (CuTest *test)
+{
+	uint8_t segment[512] = {0};
+	struct tpm_header *header = (struct tpm_header*) segment;
+	struct flash_store_mock flash;
+	struct tpm tpm;
+	int status;
+
+	TEST_START;
+
+	header->magic = TPM_MAGIC;
+	header->format_id = TPM_HEADER_FORMAT;
+	header->clear = 1;
+
+	status = flash_store_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&flash.mock, flash.base.get_max_data_length, &flash, sizeof (segment));
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, sizeof (segment), MOCK_ARG (0),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (segment)));
+	status |= mock_expect_output_tmp (&flash.mock, 1, (uint8_t*) header, sizeof (segment), 2);
+
+	status |= mock_expect (&flash.mock, flash.base.get_num_blocks, &flash,
+		FLASH_STORE_NUM_BLOCKS_FAILED);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = tpm_init (&tpm, &flash.base);
+	CuAssertIntEquals (test, FLASH_STORE_NUM_BLOCKS_FAILED, status);
 
 	complete_tpm_mock_test (test, &tpm, &flash);
 }
@@ -1161,9 +1273,11 @@ static void tpm_test_get_storage_read_storage_fail (CuTest *test)
 static void tpm_test_on_soft_reset (CuTest *test)
 {
 	uint8_t segment[512] = {0};
+	uint8_t empty_buffer[512] = {0};
 	struct tpm_header *header = (struct tpm_header*) segment;
 	struct flash_store_mock flash;
 	struct tpm tpm;
+	int id;
 	int status;
 
 	TEST_START;
@@ -1178,7 +1292,13 @@ static void tpm_test_on_soft_reset (CuTest *test)
 		MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (segment)));
 	status |= mock_expect_output_tmp (&flash.mock, 1, segment, sizeof (segment), 2);
 
-	status |= mock_expect (&flash.mock, flash.base.erase_all, &flash, 0);
+	status |= mock_expect (&flash.mock, flash.base.get_num_blocks, &flash, 3);
+
+	memset (empty_buffer, 0xff, sizeof (empty_buffer));
+	for (id = 2; id > 0; id--) {
+		status |= mock_expect (&flash.mock, flash.base.write, &flash, 0, MOCK_ARG (id),
+			MOCK_ARG_PTR_CONTAINS (empty_buffer, sizeof (empty_buffer)), MOCK_ARG (sizeof (empty_buffer)));
+	}
 
 	header->clear = 0;
 	status |= mock_expect (&flash.mock, flash.base.write, &flash, 0, MOCK_ARG (0),
@@ -1348,12 +1468,14 @@ static void tpm_test_on_soft_reset_read_fail (CuTest *test)
 	complete_tpm_mock_test (test, &tpm, &flash);
 }
 
-static void tpm_test_on_soft_reset_erase_fail (CuTest *test)
+static void tpm_test_on_soft_reset_write_empty_buffer_fail (CuTest *test)
 {
 	uint8_t segment[512] = {0};
+	uint8_t empty_buffer[512] = {0};
 	struct tpm_header *header = (struct tpm_header*) segment;
 	struct flash_store_mock flash;
 	struct tpm tpm;
+	int id;
 	int status;
 
 	TEST_START;
@@ -1368,7 +1490,20 @@ static void tpm_test_on_soft_reset_erase_fail (CuTest *test)
 		MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (segment)));
 	status |= mock_expect_output_tmp (&flash.mock, 1, segment, sizeof (segment), 2);
 
-	status |= mock_expect (&flash.mock, flash.base.erase_all, &flash, FLASH_STORE_ERASE_ALL_FAILED);
+	status |= mock_expect (&flash.mock, flash.base.get_num_blocks, &flash, 3);
+
+	memset (empty_buffer, 0xff, sizeof (empty_buffer));
+	for (id = 2; id > 0; id--) {
+		status |= mock_expect (&flash.mock, flash.base.write, &flash, FLASH_STORE_WRITE_FAILED,
+			MOCK_ARG (id), MOCK_ARG_PTR_CONTAINS (empty_buffer, sizeof (empty_buffer)),
+			MOCK_ARG (sizeof (empty_buffer)));
+	}
+
+	CuAssertIntEquals (test, 0, status);
+
+	header->clear = 0;
+	status |= mock_expect (&flash.mock, flash.base.write, &flash, 0, MOCK_ARG (0),
+		MOCK_ARG_PTR_CONTAINS (segment, sizeof (segment)), MOCK_ARG (sizeof (segment)));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1377,7 +1512,92 @@ static void tpm_test_on_soft_reset_erase_fail (CuTest *test)
 	complete_tpm_mock_test (test, &tpm, &flash);
 }
 
-static void tpm_test_on_soft_reset_write_fail (CuTest *test)
+static void tpm_test_on_soft_reset_write_header_fail (CuTest *test)
+{
+	uint8_t segment[512] = {0};
+	uint8_t empty_buffer[512] = {0};
+	struct tpm_header *header = (struct tpm_header*) segment;
+	struct flash_store_mock flash;
+	struct tpm tpm;
+	int id;
+	int status;
+
+	TEST_START;
+
+	header->magic = TPM_MAGIC;
+	header->format_id = TPM_HEADER_FORMAT;
+	header->clear = 1;
+
+	setup_tpm_mock_test (test, &tpm, &flash);
+
+	status = mock_expect (&flash.mock, flash.base.read, &flash, sizeof (segment), MOCK_ARG (0),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (segment)));
+	status |= mock_expect_output_tmp (&flash.mock, 1, segment, sizeof (segment), 2);
+
+	status |= mock_expect (&flash.mock, flash.base.get_num_blocks, &flash, 3);
+
+	memset (empty_buffer, 0xff, sizeof (empty_buffer));
+	for (id = 2; id > 0; id--) {
+		status |= mock_expect (&flash.mock, flash.base.write, &flash, 0, MOCK_ARG (id),
+			MOCK_ARG_PTR_CONTAINS (empty_buffer, sizeof (empty_buffer)), MOCK_ARG (sizeof (empty_buffer)));
+	}
+
+	header->clear = 0;
+	status |= mock_expect (&flash.mock, flash.base.write, &flash, FLASH_STORE_WRITE_FAILED,
+		MOCK_ARG (0), MOCK_ARG_PTR_CONTAINS (segment, sizeof (segment)),
+		MOCK_ARG (sizeof (segment)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	tpm.observer.on_soft_reset (&tpm.observer);
+
+	complete_tpm_mock_test (test, &tpm, &flash);
+}
+
+static void tpm_test_on_soft_reset_write_empty_buffer_and_header_fail (CuTest *test)
+{
+	uint8_t segment[512] = {0};
+	uint8_t empty_buffer[512] = {0};
+	struct tpm_header *header = (struct tpm_header*) segment;
+	struct flash_store_mock flash;
+	struct tpm tpm;
+	int id;
+	int status;
+
+	TEST_START;
+
+	header->magic = TPM_MAGIC;
+	header->format_id = TPM_HEADER_FORMAT;
+	header->clear = 1;
+
+	setup_tpm_mock_test (test, &tpm, &flash);
+
+	status = mock_expect (&flash.mock, flash.base.read, &flash, sizeof (segment), MOCK_ARG (0),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (segment)));
+	status |= mock_expect_output_tmp (&flash.mock, 1, segment, sizeof (segment), 2);
+
+	status |= mock_expect (&flash.mock, flash.base.get_num_blocks, &flash, 3);
+
+	memset (empty_buffer, 0xff, sizeof (empty_buffer));
+	for (id = 2; id > 0; id--) {
+		status |= mock_expect (&flash.mock, flash.base.write, &flash, FLASH_STORE_BAD_DATA_LENGTH,
+			MOCK_ARG (id), MOCK_ARG_PTR_CONTAINS (empty_buffer, sizeof (empty_buffer)),
+			MOCK_ARG (sizeof (empty_buffer)));
+	}
+
+	header->clear = 0;
+	status |= mock_expect (&flash.mock, flash.base.write, &flash, FLASH_STORE_WRITE_FAILED,
+		MOCK_ARG (0), MOCK_ARG_PTR_CONTAINS (segment, sizeof (segment)),
+		MOCK_ARG (sizeof (segment)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	tpm.observer.on_soft_reset (&tpm.observer);
+
+	complete_tpm_mock_test (test, &tpm, &flash);
+}
+
+static void tpm_test_on_soft_reset_num_blocks_fail (CuTest *test)
 {
 	uint8_t segment[512] = {0};
 	struct tpm_header *header = (struct tpm_header*) segment;
@@ -1397,12 +1617,8 @@ static void tpm_test_on_soft_reset_write_fail (CuTest *test)
 		MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (segment)));
 	status |= mock_expect_output_tmp (&flash.mock, 1, segment, sizeof (segment), 2);
 
-	status |= mock_expect (&flash.mock, flash.base.erase_all, &flash, 0);
-
-	header->clear = 0;
-	status |= mock_expect (&flash.mock, flash.base.write, &flash, FLASH_STORE_WRITE_FAILED,
-		MOCK_ARG (0), MOCK_ARG_PTR_CONTAINS (segment, sizeof (segment)),
-		MOCK_ARG (sizeof (segment)));
+	status |= mock_expect (&flash.mock, flash.base.get_num_blocks, &flash,
+		FLASH_STORE_NUM_BLOCKS_FAILED);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1653,8 +1869,10 @@ CuSuite* get_tpm_suite ()
 	SUITE_ADD_TEST (suite, tpm_test_init_block_size_fail);
 	SUITE_ADD_TEST (suite, tpm_test_init_read_header_fail);
 	SUITE_ADD_TEST (suite, tpm_test_init_no_header_write_fail);
-	SUITE_ADD_TEST (suite, tpm_test_init_clear_erase_fail);
-	SUITE_ADD_TEST (suite, tpm_test_init_clear_write_fail);
+	SUITE_ADD_TEST (suite, tpm_test_init_clear_write_empty_buffer_fail);
+	SUITE_ADD_TEST (suite, tpm_test_init_clear_write_header_fail);
+	SUITE_ADD_TEST (suite, tpm_test_init_clear_write_empty_buffer_and_header_fail);
+	SUITE_ADD_TEST (suite, tpm_test_init_clear_num_blocks_fail);
 	SUITE_ADD_TEST (suite, tpm_test_release_null);
 	SUITE_ADD_TEST (suite, tpm_test_get_counter);
 	SUITE_ADD_TEST (suite, tpm_test_get_counter_null);
@@ -1689,8 +1907,10 @@ CuSuite* get_tpm_suite ()
 	SUITE_ADD_TEST (suite, tpm_test_on_soft_reset_invalid_storage_corrupt_data);
 	SUITE_ADD_TEST (suite, tpm_test_on_soft_reset_null);
 	SUITE_ADD_TEST (suite, tpm_test_on_soft_reset_read_fail);
-	SUITE_ADD_TEST (suite, tpm_test_on_soft_reset_erase_fail);
-	SUITE_ADD_TEST (suite, tpm_test_on_soft_reset_write_fail);
+	SUITE_ADD_TEST (suite, tpm_test_on_soft_reset_write_empty_buffer_fail);
+	SUITE_ADD_TEST (suite, tpm_test_on_soft_reset_write_header_fail);
+	SUITE_ADD_TEST (suite, tpm_test_on_soft_reset_write_empty_buffer_and_header_fail);
+	SUITE_ADD_TEST (suite, tpm_test_on_soft_reset_num_blocks_fail);
 	SUITE_ADD_TEST (suite, tpm_test_schedule_clear);
 	SUITE_ADD_TEST (suite, tpm_test_schedule_clear_already_scheduled);
 	SUITE_ADD_TEST (suite, tpm_test_schedule_clear_invalid_storage);
