@@ -119,7 +119,7 @@ struct cmd_interface_system_testing {
 	struct x509_engine_mock x509_mock;							/**< The X.509 engine mock for the RIoT keys. */
 	X509_TESTING_ENGINE x509;									/**< X.509 engine for the RIoT keys. */
 	struct flash_mock flash;									/**< The flash mock to set expectations on. */
-	struct state_manager state;									/**< The state manager. */
+	struct host_state_manager state;							/**< The state manager. */
 	struct flash_mock flash_state;								/**< The mock for the flash state storage. */
 	struct cmd_background_mock background;						/**< The background command interface mock. */
 	struct pcr_store store;										/**< PCR storage. */
@@ -156,7 +156,7 @@ static struct riot_keys keys = {
  * @param flash The mock for the flash state storage.
  */
 static void cmd_interface_system_testing_init_host_state (CuTest *test,
-	struct state_manager *state, struct flash_mock *flash)
+	struct host_state_manager *state, struct flash_mock *flash)
 {
 	int status;
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};

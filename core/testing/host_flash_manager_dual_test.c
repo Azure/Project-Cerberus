@@ -6,7 +6,7 @@
 #include <string.h>
 #include "testing.h"
 #include "rsa_testing.h"
-#include "host_fw/host_flash_manager.h"
+#include "host_fw/host_flash_manager_dual.h"
 #include "host_fw/host_state_manager.h"
 #include "flash/flash_common.h"
 #include "mock/flash_master_mock.h"
@@ -21,13 +21,13 @@
 #include "testing/spi_flash_testing.h"
 
 
-static const char *SUITE = "host_flash_manager";
+static const char *SUITE = "host_flash_manager_dual";
 
 
 /**
  * Dependencies for testing.
  */
-struct host_flash_manager_testing {
+struct host_flash_manager_dual_testing {
 	HASH_TESTING_ENGINE hash;						/**< Hash engine for testing. */
 	RSA_TESTING_ENGINE rsa;							/**< RSA engine for testing. */
 	struct flash_master_mock flash_mock0;			/**< Mock for CS0 flash. */
@@ -36,14 +36,14 @@ struct host_flash_manager_testing {
 	struct spi_flash flash0;						/**< CS0 flash device. */
 	struct spi_flash flash1;						/**< CS1 flash device. */
 	struct spi_flash flash_state;					/**< Host state flash device. */
-	struct state_manager host_state;				/**< Host state. */
+	struct host_state_manager host_state;			/**< Host state. */
 	struct spi_filter_interface_mock filter;		/**< Mock for the SPI filter. */
 	struct flash_mfg_filter_handler_mock handler;	/**< Handler for SPI filter device config. */
 	struct host_flash_initialization flash_init;	/**< Manager for flash initialization. */
 	struct host_control_mock control;				/**< Mock for host control. */
 	struct pfm_mock pfm;							/**< Mock PFM for testing. */
 	struct pfm_mock pfm_good;						/**< Secondary mock PFM for testing. */
-	struct host_flash_manager test;					/**< Flash manager under test. */
+	struct host_flash_manager_dual test;			/**< Flash manager under test. */
 };
 
 /**
@@ -52,8 +52,8 @@ struct host_flash_manager_testing {
  * @param test The testing framework.
  * @param manager The testing components.
  */
-static void host_flash_manager_testing_init_host_state (CuTest *test,
-	struct host_flash_manager_testing *manager)
+static void host_flash_manager_dual_testing_init_host_state (CuTest *test,
+	struct host_flash_manager_dual_testing *manager)
 {
 	int status;
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
@@ -95,8 +95,8 @@ static void host_flash_manager_testing_init_host_state (CuTest *test,
  * @param manager The testing components to initialize.
  *
  */
-static void host_flash_manager_testing_initialize_dependencies_no_flash_master (CuTest *test,
-	struct host_flash_manager_testing *manager)
+static void host_flash_manager_dual_testing_initialize_dependencies_no_flash_master (CuTest *test,
+	struct host_flash_manager_dual_testing *manager)
 {
 	int status;
 
@@ -112,7 +112,7 @@ static void host_flash_manager_testing_initialize_dependencies_no_flash_master (
 	status = flash_mfg_filter_handler_mock_init (&manager->handler);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_testing_init_host_state (test, manager);
+	host_flash_manager_dual_testing_init_host_state (test, manager);
 
 	status = host_flash_initialization_init (&manager->flash_init, &manager->flash0,
 		&manager->flash_mock0.base, &manager->flash1, &manager->flash_mock1.base, false, false);
@@ -135,12 +135,12 @@ static void host_flash_manager_testing_initialize_dependencies_no_flash_master (
  * @param manager The testing components to initialize.
  *
  */
-static void host_flash_manager_testing_initialize_dependencies_no_flash (CuTest *test,
-	struct host_flash_manager_testing *manager)
+static void host_flash_manager_dual_testing_initialize_dependencies_no_flash (CuTest *test,
+	struct host_flash_manager_dual_testing *manager)
 {
 	int status;
 
-	host_flash_manager_testing_initialize_dependencies_no_flash_master (test, manager);
+	host_flash_manager_dual_testing_initialize_dependencies_no_flash_master (test, manager);
 
 	status = flash_master_mock_init (&manager->flash_mock0);
 	CuAssertIntEquals (test, 0, status);
@@ -158,12 +158,12 @@ static void host_flash_manager_testing_initialize_dependencies_no_flash (CuTest 
  * @param manager The testing components to initialize.
  *
  */
-static void host_flash_manager_testing_initialize_dependencies (CuTest *test,
-	struct host_flash_manager_testing *manager)
+static void host_flash_manager_dual_testing_initialize_dependencies (CuTest *test,
+	struct host_flash_manager_dual_testing *manager)
 {
 	int status;
 
-	host_flash_manager_testing_initialize_dependencies_no_flash (test, manager);
+	host_flash_manager_dual_testing_initialize_dependencies_no_flash (test, manager);
 
 	status = spi_flash_init (&manager->flash0, &manager->flash_mock0.base);
 	CuAssertIntEquals (test, 0, status);
@@ -186,8 +186,8 @@ static void host_flash_manager_testing_initialize_dependencies (CuTest *test,
  * @param manager The testing components to release.
  *
  */
-static void host_flash_manager_testing_validate_and_release_dependencies_no_flash (CuTest *test,
-	struct host_flash_manager_testing *manager)
+static void host_flash_manager_dual_testing_validate_and_release_dependencies_no_flash (
+	CuTest *test, struct host_flash_manager_dual_testing *manager)
 {
 	int status;
 
@@ -229,10 +229,10 @@ static void host_flash_manager_testing_validate_and_release_dependencies_no_flas
  * @param manager The testing components to release.
  *
  */
-static void host_flash_manager_testing_validate_and_release_dependencies (CuTest *test,
-	struct host_flash_manager_testing *manager)
+static void host_flash_manager_dual_testing_validate_and_release_dependencies (CuTest *test,
+	struct host_flash_manager_dual_testing *manager)
 {
-	host_flash_manager_testing_validate_and_release_dependencies_no_flash (test, manager);
+	host_flash_manager_dual_testing_validate_and_release_dependencies_no_flash (test, manager);
 	spi_flash_release (&manager->flash0);
 	spi_flash_release (&manager->flash1);
 }
@@ -244,19 +244,19 @@ static void host_flash_manager_testing_validate_and_release_dependencies (CuTest
  * @param manager The testing components to initialize.
  * @param ro_cs1 true if CS1 flash should be used as the RO flash.
  */
-static void host_flash_manager_testing_init (CuTest *test,
-	struct host_flash_manager_testing *manager, bool ro_cs1)
+static void host_flash_manager_dual_testing_init (CuTest *test,
+	struct host_flash_manager_dual_testing *manager, bool ro_cs1)
 {
 	int status;
 
-	host_flash_manager_testing_initialize_dependencies (test, manager);
+	host_flash_manager_dual_testing_initialize_dependencies (test, manager);
 
 	if (ro_cs1) {
 		status = host_state_manager_save_read_only_flash (&manager->host_state, SPI_FILTER_CS_1);
 		CuAssertIntEquals (test, 0, status);
 	}
 
-	status = host_flash_manager_init (&manager->test, &manager->flash0, &manager->flash1,
+	status = host_flash_manager_dual_init (&manager->test, &manager->flash0, &manager->flash1,
 		&manager->host_state, &manager->filter.base, &manager->handler.base);
 	CuAssertIntEquals (test, 0, status);
 }
@@ -268,11 +268,11 @@ static void host_flash_manager_testing_init (CuTest *test,
  * @param manager The testing components to release.
  *
  */
-static void host_flash_manager_testing_validate_and_release (CuTest *test,
-	struct host_flash_manager_testing *manager)
+static void host_flash_manager_dual_testing_validate_and_release (CuTest *test,
+	struct host_flash_manager_dual_testing *manager)
 {
-	host_flash_manager_testing_validate_and_release_dependencies (test, manager);
-	host_flash_manager_release (&manager->test);
+	host_flash_manager_dual_testing_validate_and_release_dependencies (test, manager);
+	host_flash_manager_dual_release (&manager->test);
 }
 
 /**
@@ -282,8 +282,8 @@ static void host_flash_manager_testing_validate_and_release (CuTest *test,
  * @param test The testing framework.
  * @param manager The testing components.
  */
-static void host_flash_manager_testing_check_state_persistence (CuTest *test,
-	struct host_flash_manager_testing *manager)
+static void host_flash_manager_dual_testing_check_state_persistence (CuTest *test,
+	struct host_flash_manager_dual_testing *manager)
 {
 	int status;
 
@@ -303,7 +303,7 @@ static void host_flash_manager_testing_check_state_persistence (CuTest *test,
 
 	CuAssertIntEquals (test, 0, status);
 
-	state_manager_store_non_volatile_state (&manager->host_state);
+	state_manager_store_non_volatile_state (&manager->host_state.base);
 }
 
 /**
@@ -314,7 +314,7 @@ static void host_flash_manager_testing_check_state_persistence (CuTest *test,
  * @param mock The flash mock for the SPI device.
  * @param id ID of the flash device.
  */
-static void host_flash_manager_testing_initialize_flash_device (CuTest *test,
+static void host_flash_manager_dual_testing_initialize_flash_device (CuTest *test,
 	struct spi_flash *flash, struct flash_master_mock *mock, const uint8_t *id)
 {
 	uint32_t header[] = {
@@ -384,252 +384,252 @@ static void host_flash_manager_testing_initialize_flash_device (CuTest *test,
  * Test cases
  *******************/
 
-static void host_flash_manager_test_init (CuTest *test)
+static void host_flash_manager_dual_test_init (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_testing_initialize_dependencies (test, &manager);
+	host_flash_manager_dual_testing_initialize_dependencies (test, &manager);
 
-	status = host_flash_manager_init (&manager.test, &manager.flash0, &manager.flash1,
+	status = host_flash_manager_dual_init (&manager.test, &manager.flash0, &manager.flash1,
 		&manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertPtrNotNull (test, manager.test.get_read_only_flash);
-	CuAssertPtrNotNull (test, manager.test.get_read_write_flash);
-	CuAssertPtrNotNull (test, manager.test.validate_read_only_flash);
-	CuAssertPtrNotNull (test, manager.test.validate_read_write_flash);
-	CuAssertPtrNotNull (test, manager.test.get_flash_read_write_regions);
-	CuAssertPtrNotNull (test, manager.test.free_read_write_regions);
-	CuAssertPtrNotNull (test, manager.test.config_spi_filter_flash_type);
-	CuAssertPtrNotNull (test, manager.test.config_spi_filter_flash_devices);
-	CuAssertPtrNotNull (test, manager.test.swap_flash_devices);
-	CuAssertPtrNotNull (test, manager.test.initialize_flash_protection);
-	CuAssertPtrNotNull (test, manager.test.restore_flash_read_write_regions);
-	CuAssertPtrNotNull (test, manager.test.set_flash_for_rot_access);
-	CuAssertPtrNotNull (test, manager.test.set_flash_for_host_access);
-	CuAssertPtrNotNull (test, manager.test.host_has_flash_access);
+	CuAssertPtrNotNull (test, manager.test.base.get_read_only_flash);
+	CuAssertPtrNotNull (test, manager.test.base.get_read_write_flash);
+	CuAssertPtrNotNull (test, manager.test.base.validate_read_only_flash);
+	CuAssertPtrNotNull (test, manager.test.base.validate_read_write_flash);
+	CuAssertPtrNotNull (test, manager.test.base.get_flash_read_write_regions);
+	CuAssertPtrNotNull (test, manager.test.base.free_read_write_regions);
+	CuAssertPtrNotNull (test, manager.test.base.config_spi_filter_flash_type);
+	CuAssertPtrNotNull (test, manager.test.base.config_spi_filter_flash_devices);
+	CuAssertPtrNotNull (test, manager.test.base.swap_flash_devices);
+	CuAssertPtrNotNull (test, manager.test.base.initialize_flash_protection);
+	CuAssertPtrNotNull (test, manager.test.base.restore_flash_read_write_regions);
+	CuAssertPtrNotNull (test, manager.test.base.set_flash_for_rot_access);
+	CuAssertPtrNotNull (test, manager.test.base.set_flash_for_host_access);
+	CuAssertPtrNotNull (test, manager.test.base.host_has_flash_access);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_init_null (CuTest *test)
+static void host_flash_manager_dual_test_init_null (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_testing_initialize_dependencies (test, &manager);
+	host_flash_manager_dual_testing_initialize_dependencies (test, &manager);
 
-	status = host_flash_manager_init (NULL, &manager.flash0, &manager.flash1,
+	status = host_flash_manager_dual_init (NULL, &manager.flash0, &manager.flash1,
 		&manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = host_flash_manager_init (&manager.test, NULL, &manager.flash1,
+	status = host_flash_manager_dual_init (&manager.test, NULL, &manager.flash1,
 		&manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = host_flash_manager_init (&manager.test, &manager.flash0, NULL,
+	status = host_flash_manager_dual_init (&manager.test, &manager.flash0, NULL,
 		&manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = host_flash_manager_init (&manager.test, &manager.flash0, &manager.flash1,
+	status = host_flash_manager_dual_init (&manager.test, &manager.flash0, &manager.flash1,
 		NULL, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = host_flash_manager_init (&manager.test, &manager.flash0, &manager.flash1,
+	status = host_flash_manager_dual_init (&manager.test, &manager.flash0, &manager.flash1,
 		&manager.host_state, NULL, &manager.handler.base);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = host_flash_manager_init (&manager.test, &manager.flash0, &manager.flash1,
+	status = host_flash_manager_dual_init (&manager.test, &manager.flash0, &manager.flash1,
 		&manager.host_state, &manager.filter.base, NULL);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	host_flash_manager_testing_validate_and_release_dependencies (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release_dependencies (test, &manager);
 }
 
-static void host_flash_manager_test_init_with_managed_flash_initialization (CuTest *test)
+static void host_flash_manager_dual_test_init_with_managed_flash_initialization (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_testing_initialize_dependencies (test, &manager);
+	host_flash_manager_dual_testing_initialize_dependencies (test, &manager);
 
-	status = host_flash_manager_init_with_managed_flash_initialization (&manager.test,
+	status = host_flash_manager_dual_init_with_managed_flash_initialization (&manager.test,
 		&manager.flash0, &manager.flash1, &manager.host_state, &manager.filter.base,
 		&manager.handler.base, &manager.flash_init);
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertPtrNotNull (test, manager.test.get_read_only_flash);
-	CuAssertPtrNotNull (test, manager.test.get_read_write_flash);
-	CuAssertPtrNotNull (test, manager.test.validate_read_only_flash);
-	CuAssertPtrNotNull (test, manager.test.validate_read_write_flash);
-	CuAssertPtrNotNull (test, manager.test.get_flash_read_write_regions);
-	CuAssertPtrNotNull (test, manager.test.free_read_write_regions);
-	CuAssertPtrNotNull (test, manager.test.config_spi_filter_flash_type);
-	CuAssertPtrNotNull (test, manager.test.config_spi_filter_flash_devices);
-	CuAssertPtrNotNull (test, manager.test.swap_flash_devices);
-	CuAssertPtrNotNull (test, manager.test.initialize_flash_protection);
-	CuAssertPtrNotNull (test, manager.test.restore_flash_read_write_regions);
-	CuAssertPtrNotNull (test, manager.test.set_flash_for_rot_access);
-	CuAssertPtrNotNull (test, manager.test.set_flash_for_host_access);
-	CuAssertPtrNotNull (test, manager.test.host_has_flash_access);
+	CuAssertPtrNotNull (test, manager.test.base.get_read_only_flash);
+	CuAssertPtrNotNull (test, manager.test.base.get_read_write_flash);
+	CuAssertPtrNotNull (test, manager.test.base.validate_read_only_flash);
+	CuAssertPtrNotNull (test, manager.test.base.validate_read_write_flash);
+	CuAssertPtrNotNull (test, manager.test.base.get_flash_read_write_regions);
+	CuAssertPtrNotNull (test, manager.test.base.free_read_write_regions);
+	CuAssertPtrNotNull (test, manager.test.base.config_spi_filter_flash_type);
+	CuAssertPtrNotNull (test, manager.test.base.config_spi_filter_flash_devices);
+	CuAssertPtrNotNull (test, manager.test.base.swap_flash_devices);
+	CuAssertPtrNotNull (test, manager.test.base.initialize_flash_protection);
+	CuAssertPtrNotNull (test, manager.test.base.restore_flash_read_write_regions);
+	CuAssertPtrNotNull (test, manager.test.base.set_flash_for_rot_access);
+	CuAssertPtrNotNull (test, manager.test.base.set_flash_for_host_access);
+	CuAssertPtrNotNull (test, manager.test.base.host_has_flash_access);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_init_with_managed_flash_initialization_null (CuTest *test)
+static void host_flash_manager_dual_test_init_with_managed_flash_initialization_null (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_testing_initialize_dependencies (test, &manager);
+	host_flash_manager_dual_testing_initialize_dependencies (test, &manager);
 
-	status = host_flash_manager_init_with_managed_flash_initialization (NULL,
+	status = host_flash_manager_dual_init_with_managed_flash_initialization (NULL,
 		&manager.flash0, &manager.flash1, &manager.host_state, &manager.filter.base,
 		&manager.handler.base, &manager.flash_init);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = host_flash_manager_init_with_managed_flash_initialization (&manager.test,
+	status = host_flash_manager_dual_init_with_managed_flash_initialization (&manager.test,
 		NULL, &manager.flash1, &manager.host_state, &manager.filter.base,
 		&manager.handler.base, &manager.flash_init);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = host_flash_manager_init_with_managed_flash_initialization (&manager.test,
+	status = host_flash_manager_dual_init_with_managed_flash_initialization (&manager.test,
 		&manager.flash0, NULL, &manager.host_state, &manager.filter.base,
 		&manager.handler.base, &manager.flash_init);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = host_flash_manager_init_with_managed_flash_initialization (&manager.test,
+	status = host_flash_manager_dual_init_with_managed_flash_initialization (&manager.test,
 		&manager.flash0, &manager.flash1, NULL, &manager.filter.base,
 		&manager.handler.base, &manager.flash_init);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = host_flash_manager_init_with_managed_flash_initialization (&manager.test,
+	status = host_flash_manager_dual_init_with_managed_flash_initialization (&manager.test,
 		&manager.flash0, &manager.flash1, &manager.host_state, NULL,
 		&manager.handler.base, &manager.flash_init);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = host_flash_manager_init_with_managed_flash_initialization (&manager.test,
+	status = host_flash_manager_dual_init_with_managed_flash_initialization (&manager.test,
 		&manager.flash0, &manager.flash1, &manager.host_state, &manager.filter.base,
 		NULL, &manager.flash_init);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = host_flash_manager_init_with_managed_flash_initialization (&manager.test,
+	status = host_flash_manager_dual_init_with_managed_flash_initialization (&manager.test,
 		&manager.flash0, &manager.flash1, &manager.host_state, &manager.filter.base,
 		&manager.handler.base, NULL);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	host_flash_manager_testing_validate_and_release_dependencies (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release_dependencies (test, &manager);
 }
 
-static void host_flash_manager_test_release_null (CuTest *test)
+static void host_flash_manager_dual_test_release_null (CuTest *test)
 {
 	TEST_START;
 
-	host_flash_manager_release (NULL);
+	host_flash_manager_dual_release (NULL);
 }
 
-static void host_flash_manager_test_get_read_only_flash_cs0 (CuTest *test)
+static void host_flash_manager_dual_test_get_read_only_flash_cs0 (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct spi_flash *active;
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
-	active = manager.test.get_read_only_flash (&manager.test);
+	active = manager.test.base.get_read_only_flash (&manager.test.base);
 	CuAssertPtrEquals (test, &manager.flash0, active);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_get_read_only_flash_cs1 (CuTest *test)
+static void host_flash_manager_dual_test_get_read_only_flash_cs1 (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct spi_flash *active;
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, true);
+	host_flash_manager_dual_testing_init (test, &manager, true);
 
-	active = manager.test.get_read_only_flash (&manager.test);
+	active = manager.test.base.get_read_only_flash (&manager.test.base);
 	CuAssertPtrEquals (test, &manager.flash1, active);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_get_read_only_flash_null (CuTest *test)
+static void host_flash_manager_dual_test_get_read_only_flash_null (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct spi_flash *active;
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
-	active = manager.test.get_read_only_flash (NULL);
+	active = manager.test.base.get_read_only_flash (NULL);
 	CuAssertPtrEquals (test, NULL, active);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_get_read_write_flash_cs1 (CuTest *test)
+static void host_flash_manager_dual_test_get_read_write_flash_cs1 (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct spi_flash *inactive;
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
-	inactive = manager.test.get_read_write_flash (&manager.test);
+	inactive = manager.test.base.get_read_write_flash (&manager.test.base);
 	CuAssertPtrEquals (test, &manager.flash1, inactive);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_get_read_write_flash_cs0 (CuTest *test)
+static void host_flash_manager_dual_test_get_read_write_flash_cs0 (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct spi_flash *inactive;
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, true);
+	host_flash_manager_dual_testing_init (test, &manager, true);
 
-	inactive = manager.test.get_read_write_flash (&manager.test);
+	inactive = manager.test.base.get_read_write_flash (&manager.test.base);
 	CuAssertPtrEquals (test, &manager.flash0, inactive);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_get_read_write_flash_null (CuTest *test)
+static void host_flash_manager_dual_test_get_read_write_flash_null (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct spi_flash *inactive;
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
-	inactive = manager.test.get_read_write_flash (NULL);
+	inactive = manager.test.base.get_read_write_flash (NULL);
 	CuAssertPtrEquals (test, NULL, inactive);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_swap_flash_devices_cs1 (CuTest *test)
+static void host_flash_manager_dual_test_swap_flash_devices_cs1 (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
@@ -639,7 +639,7 @@ static void host_flash_manager_test_swap_flash_devices_cs1 (CuTest *test)
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	rw_region.start_addr = 0x10000;
@@ -669,7 +669,7 @@ static void host_flash_manager_test_swap_flash_devices_cs1 (CuTest *test)
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.swap_flash_devices (&manager.test, &rw_host, NULL);
+	status = manager.test.base.swap_flash_devices (&manager.test.base, &rw_host, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -680,14 +680,14 @@ static void host_flash_manager_test_swap_flash_devices_cs1 (CuTest *test)
 	status = mock_validate (&manager.flash_mock_state.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_testing_check_state_persistence (test, &manager);
+	host_flash_manager_dual_testing_check_state_persistence (test, &manager);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_swap_flash_devices_cs0 (CuTest *test)
+static void host_flash_manager_dual_test_swap_flash_devices_cs0 (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
@@ -697,7 +697,7 @@ static void host_flash_manager_test_swap_flash_devices_cs0 (CuTest *test)
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, true);
+	host_flash_manager_dual_testing_init (test, &manager, true);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	rw_region.start_addr = 0x10000;
@@ -727,7 +727,7 @@ static void host_flash_manager_test_swap_flash_devices_cs0 (CuTest *test)
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.swap_flash_devices (&manager.test, &rw_host, NULL);
+	status = manager.test.base.swap_flash_devices (&manager.test.base, &rw_host, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -738,14 +738,14 @@ static void host_flash_manager_test_swap_flash_devices_cs0 (CuTest *test)
 	status = mock_validate (&manager.flash_mock_state.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_testing_check_state_persistence (test, &manager);
+	host_flash_manager_dual_testing_check_state_persistence (test, &manager);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_swap_flash_devices_activate_pending_pfm (CuTest *test)
+static void host_flash_manager_dual_test_swap_flash_devices_activate_pending_pfm (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
@@ -756,7 +756,7 @@ static void host_flash_manager_test_swap_flash_devices_activate_pending_pfm (CuT
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	status = pfm_manager_mock_init (&pending);
@@ -791,7 +791,7 @@ static void host_flash_manager_test_swap_flash_devices_activate_pending_pfm (CuT
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.swap_flash_devices (&manager.test, &rw_host, &pending.base);
+	status = manager.test.base.swap_flash_devices (&manager.test.base, &rw_host, &pending.base);
 	CuAssertIntEquals (test, 0, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -802,23 +802,23 @@ static void host_flash_manager_test_swap_flash_devices_activate_pending_pfm (CuT
 	status = mock_validate (&manager.flash_mock_state.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_testing_check_state_persistence (test, &manager);
+	host_flash_manager_dual_testing_check_state_persistence (test, &manager);
 
 	status = pfm_manager_mock_validate_and_release (&pending);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_swap_flash_devices_no_data_migration (CuTest *test)
+static void host_flash_manager_dual_test_swap_flash_devices_no_data_migration (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	spi_filter_cs active;
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	status = mock_expect (&manager.filter.mock, manager.filter.base.clear_flash_dirty_state,
@@ -830,7 +830,7 @@ static void host_flash_manager_test_swap_flash_devices_no_data_migration (CuTest
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.swap_flash_devices (&manager.test, NULL, NULL);
+	status = manager.test.base.swap_flash_devices (&manager.test.base, NULL, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -841,14 +841,14 @@ static void host_flash_manager_test_swap_flash_devices_no_data_migration (CuTest
 	status = mock_validate (&manager.flash_mock_state.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_testing_check_state_persistence (test, &manager);
+	host_flash_manager_dual_testing_check_state_persistence (test, &manager);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_swap_flash_devices_cs1_multiple_fw (CuTest *test)
+static void host_flash_manager_dual_test_swap_flash_devices_cs1_multiple_fw (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	struct flash_region rw_region[3];
 	struct pfm_read_write rw_prop[3];
@@ -858,7 +858,7 @@ static void host_flash_manager_test_swap_flash_devices_cs1_multiple_fw (CuTest *
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	rw_region[0].start_addr = 0x10000;
@@ -910,7 +910,7 @@ static void host_flash_manager_test_swap_flash_devices_cs1_multiple_fw (CuTest *
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.swap_flash_devices (&manager.test, &rw_host, NULL);
+	status = manager.test.base.swap_flash_devices (&manager.test.base, &rw_host, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -921,14 +921,14 @@ static void host_flash_manager_test_swap_flash_devices_cs1_multiple_fw (CuTest *
 	status = mock_validate (&manager.flash_mock_state.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_testing_check_state_persistence (test, &manager);
+	host_flash_manager_dual_testing_check_state_persistence (test, &manager);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_swap_flash_devices_cs0_multiple_fw (CuTest *test)
+static void host_flash_manager_dual_test_swap_flash_devices_cs0_multiple_fw (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	struct flash_region rw_region[3];
 	struct pfm_read_write rw_prop[3];
@@ -938,7 +938,7 @@ static void host_flash_manager_test_swap_flash_devices_cs0_multiple_fw (CuTest *
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, true);
+	host_flash_manager_dual_testing_init (test, &manager, true);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	rw_region[0].start_addr = 0x10000;
@@ -990,7 +990,7 @@ static void host_flash_manager_test_swap_flash_devices_cs0_multiple_fw (CuTest *
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.swap_flash_devices (&manager.test, &rw_host, NULL);
+	status = manager.test.base.swap_flash_devices (&manager.test.base, &rw_host, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -1001,14 +1001,14 @@ static void host_flash_manager_test_swap_flash_devices_cs0_multiple_fw (CuTest *
 	status = mock_validate (&manager.flash_mock_state.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_testing_check_state_persistence (test, &manager);
+	host_flash_manager_dual_testing_check_state_persistence (test, &manager);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_swap_flash_devices_null (CuTest *test)
+static void host_flash_manager_dual_test_swap_flash_devices_null (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
@@ -1018,7 +1018,7 @@ static void host_flash_manager_test_swap_flash_devices_null (CuTest *test)
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	rw_region.start_addr = 0x10000;
@@ -1034,7 +1034,7 @@ static void host_flash_manager_test_swap_flash_devices_null (CuTest *test)
 	rw_host.writable = &rw_list;
 	rw_host.count = 1;
 
-	status = manager.test.swap_flash_devices (NULL, &rw_host, NULL);
+	status = manager.test.base.swap_flash_devices (NULL, &rw_host, NULL);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -1045,14 +1045,14 @@ static void host_flash_manager_test_swap_flash_devices_null (CuTest *test)
 	status = mock_validate (&manager.flash_mock_state.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_testing_check_state_persistence (test, &manager);
+	host_flash_manager_dual_testing_check_state_persistence (test, &manager);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_swap_flash_devices_dirty_clear_error (CuTest *test)
+static void host_flash_manager_dual_test_swap_flash_devices_dirty_clear_error (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
@@ -1062,7 +1062,7 @@ static void host_flash_manager_test_swap_flash_devices_dirty_clear_error (CuTest
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	rw_region.start_addr = 0x10000;
@@ -1085,7 +1085,7 @@ static void host_flash_manager_test_swap_flash_devices_dirty_clear_error (CuTest
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.swap_flash_devices (&manager.test, &rw_host, NULL);
+	status = manager.test.base.swap_flash_devices (&manager.test.base, &rw_host, NULL);
 	CuAssertIntEquals (test, SPI_FILTER_CLEAR_DIRTY_FAILED, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -1096,14 +1096,14 @@ static void host_flash_manager_test_swap_flash_devices_dirty_clear_error (CuTest
 	status = mock_validate (&manager.flash_mock_state.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_testing_check_state_persistence (test, &manager);
+	host_flash_manager_dual_testing_check_state_persistence (test, &manager);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_swap_flash_devices_spi_filter_error (CuTest *test)
+static void host_flash_manager_dual_test_swap_flash_devices_spi_filter_error (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
@@ -1113,7 +1113,7 @@ static void host_flash_manager_test_swap_flash_devices_spi_filter_error (CuTest 
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	rw_region.start_addr = 0x10000;
@@ -1138,7 +1138,7 @@ static void host_flash_manager_test_swap_flash_devices_spi_filter_error (CuTest 
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.swap_flash_devices (&manager.test, &rw_host, NULL);
+	status = manager.test.base.swap_flash_devices (&manager.test.base, &rw_host, NULL);
 	CuAssertIntEquals (test, SPI_FILTER_SET_RO_FAILED, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -1149,14 +1149,14 @@ static void host_flash_manager_test_swap_flash_devices_spi_filter_error (CuTest 
 	status = mock_validate (&manager.flash_mock_state.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_testing_check_state_persistence (test, &manager);
+	host_flash_manager_dual_testing_check_state_persistence (test, &manager);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_swap_flash_devices_cs1_data_copy_error (CuTest *test)
+static void host_flash_manager_dual_test_swap_flash_devices_cs1_data_copy_error (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
@@ -1166,7 +1166,7 @@ static void host_flash_manager_test_swap_flash_devices_cs1_data_copy_error (CuTe
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	rw_region.start_addr = 0x10000;
@@ -1194,7 +1194,7 @@ static void host_flash_manager_test_swap_flash_devices_cs1_data_copy_error (CuTe
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.swap_flash_devices (&manager.test, &rw_host, NULL);
+	status = manager.test.base.swap_flash_devices (&manager.test.base, &rw_host, NULL);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -1205,14 +1205,14 @@ static void host_flash_manager_test_swap_flash_devices_cs1_data_copy_error (CuTe
 	status = mock_validate (&manager.flash_mock_state.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_testing_check_state_persistence (test, &manager);
+	host_flash_manager_dual_testing_check_state_persistence (test, &manager);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_swap_flash_devices_cs0_data_copy_error (CuTest *test)
+static void host_flash_manager_dual_test_swap_flash_devices_cs0_data_copy_error (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
@@ -1222,7 +1222,7 @@ static void host_flash_manager_test_swap_flash_devices_cs0_data_copy_error (CuTe
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, true);
+	host_flash_manager_dual_testing_init (test, &manager, true);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	rw_region.start_addr = 0x10000;
@@ -1250,7 +1250,7 @@ static void host_flash_manager_test_swap_flash_devices_cs0_data_copy_error (CuTe
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.swap_flash_devices (&manager.test, &rw_host, NULL);
+	status = manager.test.base.swap_flash_devices (&manager.test.base, &rw_host, NULL);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -1261,14 +1261,15 @@ static void host_flash_manager_test_swap_flash_devices_cs0_data_copy_error (CuTe
 	status = mock_validate (&manager.flash_mock_state.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_testing_check_state_persistence (test, &manager);
+	host_flash_manager_dual_testing_check_state_persistence (test, &manager);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_swap_flash_devices_activate_pending_pfm_error (CuTest *test)
+static void host_flash_manager_dual_test_swap_flash_devices_activate_pending_pfm_error (
+	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
@@ -1279,7 +1280,7 @@ static void host_flash_manager_test_swap_flash_devices_activate_pending_pfm_erro
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	status = pfm_manager_mock_init (&pending);
@@ -1315,7 +1316,7 @@ static void host_flash_manager_test_swap_flash_devices_activate_pending_pfm_erro
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.swap_flash_devices (&manager.test, &rw_host, &pending.base);
+	status = manager.test.base.swap_flash_devices (&manager.test.base, &rw_host, &pending.base);
 	CuAssertIntEquals (test, 0, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -1326,108 +1327,108 @@ static void host_flash_manager_test_swap_flash_devices_activate_pending_pfm_erro
 	status = mock_validate (&manager.flash_mock_state.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_testing_check_state_persistence (test, &manager);
+	host_flash_manager_dual_testing_check_state_persistence (test, &manager);
 
 	status = pfm_manager_mock_validate_and_release (&pending);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_config_spi_filter_flash_devices_cs0 (CuTest *test)
+static void host_flash_manager_dual_test_config_spi_filter_flash_devices_cs0 (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	spi_filter_cs active;
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	status = mock_expect (&manager.filter.mock, manager.filter.base.set_ro_cs, &manager.filter, 0,
 		MOCK_ARG (SPI_FILTER_CS_0));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.config_spi_filter_flash_devices (&manager.test);
+	status = manager.test.base.config_spi_filter_flash_devices (&manager.test.base);
 	CuAssertIntEquals (test, 0, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
 	CuAssertIntEquals (test, SPI_FILTER_CS_0, active);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_config_spi_filter_flash_devices_cs1 (CuTest *test)
+static void host_flash_manager_dual_test_config_spi_filter_flash_devices_cs1 (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	spi_filter_cs active;
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, true);
+	host_flash_manager_dual_testing_init (test, &manager, true);
 
 	status = mock_expect (&manager.filter.mock, manager.filter.base.set_ro_cs, &manager.filter, 0,
 		MOCK_ARG (SPI_FILTER_CS_1));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.config_spi_filter_flash_devices (&manager.test);
+	status = manager.test.base.config_spi_filter_flash_devices (&manager.test.base);
 	CuAssertIntEquals (test, 0, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
 	CuAssertIntEquals (test, SPI_FILTER_CS_1, active);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_config_spi_filter_flash_devices_null (CuTest *test)
+static void host_flash_manager_dual_test_config_spi_filter_flash_devices_null (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	spi_filter_cs active;
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
-	status = manager.test.config_spi_filter_flash_devices (NULL);
+	status = manager.test.base.config_spi_filter_flash_devices (NULL);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
 	CuAssertIntEquals (test, SPI_FILTER_CS_0, active);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_config_spi_filter_flash_devices_error (CuTest *test)
+static void host_flash_manager_dual_test_config_spi_filter_flash_devices_error (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	spi_filter_cs active;
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	status = mock_expect (&manager.filter.mock, manager.filter.base.set_ro_cs, &manager.filter,
 		SPI_FILTER_SET_RO_FAILED, MOCK_ARG (SPI_FILTER_CS_0));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.config_spi_filter_flash_devices (&manager.test);
+	status = manager.test.base.config_spi_filter_flash_devices (&manager.test.base);
 	CuAssertIntEquals (test, SPI_FILTER_SET_RO_FAILED, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
 	CuAssertIntEquals (test, SPI_FILTER_CS_0, active);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_validate_read_only_flash_cs0 (CuTest *test)
+static void host_flash_manager_dual_test_validate_read_only_flash_cs0 (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -1445,7 +1446,7 @@ static void host_flash_manager_test_validate_read_only_flash_cs0 (CuTest *test)
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -1524,8 +1525,8 @@ static void host_flash_manager_test_validate_read_only_flash_cs0 (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base, NULL,
-		&manager.hash.base, &manager.rsa.base, false, &rw_output);
+	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
+		NULL, &manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 1, rw_output.count);
@@ -1546,14 +1547,14 @@ static void host_flash_manager_test_validate_read_only_flash_cs0 (CuTest *test)
 		0, MOCK_ARG_SAVED_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.free_read_write_regions (&manager.test, &rw_output);
+	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_validate_read_only_flash_cs1 (CuTest *test)
+static void host_flash_manager_dual_test_validate_read_only_flash_cs1 (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -1571,7 +1572,7 @@ static void host_flash_manager_test_validate_read_only_flash_cs1 (CuTest *test)
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, true);
+	host_flash_manager_dual_testing_init (test, &manager, true);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -1650,8 +1651,8 @@ static void host_flash_manager_test_validate_read_only_flash_cs1 (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base, NULL,
-		&manager.hash.base, &manager.rsa.base, false, &rw_output);
+	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
+		NULL, &manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 1, rw_output.count);
@@ -1672,14 +1673,14 @@ static void host_flash_manager_test_validate_read_only_flash_cs1 (CuTest *test)
 		0, MOCK_ARG_SAVED_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.free_read_write_regions (&manager.test, &rw_output);
+	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_validate_read_only_flash_single_fw (CuTest *test)
+static void host_flash_manager_dual_test_validate_read_only_flash_single_fw (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = "fw1";
 	struct pfm_firmware_version version;
@@ -1697,7 +1698,7 @@ static void host_flash_manager_test_validate_read_only_flash_single_fw (CuTest *
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -1776,8 +1777,8 @@ static void host_flash_manager_test_validate_read_only_flash_single_fw (CuTest *
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base, NULL,
-		&manager.hash.base, &manager.rsa.base, false, &rw_output);
+	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
+		NULL, &manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 1, rw_output.count);
@@ -1798,14 +1799,14 @@ static void host_flash_manager_test_validate_read_only_flash_single_fw (CuTest *
 		0, MOCK_ARG_SAVED_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.free_read_write_regions (&manager.test, &rw_output);
+	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_validate_read_only_flash_multiple_fw (CuTest *test)
+static void host_flash_manager_dual_test_validate_read_only_flash_multiple_fw (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp[3] = {"fw1", "fw2", "fw3"};
 	struct pfm_firmware_version version[3];
@@ -1827,7 +1828,7 @@ static void host_flash_manager_test_validate_read_only_flash_multiple_fw (CuTest
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	fw_list.ids = fw_exp;
 	fw_list.count = 3;
@@ -2027,8 +2028,8 @@ static void host_flash_manager_test_validate_read_only_flash_multiple_fw (CuTest
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base, NULL,
-		&manager.hash.base, &manager.rsa.base, false, &rw_output);
+	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
+		NULL, &manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 3, rw_output.count);
@@ -2062,14 +2063,14 @@ static void host_flash_manager_test_validate_read_only_flash_multiple_fw (CuTest
 
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.free_read_write_regions (&manager.test, &rw_output);
+	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_validate_read_only_flash_cs0_full_validation (CuTest *test)
+static void host_flash_manager_dual_test_validate_read_only_flash_cs0_full_validation (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -2087,7 +2088,7 @@ static void host_flash_manager_test_validate_read_only_flash_cs0_full_validation
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -2171,8 +2172,8 @@ static void host_flash_manager_test_validate_read_only_flash_cs0_full_validation
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base, NULL,
-		&manager.hash.base, &manager.rsa.base, true, &rw_output);
+	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
+		NULL, &manager.hash.base, &manager.rsa.base, true, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 1, rw_output.count);
@@ -2193,14 +2194,14 @@ static void host_flash_manager_test_validate_read_only_flash_cs0_full_validation
 		0, MOCK_ARG_SAVED_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.free_read_write_regions (&manager.test, &rw_output);
+	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_validate_read_only_flash_cs1_full_validation (CuTest *test)
+static void host_flash_manager_dual_test_validate_read_only_flash_cs1_full_validation (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -2218,7 +2219,7 @@ static void host_flash_manager_test_validate_read_only_flash_cs1_full_validation
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, true);
+	host_flash_manager_dual_testing_init (test, &manager, true);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -2302,8 +2303,8 @@ static void host_flash_manager_test_validate_read_only_flash_cs1_full_validation
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base, NULL,
-		&manager.hash.base, &manager.rsa.base, true, &rw_output);
+	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
+		NULL, &manager.hash.base, &manager.rsa.base, true, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 1, rw_output.count);
@@ -2324,15 +2325,15 @@ static void host_flash_manager_test_validate_read_only_flash_cs1_full_validation
 		0, MOCK_ARG_SAVED_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.free_read_write_regions (&manager.test, &rw_output);
+	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_validate_read_only_flash_full_validation_not_blank_byte (
+static void host_flash_manager_dual_test_validate_read_only_flash_full_validation_not_blank_byte (
 	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -2350,7 +2351,7 @@ static void host_flash_manager_test_validate_read_only_flash_full_validation_not
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -2435,8 +2436,8 @@ static void host_flash_manager_test_validate_read_only_flash_full_validation_not
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base, NULL,
-		&manager.hash.base, &manager.rsa.base, true, &rw_output);
+	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
+		NULL, &manager.hash.base, &manager.rsa.base, true, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 1, rw_output.count);
@@ -2457,15 +2458,15 @@ static void host_flash_manager_test_validate_read_only_flash_full_validation_not
 		0, MOCK_ARG_SAVED_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.free_read_write_regions (&manager.test, &rw_output);
+	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_validate_read_only_flash_full_validation_single_fw (
+static void host_flash_manager_dual_test_validate_read_only_flash_full_validation_single_fw (
 	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = "fw1";
 	struct pfm_firmware_version version;
@@ -2483,7 +2484,7 @@ static void host_flash_manager_test_validate_read_only_flash_full_validation_sin
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -2567,8 +2568,8 @@ static void host_flash_manager_test_validate_read_only_flash_full_validation_sin
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base, NULL,
-		&manager.hash.base, &manager.rsa.base, true, &rw_output);
+	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
+		NULL, &manager.hash.base, &manager.rsa.base, true, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 1, rw_output.count);
@@ -2589,15 +2590,15 @@ static void host_flash_manager_test_validate_read_only_flash_full_validation_sin
 		0, MOCK_ARG_SAVED_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.free_read_write_regions (&manager.test, &rw_output);
+	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_validate_read_only_flash_full_validation_multiple_fw (
+static void host_flash_manager_dual_test_validate_read_only_flash_full_validation_multiple_fw (
 	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp[3] = {"fw1", "fw2", "fw3"};
 	struct pfm_firmware_version version[3];
@@ -2619,7 +2620,7 @@ static void host_flash_manager_test_validate_read_only_flash_full_validation_mul
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	fw_list.ids = fw_exp;
 	fw_list.count = 3;
@@ -2832,8 +2833,8 @@ static void host_flash_manager_test_validate_read_only_flash_full_validation_mul
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base, NULL,
-		&manager.hash.base, &manager.rsa.base, true, &rw_output);
+	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
+		NULL, &manager.hash.base, &manager.rsa.base, true, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 3, rw_output.count);
@@ -2867,14 +2868,14 @@ static void host_flash_manager_test_validate_read_only_flash_full_validation_mul
 
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.free_read_write_regions (&manager.test, &rw_output);
+	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_validate_read_only_flash_cs0_good_pfm (CuTest *test)
+static void host_flash_manager_dual_test_validate_read_only_flash_cs0_good_pfm (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -2891,7 +2892,7 @@ static void host_flash_manager_test_validate_read_only_flash_cs0_good_pfm (CuTes
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -2974,7 +2975,7 @@ static void host_flash_manager_test_validate_read_only_flash_cs0_good_pfm (CuTes
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base,
+	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
 		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
@@ -2996,14 +2997,14 @@ static void host_flash_manager_test_validate_read_only_flash_cs0_good_pfm (CuTes
 		0, MOCK_ARG_SAVED_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.free_read_write_regions (&manager.test, &rw_output);
+	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_validate_read_only_flash_cs1_good_pfm (CuTest *test)
+static void host_flash_manager_dual_test_validate_read_only_flash_cs1_good_pfm (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -3020,7 +3021,7 @@ static void host_flash_manager_test_validate_read_only_flash_cs1_good_pfm (CuTes
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, true);
+	host_flash_manager_dual_testing_init (test, &manager, true);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -3103,7 +3104,7 @@ static void host_flash_manager_test_validate_read_only_flash_cs1_good_pfm (CuTes
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base,
+	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
 		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
@@ -3125,14 +3126,14 @@ static void host_flash_manager_test_validate_read_only_flash_cs1_good_pfm (CuTes
 		0, MOCK_ARG_SAVED_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.free_read_write_regions (&manager.test, &rw_output);
+	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_validate_read_only_flash_good_pfm_single_fw (CuTest *test)
+static void host_flash_manager_dual_test_validate_read_only_flash_good_pfm_single_fw (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = "fw1";;
 	struct pfm_firmware_version version;
@@ -3149,7 +3150,7 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_single_fw 
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -3232,7 +3233,7 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_single_fw 
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base,
+	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
 		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
@@ -3254,14 +3255,15 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_single_fw 
 		0, MOCK_ARG_SAVED_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.free_read_write_regions (&manager.test, &rw_output);
+	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_validate_read_only_flash_good_pfm_multiple_fw (CuTest *test)
+static void host_flash_manager_dual_test_validate_read_only_flash_good_pfm_multiple_fw (
+	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp[3] = {"fw1", "fw2", "fw3"};
 	struct pfm_firmware_version version[3];
@@ -3283,7 +3285,7 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_multiple_f
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	fw_list.ids = fw_exp;
 	fw_list.count = 3;
@@ -3496,7 +3498,7 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_multiple_f
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base,
+	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
 		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
@@ -3531,15 +3533,15 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_multiple_f
 
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.free_read_write_regions (&manager.test, &rw_output);
+	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_validate_read_only_flash_cs0_good_pfm_no_match_image (
+static void host_flash_manager_dual_test_validate_read_only_flash_cs0_good_pfm_no_match_image (
 	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -3560,7 +3562,7 @@ static void host_flash_manager_test_validate_read_only_flash_cs0_good_pfm_no_mat
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -3662,7 +3664,7 @@ static void host_flash_manager_test_validate_read_only_flash_cs0_good_pfm_no_mat
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base,
+	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
 		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
@@ -3684,15 +3686,15 @@ static void host_flash_manager_test_validate_read_only_flash_cs0_good_pfm_no_mat
 		0, MOCK_ARG_SAVED_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.free_read_write_regions (&manager.test, &rw_output);
+	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_validate_read_only_flash_cs1_good_pfm_no_match_image (
+static void host_flash_manager_dual_test_validate_read_only_flash_cs1_good_pfm_no_match_image (
 	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -3713,7 +3715,7 @@ static void host_flash_manager_test_validate_read_only_flash_cs1_good_pfm_no_mat
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, true);
+	host_flash_manager_dual_testing_init (test, &manager, true);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -3815,7 +3817,7 @@ static void host_flash_manager_test_validate_read_only_flash_cs1_good_pfm_no_mat
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base,
+	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
 		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
@@ -3837,15 +3839,15 @@ static void host_flash_manager_test_validate_read_only_flash_cs1_good_pfm_no_mat
 		0, MOCK_ARG_SAVED_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.free_read_write_regions (&manager.test, &rw_output);
+	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_validate_read_only_flash_good_pfm_no_match_image_multiple_fw (
+static void host_flash_manager_dual_test_validate_read_only_flash_good_pfm_no_match_image_multiple_fw (
 	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp[3] = {"fw1", "fw2", "fw3"};
 	struct pfm_firmware_version version[3];
@@ -3867,7 +3869,7 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_no_match_i
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	fw_list.ids = fw_exp;
 	fw_list.count = 3;
@@ -4097,7 +4099,7 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_no_match_i
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base,
+	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
 		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
@@ -4132,14 +4134,15 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_no_match_i
 
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.free_read_write_regions (&manager.test, &rw_output);
+	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_validate_read_only_flash_good_pfm_full_validation (CuTest *test)
+static void host_flash_manager_dual_test_validate_read_only_flash_good_pfm_full_validation (
+	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -4157,7 +4160,7 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_full_valid
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -4241,7 +4244,7 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_full_valid
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base,
+	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
 		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, true, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
@@ -4263,69 +4266,69 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_full_valid
 		0, MOCK_ARG_SAVED_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.free_read_write_regions (&manager.test, &rw_output);
+	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_validate_read_only_flash_null (CuTest *test)
+static void host_flash_manager_dual_test_validate_read_only_flash_null (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct host_flash_manager_rw_regions rw_output;
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
-	status = manager.test.validate_read_only_flash (NULL, &manager.pfm.base, NULL,
-		&manager.hash.base, &manager.rsa.base, false, &rw_output);
+	status = manager.test.base.validate_read_only_flash (NULL, &manager.pfm.base,
+		NULL, &manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = manager.test.validate_read_only_flash (&manager.test, NULL, NULL,
-		&manager.hash.base, &manager.rsa.base, false, &rw_output);
+	status = manager.test.base.validate_read_only_flash (&manager.test.base, NULL,
+		NULL, &manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base, NULL,
-		NULL, &manager.rsa.base, false, &rw_output);
+	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
+		NULL, NULL, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base, NULL,
-		&manager.hash.base, NULL, false, &rw_output);
+	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
+		NULL, &manager.hash.base, NULL, false, &rw_output);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base, NULL,
-		&manager.hash.base, &manager.rsa.base, false, NULL);
+	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
+		NULL, &manager.hash.base, &manager.rsa.base, false, NULL);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_validate_read_only_flash_pfm_firmware_error (CuTest *test)
+static void host_flash_manager_dual_test_validate_read_only_flash_pfm_firmware_error (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct host_flash_manager_rw_regions rw_output;
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm,
 		PFM_GET_FW_FAILED, MOCK_ARG_NOT_NULL);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base, NULL,
-		&manager.hash.base, &manager.rsa.base, false, &rw_output);
+	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
+		NULL, &manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, PFM_GET_FW_FAILED, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_validate_read_only_flash_pfm_version_error (CuTest *test)
+static void host_flash_manager_dual_test_validate_read_only_flash_pfm_version_error (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct host_flash_manager_rw_regions rw_output;
@@ -4333,7 +4336,7 @@ static void host_flash_manager_test_validate_read_only_flash_pfm_version_error (
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -4351,17 +4354,17 @@ static void host_flash_manager_test_validate_read_only_flash_pfm_version_error (
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base, NULL,
-		&manager.hash.base, &manager.rsa.base, false, &rw_output);
+	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
+		NULL, &manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, PFM_GET_VERSIONS_FAILED, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_validate_read_only_flash_pfm_version_error_multiple_fw (
+static void host_flash_manager_dual_test_validate_read_only_flash_pfm_version_error_multiple_fw (
 	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp[3] = {"fw1", "fw2", "fw3"};
 	struct pfm_firmware_version version[3];
@@ -4383,7 +4386,7 @@ static void host_flash_manager_test_validate_read_only_flash_pfm_version_error_m
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	fw_list.ids = fw_exp;
 	fw_list.count = 3;
@@ -4548,16 +4551,16 @@ static void host_flash_manager_test_validate_read_only_flash_pfm_version_error_m
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base, NULL,
-		&manager.hash.base, &manager.rsa.base, false, &rw_output);
+	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
+		NULL, &manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, PFM_GET_VERSIONS_FAILED, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_validate_read_only_flash_pfm_images_error (CuTest *test)
+static void host_flash_manager_dual_test_validate_read_only_flash_pfm_images_error (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -4568,7 +4571,7 @@ static void host_flash_manager_test_validate_read_only_flash_pfm_images_error (C
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -4605,16 +4608,16 @@ static void host_flash_manager_test_validate_read_only_flash_pfm_images_error (C
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base, NULL,
-		&manager.hash.base, &manager.rsa.base, false, &rw_output);
+	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
+		NULL, &manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, PFM_GET_FW_IMAGES_FAILED, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_validate_read_only_flash_pfm_rw_error (CuTest *test)
+static void host_flash_manager_dual_test_validate_read_only_flash_pfm_rw_error (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -4629,7 +4632,7 @@ static void host_flash_manager_test_validate_read_only_flash_pfm_rw_error (CuTes
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -4688,16 +4691,16 @@ static void host_flash_manager_test_validate_read_only_flash_pfm_rw_error (CuTes
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base, NULL,
-		&manager.hash.base, &manager.rsa.base, false, &rw_output);
+	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
+		NULL, &manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, PFM_GET_READ_WRITE_FAILED, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_validate_read_only_flash_flash_version_error (CuTest *test)
+static void host_flash_manager_dual_test_validate_read_only_flash_flash_version_error (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -4708,7 +4711,7 @@ static void host_flash_manager_test_validate_read_only_flash_flash_version_error
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -4739,16 +4742,16 @@ static void host_flash_manager_test_validate_read_only_flash_flash_version_error
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base, NULL,
-		&manager.hash.base, &manager.rsa.base, false, &rw_output);
+	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
+		NULL, &manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_validate_read_only_flash_flash_image_error (CuTest *test)
+static void host_flash_manager_dual_test_validate_read_only_flash_flash_image_error (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -4766,7 +4769,7 @@ static void host_flash_manager_test_validate_read_only_flash_flash_image_error (
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -4845,146 +4848,147 @@ static void host_flash_manager_test_validate_read_only_flash_flash_image_error (
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base, NULL,
-		&manager.hash.base, &manager.rsa.base, false, &rw_output);
+	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
+		NULL, &manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_validate_read_only_flash_full_flash_image_error (CuTest *test)
-{
-	struct host_flash_manager_testing manager;
-	struct pfm_firmware fw_list;
-	const char *fw_exp = NULL;
-	struct pfm_firmware_version version;
-	struct pfm_firmware_versions version_list;
-	const char *version_exp = "1234";
-	struct flash_region img_region;
-	struct pfm_image_signature sig;
-	struct pfm_image_list img_list;
-	char *img_data = "Test";
-	struct flash_region rw_region;
-	struct pfm_read_write rw_prop;
-	struct pfm_read_write_regions rw_list;
-	struct host_flash_manager_rw_regions rw_output;
-	int status;
-
-	TEST_START;
-
-	host_flash_manager_testing_init (test, &manager, false);
-
-	fw_list.ids = &fw_exp;
-	fw_list.count = 1;
-
-	version.fw_version_id = version_exp;
-	version.version_addr = 0x123;
-
-	version_list.versions = &version;
-	version_list.count = 1;
-
-	img_region.start_addr = 0;
-	img_region.length = strlen (img_data);
-
-	sig.regions = &img_region;
-	sig.count = 1;
-	memcpy (&sig.key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
-	memcpy (&sig.signature, RSA_SIGNATURE_TEST, RSA_ENCRYPT_LEN);
-	sig.sig_length = RSA_ENCRYPT_LEN;
-	sig.always_validate = 1;
-
-	img_list.images_sig = &sig;
-	img_list.images_hash = NULL;
-	img_list.count = 1;
-
-	rw_region.start_addr = 0x200;
-	rw_region.length = 0x100;
-
-	rw_prop.on_failure = PFM_RW_DO_NOTHING;
-
-	rw_list.regions = &rw_region;
-	rw_list.properties = &rw_prop;
-	rw_list.count = 1;
-
-	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
-	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
-	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
-
-	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
-	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
-
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp,
-		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
-
-	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
-		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list, sizeof (img_list), -1);
-	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
-
-	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
-	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
-
-	status |= flash_master_mock_expect_xfer (&manager.flash_mock0, FLASH_MASTER_XFER_FAILED,
-		FLASH_EXP_READ_STATUS_REG);
-
-	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
-		MOCK_ARG_SAVED_ARG (0));
-	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions,
-		&manager.pfm, 0, MOCK_ARG_SAVED_ARG (2));
-	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
-		0, MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
-		MOCK_ARG_SAVED_ARG (3));
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base, NULL,
-		&manager.hash.base, &manager.rsa.base, true, &rw_output);
-	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
-
-	host_flash_manager_testing_validate_and_release (test, &manager);
-}
-
-static void host_flash_manager_test_validate_read_only_flash_good_pfm_pfm_firmware_error (
+static void host_flash_manager_dual_test_validate_read_only_flash_full_flash_image_error (
 	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
+	struct pfm_firmware fw_list;
+	const char *fw_exp = NULL;
+	struct pfm_firmware_version version;
+	struct pfm_firmware_versions version_list;
+	const char *version_exp = "1234";
+	struct flash_region img_region;
+	struct pfm_image_signature sig;
+	struct pfm_image_list img_list;
+	char *img_data = "Test";
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
 	struct host_flash_manager_rw_regions rw_output;
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
+
+	fw_list.ids = &fw_exp;
+	fw_list.count = 1;
+
+	version.fw_version_id = version_exp;
+	version.version_addr = 0x123;
+
+	version_list.versions = &version;
+	version_list.count = 1;
+
+	img_region.start_addr = 0;
+	img_region.length = strlen (img_data);
+
+	sig.regions = &img_region;
+	sig.count = 1;
+	memcpy (&sig.key, &RSA_PUBLIC_KEY, sizeof (RSA_PUBLIC_KEY));
+	memcpy (&sig.signature, RSA_SIGNATURE_TEST, RSA_ENCRYPT_LEN);
+	sig.sig_length = RSA_ENCRYPT_LEN;
+	sig.always_validate = 1;
+
+	img_list.images_sig = &sig;
+	img_list.images_hash = NULL;
+	img_list.count = 1;
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x1000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 0, &fw_list, sizeof (fw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp,
+		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
+		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list, sizeof (img_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
+		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
+	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
+
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock0, FLASH_MASTER_XFER_FAILED,
+		FLASH_EXP_READ_STATUS_REG);
+
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions,
+		&manager.pfm, 0, MOCK_ARG_SAVED_ARG (2));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
+		MOCK_ARG_SAVED_ARG (3));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
+		NULL, &manager.hash.base, &manager.rsa.base, true, &rw_output);
+	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
+
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_dual_test_validate_read_only_flash_good_pfm_pfm_firmware_error (
+	CuTest *test)
+{
+	struct host_flash_manager_dual_testing manager;
+	struct host_flash_manager_rw_regions rw_output;
+	int status;
+
+	TEST_START;
+
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm,
 		PFM_GET_FW_FAILED, MOCK_ARG_NOT_NULL);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base,
+	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
 		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, PFM_GET_FW_FAILED, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_validate_read_only_flash_good_pfm_pfm_version_error (
+static void host_flash_manager_dual_test_validate_read_only_flash_good_pfm_pfm_version_error (
 	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct host_flash_manager_rw_regions rw_output;
@@ -4992,7 +4996,7 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_pfm_versio
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -5010,17 +5014,17 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_pfm_versio
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base,
+	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
 		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, PFM_GET_VERSIONS_FAILED, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_validate_read_only_flash_good_pfm_pfm_version_error_multiple_fw (
+static void host_flash_manager_dual_test_validate_read_only_flash_good_pfm_pfm_version_error_multiple_fw (
 	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp[3] = {"fw1", "fw2", "fw3"};
 	struct pfm_firmware_version version[3];
@@ -5042,7 +5046,7 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_pfm_versio
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	fw_list.ids = fw_exp;
 	fw_list.count = 3;
@@ -5227,17 +5231,17 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_pfm_versio
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base,
+	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
 		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, PFM_GET_VERSIONS_FAILED, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_validate_read_only_flash_good_pfm_flash_version_error (
+static void host_flash_manager_dual_test_validate_read_only_flash_good_pfm_flash_version_error (
 	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -5248,7 +5252,7 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_flash_vers
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -5283,17 +5287,17 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_flash_vers
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base,
+	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
 		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_validate_read_only_flash_good_pfm_pfm_images_error (
+static void host_flash_manager_dual_test_validate_read_only_flash_good_pfm_pfm_images_error (
 	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -5304,7 +5308,7 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_pfm_images
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -5345,16 +5349,17 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_pfm_images
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base,
+	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
 		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, PFM_GET_FW_IMAGES_FAILED, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_validate_read_only_flash_good_pfm_pfm_rw_error (CuTest *test)
+static void host_flash_manager_dual_test_validate_read_only_flash_good_pfm_pfm_rw_error (
+	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -5368,7 +5373,7 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_pfm_rw_err
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -5431,17 +5436,17 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_pfm_rw_err
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base,
+	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
 		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, PFM_GET_READ_WRITE_FAILED, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_validate_read_only_flash_good_pfm_good_images_error (
+static void host_flash_manager_dual_test_validate_read_only_flash_good_pfm_good_images_error (
 	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -5459,7 +5464,7 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_good_image
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -5542,7 +5547,7 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_good_image
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base,
+	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
 		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
@@ -5564,15 +5569,15 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_good_image
 		0, MOCK_ARG_SAVED_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.free_read_write_regions (&manager.test, &rw_output);
+	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_validate_read_only_flash_good_pfm_flash_image_error (
+static void host_flash_manager_dual_test_validate_read_only_flash_good_pfm_flash_image_error (
 	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -5593,7 +5598,7 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_flash_imag
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -5695,16 +5700,16 @@ static void host_flash_manager_test_validate_read_only_flash_good_pfm_flash_imag
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.validate_read_only_flash (&manager.test, &manager.pfm.base,
+	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
 		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_validate_read_write_flash_cs1 (CuTest *test)
+static void host_flash_manager_dual_test_validate_read_write_flash_cs1 (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -5722,7 +5727,7 @@ static void host_flash_manager_test_validate_read_write_flash_cs1 (CuTest *test)
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -5806,7 +5811,7 @@ static void host_flash_manager_test_validate_read_write_flash_cs1 (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.validate_read_write_flash (&manager.test, &manager.pfm.base,
+	status = manager.test.base.validate_read_write_flash (&manager.test.base, &manager.pfm.base,
 		&manager.hash.base, &manager.rsa.base, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
@@ -5828,14 +5833,14 @@ static void host_flash_manager_test_validate_read_write_flash_cs1 (CuTest *test)
 		0, MOCK_ARG_SAVED_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.free_read_write_regions (&manager.test, &rw_output);
+	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_validate_read_write_flash_cs0 (CuTest *test)
+static void host_flash_manager_dual_test_validate_read_write_flash_cs0 (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -5853,7 +5858,7 @@ static void host_flash_manager_test_validate_read_write_flash_cs0 (CuTest *test)
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, true);
+	host_flash_manager_dual_testing_init (test, &manager, true);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -5937,7 +5942,7 @@ static void host_flash_manager_test_validate_read_write_flash_cs0 (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.validate_read_write_flash (&manager.test, &manager.pfm.base,
+	status = manager.test.base.validate_read_write_flash (&manager.test.base, &manager.pfm.base,
 		&manager.hash.base, &manager.rsa.base, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
@@ -5959,14 +5964,14 @@ static void host_flash_manager_test_validate_read_write_flash_cs0 (CuTest *test)
 		0, MOCK_ARG_SAVED_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.free_read_write_regions (&manager.test, &rw_output);
+	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_validate_read_write_flash_not_blank_byte (CuTest *test)
+static void host_flash_manager_dual_test_validate_read_write_flash_not_blank_byte (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -5984,7 +5989,7 @@ static void host_flash_manager_test_validate_read_write_flash_not_blank_byte (Cu
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -6069,7 +6074,7 @@ static void host_flash_manager_test_validate_read_write_flash_not_blank_byte (Cu
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.validate_read_write_flash (&manager.test, &manager.pfm.base,
+	status = manager.test.base.validate_read_write_flash (&manager.test.base, &manager.pfm.base,
 		&manager.hash.base, &manager.rsa.base, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
@@ -6091,14 +6096,14 @@ static void host_flash_manager_test_validate_read_write_flash_not_blank_byte (Cu
 		0, MOCK_ARG_SAVED_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.free_read_write_regions (&manager.test, &rw_output);
+	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_validate_read_write_flash_single_fw (CuTest *test)
+static void host_flash_manager_dual_test_validate_read_write_flash_single_fw (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = "fw1";
 	struct pfm_firmware_version version;
@@ -6116,7 +6121,7 @@ static void host_flash_manager_test_validate_read_write_flash_single_fw (CuTest 
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -6200,7 +6205,7 @@ static void host_flash_manager_test_validate_read_write_flash_single_fw (CuTest 
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.validate_read_write_flash (&manager.test, &manager.pfm.base,
+	status = manager.test.base.validate_read_write_flash (&manager.test.base, &manager.pfm.base,
 		&manager.hash.base, &manager.rsa.base, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
@@ -6222,14 +6227,14 @@ static void host_flash_manager_test_validate_read_write_flash_single_fw (CuTest 
 		0, MOCK_ARG_SAVED_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.free_read_write_regions (&manager.test, &rw_output);
+	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_validate_read_write_flash_multiple_fw (CuTest *test)
+static void host_flash_manager_dual_test_validate_read_write_flash_multiple_fw (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp[3] = {"fw1", "fw2", "fw3"};
 	struct pfm_firmware_version version[3];
@@ -6251,7 +6256,7 @@ static void host_flash_manager_test_validate_read_write_flash_multiple_fw (CuTes
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	fw_list.ids = fw_exp;
 	fw_list.count = 3;
@@ -6464,7 +6469,7 @@ static void host_flash_manager_test_validate_read_write_flash_multiple_fw (CuTes
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.validate_read_write_flash (&manager.test, &manager.pfm.base,
+	status = manager.test.base.validate_read_write_flash (&manager.test.base, &manager.pfm.base,
 		&manager.hash.base, &manager.rsa.base, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
@@ -6499,69 +6504,69 @@ static void host_flash_manager_test_validate_read_write_flash_multiple_fw (CuTes
 
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.free_read_write_regions (&manager.test, &rw_output);
+	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_validate_read_write_flash_null (CuTest *test)
+static void host_flash_manager_dual_test_validate_read_write_flash_null (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct host_flash_manager_rw_regions rw_output;
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
-	status = manager.test.validate_read_write_flash (NULL, &manager.pfm.base,
+	status = manager.test.base.validate_read_write_flash (NULL, &manager.pfm.base,
 		&manager.hash.base, &manager.rsa.base, &rw_output);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = manager.test.validate_read_write_flash (&manager.test, NULL,
+	status = manager.test.base.validate_read_write_flash (&manager.test.base, NULL,
 		&manager.hash.base, &manager.rsa.base, &rw_output);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = manager.test.validate_read_write_flash (&manager.test, &manager.pfm.base,
+	status = manager.test.base.validate_read_write_flash (&manager.test.base, &manager.pfm.base,
 		NULL, &manager.rsa.base, &rw_output);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = manager.test.validate_read_write_flash (&manager.test, &manager.pfm.base,
+	status = manager.test.base.validate_read_write_flash (&manager.test.base, &manager.pfm.base,
 		&manager.hash.base, NULL, &rw_output);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = manager.test.validate_read_write_flash (&manager.test, &manager.pfm.base,
+	status = manager.test.base.validate_read_write_flash (&manager.test.base, &manager.pfm.base,
 		&manager.hash.base, &manager.rsa.base, NULL);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_validate_read_write_flash_pfm_firmware_error (CuTest *test)
+static void host_flash_manager_dual_test_validate_read_write_flash_pfm_firmware_error (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct host_flash_manager_rw_regions rw_output;
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm,
 		PFM_GET_FW_FAILED, MOCK_ARG_NOT_NULL);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.validate_read_write_flash (&manager.test, &manager.pfm.base,
+	status = manager.test.base.validate_read_write_flash (&manager.test.base, &manager.pfm.base,
 		&manager.hash.base, &manager.rsa.base, &rw_output);
 	CuAssertIntEquals (test, PFM_GET_FW_FAILED, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_validate_read_write_flash_pfm_version_error (CuTest *test)
+static void host_flash_manager_dual_test_validate_read_write_flash_pfm_version_error (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct host_flash_manager_rw_regions rw_output;
@@ -6569,7 +6574,7 @@ static void host_flash_manager_test_validate_read_write_flash_pfm_version_error 
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -6587,17 +6592,17 @@ static void host_flash_manager_test_validate_read_write_flash_pfm_version_error 
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.validate_read_write_flash (&manager.test, &manager.pfm.base,
+	status = manager.test.base.validate_read_write_flash (&manager.test.base, &manager.pfm.base,
 		&manager.hash.base, &manager.rsa.base, &rw_output);
 	CuAssertIntEquals (test, PFM_GET_VERSIONS_FAILED, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_validate_read_write_flash_pfm_version_error_multiple_fw (
+static void host_flash_manager_dual_test_validate_read_write_flash_pfm_version_error_multiple_fw (
 	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp[3] = {"fw1", "fw2", "fw3"};
 	struct pfm_firmware_version version[3];
@@ -6619,7 +6624,7 @@ static void host_flash_manager_test_validate_read_write_flash_pfm_version_error_
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	fw_list.ids = fw_exp;
 	fw_list.count = 3;
@@ -6789,16 +6794,16 @@ static void host_flash_manager_test_validate_read_write_flash_pfm_version_error_
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.validate_read_write_flash (&manager.test, &manager.pfm.base,
+	status = manager.test.base.validate_read_write_flash (&manager.test.base, &manager.pfm.base,
 		&manager.hash.base, &manager.rsa.base, &rw_output);
 	CuAssertIntEquals (test, PFM_GET_VERSIONS_FAILED, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_validate_read_write_flash_pfm_images_error (CuTest *test)
+static void host_flash_manager_dual_test_validate_read_write_flash_pfm_images_error (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -6809,7 +6814,7 @@ static void host_flash_manager_test_validate_read_write_flash_pfm_images_error (
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -6847,16 +6852,16 @@ static void host_flash_manager_test_validate_read_write_flash_pfm_images_error (
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.validate_read_write_flash (&manager.test, &manager.pfm.base,
+	status = manager.test.base.validate_read_write_flash (&manager.test.base, &manager.pfm.base,
 		&manager.hash.base, &manager.rsa.base, &rw_output);
 	CuAssertIntEquals (test, PFM_GET_FW_IMAGES_FAILED, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_validate_read_write_flash_pfm_rw_error (CuTest *test)
+static void host_flash_manager_dual_test_validate_read_write_flash_pfm_rw_error (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -6871,7 +6876,7 @@ static void host_flash_manager_test_validate_read_write_flash_pfm_rw_error (CuTe
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -6931,16 +6936,16 @@ static void host_flash_manager_test_validate_read_write_flash_pfm_rw_error (CuTe
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.validate_read_write_flash (&manager.test, &manager.pfm.base,
+	status = manager.test.base.validate_read_write_flash (&manager.test.base, &manager.pfm.base,
 		&manager.hash.base, &manager.rsa.base, &rw_output);
 	CuAssertIntEquals (test, PFM_GET_READ_WRITE_FAILED, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_validate_read_write_flash_version_error (CuTest *test)
+static void host_flash_manager_dual_test_validate_read_write_flash_version_error (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -6951,7 +6956,7 @@ static void host_flash_manager_test_validate_read_write_flash_version_error (CuT
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -6983,16 +6988,16 @@ static void host_flash_manager_test_validate_read_write_flash_version_error (CuT
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.validate_read_write_flash (&manager.test, &manager.pfm.base,
+	status = manager.test.base.validate_read_write_flash (&manager.test.base, &manager.pfm.base,
 		&manager.hash.base, &manager.rsa.base, &rw_output);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_validate_read_write_flash_verify_error (CuTest *test)
+static void host_flash_manager_dual_test_validate_read_write_flash_verify_error (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -7010,7 +7015,7 @@ static void host_flash_manager_test_validate_read_write_flash_verify_error (CuTe
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -7090,16 +7095,16 @@ static void host_flash_manager_test_validate_read_write_flash_verify_error (CuTe
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.validate_read_write_flash (&manager.test, &manager.pfm.base,
+	status = manager.test.base.validate_read_write_flash (&manager.test.base, &manager.pfm.base,
 		&manager.hash.base, &manager.rsa.base, &rw_output);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_free_read_write_regions_null (CuTest *test)
+static void host_flash_manager_dual_test_free_read_write_regions_null (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions *rw_list;
@@ -7108,7 +7113,7 @@ static void host_flash_manager_test_free_read_write_regions_null (CuTest *test)
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
@@ -7130,37 +7135,37 @@ static void host_flash_manager_test_free_read_write_regions_null (CuTest *test)
 		0, MOCK_ARG (rw_list));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.free_read_write_regions (NULL, &rw_host);
+	manager.test.base.free_read_write_regions (NULL, &rw_host);
 
 	status = mock_validate (&manager.pfm.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.free_read_write_regions (&manager.test, NULL);
+	manager.test.base.free_read_write_regions (&manager.test.base, NULL);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_free_read_write_regions_null_list (CuTest *test)
+static void host_flash_manager_dual_test_free_read_write_regions_null_list (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct host_flash_manager_rw_regions rw_host;
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	rw_host.pfm = &manager.pfm.base;
 	rw_host.writable = NULL;
 	rw_host.count = 1;
 
-	manager.test.free_read_write_regions (&manager.test, &rw_host);
+	manager.test.base.free_read_write_regions (&manager.test.base, &rw_host);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_free_read_write_regions_null_pfm (CuTest *test)
+static void host_flash_manager_dual_test_free_read_write_regions_null_pfm (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
@@ -7168,7 +7173,7 @@ static void host_flash_manager_test_free_read_write_regions_null_pfm (CuTest *te
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
@@ -7183,14 +7188,14 @@ static void host_flash_manager_test_free_read_write_regions_null_pfm (CuTest *te
 	rw_host.writable = &rw_list;
 	rw_host.count = 1;
 
-	manager.test.free_read_write_regions (&manager.test, &rw_host);
+	manager.test.base.free_read_write_regions (&manager.test.base, &rw_host);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_set_flash_for_rot_access (CuTest *test)
+static void host_flash_manager_dual_test_set_flash_for_rot_access (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 	uint8_t bp_status = 0x3c;
@@ -7199,13 +7204,13 @@ static void host_flash_manager_test_set_flash_for_rot_access (CuTest *test)
 
 	TEST_START;
 
-	host_flash_manager_testing_initialize_dependencies_no_flash (test, &manager);
-	host_flash_manager_testing_initialize_flash_device (test, &manager.flash0, &manager.flash_mock0,
-		id);
-	host_flash_manager_testing_initialize_flash_device (test, &manager.flash1, &manager.flash_mock1,
-		id);
+	host_flash_manager_dual_testing_initialize_dependencies_no_flash (test, &manager);
+	host_flash_manager_dual_testing_initialize_flash_device (test, &manager.flash0,
+		&manager.flash_mock0, id);
+	host_flash_manager_dual_testing_initialize_flash_device (test, &manager.flash1,
+		&manager.flash_mock1, id);
 
-	status = host_flash_manager_init (&manager.test, &manager.flash0, &manager.flash1,
+	status = host_flash_manager_dual_init (&manager.test, &manager.flash0, &manager.flash1,
 		&manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -7268,7 +7273,7 @@ static void host_flash_manager_test_set_flash_for_rot_access (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.set_flash_for_rot_access (&manager.test, &manager.control.base);
+	status = manager.test.base.set_flash_for_rot_access (&manager.test.base, &manager.control.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_is_4byte_address_mode (&manager.flash0);
@@ -7277,12 +7282,13 @@ static void host_flash_manager_test_set_flash_for_rot_access (CuTest *test)
 	status = spi_flash_is_4byte_address_mode (&manager.flash1);
 	CuAssertIntEquals (test, 1, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_set_flash_for_rot_access_not_initilized_device (CuTest *test)
+static void host_flash_manager_dual_test_set_flash_for_rot_access_not_initilized_device (
+	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 	uint8_t bp_status = 0x3c;
@@ -7290,7 +7296,7 @@ static void host_flash_manager_test_set_flash_for_rot_access_not_initilized_devi
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	/* Disable SPI filter. */
 	status = mock_expect (&manager.filter.mock, manager.filter.base.enable_filter, &manager.filter,
@@ -7341,7 +7347,7 @@ static void host_flash_manager_test_set_flash_for_rot_access_not_initilized_devi
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.set_flash_for_rot_access (&manager.test, &manager.control.base);
+	status = manager.test.base.set_flash_for_rot_access (&manager.test.base, &manager.control.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_validate (&manager.flash_mock0.mock);
@@ -7353,12 +7359,12 @@ static void host_flash_manager_test_set_flash_for_rot_access_not_initilized_devi
 	status = spi_flash_is_4byte_address_mode (&manager.flash1);
 	CuAssertIntEquals (test, 1, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_set_flash_for_rot_access_check_qspi_error (CuTest *test)
+static void host_flash_manager_dual_test_set_flash_for_rot_access_check_qspi_error (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 	uint8_t bp_status = 0x3c;
@@ -7367,13 +7373,13 @@ static void host_flash_manager_test_set_flash_for_rot_access_check_qspi_error (C
 
 	TEST_START;
 
-	host_flash_manager_testing_initialize_dependencies_no_flash (test, &manager);
-	host_flash_manager_testing_initialize_flash_device (test, &manager.flash0, &manager.flash_mock0,
-		id);
-	host_flash_manager_testing_initialize_flash_device (test, &manager.flash1, &manager.flash_mock1,
-		id);
+	host_flash_manager_dual_testing_initialize_dependencies_no_flash (test, &manager);
+	host_flash_manager_dual_testing_initialize_flash_device (test, &manager.flash0,
+		&manager.flash_mock0, id);
+	host_flash_manager_dual_testing_initialize_flash_device (test, &manager.flash1,
+		&manager.flash_mock1, id);
 
-	status = host_flash_manager_init (&manager.test, &manager.flash0, &manager.flash1,
+	status = host_flash_manager_dual_init (&manager.test, &manager.flash0, &manager.flash1,
 		&manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -7436,7 +7442,7 @@ static void host_flash_manager_test_set_flash_for_rot_access_check_qspi_error (C
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.set_flash_for_rot_access (&manager.test, &manager.control.base);
+	status = manager.test.base.set_flash_for_rot_access (&manager.test.base, &manager.control.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_is_4byte_address_mode (&manager.flash0);
@@ -7445,12 +7451,12 @@ static void host_flash_manager_test_set_flash_for_rot_access_check_qspi_error (C
 	status = spi_flash_is_4byte_address_mode (&manager.flash1);
 	CuAssertIntEquals (test, 1, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_set_flash_for_rot_access_wip_set (CuTest *test)
+static void host_flash_manager_dual_test_set_flash_for_rot_access_wip_set (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 	uint8_t bp_status = 0x3c;
@@ -7460,13 +7466,13 @@ static void host_flash_manager_test_set_flash_for_rot_access_wip_set (CuTest *te
 
 	TEST_START;
 
-	host_flash_manager_testing_initialize_dependencies_no_flash (test, &manager);
-	host_flash_manager_testing_initialize_flash_device (test, &manager.flash0, &manager.flash_mock0,
-		id);
-	host_flash_manager_testing_initialize_flash_device (test, &manager.flash1, &manager.flash_mock1,
-		id);
+	host_flash_manager_dual_testing_initialize_dependencies_no_flash (test, &manager);
+	host_flash_manager_dual_testing_initialize_flash_device (test, &manager.flash0,
+		&manager.flash_mock0, id);
+	host_flash_manager_dual_testing_initialize_flash_device (test, &manager.flash1,
+		&manager.flash_mock1, id);
 
-	status = host_flash_manager_init (&manager.test, &manager.flash0, &manager.flash1,
+	status = host_flash_manager_dual_init (&manager.test, &manager.flash0, &manager.flash1,
 		&manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -7536,7 +7542,7 @@ static void host_flash_manager_test_set_flash_for_rot_access_wip_set (CuTest *te
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.set_flash_for_rot_access (&manager.test, &manager.control.base);
+	status = manager.test.base.set_flash_for_rot_access (&manager.test.base, &manager.control.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_is_4byte_address_mode (&manager.flash0);
@@ -7545,13 +7551,13 @@ static void host_flash_manager_test_set_flash_for_rot_access_wip_set (CuTest *te
 	status = spi_flash_is_4byte_address_mode (&manager.flash1);
 	CuAssertIntEquals (test, 1, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_set_flash_for_rot_access_with_flash_initialization (
+static void host_flash_manager_dual_test_set_flash_for_rot_access_with_flash_initialization (
 	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	uint32_t header[] = {
 		0x50444653,
@@ -7585,9 +7591,9 @@ static void host_flash_manager_test_set_flash_for_rot_access_with_flash_initiali
 
 	TEST_START;
 
-	host_flash_manager_testing_initialize_dependencies_no_flash (test, &manager);
+	host_flash_manager_dual_testing_initialize_dependencies_no_flash (test, &manager);
 
-	status = host_flash_manager_init_with_managed_flash_initialization (&manager.test,
+	status = host_flash_manager_dual_init_with_managed_flash_initialization (&manager.test,
 		&manager.flash0, &manager.flash1, &manager.host_state, &manager.filter.base,
 		&manager.handler.base, &manager.flash_init);
 	CuAssertIntEquals (test, 0, status);
@@ -7708,7 +7714,7 @@ static void host_flash_manager_test_set_flash_for_rot_access_with_flash_initiali
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.set_flash_for_rot_access (&manager.test, &manager.control.base);
+	status = manager.test.base.set_flash_for_rot_access (&manager.test.base, &manager.control.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_is_4byte_address_mode (&manager.flash0);
@@ -7717,35 +7723,35 @@ static void host_flash_manager_test_set_flash_for_rot_access_with_flash_initiali
 	status = spi_flash_is_4byte_address_mode (&manager.flash1);
 	CuAssertIntEquals (test, 1, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_set_flash_for_rot_access_null (CuTest *test)
+static void host_flash_manager_dual_test_set_flash_for_rot_access_null (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
-	status = manager.test.set_flash_for_rot_access (NULL, &manager.control.base);
+	status = manager.test.base.set_flash_for_rot_access (NULL, &manager.control.base);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = manager.test.set_flash_for_rot_access (&manager.test, NULL);
+	status = manager.test.base.set_flash_for_rot_access (&manager.test.base, NULL);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_set_flash_for_rot_access_filter_error (CuTest *test)
+static void host_flash_manager_dual_test_set_flash_for_rot_access_filter_error (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	/* Disable SPI filter. */
 	status = mock_expect (&manager.filter.mock, manager.filter.base.enable_filter, &manager.filter,
@@ -7753,20 +7759,20 @@ static void host_flash_manager_test_set_flash_for_rot_access_filter_error (CuTes
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.set_flash_for_rot_access (&manager.test, &manager.control.base);
+	status = manager.test.base.set_flash_for_rot_access (&manager.test.base, &manager.control.base);
 	CuAssertIntEquals (test, SPI_FILTER_ENABLE_FAILED, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_set_flash_for_rot_access_mux_error (CuTest *test)
+static void host_flash_manager_dual_test_set_flash_for_rot_access_mux_error (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	/* Disable SPI filter. */
 	status = mock_expect (&manager.filter.mock, manager.filter.base.enable_filter, &manager.filter,
@@ -7779,27 +7785,27 @@ static void host_flash_manager_test_set_flash_for_rot_access_mux_error (CuTest *
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.set_flash_for_rot_access (&manager.test, &manager.control.base);
+	status = manager.test.base.set_flash_for_rot_access (&manager.test.base, &manager.control.base);
 	CuAssertIntEquals (test, HOST_CONTROL_FLASH_ACCESS_FAILED, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_set_flash_for_rot_access_wip_error (CuTest *test)
+static void host_flash_manager_dual_test_set_flash_for_rot_access_wip_error (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 
 	TEST_START;
 
-	host_flash_manager_testing_initialize_dependencies_no_flash (test, &manager);
-	host_flash_manager_testing_initialize_flash_device (test, &manager.flash0, &manager.flash_mock0,
-		id);
-	host_flash_manager_testing_initialize_flash_device (test, &manager.flash1, &manager.flash_mock1,
-		id);
+	host_flash_manager_dual_testing_initialize_dependencies_no_flash (test, &manager);
+	host_flash_manager_dual_testing_initialize_flash_device (test, &manager.flash0,
+		&manager.flash_mock0, id);
+	host_flash_manager_dual_testing_initialize_flash_device (test, &manager.flash1,
+		&manager.flash_mock1, id);
 
-	status = host_flash_manager_init (&manager.test, &manager.flash0, &manager.flash1,
+	status = host_flash_manager_dual_init (&manager.test, &manager.flash0, &manager.flash1,
 		&manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -7817,27 +7823,27 @@ static void host_flash_manager_test_set_flash_for_rot_access_wip_error (CuTest *
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.set_flash_for_rot_access (&manager.test, &manager.control.base);
+	status = manager.test.base.set_flash_for_rot_access (&manager.test.base, &manager.control.base);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_set_flash_for_rot_access_block_protect_error (CuTest *test)
+static void host_flash_manager_dual_test_set_flash_for_rot_access_block_protect_error (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 
 	TEST_START;
 
-	host_flash_manager_testing_initialize_dependencies_no_flash (test, &manager);
-	host_flash_manager_testing_initialize_flash_device (test, &manager.flash0, &manager.flash_mock0,
-		id);
-	host_flash_manager_testing_initialize_flash_device (test, &manager.flash1, &manager.flash_mock1,
-		id);
+	host_flash_manager_dual_testing_initialize_dependencies_no_flash (test, &manager);
+	host_flash_manager_dual_testing_initialize_flash_device (test, &manager.flash0,
+		&manager.flash_mock0, id);
+	host_flash_manager_dual_testing_initialize_flash_device (test, &manager.flash1,
+		&manager.flash_mock1, id);
 
-	status = host_flash_manager_init (&manager.test, &manager.flash0, &manager.flash1,
+	status = host_flash_manager_dual_init (&manager.test, &manager.flash0, &manager.flash1,
 		&manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -7859,28 +7865,28 @@ static void host_flash_manager_test_set_flash_for_rot_access_block_protect_error
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.set_flash_for_rot_access (&manager.test, &manager.control.base);
+	status = manager.test.base.set_flash_for_rot_access (&manager.test.base, &manager.control.base);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_set_flash_for_rot_access_qspi_error (CuTest *test)
+static void host_flash_manager_dual_test_set_flash_for_rot_access_qspi_error (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 	uint8_t bp_status = 0x3c;
 
 	TEST_START;
 
-	host_flash_manager_testing_initialize_dependencies_no_flash (test, &manager);
-	host_flash_manager_testing_initialize_flash_device (test, &manager.flash0, &manager.flash_mock0,
-		id);
-	host_flash_manager_testing_initialize_flash_device (test, &manager.flash1, &manager.flash_mock1,
-		id);
+	host_flash_manager_dual_testing_initialize_dependencies_no_flash (test, &manager);
+	host_flash_manager_dual_testing_initialize_flash_device (test, &manager.flash0,
+		&manager.flash_mock0, id);
+	host_flash_manager_dual_testing_initialize_flash_device (test, &manager.flash1,
+		&manager.flash_mock1, id);
 
-	status = host_flash_manager_init (&manager.test, &manager.flash0, &manager.flash1,
+	status = host_flash_manager_dual_init (&manager.test, &manager.flash0, &manager.flash1,
 		&manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -7915,15 +7921,15 @@ static void host_flash_manager_test_set_flash_for_rot_access_qspi_error (CuTest 
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.set_flash_for_rot_access (&manager.test, &manager.control.base);
+	status = manager.test.base.set_flash_for_rot_access (&manager.test.base, &manager.control.base);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_set_flash_for_rot_access_4byte_error (CuTest *test)
+static void host_flash_manager_dual_test_set_flash_for_rot_access_4byte_error (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 	uint8_t bp_status = 0x3c;
@@ -7931,13 +7937,13 @@ static void host_flash_manager_test_set_flash_for_rot_access_4byte_error (CuTest
 
 	TEST_START;
 
-	host_flash_manager_testing_initialize_dependencies_no_flash (test, &manager);
-	host_flash_manager_testing_initialize_flash_device (test, &manager.flash0, &manager.flash_mock0,
-		id);
-	host_flash_manager_testing_initialize_flash_device (test, &manager.flash1, &manager.flash_mock1,
-		id);
+	host_flash_manager_dual_testing_initialize_dependencies_no_flash (test, &manager);
+	host_flash_manager_dual_testing_initialize_flash_device (test, &manager.flash0,
+		&manager.flash_mock0, id);
+	host_flash_manager_dual_testing_initialize_flash_device (test, &manager.flash1,
+		&manager.flash_mock1, id);
 
-	status = host_flash_manager_init (&manager.test, &manager.flash0, &manager.flash1,
+	status = host_flash_manager_dual_init (&manager.test, &manager.flash0, &manager.flash1,
 		&manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -7983,20 +7989,20 @@ static void host_flash_manager_test_set_flash_for_rot_access_4byte_error (CuTest
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.set_flash_for_rot_access (&manager.test, &manager.control.base);
+	status = manager.test.base.set_flash_for_rot_access (&manager.test.base, &manager.control.base);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_set_flash_for_rot_access_id_error (CuTest *test)
+static void host_flash_manager_dual_test_set_flash_for_rot_access_id_error (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	/* Disable SPI filter. */
 	status = mock_expect (&manager.filter.mock, manager.filter.base.enable_filter, &manager.filter,
@@ -8012,21 +8018,21 @@ static void host_flash_manager_test_set_flash_for_rot_access_id_error (CuTest *t
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.set_flash_for_rot_access (&manager.test, &manager.control.base);
+	status = manager.test.base.set_flash_for_rot_access (&manager.test.base, &manager.control.base);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_set_flash_for_rot_access_unknown_id_ff (CuTest *test)
+static void host_flash_manager_dual_test_set_flash_for_rot_access_unknown_id_ff (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	uint8_t id[] = {0xff, 0xff, 0xff};
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	/* Disable SPI filter. */
 	status = mock_expect (&manager.filter.mock, manager.filter.base.enable_filter, &manager.filter,
@@ -8042,21 +8048,21 @@ static void host_flash_manager_test_set_flash_for_rot_access_unknown_id_ff (CuTe
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.set_flash_for_rot_access (&manager.test, &manager.control.base);
+	status = manager.test.base.set_flash_for_rot_access (&manager.test.base, &manager.control.base);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_VENDOR, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_set_flash_for_rot_access_unknown_id_00 (CuTest *test)
+static void host_flash_manager_dual_test_set_flash_for_rot_access_unknown_id_00 (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	uint8_t id[] = {0x00, 0x00, 0x00};
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	/* Disable SPI filter. */
 	status = mock_expect (&manager.filter.mock, manager.filter.base.enable_filter, &manager.filter,
@@ -8072,23 +8078,23 @@ static void host_flash_manager_test_set_flash_for_rot_access_unknown_id_00 (CuTe
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.set_flash_for_rot_access (&manager.test, &manager.control.base);
+	status = manager.test.base.set_flash_for_rot_access (&manager.test.base, &manager.control.base);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_VENDOR, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_set_flash_for_rot_access_with_flash_initialization_error (
+static void host_flash_manager_dual_test_set_flash_for_rot_access_with_flash_initialization_error (
 	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_testing_initialize_dependencies_no_flash (test, &manager);
+	host_flash_manager_dual_testing_initialize_dependencies_no_flash (test, &manager);
 
-	status = host_flash_manager_init_with_managed_flash_initialization (&manager.test,
+	status = host_flash_manager_dual_init_with_managed_flash_initialization (&manager.test,
 		&manager.flash0, &manager.flash1, &manager.host_state, &manager.filter.base,
 		&manager.handler.base, &manager.flash_init);
 	CuAssertIntEquals (test, 0, status);
@@ -8109,21 +8115,21 @@ static void host_flash_manager_test_set_flash_for_rot_access_with_flash_initiali
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.set_flash_for_rot_access (&manager.test, &manager.control.base);
+	status = manager.test.base.set_flash_for_rot_access (&manager.test.base, &manager.control.base);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	host_flash_manager_testing_validate_and_release_dependencies_no_flash (test, &manager);
-	host_flash_manager_release (&manager.test);
+	host_flash_manager_dual_testing_validate_and_release_dependencies_no_flash (test, &manager);
+	host_flash_manager_dual_release (&manager.test);
 }
 
-static void host_flash_manager_test_set_flash_for_host_access (CuTest *test)
+static void host_flash_manager_dual_test_set_flash_for_host_access (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	/* Switch SPI mux. */
 	status = mock_expect (&manager.control.mock,
@@ -8135,38 +8141,41 @@ static void host_flash_manager_test_set_flash_for_host_access (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.set_flash_for_host_access (&manager.test, &manager.control.base);
+	status = manager.test.base.set_flash_for_host_access (&manager.test.base,
+		&manager.control.base);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_set_flash_for_host_access_null (CuTest *test)
+static void host_flash_manager_dual_test_set_flash_for_host_access_null (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
-	status = manager.test.set_flash_for_host_access (NULL, &manager.control.base);
+	status = manager.test.base.set_flash_for_host_access (NULL,
+		&manager.control.base);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = manager.test.set_flash_for_host_access (&manager.test, NULL);
+	status = manager.test.base.set_flash_for_host_access (&manager.test.base,
+		NULL);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_set_flash_for_host_access_mux_error (CuTest *test)
+static void host_flash_manager_dual_test_set_flash_for_host_access_mux_error (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	/* Switch SPI mux. */
 	status = mock_expect (&manager.control.mock,
@@ -8175,20 +8184,21 @@ static void host_flash_manager_test_set_flash_for_host_access_mux_error (CuTest 
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.set_flash_for_host_access (&manager.test, &manager.control.base);
+	status = manager.test.base.set_flash_for_host_access (&manager.test.base,
+		&manager.control.base);
 	CuAssertIntEquals (test, HOST_CONTROL_FLASH_ACCESS_FAILED, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_set_flash_for_host_access_enable_error (CuTest *test)
+static void host_flash_manager_dual_test_set_flash_for_host_access_enable_error (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	/* Switch SPI mux. */
 	status = mock_expect (&manager.control.mock,
@@ -8200,21 +8210,22 @@ static void host_flash_manager_test_set_flash_for_host_access_enable_error (CuTe
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.set_flash_for_host_access (&manager.test, &manager.control.base);
+	status = manager.test.base.set_flash_for_host_access (&manager.test.base,
+		&manager.control.base);
 	CuAssertIntEquals (test, SPI_FILTER_ENABLE_FAILED, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_config_spi_filter_flash_type (CuTest *test)
+static void host_flash_manager_dual_test_config_spi_filter_flash_type (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
@@ -8235,21 +8246,21 @@ static void host_flash_manager_test_config_spi_filter_flash_type (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.config_spi_filter_flash_type (&manager.test);
+	status = manager.test.base.config_spi_filter_flash_type (&manager.test.base);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_config_spi_filter_flash_type_4byte (CuTest *test)
+static void host_flash_manager_dual_test_config_spi_filter_flash_type_4byte (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	status = spi_flash_force_4byte_address_mode (&manager.flash0, true);
 	CuAssertIntEquals (test, 0, status);
@@ -8277,21 +8288,22 @@ static void host_flash_manager_test_config_spi_filter_flash_type_4byte (CuTest *
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.config_spi_filter_flash_type (&manager.test);
+	status = manager.test.base.config_spi_filter_flash_type (&manager.test.base);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_config_spi_filter_flash_type_diff_addr_mode_3byte (CuTest *test)
+static void host_flash_manager_dual_test_config_spi_filter_flash_type_diff_addr_mode_3byte (
+	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	status = spi_flash_force_4byte_address_mode (&manager.flash1, true);
 	CuAssertIntEquals (test, 0, status);
@@ -8318,21 +8330,22 @@ static void host_flash_manager_test_config_spi_filter_flash_type_diff_addr_mode_
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.config_spi_filter_flash_type (&manager.test);
+	status = manager.test.base.config_spi_filter_flash_type (&manager.test.base);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_config_spi_filter_flash_type_diff_addr_mode_4byte (CuTest *test)
+static void host_flash_manager_dual_test_config_spi_filter_flash_type_diff_addr_mode_4byte (
+	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	status = spi_flash_force_4byte_address_mode (&manager.flash0, true);
 	CuAssertIntEquals (test, 0, status);
@@ -8359,15 +8372,16 @@ static void host_flash_manager_test_config_spi_filter_flash_type_diff_addr_mode_
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.config_spi_filter_flash_type (&manager.test);
+	status = manager.test.base.config_spi_filter_flash_type (&manager.test.base);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_config_spi_filter_flash_type_require_write_enable (CuTest *test)
+static void host_flash_manager_dual_test_config_spi_filter_flash_type_require_write_enable (
+	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	uint32_t header[] = {
 		0x50444653,
@@ -8397,13 +8411,13 @@ static void host_flash_manager_test_config_spi_filter_flash_type_require_write_e
 
 	TEST_START;
 
-	host_flash_manager_testing_initialize_dependencies_no_flash_master (test, &manager);
+	host_flash_manager_dual_testing_initialize_dependencies_no_flash_master (test, &manager);
 	spi_flash_testing_discover_params (test, &manager.flash0, &manager.flash_mock0, id, header,
 		params, sizeof (params), 0x000030, FULL_CAPABILITIES);
 	spi_flash_testing_discover_params (test, &manager.flash1, &manager.flash_mock1, id, header,
 		params, sizeof (params), 0x000030, FULL_CAPABILITIES);
 
-	status = host_flash_manager_init (&manager.test, &manager.flash0, &manager.flash1,
+	status = host_flash_manager_dual_init (&manager.test, &manager.flash0, &manager.flash1,
 		&manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -8426,16 +8440,16 @@ static void host_flash_manager_test_config_spi_filter_flash_type_require_write_e
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.config_spi_filter_flash_type (&manager.test);
+	status = manager.test.base.config_spi_filter_flash_type (&manager.test.base);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_config_spi_filter_flash_type_fixed_addr_mode_3byte (
+static void host_flash_manager_dual_test_config_spi_filter_flash_type_fixed_addr_mode_3byte (
 	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	uint32_t header[] = {
 		0x50444653,
@@ -8458,13 +8472,13 @@ static void host_flash_manager_test_config_spi_filter_flash_type_fixed_addr_mode
 
 	TEST_START;
 
-	host_flash_manager_testing_initialize_dependencies_no_flash_master (test, &manager);
+	host_flash_manager_dual_testing_initialize_dependencies_no_flash_master (test, &manager);
 	spi_flash_testing_discover_params (test, &manager.flash0, &manager.flash_mock0, id, header,
 		params, sizeof (params), 0x000030, FULL_CAPABILITIES);
 	spi_flash_testing_discover_params (test, &manager.flash1, &manager.flash_mock1, id, header,
 		params, sizeof (params), 0x000030, FULL_CAPABILITIES);
 
-	status = host_flash_manager_init (&manager.test, &manager.flash0, &manager.flash1,
+	status = host_flash_manager_dual_init (&manager.test, &manager.flash0, &manager.flash1,
 		&manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -8487,16 +8501,16 @@ static void host_flash_manager_test_config_spi_filter_flash_type_fixed_addr_mode
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.config_spi_filter_flash_type (&manager.test);
+	status = manager.test.base.config_spi_filter_flash_type (&manager.test.base);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_config_spi_filter_flash_type_fixed_addr_mode_4byte (
+static void host_flash_manager_dual_test_config_spi_filter_flash_type_fixed_addr_mode_4byte (
 	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	uint32_t header[] = {
 		0x50444653,
@@ -8519,13 +8533,13 @@ static void host_flash_manager_test_config_spi_filter_flash_type_fixed_addr_mode
 
 	TEST_START;
 
-	host_flash_manager_testing_initialize_dependencies_no_flash_master (test, &manager);
+	host_flash_manager_dual_testing_initialize_dependencies_no_flash_master (test, &manager);
 	spi_flash_testing_discover_params (test, &manager.flash0, &manager.flash_mock0, id, header,
 		params, sizeof (params), 0x000030, FULL_CAPABILITIES);
 	spi_flash_testing_discover_params (test, &manager.flash1, &manager.flash_mock1, id, header,
 		params, sizeof (params), 0x000030, FULL_CAPABILITIES);
 
-	status = host_flash_manager_init (&manager.test, &manager.flash0, &manager.flash1,
+	status = host_flash_manager_dual_init (&manager.test, &manager.flash0, &manager.flash1,
 		&manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -8548,23 +8562,23 @@ static void host_flash_manager_test_config_spi_filter_flash_type_fixed_addr_mode
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.config_spi_filter_flash_type (&manager.test);
+	status = manager.test.base.config_spi_filter_flash_type (&manager.test.base);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_config_spi_filter_flash_type_reset_addr_mode_4byte (
+static void host_flash_manager_dual_test_config_spi_filter_flash_type_reset_addr_mode_4byte (
 	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	uint8_t id[] = {0xef, 0x40, 0x19};
 	uint8_t reset_4b[] = {0x02};
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
@@ -8591,21 +8605,22 @@ static void host_flash_manager_test_config_spi_filter_flash_type_reset_addr_mode
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.config_spi_filter_flash_type (&manager.test);
+	status = manager.test.base.config_spi_filter_flash_type (&manager.test.base);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_config_spi_filter_flash_type_set_size_unsupported (CuTest *test)
+static void host_flash_manager_dual_test_config_spi_filter_flash_type_set_size_unsupported (
+	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
@@ -8626,22 +8641,22 @@ static void host_flash_manager_test_config_spi_filter_flash_type_set_size_unsupp
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.config_spi_filter_flash_type (&manager.test);
+	status = manager.test.base.config_spi_filter_flash_type (&manager.test.base);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_config_spi_filter_flash_type_addr_mode_write_en_unsupported (
+static void host_flash_manager_dual_test_config_spi_filter_flash_type_addr_mode_write_en_unsupported (
 	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
@@ -8662,22 +8677,22 @@ static void host_flash_manager_test_config_spi_filter_flash_type_addr_mode_write
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.config_spi_filter_flash_type (&manager.test);
+	status = manager.test.base.config_spi_filter_flash_type (&manager.test.base);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_config_spi_filter_flash_type_reset_addr_mode_unsupported (
+static void host_flash_manager_dual_test_config_spi_filter_flash_type_reset_addr_mode_unsupported (
 	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
@@ -8698,37 +8713,37 @@ static void host_flash_manager_test_config_spi_filter_flash_type_reset_addr_mode
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.config_spi_filter_flash_type (&manager.test);
+	status = manager.test.base.config_spi_filter_flash_type (&manager.test.base);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_config_spi_filter_flash_type_null (CuTest *test)
+static void host_flash_manager_dual_test_config_spi_filter_flash_type_null (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
-	status = manager.test.config_spi_filter_flash_type (NULL);
+	status = manager.test.base.config_spi_filter_flash_type (NULL);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_config_spi_filter_flash_type_diff_vendors (CuTest *test)
+static void host_flash_manager_dual_test_config_spi_filter_flash_type_diff_vendors (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	uint8_t id0[] = {0xc2, 0x20, 0x19};
 	uint8_t id1[] = {0xef, 0x40, 0x19};
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id0, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
@@ -8737,22 +8752,22 @@ static void host_flash_manager_test_config_spi_filter_flash_type_diff_vendors (C
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.config_spi_filter_flash_type (&manager.test);
+	status = manager.test.base.config_spi_filter_flash_type (&manager.test.base);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_MISMATCH_VENDOR, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_config_spi_filter_flash_type_diff_devices (CuTest *test)
+static void host_flash_manager_dual_test_config_spi_filter_flash_type_diff_devices (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	uint8_t id0[] = {0xc2, 0x20, 0x19};
 	uint8_t id1[] = {0xc2, 0x20, 0x18};
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id0, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
@@ -8761,21 +8776,21 @@ static void host_flash_manager_test_config_spi_filter_flash_type_diff_devices (C
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.config_spi_filter_flash_type (&manager.test);
+	status = manager.test.base.config_spi_filter_flash_type (&manager.test.base);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_MISMATCH_DEVICE, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_config_spi_filter_flash_type_diff_sizes (CuTest *test)
+static void host_flash_manager_dual_test_config_spi_filter_flash_type_diff_sizes (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	status = spi_flash_set_device_size (&manager.flash1, 0x2000000);
 	CuAssertIntEquals (test, 0, status);
@@ -8790,16 +8805,16 @@ static void host_flash_manager_test_config_spi_filter_flash_type_diff_sizes (CuT
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.config_spi_filter_flash_type (&manager.test);
+	status = manager.test.base.config_spi_filter_flash_type (&manager.test.base);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_MISMATCH_SIZES, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_config_spi_filter_flash_type_diff_require_write_enable (
+static void host_flash_manager_dual_test_config_spi_filter_flash_type_diff_require_write_enable (
 	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	uint32_t header[] = {
 		0x50444653,
@@ -8847,13 +8862,13 @@ static void host_flash_manager_test_config_spi_filter_flash_type_diff_require_wr
 
 	TEST_START;
 
-	host_flash_manager_testing_initialize_dependencies_no_flash_master (test, &manager);
+	host_flash_manager_dual_testing_initialize_dependencies_no_flash_master (test, &manager);
 	spi_flash_testing_discover_params (test, &manager.flash0, &manager.flash_mock0, id, header,
 		params_we, sizeof (params_we), 0x000030, FULL_CAPABILITIES);
 	spi_flash_testing_discover_params (test, &manager.flash1, &manager.flash_mock1, id, header,
 		params_no_we, sizeof (params_no_we), 0x000030, FULL_CAPABILITIES);
 
-	status = host_flash_manager_init (&manager.test, &manager.flash0, &manager.flash1,
+	status = host_flash_manager_dual_init (&manager.test, &manager.flash0, &manager.flash1,
 		&manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -8869,16 +8884,16 @@ static void host_flash_manager_test_config_spi_filter_flash_type_diff_require_wr
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.config_spi_filter_flash_type (&manager.test);
+	status = manager.test.base.config_spi_filter_flash_type (&manager.test.base);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_MISMATCH_ADDR_MODE, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_config_spi_filter_flash_type_diff_addr_mode_control (
+static void host_flash_manager_dual_test_config_spi_filter_flash_type_diff_addr_mode_control (
 	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	uint32_t header[] = {
 		0x50444653,
@@ -8926,13 +8941,13 @@ static void host_flash_manager_test_config_spi_filter_flash_type_diff_addr_mode_
 
 	TEST_START;
 
-	host_flash_manager_testing_initialize_dependencies_no_flash_master (test, &manager);
+	host_flash_manager_dual_testing_initialize_dependencies_no_flash_master (test, &manager);
 	spi_flash_testing_discover_params (test, &manager.flash0, &manager.flash_mock0, id, header,
 		params_switch, sizeof (params_switch), 0x000030, FULL_CAPABILITIES);
 	spi_flash_testing_discover_params (test, &manager.flash1, &manager.flash_mock1, id, header,
 		params_fixed, sizeof (params_fixed), 0x000030, FULL_CAPABILITIES);
 
-	status = host_flash_manager_init (&manager.test, &manager.flash0, &manager.flash1,
+	status = host_flash_manager_dual_init (&manager.test, &manager.flash0, &manager.flash1,
 		&manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -8948,16 +8963,16 @@ static void host_flash_manager_test_config_spi_filter_flash_type_diff_addr_mode_
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.config_spi_filter_flash_type (&manager.test);
+	status = manager.test.base.config_spi_filter_flash_type (&manager.test.base);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_MISMATCH_ADDR_MODE, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_config_spi_filter_flash_type_diff_fixed_addr_mode (
+static void host_flash_manager_dual_test_config_spi_filter_flash_type_diff_fixed_addr_mode (
 	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	uint32_t header[] = {
 		0x50444653,
@@ -8991,13 +9006,13 @@ static void host_flash_manager_test_config_spi_filter_flash_type_diff_fixed_addr
 
 	TEST_START;
 
-	host_flash_manager_testing_initialize_dependencies_no_flash_master (test, &manager);
+	host_flash_manager_dual_testing_initialize_dependencies_no_flash_master (test, &manager);
 	spi_flash_testing_discover_params (test, &manager.flash0, &manager.flash_mock0, id, header,
 		params_3b, sizeof (params_3b), 0x000030, FULL_CAPABILITIES);
 	spi_flash_testing_discover_params (test, &manager.flash1, &manager.flash_mock1, id, header,
 		params_4b, sizeof (params_4b), 0x000030, FULL_CAPABILITIES);
 
-	status = host_flash_manager_init (&manager.test, &manager.flash0, &manager.flash1,
+	status = host_flash_manager_dual_init (&manager.test, &manager.flash0, &manager.flash1,
 		&manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -9013,15 +9028,16 @@ static void host_flash_manager_test_config_spi_filter_flash_type_diff_fixed_addr
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.config_spi_filter_flash_type (&manager.test);
+	status = manager.test.base.config_spi_filter_flash_type (&manager.test.base);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_MISMATCH_ADDR_MODE, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_config_spi_filter_flash_type_diff_reset_addr_mode (CuTest *test)
+static void host_flash_manager_dual_test_config_spi_filter_flash_type_diff_reset_addr_mode (
+	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	uint8_t id[] = {0xef, 0x40, 0x19};
 	uint8_t reset_4b[] = {0x02};
@@ -9029,7 +9045,7 @@ static void host_flash_manager_test_config_spi_filter_flash_type_diff_reset_addr
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
@@ -9048,41 +9064,41 @@ static void host_flash_manager_test_config_spi_filter_flash_type_diff_reset_addr
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.config_spi_filter_flash_type (&manager.test);
+	status = manager.test.base.config_spi_filter_flash_type (&manager.test.base);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_MISMATCH_ADDR_MODE, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_config_spi_filter_flash_type_id0_error (CuTest *test)
+static void host_flash_manager_dual_test_config_spi_filter_flash_type_id0_error (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	status = flash_master_mock_expect_xfer (&manager.flash_mock0, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_REG (0x9f, 3));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.config_spi_filter_flash_type (&manager.test);
+	status = manager.test.base.config_spi_filter_flash_type (&manager.test.base);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_config_spi_filter_flash_type_id1_error (CuTest *test)
+static void host_flash_manager_dual_test_config_spi_filter_flash_type_id1_error (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
@@ -9091,21 +9107,22 @@ static void host_flash_manager_test_config_spi_filter_flash_type_id1_error (CuTe
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.config_spi_filter_flash_type (&manager.test);
+	status = manager.test.base.config_spi_filter_flash_type (&manager.test.base);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_config_spi_filter_flash_type_diff_addr_mode_error (CuTest *test)
+static void host_flash_manager_dual_test_config_spi_filter_flash_type_diff_addr_mode_error (
+	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	status = spi_flash_force_4byte_address_mode (&manager.flash1, true);
 	CuAssertIntEquals (test, 0, status);
@@ -9125,23 +9142,23 @@ static void host_flash_manager_test_config_spi_filter_flash_type_diff_addr_mode_
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.config_spi_filter_flash_type (&manager.test);
+	status = manager.test.base.config_spi_filter_flash_type (&manager.test.base);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_config_spi_filter_flash_type_reset_addr_mode0_error (
+static void host_flash_manager_dual_test_config_spi_filter_flash_type_get_reset_addr_mode0_error (
 	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	uint8_t id[] = {0xef, 0x40, 0x19};
 	uint8_t reset_4b[] = {0x02};
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
@@ -9158,23 +9175,23 @@ static void host_flash_manager_test_config_spi_filter_flash_type_reset_addr_mode
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.config_spi_filter_flash_type (&manager.test);
+	status = manager.test.base.config_spi_filter_flash_type (&manager.test.base);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_config_spi_filter_flash_type_reset_addr_mode1_error (
+static void host_flash_manager_dual_test_config_spi_filter_flash_type_get_reset_addr_mode1_error (
 	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	uint8_t id[] = {0xef, 0x40, 0x19};
 	uint8_t reset_4b[] = {0x02};
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
@@ -9193,21 +9210,21 @@ static void host_flash_manager_test_config_spi_filter_flash_type_reset_addr_mode
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.config_spi_filter_flash_type (&manager.test);
+	status = manager.test.base.config_spi_filter_flash_type (&manager.test.base);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_config_spi_filter_flash_type_filter_error (CuTest *test)
+static void host_flash_manager_dual_test_config_spi_filter_flash_type_filter_error (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
@@ -9219,21 +9236,21 @@ static void host_flash_manager_test_config_spi_filter_flash_type_filter_error (C
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.config_spi_filter_flash_type (&manager.test);
+	status = manager.test.base.config_spi_filter_flash_type (&manager.test.base);
 	CuAssertIntEquals (test, MFG_FILTER_HANDLER_SET_MFG_FAILED, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_config_spi_filter_flash_type_unsupported_mfg (CuTest *test)
+static void host_flash_manager_dual_test_config_spi_filter_flash_type_unsupported_mfg (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	uint8_t id[] = {0x01, 0x20, 0x19};
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
@@ -9246,21 +9263,21 @@ static void host_flash_manager_test_config_spi_filter_flash_type_unsupported_mfg
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.config_spi_filter_flash_type (&manager.test);
+	status = manager.test.base.config_spi_filter_flash_type (&manager.test.base);
 	CuAssertIntEquals (test, MFG_FILTER_HANDLER_UNSUPPORTED_VENDOR, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_config_spi_filter_flash_type_unsupported_dev (CuTest *test)
+static void host_flash_manager_dual_test_config_spi_filter_flash_type_unsupported_dev (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x18};
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
@@ -9273,21 +9290,22 @@ static void host_flash_manager_test_config_spi_filter_flash_type_unsupported_dev
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.config_spi_filter_flash_type (&manager.test);
+	status = manager.test.base.config_spi_filter_flash_type (&manager.test.base);
 	CuAssertIntEquals (test, MFG_FILTER_HANDLER_UNSUPPORTED_DEVICE, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_config_spi_filter_flash_type_filter_size_error (CuTest *test)
+static void host_flash_manager_dual_test_config_spi_filter_flash_type_filter_size_error (
+	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
@@ -9301,21 +9319,21 @@ static void host_flash_manager_test_config_spi_filter_flash_type_filter_size_err
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.config_spi_filter_flash_type (&manager.test);
+	status = manager.test.base.config_spi_filter_flash_type (&manager.test.base);
 	CuAssertIntEquals (test, SPI_FILTER_SET_SIZE_FAILED, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_config_spi_filter_flash_type_addr_mode_error (CuTest *test)
+static void host_flash_manager_dual_test_config_spi_filter_flash_type_addr_mode_error (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
@@ -9331,16 +9349,16 @@ static void host_flash_manager_test_config_spi_filter_flash_type_addr_mode_error
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.config_spi_filter_flash_type (&manager.test);
+	status = manager.test.base.config_spi_filter_flash_type (&manager.test.base);
 	CuAssertIntEquals (test, SPI_FILTER_SET_ADDR_MODE_FAILED, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_config_spi_filter_flash_type_fixed_addr_mode_error (
+static void host_flash_manager_dual_test_config_spi_filter_flash_type_fixed_addr_mode_error (
 	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	uint32_t header[] = {
 		0x50444653,
@@ -9363,13 +9381,13 @@ static void host_flash_manager_test_config_spi_filter_flash_type_fixed_addr_mode
 
 	TEST_START;
 
-	host_flash_manager_testing_initialize_dependencies_no_flash_master (test, &manager);
+	host_flash_manager_dual_testing_initialize_dependencies_no_flash_master (test, &manager);
 	spi_flash_testing_discover_params (test, &manager.flash0, &manager.flash_mock0, id, header,
 		params, sizeof (params), 0x000030, FULL_CAPABILITIES);
 	spi_flash_testing_discover_params (test, &manager.flash1, &manager.flash_mock1, id, header,
 		params, sizeof (params), 0x000030, FULL_CAPABILITIES);
 
-	status = host_flash_manager_init (&manager.test, &manager.flash0, &manager.flash1,
+	status = host_flash_manager_dual_init (&manager.test, &manager.flash0, &manager.flash1,
 		&manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -9387,22 +9405,22 @@ static void host_flash_manager_test_config_spi_filter_flash_type_fixed_addr_mode
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.config_spi_filter_flash_type (&manager.test);
+	status = manager.test.base.config_spi_filter_flash_type (&manager.test.base);
 	CuAssertIntEquals (test, SPI_FILTER_SET_FIXED_ADDR_FAILED, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_config_spi_filter_flash_type_addr_mode_write_en_error (
+static void host_flash_manager_dual_test_config_spi_filter_flash_type_addr_mode_write_en_error (
 	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
@@ -9421,22 +9439,22 @@ static void host_flash_manager_test_config_spi_filter_flash_type_addr_mode_write
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.config_spi_filter_flash_type (&manager.test);
+	status = manager.test.base.config_spi_filter_flash_type (&manager.test.base);
 	CuAssertIntEquals (test, SPI_FILTER_SET_WREN_REQ_FAILED, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_config_spi_filter_flash_type_reset_addr_mode_error (
+static void host_flash_manager_dual_test_config_spi_filter_flash_type_reset_addr_mode_error (
 	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
@@ -9457,15 +9475,16 @@ static void host_flash_manager_test_config_spi_filter_flash_type_reset_addr_mode
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.config_spi_filter_flash_type (&manager.test);
+	status = manager.test.base.config_spi_filter_flash_type (&manager.test.base);
 	CuAssertIntEquals (test, SPI_FILTER_SET_RESET_ADDR_FAILED, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_initialize_flash_protection_cs0_3byte_cs1_3byte (CuTest *test)
+static void host_flash_manager_dual_test_initialize_flash_protection_cs0_3byte_cs1_3byte (
+	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
@@ -9475,7 +9494,7 @@ static void host_flash_manager_test_initialize_flash_protection_cs0_3byte_cs1_3b
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	rw_region.start_addr = 0x10000;
@@ -9509,7 +9528,7 @@ static void host_flash_manager_test_initialize_flash_protection_cs0_3byte_cs1_3b
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.initialize_flash_protection (&manager.test, &rw_host);
+	status = manager.test.base.initialize_flash_protection (&manager.test.base, &rw_host);
 	CuAssertIntEquals (test, 0, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -9517,12 +9536,13 @@ static void host_flash_manager_test_initialize_flash_protection_cs0_3byte_cs1_3b
 
 	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_initialize_flash_protection_cs1_3byte_cs0_3byte (CuTest *test)
+static void host_flash_manager_dual_test_initialize_flash_protection_cs1_3byte_cs0_3byte (
+	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
@@ -9532,7 +9552,7 @@ static void host_flash_manager_test_initialize_flash_protection_cs1_3byte_cs0_3b
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, true);
+	host_flash_manager_dual_testing_init (test, &manager, true);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	rw_region.start_addr = 0x10000;
@@ -9566,7 +9586,7 @@ static void host_flash_manager_test_initialize_flash_protection_cs1_3byte_cs0_3b
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.initialize_flash_protection (&manager.test, &rw_host);
+	status = manager.test.base.initialize_flash_protection (&manager.test.base, &rw_host);
 	CuAssertIntEquals (test, 0, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -9574,12 +9594,13 @@ static void host_flash_manager_test_initialize_flash_protection_cs1_3byte_cs0_3b
 
 	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_initialize_flash_protection_cs0_4byte_cs1_4byte (CuTest *test)
+static void host_flash_manager_dual_test_initialize_flash_protection_cs0_4byte_cs1_4byte (
+	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
@@ -9589,7 +9610,7 @@ static void host_flash_manager_test_initialize_flash_protection_cs0_4byte_cs1_4b
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	status = spi_flash_force_4byte_address_mode (&manager.flash0, true);
@@ -9629,7 +9650,7 @@ static void host_flash_manager_test_initialize_flash_protection_cs0_4byte_cs1_4b
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.initialize_flash_protection (&manager.test, &rw_host);
+	status = manager.test.base.initialize_flash_protection (&manager.test.base, &rw_host);
 	CuAssertIntEquals (test, 0, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -9637,12 +9658,13 @@ static void host_flash_manager_test_initialize_flash_protection_cs0_4byte_cs1_4b
 
 	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_initialize_flash_protection_cs1_4byte_cs0_4byte (CuTest *test)
+static void host_flash_manager_dual_test_initialize_flash_protection_cs1_4byte_cs0_4byte (
+	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
@@ -9652,7 +9674,7 @@ static void host_flash_manager_test_initialize_flash_protection_cs1_4byte_cs0_4b
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, true);
+	host_flash_manager_dual_testing_init (test, &manager, true);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	status = spi_flash_force_4byte_address_mode (&manager.flash0, true);
@@ -9692,7 +9714,7 @@ static void host_flash_manager_test_initialize_flash_protection_cs1_4byte_cs0_4b
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.initialize_flash_protection (&manager.test, &rw_host);
+	status = manager.test.base.initialize_flash_protection (&manager.test.base, &rw_host);
 	CuAssertIntEquals (test, 0, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -9700,12 +9722,13 @@ static void host_flash_manager_test_initialize_flash_protection_cs1_4byte_cs0_4b
 
 	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_initialize_flash_protection_cs0_4byte_cs1_3byte (CuTest *test)
+static void host_flash_manager_dual_test_initialize_flash_protection_cs0_4byte_cs1_3byte (
+	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
@@ -9715,7 +9738,7 @@ static void host_flash_manager_test_initialize_flash_protection_cs0_4byte_cs1_3b
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	status = spi_flash_force_4byte_address_mode (&manager.flash0, true);
@@ -9754,7 +9777,7 @@ static void host_flash_manager_test_initialize_flash_protection_cs0_4byte_cs1_3b
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.initialize_flash_protection (&manager.test, &rw_host);
+	status = manager.test.base.initialize_flash_protection (&manager.test.base, &rw_host);
 	CuAssertIntEquals (test, 0, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -9762,12 +9785,13 @@ static void host_flash_manager_test_initialize_flash_protection_cs0_4byte_cs1_3b
 
 	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_initialize_flash_protection_cs1_4byte_cs0_3byte (CuTest *test)
+static void host_flash_manager_dual_test_initialize_flash_protection_cs1_4byte_cs0_3byte (
+	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
@@ -9777,7 +9801,7 @@ static void host_flash_manager_test_initialize_flash_protection_cs1_4byte_cs0_3b
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, true);
+	host_flash_manager_dual_testing_init (test, &manager, true);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	status = spi_flash_force_4byte_address_mode (&manager.flash1, true);
@@ -9816,7 +9840,7 @@ static void host_flash_manager_test_initialize_flash_protection_cs1_4byte_cs0_3b
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.initialize_flash_protection (&manager.test, &rw_host);
+	status = manager.test.base.initialize_flash_protection (&manager.test.base, &rw_host);
 	CuAssertIntEquals (test, 0, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -9824,12 +9848,13 @@ static void host_flash_manager_test_initialize_flash_protection_cs1_4byte_cs0_3b
 
 	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_initialize_flash_protection_cs0_3byte_cs1_4byte (CuTest *test)
+static void host_flash_manager_dual_test_initialize_flash_protection_cs0_3byte_cs1_4byte (
+	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
@@ -9839,7 +9864,7 @@ static void host_flash_manager_test_initialize_flash_protection_cs0_3byte_cs1_4b
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	status = spi_flash_force_4byte_address_mode (&manager.flash1, true);
@@ -9878,7 +9903,7 @@ static void host_flash_manager_test_initialize_flash_protection_cs0_3byte_cs1_4b
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.initialize_flash_protection (&manager.test, &rw_host);
+	status = manager.test.base.initialize_flash_protection (&manager.test.base, &rw_host);
 	CuAssertIntEquals (test, 0, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -9886,12 +9911,13 @@ static void host_flash_manager_test_initialize_flash_protection_cs0_3byte_cs1_4b
 
 	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_initialize_flash_protection_cs1_3byte_cs0_4byte (CuTest *test)
+static void host_flash_manager_dual_test_initialize_flash_protection_cs1_3byte_cs0_4byte (
+	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
@@ -9901,7 +9927,7 @@ static void host_flash_manager_test_initialize_flash_protection_cs1_3byte_cs0_4b
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, true);
+	host_flash_manager_dual_testing_init (test, &manager, true);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	status = spi_flash_force_4byte_address_mode (&manager.flash0, true);
@@ -9940,7 +9966,7 @@ static void host_flash_manager_test_initialize_flash_protection_cs1_3byte_cs0_4b
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.initialize_flash_protection (&manager.test, &rw_host);
+	status = manager.test.base.initialize_flash_protection (&manager.test.base, &rw_host);
 	CuAssertIntEquals (test, 0, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -9948,12 +9974,12 @@ static void host_flash_manager_test_initialize_flash_protection_cs1_3byte_cs0_4b
 
 	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_initialize_flash_protection_fixed_3byte (CuTest *test)
+static void host_flash_manager_dual_test_initialize_flash_protection_fixed_3byte (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	uint32_t header[] = {
 		0x50444653,
@@ -9980,14 +10006,14 @@ static void host_flash_manager_test_initialize_flash_protection_fixed_3byte (CuT
 
 	TEST_START;
 
-	host_flash_manager_testing_initialize_dependencies_no_flash_master (test, &manager);
+	host_flash_manager_dual_testing_initialize_dependencies_no_flash_master (test, &manager);
 	spi_flash_testing_discover_params (test, &manager.flash0, &manager.flash_mock0, TEST_ID, header,
 		params, sizeof (params), 0x000030, FULL_CAPABILITIES);
 	spi_flash_testing_discover_params (test, &manager.flash1, &manager.flash_mock1, TEST_ID, header,
 		params, sizeof (params), 0x000030, FULL_CAPABILITIES);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
-	status = host_flash_manager_init (&manager.test, &manager.flash0, &manager.flash1,
+	status = host_flash_manager_dual_init (&manager.test, &manager.flash0, &manager.flash1,
 		&manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -10020,7 +10046,7 @@ static void host_flash_manager_test_initialize_flash_protection_fixed_3byte (CuT
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.initialize_flash_protection (&manager.test, &rw_host);
+	status = manager.test.base.initialize_flash_protection (&manager.test.base, &rw_host);
 	CuAssertIntEquals (test, 0, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -10028,12 +10054,12 @@ static void host_flash_manager_test_initialize_flash_protection_fixed_3byte (CuT
 
 	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_initialize_flash_protection_fixed_4byte (CuTest *test)
+static void host_flash_manager_dual_test_initialize_flash_protection_fixed_4byte (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	uint32_t header[] = {
 		0x50444653,
@@ -10060,14 +10086,14 @@ static void host_flash_manager_test_initialize_flash_protection_fixed_4byte (CuT
 
 	TEST_START;
 
-	host_flash_manager_testing_initialize_dependencies_no_flash_master (test, &manager);
+	host_flash_manager_dual_testing_initialize_dependencies_no_flash_master (test, &manager);
 	spi_flash_testing_discover_params (test, &manager.flash0, &manager.flash_mock0, TEST_ID, header,
 		params, sizeof (params), 0x000030, FULL_CAPABILITIES);
 	spi_flash_testing_discover_params (test, &manager.flash1, &manager.flash_mock1, TEST_ID, header,
 		params, sizeof (params), 0x000030, FULL_CAPABILITIES);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
-	status = host_flash_manager_init (&manager.test, &manager.flash0, &manager.flash1,
+	status = host_flash_manager_dual_init (&manager.test, &manager.flash0, &manager.flash1,
 		&manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -10100,7 +10126,7 @@ static void host_flash_manager_test_initialize_flash_protection_fixed_4byte (CuT
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.initialize_flash_protection (&manager.test, &rw_host);
+	status = manager.test.base.initialize_flash_protection (&manager.test.base, &rw_host);
 	CuAssertIntEquals (test, 0, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -10108,12 +10134,12 @@ static void host_flash_manager_test_initialize_flash_protection_fixed_4byte (CuT
 
 	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_initialize_flash_protection_cs0_multiple_fw (CuTest *test)
+static void host_flash_manager_dual_test_initialize_flash_protection_cs0_multiple_fw (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	struct flash_region rw_region[3];
 	struct pfm_read_write rw_prop[3];
@@ -10123,7 +10149,7 @@ static void host_flash_manager_test_initialize_flash_protection_cs0_multiple_fw 
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	rw_region[0].start_addr = 0x10000;
@@ -10179,7 +10205,7 @@ static void host_flash_manager_test_initialize_flash_protection_cs0_multiple_fw 
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.initialize_flash_protection (&manager.test, &rw_host);
+	status = manager.test.base.initialize_flash_protection (&manager.test.base, &rw_host);
 	CuAssertIntEquals (test, 0, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -10187,12 +10213,12 @@ static void host_flash_manager_test_initialize_flash_protection_cs0_multiple_fw 
 
 	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_initialize_flash_protection_cs1_multiple_fw (CuTest *test)
+static void host_flash_manager_dual_test_initialize_flash_protection_cs1_multiple_fw (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	struct flash_region rw_region[3];
 	struct pfm_read_write rw_prop[3];
@@ -10202,7 +10228,7 @@ static void host_flash_manager_test_initialize_flash_protection_cs1_multiple_fw 
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, true);
+	host_flash_manager_dual_testing_init (test, &manager, true);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	rw_region[0].start_addr = 0x10000;
@@ -10258,7 +10284,7 @@ static void host_flash_manager_test_initialize_flash_protection_cs1_multiple_fw 
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.initialize_flash_protection (&manager.test, &rw_host);
+	status = manager.test.base.initialize_flash_protection (&manager.test.base, &rw_host);
 	CuAssertIntEquals (test, 0, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -10266,12 +10292,12 @@ static void host_flash_manager_test_initialize_flash_protection_cs1_multiple_fw 
 
 	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_initialize_flash_protection_null (CuTest *test)
+static void host_flash_manager_dual_test_initialize_flash_protection_null (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
@@ -10281,7 +10307,7 @@ static void host_flash_manager_test_initialize_flash_protection_null (CuTest *te
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	rw_region.start_addr = 0x10000;
@@ -10297,10 +10323,10 @@ static void host_flash_manager_test_initialize_flash_protection_null (CuTest *te
 	rw_host.writable = &rw_list;
 	rw_host.count = 1;
 
-	status = manager.test.initialize_flash_protection (NULL, &rw_host);
+	status = manager.test.base.initialize_flash_protection (NULL, &rw_host);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = manager.test.initialize_flash_protection (&manager.test, NULL);
+	status = manager.test.base.initialize_flash_protection (&manager.test.base, NULL);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -10308,12 +10334,12 @@ static void host_flash_manager_test_initialize_flash_protection_null (CuTest *te
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_initialize_flash_protection_flash_mode_error (CuTest *test)
+static void host_flash_manager_dual_test_initialize_flash_protection_flash_mode_error (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
@@ -10323,7 +10349,7 @@ static void host_flash_manager_test_initialize_flash_protection_flash_mode_error
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	status = spi_flash_force_4byte_address_mode (&manager.flash0, true);
@@ -10349,7 +10375,7 @@ static void host_flash_manager_test_initialize_flash_protection_flash_mode_error
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.initialize_flash_protection (&manager.test, &rw_host);
+	status = manager.test.base.initialize_flash_protection (&manager.test.base, &rw_host);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -10357,12 +10383,12 @@ static void host_flash_manager_test_initialize_flash_protection_flash_mode_error
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_initialize_flash_protection_data_copy_error (CuTest *test)
+static void host_flash_manager_dual_test_initialize_flash_protection_data_copy_error (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
@@ -10372,7 +10398,7 @@ static void host_flash_manager_test_initialize_flash_protection_data_copy_error 
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	rw_region.start_addr = 0x10000;
@@ -10395,7 +10421,7 @@ static void host_flash_manager_test_initialize_flash_protection_data_copy_error 
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.initialize_flash_protection (&manager.test, &rw_host);
+	status = manager.test.base.initialize_flash_protection (&manager.test.base, &rw_host);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -10403,12 +10429,13 @@ static void host_flash_manager_test_initialize_flash_protection_data_copy_error 
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_initialize_flash_protection_dirty_clear_error (CuTest *test)
+static void host_flash_manager_dual_test_initialize_flash_protection_dirty_clear_error (
+	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
@@ -10418,7 +10445,7 @@ static void host_flash_manager_test_initialize_flash_protection_dirty_clear_erro
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	rw_region.start_addr = 0x10000;
@@ -10446,7 +10473,7 @@ static void host_flash_manager_test_initialize_flash_protection_dirty_clear_erro
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.initialize_flash_protection (&manager.test, &rw_host);
+	status = manager.test.base.initialize_flash_protection (&manager.test.base, &rw_host);
 	CuAssertIntEquals (test, SPI_FILTER_CLEAR_DIRTY_FAILED, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -10454,12 +10481,13 @@ static void host_flash_manager_test_initialize_flash_protection_dirty_clear_erro
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_initialize_flash_protection_filter_mode_error (CuTest *test)
+static void host_flash_manager_dual_test_initialize_flash_protection_filter_addr_mode_error (
+	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
@@ -10469,7 +10497,7 @@ static void host_flash_manager_test_initialize_flash_protection_filter_mode_erro
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	rw_region.start_addr = 0x10000;
@@ -10499,7 +10527,7 @@ static void host_flash_manager_test_initialize_flash_protection_filter_mode_erro
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.initialize_flash_protection (&manager.test, &rw_host);
+	status = manager.test.base.initialize_flash_protection (&manager.test.base, &rw_host);
 	CuAssertIntEquals (test, SPI_FILTER_SET_ADDR_MODE_FAILED, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -10507,12 +10535,13 @@ static void host_flash_manager_test_initialize_flash_protection_filter_mode_erro
 
 	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_initialize_flash_protection_bypass_error (CuTest *test)
+static void host_flash_manager_dual_test_initialize_flash_protection_filter_flash_mode_error (
+	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
@@ -10522,7 +10551,7 @@ static void host_flash_manager_test_initialize_flash_protection_bypass_error (Cu
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	rw_region.start_addr = 0x10000;
@@ -10554,7 +10583,7 @@ static void host_flash_manager_test_initialize_flash_protection_bypass_error (Cu
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.initialize_flash_protection (&manager.test, &rw_host);
+	status = manager.test.base.initialize_flash_protection (&manager.test.base, &rw_host);
 	CuAssertIntEquals (test, SPI_FILTER_SET_FILTER_MODE_FAILED, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -10562,12 +10591,12 @@ static void host_flash_manager_test_initialize_flash_protection_bypass_error (Cu
 
 	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_initialize_flash_protection_filter_error (CuTest *test)
+static void host_flash_manager_dual_test_initialize_flash_protection_filter_error (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
@@ -10577,7 +10606,7 @@ static void host_flash_manager_test_initialize_flash_protection_filter_error (Cu
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	rw_region.start_addr = 0x10000;
@@ -10611,7 +10640,7 @@ static void host_flash_manager_test_initialize_flash_protection_filter_error (Cu
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.initialize_flash_protection (&manager.test, &rw_host);
+	status = manager.test.base.initialize_flash_protection (&manager.test.base, &rw_host);
 	CuAssertIntEquals (test, SPI_FILTER_SET_RO_FAILED, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -10619,12 +10648,12 @@ static void host_flash_manager_test_initialize_flash_protection_filter_error (Cu
 
 	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_get_flash_read_write_regions_ro_flash_cs0 (CuTest *test)
+static void host_flash_manager_dual_test_get_flash_read_write_regions_ro_flash_cs0 (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -10638,7 +10667,7 @@ static void host_flash_manager_test_get_flash_read_write_regions_ro_flash_cs0 (C
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -10690,8 +10719,8 @@ static void host_flash_manager_test_get_flash_read_write_regions_ro_flash_cs0 (C
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.get_flash_read_write_regions (&manager.test, &manager.pfm.base, false,
-		&rw_output);
+	status = manager.test.base.get_flash_read_write_regions (&manager.test.base, &manager.pfm.base,
+		false, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 1, rw_output.count);
@@ -10712,14 +10741,14 @@ static void host_flash_manager_test_get_flash_read_write_regions_ro_flash_cs0 (C
 		0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.free_read_write_regions (&manager.test, &rw_output);
+	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_get_flash_read_write_regions_ro_flash_cs1 (CuTest *test)
+static void host_flash_manager_dual_test_get_flash_read_write_regions_ro_flash_cs1 (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -10733,7 +10762,7 @@ static void host_flash_manager_test_get_flash_read_write_regions_ro_flash_cs1 (C
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, true);
+	host_flash_manager_dual_testing_init (test, &manager, true);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -10785,8 +10814,8 @@ static void host_flash_manager_test_get_flash_read_write_regions_ro_flash_cs1 (C
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.get_flash_read_write_regions (&manager.test, &manager.pfm.base, false,
-		&rw_output);
+	status = manager.test.base.get_flash_read_write_regions (&manager.test.base, &manager.pfm.base,
+		false, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 1, rw_output.count);
@@ -10807,14 +10836,15 @@ static void host_flash_manager_test_get_flash_read_write_regions_ro_flash_cs1 (C
 		0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.free_read_write_regions (&manager.test, &rw_output);
+	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_get_flash_read_write_regions_ro_flash_single_fw (CuTest *test)
+static void host_flash_manager_dual_test_get_flash_read_write_regions_ro_flash_single_fw (
+	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = "fw1";
 	struct pfm_firmware_version version;
@@ -10828,7 +10858,7 @@ static void host_flash_manager_test_get_flash_read_write_regions_ro_flash_single
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -10880,8 +10910,8 @@ static void host_flash_manager_test_get_flash_read_write_regions_ro_flash_single
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.get_flash_read_write_regions (&manager.test, &manager.pfm.base, false,
-		&rw_output);
+	status = manager.test.base.get_flash_read_write_regions (&manager.test.base, &manager.pfm.base,
+		false, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 1, rw_output.count);
@@ -10902,14 +10932,15 @@ static void host_flash_manager_test_get_flash_read_write_regions_ro_flash_single
 		0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.free_read_write_regions (&manager.test, &rw_output);
+	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_get_flash_read_write_regions_ro_flash_multiple_fw (CuTest *test)
+static void host_flash_manager_dual_test_get_flash_read_write_regions_ro_flash_multiple_fw (
+	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp[3] = {"fw1", "fw2", "fw3"};
 	struct pfm_firmware_version version[3];
@@ -10925,7 +10956,7 @@ static void host_flash_manager_test_get_flash_read_write_regions_ro_flash_multip
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	fw_list.ids = fw_exp;
 	fw_list.count = 3;
@@ -11044,8 +11075,8 @@ static void host_flash_manager_test_get_flash_read_write_regions_ro_flash_multip
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.get_flash_read_write_regions (&manager.test, &manager.pfm.base, false,
-		&rw_output);
+	status = manager.test.base.get_flash_read_write_regions (&manager.test.base, &manager.pfm.base,
+		false, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 3, rw_output.count);
@@ -11079,14 +11110,14 @@ static void host_flash_manager_test_get_flash_read_write_regions_ro_flash_multip
 
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.free_read_write_regions (&manager.test, &rw_output);
+	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_get_flash_read_write_regions_rw_flash_cs1 (CuTest *test)
+static void host_flash_manager_dual_test_get_flash_read_write_regions_rw_flash_cs1 (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -11100,7 +11131,7 @@ static void host_flash_manager_test_get_flash_read_write_regions_rw_flash_cs1 (C
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -11152,8 +11183,8 @@ static void host_flash_manager_test_get_flash_read_write_regions_rw_flash_cs1 (C
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.get_flash_read_write_regions (&manager.test, &manager.pfm.base, true,
-		&rw_output);
+	status = manager.test.base.get_flash_read_write_regions (&manager.test.base, &manager.pfm.base,
+		true, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 1, rw_output.count);
@@ -11174,14 +11205,14 @@ static void host_flash_manager_test_get_flash_read_write_regions_rw_flash_cs1 (C
 		0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.free_read_write_regions (&manager.test, &rw_output);
+	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_get_flash_read_write_regions_rw_flash_cs0 (CuTest *test)
+static void host_flash_manager_dual_test_get_flash_read_write_regions_rw_flash_cs0 (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -11195,7 +11226,7 @@ static void host_flash_manager_test_get_flash_read_write_regions_rw_flash_cs0 (C
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, true);
+	host_flash_manager_dual_testing_init (test, &manager, true);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -11247,8 +11278,8 @@ static void host_flash_manager_test_get_flash_read_write_regions_rw_flash_cs0 (C
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.get_flash_read_write_regions (&manager.test, &manager.pfm.base, true,
-		&rw_output);
+	status = manager.test.base.get_flash_read_write_regions (&manager.test.base, &manager.pfm.base,
+		true, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 1, rw_output.count);
@@ -11269,14 +11300,15 @@ static void host_flash_manager_test_get_flash_read_write_regions_rw_flash_cs0 (C
 		0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.free_read_write_regions (&manager.test, &rw_output);
+	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_get_flash_read_write_regions_rw_flash_single_fw (CuTest *test)
+static void host_flash_manager_dual_test_get_flash_read_write_regions_rw_flash_single_fw (
+	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = "fw1";
 	struct pfm_firmware_version version;
@@ -11290,7 +11322,7 @@ static void host_flash_manager_test_get_flash_read_write_regions_rw_flash_single
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -11342,8 +11374,8 @@ static void host_flash_manager_test_get_flash_read_write_regions_rw_flash_single
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.get_flash_read_write_regions (&manager.test, &manager.pfm.base, true,
-		&rw_output);
+	status = manager.test.base.get_flash_read_write_regions (&manager.test.base, &manager.pfm.base,
+		true, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 1, rw_output.count);
@@ -11364,14 +11396,15 @@ static void host_flash_manager_test_get_flash_read_write_regions_rw_flash_single
 		0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.free_read_write_regions (&manager.test, &rw_output);
+	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_get_flash_read_write_regions_rw_flash_multiple_fw (CuTest *test)
+static void host_flash_manager_dual_test_get_flash_read_write_regions_rw_flash_multiple_fw (
+	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp[3] = {"fw1", "fw2", "fw3"};
 	struct pfm_firmware_version version[3];
@@ -11387,7 +11420,7 @@ static void host_flash_manager_test_get_flash_read_write_regions_rw_flash_multip
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	fw_list.ids = fw_exp;
 	fw_list.count = 3;
@@ -11506,8 +11539,8 @@ static void host_flash_manager_test_get_flash_read_write_regions_rw_flash_multip
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.get_flash_read_write_regions (&manager.test, &manager.pfm.base, true,
-		&rw_output);
+	status = manager.test.base.get_flash_read_write_regions (&manager.test.base, &manager.pfm.base,
+		true, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 3, rw_output.count);
@@ -11541,61 +11574,63 @@ static void host_flash_manager_test_get_flash_read_write_regions_rw_flash_multip
 
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.free_read_write_regions (&manager.test, &rw_output);
+	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_get_flash_read_write_regions_null (CuTest *test)
+static void host_flash_manager_dual_test_get_flash_read_write_regions_null (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct host_flash_manager_rw_regions rw_output;
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
-	status = manager.test.get_flash_read_write_regions (NULL, &manager.pfm.base, false,
-		&rw_output);
+	status = manager.test.base.get_flash_read_write_regions (NULL, &manager.pfm.base,
+		false, &rw_output);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = manager.test.get_flash_read_write_regions (&manager.test, NULL, false,
-		&rw_output);
+	status = manager.test.base.get_flash_read_write_regions (&manager.test.base, NULL,
+		false, &rw_output);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = manager.test.get_flash_read_write_regions (&manager.test, &manager.pfm.base, false,
-		NULL);
+	status = manager.test.base.get_flash_read_write_regions (&manager.test.base, &manager.pfm.base,
+		false, NULL);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_get_flash_read_write_regions_pfm_firmware_error (CuTest *test)
+static void host_flash_manager_dual_test_get_flash_read_write_regions_pfm_firmware_error (
+	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct host_flash_manager_rw_regions rw_output;
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm,
 		PFM_GET_FW_FAILED, MOCK_ARG_NOT_NULL);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.get_flash_read_write_regions (&manager.test, &manager.pfm.base, false,
-		&rw_output);
+	status = manager.test.base.get_flash_read_write_regions (&manager.test.base, &manager.pfm.base,
+		false, &rw_output);
 	CuAssertIntEquals (test, PFM_GET_FW_FAILED, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_get_flash_read_write_regions_pfm_version_error (CuTest *test)
+static void host_flash_manager_dual_test_get_flash_read_write_regions_pfm_version_error (
+	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct host_flash_manager_rw_regions rw_output;
@@ -11603,7 +11638,7 @@ static void host_flash_manager_test_get_flash_read_write_regions_pfm_version_err
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -11621,17 +11656,17 @@ static void host_flash_manager_test_get_flash_read_write_regions_pfm_version_err
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.get_flash_read_write_regions (&manager.test, &manager.pfm.base, false,
-		&rw_output);
+	status = manager.test.base.get_flash_read_write_regions (&manager.test.base, &manager.pfm.base,
+		false, &rw_output);
 	CuAssertIntEquals (test, PFM_GET_VERSIONS_FAILED, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_get_flash_read_write_regions_pfm_version_error_multiple_fw (
+static void host_flash_manager_dual_test_get_flash_read_write_regions_pfm_version_error_multiple_fw (
 	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp[3] = {"fw1", "fw2", "fw3"};
 	struct pfm_firmware_version version[3];
@@ -11647,7 +11682,7 @@ static void host_flash_manager_test_get_flash_read_write_regions_pfm_version_err
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	fw_list.ids = fw_exp;
 	fw_list.count = 3;
@@ -11754,17 +11789,17 @@ static void host_flash_manager_test_get_flash_read_write_regions_pfm_version_err
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.get_flash_read_write_regions (&manager.test, &manager.pfm.base, false,
-		&rw_output);
+	status = manager.test.base.get_flash_read_write_regions (&manager.test.base, &manager.pfm.base,
+		false, &rw_output);
 	CuAssertIntEquals (test, PFM_GET_VERSIONS_FAILED, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_get_flash_read_write_regions_ro_flash_version_error (
+static void host_flash_manager_dual_test_get_flash_read_write_regions_ro_flash_version_error (
 	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -11775,7 +11810,7 @@ static void host_flash_manager_test_get_flash_read_write_regions_ro_flash_versio
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -11810,17 +11845,17 @@ static void host_flash_manager_test_get_flash_read_write_regions_ro_flash_versio
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.get_flash_read_write_regions (&manager.test, &manager.pfm.base, false,
-		&rw_output);
+	status = manager.test.base.get_flash_read_write_regions (&manager.test.base, &manager.pfm.base,
+		false, &rw_output);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_get_flash_read_write_regions_rw_flash_version_error (
+static void host_flash_manager_dual_test_get_flash_read_write_regions_rw_flash_version_error (
 	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -11831,7 +11866,7 @@ static void host_flash_manager_test_get_flash_read_write_regions_rw_flash_versio
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -11866,16 +11901,16 @@ static void host_flash_manager_test_get_flash_read_write_regions_rw_flash_versio
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.get_flash_read_write_regions (&manager.test, &manager.pfm.base, true,
-		&rw_output);
+	status = manager.test.base.get_flash_read_write_regions (&manager.test.base, &manager.pfm.base,
+		true, &rw_output);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_get_flash_read_write_regions_pfm_rw_error (CuTest *test)
+static void host_flash_manager_dual_test_get_flash_read_write_regions_pfm_rw_error (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -11886,7 +11921,7 @@ static void host_flash_manager_test_get_flash_read_write_regions_pfm_rw_error (C
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -11927,17 +11962,17 @@ static void host_flash_manager_test_get_flash_read_write_regions_pfm_rw_error (C
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.get_flash_read_write_regions (&manager.test, &manager.pfm.base, false,
-		&rw_output);
+	status = manager.test.base.get_flash_read_write_regions (&manager.test.base, &manager.pfm.base,
+		false, &rw_output);
 	CuAssertIntEquals (test, PFM_GET_READ_WRITE_FAILED, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_get_flash_read_write_regions_pfm_rw_error_multiple_fw (
+static void host_flash_manager_dual_test_get_flash_read_write_regions_pfm_rw_error_multiple_fw (
 	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp[3] = {"fw1", "fw2", "fw3"};
 	struct pfm_firmware_version version[3];
@@ -11953,7 +11988,7 @@ static void host_flash_manager_test_get_flash_read_write_regions_pfm_rw_error_mu
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	fw_list.ids = fw_exp;
 	fw_list.count = 3;
@@ -12051,22 +12086,22 @@ static void host_flash_manager_test_get_flash_read_write_regions_pfm_rw_error_mu
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.get_flash_read_write_regions (&manager.test, &manager.pfm.base, false,
-		&rw_output);
+	status = manager.test.base.get_flash_read_write_regions (&manager.test.base, &manager.pfm.base,
+		false, &rw_output);
 	CuAssertIntEquals (test, PFM_GET_READ_WRITE_FAILED, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_host_has_flash_access (CuTest *test)
+static void host_flash_manager_dual_test_host_has_flash_access (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	bool enabled = true;
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	status = mock_expect (&manager.control.mock, manager.control.base.processor_has_flash_access,
 		&manager.control, 1);
@@ -12077,21 +12112,21 @@ static void host_flash_manager_test_host_has_flash_access (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.host_has_flash_access (&manager.test, &manager.control.base);
+	status = manager.test.base.host_has_flash_access (&manager.test.base, &manager.control.base);
 	CuAssertIntEquals (test, 1, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_host_has_flash_access_rot_access (CuTest *test)
+static void host_flash_manager_dual_test_host_has_flash_access_rot_access (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	bool enabled = true;
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	status = mock_expect (&manager.control.mock, manager.control.base.processor_has_flash_access,
 		&manager.control, 0);
@@ -12102,21 +12137,21 @@ static void host_flash_manager_test_host_has_flash_access_rot_access (CuTest *te
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.host_has_flash_access (&manager.test, &manager.control.base);
+	status = manager.test.base.host_has_flash_access (&manager.test.base, &manager.control.base);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_host_has_flash_access_filter_disabled (CuTest *test)
+static void host_flash_manager_dual_test_host_has_flash_access_filter_disabled (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	bool enabled = false;
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	status = mock_expect (&manager.control.mock, manager.control.base.processor_has_flash_access,
 		&manager.control, 1);
@@ -12127,39 +12162,39 @@ static void host_flash_manager_test_host_has_flash_access_filter_disabled (CuTes
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.host_has_flash_access (&manager.test, &manager.control.base);
+	status = manager.test.base.host_has_flash_access (&manager.test.base, &manager.control.base);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_host_has_flash_access_null (CuTest *test)
+static void host_flash_manager_dual_test_host_has_flash_access_null (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
-	status = manager.test.host_has_flash_access (NULL, &manager.control.base);
+	status = manager.test.base.host_has_flash_access (NULL, &manager.control.base);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = manager.test.host_has_flash_access (&manager.test, NULL);
+	status = manager.test.base.host_has_flash_access (&manager.test.base, NULL);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_host_has_flash_access_access_check_error (CuTest *test)
+static void host_flash_manager_dual_test_host_has_flash_access_access_check_error (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 	bool enabled = true;
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	status = mock_expect (&manager.control.mock, manager.control.base.processor_has_flash_access,
 		&manager.control, HOST_CONTROL_FLASH_CHECK_FAILED);
@@ -12170,35 +12205,35 @@ static void host_flash_manager_test_host_has_flash_access_access_check_error (Cu
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.host_has_flash_access (&manager.test, &manager.control.base);
+	status = manager.test.base.host_has_flash_access (&manager.test.base, &manager.control.base);
 	CuAssertIntEquals (test, HOST_CONTROL_FLASH_CHECK_FAILED, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_host_has_flash_access_filter_check_error (CuTest *test)
+static void host_flash_manager_dual_test_host_has_flash_access_filter_check_error (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	status = mock_expect (&manager.filter.mock, manager.filter.base.get_filter_enabled,
 		&manager.filter, SPI_FILTER_GET_ENABLED_FAILED, MOCK_ARG_NOT_NULL);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.host_has_flash_access (&manager.test, &manager.control.base);
+	status = manager.test.base.host_has_flash_access (&manager.test.base, &manager.control.base);
 	CuAssertIntEquals (test, SPI_FILTER_GET_ENABLED_FAILED, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_restore_flash_read_write_regions_cs1 (CuTest *test)
+static void host_flash_manager_dual_test_restore_flash_read_write_regions_cs1 (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
@@ -12207,7 +12242,7 @@ static void host_flash_manager_test_restore_flash_read_write_regions_cs1 (CuTest
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	rw_region.start_addr = 0x20000;
 	rw_region.length = 0x10000;
@@ -12225,15 +12260,15 @@ static void host_flash_manager_test_restore_flash_read_write_regions_cs1 (CuTest
 	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock1, 0x20000, 0x10000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.restore_flash_read_write_regions (&manager.test, &rw_host);
+	status = manager.test.base.restore_flash_read_write_regions (&manager.test.base, &rw_host);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_restore_flash_read_write_regions_cs0 (CuTest *test)
+static void host_flash_manager_dual_test_restore_flash_read_write_regions_cs0 (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
@@ -12248,7 +12283,7 @@ static void host_flash_manager_test_restore_flash_read_write_regions_cs0 (CuTest
 		data[i] = i;
 	}
 
-	host_flash_manager_testing_init (test, &manager, true);
+	host_flash_manager_dual_testing_init (test, &manager, true);
 
 	rw_region.start_addr = 0x20000;
 	rw_region.length = 0x10000;
@@ -12269,15 +12304,16 @@ static void host_flash_manager_test_restore_flash_read_write_regions_cs0 (CuTest
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.restore_flash_read_write_regions (&manager.test, &rw_host);
+	status = manager.test.base.restore_flash_read_write_regions (&manager.test.base, &rw_host);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_restore_flash_read_write_regions_cs1_multiple_fw (CuTest *test)
+static void host_flash_manager_dual_test_restore_flash_read_write_regions_cs1_multiple_fw (
+	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct flash_region rw_region[3];
 	struct pfm_read_write rw_prop[3];
 	struct pfm_read_write_regions rw_list[3];
@@ -12286,7 +12322,7 @@ static void host_flash_manager_test_restore_flash_read_write_regions_cs1_multipl
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	rw_region[0].start_addr = 0;
 	rw_region[0].length = 0x10000;
@@ -12321,15 +12357,16 @@ static void host_flash_manager_test_restore_flash_read_write_regions_cs1_multipl
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.restore_flash_read_write_regions (&manager.test, &rw_host);
+	status = manager.test.base.restore_flash_read_write_regions (&manager.test.base, &rw_host);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_restore_flash_read_write_regions_cs0_multiple_fw (CuTest *test)
+static void host_flash_manager_dual_test_restore_flash_read_write_regions_cs0_multiple_fw (
+	CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct flash_region rw_region[3];
 	struct pfm_read_write rw_prop[3];
 	struct pfm_read_write_regions rw_list[3];
@@ -12338,7 +12375,7 @@ static void host_flash_manager_test_restore_flash_read_write_regions_cs0_multipl
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, true);
+	host_flash_manager_dual_testing_init (test, &manager, true);
 
 	rw_region[0].start_addr = 0;
 	rw_region[0].length = 0x10000;
@@ -12373,15 +12410,15 @@ static void host_flash_manager_test_restore_flash_read_write_regions_cs0_multipl
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.restore_flash_read_write_regions (&manager.test, &rw_host);
+	status = manager.test.base.restore_flash_read_write_regions (&manager.test.base, &rw_host);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_restore_flash_read_write_regions_null (CuTest *test)
+static void host_flash_manager_dual_test_restore_flash_read_write_regions_null (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
@@ -12390,7 +12427,7 @@ static void host_flash_manager_test_restore_flash_read_write_regions_null (CuTes
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	rw_region.start_addr = 0x20000;
 	rw_region.length = 0x10000;
@@ -12405,18 +12442,18 @@ static void host_flash_manager_test_restore_flash_read_write_regions_null (CuTes
 	rw_host.writable = &rw_list;
 	rw_host.count = 1;
 
-	status = manager.test.restore_flash_read_write_regions (NULL, &rw_host);
+	status = manager.test.base.restore_flash_read_write_regions (NULL, &rw_host);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = manager.test.restore_flash_read_write_regions (&manager.test, NULL);
+	status = manager.test.base.restore_flash_read_write_regions (&manager.test.base, NULL);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_test_restore_flash_read_write_regions_flash_error (CuTest *test)
+static void host_flash_manager_dual_test_restore_flash_read_write_regions_flash_error (CuTest *test)
 {
-	struct host_flash_manager_testing manager;
+	struct host_flash_manager_dual_testing manager;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
@@ -12425,7 +12462,7 @@ static void host_flash_manager_test_restore_flash_read_write_regions_flash_error
 
 	TEST_START;
 
-	host_flash_manager_testing_init (test, &manager, false);
+	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	rw_region.start_addr = 0x20000;
 	rw_region.length = 0x10000;
@@ -12444,239 +12481,276 @@ static void host_flash_manager_test_restore_flash_read_write_regions_flash_error
 		FLASH_EXP_READ_STATUS_REG);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.restore_flash_read_write_regions (&manager.test, &rw_host);
+	status = manager.test.base.restore_flash_read_write_regions (&manager.test.base, &rw_host);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	host_flash_manager_testing_validate_and_release (test, &manager);
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
 
-CuSuite* get_host_flash_manager_suite ()
+CuSuite* get_host_flash_manager_dual_suite ()
 {
 	CuSuite *suite = CuSuiteNew ();
 
-	SUITE_ADD_TEST (suite, host_flash_manager_test_init);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_init_null);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_init_with_managed_flash_initialization);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_init_with_managed_flash_initialization_null);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_release_null);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_get_read_only_flash_cs0);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_get_read_only_flash_cs1);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_get_read_only_flash_null);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_get_read_write_flash_cs1);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_get_read_write_flash_cs0);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_get_read_write_flash_null);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_swap_flash_devices_cs1);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_swap_flash_devices_cs0);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_swap_flash_devices_activate_pending_pfm);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_swap_flash_devices_no_data_migration);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_swap_flash_devices_cs1_multiple_fw);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_swap_flash_devices_cs0_multiple_fw);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_swap_flash_devices_null);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_swap_flash_devices_dirty_clear_error);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_swap_flash_devices_spi_filter_error);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_swap_flash_devices_cs1_data_copy_error);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_swap_flash_devices_cs0_data_copy_error);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_swap_flash_devices_activate_pending_pfm_error);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_config_spi_filter_flash_devices_cs0);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_config_spi_filter_flash_devices_cs1);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_config_spi_filter_flash_devices_null);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_config_spi_filter_flash_devices_error);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_only_flash_cs0);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_only_flash_cs1);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_only_flash_single_fw);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_only_flash_multiple_fw);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_only_flash_cs0_full_validation);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_only_flash_cs1_full_validation);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_init);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_init_null);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_init_with_managed_flash_initialization);
 	SUITE_ADD_TEST (suite,
-		host_flash_manager_test_validate_read_only_flash_full_validation_not_blank_byte);
+		host_flash_manager_dual_test_init_with_managed_flash_initialization_null);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_release_null);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_get_read_only_flash_cs0);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_get_read_only_flash_cs1);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_get_read_only_flash_null);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_get_read_write_flash_cs1);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_get_read_write_flash_cs0);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_get_read_write_flash_null);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_swap_flash_devices_cs1);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_swap_flash_devices_cs0);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_swap_flash_devices_activate_pending_pfm);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_swap_flash_devices_no_data_migration);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_swap_flash_devices_cs1_multiple_fw);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_swap_flash_devices_cs0_multiple_fw);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_swap_flash_devices_null);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_swap_flash_devices_dirty_clear_error);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_swap_flash_devices_spi_filter_error);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_swap_flash_devices_cs1_data_copy_error);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_swap_flash_devices_cs0_data_copy_error);
 	SUITE_ADD_TEST (suite,
-		host_flash_manager_test_validate_read_only_flash_full_validation_single_fw);
+		host_flash_manager_dual_test_swap_flash_devices_activate_pending_pfm_error);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_config_spi_filter_flash_devices_cs0);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_config_spi_filter_flash_devices_cs1);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_config_spi_filter_flash_devices_null);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_config_spi_filter_flash_devices_error);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_validate_read_only_flash_cs0);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_validate_read_only_flash_cs1);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_validate_read_only_flash_single_fw);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_validate_read_only_flash_multiple_fw);
 	SUITE_ADD_TEST (suite,
-		host_flash_manager_test_validate_read_only_flash_full_validation_multiple_fw);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_only_flash_cs0_good_pfm);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_only_flash_cs1_good_pfm);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_only_flash_good_pfm_single_fw);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_only_flash_good_pfm_multiple_fw);
+		host_flash_manager_dual_test_validate_read_only_flash_cs0_full_validation);
 	SUITE_ADD_TEST (suite,
-		host_flash_manager_test_validate_read_only_flash_cs0_good_pfm_no_match_image);
+		host_flash_manager_dual_test_validate_read_only_flash_cs1_full_validation);
 	SUITE_ADD_TEST (suite,
-		host_flash_manager_test_validate_read_only_flash_cs1_good_pfm_no_match_image);
+		host_flash_manager_dual_test_validate_read_only_flash_full_validation_not_blank_byte);
 	SUITE_ADD_TEST (suite,
-		host_flash_manager_test_validate_read_only_flash_good_pfm_no_match_image_multiple_fw);
+		host_flash_manager_dual_test_validate_read_only_flash_full_validation_single_fw);
 	SUITE_ADD_TEST (suite,
-		host_flash_manager_test_validate_read_only_flash_good_pfm_full_validation);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_only_flash_null);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_only_flash_pfm_firmware_error);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_only_flash_pfm_version_error);
+		host_flash_manager_dual_test_validate_read_only_flash_full_validation_multiple_fw);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_validate_read_only_flash_cs0_good_pfm);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_validate_read_only_flash_cs1_good_pfm);
 	SUITE_ADD_TEST (suite,
-		host_flash_manager_test_validate_read_only_flash_pfm_version_error_multiple_fw);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_only_flash_pfm_images_error);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_only_flash_pfm_rw_error);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_only_flash_flash_version_error);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_only_flash_flash_image_error);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_only_flash_full_flash_image_error);
+		host_flash_manager_dual_test_validate_read_only_flash_good_pfm_single_fw);
 	SUITE_ADD_TEST (suite,
-		host_flash_manager_test_validate_read_only_flash_good_pfm_pfm_firmware_error);
+		host_flash_manager_dual_test_validate_read_only_flash_good_pfm_multiple_fw);
 	SUITE_ADD_TEST (suite,
-		host_flash_manager_test_validate_read_only_flash_good_pfm_pfm_version_error);
+		host_flash_manager_dual_test_validate_read_only_flash_cs0_good_pfm_no_match_image);
 	SUITE_ADD_TEST (suite,
-		host_flash_manager_test_validate_read_only_flash_good_pfm_pfm_version_error_multiple_fw);
+		host_flash_manager_dual_test_validate_read_only_flash_cs1_good_pfm_no_match_image);
 	SUITE_ADD_TEST (suite,
-		host_flash_manager_test_validate_read_only_flash_good_pfm_flash_version_error);
+		host_flash_manager_dual_test_validate_read_only_flash_good_pfm_no_match_image_multiple_fw);
 	SUITE_ADD_TEST (suite,
-		host_flash_manager_test_validate_read_only_flash_good_pfm_pfm_images_error);
+		host_flash_manager_dual_test_validate_read_only_flash_good_pfm_full_validation);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_validate_read_only_flash_null);
 	SUITE_ADD_TEST (suite,
-		host_flash_manager_test_validate_read_only_flash_good_pfm_pfm_rw_error);
+		host_flash_manager_dual_test_validate_read_only_flash_pfm_firmware_error);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_validate_read_only_flash_pfm_version_error);
 	SUITE_ADD_TEST (suite,
-		host_flash_manager_test_validate_read_only_flash_good_pfm_good_images_error);
+		host_flash_manager_dual_test_validate_read_only_flash_pfm_version_error_multiple_fw);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_validate_read_only_flash_pfm_images_error);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_validate_read_only_flash_pfm_rw_error);
 	SUITE_ADD_TEST (suite,
-		host_flash_manager_test_validate_read_only_flash_good_pfm_flash_image_error);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_write_flash_cs1);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_write_flash_cs0);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_write_flash_not_blank_byte);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_write_flash_single_fw);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_write_flash_multiple_fw);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_write_flash_null);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_write_flash_pfm_firmware_error);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_write_flash_pfm_version_error);
+		host_flash_manager_dual_test_validate_read_only_flash_flash_version_error);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_validate_read_only_flash_flash_image_error);
 	SUITE_ADD_TEST (suite,
-		host_flash_manager_test_validate_read_write_flash_pfm_version_error_multiple_fw);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_write_flash_pfm_images_error);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_write_flash_pfm_rw_error);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_write_flash_version_error);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_validate_read_write_flash_verify_error);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_free_read_write_regions_null);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_free_read_write_regions_null_list);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_free_read_write_regions_null_pfm);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_set_flash_for_rot_access);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_set_flash_for_rot_access_not_initilized_device);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_set_flash_for_rot_access_check_qspi_error);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_set_flash_for_rot_access_wip_set);
+		host_flash_manager_dual_test_validate_read_only_flash_full_flash_image_error);
 	SUITE_ADD_TEST (suite,
-		host_flash_manager_test_set_flash_for_rot_access_with_flash_initialization);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_set_flash_for_rot_access_null);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_set_flash_for_rot_access_filter_error);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_set_flash_for_rot_access_mux_error);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_set_flash_for_rot_access_wip_error);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_set_flash_for_rot_access_block_protect_error);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_set_flash_for_rot_access_qspi_error);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_set_flash_for_rot_access_4byte_error);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_set_flash_for_rot_access_id_error);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_set_flash_for_rot_access_unknown_id_ff);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_set_flash_for_rot_access_unknown_id_00);
+		host_flash_manager_dual_test_validate_read_only_flash_good_pfm_pfm_firmware_error);
 	SUITE_ADD_TEST (suite,
-		host_flash_manager_test_set_flash_for_rot_access_with_flash_initialization_error);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_set_flash_for_host_access);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_set_flash_for_host_access_null);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_set_flash_for_host_access_mux_error);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_set_flash_for_host_access_enable_error);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_config_spi_filter_flash_type);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_config_spi_filter_flash_type_4byte);
+		host_flash_manager_dual_test_validate_read_only_flash_good_pfm_pfm_version_error);
 	SUITE_ADD_TEST (suite,
-		host_flash_manager_test_config_spi_filter_flash_type_diff_addr_mode_3byte);
+		host_flash_manager_dual_test_validate_read_only_flash_good_pfm_pfm_version_error_multiple_fw);
 	SUITE_ADD_TEST (suite,
-		host_flash_manager_test_config_spi_filter_flash_type_diff_addr_mode_4byte);
+		host_flash_manager_dual_test_validate_read_only_flash_good_pfm_flash_version_error);
 	SUITE_ADD_TEST (suite,
-		host_flash_manager_test_config_spi_filter_flash_type_require_write_enable);
+		host_flash_manager_dual_test_validate_read_only_flash_good_pfm_pfm_images_error);
 	SUITE_ADD_TEST (suite,
-		host_flash_manager_test_config_spi_filter_flash_type_fixed_addr_mode_3byte);
+		host_flash_manager_dual_test_validate_read_only_flash_good_pfm_pfm_rw_error);
 	SUITE_ADD_TEST (suite,
-		host_flash_manager_test_config_spi_filter_flash_type_fixed_addr_mode_4byte);
+		host_flash_manager_dual_test_validate_read_only_flash_good_pfm_good_images_error);
 	SUITE_ADD_TEST (suite,
-		host_flash_manager_test_config_spi_filter_flash_type_reset_addr_mode_4byte);
+		host_flash_manager_dual_test_validate_read_only_flash_good_pfm_flash_image_error);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_validate_read_write_flash_cs1);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_validate_read_write_flash_cs0);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_validate_read_write_flash_not_blank_byte);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_validate_read_write_flash_single_fw);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_validate_read_write_flash_multiple_fw);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_validate_read_write_flash_null);
 	SUITE_ADD_TEST (suite,
-		host_flash_manager_test_config_spi_filter_flash_type_set_size_unsupported);
+		host_flash_manager_dual_test_validate_read_write_flash_pfm_firmware_error);
 	SUITE_ADD_TEST (suite,
-		host_flash_manager_test_config_spi_filter_flash_type_addr_mode_write_en_unsupported);
+		host_flash_manager_dual_test_validate_read_write_flash_pfm_version_error);
 	SUITE_ADD_TEST (suite,
-		host_flash_manager_test_config_spi_filter_flash_type_reset_addr_mode_unsupported);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_config_spi_filter_flash_type_null);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_config_spi_filter_flash_type_diff_vendors);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_config_spi_filter_flash_type_diff_devices);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_config_spi_filter_flash_type_diff_sizes);
+		host_flash_manager_dual_test_validate_read_write_flash_pfm_version_error_multiple_fw);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_validate_read_write_flash_pfm_images_error);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_validate_read_write_flash_pfm_rw_error);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_validate_read_write_flash_version_error);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_validate_read_write_flash_verify_error);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_free_read_write_regions_null);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_free_read_write_regions_null_list);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_free_read_write_regions_null_pfm);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_set_flash_for_rot_access);
 	SUITE_ADD_TEST (suite,
-		host_flash_manager_test_config_spi_filter_flash_type_diff_require_write_enable);
+		host_flash_manager_dual_test_set_flash_for_rot_access_not_initilized_device);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_set_flash_for_rot_access_check_qspi_error);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_set_flash_for_rot_access_wip_set);
 	SUITE_ADD_TEST (suite,
-		host_flash_manager_test_config_spi_filter_flash_type_diff_addr_mode_control);
+		host_flash_manager_dual_test_set_flash_for_rot_access_with_flash_initialization);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_set_flash_for_rot_access_null);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_set_flash_for_rot_access_filter_error);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_set_flash_for_rot_access_mux_error);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_set_flash_for_rot_access_wip_error);
 	SUITE_ADD_TEST (suite,
-		host_flash_manager_test_config_spi_filter_flash_type_diff_fixed_addr_mode);
+		host_flash_manager_dual_test_set_flash_for_rot_access_block_protect_error);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_set_flash_for_rot_access_qspi_error);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_set_flash_for_rot_access_4byte_error);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_set_flash_for_rot_access_id_error);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_set_flash_for_rot_access_unknown_id_ff);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_set_flash_for_rot_access_unknown_id_00);
 	SUITE_ADD_TEST (suite,
-		host_flash_manager_test_config_spi_filter_flash_type_diff_reset_addr_mode);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_config_spi_filter_flash_type_id0_error);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_config_spi_filter_flash_type_id1_error);
+		host_flash_manager_dual_test_set_flash_for_rot_access_with_flash_initialization_error);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_set_flash_for_host_access);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_set_flash_for_host_access_null);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_set_flash_for_host_access_mux_error);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_set_flash_for_host_access_enable_error);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_config_spi_filter_flash_type);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_config_spi_filter_flash_type_4byte);
 	SUITE_ADD_TEST (suite,
-		host_flash_manager_test_config_spi_filter_flash_type_diff_addr_mode_error);
+		host_flash_manager_dual_test_config_spi_filter_flash_type_diff_addr_mode_3byte);
 	SUITE_ADD_TEST (suite,
-		host_flash_manager_test_config_spi_filter_flash_type_reset_addr_mode0_error);
+		host_flash_manager_dual_test_config_spi_filter_flash_type_diff_addr_mode_4byte);
 	SUITE_ADD_TEST (suite,
-		host_flash_manager_test_config_spi_filter_flash_type_reset_addr_mode1_error);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_config_spi_filter_flash_type_filter_error);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_config_spi_filter_flash_type_unsupported_mfg);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_config_spi_filter_flash_type_unsupported_dev);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_config_spi_filter_flash_type_filter_size_error);
+		host_flash_manager_dual_test_config_spi_filter_flash_type_require_write_enable);
 	SUITE_ADD_TEST (suite,
-		host_flash_manager_test_config_spi_filter_flash_type_addr_mode_write_en_error);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_config_spi_filter_flash_type_addr_mode_error);
+		host_flash_manager_dual_test_config_spi_filter_flash_type_fixed_addr_mode_3byte);
 	SUITE_ADD_TEST (suite,
-		host_flash_manager_test_config_spi_filter_flash_type_fixed_addr_mode_error);
+		host_flash_manager_dual_test_config_spi_filter_flash_type_fixed_addr_mode_4byte);
 	SUITE_ADD_TEST (suite,
-		host_flash_manager_test_config_spi_filter_flash_type_reset_addr_mode_error);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_initialize_flash_protection_cs0_3byte_cs1_3byte);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_initialize_flash_protection_cs1_3byte_cs0_3byte);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_initialize_flash_protection_cs0_4byte_cs1_4byte);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_initialize_flash_protection_cs1_4byte_cs0_4byte);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_initialize_flash_protection_cs0_4byte_cs1_3byte);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_initialize_flash_protection_cs1_4byte_cs0_3byte);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_initialize_flash_protection_cs0_3byte_cs1_4byte);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_initialize_flash_protection_cs1_3byte_cs0_4byte);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_initialize_flash_protection_fixed_3byte);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_initialize_flash_protection_fixed_4byte);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_initialize_flash_protection_cs0_multiple_fw);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_initialize_flash_protection_cs1_multiple_fw);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_initialize_flash_protection_null);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_initialize_flash_protection_flash_mode_error);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_initialize_flash_protection_data_copy_error);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_initialize_flash_protection_dirty_clear_error);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_initialize_flash_protection_filter_mode_error);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_initialize_flash_protection_bypass_error);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_initialize_flash_protection_filter_error);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_get_flash_read_write_regions_ro_flash_cs0);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_get_flash_read_write_regions_ro_flash_cs1);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_get_flash_read_write_regions_ro_flash_single_fw);
+		host_flash_manager_dual_test_config_spi_filter_flash_type_reset_addr_mode_4byte);
 	SUITE_ADD_TEST (suite,
-		host_flash_manager_test_get_flash_read_write_regions_ro_flash_multiple_fw);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_get_flash_read_write_regions_rw_flash_cs1);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_get_flash_read_write_regions_rw_flash_cs0);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_get_flash_read_write_regions_rw_flash_single_fw);
+		host_flash_manager_dual_test_config_spi_filter_flash_type_set_size_unsupported);
 	SUITE_ADD_TEST (suite,
-		host_flash_manager_test_get_flash_read_write_regions_rw_flash_multiple_fw);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_get_flash_read_write_regions_null);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_get_flash_read_write_regions_pfm_firmware_error);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_get_flash_read_write_regions_pfm_version_error);
+		host_flash_manager_dual_test_config_spi_filter_flash_type_addr_mode_write_en_unsupported);
 	SUITE_ADD_TEST (suite,
-		host_flash_manager_test_get_flash_read_write_regions_pfm_version_error_multiple_fw);
+		host_flash_manager_dual_test_config_spi_filter_flash_type_reset_addr_mode_unsupported);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_config_spi_filter_flash_type_null);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_config_spi_filter_flash_type_diff_vendors);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_config_spi_filter_flash_type_diff_devices);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_config_spi_filter_flash_type_diff_sizes);
 	SUITE_ADD_TEST (suite,
-		host_flash_manager_test_get_flash_read_write_regions_ro_flash_version_error);
+		host_flash_manager_dual_test_config_spi_filter_flash_type_diff_require_write_enable);
 	SUITE_ADD_TEST (suite,
-		host_flash_manager_test_get_flash_read_write_regions_rw_flash_version_error);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_get_flash_read_write_regions_pfm_rw_error);
+		host_flash_manager_dual_test_config_spi_filter_flash_type_diff_addr_mode_control);
 	SUITE_ADD_TEST (suite,
-		host_flash_manager_test_get_flash_read_write_regions_pfm_rw_error_multiple_fw);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_host_has_flash_access);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_host_has_flash_access_rot_access);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_host_has_flash_access_filter_disabled);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_host_has_flash_access_null);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_host_has_flash_access_access_check_error);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_host_has_flash_access_filter_check_error);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_restore_flash_read_write_regions_cs1);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_restore_flash_read_write_regions_cs0);
+		host_flash_manager_dual_test_config_spi_filter_flash_type_diff_fixed_addr_mode);
 	SUITE_ADD_TEST (suite,
-		host_flash_manager_test_restore_flash_read_write_regions_cs1_multiple_fw);
+		host_flash_manager_dual_test_config_spi_filter_flash_type_diff_reset_addr_mode);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_config_spi_filter_flash_type_id0_error);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_config_spi_filter_flash_type_id1_error);
 	SUITE_ADD_TEST (suite,
-		host_flash_manager_test_restore_flash_read_write_regions_cs0_multiple_fw);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_restore_flash_read_write_regions_null);
-	SUITE_ADD_TEST (suite, host_flash_manager_test_restore_flash_read_write_regions_flash_error);
+		host_flash_manager_dual_test_config_spi_filter_flash_type_diff_addr_mode_error);
+	SUITE_ADD_TEST (suite,
+		host_flash_manager_dual_test_config_spi_filter_flash_type_get_reset_addr_mode0_error);
+	SUITE_ADD_TEST (suite,
+		host_flash_manager_dual_test_config_spi_filter_flash_type_get_reset_addr_mode1_error);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_config_spi_filter_flash_type_filter_error);
+	SUITE_ADD_TEST (suite,
+		host_flash_manager_dual_test_config_spi_filter_flash_type_unsupported_mfg);
+	SUITE_ADD_TEST (suite,
+		host_flash_manager_dual_test_config_spi_filter_flash_type_unsupported_dev);
+	SUITE_ADD_TEST (suite,
+		host_flash_manager_dual_test_config_spi_filter_flash_type_filter_size_error);
+	SUITE_ADD_TEST (suite,
+		host_flash_manager_dual_test_config_spi_filter_flash_type_addr_mode_write_en_error);
+	SUITE_ADD_TEST (suite,
+		host_flash_manager_dual_test_config_spi_filter_flash_type_addr_mode_error);
+	SUITE_ADD_TEST (suite,
+		host_flash_manager_dual_test_config_spi_filter_flash_type_fixed_addr_mode_error);
+	SUITE_ADD_TEST (suite,
+		host_flash_manager_dual_test_config_spi_filter_flash_type_reset_addr_mode_error);
+	SUITE_ADD_TEST (suite,
+		host_flash_manager_dual_test_initialize_flash_protection_cs0_3byte_cs1_3byte);
+	SUITE_ADD_TEST (suite,
+		host_flash_manager_dual_test_initialize_flash_protection_cs1_3byte_cs0_3byte);
+	SUITE_ADD_TEST (suite,
+		host_flash_manager_dual_test_initialize_flash_protection_cs0_4byte_cs1_4byte);
+	SUITE_ADD_TEST (suite,
+		host_flash_manager_dual_test_initialize_flash_protection_cs1_4byte_cs0_4byte);
+	SUITE_ADD_TEST (suite,
+		host_flash_manager_dual_test_initialize_flash_protection_cs0_4byte_cs1_3byte);
+	SUITE_ADD_TEST (suite,
+		host_flash_manager_dual_test_initialize_flash_protection_cs1_4byte_cs0_3byte);
+	SUITE_ADD_TEST (suite,
+		host_flash_manager_dual_test_initialize_flash_protection_cs0_3byte_cs1_4byte);
+	SUITE_ADD_TEST (suite,
+		host_flash_manager_dual_test_initialize_flash_protection_cs1_3byte_cs0_4byte);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_initialize_flash_protection_fixed_3byte);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_initialize_flash_protection_fixed_4byte);
+	SUITE_ADD_TEST (suite,
+		host_flash_manager_dual_test_initialize_flash_protection_cs0_multiple_fw);
+	SUITE_ADD_TEST (suite,
+		host_flash_manager_dual_test_initialize_flash_protection_cs1_multiple_fw);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_initialize_flash_protection_null);
+	SUITE_ADD_TEST (suite,
+		host_flash_manager_dual_test_initialize_flash_protection_flash_mode_error);
+	SUITE_ADD_TEST (suite,
+		host_flash_manager_dual_test_initialize_flash_protection_data_copy_error);
+	SUITE_ADD_TEST (suite,
+		host_flash_manager_dual_test_initialize_flash_protection_dirty_clear_error);
+	SUITE_ADD_TEST (suite,
+		host_flash_manager_dual_test_initialize_flash_protection_filter_addr_mode_error);
+	SUITE_ADD_TEST (suite,
+		host_flash_manager_dual_test_initialize_flash_protection_filter_flash_mode_error);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_initialize_flash_protection_filter_error);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_get_flash_read_write_regions_ro_flash_cs0);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_get_flash_read_write_regions_ro_flash_cs1);
+	SUITE_ADD_TEST (suite,
+		host_flash_manager_dual_test_get_flash_read_write_regions_ro_flash_single_fw);
+	SUITE_ADD_TEST (suite,
+		host_flash_manager_dual_test_get_flash_read_write_regions_ro_flash_multiple_fw);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_get_flash_read_write_regions_rw_flash_cs1);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_get_flash_read_write_regions_rw_flash_cs0);
+	SUITE_ADD_TEST (suite,
+		host_flash_manager_dual_test_get_flash_read_write_regions_rw_flash_single_fw);
+	SUITE_ADD_TEST (suite,
+		host_flash_manager_dual_test_get_flash_read_write_regions_rw_flash_multiple_fw);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_get_flash_read_write_regions_null);
+	SUITE_ADD_TEST (suite,
+		host_flash_manager_dual_test_get_flash_read_write_regions_pfm_firmware_error);
+	SUITE_ADD_TEST (suite,
+		host_flash_manager_dual_test_get_flash_read_write_regions_pfm_version_error);
+	SUITE_ADD_TEST (suite,
+		host_flash_manager_dual_test_get_flash_read_write_regions_pfm_version_error_multiple_fw);
+	SUITE_ADD_TEST (suite,
+		host_flash_manager_dual_test_get_flash_read_write_regions_ro_flash_version_error);
+	SUITE_ADD_TEST (suite,
+		host_flash_manager_dual_test_get_flash_read_write_regions_rw_flash_version_error);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_get_flash_read_write_regions_pfm_rw_error);
+	SUITE_ADD_TEST (suite,
+		host_flash_manager_dual_test_get_flash_read_write_regions_pfm_rw_error_multiple_fw);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_host_has_flash_access);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_host_has_flash_access_rot_access);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_host_has_flash_access_filter_disabled);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_host_has_flash_access_null);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_host_has_flash_access_access_check_error);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_host_has_flash_access_filter_check_error);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_restore_flash_read_write_regions_cs1);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_restore_flash_read_write_regions_cs0);
+	SUITE_ADD_TEST (suite,
+		host_flash_manager_dual_test_restore_flash_read_write_regions_cs1_multiple_fw);
+	SUITE_ADD_TEST (suite,
+		host_flash_manager_dual_test_restore_flash_read_write_regions_cs0_multiple_fw);
+	SUITE_ADD_TEST (suite, host_flash_manager_dual_test_restore_flash_read_write_regions_null);
+	SUITE_ADD_TEST (suite,
+		host_flash_manager_dual_test_restore_flash_read_write_regions_flash_error);
 
 	return suite;
 }

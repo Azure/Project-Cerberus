@@ -19,7 +19,7 @@ struct spi_filter_irq_handler_dirty {
 
 
 int spi_filter_irq_handler_dirty_init (struct spi_filter_irq_handler_dirty *handler,
-	struct state_manager *host_state, struct host_control *control);
+	struct host_state_manager *host_state, struct host_control *control);
 void spi_filter_irq_handler_dirty_release (struct spi_filter_irq_handler_dirty *handler);
 
 

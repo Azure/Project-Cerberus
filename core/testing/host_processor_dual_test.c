@@ -43,7 +43,7 @@ static void host_processor_dual_testing_init_dependencies (CuTest *test,
 	status = pfm_mock_init (&host->pfm_next);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_flash_manager_mock_init (&host->flash_mgr);
+	status = host_flash_manager_dual_mock_init (&host->flash_mgr);
 	CuAssertIntEquals (test, 0, status);
 
 	status = recovery_image_manager_mock_init (&host->recovery_manager);
@@ -95,7 +95,7 @@ void host_processor_dual_testing_init_pulse_reset (CuTest *test,
 
 	status = host_processor_dual_init_pulse_reset (&host->test, &host->control.base,
 		&host->flash_mgr.base, &host->host_state, &host->filter.base, &host->pfm_mgr.base,
-		&host->recovery_manager.base);
+		&host->recovery_manager.base, 100);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_processor_add_observer (&host->test.base, &host->observer.base);
@@ -137,7 +137,8 @@ void host_processor_dual_testing_init_no_recovery_pulse_reset (CuTest *test,
 	host_processor_dual_testing_init_dependencies (test, host);
 
 	status = host_processor_dual_init_pulse_reset (&host->test, &host->control.base,
-		&host->flash_mgr.base, &host->host_state, &host->filter.base, &host->pfm_mgr.base, NULL);
+		&host->flash_mgr.base, &host->host_state, &host->filter.base, &host->pfm_mgr.base, NULL,
+		100);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_processor_add_observer (&host->test.base, &host->observer.base);
@@ -173,7 +174,7 @@ void host_processor_dual_testing_validate_and_release (CuTest *test,
 	status = pfm_mock_validate_and_release (&host->pfm_next);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_flash_manager_mock_validate_and_release (&host->flash_mgr);
+	status = host_flash_manager_dual_mock_validate_and_release (&host->flash_mgr);
 	CuAssertIntEquals (test, 0, status);
 
 	status = recovery_image_manager_mock_validate_and_release (&host->recovery_manager);
@@ -201,7 +202,7 @@ void host_processor_dual_testing_validate_and_release (CuTest *test,
  * @param flash_mock The mock for the flash state storage.
  * @param flash The flash device to initialize for state.
  */
-void host_processor_dual_testing_init_host_state (CuTest *test, struct state_manager *state,
+void host_processor_dual_testing_init_host_state (CuTest *test, struct host_state_manager *state,
 	struct flash_master_mock *flash_mock, struct spi_flash *flash)
 {
 	int status;
@@ -243,12 +244,12 @@ static void host_processor_dual_test_init (CuTest *test)
 {
 	struct flash_master_mock flash_mock_state;
 	struct spi_flash flash_state;
-	struct state_manager host_state;
+	struct host_state_manager host_state;
 	struct spi_filter_interface_mock filter;
-	struct host_flash_manager_mock flash_mgr;
+	struct host_flash_manager_dual_mock flash_mgr;
 	struct host_control_mock control;
 	struct pfm_manager_mock pfm_mgr;
-	struct host_processor_dual host;
+	struct host_processor_filtered host;
 	int status;
 
 	TEST_START;
@@ -262,7 +263,7 @@ static void host_processor_dual_test_init (CuTest *test)
 	status = pfm_manager_mock_init (&pfm_mgr);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_flash_manager_mock_init (&flash_mgr);
+	status = host_flash_manager_dual_mock_init (&flash_mgr);
 	CuAssertIntEquals (test, 0, status);
 
 	host_processor_dual_testing_init_host_state (test, &host_state, &flash_mock_state,
@@ -295,7 +296,7 @@ static void host_processor_dual_test_init (CuTest *test)
 	status = pfm_manager_mock_validate_and_release (&pfm_mgr);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_flash_manager_mock_validate_and_release (&flash_mgr);
+	status = host_flash_manager_dual_mock_validate_and_release (&flash_mgr);
 	CuAssertIntEquals (test, 0, status);
 
 	host_processor_dual_release (&host);
@@ -308,12 +309,12 @@ static void host_processor_dual_test_init_null (CuTest *test)
 {
 	struct flash_master_mock flash_mock_state;
 	struct spi_flash flash_state;
-	struct state_manager host_state;
+	struct host_state_manager host_state;
 	struct spi_filter_interface_mock filter;
-	struct host_flash_manager_mock flash_mgr;
+	struct host_flash_manager_dual_mock flash_mgr;
 	struct host_control_mock control;
 	struct pfm_manager_mock pfm_mgr;
-	struct host_processor_dual host;
+	struct host_processor_filtered host;
 	int status;
 
 	TEST_START;
@@ -327,7 +328,7 @@ static void host_processor_dual_test_init_null (CuTest *test)
 	status = pfm_manager_mock_init (&pfm_mgr);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_flash_manager_mock_init (&flash_mgr);
+	status = host_flash_manager_dual_mock_init (&flash_mgr);
 	CuAssertIntEquals (test, 0, status);
 
 	host_processor_dual_testing_init_host_state (test, &host_state, &flash_mock_state,
@@ -369,7 +370,7 @@ static void host_processor_dual_test_init_null (CuTest *test)
 	status = pfm_manager_mock_validate_and_release (&pfm_mgr);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_flash_manager_mock_validate_and_release (&flash_mgr);
+	status = host_flash_manager_dual_mock_validate_and_release (&flash_mgr);
 	CuAssertIntEquals (test, 0, status);
 
 	host_state_manager_release (&host_state);
@@ -380,12 +381,12 @@ static void host_processor_dual_test_init_pulse_reset (CuTest *test)
 {
 	struct flash_master_mock flash_mock_state;
 	struct spi_flash flash_state;
-	struct state_manager host_state;
+	struct host_state_manager host_state;
 	struct spi_filter_interface_mock filter;
-	struct host_flash_manager_mock flash_mgr;
+	struct host_flash_manager_dual_mock flash_mgr;
 	struct host_control_mock control;
 	struct pfm_manager_mock pfm_mgr;
-	struct host_processor_dual host;
+	struct host_processor_filtered host;
 	int status;
 
 	TEST_START;
@@ -399,14 +400,14 @@ static void host_processor_dual_test_init_pulse_reset (CuTest *test)
 	status = pfm_manager_mock_init (&pfm_mgr);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_flash_manager_mock_init (&flash_mgr);
+	status = host_flash_manager_dual_mock_init (&flash_mgr);
 	CuAssertIntEquals (test, 0, status);
 
 	host_processor_dual_testing_init_host_state (test, &host_state, &flash_mock_state,
 		&flash_state);
 
 	status = host_processor_dual_init_pulse_reset (&host, &control.base, &flash_mgr.base,
-		&host_state, &filter.base, &pfm_mgr.base, NULL);
+		&host_state, &filter.base, &pfm_mgr.base, NULL, 100);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, host_processor_get_port (&host.base));
 
@@ -432,7 +433,7 @@ static void host_processor_dual_test_init_pulse_reset (CuTest *test)
 	status = pfm_manager_mock_validate_and_release (&pfm_mgr);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_flash_manager_mock_validate_and_release (&flash_mgr);
+	status = host_flash_manager_dual_mock_validate_and_release (&flash_mgr);
 	CuAssertIntEquals (test, 0, status);
 
 	host_processor_dual_release (&host);
@@ -445,12 +446,12 @@ static void host_processor_dual_test_init_pulse_reset_null (CuTest *test)
 {
 	struct flash_master_mock flash_mock_state;
 	struct spi_flash flash_state;
-	struct state_manager host_state;
+	struct host_state_manager host_state;
 	struct spi_filter_interface_mock filter;
-	struct host_flash_manager_mock flash_mgr;
+	struct host_flash_manager_dual_mock flash_mgr;
 	struct host_control_mock control;
 	struct pfm_manager_mock pfm_mgr;
-	struct host_processor_dual host;
+	struct host_processor_filtered host;
 	int status;
 
 	TEST_START;
@@ -464,34 +465,34 @@ static void host_processor_dual_test_init_pulse_reset_null (CuTest *test)
 	status = pfm_manager_mock_init (&pfm_mgr);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_flash_manager_mock_init (&flash_mgr);
+	status = host_flash_manager_dual_mock_init (&flash_mgr);
 	CuAssertIntEquals (test, 0, status);
 
 	host_processor_dual_testing_init_host_state (test, &host_state, &flash_mock_state,
 		&flash_state);
 
 	status = host_processor_dual_init_pulse_reset (NULL, &control.base, &flash_mgr.base,
-		&host_state, &filter.base, &pfm_mgr.base, NULL);
+		&host_state, &filter.base, &pfm_mgr.base, NULL, 100);
 	CuAssertIntEquals (test, HOST_PROCESSOR_INVALID_ARGUMENT, status);
 
 	status = host_processor_dual_init_pulse_reset (&host, NULL, &flash_mgr.base,
-		&host_state, &filter.base, &pfm_mgr.base, NULL);
+		&host_state, &filter.base, &pfm_mgr.base, NULL, 100);
 	CuAssertIntEquals (test, HOST_PROCESSOR_INVALID_ARGUMENT, status);
 
 	status = host_processor_dual_init_pulse_reset (&host, &control.base, NULL,
-		&host_state, &filter.base, &pfm_mgr.base, NULL);
+		&host_state, &filter.base, &pfm_mgr.base, NULL, 100);
 	CuAssertIntEquals (test, HOST_PROCESSOR_INVALID_ARGUMENT, status);
 
 	status = host_processor_dual_init_pulse_reset (&host, &control.base, &flash_mgr.base,
-		NULL, &filter.base, &pfm_mgr.base, NULL);
+		NULL, &filter.base, &pfm_mgr.base, NULL, 100);
 	CuAssertIntEquals (test, HOST_PROCESSOR_INVALID_ARGUMENT, status);
 
 	status = host_processor_dual_init_pulse_reset (&host, &control.base, &flash_mgr.base,
-		&host_state, NULL, &pfm_mgr.base, NULL);
+		&host_state, NULL, &pfm_mgr.base, NULL, 100);
 	CuAssertIntEquals (test, HOST_PROCESSOR_INVALID_ARGUMENT, status);
 
 	status = host_processor_dual_init_pulse_reset (&host, &control.base, &flash_mgr.base,
-		&host_state, &filter.base, NULL, NULL);
+		&host_state, &filter.base, NULL, NULL, 100);
 	CuAssertIntEquals (test, HOST_PROCESSOR_INVALID_ARGUMENT, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock_state);
@@ -506,7 +507,63 @@ static void host_processor_dual_test_init_pulse_reset_null (CuTest *test)
 	status = pfm_manager_mock_validate_and_release (&pfm_mgr);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_flash_manager_mock_validate_and_release (&flash_mgr);
+	status = host_flash_manager_dual_mock_validate_and_release (&flash_mgr);
+	CuAssertIntEquals (test, 0, status);
+
+	host_state_manager_release (&host_state);
+	spi_flash_release (&flash_state);
+}
+
+static void host_processor_dual_test_init_pulse_reset_invalid_pulse_width (CuTest *test)
+{
+	struct flash_master_mock flash_mock_state;
+	struct spi_flash flash_state;
+	struct host_state_manager host_state;
+	struct spi_filter_interface_mock filter;
+	struct host_flash_manager_dual_mock flash_mgr;
+	struct host_control_mock control;
+	struct pfm_manager_mock pfm_mgr;
+	struct host_processor_filtered host;
+	int status;
+
+	TEST_START;
+
+	status = spi_filter_interface_mock_init (&filter);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_control_mock_init (&control);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_mock_init (&pfm_mgr);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_flash_manager_dual_mock_init (&flash_mgr);
+	CuAssertIntEquals (test, 0, status);
+
+	host_processor_dual_testing_init_host_state (test, &host_state, &flash_mock_state,
+		&flash_state);
+
+	status = host_processor_dual_init_pulse_reset (&host, &control.base, &flash_mgr.base,
+		&host_state, &filter.base, &pfm_mgr.base, NULL, 0);
+	CuAssertIntEquals (test, HOST_PROCESSOR_INVALID_ARGUMENT, status);
+
+	status = host_processor_dual_init_pulse_reset (&host, &control.base, &flash_mgr.base,
+		&host_state, &filter.base, &pfm_mgr.base, NULL, -1);
+	CuAssertIntEquals (test, HOST_PROCESSOR_INVALID_ARGUMENT, status);
+
+	status = flash_master_mock_validate_and_release (&flash_mock_state);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_filter_interface_mock_validate_and_release (&filter);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_control_mock_validate_and_release (&control);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_mock_validate_and_release (&pfm_mgr);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_flash_manager_dual_mock_validate_and_release (&flash_mgr);
 	CuAssertIntEquals (test, 0, status);
 
 	host_state_manager_release (&host_state);
@@ -529,7 +586,7 @@ static void host_processor_dual_test_needs_config_recovery (CuTest *test)
 
 	host_processor_dual_testing_init (test, &host);
 
-	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.host_has_flash_access,
+	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.host_has_flash_access,
 		&host.flash_mgr, 1, MOCK_ARG(&host.control));
 	CuAssertIntEquals (test, 0, status);
 
@@ -548,7 +605,7 @@ static void host_processor_dual_test_needs_config_recovery_no_host_access (CuTes
 
 	host_processor_dual_testing_init (test, &host);
 
-	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.host_has_flash_access,
+	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.host_has_flash_access,
 		&host.flash_mgr, 0, MOCK_ARG(&host.control));
 	CuAssertIntEquals (test, 0, status);
 
@@ -582,7 +639,7 @@ static void host_processor_dual_test_needs_config_recovery_check_access_error (C
 
 	host_processor_dual_testing_init (test, &host);
 
-	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.host_has_flash_access,
+	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.host_has_flash_access,
 		&host.flash_mgr, HOST_FLASH_MGR_CHECK_ACCESS_FAILED, MOCK_ARG(&host.control));
 	CuAssertIntEquals (test, 0, status);
 
@@ -2142,6 +2199,7 @@ CuSuite* get_host_processor_dual_suite ()
 	SUITE_ADD_TEST (suite, host_processor_dual_test_init_null);
 	SUITE_ADD_TEST (suite, host_processor_dual_test_init_pulse_reset);
 	SUITE_ADD_TEST (suite, host_processor_dual_test_init_pulse_reset_null);
+	SUITE_ADD_TEST (suite, host_processor_dual_test_init_pulse_reset_invalid_pulse_width);
 	SUITE_ADD_TEST (suite, host_processor_dual_test_release_null);
 	SUITE_ADD_TEST (suite, host_processor_dual_test_needs_config_recovery);
 	SUITE_ADD_TEST (suite, host_processor_dual_test_needs_config_recovery_no_host_access);

@@ -8,7 +8,6 @@
 #include "status/rot_status.h"
 #include "host_control.h"
 #include "host_flash_initialization.h"
-#include "state_manager/state_manager.h"
 #include "flash/spi_flash.h"
 #include "spi_filter/spi_filter_interface.h"
 #include "spi_filter/flash_mfg_filter_handler.h"
@@ -222,26 +221,17 @@ struct host_flash_manager {
 	 */
 	int (*host_has_flash_access) (struct host_flash_manager *manager,
 		struct host_control *control);
-
-	struct spi_flash *flash_cs0;					/**< The flash device connected to CS0. */
-	struct spi_flash *flash_cs1;					/**< The flash device connected to CS1. */
-	struct state_manager *host_state;				/**< State information for the host using the flash. */
-	struct spi_filter_interface *filter;			/**< The SPI filter connected to the flash devices. */
-	struct flash_mfg_filter_handler *mfg_handler;	/**< The filter handler for flash device types. */
-	struct host_flash_initialization *flash_init;	/**< Host flash initialization manager. */
 };
 
 
-int host_flash_manager_init (struct host_flash_manager *manager, struct spi_flash *cs0,
-	struct spi_flash *cs1, struct state_manager *host_state, struct spi_filter_interface *filter,
-	struct flash_mfg_filter_handler *mfg_handler);
-int host_flash_manager_init_with_managed_flash_initialization (struct host_flash_manager *manager,
-	struct spi_flash *cs0, struct spi_flash *cs1, struct state_manager *host_state,
-	struct spi_filter_interface *filter, struct flash_mfg_filter_handler *mfg_handler,
-	struct host_flash_initialization *flash_init);
-void host_flash_manager_release (struct host_flash_manager *manager);
-
 /* Internal functions for use by derived types. */
+int host_flash_manager_get_image_entry (struct pfm *pfm, struct spi_flash *flash, uint32_t offset,
+	const char *fw_id, struct pfm_firmware_versions *versions,
+	const struct pfm_firmware_version **version, struct pfm_image_list *fw_images,
+	struct pfm_read_write_regions *writable);
+int host_flash_manager_get_firmware_types (struct pfm *pfm, struct pfm_firmware *host_fw,
+	struct host_flash_manager_images *host_img, struct host_flash_manager_rw_regions *host_rw);
+
 int host_flash_manager_validate_flash (struct pfm *pfm, struct hash_engine *hash,
 	struct rsa_engine *rsa, bool full_validation, struct spi_flash *flash,
 	struct host_flash_manager_rw_regions *host_rw);
@@ -252,7 +242,24 @@ int host_flash_manager_validate_pfm (struct pfm *pfm, struct pfm *good_pfm,
 	struct hash_engine *hash, struct rsa_engine *rsa, struct spi_flash *flash,
 	struct host_flash_manager_rw_regions *host_rw);
 
+int host_flash_manager_get_flash_read_write_regions (struct spi_flash *flash, struct pfm *pfm,
+	struct host_flash_manager_rw_regions *host_rw);
+
+void host_flash_manager_free_read_write_regions (struct host_flash_manager *manager,
+	struct host_flash_manager_rw_regions *host_rw);
+void host_flash_manager_free_images (struct host_flash_manager_images *host_img);
+
+int host_flash_manager_config_spi_filter_flash_type (struct spi_flash *cs0, struct spi_flash *cs1,
+	struct spi_filter_interface *filter, struct flash_mfg_filter_handler *mfg_handler);
+
 int host_flash_manager_configure_flash_for_rot_access (struct spi_flash *flash);
+int host_flash_manager_set_flash_for_rot_access (struct host_control *control,
+	struct spi_filter_interface *filter, struct spi_flash *cs0, struct spi_flash *cs1,
+	struct host_flash_initialization *flash_init);
+int host_flash_manager_set_flash_for_host_access (struct host_control *control,
+	struct spi_filter_interface *filter);
+int host_flash_manager_host_has_flash_access (struct host_control *control,
+	struct spi_filter_interface *filter);
 
 
 #define	HOST_FLASH_MGR_ERROR(code)		ROT_ERROR (ROT_MODULE_HOST_FLASH_MGR, code)
@@ -281,6 +288,7 @@ enum {
 	HOST_FLASH_MGR_MISMATCH_SIZES = HOST_FLASH_MGR_ERROR (0x11),		/**< The host flash devices are not the same size. */
 	HOST_FLASH_MGR_MISMATCH_ADDR_MODE = HOST_FLASH_MGR_ERROR (0x12),	/**< The host flash devices support different address mode behavior. */
 	HOST_FLASH_MGR_RESTORE_RW_FAILED = HOST_FLASH_MGR_ERROR (0x13),		/**< Flash read/write regions were not restore successfully. */
+	HOST_FLASH_MGR_UNSUPPORTED_OPERATION = HOST_FLASH_MGR_ERROR (0x14),	/**< The operation is unsupported by the flash manager. */
 };
 
 

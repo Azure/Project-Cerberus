@@ -33,11 +33,11 @@ static void host_processor_dual_test_apply_recovery_image (CuTest *test)
 	status = mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
-	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
 		&host.flash_mgr, 0, MOCK_ARG (&host.control));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_read_only_flash,
+	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.get_read_only_flash,
 		&host.flash_mgr, (intptr_t) &host.flash_state);
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_recovery, &host.observer, 0);
@@ -51,9 +51,9 @@ static void host_processor_dual_test_apply_recovery_image (CuTest *test)
 		&host.filter, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock,
-		host.flash_mgr.base.config_spi_filter_flash_devices, &host.flash_mgr, 0);
+		host.flash_mgr.base.base.config_spi_filter_flash_devices, &host.flash_mgr, 0);
 
-	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
 		&host.flash_mgr, 0, MOCK_ARG (&host.control));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
@@ -88,11 +88,11 @@ static void host_processor_dual_test_apply_recovery_image_pulse_reset (CuTest *t
 		(intptr_t) &host.image.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
+	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
 		&host.flash_mgr, 0, MOCK_ARG (&host.control));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_read_only_flash,
+	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.get_read_only_flash,
 		&host.flash_mgr, (intptr_t) &host.flash_state);
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_recovery, &host.observer, 0);
@@ -106,9 +106,9 @@ static void host_processor_dual_test_apply_recovery_image_pulse_reset (CuTest *t
 		&host.filter, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock,
-		host.flash_mgr.base.config_spi_filter_flash_devices, &host.flash_mgr, 0);
+		host.flash_mgr.base.base.config_spi_filter_flash_devices, &host.flash_mgr, 0);
 
-	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
 		&host.flash_mgr, 0, MOCK_ARG (&host.control));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
@@ -151,11 +151,11 @@ static void host_processor_dual_test_apply_recovery_image_no_observer (CuTest *t
 	status = mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
-	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
 		&host.flash_mgr, 0, MOCK_ARG (&host.control));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_read_only_flash,
+	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.get_read_only_flash,
 		&host.flash_mgr, (intptr_t) &host.flash_state);
 
 	status |= flash_master_mock_expect_chip_erase (&host.flash_mock_state);
@@ -167,9 +167,9 @@ static void host_processor_dual_test_apply_recovery_image_no_observer (CuTest *t
 		&host.filter, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock,
-		host.flash_mgr.base.config_spi_filter_flash_devices, &host.flash_mgr, 0);
+		host.flash_mgr.base.base.config_spi_filter_flash_devices, &host.flash_mgr, 0);
 
-	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
 		&host.flash_mgr, 0, MOCK_ARG (&host.control));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
@@ -209,11 +209,11 @@ static void host_processor_dual_test_apply_recovery_image_bypass (CuTest *test)
 	status = mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
-	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
 		&host.flash_mgr, 0, MOCK_ARG (&host.control));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_read_only_flash,
+	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.get_read_only_flash,
 		&host.flash_mgr, (intptr_t) &host.flash_state);
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_recovery, &host.observer, 0);
@@ -223,7 +223,7 @@ static void host_processor_dual_test_apply_recovery_image_bypass (CuTest *test)
 	status |= mock_expect (&host.image.mock, host.image.base.apply_to_flash, &host.image, 0,
 		MOCK_ARG_NOT_NULL);
 
-	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
 		&host.flash_mgr, 0, MOCK_ARG (&host.control));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
@@ -258,11 +258,11 @@ static void host_processor_dual_test_apply_recovery_image_no_reset (CuTest *test
 		(intptr_t) &host.image.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
 		&host.flash_mgr, 0, MOCK_ARG (&host.control));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_read_only_flash,
+	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.get_read_only_flash,
 		&host.flash_mgr, (intptr_t) &host.flash_state);
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_recovery, &host.observer, 0);
@@ -276,9 +276,9 @@ static void host_processor_dual_test_apply_recovery_image_no_reset (CuTest *test
 		&host.filter, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock,
-		host.flash_mgr.base.config_spi_filter_flash_devices, &host.flash_mgr, 0);
+		host.flash_mgr.base.base.config_spi_filter_flash_devices, &host.flash_mgr, 0);
 
-	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
 		&host.flash_mgr, 0, MOCK_ARG (&host.control));
 
 	status |= mock_expect (&host.recovery_manager.mock,
@@ -310,11 +310,11 @@ static void host_processor_dual_test_apply_recovery_image_no_reset_pulse_reset (
 		(intptr_t) &host.image.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
 		&host.flash_mgr, 0, MOCK_ARG (&host.control));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_read_only_flash,
+	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.get_read_only_flash,
 		&host.flash_mgr, (intptr_t) &host.flash_state);
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_recovery, &host.observer, 0);
@@ -328,9 +328,9 @@ static void host_processor_dual_test_apply_recovery_image_no_reset_pulse_reset (
 		&host.filter, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock,
-		host.flash_mgr.base.config_spi_filter_flash_devices, &host.flash_mgr, 0);
+		host.flash_mgr.base.base.config_spi_filter_flash_devices, &host.flash_mgr, 0);
 
-	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
 		&host.flash_mgr, 0, MOCK_ARG (&host.control));
 
 	status |= mock_expect (&host.recovery_manager.mock,
@@ -471,11 +471,11 @@ static void host_processor_dual_test_apply_recovery_image_bypass_unsupported_fla
 	status = mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
-	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
 		&host.flash_mgr, 0, MOCK_ARG (&host.control));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_read_only_flash,
+	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.get_read_only_flash,
 		&host.flash_mgr, (intptr_t) &host.flash_state);
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_recovery, &host.observer, 0);
@@ -485,7 +485,7 @@ static void host_processor_dual_test_apply_recovery_image_bypass_unsupported_fla
 	status |= mock_expect (&host.image.mock, host.image.base.apply_to_flash, &host.image, 0,
 		MOCK_ARG_NOT_NULL);
 
-	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
 		&host.flash_mgr, 0, MOCK_ARG (&host.control));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
@@ -539,10 +539,10 @@ static void host_processor_dual_test_apply_recovery_image_set_flash_for_rot_acce
 	status = mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
-	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
 		&host.flash_mgr, HOST_CONTROL_FLASH_ACCESS_FAILED, MOCK_ARG (&host.control));
 
-	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
 		&host.flash_mgr, 0, MOCK_ARG (&host.control));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
@@ -578,10 +578,10 @@ static void host_processor_dual_test_apply_recovery_image_set_flash_for_rot_acce
 		(intptr_t) &host.image.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
+	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
 		&host.flash_mgr, HOST_CONTROL_FLASH_ACCESS_FAILED, MOCK_ARG (&host.control));
 
-	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
 		&host.flash_mgr, 0, MOCK_ARG (&host.control));
 
 	status = mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
@@ -622,18 +622,18 @@ static void host_processor_dual_test_apply_recovery_image_set_flash_for_rot_acce
 	status = mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
-	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
 		&host.flash_mgr, HOST_CONTROL_FLASH_ACCESS_FAILED, MOCK_ARG (&host.control));
 
-	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
 		&host.flash_mgr, HOST_FLASH_MGR_HOST_ACCESS_FAILED, MOCK_ARG (&host.control));
-	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
 		&host.flash_mgr, HOST_FLASH_MGR_HOST_ACCESS_FAILED, MOCK_ARG (&host.control));
-	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
 		&host.flash_mgr, HOST_FLASH_MGR_HOST_ACCESS_FAILED, MOCK_ARG (&host.control));
-	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
 		&host.flash_mgr, HOST_FLASH_MGR_HOST_ACCESS_FAILED, MOCK_ARG (&host.control));
-	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
 		&host.flash_mgr, 0, MOCK_ARG (&host.control));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
@@ -672,11 +672,11 @@ static void host_processor_dual_test_apply_recovery_image_chip_erase_error (
 	status = mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
-	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
 		&host.flash_mgr, 0, MOCK_ARG (&host.control));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_read_only_flash,
+	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.get_read_only_flash,
 		&host.flash_mgr, (intptr_t) &host.flash_state);
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_recovery, &host.observer, 0);
@@ -687,7 +687,7 @@ static void host_processor_dual_test_apply_recovery_image_chip_erase_error (
 	status |= flash_master_mock_expect_xfer (&host.flash_mock_state, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_OPCODE(0xc7));
 
-	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
 		&host.flash_mgr, 0, MOCK_ARG (&host.control));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
@@ -723,11 +723,11 @@ static void host_processor_dual_test_apply_recovery_image_chip_erase_error_pulse
 		(intptr_t) &host.image.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
+	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
 		&host.flash_mgr, 0, MOCK_ARG (&host.control));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_read_only_flash,
+	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.get_read_only_flash,
 		&host.flash_mgr, (intptr_t) &host.flash_state);
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_recovery, &host.observer, 0);
@@ -738,7 +738,7 @@ static void host_processor_dual_test_apply_recovery_image_chip_erase_error_pulse
 	status |= flash_master_mock_expect_xfer (&host.flash_mock_state, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_OPCODE(0xc7));
 
-	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
 		&host.flash_mgr, 0, MOCK_ARG (&host.control));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
@@ -778,11 +778,11 @@ static void host_processor_dual_test_apply_recovery_image_bad_image (CuTest *tes
 	status = mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
-	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
 		&host.flash_mgr, 0, MOCK_ARG (&host.control));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_read_only_flash,
+	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.get_read_only_flash,
 		&host.flash_mgr, (intptr_t) &host.flash_state);
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_recovery, &host.observer, 0);
@@ -792,7 +792,7 @@ static void host_processor_dual_test_apply_recovery_image_bad_image (CuTest *tes
 	status |= mock_expect (&host.image.mock, host.image.base.apply_to_flash, &host.image,
 		RECOVERY_IMAGE_HEADER_BAD_FORMAT_LENGTH, MOCK_ARG_NOT_NULL);
 
-	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
 		&host.flash_mgr, 0, MOCK_ARG (&host.control));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
@@ -827,11 +827,11 @@ static void host_processor_dual_test_apply_recovery_image_bad_image_pulse_reset 
 		(intptr_t) &host.image.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
+	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
 		&host.flash_mgr, 0, MOCK_ARG (&host.control));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_read_only_flash,
+	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.get_read_only_flash,
 		&host.flash_mgr, (intptr_t) &host.flash_state);
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_recovery, &host.observer, 0);
@@ -841,7 +841,7 @@ static void host_processor_dual_test_apply_recovery_image_bad_image_pulse_reset 
 	status |= mock_expect (&host.image.mock, host.image.base.apply_to_flash, &host.image,
 		RECOVERY_IMAGE_HEADER_BAD_FORMAT_LENGTH, MOCK_ARG_NOT_NULL);
 
-	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
 		&host.flash_mgr, 0, MOCK_ARG (&host.control));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
@@ -881,11 +881,11 @@ static void host_processor_dual_test_apply_recovery_image_clear_rw_region_error 
 	status = mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
-	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
 		&host.flash_mgr, 0, MOCK_ARG (&host.control));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_read_only_flash,
+	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.get_read_only_flash,
 		&host.flash_mgr, (intptr_t) &host.flash_state);
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_recovery, &host.observer, 0);
@@ -907,9 +907,9 @@ static void host_processor_dual_test_apply_recovery_image_clear_rw_region_error 
 		&host.filter, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock,
-		host.flash_mgr.base.config_spi_filter_flash_devices, &host.flash_mgr, 0);
+		host.flash_mgr.base.base.config_spi_filter_flash_devices, &host.flash_mgr, 0);
 
-	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
 		&host.flash_mgr, 0, MOCK_ARG (&host.control));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
@@ -945,11 +945,11 @@ static void host_processor_dual_test_apply_recovery_image_clear_rw_region_error_
 		(intptr_t) &host.image.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
+	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
 		&host.flash_mgr, 0, MOCK_ARG (&host.control));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_read_only_flash,
+	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.get_read_only_flash,
 		&host.flash_mgr, (intptr_t) &host.flash_state);
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_recovery, &host.observer, 0);
@@ -971,9 +971,9 @@ static void host_processor_dual_test_apply_recovery_image_clear_rw_region_error_
 		&host.filter, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock,
-		host.flash_mgr.base.config_spi_filter_flash_devices, &host.flash_mgr, 0);
+		host.flash_mgr.base.base.config_spi_filter_flash_devices, &host.flash_mgr, 0);
 
-	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
 		&host.flash_mgr, 0, MOCK_ARG (&host.control));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
@@ -1013,11 +1013,11 @@ static void host_processor_dual_test_apply_recovery_image_spi_filter_config_erro
 	status = mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
-	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
 		&host.flash_mgr, 0, MOCK_ARG (&host.control));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_read_only_flash,
+	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.get_read_only_flash,
 		&host.flash_mgr, (intptr_t) &host.flash_state);
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_recovery, &host.observer, 0);
@@ -1031,21 +1031,21 @@ static void host_processor_dual_test_apply_recovery_image_spi_filter_config_erro
 		&host.filter, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock,
-		host.flash_mgr.base.config_spi_filter_flash_devices, &host.flash_mgr,
+		host.flash_mgr.base.base.config_spi_filter_flash_devices, &host.flash_mgr,
 		HOST_FLASH_MGR_CONFIG_FILTER_FAILED);
 	status |= mock_expect (&host.flash_mgr.mock,
-		host.flash_mgr.base.config_spi_filter_flash_devices, &host.flash_mgr,
+		host.flash_mgr.base.base.config_spi_filter_flash_devices, &host.flash_mgr,
 		HOST_FLASH_MGR_CONFIG_FILTER_FAILED);
 	status |= mock_expect (&host.flash_mgr.mock,
-		host.flash_mgr.base.config_spi_filter_flash_devices, &host.flash_mgr,
+		host.flash_mgr.base.base.config_spi_filter_flash_devices, &host.flash_mgr,
 		HOST_FLASH_MGR_CONFIG_FILTER_FAILED);
 	status |= mock_expect (&host.flash_mgr.mock,
-		host.flash_mgr.base.config_spi_filter_flash_devices, &host.flash_mgr,
+		host.flash_mgr.base.base.config_spi_filter_flash_devices, &host.flash_mgr,
 		HOST_FLASH_MGR_CONFIG_FILTER_FAILED);
 	status |= mock_expect (&host.flash_mgr.mock,
-		host.flash_mgr.base.config_spi_filter_flash_devices, &host.flash_mgr, 0);
+		host.flash_mgr.base.base.config_spi_filter_flash_devices, &host.flash_mgr, 0);
 
-	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
 		&host.flash_mgr, 0, MOCK_ARG (&host.control));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
@@ -1081,11 +1081,11 @@ static void host_processor_dual_test_apply_recovery_image_spi_filter_config_erro
 		(intptr_t) &host.image.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
+	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
 		&host.flash_mgr, 0, MOCK_ARG (&host.control));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_read_only_flash,
+	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.get_read_only_flash,
 		&host.flash_mgr, (intptr_t) &host.flash_state);
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_recovery, &host.observer, 0);
@@ -1099,21 +1099,21 @@ static void host_processor_dual_test_apply_recovery_image_spi_filter_config_erro
 		&host.filter, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock,
-		host.flash_mgr.base.config_spi_filter_flash_devices, &host.flash_mgr,
+		host.flash_mgr.base.base.config_spi_filter_flash_devices, &host.flash_mgr,
 		HOST_FLASH_MGR_CONFIG_FILTER_FAILED);
 	status |= mock_expect (&host.flash_mgr.mock,
-		host.flash_mgr.base.config_spi_filter_flash_devices, &host.flash_mgr,
+		host.flash_mgr.base.base.config_spi_filter_flash_devices, &host.flash_mgr,
 		HOST_FLASH_MGR_CONFIG_FILTER_FAILED);
 	status |= mock_expect (&host.flash_mgr.mock,
-		host.flash_mgr.base.config_spi_filter_flash_devices, &host.flash_mgr,
+		host.flash_mgr.base.base.config_spi_filter_flash_devices, &host.flash_mgr,
 		HOST_FLASH_MGR_CONFIG_FILTER_FAILED);
 	status |= mock_expect (&host.flash_mgr.mock,
-		host.flash_mgr.base.config_spi_filter_flash_devices, &host.flash_mgr,
+		host.flash_mgr.base.base.config_spi_filter_flash_devices, &host.flash_mgr,
 		HOST_FLASH_MGR_CONFIG_FILTER_FAILED);
 	status |= mock_expect (&host.flash_mgr.mock,
-		host.flash_mgr.base.config_spi_filter_flash_devices, &host.flash_mgr, 0);
+		host.flash_mgr.base.base.config_spi_filter_flash_devices, &host.flash_mgr, 0);
 
-	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
 		&host.flash_mgr, 0, MOCK_ARG (&host.control));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
@@ -1154,11 +1154,11 @@ static void host_processor_dual_test_apply_recovery_image_set_flash_for_host_acc
 	status = mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
-	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
 		&host.flash_mgr, 0, MOCK_ARG (&host.control));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_read_only_flash,
+	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.get_read_only_flash,
 		&host.flash_mgr, (intptr_t) &host.flash_state);
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_recovery, &host.observer, 0);
@@ -1172,17 +1172,17 @@ static void host_processor_dual_test_apply_recovery_image_set_flash_for_host_acc
 		&host.filter, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock,
-		host.flash_mgr.base.config_spi_filter_flash_devices, &host.flash_mgr, 0);
+		host.flash_mgr.base.base.config_spi_filter_flash_devices, &host.flash_mgr, 0);
 
-	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
 		&host.flash_mgr, HOST_FLASH_MGR_HOST_ACCESS_FAILED, MOCK_ARG (&host.control));
-	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
 		&host.flash_mgr, HOST_FLASH_MGR_HOST_ACCESS_FAILED, MOCK_ARG (&host.control));
-	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
 		&host.flash_mgr, HOST_FLASH_MGR_HOST_ACCESS_FAILED, MOCK_ARG (&host.control));
-	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
 		&host.flash_mgr, HOST_FLASH_MGR_HOST_ACCESS_FAILED, MOCK_ARG (&host.control));
-	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
 		&host.flash_mgr, 0, MOCK_ARG (&host.control));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
@@ -1218,11 +1218,11 @@ static void host_processor_dual_test_apply_recovery_image_set_flash_for_host_acc
 		(intptr_t) &host.image.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_rot_access,
+	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
 		&host.flash_mgr, 0, MOCK_ARG (&host.control));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.get_read_only_flash,
+	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.get_read_only_flash,
 		&host.flash_mgr, (intptr_t) &host.flash_state);
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_recovery, &host.observer, 0);
@@ -1236,17 +1236,17 @@ static void host_processor_dual_test_apply_recovery_image_set_flash_for_host_acc
 		&host.filter, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock,
-		host.flash_mgr.base.config_spi_filter_flash_devices, &host.flash_mgr, 0);
+		host.flash_mgr.base.base.config_spi_filter_flash_devices, &host.flash_mgr, 0);
 
-	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
 		&host.flash_mgr, HOST_FLASH_MGR_HOST_ACCESS_FAILED, MOCK_ARG (&host.control));
-	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
 		&host.flash_mgr, HOST_FLASH_MGR_HOST_ACCESS_FAILED, MOCK_ARG (&host.control));
-	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
 		&host.flash_mgr, HOST_FLASH_MGR_HOST_ACCESS_FAILED, MOCK_ARG (&host.control));
-	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
 		&host.flash_mgr, HOST_FLASH_MGR_HOST_ACCESS_FAILED, MOCK_ARG (&host.control));
-	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.set_flash_for_host_access,
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
 		&host.flash_mgr, 0, MOCK_ARG (&host.control));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,

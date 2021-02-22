@@ -578,6 +578,7 @@ void manifest_flash_v2_testing_read_element_mocked_hash (CuTest *test,
 			break;
 
 		default:
+			status = 0;
 			break;
 	}
 	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.update,

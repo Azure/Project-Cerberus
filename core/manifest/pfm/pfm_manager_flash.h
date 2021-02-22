@@ -8,6 +8,7 @@
 #include "pfm_manager.h"
 #include "pfm_flash.h"
 #include "manifest/manifest_manager_flash.h"
+#include "host_fw/host_state_manager.h"
 
 
 /**
@@ -16,14 +17,15 @@
 struct pfm_manager_flash {
 	struct pfm_manager base;						/**< The base PFM manager instance. */
 	struct manifest_manager_flash manifest_manager;	/**< Common manifest manager flash members. */
+	struct host_state_manager *host_state;			/**< Manager for host state. */
 };
 
 
 int pfm_manager_flash_init (struct pfm_manager_flash *manager, struct pfm_flash *pfm_region1,
-	struct pfm_flash *pfm_region2, struct state_manager *state, struct hash_engine *hash,
+	struct pfm_flash *pfm_region2, struct host_state_manager *state, struct hash_engine *hash,
 	struct signature_verification *verification);
 int pfm_manager_flash_init_port (struct pfm_manager_flash *manager, struct pfm_flash *pfm_region1,
-	struct pfm_flash *pfm_region2, struct state_manager *state, struct hash_engine *hash,
+	struct pfm_flash *pfm_region2, struct host_state_manager *state, struct hash_engine *hash,
 	struct signature_verification *verification, int port);
 void pfm_manager_flash_release (struct pfm_manager_flash *manager);
 

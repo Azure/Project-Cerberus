@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <string.h>
 #include "host_state_manager.h"
+#include "host_state_observer.h"
 #include "flash/flash_common.h"
 #include "flash/flash_util.h"
 
@@ -16,16 +17,27 @@
 #define	ACTIVE_RECOVERY_IMAGE_MASK	(1U << 3)
 
 /* Bitmasks for settings in volatile memory. */
-#define	PFM_DIRTY_MASK			(1U << 0)
-#define	RUN_TIME_MASK			(3U << 1)
-#define	BYPASS_MASK				(1U << 3)
-#define	BAD_FLASH_MASK			(1U << 4)
+#define	PFM_DIRTY_MASK				(1U << 0)
+#define	RUN_TIME_MASK				(3U << 1)
+#define	BYPASS_MASK					(1U << 3)
+#define	BAD_FLASH_MASK				(1U << 4)
 
 
 static int host_state_manager_save_active_manifest (struct state_manager *manager,
 	uint8_t manifest_index, enum manifest_region active)
 {
-	return state_manager_save_active_manifest (manager, active, ACTIVE_PFM_MASK);
+	struct host_state_manager *host_state = (struct host_state_manager*) manager;
+	int status;
+
+	status = state_manager_save_active_manifest (manager, active, ACTIVE_PFM_MASK);
+	if (status == 0) {
+		if (status == 0) {
+			observable_notify_observers_with_ptr (&host_state->observable,
+				offsetof (struct host_state_observer, on_active_pfm), host_state);
+		}
+	}
+
+	return status;
 }
 
 static enum manifest_region host_state_manager_get_active_manifest (struct state_manager *manager,
@@ -36,7 +48,9 @@ static enum manifest_region host_state_manager_get_active_manifest (struct state
 
 static int host_state_manager_restore_default_state (struct state_manager *manager)
 {
-	if (manager == NULL) {
+	struct host_state_manager *host_state = (struct host_state_manager*) manager;
+
+	if (host_state == NULL) {
 		return STATE_MANAGER_INVALID_ARGUMENT;
 	}
 
@@ -47,6 +61,24 @@ static int host_state_manager_restore_default_state (struct state_manager *manag
 	manager->volatile_state |= PFM_DIRTY_MASK;
 
 	platform_mutex_unlock (&manager->state_lock);
+
+	observable_notify_observers_with_ptr (&host_state->observable,
+		offsetof (struct host_state_observer, on_active_pfm), host_state);
+	observable_notify_observers_with_ptr (&host_state->observable,
+		offsetof (struct host_state_observer, on_read_only_flash), host_state);
+	observable_notify_observers_with_ptr (&host_state->observable,
+		offsetof (struct host_state_observer, on_inactive_dirty), host_state);
+	observable_notify_observers_with_ptr (&host_state->observable,
+		offsetof (struct host_state_observer, on_active_recovery_image), host_state);
+	observable_notify_observers_with_ptr (&host_state->observable,
+		offsetof (struct host_state_observer, on_pfm_dirty), host_state);
+	observable_notify_observers_with_ptr (&host_state->observable,
+		offsetof (struct host_state_observer, on_run_time_validation), host_state);
+	observable_notify_observers_with_ptr (&host_state->observable,
+		offsetof (struct host_state_observer, on_bypass_mode), host_state);
+	observable_notify_observers_with_ptr (&host_state->observable,
+		offsetof (struct host_state_observer, on_unsupported_flash), host_state);
+
 	return 0;
 }
 
@@ -67,7 +99,7 @@ static int host_state_manager_is_manifest_valid (struct state_manager *manager,
  *
  * @return 0 if the state manager was successfully initialized or an error code.
  */
-int host_state_manager_init (struct state_manager *manager, struct flash *state_flash,
+int host_state_manager_init (struct host_state_manager *manager, struct flash *state_flash,
 	uint32_t store_addr)
 {
 	int status;
@@ -76,17 +108,27 @@ int host_state_manager_init (struct state_manager *manager, struct flash *state_
 		return STATE_MANAGER_INVALID_ARGUMENT;
 	}
 
-	status = state_manager_init (manager, state_flash, store_addr);
-	if (status == 0) {
-		manager->get_active_manifest = host_state_manager_get_active_manifest;
-		manager->save_active_manifest = host_state_manager_save_active_manifest;
-		manager->restore_default_state = host_state_manager_restore_default_state;
-		manager->is_manifest_valid = host_state_manager_is_manifest_valid;
+	memset (manager, 0, sizeof (struct host_state_manager));
 
-		manager->volatile_state |= PFM_DIRTY_MASK;
+	status = state_manager_init (&manager->base, state_flash, store_addr);
+	if (status != 0) {
+		return status;
 	}
 
-	return status;
+	status = observable_init (&manager->observable);
+	if (status != 0) {
+		state_manager_release (&manager->base);
+		return status;
+	}
+
+	manager->base.get_active_manifest = host_state_manager_get_active_manifest;
+	manager->base.save_active_manifest = host_state_manager_save_active_manifest;
+	manager->base.restore_default_state = host_state_manager_restore_default_state;
+	manager->base.is_manifest_valid = host_state_manager_is_manifest_valid;
+
+	manager->base.volatile_state |= PFM_DIRTY_MASK;
+
+	return 0;
 }
 
 /**
@@ -94,9 +136,32 @@ int host_state_manager_init (struct state_manager *manager, struct flash *state_
  *
  * @param manager The state manager to release.
  */
-void host_state_manager_release (struct state_manager *manager)
+void host_state_manager_release (struct host_state_manager *manager)
 {
-	state_manager_release (manager);
+	if (manager) {
+		state_manager_release (&manager->base);
+		observable_release (&manager->observable);
+	}
+}
+
+int host_state_manager_add_observer (struct host_state_manager *manager,
+	struct host_state_observer *observer)
+{
+	if (manager == NULL) {
+		return STATE_MANAGER_INVALID_ARGUMENT;
+	}
+
+	return observable_add_observer (&manager->observable, observer);
+}
+
+int host_state_manager_remove_observer (struct host_state_manager *manager,
+	struct host_state_observer *observer)
+{
+	if (manager == NULL) {
+		return STATE_MANAGER_INVALID_ARGUMENT;
+	}
+
+	return observable_remove_observer (&manager->observable, observer);
 }
 
 /**
@@ -109,7 +174,7 @@ void host_state_manager_release (struct state_manager *manager)
  *
  * @return 0 if the setting was saved or an error code if the setting was invalid.
  */
-int host_state_manager_save_read_only_flash (struct state_manager *manager, spi_filter_cs ro)
+int host_state_manager_save_read_only_flash (struct host_state_manager *manager, spi_filter_cs ro)
 {
 	int status = 0;
 
@@ -117,15 +182,15 @@ int host_state_manager_save_read_only_flash (struct state_manager *manager, spi_
 		return STATE_MANAGER_INVALID_ARGUMENT;
 	}
 
-	platform_mutex_lock (&manager->state_lock);
+	platform_mutex_lock (&manager->base.state_lock);
 
 	switch (ro) {
 		case SPI_FILTER_CS_0:
-			manager->nv_state = manager->nv_state | READ_ONLY_FLASH_MASK;
+			manager->base.nv_state = manager->base.nv_state | READ_ONLY_FLASH_MASK;
 			break;
 
 		case SPI_FILTER_CS_1:
-			manager->nv_state = manager->nv_state & ~READ_ONLY_FLASH_MASK;
+			manager->base.nv_state = manager->base.nv_state & ~READ_ONLY_FLASH_MASK;
 			break;
 
 		default:
@@ -133,7 +198,13 @@ int host_state_manager_save_read_only_flash (struct state_manager *manager, spi_
 			break;
 	}
 
-	platform_mutex_unlock (&manager->state_lock);
+	platform_mutex_unlock (&manager->base.state_lock);
+
+	if (status == 0) {
+		observable_notify_observers_with_ptr (&manager->observable,
+			offsetof (struct host_state_observer, on_read_only_flash), manager);
+	}
+
 	return status;
 }
 
@@ -144,13 +215,13 @@ int host_state_manager_save_read_only_flash (struct state_manager *manager, spi_
  *
  * @return The read-only flash device.
  */
-spi_filter_cs host_state_manager_get_read_only_flash (struct state_manager *manager)
+spi_filter_cs host_state_manager_get_read_only_flash (struct host_state_manager *manager)
 {
 	if (manager == NULL) {
 		return SPI_FILTER_CS_0;
 	}
 
-	return (manager->nv_state & READ_ONLY_FLASH_MASK) ? SPI_FILTER_CS_0 : SPI_FILTER_CS_1;
+	return (manager->base.nv_state & READ_ONLY_FLASH_MASK) ? SPI_FILTER_CS_0 : SPI_FILTER_CS_1;
 }
 
 /**
@@ -163,26 +234,36 @@ spi_filter_cs host_state_manager_get_read_only_flash (struct state_manager *mana
  *
  * @return 0 if the setting was saved or an error code if the manager instance is invalid.
  */
-int host_state_manager_save_inactive_dirty (struct state_manager *manager, bool dirty)
+int host_state_manager_save_inactive_dirty (struct host_state_manager *manager, bool dirty)
 {
-	int status = 0;
+	bool run_time;
 
 	if (manager == NULL) {
 		return STATE_MANAGER_INVALID_ARGUMENT;
 	}
 
-	platform_mutex_lock (&manager->state_lock);
+	platform_mutex_lock (&manager->base.state_lock);
 
 	if (dirty) {
-		manager->nv_state = manager->nv_state & ~INACTIVE_DIRTY_MASK;
-		manager->volatile_state = manager->volatile_state & ~RUN_TIME_MASK;
+		manager->base.nv_state = manager->base.nv_state & ~INACTIVE_DIRTY_MASK;
+
+		run_time = !!(manager->base.volatile_state & RUN_TIME_MASK);
+		manager->base.volatile_state = manager->base.volatile_state & ~RUN_TIME_MASK;
 	}
 	else {
-		manager->nv_state = manager->nv_state | INACTIVE_DIRTY_MASK;
+		manager->base.nv_state = manager->base.nv_state | INACTIVE_DIRTY_MASK;
 	}
 
-	platform_mutex_unlock (&manager->state_lock);
-	return status;
+	platform_mutex_unlock (&manager->base.state_lock);
+
+	observable_notify_observers_with_ptr (&manager->observable,
+		offsetof (struct host_state_observer, on_inactive_dirty), manager);
+	if (dirty && run_time) {
+		observable_notify_observers_with_ptr (&manager->observable,
+			offsetof (struct host_state_observer, on_run_time_validation), manager);
+	}
+
+	return 0;
 }
 
 /**
@@ -192,13 +273,13 @@ int host_state_manager_save_inactive_dirty (struct state_manager *manager, bool 
  *
  * @return true if the inactive flash has been written and not validated or false otherwise.
  */
-bool host_state_manager_is_inactive_dirty (struct state_manager *manager)
+bool host_state_manager_is_inactive_dirty (struct host_state_manager *manager)
 {
 	if (manager == NULL) {
 		return false;
 	}
 
-	return !(manager->nv_state & INACTIVE_DIRTY_MASK);
+	return !(manager->base.nv_state & INACTIVE_DIRTY_MASK);
 }
 
 /**
@@ -210,7 +291,7 @@ bool host_state_manager_is_inactive_dirty (struct state_manager *manager)
 
  * @return 0 if the setting was saved or an error code.
  */
-int host_state_manager_save_active_recovery_image (struct state_manager *manager,
+int host_state_manager_save_active_recovery_image (struct host_state_manager *manager,
 	enum recovery_image_region active)
 {
 	int status = 0;
@@ -219,15 +300,15 @@ int host_state_manager_save_active_recovery_image (struct state_manager *manager
 		return STATE_MANAGER_INVALID_ARGUMENT;
 	}
 
-	platform_mutex_lock (&manager->state_lock);
+	platform_mutex_lock (&manager->base.state_lock);
 
 	switch (active) {
 		case RECOVERY_IMAGE_REGION_1:
-			manager->nv_state = manager->nv_state | ACTIVE_RECOVERY_IMAGE_MASK;
+			manager->base.nv_state = manager->base.nv_state | ACTIVE_RECOVERY_IMAGE_MASK;
 			break;
 
 		case RECOVERY_IMAGE_REGION_2:
-			manager->nv_state = manager->nv_state & ~ACTIVE_RECOVERY_IMAGE_MASK;
+			manager->base.nv_state = manager->base.nv_state & ~ACTIVE_RECOVERY_IMAGE_MASK;
 			break;
 
 		default:
@@ -235,7 +316,12 @@ int host_state_manager_save_active_recovery_image (struct state_manager *manager
 			break;
 	}
 
-	platform_mutex_unlock (&manager->state_lock);
+	platform_mutex_unlock (&manager->base.state_lock);
+
+	if (status == 0) {
+		observable_notify_observers_with_ptr (&manager->observable,
+			offsetof (struct host_state_observer, on_active_recovery_image), manager);
+	}
 
 	return status;
 
@@ -249,13 +335,13 @@ int host_state_manager_save_active_recovery_image (struct state_manager *manager
  * @return The active recovery image region.
  */
 enum recovery_image_region host_state_manager_get_active_recovery_image (
-	struct state_manager *manager)
+	struct host_state_manager *manager)
 {
 	if (manager == NULL) {
 		return RECOVERY_IMAGE_REGION_1;
 	}
 
-	return (manager->nv_state & ACTIVE_RECOVERY_IMAGE_MASK) ?
+	return (manager->base.nv_state & ACTIVE_RECOVERY_IMAGE_MASK) ?
 		RECOVERY_IMAGE_REGION_1 : RECOVERY_IMAGE_REGION_2;
 }
 
@@ -266,21 +352,31 @@ enum recovery_image_region host_state_manager_get_active_recovery_image (
  * @param manager The host state to update.
  * @param dirty The dirty state of the PFM.
  */
-void host_state_manager_set_pfm_dirty (struct state_manager *manager, bool dirty)
+void host_state_manager_set_pfm_dirty (struct host_state_manager *manager, bool dirty)
 {
+	bool run_time = false;
+
 	if (manager != NULL) {
-		platform_mutex_lock (&manager->state_lock);
+		platform_mutex_lock (&manager->base.state_lock);
 		if (dirty) {
-			manager->volatile_state |= PFM_DIRTY_MASK;
-			if ((manager->volatile_state & RUN_TIME_MASK) ==
+			manager->base.volatile_state |= PFM_DIRTY_MASK;
+			if ((manager->base.volatile_state & RUN_TIME_MASK) ==
 				HOST_STATE_PREVALIDATED_FLASH_AND_PFM) {
-				manager->volatile_state &= ~RUN_TIME_MASK;
+				run_time = true;
+				manager->base.volatile_state &= ~RUN_TIME_MASK;
 			}
 		}
 		else {
-			manager->volatile_state &= ~PFM_DIRTY_MASK;
+			manager->base.volatile_state &= ~PFM_DIRTY_MASK;
 		}
-		platform_mutex_unlock (&manager->state_lock);
+		platform_mutex_unlock (&manager->base.state_lock);
+
+		observable_notify_observers_with_ptr (&manager->observable,
+			offsetof (struct host_state_observer, on_pfm_dirty), manager);
+		if (run_time) {
+			observable_notify_observers_with_ptr (&manager->observable,
+				offsetof (struct host_state_observer, on_run_time_validation), manager);
+		}
 	}
 }
 
@@ -292,13 +388,13 @@ void host_state_manager_set_pfm_dirty (struct state_manager *manager, bool dirty
  *
  * @return true if the pending PFM is dirty.
  */
-bool host_state_manager_is_pfm_dirty (struct state_manager *manager)
+bool host_state_manager_is_pfm_dirty (struct host_state_manager *manager)
 {
 	if (manager == NULL) {
 		return true;
 	}
 
-	return !!(manager->volatile_state & PFM_DIRTY_MASK);
+	return !!(manager->base.volatile_state & PFM_DIRTY_MASK);
 }
 
 /**
@@ -308,14 +404,17 @@ bool host_state_manager_is_pfm_dirty (struct state_manager *manager)
  * @param manager The host state to update.
  * @param state The run-time validation state for the host.
  */
-void host_state_manager_set_run_time_validation (struct state_manager *manager,
+void host_state_manager_set_run_time_validation (struct host_state_manager *manager,
 	enum host_state_prevalidated state)
 {
 	if (manager != NULL) {
-		platform_mutex_lock (&manager->state_lock);
-		manager->volatile_state &= ~RUN_TIME_MASK;
-		manager->volatile_state |= state;
-		platform_mutex_unlock (&manager->state_lock);
+		platform_mutex_lock (&manager->base.state_lock);
+		manager->base.volatile_state &= ~RUN_TIME_MASK;
+		manager->base.volatile_state |= state;
+		platform_mutex_unlock (&manager->base.state_lock);
+
+		observable_notify_observers_with_ptr (&manager->observable,
+			offsetof (struct host_state_observer, on_run_time_validation), manager);
 	}
 }
 
@@ -327,13 +426,13 @@ void host_state_manager_set_run_time_validation (struct state_manager *manager,
  * @return The run-time validation state for the host.
  */
 enum host_state_prevalidated host_state_manager_get_run_time_validation (
-	struct state_manager *manager)
+	struct host_state_manager *manager)
 {
 	if (manager == NULL) {
 		return HOST_STATE_PREVALIDATED_NONE;
 	}
 
-	return (enum host_state_prevalidated) (manager->volatile_state & RUN_TIME_MASK);
+	return (enum host_state_prevalidated) (manager->base.volatile_state & RUN_TIME_MASK);
 }
 
 /**
@@ -342,17 +441,20 @@ enum host_state_prevalidated host_state_manager_get_run_time_validation (
  * @param manager The host state to update.
  * @param bypass The bypass state of the host.
  */
-void host_state_manager_set_bypass_mode (struct state_manager *manager, bool bypass)
+void host_state_manager_set_bypass_mode (struct host_state_manager *manager, bool bypass)
 {
 	if (manager != NULL) {
-		platform_mutex_lock (&manager->state_lock);
+		platform_mutex_lock (&manager->base.state_lock);
 		if (bypass) {
-			manager->volatile_state |= BYPASS_MASK;
+			manager->base.volatile_state |= BYPASS_MASK;
 		}
 		else {
-			manager->volatile_state &= ~BYPASS_MASK;
+			manager->base.volatile_state &= ~BYPASS_MASK;
 		}
-		platform_mutex_unlock (&manager->state_lock);
+		platform_mutex_unlock (&manager->base.state_lock);
+
+		observable_notify_observers_with_ptr (&manager->observable,
+			offsetof (struct host_state_observer, on_bypass_mode), manager);
 	}
 }
 
@@ -363,13 +465,13 @@ void host_state_manager_set_bypass_mode (struct state_manager *manager, bool byp
  *
  * @return true if the host is running in bypass mode.
  */
-bool host_state_manager_is_bypass_mode (struct state_manager *manager)
+bool host_state_manager_is_bypass_mode (struct host_state_manager *manager)
 {
 	if (manager == NULL) {
 		return false;
 	}
 
-	return !!(manager->volatile_state & BYPASS_MASK);
+	return !!(manager->base.volatile_state & BYPASS_MASK);
 }
 
 /**
@@ -378,17 +480,20 @@ bool host_state_manager_is_bypass_mode (struct state_manager *manager)
  * @param manager The host state to update.
  * @param unsupported true to indicate an unsupported configuration.
  */
-void host_state_manager_set_unsupported_flash (struct state_manager *manager, bool unsupported)
+void host_state_manager_set_unsupported_flash (struct host_state_manager *manager, bool unsupported)
 {
 	if (manager != NULL) {
-		platform_mutex_lock (&manager->state_lock);
+		platform_mutex_lock (&manager->base.state_lock);
 		if (unsupported) {
-			manager->volatile_state |= BAD_FLASH_MASK;
+			manager->base.volatile_state |= BAD_FLASH_MASK;
 		}
 		else {
-			manager->volatile_state &= ~BAD_FLASH_MASK;
+			manager->base.volatile_state &= ~BAD_FLASH_MASK;
 		}
-		platform_mutex_unlock (&manager->state_lock);
+		platform_mutex_unlock (&manager->base.state_lock);
+
+		observable_notify_observers_with_ptr (&manager->observable,
+			offsetof (struct host_state_observer, on_unsupported_flash), manager);
 	}
 }
 
@@ -399,11 +504,11 @@ void host_state_manager_set_unsupported_flash (struct state_manager *manager, bo
  *
  * @return true if the flash configuration is supported.
  */
-bool host_state_manager_is_flash_supported (struct state_manager *manager)
+bool host_state_manager_is_flash_supported (struct host_state_manager *manager)
 {
 	if (manager == NULL) {
 		return true;
 	}
 
-	return !(manager->volatile_state & BAD_FLASH_MASK);
+	return !(manager->base.volatile_state & BAD_FLASH_MASK);
 }

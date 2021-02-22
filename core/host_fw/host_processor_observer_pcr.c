@@ -6,6 +6,7 @@
 #include <string.h>
 #include "host_processor_observer_pcr.h"
 #include "host_logging.h"
+#include "common/type_cast.h"
 
 
 /**
@@ -14,34 +15,46 @@
  * @param observer The observer context to update.
  * @param event The event state to update to.
  */
-static void host_processor_observer_pcr_update (struct host_processor_observer *observer,
+static void host_processor_observer_pcr_update (struct host_processor_observer_pcr *observer,
 	int event)
 {
-	struct host_processor_observer_pcr *host = (struct host_processor_observer_pcr*) observer;
 	int status;
 
-	*host->state = event;
-	status = pcr_store_update_versioned_buffer (host->store, host->hash, host->pcr,
-		(uint8_t*) host->state, sizeof (uint32_t), true, 0);
+	*observer->state = event;
+	status = pcr_store_update_versioned_buffer (observer->store, observer->hash, observer->pcr,
+		(uint8_t*) observer->state, sizeof (uint32_t), true, 0);
 	if (status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_HOST_FW,
-			HOST_LOGGING_PCR_UPDATE_ERROR, host->pcr, status);
+			HOST_LOGGING_PCR_UPDATE_ERROR, observer->pcr, status);
 	}
 }
 
 static void host_processor_observer_pcr_on_bypass_mode (struct host_processor_observer *observer)
 {
-	host_processor_observer_pcr_update (observer, HOST_PROCESSOR_OBSERVER_PCR_BYPASS);
+	host_processor_observer_pcr_update ((struct host_processor_observer_pcr*) observer,
+		HOST_PROCESSOR_OBSERVER_PCR_BYPASS);
 }
 
 static void host_processor_observer_pcr_on_active_mode (struct host_processor_observer *observer)
 {
-	host_processor_observer_pcr_update (observer, HOST_PROCESSOR_OBSERVER_PCR_VALID);
+	host_processor_observer_pcr_update ((struct host_processor_observer_pcr*) observer,
+		HOST_PROCESSOR_OBSERVER_PCR_VALID);
 }
 
 static void host_processor_observer_pcr_on_recovery (struct host_processor_observer *observer)
 {
-	host_processor_observer_pcr_update (observer, HOST_PROCESSOR_OBSERVER_PCR_RECOVERY);
+	host_processor_observer_pcr_update ((struct host_processor_observer_pcr*) observer,
+		HOST_PROCESSOR_OBSERVER_PCR_RECOVERY);
+}
+
+static void host_processor_observer_pcr_on_inactive_dirty (struct host_state_observer *observer,
+	struct host_state_manager *manager)
+{
+	if (host_state_manager_is_inactive_dirty (manager)) {
+		host_processor_observer_pcr_update (
+			TO_DERIVED_TYPE (observer, struct host_processor_observer_pcr, base_state),
+			HOST_PROCESSOR_OBSERVER_PCR_NOT_VALIDATED);
+	}
 }
 
 /**
@@ -77,6 +90,8 @@ int host_processor_observer_pcr_init (struct host_processor_observer_pcr *host,
 	host->base.on_bypass_mode = host_processor_observer_pcr_on_bypass_mode;
 	host->base.on_active_mode = host_processor_observer_pcr_on_active_mode;
 	host->base.on_recovery = host_processor_observer_pcr_on_recovery;
+
+	host->base_state.on_inactive_dirty = host_processor_observer_pcr_on_inactive_dirty;
 
 	host->hash = hash;
 	host->store = store;

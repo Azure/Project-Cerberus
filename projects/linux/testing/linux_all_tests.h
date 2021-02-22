@@ -6,6 +6,10 @@
 
 #include <openssl/evp.h>
 #include "CuTest/CuTest.h"
+#include "testing.h"
+
+
+const char *SUITE = "linux";
 
 
 //#define	TESTING_RUN_HASH_OPENSSL_SUITE
@@ -27,6 +31,8 @@ CuSuite* get_rng_openssl_suite (void);
 
 void linux_teardown (CuTest *test)
 {
+	TEST_START;
+
 	EVP_cleanup ();
 }
 

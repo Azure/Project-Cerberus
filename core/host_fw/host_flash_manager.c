@@ -6,76 +6,7 @@
 #include <string.h>
 #include "host_flash_manager.h"
 #include "host_fw_util.h"
-#include "host_state_manager.h"
 
-
-static struct spi_flash* host_flash_manager_get_read_only_flash (struct host_flash_manager *manager)
-{
-	if (manager == NULL) {
-		return NULL;
-	}
-
-	if (host_state_manager_get_read_only_flash (manager->host_state) == SPI_FILTER_CS_0) {
-		return manager->flash_cs0;
-	}
-	else {
-		return manager->flash_cs1;
-	}
-}
-
-static struct spi_flash* host_flash_manager_get_read_write_flash (
-	struct host_flash_manager *manager)
-{
-	if (manager == NULL) {
-		return NULL;
-	}
-
-	if (host_state_manager_get_read_only_flash (manager->host_state) == SPI_FILTER_CS_0) {
-		return manager->flash_cs1;
-	}
-	else {
-		return manager->flash_cs0;
-	}
-}
-
-/**
- * Find the entry in the PFM for the firmware version stored on flash.
- *
- * @param manager THe manager for the flash to inspect.
- * @param pfm The PFM to check the flash contents against.
- * @param rw_flash Flag indicating if the read/write flash should be checked.
- * @param fw_id Identifier for the firmware type to query in the PFM.
- * @param versions Output for the list of supported versions in the PFM.
- * @param version Output for the version entry that matches the flash contents.
- *
- * @return 0 if a match was found in the PFM or an error code.
- */
-static int host_flash_manager_find_flash_version (struct host_flash_manager *manager,
-	struct pfm *pfm, bool rw_flash, const char *fw_id, struct pfm_firmware_versions *versions,
-	const struct pfm_firmware_version **version)
-{
-	int status;
-
-	status = pfm->get_supported_versions (pfm, fw_id, versions);
-	if (status != 0) {
-		return status;
-	}
-
-	if (rw_flash) {
-		status = host_fw_determine_version (host_flash_manager_get_read_write_flash (manager),
-			versions, version);
-	}
-	else {
-		status = host_fw_determine_version (host_flash_manager_get_read_only_flash (manager),
-			versions, version);
-	}
-
-	if (status != 0) {
-		pfm->free_fw_versions (pfm, versions);
-	}
-
-	return status;
-}
 
 /**
  * Get the information from a PFM entry for the image on flash.
@@ -92,8 +23,8 @@ static int host_flash_manager_find_flash_version (struct host_flash_manager *man
  *
  * @return 0 if the entry information was successfully queried or an error code.
  */
-static int host_flash_manager_get_image_entry (struct pfm *pfm, struct spi_flash *flash,
-	uint32_t offset, const char *fw_id, struct pfm_firmware_versions *versions,
+int host_flash_manager_get_image_entry (struct pfm *pfm, struct spi_flash *flash, uint32_t offset,
+	const char *fw_id, struct pfm_firmware_versions *versions,
 	const struct pfm_firmware_version **version, struct pfm_image_list *fw_images,
 	struct pfm_read_write_regions *writable)
 {
@@ -140,7 +71,7 @@ free_versions:
  *
  * @return 0 if the operation was successful or an error code.
  */
-static int host_flash_manager_get_firmware_types (struct pfm *pfm, struct pfm_firmware *host_fw,
+int host_flash_manager_get_firmware_types (struct pfm *pfm, struct pfm_firmware *host_fw,
 	struct host_flash_manager_images *host_img, struct host_flash_manager_rw_regions *host_rw)
 {
 	int status;
@@ -178,7 +109,7 @@ free_firmware:
 	return HOST_FLASH_MGR_NO_MEMORY;
 }
 
-static void host_flash_manager_free_read_write_regions (struct host_flash_manager *manager,
+void host_flash_manager_free_read_write_regions (struct host_flash_manager *manager,
 	struct host_flash_manager_rw_regions *host_rw)
 {
 	size_t i;
@@ -201,7 +132,7 @@ static void host_flash_manager_free_read_write_regions (struct host_flash_manage
  *
  * @param host_img The list to free.
  */
-static void host_flash_manager_free_images (struct host_flash_manager_images *host_img)
+void host_flash_manager_free_images (struct host_flash_manager_images *host_img)
 {
 	size_t i;
 
@@ -373,44 +304,47 @@ free_host:
 	return status;
 }
 
-static int host_flash_manager_validate_read_only_flash (struct host_flash_manager *manager,
-	struct pfm *pfm, struct pfm *good_pfm, struct hash_engine *hash, struct rsa_engine *rsa,
-	bool full_validation, struct host_flash_manager_rw_regions *host_rw)
+/**
+ * Find the entry in the PFM for the firmware version stored on flash.
+ *
+ * @param flash The flash to inspect.
+ * @param pfm The PFM to check the flash contents against.
+ * @param fw_id Identifier for the firmware type to query in the PFM.
+ * @param versions Output for the list of supported versions in the PFM.
+ * @param version Output for the version entry that matches the flash contents.
+ *
+ * @return 0 if a match was found in the PFM or an error code.
+ */
+static int host_flash_manager_find_flash_version (struct spi_flash *flash, struct pfm *pfm,
+	const char *fw_id, struct pfm_firmware_versions *versions,
+	const struct pfm_firmware_version **version)
 {
 	int status;
 
-	if ((manager == NULL) || (pfm == NULL) || (hash == NULL) || (rsa == NULL) ||
-		(host_rw == NULL)) {
-		return HOST_FLASH_MGR_INVALID_ARGUMENT;
+	status = pfm->get_supported_versions (pfm, fw_id, versions);
+	if (status != 0) {
+		return status;
 	}
 
-	if (good_pfm && !full_validation) {
-		status = host_flash_manager_validate_pfm (pfm, good_pfm, hash, rsa,
-			host_flash_manager_get_read_only_flash (manager), host_rw);
-	}
-	else {
-		status = host_flash_manager_validate_flash (pfm, hash, rsa, full_validation,
-			host_flash_manager_get_read_only_flash (manager), host_rw);
+	status = host_fw_determine_version (flash, versions, version);
+	if (status != 0) {
+		pfm->free_fw_versions (pfm, versions);
 	}
 
 	return status;
 }
 
-static int host_flash_manager_validate_read_write_flash (struct host_flash_manager *manager,
-	struct pfm *pfm, struct hash_engine *hash, struct rsa_engine *rsa,
+/**
+ * Determine the the read/write regions for the host firmware on flash.
+ *
+ * @param flash The flash containing the firmware.
+ * @param pfm The PFM to use to determine R/W regions.
+ * @param host_rw Output for the firmware read/write regions.
+ *
+ * @return 0 if the regions were successfully determined or an error code.
+ */
+int host_flash_manager_get_flash_read_write_regions (struct spi_flash *flash, struct pfm *pfm,
 	struct host_flash_manager_rw_regions *host_rw)
-{
-	if ((manager == NULL) || (pfm == NULL) || (hash == NULL) || (rsa == NULL) ||
-		(host_rw == NULL)) {
-		return HOST_FLASH_MGR_INVALID_ARGUMENT;
-	}
-
-	return host_flash_manager_validate_flash (pfm, hash, rsa, true,
-		host_flash_manager_get_read_write_flash (manager), host_rw);
-}
-
-static int host_flash_manager_get_flash_read_write_regions (struct host_flash_manager *manager,
-	struct pfm *pfm, bool rw_flash, struct host_flash_manager_rw_regions *host_rw)
 {
 	struct pfm_firmware host_fw;
 	struct pfm_firmware_versions versions;
@@ -418,18 +352,14 @@ static int host_flash_manager_get_flash_read_write_regions (struct host_flash_ma
 	size_t i;
 	int status;
 
-	if ((manager == NULL) || (pfm == NULL) || (host_rw == NULL)) {
-		return HOST_FLASH_MGR_INVALID_ARGUMENT;
-	}
-
 	status = host_flash_manager_get_firmware_types (pfm, &host_fw, NULL, host_rw);
 	if (status != 0) {
 		return status;
 	}
 
 	for (i = 0; i < host_fw.count; i++, host_rw->count++) {
-		status = host_flash_manager_find_flash_version (manager, pfm, rw_flash, host_fw.ids[i],
-			&versions, &version);
+		status = host_flash_manager_find_flash_version (flash, pfm, host_fw.ids[i], &versions,
+			&version);
 		if (status != 0) {
 			goto free_rw;
 		}
@@ -444,7 +374,7 @@ static int host_flash_manager_get_flash_read_write_regions (struct host_flash_ma
 
 free_rw:
 	if (status != 0) {
-		host_flash_manager_free_read_write_regions (manager, host_rw);
+		host_flash_manager_free_read_write_regions (NULL, host_rw);
 	}
 
 	pfm->free_firmware (pfm, &host_fw);
@@ -454,26 +384,30 @@ free_rw:
 /**
  * Ensure both flash devices are operating in the same address mode.
  *
- * @param manager The manager for the flash devices to configure.
+ * @param cs0 The flash device connected to CS0.
+ * @param cs1 The flash device connected to CS1.  Null if there is only a single flash device.
  * @param mode Output indicating the current address mode of both devices.
  *
  * @return 0 if the address mode was configured successfully or an error code.
  */
-static int host_flash_manager_flash_address_mode (struct host_flash_manager *manager,
+static int host_flash_manager_flash_address_mode (struct spi_flash *cs0, struct spi_flash *cs1,
 	spi_filter_address_mode *mode)
 {
 	int addr_4byte;
 	int status;
 
-	addr_4byte = spi_flash_is_4byte_address_mode (manager->flash_cs0);
-	if (addr_4byte != spi_flash_is_4byte_address_mode (manager->flash_cs1)) {
-		status = spi_flash_enable_4byte_address_mode (manager->flash_cs1, addr_4byte);
-		if (status != 0) {
-			if (status == SPI_FLASH_UNSUPPORTED_ADDR_MODE) {
-				status = HOST_FLASH_MGR_MISMATCH_ADDR_MODE;
-			}
+	addr_4byte = spi_flash_is_4byte_address_mode (cs0);
 
-			return status;
+	if (cs1) {
+		if (addr_4byte != spi_flash_is_4byte_address_mode (cs1)) {
+			status = spi_flash_enable_4byte_address_mode (cs1, addr_4byte);
+			if (status != 0) {
+				if (status == SPI_FLASH_UNSUPPORTED_ADDR_MODE) {
+					status = HOST_FLASH_MGR_MISMATCH_ADDR_MODE;
+				}
+
+				return status;
+			}
 		}
 	}
 
@@ -484,7 +418,8 @@ static int host_flash_manager_flash_address_mode (struct host_flash_manager *man
 /**
  * Detect the address mode properties of the flash devices.
  *
- * @param manager The manager for the flash to query.
+ * @param cs0 The flash device connected to CS0.
+ * @param cs1 The flash device connected to CS1.  Null if there is only a single flash device.
  * @param wen_required Output indicating if write enable is required to switch address modes.
  * @param fixed_addr Output indicating if the device address mode is fixed.
  * @param mode Output indicating the current address mode of the device.
@@ -492,18 +427,20 @@ static int host_flash_manager_flash_address_mode (struct host_flash_manager *man
  *
  * @return 0 if the address mode properties were successfully detected or an error code.
  */
-static int host_flash_manager_detect_flash_address_mode_properties (
-	struct host_flash_manager *manager, bool *wen_required, bool *fixed_addr,
-	spi_filter_address_mode *mode, spi_filter_address_mode *reset_mode)
+static int host_flash_manager_detect_flash_address_mode_properties (struct spi_flash *cs0,
+	struct spi_flash *cs1, bool *wen_required, bool *fixed_addr, spi_filter_address_mode *mode,
+	spi_filter_address_mode *reset_mode)
 {
 	int req_write_en[2];
 	int reset_addr[2];
 	int status;
 
-	req_write_en[0] = spi_flash_address_mode_requires_write_enable (manager->flash_cs0);
-	req_write_en[1] = spi_flash_address_mode_requires_write_enable (manager->flash_cs1);
-	if (req_write_en[0] != req_write_en[1]) {
-		return HOST_FLASH_MGR_MISMATCH_ADDR_MODE;
+	req_write_en[0] = spi_flash_address_mode_requires_write_enable (cs0);
+	if (cs1) {
+		req_write_en[1] = spi_flash_address_mode_requires_write_enable (cs1);
+		if (req_write_en[0] != req_write_en[1]) {
+			return HOST_FLASH_MGR_MISMATCH_ADDR_MODE;
+		}
 	}
 
 	if (req_write_en[0] == SPI_FLASH_ADDR_MODE_FIXED) {
@@ -515,30 +452,44 @@ static int host_flash_manager_detect_flash_address_mode_properties (
 		*fixed_addr = false;
 	}
 
-	status = host_flash_manager_flash_address_mode (manager, mode);
+	status = host_flash_manager_flash_address_mode (cs0, cs1, mode);
 	if (status != 0) {
 		return status;
 	}
 
-	reset_addr[0] = spi_flash_is_4byte_address_mode_on_reset (manager->flash_cs0);
+	reset_addr[0] = spi_flash_is_4byte_address_mode_on_reset (cs0);
 	if ((reset_addr[0] != 0) && (reset_addr[0] != 1)) {
 		return reset_addr[0];
 	}
 
-	reset_addr[1] = spi_flash_is_4byte_address_mode_on_reset (manager->flash_cs1);
-	if ((reset_addr[1] != 0) && (reset_addr[1] != 1)) {
-		return reset_addr[1];
-	}
+	if (cs1) {
+		reset_addr[1] = spi_flash_is_4byte_address_mode_on_reset (cs1);
+		if ((reset_addr[1] != 0) && (reset_addr[1] != 1)) {
+			return reset_addr[1];
+		}
 
-	if (reset_addr[0] != reset_addr[1]) {
-		return HOST_FLASH_MGR_MISMATCH_ADDR_MODE;
+		if (reset_addr[0] != reset_addr[1]) {
+			return HOST_FLASH_MGR_MISMATCH_ADDR_MODE;
+		}
 	}
 
 	*reset_mode = (reset_addr[0] == 1) ? SPI_FILTER_ADDRESS_MODE_4 : SPI_FILTER_ADDRESS_MODE_3;
 	return 0;
 }
 
-static int host_flash_manager_config_spi_filter_flash_type (struct host_flash_manager *manager)
+/**
+ * Detect the flash device properties and configure the SPI filter to match.  If there are two flash
+ * devices, they must match exactly or an error will be generated.
+ *
+ * @param cs0 The flash device connected to CS0.
+ * @param cs1 The flash device connected to CS1.  Null if there is only a single flash device.
+ * @param filter The SPI filter to configure.
+ * @param mfg_handler Handler for configuring flash manufacturer details into the filter.
+ *
+ * @return 0 if the flash is supported and the filter was configured successfully or an error code.
+ */
+int host_flash_manager_config_spi_filter_flash_type (struct spi_flash *cs0, struct spi_flash *cs1,
+	struct spi_filter_interface *filter, struct flash_mfg_filter_handler *mfg_handler)
 {
 	uint8_t vendor[2];
 	uint16_t device[2];
@@ -549,236 +500,74 @@ static int host_flash_manager_config_spi_filter_flash_type (struct host_flash_ma
 	spi_filter_address_mode reset_mode;
 	int status;
 
-	if (manager == NULL) {
-		return HOST_FLASH_MGR_INVALID_ARGUMENT;
-	}
-
 	/* Validate and configure the type of devices being used. */
-	status = spi_flash_get_device_id (manager->flash_cs0, &vendor[0], &device[0]);
+	status = spi_flash_get_device_id (cs0, &vendor[0], &device[0]);
 	if (status != 0) {
 		return status;
 	}
 
-	status = spi_flash_get_device_id (manager->flash_cs1, &vendor[1], &device[1]);
-	if (status != 0) {
-		return status;
+	if (cs1) {
+		status = spi_flash_get_device_id (cs1, &vendor[1], &device[1]);
+		if (status != 0) {
+			return status;
+		}
+
+		if (vendor[0] != vendor[1]) {
+			return HOST_FLASH_MGR_MISMATCH_VENDOR;
+		}
+		else if (device[0] != device[1]) {
+			return HOST_FLASH_MGR_MISMATCH_DEVICE;
+		}
 	}
 
-	if (vendor[0] != vendor[1]) {
-		return HOST_FLASH_MGR_MISMATCH_VENDOR;
-	}
-	else if (device[0] != device[1]) {
-		return HOST_FLASH_MGR_MISMATCH_DEVICE;
-	}
-
-	status = manager->mfg_handler->set_flash_manufacturer (manager->mfg_handler, vendor[0],
+	status = mfg_handler->set_flash_manufacturer (mfg_handler, vendor[0],
 		device[0]);
 	if (status != 0) {
 		return status;
 	}
 
 	/* Validate and configure the flash device capacity. */
-	spi_flash_get_device_size (manager->flash_cs0, &bytes[0]);
-	spi_flash_get_device_size (manager->flash_cs1, &bytes[1]);
-	if (bytes[0] != bytes[1]) {
-		return HOST_FLASH_MGR_MISMATCH_SIZES;
+	spi_flash_get_device_size (cs0, &bytes[0]);
+	if (cs1) {
+		spi_flash_get_device_size (cs1, &bytes[1]);
+		if (bytes[0] != bytes[1]) {
+			return HOST_FLASH_MGR_MISMATCH_SIZES;
+		}
 	}
 
-	status = manager->filter->set_flash_size (manager->filter, bytes[0]);
+	status = filter->set_flash_size (filter, bytes[0]);
 	if ((status != 0) && (status != SPI_FILTER_UNSUPPORTED_OPERATION)) {
 		return status;
 	}
 
 	/* Validate and configure the address byte mode of the devices. */
-	status = host_flash_manager_detect_flash_address_mode_properties (manager, &req_write_en,
+	status = host_flash_manager_detect_flash_address_mode_properties (cs0, cs1, &req_write_en,
 		&fixed, &mode, &reset_mode);
 	if (status != 0) {
 		return status;
 	}
 
 	if (!fixed) {
-		status = manager->filter->set_addr_byte_mode (manager->filter, mode);
+		status = filter->set_addr_byte_mode (filter, mode);
 	}
 	else {
-		status = manager->filter->set_fixed_addr_byte_mode (manager->filter, mode);
+		status = filter->set_fixed_addr_byte_mode (filter, mode);
 	}
 	if (status != 0) {
 		return status;
 	}
 
-	status = manager->filter->require_addr_byte_mode_write_enable (manager->filter, req_write_en);
+	status = filter->require_addr_byte_mode_write_enable (filter, req_write_en);
 	if ((status != 0) && (status != SPI_FILTER_UNSUPPORTED_OPERATION)) {
 		return status;
 	}
 
-	status = manager->filter->set_reset_addr_byte_mode (manager->filter, reset_mode);
+	status = filter->set_reset_addr_byte_mode (filter, reset_mode);
 	if (status == SPI_FILTER_UNSUPPORTED_OPERATION) {
 		status = 0;
 	}
 
 	return status;
-}
-
-static int host_flash_manager_config_spi_filter_flash_devices (struct host_flash_manager *manager)
-{
-	spi_filter_cs ro;
-
-	if (manager == NULL) {
-		return HOST_FLASH_MGR_INVALID_ARGUMENT;
-	}
-
-	ro = host_state_manager_get_read_only_flash (manager->host_state);
-	return manager->filter->set_ro_cs (manager->filter, ro);
-}
-
-/**
- * Copy the read/write data regions from one flash to another.
- *
- * @param manager The flash manager to use for the data migration.
- * @param from The flash device to copy from.
- * @param writable The list of read/write regions that should be migrated.
- *
- * @return 0 if the data migration was successful or an error code.
- */
-static int host_flash_manager_migrate_rw_data (struct host_flash_manager *manager,
-	spi_filter_cs from, struct host_flash_manager_rw_regions *host_rw)
-{
-	int status;
-
-	if (from == SPI_FILTER_CS_0) {
-		status = host_fw_migrate_read_write_data_multiple_fw (manager->flash_cs1, host_rw->writable,
-			host_rw->count, manager->flash_cs0, NULL, 0);
-	}
-	else {
-		status = host_fw_migrate_read_write_data_multiple_fw (manager->flash_cs0, host_rw->writable,
-			host_rw->count, manager->flash_cs1, NULL, 0);
-	}
-
-	return status;
-}
-
-static int host_flash_manager_swap_flash_devices (struct host_flash_manager *manager,
-	struct host_flash_manager_rw_regions *host_rw, struct pfm_manager *used_pending)
-{
-	spi_filter_cs rw;
-	int status;
-
-	if (manager == NULL) {
-		return HOST_FLASH_MGR_INVALID_ARGUMENT;
-	}
-
-	/* Clear the dirty bit in the SPI filter. */
-	status = manager->filter->clear_flash_dirty_state (manager->filter);
-	if (status != 0) {
-		return status;
-	}
-
-	/* Configure the SPI filter to switch the read and write flashes. */
-	rw = (host_state_manager_get_read_only_flash (manager->host_state) == SPI_FILTER_CS_0) ?
-		SPI_FILTER_CS_1 : SPI_FILTER_CS_0;
-	status = manager->filter->set_ro_cs (manager->filter, rw);
-	if (status != 0) {
-		return status;
-	}
-
-	/* Migrate the R/W data to the new write flash. */
-	if (host_rw) {
-		status = host_flash_manager_migrate_rw_data (manager, rw, host_rw);
-	}
-
-	/* Save the current flash configuration. */
-	if (status == 0) {
-		state_manager_block_non_volatile_state_storage (manager->host_state, true);
-
-		host_state_manager_save_read_only_flash (manager->host_state, rw);
-		host_state_manager_save_inactive_dirty (manager->host_state, false);
-
-		if (used_pending) {
-			used_pending->base.activate_pending_manifest (&used_pending->base);
-		}
-
-		state_manager_block_non_volatile_state_storage (manager->host_state, false);
-	}
-
-	return status;
-}
-
-static int host_flash_manager_initialize_flash_protection (struct host_flash_manager *manager,
-	struct host_flash_manager_rw_regions *host_rw)
-{
-	spi_filter_cs ro;
-	struct spi_flash *ro_flash;
-	struct spi_flash *rw_flash;
-	int status;
-	int addr_4byte;
-
-	if ((manager == NULL) || (host_rw == NULL)) {
-		return HOST_FLASH_MGR_INVALID_ARGUMENT;
-	}
-
-	/* Make sure both flash devices are running with the same address mode. */
-	ro_flash = host_flash_manager_get_read_only_flash (manager);
-	rw_flash = host_flash_manager_get_read_write_flash (manager);
-
-	addr_4byte = spi_flash_is_4byte_address_mode (ro_flash);
-	if (ROT_IS_ERROR (addr_4byte)) {
-		return addr_4byte;
-	}
-
-	if (addr_4byte != spi_flash_is_4byte_address_mode (rw_flash)) {
-		status = spi_flash_enable_4byte_address_mode (rw_flash, addr_4byte);
-		if (status != 0) {
-			return status;
-		}
-	}
-
-	/* Make the R/W data available on the R/W flash device. */
-	ro = host_state_manager_get_read_only_flash (manager->host_state);
-
-	status = host_flash_manager_migrate_rw_data (manager, ro, host_rw);
-	if (status != 0) {
-		return status;
-	}
-
-	/* Protection is being initialized, so the R/W flash can't be dirty yet. */
-	status = manager->filter->clear_flash_dirty_state (manager->filter);
-	if (status != 0) {
-		return status;
-	}
-
-	host_state_manager_save_inactive_dirty (manager->host_state, false);
-
-	/* Make sure the SPI filter address mode matches the mode of the physical devices.
-	 *
-	 * If the device address mode is fixed, this was already configured during initial filter setup
-	 * and doesn't need to be done again. */
-	if (!spi_flash_is_address_mode_fixed (ro_flash)) {
-		status = manager->filter->set_addr_byte_mode (manager->filter,
-			(addr_4byte == 1) ? SPI_FILTER_ADDRESS_MODE_4 : SPI_FILTER_ADDRESS_MODE_3);
-		if (status != 0) {
-			return status;
-		}
-	}
-
-	/* Turn on the SPI filter. */
-	status = manager->filter->set_filter_mode (manager->filter, SPI_FILTER_FLASH_DUAL);
-	if (status != 0) {
-		return status;
-	}
-
-	return manager->filter->set_ro_cs (manager->filter, ro);
-}
-
-static int host_flash_manager_restore_flash_read_write_regions (struct host_flash_manager *manager,
-	struct host_flash_manager_rw_regions *host_rw)
-{
-	if ((manager == NULL) || (host_rw == NULL)) {
-		return HOST_FLASH_MGR_INVALID_ARGUMENT;
-	}
-
-	return host_fw_restore_read_write_data_multiple_fw (
-		host_flash_manager_get_read_write_flash (manager),
-		host_flash_manager_get_read_only_flash (manager), host_rw->writable, host_rw->count);
 }
 
 /**
@@ -830,18 +619,27 @@ int host_flash_manager_configure_flash_for_rot_access (struct spi_flash *flash)
 	return 0;
 }
 
-static int host_flash_manager_set_flash_for_rot_access (struct host_flash_manager *manager,
-	struct host_control *control)
+/**
+ * Enable RoT access to the protected flash devices.
+ *
+ * @param control The interface for hardware controls for flash access.
+ * @param filter The SPI filter connected to the flash devices.
+ * @param cs0 Flash device connected to CS0.
+ * @param cs1 Flash device connected to CS1.  Null if there is only a single flash device.
+ * @param flash_init Initialization handler for the protected flash devices.  Null to skip
+ * initialization.
+ *
+ * @return 0 if RoT flash accass has been enabled or an error code.
+ */
+int host_flash_manager_set_flash_for_rot_access (struct host_control *control,
+	struct spi_filter_interface *filter, struct spi_flash *cs0, struct spi_flash *cs1,
+	struct host_flash_initialization *flash_init)
 {
 	struct spi_flash *flash;
 	int i;
 	int status;
 
-	if ((manager == NULL) || (control == NULL)) {
-		return HOST_FLASH_MGR_INVALID_ARGUMENT;
-	}
-
-	status = manager->filter->enable_filter (manager->filter, false);
+	status = filter->enable_filter (filter, false);
 	if (status != 0) {
 		return status;
 	}
@@ -851,54 +649,64 @@ static int host_flash_manager_set_flash_for_rot_access (struct host_flash_manage
 		return status;
 	}
 
-	if (manager->flash_init) {
-		status = host_flash_initialization_initialize_flash (manager->flash_init);
+	if (flash_init) {
+		status = host_flash_initialization_initialize_flash (flash_init);
 		if (status != 0) {
 			return status;
 		}
 	}
 
-	flash = manager->flash_cs0;
+	flash = cs0;
 	for (i = 0; i < 2; i++) {
-		status = host_flash_manager_configure_flash_for_rot_access (flash);
-		if (status != 0) {
-			return status;
+		if (flash) {
+			status = host_flash_manager_configure_flash_for_rot_access (flash);
+			if (status != 0) {
+				return status;
+			}
 		}
 
-		flash = manager->flash_cs1;
+		flash = cs1;
 	}
 
 	return 0;
 }
 
-static int host_flash_manager_set_flash_for_host_access (struct host_flash_manager *manager,
-	struct host_control *control)
+/**
+ * Enable host access to the protected flash devices.
+ *
+ * @param control The interface for hardware controls for flash access.
+ * @param filter The SPI filter connected to the flash devices.
+ *
+ * @return 0 if host flash access has been enabled or an error code.
+ */
+int host_flash_manager_set_flash_for_host_access (struct host_control *control,
+	struct spi_filter_interface *filter)
 {
 	int status;
-
-	if ((manager == NULL) || (control == NULL)) {
-		return HOST_FLASH_MGR_INVALID_ARGUMENT;
-	}
 
 	status = control->enable_processor_flash_access (control, true);
 	if (status != 0) {
 		return status;
 	}
 
-	return manager->filter->enable_filter (manager->filter, true);
+	return filter->enable_filter (filter, true);
 }
 
-static int host_flash_manager_host_has_flash_access (struct host_flash_manager *manager,
-	struct host_control *control)
+/**
+ * Determine if the host has access to the protected flash devices.
+ *
+ * @param control The interface for hardware controls for flash access.
+ * @param filter The SPI filter connected to the flash devices.
+ *
+ * @return 0 if the host doesn't if access, 1 if it does, or an error code.
+ */
+int host_flash_manager_host_has_flash_access (struct host_control *control,
+	struct spi_filter_interface *filter)
 {
 	bool enabled;
 	int status;
 
-	if ((manager == NULL) || (control == NULL)) {
-		return HOST_FLASH_MGR_INVALID_ARGUMENT;
-	}
-
-	status = manager->filter->get_filter_enabled (manager->filter, &enabled);
+	status = filter->get_filter_enabled (filter, &enabled);
 	if (status != 0) {
 		return status;
 	}
@@ -913,97 +721,4 @@ static int host_flash_manager_host_has_flash_access (struct host_flash_manager *
 	}
 
 	return 1;
-}
-
-/**
- * Initialize the manager for host flash devices.
- *
- * @param manager The flash manager to initialize.
- * @param cs0 The flash device connected to chip select 0.
- * @param cs1 The flash device connected to chip select 1.
- * @param host_state The manager for host state information.
- * @param filter The SPI filter for the protected flash.
- * @param mfg_handler The SPI filter handler for configuring the flash device manufacturer.
- *
- * @return 0 if the manager was successfully initialized or an error code.
- */
-int host_flash_manager_init (struct host_flash_manager *manager, struct spi_flash *cs0,
-	struct spi_flash *cs1, struct state_manager *host_state, struct spi_filter_interface *filter,
-	struct flash_mfg_filter_handler *mfg_handler)
-{
-	if ((manager == NULL) || (cs0 == NULL) || (cs1 == NULL) || (host_state == NULL) ||
-		(filter == NULL) || (mfg_handler == NULL)) {
-		return HOST_FLASH_MGR_INVALID_ARGUMENT;
-	}
-
-	memset (manager, 0, sizeof (struct host_flash_manager));
-
-	manager->get_read_only_flash = host_flash_manager_get_read_only_flash;
-	manager->get_read_write_flash = host_flash_manager_get_read_write_flash;
-	manager->validate_read_only_flash = host_flash_manager_validate_read_only_flash;
-	manager->validate_read_write_flash = host_flash_manager_validate_read_write_flash;
-	manager->get_flash_read_write_regions = host_flash_manager_get_flash_read_write_regions;
-	manager->free_read_write_regions = host_flash_manager_free_read_write_regions;
-	manager->config_spi_filter_flash_type = host_flash_manager_config_spi_filter_flash_type;
-	manager->config_spi_filter_flash_devices = host_flash_manager_config_spi_filter_flash_devices;
-	manager->swap_flash_devices = host_flash_manager_swap_flash_devices;
-	manager->initialize_flash_protection = host_flash_manager_initialize_flash_protection;
-	manager->restore_flash_read_write_regions = host_flash_manager_restore_flash_read_write_regions;
-	manager->set_flash_for_rot_access = host_flash_manager_set_flash_for_rot_access;
-	manager->set_flash_for_host_access = host_flash_manager_set_flash_for_host_access;
-	manager->host_has_flash_access = host_flash_manager_host_has_flash_access;
-
-	manager->flash_cs0 = cs0;
-	manager->flash_cs1 = cs1;
-	manager->host_state = host_state;
-	manager->filter = filter;
-	manager->mfg_handler = mfg_handler;
-
-	return 0;
-}
-
-/**
- * Initialize the manager for host flash devices.  The interfaces to the flash devices may be
- * uninitialized, but an initialization manager is provided to ensure they get initialized prior to
- * use.
- *
- * @param manager The flash manager to initialize.
- * @param cs0 The flash device connected to chip select 0.
- * @param cs1 The flash device connected to chip select 1.
- * @param host_state The manager for host state information.
- * @param filter The SPI filter for the protected flash.
- * @param mfg_handler The SPI filter handler for configuring the flash device manufacturer.
- * @param flash_init The initialization manager for SPI flash interfaces.
- *
- * @return 0 if the manager was successfully initialized or an error code.
- */
-int host_flash_manager_init_with_managed_flash_initialization (struct host_flash_manager *manager,
-	struct spi_flash *cs0, struct spi_flash *cs1, struct state_manager *host_state,
-	struct spi_filter_interface *filter, struct flash_mfg_filter_handler *mfg_handler,
-	struct host_flash_initialization *flash_init)
-{
-	int status;
-
-	if (flash_init == NULL) {
-		return HOST_FLASH_MGR_INVALID_ARGUMENT;
-	}
-
-	status = host_flash_manager_init (manager, cs0, cs1, host_state, filter, mfg_handler);
-	if (status != 0) {
-		return status;
-	}
-
-	manager->flash_init = flash_init;
-
-	return 0;
-}
-
-/**
- * Release the resources used by host flash management.
- *
- * @param manager The manager to release.
- */
-void host_flash_manager_release (struct host_flash_manager *manager)
-{
-
 }

@@ -8,7 +8,7 @@
 #include "host_state_manager.h"
 
 
-static int host_processor_dual_full_bypass_enable_bypass_mode (struct host_processor_dual *host)
+static int host_processor_dual_full_bypass_enable_bypass_mode (struct host_processor_filtered *host)
 {
 	return host->filter->set_filter_mode (host->filter,
 		(host_state_manager_get_read_only_flash (host->state) == SPI_FILTER_CS_0) ?
@@ -29,18 +29,18 @@ static int host_processor_dual_full_bypass_enable_bypass_mode (struct host_proce
  *
  * @return 0 if the host processor interface was successfully initialized or an error code.
  */
-int host_processor_dual_full_bypass_init (struct host_processor_dual_full_bypass *host,
-	struct host_control *control, struct host_flash_manager *flash, struct state_manager *state,
-	struct spi_filter_interface *filter, struct pfm_manager *pfm,
+int host_processor_dual_full_bypass_init (struct host_processor_filtered *host,
+	struct host_control *control, struct host_flash_manager_dual *flash,
+	struct host_state_manager *state, struct spi_filter_interface *filter, struct pfm_manager *pfm,
 	struct recovery_image_manager *recovery)
 {
-	int status = host_processor_dual_init_internal (&host->base, control, flash, state, filter,
-		pfm, recovery);
+	int status = host_processor_dual_init_internal (host, control, flash, state, filter, pfm,
+		recovery, 0);
 	if (status != 0) {
 		return status;
 	}
 
-	host->base.internal.enable_bypass_mode = host_processor_dual_full_bypass_enable_bypass_mode;
+	host->internal.enable_bypass_mode = host_processor_dual_full_bypass_enable_bypass_mode;
 
 	return 0;
 }
@@ -50,7 +50,7 @@ int host_processor_dual_full_bypass_init (struct host_processor_dual_full_bypass
  * accessible in full bypass mode.
  *
  * While host flash is being accessed, the host processor will not be held in reset.  After the host
- * flash accesses have been completed, the host processor reset will be pulsed for 100ms.
+ * flash accesses have been completed, the host processor reset will be pulsed.
  *
  * @param host The host processor instance to initialize.
  * @param control The interface for controlling the host processor.
@@ -59,21 +59,28 @@ int host_processor_dual_full_bypass_init (struct host_processor_dual_full_bypass
  * @param filter The SPI filter controlling flash access for the host processor.
  * @param pfm The manager for PFMs for the host processor.
  * @param recovery The recovery image manager for the host processor.
+ * @param pulse_width The width of the reset pulse, in milliseconds.
  *
  * @return 0 if the host processor interface was successfully initialized or an error code.
  */
-int host_processor_dual_full_bypass_init_pulse_reset (struct host_processor_dual_full_bypass *host,
-	struct host_control *control, struct host_flash_manager *flash, struct state_manager *state,
-	struct spi_filter_interface *filter, struct pfm_manager *pfm,
-	struct recovery_image_manager *recovery)
+int host_processor_dual_full_bypass_init_pulse_reset (struct host_processor_filtered *host,
+	struct host_control *control, struct host_flash_manager_dual *flash,
+	struct host_state_manager *state, struct spi_filter_interface *filter, struct pfm_manager *pfm,
+	struct recovery_image_manager *recovery, int pulse_width)
 {
-	int status = host_processor_dual_init_pulse_reset_internal (&host->base, control, flash, state,
-		filter, pfm, recovery);
+	int status;
+
+	if (pulse_width <= 0) {
+		return HOST_PROCESSOR_INVALID_ARGUMENT;
+	}
+
+	status = host_processor_dual_init_internal (host, control, flash, state, filter, pfm,
+		recovery, pulse_width);
 	if (status != 0) {
 		return status;
 	}
 
-	host->base.internal.enable_bypass_mode = host_processor_dual_full_bypass_enable_bypass_mode;
+	host->internal.enable_bypass_mode = host_processor_dual_full_bypass_enable_bypass_mode;
 
 	return 0;
 }
@@ -83,9 +90,7 @@ int host_processor_dual_full_bypass_init_pulse_reset (struct host_processor_dual
  *
  * @param host The host processor instance to release.
  */
-void host_processor_dual_full_bypass_release (struct host_processor_dual_full_bypass *host)
+void host_processor_dual_full_bypass_release (struct host_processor_filtered *host)
 {
-	if (host) {
-		host_processor_dual_release (&host->base);
-	}
+	host_processor_dual_release (host);
 }

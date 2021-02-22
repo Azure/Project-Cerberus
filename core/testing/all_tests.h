@@ -32,11 +32,13 @@
 //#define	TESTING_RUN_STATE_MANAGER_SUITE
 //#define	TESTING_RUN_HOST_STATE_MANAGER_SUITE
 //#define	TESTING_RUN_SYSTEM_STATE_MANAGER_SUITE
-//#define	TESTING_RUN_HOST_FLASH_MANAGER_SUITE
+//#define	TESTING_RUN_HOST_FLASH_MANAGER_DUAL_SUITE
+//#define	TESTING_RUN_HOST_FLASH_MANAGER_SINGLE_SUITE
 //#define	TESTING_RUN_PFM_MANAGER_FLASH_SUITE
 //#define	TESTING_RUN_CFM_MANAGER_FLASH_SUITE
 //#define	TESTING_RUN_HOST_PROCESSOR_SUITE
 //#define	TESTING_RUN_HOST_PROCESSOR_DUAL_SUITE
+//#define	TESTING_RUN_HOST_PROCESSOR_SINGLE_SUITE
 //#define	TESTING_RUN_HOST_IRQ_HANDLER_SUITE
 //#define	TESTING_RUN_SPI_FILTER_IRQ_HANDLER_SUITE
 //#define	TESTING_RUN_PLATFORM_TIMER_SUITE
@@ -56,7 +58,7 @@
 //#define	TESTING_RUN_AUX_ATTESTATION_SUITE
 //#define	TESTING_RUN_FIRMWARE_HEADER_SUITE
 //#define	TESTING_RUN_SPI_FILTER_IRQ_HANDLER_DIRTY_SUITE
-//#define	TESTING_RUN_HOST_IRQ_HANDLER_PFM_CHECK_SUITE
+//#define	TESTING_RUN_HOST_IRQ_HANDLER_AUTH_CHECK_SUITE
 //#define	TESTING_RUN_ATTESTATION_MASTER_SUITE
 //#define	TESTING_RUN_ATTESTATION_SLAVE_SUITE
 //#define	TESTING_RUN_RNG_MBEDTLS_SUITE
@@ -68,6 +70,7 @@
 //#define	TESTING_RUN_PCR_STORE_SUITE
 //#define	TESTING_RUN_HOST_IRQ_HANDLER_MASK_IRQS_SUITE
 //#define	TESTING_RUN_HOST_PROCESSOR_DUAL_FULL_BYPASS_SUITE
+//#define	TESTING_RUN_HOST_PROCESSOR_SINGLE_FULL_BYPASS_SUITE
 //#define	TESTING_RUN_OBSERVABLE_SUITE
 //#define	TESTING_RUN_PFM_MANAGER_SUITE
 //#define	TESTING_RUN_CFM_MANAGER_SUITE
@@ -116,6 +119,7 @@
 //#define	TESTING_RUN_FLASH_STORE_ENCRYPTED_SUITE
 //#define	TESTING_RUN_KDF_SUITE
 //#define	TESTING_RUN_BUFFER_UTIL_SUITE
+//#define	TESTING_RUN_HOST_STATE_OBSERVER_DIRTY_RESET_SUITE
 
 
 CuSuite* get_flash_common_suite (void);
@@ -144,7 +148,8 @@ CuSuite* get_mctp_protocol_suite (void);
 CuSuite* get_state_manager_suite (void);
 CuSuite* get_host_state_manager_suite (void);
 CuSuite* get_system_state_manager_suite (void);
-CuSuite* get_host_flash_manager_suite (void);
+CuSuite* get_host_flash_manager_dual_suite (void);
+CuSuite* get_host_flash_manager_single_suite (void);
 CuSuite* get_pfm_manager_flash_suite (void);
 CuSuite* get_cfm_manager_flash_suite (void);
 CuSuite* get_host_processor_suite (void);
@@ -156,6 +161,14 @@ CuSuite* get_host_processor_dual_flash_rollback_suite (void);
 CuSuite* get_host_processor_dual_recover_active_read_write_data_suite (void);
 CuSuite* get_host_processor_dual_apply_recovery_image_suite (void);
 CuSuite* get_host_processor_dual_bypass_mode_suite (void);
+CuSuite* get_host_processor_single_suite (void);
+CuSuite* get_host_processor_single_power_on_reset_suite (void);
+CuSuite* get_host_processor_single_soft_reset_suite (void);
+CuSuite* get_host_processor_single_run_time_verification_suite (void);
+CuSuite* get_host_processor_single_flash_rollback_suite (void);
+CuSuite* get_host_processor_single_recover_active_read_write_data_suite (void);
+CuSuite* get_host_processor_single_apply_recovery_image_suite (void);
+CuSuite* get_host_processor_single_bypass_mode_suite (void);
 CuSuite* get_host_irq_handler_suite (void);
 CuSuite* get_spi_filter_irq_handler_suite (void);
 CuSuite* get_platform_timer_suite (void);
@@ -175,7 +188,7 @@ CuSuite* get_riot_key_manager_suite (void);
 CuSuite* get_aux_attestation_suite (void);
 CuSuite* get_firmware_header_suite (void);
 CuSuite* get_spi_filter_irq_handler_dirty_suite (void);
-CuSuite* get_host_irq_handler_pfm_check_suite (void);
+CuSuite* get_host_irq_handler_auth_check_suite (void);
 CuSuite* get_attestation_master_suite (void);
 CuSuite* get_attestation_slave_suite (void);
 CuSuite* get_rng_mbedtls_suite (void);
@@ -187,6 +200,7 @@ CuSuite* get_pcr_suite (void);
 CuSuite* get_pcr_store_suite (void);
 CuSuite* get_host_irq_handler_mask_irqs_suite (void);
 CuSuite* get_host_processor_dual_full_bypass_suite (void);
+CuSuite* get_host_processor_single_full_bypass_suite (void);
 CuSuite* get_observable_suite (void);
 CuSuite* get_pfm_manager_suite (void);
 CuSuite* get_cfm_manager_suite (void);
@@ -235,6 +249,7 @@ CuSuite* get_flash_store_suite (void);
 CuSuite* get_flash_store_encrypted_suite (void);
 CuSuite* get_kdf_suite (void);
 CuSuite* get_buffer_util_suite (void);
+CuSuite* get_host_state_observer_dirty_reset_suite (void);
 
 void add_all_tests (CuSuite *suite)
 {
@@ -312,8 +327,11 @@ void add_all_tests (CuSuite *suite)
 #ifdef TESTING_RUN_SYSTEM_STATE_MANAGER_SUITE
 	CuSuiteAddSuite (suite, get_system_state_manager_suite ());
 #endif
-#ifdef TESTING_RUN_HOST_FLASH_MANAGER_SUITE
-	CuSuiteAddSuite (suite, get_host_flash_manager_suite ());
+#ifdef TESTING_RUN_HOST_FLASH_MANAGER_DUAL_SUITE
+	CuSuiteAddSuite (suite, get_host_flash_manager_dual_suite ());
+#endif
+#ifdef TESTING_RUN_HOST_FLASH_MANAGER_SINGLE_SUITE
+	CuSuiteAddSuite (suite, get_host_flash_manager_single_suite ());
 #endif
 #ifdef TESTING_RUN_PFM_MANAGER_FLASH_SUITE
 	CuSuiteAddSuite (suite, get_pfm_manager_flash_suite ());
@@ -333,6 +351,16 @@ void add_all_tests (CuSuite *suite)
 	CuSuiteAddSuite (suite, get_host_processor_dual_recover_active_read_write_data_suite ());
 	CuSuiteAddSuite (suite, get_host_processor_dual_apply_recovery_image_suite ());
 	CuSuiteAddSuite (suite, get_host_processor_dual_bypass_mode_suite ());
+#endif
+#ifdef TESTING_RUN_HOST_PROCESSOR_SINGLE_SUITE
+	CuSuiteAddSuite (suite, get_host_processor_single_suite ());
+	CuSuiteAddSuite (suite, get_host_processor_single_power_on_reset_suite ());
+	CuSuiteAddSuite (suite, get_host_processor_single_soft_reset_suite ());
+	CuSuiteAddSuite (suite, get_host_processor_single_run_time_verification_suite ());
+	CuSuiteAddSuite (suite, get_host_processor_single_flash_rollback_suite ());
+	CuSuiteAddSuite (suite, get_host_processor_single_recover_active_read_write_data_suite ());
+	CuSuiteAddSuite (suite, get_host_processor_single_apply_recovery_image_suite ());
+	CuSuiteAddSuite (suite, get_host_processor_single_bypass_mode_suite ());
 #endif
 #ifdef TESTING_RUN_HOST_IRQ_HANDLER_SUITE
 	CuSuiteAddSuite (suite, get_host_irq_handler_suite ());
@@ -391,8 +419,8 @@ void add_all_tests (CuSuite *suite)
 #ifdef TESTING_RUN_SPI_FILTER_IRQ_HANDLER_DIRTY_SUITE
 	CuSuiteAddSuite (suite, get_spi_filter_irq_handler_dirty_suite ());
 #endif
-#ifdef TESTING_RUN_HOST_IRQ_HANDLER_PFM_CHECK_SUITE
-	CuSuiteAddSuite (suite, get_host_irq_handler_pfm_check_suite ());
+#ifdef TESTING_RUN_HOST_IRQ_HANDLER_AUTH_CHECK_SUITE
+	CuSuiteAddSuite (suite, get_host_irq_handler_auth_check_suite ());
 #endif
 #ifdef TESTING_RUN_ATTESTATION_MASTER_SUITE
 	CuSuiteAddSuite (suite, get_attestation_master_suite ());
@@ -426,6 +454,9 @@ void add_all_tests (CuSuite *suite)
 #endif
 #ifdef TESTING_RUN_HOST_PROCESSOR_DUAL_FULL_BYPASS_SUITE
 	CuSuiteAddSuite (suite, get_host_processor_dual_full_bypass_suite ());
+#endif
+#ifdef TESTING_RUN_HOST_PROCESSOR_SINGLE_FULL_BYPASS_SUITE
+	CuSuiteAddSuite (suite, get_host_processor_single_full_bypass_suite ());
 #endif
 #ifdef TESTING_RUN_OBSERVABLE_SUITE
 	CuSuiteAddSuite (suite, get_observable_suite ());
@@ -570,6 +601,9 @@ void add_all_tests (CuSuite *suite)
 #endif
 #ifdef TESTING_RUN_BUFFER_UTIL_SUITE
 	CuSuiteAddSuite (suite, get_buffer_util_suite ());
+#endif
+#ifdef TESTING_RUN_HOST_STATE_OBSERVER_DIRTY_RESET_SUITE
+	CuSuiteAddSuite (suite, get_host_state_observer_dirty_reset_suite ());
 #endif
 
 	add_all_platform_tests (suite);

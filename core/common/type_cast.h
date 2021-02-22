@@ -17,7 +17,7 @@
  *
  * @return A pointer to the derived type.
  */
-#define	TO_DERIVED_TYPE(ptr, type, field)	(type*) (((uintptr_t) ptr) - offsetof (type, field));
+#define	TO_DERIVED_TYPE(ptr, type, field)	(type*) (((uintptr_t) ptr) - offsetof (type, field))
 
 
 #endif /* TYPE_CAST_H_ */

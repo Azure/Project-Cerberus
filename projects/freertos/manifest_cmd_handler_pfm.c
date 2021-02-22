@@ -5,7 +5,6 @@
 #include <stddef.h>
 #include <string.h>
 #include "manifest_cmd_handler_pfm.h"
-#include "host_fw/host_state_manager.h"
 #include "manifest/manifest_logging.h"
 
 
@@ -79,8 +78,9 @@ static int manifest_cmd_handler_pfm_activation (struct manifest_cmd_handler *tas
  * @return 0 if the task was successfully initialized or an error code.
  */
 int manifest_cmd_handler_pfm_init (struct manifest_cmd_handler_pfm *task,
-	struct manifest_manager *manifest, struct host_processor *host, struct state_manager *state,
-	struct hash_engine *hash, struct rsa_engine *rsa, struct spi_filter_interface *filter)
+	struct manifest_manager *manifest, struct host_processor *host,
+	struct host_state_manager *state, struct hash_engine *hash, struct rsa_engine *rsa,
+	struct spi_filter_interface *filter)
 {
 	int status;
 

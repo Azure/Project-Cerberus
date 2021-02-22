@@ -5,7 +5,7 @@
 #define SPI_FILTER_IRQ_HANDLER_H_
 
 #include "status/rot_status.h"
-#include "state_manager/state_manager.h"
+#include "host_fw/host_state_manager.h"
 
 
 /**
@@ -19,12 +19,12 @@ struct spi_filter_irq_handler {
 	 */
 	void (*ro_flash_dirty) (struct spi_filter_irq_handler *handler);
 
-	struct state_manager *host_state;			/**< State of the host for the SPI filter. */
+	struct host_state_manager *host_state;		/**< State of the host for the SPI filter. */
 };
 
 
 int spi_filter_irq_handler_init (struct spi_filter_irq_handler *handler,
-	struct state_manager *host_state);
+	struct host_state_manager *host_state);
 void spi_filter_irq_handler_release (struct spi_filter_irq_handler *handler);
 
 /* Internal functions for use by derived types. */

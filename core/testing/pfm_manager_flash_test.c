@@ -190,7 +190,7 @@ struct pfm_manager_flash_testing {
 	struct flash_master_mock flash_mock_state;			/**< Flash master for host state flash. */
 	struct spi_flash flash;								/**< Flash containing the PFM data. */
 	struct spi_flash flash_state;						/**< Flash containing the host state. */
-	struct state_manager state_mgr;						/**< Manager for host state. */
+	struct host_state_manager state_mgr;				/**< Manager for host state. */
 	struct pfm_flash pfm1;								/**< The first PFM. */
 	uint8_t signature1[256];							/**< Buffer for the first manifest signature. */
 	uint8_t platform_id1[256];							/**< Cache for the first platform ID. */
@@ -570,7 +570,7 @@ static void pfm_manager_flash_testing_init (CuTest *test, struct pfm_manager_fla
 	pfm_manager_flash_testing_init_dependencies (test, manager, addr1, addr2);
 
 	if (!pfm1_active) {
-		status = manager->state_mgr.save_active_manifest (&manager->state_mgr, 0,
+		status = manager->state_mgr.base.save_active_manifest (&manager->state_mgr.base, 0,
 			MANIFEST_REGION_2);
 		CuAssertIntEquals (test, 0, status);
 	}
@@ -877,7 +877,8 @@ static void pfm_manager_flash_test_init_region1_pending_lower_id (CuTest *test)
 
 	pfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = manager.state_mgr.save_active_manifest (&manager.state_mgr, 0, MANIFEST_REGION_2);
+	status = manager.state_mgr.base.save_active_manifest (&manager.state_mgr.base, 0,
+		MANIFEST_REGION_2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pfm_manager_flash_testing_verify_pfm (&manager, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
@@ -909,7 +910,8 @@ static void pfm_manager_flash_test_init_region1_pending_same_id (CuTest *test)
 
 	pfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = manager.state_mgr.save_active_manifest (&manager.state_mgr, 0, MANIFEST_REGION_2);
+	status = manager.state_mgr.base.save_active_manifest (&manager.state_mgr.base, 0,
+		MANIFEST_REGION_2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pfm_manager_flash_testing_verify_pfm (&manager, PFM_DATA, PFM_DATA_LEN, PFM_HASH,
@@ -1047,7 +1049,8 @@ static void pfm_manager_flash_test_init_only_pending_region1_empty_manifest (CuT
 
 	pfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = manager.state_mgr.save_active_manifest (&manager.state_mgr, 0, MANIFEST_REGION_2);
+	status = manager.state_mgr.base.save_active_manifest (&manager.state_mgr.base, 0,
+		MANIFEST_REGION_2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pfm_manager_flash_testing_verify_empty_pfm (&manager, pfm, length, man_offset,
@@ -1894,7 +1897,7 @@ static void pfm_manager_flash_test_activate_pending_pfm_region2 (CuTest *test)
 	CuAssertPtrEquals (test, &manager.pfm2, manager.test.base.get_active_pfm (&manager.test.base));
 	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	active = manager.state_mgr.get_active_manifest (&manager.state_mgr, 0);
+	active = manager.state_mgr.base.get_active_manifest (&manager.state_mgr.base, 0);
 	CuAssertIntEquals (test, MANIFEST_REGION_2, active);
 
 	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
@@ -1922,7 +1925,7 @@ static void pfm_manager_flash_test_activate_pending_pfm_region1 (CuTest *test)
 	CuAssertPtrEquals (test, &manager.pfm1, manager.test.base.get_active_pfm (&manager.test.base));
 	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	active = manager.state_mgr.get_active_manifest (&manager.state_mgr, 0);
+	active = manager.state_mgr.base.get_active_manifest (&manager.state_mgr.base, 0);
 	CuAssertIntEquals (test, MANIFEST_REGION_1, active);
 
 	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
@@ -1958,7 +1961,7 @@ static void pfm_manager_flash_test_activate_pending_pfm_region2_notify_observers
 	CuAssertPtrEquals (test, &manager.pfm2, manager.test.base.get_active_pfm (&manager.test.base));
 	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	active = manager.state_mgr.get_active_manifest (&manager.state_mgr, 0);
+	active = manager.state_mgr.base.get_active_manifest (&manager.state_mgr.base, 0);
 	CuAssertIntEquals (test, MANIFEST_REGION_2, active);
 
 	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
@@ -1993,7 +1996,7 @@ static void pfm_manager_flash_test_activate_pending_pfm_region1_notify_observers
 	CuAssertPtrEquals (test, &manager.pfm1, manager.test.base.get_active_pfm (&manager.test.base));
 	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
 
-	active = manager.state_mgr.get_active_manifest (&manager.state_mgr, 0);
+	active = manager.state_mgr.base.get_active_manifest (&manager.state_mgr.base, 0);
 	CuAssertIntEquals (test, MANIFEST_REGION_1, active);
 
 	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);

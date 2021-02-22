@@ -73,7 +73,7 @@ static void recovery_image_manager_testing_write_new_image (CuTest *test,
  * @param flash The mock for the flash state storage.
  */
 static void recovery_image_manager_testing_init_host_state (CuTest *test,
-	struct state_manager *state, struct flash_mock *flash)
+	struct host_state_manager *state, struct flash_mock *flash)
 {
 	int status;
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
@@ -5141,7 +5141,7 @@ static void recovery_image_manager_test_init_two_region (CuTest *test)
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -5225,7 +5225,7 @@ static void recovery_image_manager_test_init_two_region_active_region1 (CuTest *
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -5301,7 +5301,7 @@ static void recovery_image_manager_test_init_two_region_active_region2 (CuTest *
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -5379,7 +5379,7 @@ static void recovery_image_manager_test_init_two_region_null (CuTest *test)
 	struct signature_verification_mock verification;
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -5459,7 +5459,7 @@ static void recovery_image_manager_test_init_two_region_region1_bad_platform_id 
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -5536,7 +5536,7 @@ static void recovery_image_manager_test_init_two_region_region2_bad_platform_id 
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -5616,7 +5616,7 @@ static void recovery_image_manager_test_init_two_region_region1_flash_error (CuT
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -5691,7 +5691,7 @@ static void recovery_image_manager_test_init_two_region_region2_flash_error (CuT
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -5769,7 +5769,7 @@ static void recovery_image_manager_test_init_two_region_region1_bad_signature (C
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -5846,7 +5846,7 @@ static void recovery_image_manager_test_init_two_region_region2_bad_signature (C
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -5926,7 +5926,7 @@ static void recovery_image_manager_test_init_two_region_region1_bad_signature_ec
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -6003,7 +6003,7 @@ static void recovery_image_manager_test_init_two_region_region2_bad_signature_ec
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -6083,7 +6083,7 @@ static void recovery_image_manager_test_init_two_region_region1_malformed (CuTes
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -6160,7 +6160,7 @@ static void recovery_image_manager_test_init_two_region_region2_malformed (CuTes
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -6240,7 +6240,7 @@ static void recovery_image_manager_test_init_two_region_region1_image_header_too
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -6317,7 +6317,7 @@ static void recovery_image_manager_test_init_two_region_region2_image_header_too
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -6397,7 +6397,7 @@ static void recovery_image_manager_test_init_two_region_region1_image_header_bad
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -6474,7 +6474,7 @@ static void recovery_image_manager_test_init_two_region_region2_image_header_bad
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -6554,7 +6554,7 @@ static void recovery_image_manager_test_init_two_region_region1_image_header_too
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -6631,7 +6631,7 @@ static void recovery_image_manager_test_init_two_region_region2_image_header_too
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -6712,7 +6712,7 @@ static void recovery_image_manager_test_init_two_region_region1_image_header_bad
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -6790,7 +6790,7 @@ static void recovery_image_manager_test_init_two_region_region2_image_header_bad
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -6871,7 +6871,7 @@ static void recovery_image_manager_test_init_two_region_region1_image_header_bad
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -6949,7 +6949,7 @@ static void recovery_image_manager_test_init_two_region_region2_image_header_bad
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -7030,7 +7030,7 @@ static void recovery_image_manager_test_init_two_region_region1_image_header_bad
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -7108,7 +7108,7 @@ static void recovery_image_manager_test_init_two_region_region2_image_header_bad
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -7189,7 +7189,7 @@ static void recovery_image_manager_test_init_two_region_region1_image_header_bad
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -7267,7 +7267,7 @@ static void recovery_image_manager_test_init_two_region_region2_image_header_bad
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -7348,7 +7348,7 @@ static void recovery_image_manager_test_init_two_region_region1_image_section_he
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -7426,7 +7426,7 @@ static void recovery_image_manager_test_init_two_region_region2_image_section_he
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -7507,7 +7507,7 @@ static void recovery_image_manager_test_init_two_region_region1_invalid_section_
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -7585,7 +7585,7 @@ static void recovery_image_manager_test_init_two_region_region2_invalid_section_
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -7665,7 +7665,7 @@ static void recovery_image_manager_test_get_active_recovery_image_two_region (Cu
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -7741,7 +7741,7 @@ static void recovery_image_manager_test_get_active_recovery_image_two_region_nul
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -7817,7 +7817,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_null (Cu
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -7894,7 +7894,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_region1 
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -7984,7 +7984,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_region2 
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -8072,7 +8072,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_region1_
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -8155,7 +8155,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_region2_
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -8235,7 +8235,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_erase_er
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -8331,7 +8331,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_erase_er
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -8424,7 +8424,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_in_use_r
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
-	struct state_manager state;
+	struct host_state_manager state;
 	struct recovery_image *active;
 	int status;
 
@@ -8521,7 +8521,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_in_use_r
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
-	struct state_manager state;
+	struct host_state_manager state;
 	struct recovery_image *active;
 	int status;
 
@@ -8621,7 +8621,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_in_use_m
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
-	struct state_manager state;
+	struct host_state_manager state;
 	struct recovery_image *active1;
 	struct recovery_image *active2;
 
@@ -8723,7 +8723,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_in_use_m
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
-	struct state_manager state;
+	struct host_state_manager state;
 	struct recovery_image *active1;
 	struct recovery_image *active2;
 
@@ -8828,7 +8828,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_extra_fr
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
-	struct state_manager state;
+	struct host_state_manager state;
 	struct recovery_image *active;
 	int status;
 
@@ -8936,7 +8936,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_extra_fr
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
-	struct state_manager state;
+	struct host_state_manager state;
 	struct recovery_image *active;
 	int status;
 
@@ -9047,7 +9047,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_free_nul
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -9131,7 +9131,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_free_nul
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -9218,7 +9218,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_free_nul
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
-	struct state_manager state;
+	struct host_state_manager state;
 	struct recovery_image *active;
 	int status;
 
@@ -9303,7 +9303,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_free_nul
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
-	struct state_manager state;
+	struct host_state_manager state;
 	struct recovery_image *active;
 	int status;
 
@@ -9391,7 +9391,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_in_use_a
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
-	struct state_manager state;
+	struct host_state_manager state;
 	struct recovery_image *active;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
 	int status;
@@ -9504,7 +9504,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_in_use_a
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
-	struct state_manager state;
+	struct host_state_manager state;
 	struct recovery_image *active;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
 	int status;
@@ -9618,7 +9618,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_not_in_u
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -9705,7 +9705,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_not_in_u
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -9796,7 +9796,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_notify_o
 	struct flash_mock flash;
 	struct flash_mock flash_image;
 	struct recovery_image_observer_mock observer;
-	struct state_manager state;
+	struct host_state_manager state;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
 	int status;
 
@@ -9915,7 +9915,7 @@ static void recovery_image_manager_test_clear_recovery_image_two_region_notify_o
 	struct flash_mock flash;
 	struct flash_mock flash_image;
 	struct recovery_image_observer_mock observer;
-	struct state_manager state;
+	struct host_state_manager state;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
 	int status;
 
@@ -10030,7 +10030,7 @@ static void recovery_image_manager_test_write_recovery_image_data_two_region_reg
 	struct flash_mock flash_state;
 	struct flash_mock flash;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -10128,7 +10128,7 @@ static void recovery_image_manager_test_write_recovery_image_data_two_region_reg
 	struct flash_mock flash_state;
 	struct flash_mock flash;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -10225,7 +10225,7 @@ static void recovery_image_manager_test_write_recovery_image_data_two_region_wit
 	struct flash_mock flash_state;
 	struct flash_mock flash;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -10306,7 +10306,7 @@ static void recovery_image_manager_test_write_recovery_image_data_two_region_too
 	struct flash_mock flash;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
     uint8_t fill[RECOVERY_IMAGE_MANAGER_IMAGE_MAX_LEN - sizeof (data) + 1] = {0};
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -10405,7 +10405,7 @@ static void recovery_image_manager_test_write_recovery_image_data_two_region_wri
 	struct flash_mock flash_state;
 	struct flash_mock flash;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -10502,7 +10502,7 @@ static void recovery_image_manager_test_write_recovery_image_data_two_region_par
 	struct flash_mock flash;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t fill[FLASH_PAGE_SIZE - 1] = {0};
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -10605,7 +10605,7 @@ static void recovery_image_manager_test_write_recovery_image_data_two_region_mul
 	uint8_t data1[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t data2[] = {0x05, 0x06, 0x07, 0x08, 0x09};
 	uint8_t data3[] = {0x0a, 0x0b, 0x0c};
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -10717,7 +10717,7 @@ static void recovery_image_manager_test_write_recovery_image_data_two_region_blo
 	struct flash_mock flash;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t fill[FLASH_BLOCK_SIZE - sizeof (data)] = {0};
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -10821,7 +10821,7 @@ static void recovery_image_manager_test_write_recovery_image_data_two_region_wri
 	uint8_t data1[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t data2[] = {0x05, 0x06, 0x07, 0x08, 0x09};
 	uint8_t data3[] = {0x0a, 0x0b, 0x0c};
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -10934,7 +10934,7 @@ static void recovery_image_manager_test_write_recovery_image_data_two_region_wri
 	uint8_t data1[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t data2[] = {0x05, 0x06, 0x07, 0x08, 0x09};
 	uint8_t fill[FLASH_PAGE_SIZE - 1] = {0};
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -11045,7 +11045,7 @@ static void recovery_image_manager_test_write_recovery_image_data_two_region_res
 	uint8_t data1[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t data2[] = {0x05, 0x06, 0x07, 0x08, 0x09};
 	uint8_t data3[] = {0x0a, 0x0b, 0x0c};
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -11158,7 +11158,7 @@ static void recovery_image_manager_test_write_recovery_image_data_two_region_in_
 	struct flash_mock flash_state;
 	struct flash_mock flash;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
-	struct state_manager state;
+	struct host_state_manager state;
 	struct recovery_image *active;
 	int status;
 
@@ -11248,7 +11248,7 @@ static void recovery_image_manager_test_write_recovery_image_data_two_region_wri
 	struct flash_mock flash_state;
 	struct flash_mock flash;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -11339,7 +11339,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_regio
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	enum recovery_image_region active;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
 	int status;
@@ -11443,7 +11443,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_regio
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	enum recovery_image_region active;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
 	int status;
@@ -11546,7 +11546,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_regio
 	struct flash_mock flash;
 	struct flash_mock flash_image;
 	struct recovery_image_observer_mock observer;
-	struct state_manager state;
+	struct host_state_manager state;
 	enum recovery_image_region active;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
 	int status;
@@ -11665,7 +11665,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_regio
 	struct flash_mock flash;
 	struct flash_mock flash_image;
 	struct recovery_image_observer_mock observer;
-	struct state_manager state;
+	struct host_state_manager state;
 	enum recovery_image_region active;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
 	int status;
@@ -11780,7 +11780,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_no_pe
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	enum recovery_image_region active;
 	int status;
 
@@ -11867,7 +11867,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_no_pe
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	enum recovery_image_region active;
 	int status;
 
@@ -11951,7 +11951,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_no_pe
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	enum recovery_image_region active;
 	struct recovery_image_observer_mock observer;
 	int status;
@@ -12048,7 +12048,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_no_pe
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	enum recovery_image_region active;
 	struct recovery_image_observer_mock observer;
 	int status;
@@ -12141,7 +12141,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_null 
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	enum recovery_image_region active;
 	int status;
 
@@ -12225,7 +12225,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_write
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
 	int status;
 
@@ -12321,7 +12321,7 @@ CuTest *test)
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
 	int status;
 
@@ -12414,7 +12414,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_after
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -12501,7 +12501,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_after
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -12586,7 +12586,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_verif
 	struct flash_mock flash;
 	struct flash_mock flash_image;
 	struct recovery_image_observer_mock observer;
-	struct state_manager state;
+	struct host_state_manager state;
 	enum recovery_image_region active;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
 	int status;
@@ -12704,7 +12704,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_verif
 	struct flash_mock flash;
 	struct flash_mock flash_image;
 	struct recovery_image_observer_mock observer;
-	struct state_manager state;
+	struct host_state_manager state;
 	enum recovery_image_region active;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
 	int status;
@@ -12817,7 +12817,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_verif
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	enum recovery_image_region active;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
 	int status;
@@ -12921,7 +12921,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_verif
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	enum recovery_image_region active;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
 	int status;
@@ -13022,7 +13022,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_malfo
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	enum recovery_image_region active;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
 	int status;
@@ -13127,7 +13127,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_malfo
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	enum recovery_image_region active;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
 	int status;
@@ -13229,7 +13229,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_extra
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	enum recovery_image_region active;
 	uint8_t data1[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t data2[] = {0x05, 0x06, 0x07, 0x08, 0x09};
@@ -13343,7 +13343,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_extra
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	enum recovery_image_region active;
 	uint8_t data1[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t data2[] = {0x05, 0x06, 0x07, 0x08, 0x09};
@@ -13455,7 +13455,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_verif
 	struct flash_mock flash;
 	struct flash_mock flash_image;
 	struct recovery_image_observer_mock observer;
-	struct state_manager state;
+	struct host_state_manager state;
 	enum recovery_image_region active;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
 	int status;
@@ -13570,7 +13570,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_verif
 	struct flash_mock flash;
 	struct flash_mock flash_image;
 	struct recovery_image_observer_mock observer;
-	struct state_manager state;
+	struct host_state_manager state;
 	enum recovery_image_region active;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
 	int status;
@@ -13681,7 +13681,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_write
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	enum recovery_image_region active;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
 	int status;
@@ -13780,7 +13780,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_write
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	enum recovery_image_region active;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
 	int status;
@@ -13876,7 +13876,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_write
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	enum recovery_image_region active;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
 	int status;
@@ -13975,7 +13975,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_write
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	enum recovery_image_region active;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
 	int status;
@@ -14071,7 +14071,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_with_
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	enum recovery_image_region active;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
 	int status;
@@ -14171,7 +14171,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_with_
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct flash_mock flash_image;
-	struct state_manager state;
+	struct host_state_manager state;
 	enum recovery_image_region active;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
 	int status;
@@ -14269,7 +14269,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_no_ev
 	struct flash_mock flash;
 	struct flash_mock flash_image;
 	struct recovery_image_observer_mock observer;
-	struct state_manager state;
+	struct host_state_manager state;
 	enum recovery_image_region active;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
 	int status;
@@ -14385,7 +14385,7 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_no_ev
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash;
 	struct recovery_image_observer_mock observer;
-	struct state_manager state;
+	struct host_state_manager state;
 	enum recovery_image_region active;
 	struct flash_mock flash_image;
 	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
@@ -14498,7 +14498,7 @@ static void recovery_image_manager_test_erase_all_recovery_regions_region1 (CuTe
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -14591,7 +14591,7 @@ static void recovery_image_manager_test_erase_all_recovery_regions_region2 (CuTe
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -14684,7 +14684,7 @@ static void recovery_image_manager_test_erase_all_recovery_regions_null_region1 
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -14771,7 +14771,7 @@ static void recovery_image_manager_test_erase_all_recovery_regions_null_region2 
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -14858,7 +14858,7 @@ static void recovery_image_manager_test_erase_all_recovery_regions_in_use_region
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
-	struct state_manager state;
+	struct host_state_manager state;
 	struct recovery_image *active;
 	int status;
 
@@ -14962,7 +14962,7 @@ static void recovery_image_manager_test_erase_all_recovery_regions_in_use_region
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
-	struct state_manager state;
+	struct host_state_manager state;
 	struct recovery_image *active;
 	int status;
 
@@ -15067,7 +15067,7 @@ static void recovery_image_manager_test_erase_all_recovery_regions_erase_error_r
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -15163,7 +15163,7 @@ static void recovery_image_manager_test_erase_all_recovery_regions_erase_error_r
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
-	struct state_manager state;
+	struct host_state_manager state;
 	int status;
 
 	TEST_START;
@@ -15259,7 +15259,7 @@ static void recovery_image_manager_test_erase_all_recovery_regions_valid_image_n
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
-	struct state_manager state;
+	struct host_state_manager state;
 	struct recovery_image_observer_mock observer;
 	int status;
 
@@ -15365,7 +15365,7 @@ static void recovery_image_manager_test_erase_all_recovery_regions_invalid_image
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
-	struct state_manager state;
+	struct host_state_manager state;
 	struct recovery_image_observer_mock observer;
 	int status;
 
@@ -15470,7 +15470,7 @@ static void recovery_image_manager_test_erase_all_recovery_regions_valid_image_n
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
-	struct state_manager state;
+	struct host_state_manager state;
 	struct recovery_image_observer_mock observer;
 	int status;
 
@@ -15576,7 +15576,7 @@ static void recovery_image_manager_test_erase_all_recovery_regions_invalid_image
 	struct pfm_manager_mock pfm_manager;
 	struct flash_mock flash_state;
 	struct flash_mock flash;
-	struct state_manager state;
+	struct host_state_manager state;
 	struct recovery_image_observer_mock observer;
 	int status;
 
@@ -16137,12 +16137,12 @@ static void recovery_image_manager_test_get_measured_data_with_offset (CuTest *t
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = recovery_image_manager_get_measured_data (&manager, offset, buffer, length, 
+	status = recovery_image_manager_get_measured_data (&manager, offset, buffer, length,
 		&total_len);
 	CuAssertIntEquals (test, RECOVERY_IMAGE_HASH_LEN - offset, status);
 	CuAssertIntEquals (test, RECOVERY_IMAGE_HASH_LEN, total_len);
 
-	status = testing_validate_array (RECOVERY_IMAGE_HASH + 2, buffer, 
+	status = testing_validate_array (RECOVERY_IMAGE_HASH + 2, buffer,
 		RECOVERY_IMAGE_HASH_LEN - offset);
 	CuAssertIntEquals (test, 0, status);
 
@@ -16417,7 +16417,7 @@ static void recovery_image_manager_test_get_measured_data_no_active_with_offset 
 		&verification.base, &pfm_manager.base, RECOVERY_IMAGE_MANAGER_IMAGE_MAX_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = recovery_image_manager_get_measured_data (&manager, offset, buffer, length, 
+	status = recovery_image_manager_get_measured_data (&manager, offset, buffer, length,
 		&total_len);
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH - offset, status);
 	CuAssertIntEquals (test, RECOVERY_IMAGE_HASH_LEN, total_len);
@@ -16552,7 +16552,7 @@ static void recovery_image_manager_test_get_measured_data_no_active_small_buffer
 		&verification.base, &pfm_manager.base, RECOVERY_IMAGE_MANAGER_IMAGE_MAX_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = recovery_image_manager_get_measured_data (&manager, offset, buffer, length - 4, 
+	status = recovery_image_manager_get_measured_data (&manager, offset, buffer, length - 4,
 		&total_len);
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH - 4, status);
 	CuAssertIntEquals (test, RECOVERY_IMAGE_HASH_LEN, total_len);
@@ -16618,7 +16618,7 @@ static void recovery_image_manager_test_get_measured_data_0_bytes_read (CuTest *
 		&verification.base, &pfm_manager.base, RECOVERY_IMAGE_MANAGER_IMAGE_MAX_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = recovery_image_manager_get_measured_data (&manager, RECOVERY_IMAGE_HASH_LEN, buffer, 
+	status = recovery_image_manager_get_measured_data (&manager, RECOVERY_IMAGE_HASH_LEN, buffer,
 		length, &total_len);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, RECOVERY_IMAGE_HASH_LEN, total_len);
@@ -16797,7 +16797,7 @@ static void recovery_image_manager_test_get_measured_data_fail (CuTest *test)
 		MOCK_ARG (manager.base.hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
-	status = recovery_image_manager_get_measured_data (&manager.base, 0, buffer, length, 
+	status = recovery_image_manager_get_measured_data (&manager.base, 0, buffer, length,
 		&total_len);
 	CuAssertIntEquals (test, RECOVERY_IMAGE_GET_HASH_FAILED, status);
 

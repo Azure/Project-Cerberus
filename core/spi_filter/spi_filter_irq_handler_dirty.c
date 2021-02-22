@@ -29,7 +29,7 @@ static void spi_filter_irq_handler_dirty_ro_flash_dirty (struct spi_filter_irq_h
  * @return 0 if the handler was successfully initialized or an error code.
  */
 int spi_filter_irq_handler_dirty_init (struct spi_filter_irq_handler_dirty *handler,
-	struct state_manager *host_state, struct host_control *control)
+	struct host_state_manager *host_state, struct host_control *control)
 {
 	int status;
 

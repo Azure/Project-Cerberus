@@ -64,7 +64,7 @@ static int pfm_manager_flash_activate_pending_pfm (struct manifest_manager *mana
 
 	status = manifest_manager_flash_activate_pending_manifest (&pfm_mgr->manifest_manager);
 	if (status == 0) {
-		host_state_manager_set_pfm_dirty (pfm_mgr->manifest_manager.state, false);
+		host_state_manager_set_pfm_dirty (pfm_mgr->host_state, false);
 		pfm_manager_on_pfm_activated (&pfm_mgr->base);
 	}
 
@@ -105,7 +105,7 @@ int pfm_manager_flash_verify_pending_pfm (struct manifest_manager *manager)
 
 	status = manifest_manager_flash_verify_pending_manifest (&pfm_mgr->manifest_manager);
 	if (status == 0) {
-		host_state_manager_set_pfm_dirty (pfm_mgr->manifest_manager.state, true);
+		host_state_manager_set_pfm_dirty (pfm_mgr->host_state, true);
 		pfm_manager_on_pfm_verified (&pfm_mgr->base);
 	}
 
@@ -179,7 +179,7 @@ static int pfm_manager_flash_check_supported_versions (struct pfm_manager_flash 
  * @return 0 if the PFM manager was successfully initialized or an error code.
  */
 int pfm_manager_flash_init (struct pfm_manager_flash *manager, struct pfm_flash *pfm_region1,
-	struct pfm_flash *pfm_region2, struct state_manager *state, struct hash_engine *hash,
+	struct pfm_flash *pfm_region2, struct host_state_manager *state, struct hash_engine *hash,
 	struct signature_verification *verification)
 {
 	return pfm_manager_flash_init_port (manager, pfm_region1, pfm_region2, state, hash,
@@ -205,7 +205,7 @@ int pfm_manager_flash_init (struct pfm_manager_flash *manager, struct pfm_flash 
  * @return 0 if the PFM manager was successfully initialized or an error code.
  */
 int pfm_manager_flash_init_port (struct pfm_manager_flash *manager, struct pfm_flash *pfm_region1,
-	struct pfm_flash *pfm_region2, struct state_manager *state, struct hash_engine *hash,
+	struct pfm_flash *pfm_region2, struct host_state_manager *state, struct hash_engine *hash,
 	struct signature_verification *verification, int port)
 {
 	int status;
@@ -222,8 +222,8 @@ int pfm_manager_flash_init_port (struct pfm_manager_flash *manager, struct pfm_f
 	}
 
 	status = manifest_manager_flash_init (&manager->manifest_manager, &pfm_region1->base.base,
-		&pfm_region2->base.base, &pfm_region1->base_flash, &pfm_region2->base_flash, state, hash,
-		verification, 0);
+		&pfm_region2->base.base, &pfm_region1->base_flash, &pfm_region2->base_flash, &state->base,
+		hash, verification, 0);
 	if (status != 0) {
 		goto manifest_base_error;
 	}
@@ -242,6 +242,8 @@ int pfm_manager_flash_init_port (struct pfm_manager_flash *manager, struct pfm_f
 	manager->base.base.write_pending_data = pfm_manager_flash_write_pending_data;
 	manager->base.base.verify_pending_manifest = pfm_manager_flash_verify_pending_pfm;
 	manager->base.base.clear_all_manifests = pfm_manager_flash_clear_all_manifests;
+
+	manager->host_state = state;
 
 	return 0;
 

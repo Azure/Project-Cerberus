@@ -5,10 +5,10 @@
 #include <stdint.h>
 #include <string.h>
 #include "testing.h"
-#include "state_manager/state_manager.h"
 #include "host_fw/host_state_manager.h"
-#include "mock/flash_mock.h"
 #include "flash/flash_common.h"
+#include "mock/flash_mock.h"
+#include "mock/host_state_observer_mock.h"
 
 
 static const char *SUITE = "host_state_manager";
@@ -21,7 +21,7 @@ static const char *SUITE = "host_state_manager";
 static void host_state_manager_test_init (CuTest *test)
 {
 	struct flash_mock flash;
-	struct state_manager manager;
+	struct host_state_manager manager;
 	int status;
 	uint16_t state[4] = {0xffff, 0xffff, 0xffff, 0xffff};
 	uint32_t bytes = FLASH_SECTOR_SIZE;
@@ -48,13 +48,13 @@ static void host_state_manager_test_init (CuTest *test)
 
 	status = host_state_manager_init (&manager, &flash.base, 0x10000);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, 0xffff, manager.nv_state);
-	CuAssertIntEquals (test, 0x41, manager.volatile_state);
+	CuAssertIntEquals (test, 0xffff, manager.base.nv_state);
+	CuAssertIntEquals (test, 0x41, manager.base.volatile_state);
 
-	CuAssertPtrNotNull (test, manager.get_active_manifest);
-	CuAssertPtrNotNull (test, manager.save_active_manifest);
-	CuAssertPtrNotNull (test, manager.restore_default_state);
-	CuAssertPtrNotNull (test, manager.is_manifest_valid);
+	CuAssertPtrNotNull (test, manager.base.get_active_manifest);
+	CuAssertPtrNotNull (test, manager.base.save_active_manifest);
+	CuAssertPtrNotNull (test, manager.base.restore_default_state);
+	CuAssertPtrNotNull (test, manager.base.is_manifest_valid);
 
 	status = flash_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
@@ -65,7 +65,7 @@ static void host_state_manager_test_init (CuTest *test)
 static void host_state_manager_test_init_null (CuTest *test)
 {
 	struct flash_mock flash;
-	struct state_manager manager;
+	struct host_state_manager manager;
 	int status;
 
 	TEST_START;
@@ -86,7 +86,7 @@ static void host_state_manager_test_init_null (CuTest *test)
 static void host_state_manager_test_init_not_sector_aligned (CuTest *test)
 {
 	struct flash_mock flash;
-	struct state_manager manager;
+	struct host_state_manager manager;
 	int status;
 	uint32_t bytes = FLASH_SECTOR_SIZE;
 
@@ -110,7 +110,7 @@ static void host_state_manager_test_init_not_sector_aligned (CuTest *test)
 static void host_state_manager_test_get_read_only_flash_cs0 (CuTest *test)
 {
 	struct flash_mock flash;
-	struct state_manager manager;
+	struct host_state_manager manager;
 	int status;
 	uint16_t state[4] = {0xff81, 0xff81, 0xff81, 0};
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
@@ -158,7 +158,7 @@ static void host_state_manager_test_get_read_only_flash_cs0 (CuTest *test)
 static void host_state_manager_test_get_read_only_flash_cs1 (CuTest *test)
 {
 	struct flash_mock flash;
-	struct state_manager manager;
+	struct host_state_manager manager;
 	int status;
 	uint16_t state[4] = {0xff80, 0xff80, 0xff80, 0};
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
@@ -206,7 +206,7 @@ static void host_state_manager_test_get_read_only_flash_cs1 (CuTest *test)
 static void host_state_manager_test_get_read_only_flash_no_state (CuTest *test)
 {
 	struct flash_mock flash;
-	struct state_manager manager;
+	struct host_state_manager manager;
 	int status;
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
 	spi_filter_cs ro;
@@ -257,7 +257,275 @@ static void host_state_manager_test_get_read_only_flash_null (CuTest *test)
 static void host_state_manager_test_save_read_only_flash_cs0 (CuTest *test)
 {
 	struct flash_mock flash;
-	struct state_manager manager;
+	struct host_state_observer_mock observer;
+	struct host_state_manager manager;
+	int status;
+	uint16_t state[4] = {0xff80, 0xff80, 0xff80, 0};
+	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
+	spi_filter_cs ro;
+	uint32_t bytes = FLASH_SECTOR_SIZE;
+
+	TEST_START;
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_init (&observer);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&flash.mock, flash.base.get_sector_size, &flash, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10008),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_init (&manager, &flash.base, 0x10000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_add_observer (&manager, &observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&observer.mock, observer.base.on_read_only_flash, &observer, 0,
+		MOCK_ARG (&manager));
+	CuAssertIntEquals (test, 0, status);
+
+	ro = host_state_manager_get_read_only_flash (&manager);
+	CuAssertIntEquals (test, SPI_FILTER_CS_1, ro);
+
+	status = host_state_manager_save_read_only_flash (&manager, SPI_FILTER_CS_0);
+	CuAssertIntEquals (test, 0, status);
+
+	ro = host_state_manager_get_read_only_flash (&manager);
+	CuAssertIntEquals (test, SPI_FILTER_CS_0, ro);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_validate_and_release (&observer);
+	CuAssertIntEquals (test, 0, status);
+
+	host_state_manager_release (&manager);
+}
+
+static void host_state_manager_test_save_read_only_flash_cs1 (CuTest *test)
+{
+	struct flash_mock flash;
+	struct host_state_observer_mock observer;
+	struct host_state_manager manager;
+	int status;
+	uint16_t state[4] = {0xff81, 0xff81, 0xff81, 0};
+	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
+	spi_filter_cs ro;
+	uint32_t bytes = FLASH_SECTOR_SIZE;
+
+	TEST_START;
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_init (&observer);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&flash.mock, flash.base.get_sector_size, &flash, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10008),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_init (&manager, &flash.base, 0x10000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_add_observer (&manager, &observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&observer.mock, observer.base.on_read_only_flash, &observer, 0,
+		MOCK_ARG (&manager));
+	CuAssertIntEquals (test, 0, status);
+
+	ro = host_state_manager_get_read_only_flash (&manager);
+	CuAssertIntEquals (test, SPI_FILTER_CS_0, ro);
+
+	status = host_state_manager_save_read_only_flash (&manager, SPI_FILTER_CS_1);
+	CuAssertIntEquals (test, 0, status);
+
+	ro = host_state_manager_get_read_only_flash (&manager);
+	CuAssertIntEquals (test, SPI_FILTER_CS_1, ro);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_validate_and_release (&observer);
+	CuAssertIntEquals (test, 0, status);
+
+	host_state_manager_release (&manager);
+}
+
+static void host_state_manager_test_save_read_only_flash_unknown_cs (CuTest *test)
+{
+	struct flash_mock flash;
+	struct host_state_observer_mock observer;
+	struct host_state_manager manager;
+	int status;
+	uint16_t state[4] = {0xff80, 0xff80, 0xff80, 0};
+	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
+	spi_filter_cs ro;
+	uint32_t bytes = FLASH_SECTOR_SIZE;
+
+	TEST_START;
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_init (&observer);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&flash.mock, flash.base.get_sector_size, &flash, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10008),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_init (&manager, &flash.base, 0x10000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_add_observer (&manager, &observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	ro = host_state_manager_get_read_only_flash (&manager);
+	CuAssertIntEquals (test, SPI_FILTER_CS_1, ro);
+
+	status = host_state_manager_save_read_only_flash (&manager, (spi_filter_cs) 10);
+	CuAssertIntEquals (test, STATE_MANAGER_INVALID_ARGUMENT, status);
+
+	ro = host_state_manager_get_read_only_flash (&manager);
+	CuAssertIntEquals (test, SPI_FILTER_CS_1, ro);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_validate_and_release (&observer);
+	CuAssertIntEquals (test, 0, status);
+
+	host_state_manager_release (&manager);
+}
+
+static void host_state_manager_test_save_read_only_flash_same_cs (CuTest *test)
+{
+	struct flash_mock flash;
+	struct host_state_observer_mock observer;
+	struct host_state_manager manager;
+	int status;
+	uint16_t state[4] = {0xff80, 0xff80, 0xff80, 0};
+	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
+	spi_filter_cs ro;
+	uint32_t bytes = FLASH_SECTOR_SIZE;
+
+	TEST_START;
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_init (&observer);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&flash.mock, flash.base.get_sector_size, &flash, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10008),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_init (&manager, &flash.base, 0x10000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_add_observer (&manager, &observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&observer.mock, observer.base.on_read_only_flash, &observer, 0,
+		MOCK_ARG (&manager));
+	CuAssertIntEquals (test, 0, status);
+
+	ro = host_state_manager_get_read_only_flash (&manager);
+	CuAssertIntEquals (test, SPI_FILTER_CS_1, ro);
+
+	status = host_state_manager_save_read_only_flash (&manager, SPI_FILTER_CS_1);
+	CuAssertIntEquals (test, 0, status);
+
+	ro = host_state_manager_get_read_only_flash (&manager);
+	CuAssertIntEquals (test, SPI_FILTER_CS_1, ro);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_validate_and_release (&observer);
+	CuAssertIntEquals (test, 0, status);
+
+	host_state_manager_release (&manager);
+}
+
+static void host_state_manager_test_save_read_only_flash_no_observer (CuTest *test)
+{
+	struct flash_mock flash;
+	struct host_state_manager manager;
 	int status;
 	uint16_t state[4] = {0xff80, 0xff80, 0xff80, 0};
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
@@ -308,172 +576,11 @@ static void host_state_manager_test_save_read_only_flash_cs0 (CuTest *test)
 	host_state_manager_release (&manager);
 }
 
-static void host_state_manager_test_save_read_only_flash_cs1 (CuTest *test)
-{
-	struct flash_mock flash;
-	struct state_manager manager;
-	int status;
-	uint16_t state[4] = {0xff81, 0xff81, 0xff81, 0};
-	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
-	spi_filter_cs ro;
-	uint32_t bytes = FLASH_SECTOR_SIZE;
-
-	TEST_START;
-
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&flash.mock, flash.base.get_sector_size, &flash, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&flash.mock, 0, &bytes, sizeof (bytes), -1);
-
-	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
-	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
-
-	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
-	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
-
-	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
-	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
-
-	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10008),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
-	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_state_manager_init (&manager, &flash.base, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	ro = host_state_manager_get_read_only_flash (&manager);
-	CuAssertIntEquals (test, SPI_FILTER_CS_0, ro);
-
-	status = host_state_manager_save_read_only_flash (&manager, SPI_FILTER_CS_1);
-	CuAssertIntEquals (test, 0, status);
-
-	ro = host_state_manager_get_read_only_flash (&manager);
-	CuAssertIntEquals (test, SPI_FILTER_CS_1, ro);
-
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
-
-	host_state_manager_release (&manager);
-}
-
-static void host_state_manager_test_save_read_only_flash_unknown_cs (CuTest *test)
-{
-	struct flash_mock flash;
-	struct state_manager manager;
-	int status;
-	uint16_t state[4] = {0xff80, 0xff80, 0xff80, 0};
-	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
-	spi_filter_cs ro;
-	uint32_t bytes = FLASH_SECTOR_SIZE;
-
-	TEST_START;
-
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&flash.mock, flash.base.get_sector_size, &flash, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&flash.mock, 0, &bytes, sizeof (bytes), -1);
-
-	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
-	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
-
-	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
-	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
-
-	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
-	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
-
-	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10008),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
-	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_state_manager_init (&manager, &flash.base, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	ro = host_state_manager_get_read_only_flash (&manager);
-	CuAssertIntEquals (test, SPI_FILTER_CS_1, ro);
-
-	status = host_state_manager_save_read_only_flash (&manager, (spi_filter_cs) 10);
-	CuAssertIntEquals (test, STATE_MANAGER_INVALID_ARGUMENT, status);
-
-	ro = host_state_manager_get_read_only_flash (&manager);
-	CuAssertIntEquals (test, SPI_FILTER_CS_1, ro);
-
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
-
-	host_state_manager_release (&manager);
-}
-
-static void host_state_manager_test_save_read_only_flash_same_cs (CuTest *test)
-{
-	struct flash_mock flash;
-	struct state_manager manager;
-	int status;
-	uint16_t state[4] = {0xff80, 0xff80, 0xff80, 0};
-	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
-	spi_filter_cs ro;
-	uint32_t bytes = FLASH_SECTOR_SIZE;
-
-	TEST_START;
-
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&flash.mock, flash.base.get_sector_size, &flash, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&flash.mock, 0, &bytes, sizeof (bytes), -1);
-
-	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
-	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
-
-	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
-	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
-
-	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
-	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
-
-	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10008),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
-	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_state_manager_init (&manager, &flash.base, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	ro = host_state_manager_get_read_only_flash (&manager);
-	CuAssertIntEquals (test, SPI_FILTER_CS_1, ro);
-
-	status = host_state_manager_save_read_only_flash (&manager, SPI_FILTER_CS_1);
-	CuAssertIntEquals (test, 0, status);
-
-	ro = host_state_manager_get_read_only_flash (&manager);
-	CuAssertIntEquals (test, SPI_FILTER_CS_1, ro);
-
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
-
-	host_state_manager_release (&manager);
-}
-
 static void host_state_manager_test_save_read_only_flash_null (CuTest *test)
 {
 	struct flash_mock flash;
-	struct state_manager manager;
+	struct host_state_observer_mock observer;
+	struct host_state_manager manager;
 	int status;
 	uint16_t state[4] = {0xff80, 0xff80, 0xff80, 0};
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
@@ -482,6 +589,9 @@ static void host_state_manager_test_save_read_only_flash_null (CuTest *test)
 	TEST_START;
 
 	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_init (&observer);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&flash.mock, flash.base.get_sector_size, &flash, 0, MOCK_ARG_NOT_NULL);
@@ -506,6 +616,9 @@ static void host_state_manager_test_save_read_only_flash_null (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_init (&manager, &flash.base, 0x10000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_add_observer (&manager, &observer.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_save_read_only_flash (NULL, SPI_FILTER_CS_0);
@@ -514,13 +627,16 @@ static void host_state_manager_test_save_read_only_flash_null (CuTest *test)
 	status = flash_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
 
+	status = host_state_observer_mock_validate_and_release (&observer);
+	CuAssertIntEquals (test, 0, status);
+
 	host_state_manager_release (&manager);
 }
 
 static void host_state_manager_test_is_inactive_dirty_not_dirty (CuTest *test)
 {
 	struct flash_mock flash;
-	struct state_manager manager;
+	struct host_state_manager manager;
 	int status;
 	uint16_t state[4] = {0xff82, 0xff82, 0xff82, 0};
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
@@ -568,7 +684,7 @@ static void host_state_manager_test_is_inactive_dirty_not_dirty (CuTest *test)
 static void host_state_manager_test_is_inactive_dirty_dirty (CuTest *test)
 {
 	struct flash_mock flash;
-	struct state_manager manager;
+	struct host_state_manager manager;
 	int status;
 	uint16_t state[4] = {0xff80, 0xff80, 0xff80, 0};
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
@@ -616,7 +732,7 @@ static void host_state_manager_test_is_inactive_dirty_dirty (CuTest *test)
 static void host_state_manager_test_is_inactive_dirty_no_state (CuTest *test)
 {
 	struct flash_mock flash;
-	struct state_manager manager;
+	struct host_state_manager manager;
 	int status;
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
 	bool dirty;
@@ -657,7 +773,7 @@ static void host_state_manager_test_is_inactive_dirty_no_state (CuTest *test)
 static void host_state_manager_test_is_inactive_dirty_null (CuTest *test)
 {
 	struct flash_mock flash;
-	struct state_manager manager;
+	struct host_state_manager manager;
 	int status;
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
 	bool dirty;
@@ -698,7 +814,8 @@ static void host_state_manager_test_is_inactive_dirty_null (CuTest *test)
 static void host_state_manager_test_save_inactive_dirty_not_dirty (CuTest *test)
 {
 	struct flash_mock flash;
-	struct state_manager manager;
+	struct host_state_observer_mock observer;
+	struct host_state_manager manager;
 	int status;
 	uint16_t state[4] = {0xff80, 0xff80, 0xff80, 0};
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
@@ -708,6 +825,9 @@ static void host_state_manager_test_save_inactive_dirty_not_dirty (CuTest *test)
 	TEST_START;
 
 	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_init (&observer);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&flash.mock, flash.base.get_sector_size, &flash, 0, MOCK_ARG_NOT_NULL);
@@ -732,6 +852,13 @@ static void host_state_manager_test_save_inactive_dirty_not_dirty (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_init (&manager, &flash.base, 0x10000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_add_observer (&manager, &observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&observer.mock, observer.base.on_inactive_dirty, &observer, 0,
+		MOCK_ARG (&manager));
 	CuAssertIntEquals (test, 0, status);
 
 	dirty = host_state_manager_is_inactive_dirty (&manager);
@@ -746,13 +873,17 @@ static void host_state_manager_test_save_inactive_dirty_not_dirty (CuTest *test)
 	status = flash_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
 
+	status = host_state_observer_mock_validate_and_release (&observer);
+	CuAssertIntEquals (test, 0, status);
+
 	host_state_manager_release (&manager);
 }
 
 static void host_state_manager_test_save_inactive_dirty_dirty (CuTest *test)
 {
 	struct flash_mock flash;
-	struct state_manager manager;
+	struct host_state_observer_mock observer;
+	struct host_state_manager manager;
 	int status;
 	uint16_t state[4] = {0xff82, 0xff82, 0xff82, 0};
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
@@ -762,6 +893,9 @@ static void host_state_manager_test_save_inactive_dirty_dirty (CuTest *test)
 	TEST_START;
 
 	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_init (&observer);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&flash.mock, flash.base.get_sector_size, &flash, 0, MOCK_ARG_NOT_NULL);
@@ -786,6 +920,13 @@ static void host_state_manager_test_save_inactive_dirty_dirty (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_init (&manager, &flash.base, 0x10000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_add_observer (&manager, &observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&observer.mock, observer.base.on_inactive_dirty, &observer, 0,
+		MOCK_ARG (&manager));
 	CuAssertIntEquals (test, 0, status);
 
 	dirty = host_state_manager_is_inactive_dirty (&manager);
@@ -800,13 +941,17 @@ static void host_state_manager_test_save_inactive_dirty_dirty (CuTest *test)
 	status = flash_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
 
+	status = host_state_observer_mock_validate_and_release (&observer);
+	CuAssertIntEquals (test, 0, status);
+
 	host_state_manager_release (&manager);
 }
 
 static void host_state_manager_test_save_inactive_dirty_same_state (CuTest *test)
 {
 	struct flash_mock flash;
-	struct state_manager manager;
+	struct host_state_observer_mock observer;
+	struct host_state_manager manager;
 	int status;
 	uint16_t state[4] = {0xff80, 0xff80, 0xff80, 0};
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
@@ -816,6 +961,9 @@ static void host_state_manager_test_save_inactive_dirty_same_state (CuTest *test
 	TEST_START;
 
 	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_init (&observer);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&flash.mock, flash.base.get_sector_size, &flash, 0, MOCK_ARG_NOT_NULL);
@@ -842,6 +990,13 @@ static void host_state_manager_test_save_inactive_dirty_same_state (CuTest *test
 	status = host_state_manager_init (&manager, &flash.base, 0x10000);
 	CuAssertIntEquals (test, 0, status);
 
+	status = host_state_manager_add_observer (&manager, &observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&observer.mock, observer.base.on_inactive_dirty, &observer, 0,
+		MOCK_ARG (&manager));
+	CuAssertIntEquals (test, 0, status);
+
 	dirty = host_state_manager_is_inactive_dirty (&manager);
 	CuAssertIntEquals (test, true, dirty);
 
@@ -854,13 +1009,17 @@ static void host_state_manager_test_save_inactive_dirty_same_state (CuTest *test
 	status = flash_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
 
+	status = host_state_observer_mock_validate_and_release (&observer);
+	CuAssertIntEquals (test, 0, status);
+
 	host_state_manager_release (&manager);
 }
 
 static void host_state_manager_test_save_inactive_dirty_dirty_with_prevalidated_flash (CuTest *test)
 {
 	struct flash_mock flash;
-	struct state_manager manager;
+	struct host_state_observer_mock observer;
+	struct host_state_manager manager;
 	int status;
 	uint16_t state[4] = {0xff82, 0xff82, 0xff82, 0};
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
@@ -873,6 +1032,9 @@ static void host_state_manager_test_save_inactive_dirty_dirty_with_prevalidated_
 	status = flash_mock_init (&flash);
 	CuAssertIntEquals (test, 0, status);
 
+	status = host_state_observer_mock_init (&observer);
+	CuAssertIntEquals (test, 0, status);
+
 	status = mock_expect (&flash.mock, flash.base.get_sector_size, &flash, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&flash.mock, 0, &bytes, sizeof (bytes), -1);
 
@@ -897,10 +1059,20 @@ static void host_state_manager_test_save_inactive_dirty_dirty_with_prevalidated_
 	status = host_state_manager_init (&manager, &flash.base, 0x10000);
 	CuAssertIntEquals (test, 0, status);
 
+	host_state_manager_set_run_time_validation (&manager, HOST_STATE_PREVALIDATED_FLASH);
+
+	status = host_state_manager_add_observer (&manager, &observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&observer.mock, observer.base.on_inactive_dirty, &observer, 0,
+		MOCK_ARG (&manager));
+	status |= mock_expect (&observer.mock, observer.base.on_run_time_validation, &observer, 0,
+		MOCK_ARG (&manager));
+
+	CuAssertIntEquals (test, 0, status);
+
 	dirty = host_state_manager_is_inactive_dirty (&manager);
 	CuAssertIntEquals (test, false, dirty);
-
-	host_state_manager_set_run_time_validation (&manager, HOST_STATE_PREVALIDATED_FLASH);
 
 	validation = host_state_manager_get_run_time_validation (&manager);
 	CuAssertIntEquals (test, HOST_STATE_PREVALIDATED_FLASH, validation);
@@ -915,6 +1087,9 @@ static void host_state_manager_test_save_inactive_dirty_dirty_with_prevalidated_
 	CuAssertIntEquals (test, HOST_STATE_PREVALIDATED_NONE, validation);
 
 	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_validate_and_release (&observer);
 	CuAssertIntEquals (test, 0, status);
 
 	host_state_manager_release (&manager);
@@ -924,7 +1099,8 @@ static void host_state_manager_test_save_inactive_dirty_dirty_with_prevalidated_
 	CuTest *test)
 {
 	struct flash_mock flash;
-	struct state_manager manager;
+	struct host_state_observer_mock observer;
+	struct host_state_manager manager;
 	int status;
 	uint16_t state[4] = {0xff82, 0xff82, 0xff82, 0};
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
@@ -935,6 +1111,9 @@ static void host_state_manager_test_save_inactive_dirty_dirty_with_prevalidated_
 	TEST_START;
 
 	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_init (&observer);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&flash.mock, flash.base.get_sector_size, &flash, 0, MOCK_ARG_NOT_NULL);
@@ -961,10 +1140,20 @@ static void host_state_manager_test_save_inactive_dirty_dirty_with_prevalidated_
 	status = host_state_manager_init (&manager, &flash.base, 0x10000);
 	CuAssertIntEquals (test, 0, status);
 
+	host_state_manager_set_run_time_validation (&manager, HOST_STATE_PREVALIDATED_FLASH_AND_PFM);
+
+	status = host_state_manager_add_observer (&manager, &observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&observer.mock, observer.base.on_inactive_dirty, &observer, 0,
+		MOCK_ARG (&manager));
+	status |= mock_expect (&observer.mock, observer.base.on_run_time_validation, &observer, 0,
+		MOCK_ARG (&manager));
+
+	CuAssertIntEquals (test, 0, status);
+
 	dirty = host_state_manager_is_inactive_dirty (&manager);
 	CuAssertIntEquals (test, false, dirty);
-
-	host_state_manager_set_run_time_validation (&manager, HOST_STATE_PREVALIDATED_FLASH_AND_PFM);
 
 	validation = host_state_manager_get_run_time_validation (&manager);
 	CuAssertIntEquals (test, HOST_STATE_PREVALIDATED_FLASH_AND_PFM, validation);
@@ -981,6 +1170,9 @@ static void host_state_manager_test_save_inactive_dirty_dirty_with_prevalidated_
 	status = flash_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
 
+	status = host_state_observer_mock_validate_and_release (&observer);
+	CuAssertIntEquals (test, 0, status);
+
 	host_state_manager_release (&manager);
 }
 
@@ -988,7 +1180,8 @@ static void host_state_manager_test_save_inactive_dirty_not_dirty_with_prevalida
 	CuTest *test)
 {
 	struct flash_mock flash;
-	struct state_manager manager;
+	struct host_state_observer_mock observer;
+	struct host_state_manager manager;
 	int status;
 	uint16_t state[4] = {0xff80, 0xff80, 0xff80, 0};
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
@@ -999,6 +1192,9 @@ static void host_state_manager_test_save_inactive_dirty_not_dirty_with_prevalida
 	TEST_START;
 
 	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_init (&observer);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&flash.mock, flash.base.get_sector_size, &flash, 0, MOCK_ARG_NOT_NULL);
@@ -1025,10 +1221,17 @@ static void host_state_manager_test_save_inactive_dirty_not_dirty_with_prevalida
 	status = host_state_manager_init (&manager, &flash.base, 0x10000);
 	CuAssertIntEquals (test, 0, status);
 
+	host_state_manager_set_run_time_validation (&manager, HOST_STATE_PREVALIDATED_FLASH);
+
+	status = host_state_manager_add_observer (&manager, &observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&observer.mock, observer.base.on_inactive_dirty, &observer, 0,
+		MOCK_ARG (&manager));
+	CuAssertIntEquals (test, 0, status);
+
 	dirty = host_state_manager_is_inactive_dirty (&manager);
 	CuAssertIntEquals (test, true, dirty);
-
-	host_state_manager_set_run_time_validation (&manager, HOST_STATE_PREVALIDATED_FLASH);
 
 	validation = host_state_manager_get_run_time_validation (&manager);
 	CuAssertIntEquals (test, HOST_STATE_PREVALIDATED_FLASH, validation);
@@ -1045,6 +1248,9 @@ static void host_state_manager_test_save_inactive_dirty_not_dirty_with_prevalida
 	status = flash_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
 
+	status = host_state_observer_mock_validate_and_release (&observer);
+	CuAssertIntEquals (test, 0, status);
+
 	host_state_manager_release (&manager);
 }
 
@@ -1052,12 +1258,88 @@ static void host_state_manager_test_save_inactive_dirty_not_dirty_with_prevalida
 	CuTest *test)
 {
 	struct flash_mock flash;
-	struct state_manager manager;
+	struct host_state_observer_mock observer;
+	struct host_state_manager manager;
 	int status;
 	uint16_t state[4] = {0xff80, 0xff80, 0xff80, 0};
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
 	bool dirty;
 	enum host_state_prevalidated validation;
+	uint32_t bytes = FLASH_SECTOR_SIZE;
+
+	TEST_START;
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_init (&observer);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&flash.mock, flash.base.get_sector_size, &flash, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10008),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_init (&manager, &flash.base, 0x10000);
+	CuAssertIntEquals (test, 0, status);
+
+	host_state_manager_set_run_time_validation (&manager, HOST_STATE_PREVALIDATED_FLASH_AND_PFM);
+
+	status = host_state_manager_add_observer (&manager, &observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&observer.mock, observer.base.on_inactive_dirty, &observer, 0,
+		MOCK_ARG (&manager));
+	CuAssertIntEquals (test, 0, status);
+
+	dirty = host_state_manager_is_inactive_dirty (&manager);
+	CuAssertIntEquals (test, true, dirty);
+
+	validation = host_state_manager_get_run_time_validation (&manager);
+	CuAssertIntEquals (test, HOST_STATE_PREVALIDATED_FLASH_AND_PFM, validation);
+
+	status = host_state_manager_save_inactive_dirty (&manager, false);
+	CuAssertIntEquals (test, 0, status);
+
+	dirty = host_state_manager_is_inactive_dirty (&manager);
+	CuAssertIntEquals (test, false, dirty);
+
+	validation = host_state_manager_get_run_time_validation (&manager);
+	CuAssertIntEquals (test, HOST_STATE_PREVALIDATED_FLASH_AND_PFM, validation);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_validate_and_release (&observer);
+	CuAssertIntEquals (test, 0, status);
+
+	host_state_manager_release (&manager);
+}
+
+static void host_state_manager_test_save_inactive_dirty_no_observer (CuTest *test)
+{
+	struct flash_mock flash;
+	struct host_state_manager manager;
+	int status;
+	uint16_t state[4] = {0xff80, 0xff80, 0xff80, 0};
+	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
+	bool dirty;
 	uint32_t bytes = FLASH_SECTOR_SIZE;
 
 	TEST_START;
@@ -1092,19 +1374,11 @@ static void host_state_manager_test_save_inactive_dirty_not_dirty_with_prevalida
 	dirty = host_state_manager_is_inactive_dirty (&manager);
 	CuAssertIntEquals (test, true, dirty);
 
-	host_state_manager_set_run_time_validation (&manager, HOST_STATE_PREVALIDATED_FLASH_AND_PFM);
-
-	validation = host_state_manager_get_run_time_validation (&manager);
-	CuAssertIntEquals (test, HOST_STATE_PREVALIDATED_FLASH_AND_PFM, validation);
-
 	status = host_state_manager_save_inactive_dirty (&manager, false);
 	CuAssertIntEquals (test, 0, status);
 
 	dirty = host_state_manager_is_inactive_dirty (&manager);
 	CuAssertIntEquals (test, false, dirty);
-
-	validation = host_state_manager_get_run_time_validation (&manager);
-	CuAssertIntEquals (test, HOST_STATE_PREVALIDATED_FLASH_AND_PFM, validation);
 
 	status = flash_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
@@ -1115,7 +1389,8 @@ static void host_state_manager_test_save_inactive_dirty_not_dirty_with_prevalida
 static void host_state_manager_test_save_inactive_dirty_null (CuTest *test)
 {
 	struct flash_mock flash;
-	struct state_manager manager;
+	struct host_state_observer_mock observer;
+	struct host_state_manager manager;
 	int status;
 	uint16_t state[4] = {0xff80, 0xff80, 0xff80, 0};
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
@@ -1124,6 +1399,9 @@ static void host_state_manager_test_save_inactive_dirty_null (CuTest *test)
 	TEST_START;
 
 	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_init (&observer);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&flash.mock, flash.base.get_sector_size, &flash, 0, MOCK_ARG_NOT_NULL);
@@ -1150,10 +1428,16 @@ static void host_state_manager_test_save_inactive_dirty_null (CuTest *test)
 	status = host_state_manager_init (&manager, &flash.base, 0x10000);
 	CuAssertIntEquals (test, 0, status);
 
+	status = host_state_manager_add_observer (&manager, &observer.base);
+	CuAssertIntEquals (test, 0, status);
+
 	status = host_state_manager_save_inactive_dirty (NULL, true);
 	CuAssertIntEquals (test, STATE_MANAGER_INVALID_ARGUMENT, status);
 
 	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_validate_and_release (&observer);
 	CuAssertIntEquals (test, 0, status);
 
 	host_state_manager_release (&manager);
@@ -1162,7 +1446,7 @@ static void host_state_manager_test_save_inactive_dirty_null (CuTest *test)
 static void host_state_manager_test_get_active_pfm_region1 (CuTest *test)
 {
 	struct flash_mock flash;
-	struct state_manager manager;
+	struct host_state_manager manager;
 	int status;
 	uint16_t state[4] = {0xff84, 0xff84, 0xff84, 0};
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
@@ -1198,7 +1482,7 @@ static void host_state_manager_test_get_active_pfm_region1 (CuTest *test)
 	status = host_state_manager_init (&manager, &flash.base, 0x10000);
 	CuAssertIntEquals (test, 0, status);
 
-	active = manager.get_active_manifest (&manager, 0);
+	active = manager.base.get_active_manifest (&manager.base, 0);
 	CuAssertIntEquals (test, MANIFEST_REGION_1, active);
 
 	status = flash_mock_validate_and_release (&flash);
@@ -1210,7 +1494,7 @@ static void host_state_manager_test_get_active_pfm_region1 (CuTest *test)
 static void host_state_manager_test_get_active_pfm_region2 (CuTest *test)
 {
 	struct flash_mock flash;
-	struct state_manager manager;
+	struct host_state_manager manager;
 	int status;
 	uint16_t state[4] = {0xff80, 0xff80, 0xff80, 0};
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
@@ -1246,7 +1530,7 @@ static void host_state_manager_test_get_active_pfm_region2 (CuTest *test)
 	status = host_state_manager_init (&manager, &flash.base, 0x10000);
 	CuAssertIntEquals (test, 0, status);
 
-	active = manager.get_active_manifest (&manager, 0);
+	active = manager.base.get_active_manifest (&manager.base, 0);
 	CuAssertIntEquals (test, MANIFEST_REGION_2, active);
 
 	status = flash_mock_validate_and_release (&flash);
@@ -1258,7 +1542,7 @@ static void host_state_manager_test_get_active_pfm_region2 (CuTest *test)
 static void host_state_manager_test_get_active_pfm_no_state (CuTest *test)
 {
 	struct flash_mock flash;
-	struct state_manager manager;
+	struct host_state_manager manager;
 	int status;
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
 	enum manifest_region active;
@@ -1287,7 +1571,7 @@ static void host_state_manager_test_get_active_pfm_no_state (CuTest *test)
 	status = host_state_manager_init (&manager, &flash.base, 0x10000);
 	CuAssertIntEquals (test, 0, status);
 
-	active = manager.get_active_manifest (&manager, 0);
+	active = manager.base.get_active_manifest (&manager.base, 0);
 	CuAssertIntEquals (test, MANIFEST_REGION_1, active);
 
 	status = flash_mock_validate_and_release (&flash);
@@ -1299,7 +1583,7 @@ static void host_state_manager_test_get_active_pfm_no_state (CuTest *test)
 static void host_state_manager_test_get_active_pfm_null (CuTest *test)
 {
 	struct flash_mock flash;
-	struct state_manager manager;
+	struct host_state_manager manager;
 	int status;
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
 	enum manifest_region active;
@@ -1328,7 +1612,7 @@ static void host_state_manager_test_get_active_pfm_null (CuTest *test)
 	status = host_state_manager_init (&manager, &flash.base, 0x10000);
 	CuAssertIntEquals (test, 0, status);
 
-	active = manager.get_active_manifest (NULL, 0);
+	active = manager.base.get_active_manifest (NULL, 0);
 	CuAssertIntEquals (test, MANIFEST_REGION_1, active);
 
 	status = flash_mock_validate_and_release (&flash);
@@ -1340,7 +1624,8 @@ static void host_state_manager_test_get_active_pfm_null (CuTest *test)
 static void host_state_manager_test_save_active_pfm_region1 (CuTest *test)
 {
 	struct flash_mock flash;
-	struct state_manager manager;
+	struct host_state_observer_mock observer;
+	struct host_state_manager manager;
 	int status;
 	uint16_t state[4] = {0xff80, 0xff80, 0xff80, 0};
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
@@ -1350,6 +1635,9 @@ static void host_state_manager_test_save_active_pfm_region1 (CuTest *test)
 	TEST_START;
 
 	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_init (&observer);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&flash.mock, flash.base.get_sector_size, &flash, 0, MOCK_ARG_NOT_NULL);
@@ -1376,16 +1664,26 @@ static void host_state_manager_test_save_active_pfm_region1 (CuTest *test)
 	status = host_state_manager_init (&manager, &flash.base, 0x10000);
 	CuAssertIntEquals (test, 0, status);
 
-	active = manager.get_active_manifest (&manager, 0);
-	CuAssertIntEquals (test, MANIFEST_REGION_2, active);
-
-	status = manager.save_active_manifest (&manager, 0, MANIFEST_REGION_1);
+	status = host_state_manager_add_observer (&manager, &observer.base);
 	CuAssertIntEquals (test, 0, status);
 
-	active = manager.get_active_manifest (&manager, 0);
+	status = mock_expect (&observer.mock, observer.base.on_active_pfm, &observer, 0,
+		MOCK_ARG (&manager));
+	CuAssertIntEquals (test, 0, status);
+
+	active = manager.base.get_active_manifest (&manager.base, 0);
+	CuAssertIntEquals (test, MANIFEST_REGION_2, active);
+
+	status = manager.base.save_active_manifest (&manager.base, 0, MANIFEST_REGION_1);
+	CuAssertIntEquals (test, 0, status);
+
+	active = manager.base.get_active_manifest (&manager.base, 0);
 	CuAssertIntEquals (test, MANIFEST_REGION_1, active);
 
 	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_validate_and_release (&observer);
 	CuAssertIntEquals (test, 0, status);
 
 	host_state_manager_release (&manager);
@@ -1394,7 +1692,8 @@ static void host_state_manager_test_save_active_pfm_region1 (CuTest *test)
 static void host_state_manager_test_save_active_pfm_region2 (CuTest *test)
 {
 	struct flash_mock flash;
-	struct state_manager manager;
+	struct host_state_observer_mock observer;
+	struct host_state_manager manager;
 	int status;
 	uint16_t state[4] = {0xff84, 0xff84, 0xff84, 0};
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
@@ -1406,6 +1705,9 @@ static void host_state_manager_test_save_active_pfm_region2 (CuTest *test)
 	status = flash_mock_init (&flash);
 	CuAssertIntEquals (test, 0, status);
 
+	status = host_state_observer_mock_init (&observer);
+	CuAssertIntEquals (test, 0, status);
+
 	status = mock_expect (&flash.mock, flash.base.get_sector_size, &flash, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&flash.mock, 0, &bytes, sizeof (bytes), -1);
 
@@ -1430,16 +1732,26 @@ static void host_state_manager_test_save_active_pfm_region2 (CuTest *test)
 	status = host_state_manager_init (&manager, &flash.base, 0x10000);
 	CuAssertIntEquals (test, 0, status);
 
-	active = manager.get_active_manifest (&manager, 0);
-	CuAssertIntEquals (test, MANIFEST_REGION_1, active);
-
-	status = manager.save_active_manifest (&manager, 0, MANIFEST_REGION_2);
+	status = host_state_manager_add_observer (&manager, &observer.base);
 	CuAssertIntEquals (test, 0, status);
 
-	active = manager.get_active_manifest (&manager, 0);
+	status = mock_expect (&observer.mock, observer.base.on_active_pfm, &observer, 0,
+		MOCK_ARG (&manager));
+	CuAssertIntEquals (test, 0, status);
+
+	active = manager.base.get_active_manifest (&manager.base, 0);
+	CuAssertIntEquals (test, MANIFEST_REGION_1, active);
+
+	status = manager.base.save_active_manifest (&manager.base, 0, MANIFEST_REGION_2);
+	CuAssertIntEquals (test, 0, status);
+
+	active = manager.base.get_active_manifest (&manager.base, 0);
 	CuAssertIntEquals (test, MANIFEST_REGION_2, active);
 
 	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_validate_and_release (&observer);
 	CuAssertIntEquals (test, 0, status);
 
 	host_state_manager_release (&manager);
@@ -1448,7 +1760,8 @@ static void host_state_manager_test_save_active_pfm_region2 (CuTest *test)
 static void host_state_manager_test_save_active_pfm_unknown_region (CuTest *test)
 {
 	struct flash_mock flash;
-	struct state_manager manager;
+	struct host_state_observer_mock observer;
+	struct host_state_manager manager;
 	int status;
 	uint16_t state[4] = {0xff80, 0xff80, 0xff80, 0};
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
@@ -1458,6 +1771,9 @@ static void host_state_manager_test_save_active_pfm_unknown_region (CuTest *test
 	TEST_START;
 
 	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_init (&observer);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&flash.mock, flash.base.get_sector_size, &flash, 0, MOCK_ARG_NOT_NULL);
@@ -1484,16 +1800,22 @@ static void host_state_manager_test_save_active_pfm_unknown_region (CuTest *test
 	status = host_state_manager_init (&manager, &flash.base, 0x10000);
 	CuAssertIntEquals (test, 0, status);
 
-	active = manager.get_active_manifest (&manager, 0);
+	status = host_state_manager_add_observer (&manager, &observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	active = manager.base.get_active_manifest (&manager.base, 0);
 	CuAssertIntEquals (test, MANIFEST_REGION_2, active);
 
-	status = manager.save_active_manifest (&manager, 0, (enum manifest_region) 10);
+	status = manager.base.save_active_manifest (&manager.base, 0, (enum manifest_region) 10);
 	CuAssertIntEquals (test, STATE_MANAGER_INVALID_ARGUMENT, status);
 
-	active = manager.get_active_manifest (&manager, 0);
+	active = manager.base.get_active_manifest (&manager.base, 0);
 	CuAssertIntEquals (test, MANIFEST_REGION_2, active);
 
 	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_validate_and_release (&observer);
 	CuAssertIntEquals (test, 0, status);
 
 	host_state_manager_release (&manager);
@@ -1502,7 +1824,75 @@ static void host_state_manager_test_save_active_pfm_unknown_region (CuTest *test
 static void host_state_manager_test_save_active_pfm_same_region (CuTest *test)
 {
 	struct flash_mock flash;
-	struct state_manager manager;
+	struct host_state_observer_mock observer;
+	struct host_state_manager manager;
+	int status;
+	uint16_t state[4] = {0xff80, 0xff80, 0xff80, 0};
+	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
+	enum manifest_region active;
+	uint32_t bytes = FLASH_SECTOR_SIZE;
+
+	TEST_START;
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_init (&observer);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&flash.mock, flash.base.get_sector_size, &flash, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10008),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_init (&manager, &flash.base, 0x10000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_add_observer (&manager, &observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&observer.mock, observer.base.on_active_pfm, &observer, 0,
+		MOCK_ARG (&manager));
+	CuAssertIntEquals (test, 0, status);
+
+	active = manager.base.get_active_manifest (&manager.base, 0);
+	CuAssertIntEquals (test, MANIFEST_REGION_2, active);
+
+	status = manager.base.save_active_manifest (&manager.base, 0, MANIFEST_REGION_2);
+	CuAssertIntEquals (test, 0, status);
+
+	active = manager.base.get_active_manifest (&manager.base, 0);
+	CuAssertIntEquals (test, MANIFEST_REGION_2, active);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_validate_and_release (&observer);
+	CuAssertIntEquals (test, 0, status);
+
+	host_state_manager_release (&manager);
+}
+
+static void host_state_manager_test_save_active_pfm_no_observer (CuTest *test)
+{
+	struct flash_mock flash;
+	struct host_state_manager manager;
 	int status;
 	uint16_t state[4] = {0xff80, 0xff80, 0xff80, 0};
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
@@ -1538,14 +1928,14 @@ static void host_state_manager_test_save_active_pfm_same_region (CuTest *test)
 	status = host_state_manager_init (&manager, &flash.base, 0x10000);
 	CuAssertIntEquals (test, 0, status);
 
-	active = manager.get_active_manifest (&manager, 0);
+	active = manager.base.get_active_manifest (&manager.base, 0);
 	CuAssertIntEquals (test, MANIFEST_REGION_2, active);
 
-	status = manager.save_active_manifest (&manager, 0, MANIFEST_REGION_2);
+	status = manager.base.save_active_manifest (&manager.base, 0, MANIFEST_REGION_1);
 	CuAssertIntEquals (test, 0, status);
 
-	active = manager.get_active_manifest (&manager, 0);
-	CuAssertIntEquals (test, MANIFEST_REGION_2, active);
+	active = manager.base.get_active_manifest (&manager.base, 0);
+	CuAssertIntEquals (test, MANIFEST_REGION_1, active);
 
 	status = flash_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
@@ -1556,7 +1946,8 @@ static void host_state_manager_test_save_active_pfm_same_region (CuTest *test)
 static void host_state_manager_test_save_active_pfm_null (CuTest *test)
 {
 	struct flash_mock flash;
-	struct state_manager manager;
+	struct host_state_observer_mock observer;
+	struct host_state_manager manager;
 	int status;
 	uint16_t state[4] = {0xff80, 0xff80, 0xff80, 0};
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
@@ -1565,6 +1956,9 @@ static void host_state_manager_test_save_active_pfm_null (CuTest *test)
 	TEST_START;
 
 	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_init (&observer);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&flash.mock, flash.base.get_sector_size, &flash, 0, MOCK_ARG_NOT_NULL);
@@ -1591,10 +1985,16 @@ static void host_state_manager_test_save_active_pfm_null (CuTest *test)
 	status = host_state_manager_init (&manager, &flash.base, 0x10000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.save_active_manifest (NULL, 0, MANIFEST_REGION_1);
+	status = host_state_manager_add_observer (&manager, &observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.base.save_active_manifest (NULL, 0, MANIFEST_REGION_1);
 	CuAssertIntEquals (test, STATE_MANAGER_INVALID_ARGUMENT, status);
 
 	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_validate_and_release (&observer);
 	CuAssertIntEquals (test, 0, status);
 
 	host_state_manager_release (&manager);
@@ -1603,7 +2003,7 @@ static void host_state_manager_test_save_active_pfm_null (CuTest *test)
 static void host_state_manager_test_is_manifest_valid (CuTest *test)
 {
 	struct flash_mock flash;
-	struct state_manager manager;
+	struct host_state_manager manager;
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
 	uint32_t bytes = FLASH_SECTOR_SIZE;
 	int status;
@@ -1631,7 +2031,7 @@ static void host_state_manager_test_is_manifest_valid (CuTest *test)
 	status = host_state_manager_init (&manager, &flash.base, 0x10000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.is_manifest_valid (&manager, 0);
+	status = manager.base.is_manifest_valid (&manager.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_mock_validate_and_release (&flash);
@@ -1643,7 +2043,7 @@ static void host_state_manager_test_is_manifest_valid (CuTest *test)
 static void host_state_manager_test_is_manifest_valid_null (CuTest *test)
 {
 	struct flash_mock flash;
-	struct state_manager manager;
+	struct host_state_manager manager;
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
 	uint32_t bytes = FLASH_SECTOR_SIZE;
 	int status;
@@ -1671,7 +2071,7 @@ static void host_state_manager_test_is_manifest_valid_null (CuTest *test)
 	status = host_state_manager_init (&manager, &flash.base, 0x10000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.is_manifest_valid (NULL, 0);
+	status = manager.base.is_manifest_valid (NULL, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_mock_validate_and_release (&flash);
@@ -1683,7 +2083,7 @@ static void host_state_manager_test_is_manifest_valid_null (CuTest *test)
 static void host_state_manager_test_is_pfm_dirty (CuTest *test)
 {
 	struct flash_mock flash;
-	struct state_manager manager;
+	struct host_state_manager manager;
 	int status;
 	uint16_t state[4] = {0xff80, 0xff80, 0xff80, 0};
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
@@ -1741,7 +2141,8 @@ static void host_state_manager_test_is_pfm_dirty_null (CuTest *test)
 static void host_state_manager_test_set_pfm_dirty (CuTest *test)
 {
 	struct flash_mock flash;
-	struct state_manager manager;
+	struct host_state_observer_mock observer;
+	struct host_state_manager manager;
 	int status;
 	uint16_t state[4] = {0xff80, 0xff80, 0xff80, 0};
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
@@ -1751,6 +2152,9 @@ static void host_state_manager_test_set_pfm_dirty (CuTest *test)
 	TEST_START;
 
 	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_init (&observer);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&flash.mock, flash.base.get_sector_size, &flash, 0, MOCK_ARG_NOT_NULL);
@@ -1775,6 +2179,16 @@ static void host_state_manager_test_set_pfm_dirty (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_init (&manager, &flash.base, 0x10000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_add_observer (&manager, &observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&observer.mock, observer.base.on_pfm_dirty, &observer, 0,
+		MOCK_ARG (&manager));
+	status |= mock_expect (&observer.mock, observer.base.on_pfm_dirty, &observer, 0,
+		MOCK_ARG (&manager));
+
 	CuAssertIntEquals (test, 0, status);
 
 	dirty = host_state_manager_is_pfm_dirty (&manager);
@@ -1793,13 +2207,17 @@ static void host_state_manager_test_set_pfm_dirty (CuTest *test)
 	status = flash_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
 
+	status = host_state_observer_mock_validate_and_release (&observer);
+	CuAssertIntEquals (test, 0, status);
+
 	host_state_manager_release (&manager);
 }
 
 static void host_state_manager_test_set_pfm_dirty_dirty_with_prevalidated_flash (CuTest *test)
 {
 	struct flash_mock flash;
-	struct state_manager manager;
+	struct host_state_observer_mock observer;
+	struct host_state_manager manager;
 	int status;
 	uint16_t state[4] = {0xff80, 0xff80, 0xff80, 0};
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
@@ -1810,6 +2228,9 @@ static void host_state_manager_test_set_pfm_dirty_dirty_with_prevalidated_flash 
 	TEST_START;
 
 	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_init (&observer);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&flash.mock, flash.base.get_sector_size, &flash, 0, MOCK_ARG_NOT_NULL);
@@ -1836,10 +2257,17 @@ static void host_state_manager_test_set_pfm_dirty_dirty_with_prevalidated_flash 
 	status = host_state_manager_init (&manager, &flash.base, 0x10000);
 	CuAssertIntEquals (test, 0, status);
 
+	host_state_manager_set_run_time_validation (&manager, HOST_STATE_PREVALIDATED_FLASH);
+
+	status = host_state_manager_add_observer (&manager, &observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&observer.mock, observer.base.on_pfm_dirty, &observer, 0,
+		MOCK_ARG (&manager));
+	CuAssertIntEquals (test, 0, status);
+
 	dirty = host_state_manager_is_pfm_dirty (&manager);
 	CuAssertIntEquals (test, true, dirty);
-
-	host_state_manager_set_run_time_validation (&manager, HOST_STATE_PREVALIDATED_FLASH);
 
 	validation = host_state_manager_get_run_time_validation (&manager);
 	CuAssertIntEquals (test, HOST_STATE_PREVALIDATED_FLASH, validation);
@@ -1855,6 +2283,9 @@ static void host_state_manager_test_set_pfm_dirty_dirty_with_prevalidated_flash 
 	status = flash_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
 
+	status = host_state_observer_mock_validate_and_release (&observer);
+	CuAssertIntEquals (test, 0, status);
+
 	host_state_manager_release (&manager);
 }
 
@@ -1862,7 +2293,8 @@ static void host_state_manager_test_set_pfm_dirty_dirty_with_prevalidated_flash_
 	CuTest *test)
 {
 	struct flash_mock flash;
-	struct state_manager manager;
+	struct host_state_observer_mock observer;
+	struct host_state_manager manager;
 	int status;
 	uint16_t state[4] = {0xff80, 0xff80, 0xff80, 0};
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
@@ -1873,6 +2305,9 @@ static void host_state_manager_test_set_pfm_dirty_dirty_with_prevalidated_flash_
 	TEST_START;
 
 	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_init (&observer);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&flash.mock, flash.base.get_sector_size, &flash, 0, MOCK_ARG_NOT_NULL);
@@ -1899,10 +2334,20 @@ static void host_state_manager_test_set_pfm_dirty_dirty_with_prevalidated_flash_
 	status = host_state_manager_init (&manager, &flash.base, 0x10000);
 	CuAssertIntEquals (test, 0, status);
 
+	host_state_manager_set_run_time_validation (&manager, HOST_STATE_PREVALIDATED_FLASH_AND_PFM);
+
+	status = host_state_manager_add_observer (&manager, &observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&observer.mock, observer.base.on_pfm_dirty, &observer, 0,
+		MOCK_ARG (&manager));
+	status |= mock_expect (&observer.mock, observer.base.on_run_time_validation, &observer, 0,
+		MOCK_ARG (&manager));
+
+	CuAssertIntEquals (test, 0, status);
+
 	dirty = host_state_manager_is_pfm_dirty (&manager);
 	CuAssertIntEquals (test, true, dirty);
-
-	host_state_manager_set_run_time_validation (&manager, HOST_STATE_PREVALIDATED_FLASH_AND_PFM);
 
 	validation = host_state_manager_get_run_time_validation (&manager);
 	CuAssertIntEquals (test, HOST_STATE_PREVALIDATED_FLASH_AND_PFM, validation);
@@ -1918,13 +2363,17 @@ static void host_state_manager_test_set_pfm_dirty_dirty_with_prevalidated_flash_
 	status = flash_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
 
+	status = host_state_observer_mock_validate_and_release (&observer);
+	CuAssertIntEquals (test, 0, status);
+
 	host_state_manager_release (&manager);
 }
 
 static void host_state_manager_test_set_pfm_dirty_not_dirty_with_prevalidated_flash (CuTest *test)
 {
 	struct flash_mock flash;
-	struct state_manager manager;
+	struct host_state_observer_mock observer;
+	struct host_state_manager manager;
 	int status;
 	uint16_t state[4] = {0xff80, 0xff80, 0xff80, 0};
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
@@ -1935,6 +2384,9 @@ static void host_state_manager_test_set_pfm_dirty_not_dirty_with_prevalidated_fl
 	TEST_START;
 
 	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_init (&observer);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&flash.mock, flash.base.get_sector_size, &flash, 0, MOCK_ARG_NOT_NULL);
@@ -1961,10 +2413,17 @@ static void host_state_manager_test_set_pfm_dirty_not_dirty_with_prevalidated_fl
 	status = host_state_manager_init (&manager, &flash.base, 0x10000);
 	CuAssertIntEquals (test, 0, status);
 
+	host_state_manager_set_run_time_validation (&manager, HOST_STATE_PREVALIDATED_FLASH);
+
+	status = host_state_manager_add_observer (&manager, &observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&observer.mock, observer.base.on_pfm_dirty, &observer, 0,
+		MOCK_ARG (&manager));
+	CuAssertIntEquals (test, 0, status);
+
 	dirty = host_state_manager_is_pfm_dirty (&manager);
 	CuAssertIntEquals (test, true, dirty);
-
-	host_state_manager_set_run_time_validation (&manager, HOST_STATE_PREVALIDATED_FLASH);
 
 	validation = host_state_manager_get_run_time_validation (&manager);
 	CuAssertIntEquals (test, HOST_STATE_PREVALIDATED_FLASH, validation);
@@ -1980,6 +2439,9 @@ static void host_state_manager_test_set_pfm_dirty_not_dirty_with_prevalidated_fl
 	status = flash_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
 
+	status = host_state_observer_mock_validate_and_release (&observer);
+	CuAssertIntEquals (test, 0, status);
+
 	host_state_manager_release (&manager);
 }
 
@@ -1987,12 +2449,87 @@ static void host_state_manager_test_set_pfm_dirty_not_dirty_with_prevalidated_fl
 	CuTest *test)
 {
 	struct flash_mock flash;
-	struct state_manager manager;
+	struct host_state_observer_mock observer;
+	struct host_state_manager manager;
 	int status;
 	uint16_t state[4] = {0xff80, 0xff80, 0xff80, 0};
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
 	bool dirty;
 	enum host_state_prevalidated validation;
+	uint32_t bytes = FLASH_SECTOR_SIZE;
+
+	TEST_START;
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_init (&observer);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&flash.mock, flash.base.get_sector_size, &flash, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10008),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_init (&manager, &flash.base, 0x10000);
+	CuAssertIntEquals (test, 0, status);
+
+	host_state_manager_set_run_time_validation (&manager, HOST_STATE_PREVALIDATED_FLASH_AND_PFM);
+
+	status = host_state_manager_add_observer (&manager, &observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&observer.mock, observer.base.on_pfm_dirty, &observer, 0,
+		MOCK_ARG (&manager));
+	CuAssertIntEquals (test, 0, status);
+
+	dirty = host_state_manager_is_pfm_dirty (&manager);
+	CuAssertIntEquals (test, true, dirty);
+
+	validation = host_state_manager_get_run_time_validation (&manager);
+	CuAssertIntEquals (test, HOST_STATE_PREVALIDATED_FLASH_AND_PFM, validation);
+
+	host_state_manager_set_pfm_dirty (&manager, false);
+
+	dirty = host_state_manager_is_pfm_dirty (&manager);
+	CuAssertIntEquals (test, false, dirty);
+
+	validation = host_state_manager_get_run_time_validation (&manager);
+	CuAssertIntEquals (test, HOST_STATE_PREVALIDATED_FLASH_AND_PFM, validation);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_validate_and_release (&observer);
+	CuAssertIntEquals (test, 0, status);
+
+	host_state_manager_release (&manager);
+}
+
+static void host_state_manager_test_set_pfm_dirty_no_observer (CuTest *test)
+{
+	struct flash_mock flash;
+	struct host_state_manager manager;
+	int status;
+	uint16_t state[4] = {0xff80, 0xff80, 0xff80, 0};
+	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
+	bool dirty;
 	uint32_t bytes = FLASH_SECTOR_SIZE;
 
 	TEST_START;
@@ -2027,18 +2564,15 @@ static void host_state_manager_test_set_pfm_dirty_not_dirty_with_prevalidated_fl
 	dirty = host_state_manager_is_pfm_dirty (&manager);
 	CuAssertIntEquals (test, true, dirty);
 
-	host_state_manager_set_run_time_validation (&manager, HOST_STATE_PREVALIDATED_FLASH_AND_PFM);
-
-	validation = host_state_manager_get_run_time_validation (&manager);
-	CuAssertIntEquals (test, HOST_STATE_PREVALIDATED_FLASH_AND_PFM, validation);
-
 	host_state_manager_set_pfm_dirty (&manager, false);
 
 	dirty = host_state_manager_is_pfm_dirty (&manager);
 	CuAssertIntEquals (test, false, dirty);
 
-	validation = host_state_manager_get_run_time_validation (&manager);
-	CuAssertIntEquals (test, HOST_STATE_PREVALIDATED_FLASH_AND_PFM, validation);
+	host_state_manager_set_pfm_dirty (&manager, true);
+
+	dirty = host_state_manager_is_pfm_dirty (&manager);
+	CuAssertIntEquals (test, true, dirty);
 
 	status = flash_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
@@ -2056,7 +2590,7 @@ static void host_state_manager_test_set_pfm_dirty_null (CuTest *test)
 static void host_state_manager_test_get_run_time_validation (CuTest *test)
 {
 	struct flash_mock flash;
-	struct state_manager manager;
+	struct host_state_manager manager;
 	int status;
 	uint16_t state[4] = {0xff80, 0xff80, 0xff80, 0};
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
@@ -2114,7 +2648,89 @@ static void host_state_manager_test_get_run_time_validation_null (CuTest *test)
 static void host_state_manager_test_set_run_time_validation (CuTest *test)
 {
 	struct flash_mock flash;
-	struct state_manager manager;
+	struct host_state_observer_mock observer;
+	struct host_state_manager manager;
+	int status;
+	uint16_t state[4] = {0xff80, 0xff80, 0xff80, 0};
+	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
+	enum host_state_prevalidated validation;
+	uint32_t bytes = FLASH_SECTOR_SIZE;
+
+	TEST_START;
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_init (&observer);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&flash.mock, flash.base.get_sector_size, &flash, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10008),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_init (&manager, &flash.base, 0x10000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_add_observer (&manager, &observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&observer.mock, observer.base.on_run_time_validation, &observer, 0,
+		MOCK_ARG (&manager));
+	status = mock_expect (&observer.mock, observer.base.on_run_time_validation, &observer, 0,
+		MOCK_ARG (&manager));
+	status = mock_expect (&observer.mock, observer.base.on_run_time_validation, &observer, 0,
+		MOCK_ARG (&manager));
+
+	CuAssertIntEquals (test, 0, status);
+
+	validation = host_state_manager_get_run_time_validation (&manager);
+	CuAssertIntEquals (test, HOST_STATE_PREVALIDATED_NONE, validation);
+
+	host_state_manager_set_run_time_validation (&manager, HOST_STATE_PREVALIDATED_FLASH);
+
+	validation = host_state_manager_get_run_time_validation (&manager);
+	CuAssertIntEquals (test, HOST_STATE_PREVALIDATED_FLASH, validation);
+
+	host_state_manager_set_run_time_validation (&manager, HOST_STATE_PREVALIDATED_FLASH_AND_PFM);
+
+	validation = host_state_manager_get_run_time_validation (&manager);
+	CuAssertIntEquals (test, HOST_STATE_PREVALIDATED_FLASH_AND_PFM, validation);
+
+	host_state_manager_set_run_time_validation (&manager, HOST_STATE_PREVALIDATED_NONE);
+
+	validation = host_state_manager_get_run_time_validation (&manager);
+	CuAssertIntEquals (test, HOST_STATE_PREVALIDATED_NONE, validation);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_validate_and_release (&observer);
+	CuAssertIntEquals (test, 0, status);
+
+	host_state_manager_release (&manager);
+}
+
+static void host_state_manager_test_set_run_time_validation_no_observer (CuTest *test)
+{
+	struct flash_mock flash;
+	struct host_state_manager manager;
 	int status;
 	uint16_t state[4] = {0xff80, 0xff80, 0xff80, 0};
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
@@ -2184,7 +2800,7 @@ static void host_state_manager_test_set_run_time_validation_null (CuTest *test)
 static void host_state_manager_test_get_active_recovery_image_region1 (CuTest *test)
 {
 	struct flash_mock flash;
-	struct state_manager manager;
+	struct host_state_manager manager;
 	int status;
 	uint16_t state[4] = {0xff88, 0xff88, 0xff88, 0};
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
@@ -2232,7 +2848,7 @@ static void host_state_manager_test_get_active_recovery_image_region1 (CuTest *t
 static void host_state_manager_test_get_active_recovery_image_region2 (CuTest *test)
 {
 	struct flash_mock flash;
-	struct state_manager manager;
+	struct host_state_manager manager;
 	int status;
 	uint16_t state[4] = {0xff80, 0xff80, 0xff80, 0};
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
@@ -2280,7 +2896,7 @@ static void host_state_manager_test_get_active_recovery_image_region2 (CuTest *t
 static void host_state_manager_test_get_active_recovery_image_no_state (CuTest *test)
 {
 	struct flash_mock flash;
-	struct state_manager manager;
+	struct host_state_manager manager;
 	int status;
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
 	enum recovery_image_region active;
@@ -2321,7 +2937,7 @@ static void host_state_manager_test_get_active_recovery_image_no_state (CuTest *
 static void host_state_manager_test_get_active_recovery_image_null (CuTest *test)
 {
 	struct flash_mock flash;
-	struct state_manager manager;
+	struct host_state_manager manager;
 	int status;
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
 	enum recovery_image_region active;
@@ -2362,7 +2978,8 @@ static void host_state_manager_test_get_active_recovery_image_null (CuTest *test
 static void host_state_manager_test_save_active_recovery_image_region1 (CuTest *test)
 {
 	struct flash_mock flash;
-	struct state_manager manager;
+	struct host_state_observer_mock observer;
+	struct host_state_manager manager;
 	int status;
 	uint16_t state[4] = {0xff80, 0xff80, 0xff80, 0};
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
@@ -2372,6 +2989,9 @@ static void host_state_manager_test_save_active_recovery_image_region1 (CuTest *
 	TEST_START;
 
 	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_init (&observer);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&flash.mock, flash.base.get_sector_size, &flash, 0, MOCK_ARG_NOT_NULL);
@@ -2396,6 +3016,13 @@ static void host_state_manager_test_save_active_recovery_image_region1 (CuTest *
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_init (&manager, &flash.base, 0x10000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_add_observer (&manager, &observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&observer.mock, observer.base.on_active_recovery_image, &observer, 0,
+		MOCK_ARG (&manager));
 	CuAssertIntEquals (test, 0, status);
 
 	active = host_state_manager_get_active_recovery_image (&manager);
@@ -2410,13 +3037,17 @@ static void host_state_manager_test_save_active_recovery_image_region1 (CuTest *
 	status = flash_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
 
+	status = host_state_observer_mock_validate_and_release (&observer);
+	CuAssertIntEquals (test, 0, status);
+
 	host_state_manager_release (&manager);
 }
 
 static void host_state_manager_test_save_active_recovery_image_region2 (CuTest *test)
 {
 	struct flash_mock flash;
-	struct state_manager manager;
+	struct host_state_observer_mock observer;
+	struct host_state_manager manager;
 	int status;
 	uint16_t state[4] = {0xff88, 0xff88, 0xff88, 0};
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
@@ -2426,6 +3057,9 @@ static void host_state_manager_test_save_active_recovery_image_region2 (CuTest *
 	TEST_START;
 
 	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_init (&observer);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&flash.mock, flash.base.get_sector_size, &flash, 0, MOCK_ARG_NOT_NULL);
@@ -2452,6 +3086,13 @@ static void host_state_manager_test_save_active_recovery_image_region2 (CuTest *
 	status = host_state_manager_init (&manager, &flash.base, 0x10000);
 	CuAssertIntEquals (test, 0, status);
 
+	status = host_state_manager_add_observer (&manager, &observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&observer.mock, observer.base.on_active_recovery_image, &observer, 0,
+		MOCK_ARG (&manager));
+	CuAssertIntEquals (test, 0, status);
+
 	active = host_state_manager_get_active_recovery_image (&manager);
 	CuAssertIntEquals (test, RECOVERY_IMAGE_REGION_1, active);
 
@@ -2464,13 +3105,149 @@ static void host_state_manager_test_save_active_recovery_image_region2 (CuTest *
 	status = flash_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
 
+	status = host_state_observer_mock_validate_and_release (&observer);
+	CuAssertIntEquals (test, 0, status);
+
 	host_state_manager_release (&manager);
 }
 
 static void host_state_manager_test_save_active_recovery_image_unknown_region (CuTest *test)
 {
 	struct flash_mock flash;
-	struct state_manager manager;
+	struct host_state_observer_mock observer;
+	struct host_state_manager manager;
+	int status;
+	uint16_t state[4] = {0xff80, 0xff80, 0xff80, 0};
+	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
+	enum recovery_image_region active;
+	uint32_t bytes = FLASH_SECTOR_SIZE;
+
+	TEST_START;
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_init (&observer);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&flash.mock, flash.base.get_sector_size, &flash, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10008),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_init (&manager, &flash.base, 0x10000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_add_observer (&manager, &observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	active = host_state_manager_get_active_recovery_image (&manager);
+	CuAssertIntEquals (test, RECOVERY_IMAGE_REGION_2, active);
+
+	status = host_state_manager_save_active_recovery_image (&manager,
+		(enum recovery_image_region) 10);
+	CuAssertIntEquals (test, STATE_MANAGER_INVALID_ARGUMENT, status);
+
+	active = host_state_manager_get_active_recovery_image (&manager);
+	CuAssertIntEquals (test, RECOVERY_IMAGE_REGION_2, active);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_validate_and_release (&observer);
+	CuAssertIntEquals (test, 0, status);
+
+	host_state_manager_release (&manager);
+}
+
+static void host_state_manager_test_save_active_recovery_image_same_region (CuTest *test)
+{
+	struct flash_mock flash;
+	struct host_state_observer_mock observer;
+	struct host_state_manager manager;
+	int status;
+	uint16_t state[4] = {0xff88, 0xff88, 0xff88, 0};
+	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
+	enum recovery_image_region active;
+	uint32_t bytes = FLASH_SECTOR_SIZE;
+
+	TEST_START;
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_init (&observer);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&flash.mock, flash.base.get_sector_size, &flash, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10008),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_init (&manager, &flash.base, 0x10000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_add_observer (&manager, &observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&observer.mock, observer.base.on_active_recovery_image, &observer, 0,
+		MOCK_ARG (&manager));
+	CuAssertIntEquals (test, 0, status);
+
+	active = host_state_manager_get_active_recovery_image (&manager);
+	CuAssertIntEquals (test, RECOVERY_IMAGE_REGION_1, active);
+
+	status = host_state_manager_save_active_recovery_image (&manager, RECOVERY_IMAGE_REGION_1);
+	CuAssertIntEquals (test, 0, status);
+
+	active = host_state_manager_get_active_recovery_image (&manager);
+	CuAssertIntEquals (test, RECOVERY_IMAGE_REGION_1, active);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_validate_and_release (&observer);
+	CuAssertIntEquals (test, 0, status);
+
+	host_state_manager_release (&manager);
+}
+
+static void host_state_manager_test_save_active_recovery_image_no_observer (CuTest *test)
+{
+	struct flash_mock flash;
+	struct host_state_manager manager;
 	int status;
 	uint16_t state[4] = {0xff80, 0xff80, 0xff80, 0};
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
@@ -2508,60 +3285,6 @@ static void host_state_manager_test_save_active_recovery_image_unknown_region (C
 
 	active = host_state_manager_get_active_recovery_image (&manager);
 	CuAssertIntEquals (test, RECOVERY_IMAGE_REGION_2, active);
-
-	status = host_state_manager_save_active_recovery_image (&manager, (enum recovery_image_region) 10);
-	CuAssertIntEquals (test, STATE_MANAGER_INVALID_ARGUMENT, status);
-
-	active = host_state_manager_get_active_recovery_image (&manager);
-	CuAssertIntEquals (test, RECOVERY_IMAGE_REGION_2, active);
-
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
-
-	host_state_manager_release (&manager);
-}
-
-static void host_state_manager_test_save_active_recovery_image_same_region (CuTest *test)
-{
-	struct flash_mock flash;
-	struct state_manager manager;
-	int status;
-	uint16_t state[4] = {0xff88, 0xff88, 0xff88, 0};
-	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
-	enum recovery_image_region active;
-	uint32_t bytes = FLASH_SECTOR_SIZE;
-
-	TEST_START;
-
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&flash.mock, flash.base.get_sector_size, &flash, 0, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&flash.mock, 0, &bytes, sizeof (bytes), -1);
-
-	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
-	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
-
-	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
-	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
-
-	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
-	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
-
-	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10008),
-		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
-	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_state_manager_init (&manager, &flash.base, 0x10000);
-	CuAssertIntEquals (test, 0, status);
-
-	active = host_state_manager_get_active_recovery_image (&manager);
-	CuAssertIntEquals (test, RECOVERY_IMAGE_REGION_1, active);
 
 	status = host_state_manager_save_active_recovery_image (&manager, RECOVERY_IMAGE_REGION_1);
 	CuAssertIntEquals (test, 0, status);
@@ -2578,7 +3301,8 @@ static void host_state_manager_test_save_active_recovery_image_same_region (CuTe
 static void host_state_manager_test_save_active_recovery_image_null (CuTest *test)
 {
 	struct flash_mock flash;
-	struct state_manager manager;
+	struct host_state_observer_mock observer;
+	struct host_state_manager manager;
 	int status;
 	uint16_t state[4] = {0xff88, 0xff88, 0xff88, 0};
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
@@ -2588,6 +3312,9 @@ static void host_state_manager_test_save_active_recovery_image_null (CuTest *tes
 	TEST_START;
 
 	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_init (&observer);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&flash.mock, flash.base.get_sector_size, &flash, 0, MOCK_ARG_NOT_NULL);
@@ -2612,6 +3339,9 @@ static void host_state_manager_test_save_active_recovery_image_null (CuTest *tes
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_init (&manager, &flash.base, 0x10000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_add_observer (&manager, &observer.base);
 	CuAssertIntEquals (test, 0, status);
 
 	active = host_state_manager_get_active_recovery_image (&manager);
@@ -2626,13 +3356,179 @@ static void host_state_manager_test_save_active_recovery_image_null (CuTest *tes
 	status = flash_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
 
+	status = host_state_observer_mock_validate_and_release (&observer);
+	CuAssertIntEquals (test, 0, status);
+
 	host_state_manager_release (&manager);
 }
 
 static void host_state_manager_test_restore_default_state (CuTest *test)
 {
 	struct flash_mock flash;
-	struct state_manager manager;
+	struct host_state_observer_mock observer;
+	struct host_state_manager manager;
+	int status;
+	uint16_t state[4] = {0xff80, 0xff80, 0xff80, 0};
+	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
+	uint32_t bytes = FLASH_SECTOR_SIZE;
+
+	TEST_START;
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_init (&observer);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&flash.mock, flash.base.get_sector_size, &flash, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10008),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_init (&manager, &flash.base, 0x10000);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0xff80, manager.base.nv_state);
+	CuAssertIntEquals (test, 0x01, manager.base.volatile_state);
+
+	host_state_manager_set_pfm_dirty (&manager, false);
+	host_state_manager_set_run_time_validation (&manager, HOST_STATE_PREVALIDATED_FLASH);
+
+	status = host_state_manager_add_observer (&manager, &observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&observer.mock, observer.base.on_active_pfm, &observer, 0,
+		MOCK_ARG (&manager));
+	status |= mock_expect (&observer.mock, observer.base.on_read_only_flash, &observer, 0,
+		MOCK_ARG (&manager));
+	status |= mock_expect (&observer.mock, observer.base.on_inactive_dirty, &observer, 0,
+		MOCK_ARG (&manager));
+	status |= mock_expect (&observer.mock, observer.base.on_active_recovery_image, &observer, 0,
+		MOCK_ARG (&manager));
+	status |= mock_expect (&observer.mock, observer.base.on_pfm_dirty, &observer, 0,
+		MOCK_ARG (&manager));
+	status |= mock_expect (&observer.mock, observer.base.on_run_time_validation, &observer, 0,
+		MOCK_ARG (&manager));
+	status |= mock_expect (&observer.mock, observer.base.on_bypass_mode, &observer, 0,
+		MOCK_ARG (&manager));
+	status |= mock_expect (&observer.mock, observer.base.on_unsupported_flash, &observer, 0,
+		MOCK_ARG (&manager));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.base.restore_default_state (&manager.base);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0xffff, manager.base.nv_state);
+	CuAssertIntEquals (test, 0x01, manager.base.volatile_state);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_validate_and_release (&observer);
+	CuAssertIntEquals (test, 0, status);
+
+	host_state_manager_release (&manager);
+}
+
+static void host_state_manager_test_restore_default_state_no_change (CuTest *test)
+{
+	struct flash_mock flash;
+	struct host_state_observer_mock observer;
+	struct host_state_manager manager;
+	int status;
+	uint16_t state[4] = {0xffbf, 0xffbf, 0xffbf, 0};
+	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
+	uint32_t bytes = FLASH_SECTOR_SIZE;
+
+	TEST_START;
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_init (&observer);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&flash.mock, flash.base.get_sector_size, &flash, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10008),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_init (&manager, &flash.base, 0x10000);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0xffbf, manager.base.nv_state);
+	CuAssertIntEquals (test, 0x01, manager.base.volatile_state);
+
+	status = host_state_manager_add_observer (&manager, &observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&observer.mock, observer.base.on_active_pfm, &observer, 0,
+		MOCK_ARG (&manager));
+	status |= mock_expect (&observer.mock, observer.base.on_read_only_flash, &observer, 0,
+		MOCK_ARG (&manager));
+	status |= mock_expect (&observer.mock, observer.base.on_inactive_dirty, &observer, 0,
+		MOCK_ARG (&manager));
+	status |= mock_expect (&observer.mock, observer.base.on_active_recovery_image, &observer, 0,
+		MOCK_ARG (&manager));
+	status |= mock_expect (&observer.mock, observer.base.on_pfm_dirty, &observer, 0,
+		MOCK_ARG (&manager));
+	status |= mock_expect (&observer.mock, observer.base.on_run_time_validation, &observer, 0,
+		MOCK_ARG (&manager));
+	status |= mock_expect (&observer.mock, observer.base.on_bypass_mode, &observer, 0,
+		MOCK_ARG (&manager));
+	status |= mock_expect (&observer.mock, observer.base.on_unsupported_flash, &observer, 0,
+		MOCK_ARG (&manager));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.base.restore_default_state (&manager.base);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0xffff, manager.base.nv_state);
+	CuAssertIntEquals (test, 0x01, manager.base.volatile_state);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_validate_and_release (&observer);
+	CuAssertIntEquals (test, 0, status);
+
+	host_state_manager_release (&manager);
+}
+
+static void host_state_manager_test_restore_default_state_no_observer (CuTest *test)
+{
+	struct flash_mock flash;
+	struct host_state_manager manager;
 	int status;
 	uint16_t state[4] = {0xff80, 0xff80, 0xff80, 0};
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
@@ -2666,16 +3562,16 @@ static void host_state_manager_test_restore_default_state (CuTest *test)
 
 	status = host_state_manager_init (&manager, &flash.base, 0x10000);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, 0xff80, manager.nv_state);
-	CuAssertIntEquals (test, 0x01, manager.volatile_state);
+	CuAssertIntEquals (test, 0xff80, manager.base.nv_state);
+	CuAssertIntEquals (test, 0x01, manager.base.volatile_state);
 
 	host_state_manager_set_pfm_dirty (&manager, false);
 	host_state_manager_set_run_time_validation (&manager, HOST_STATE_PREVALIDATED_FLASH);
 
-	status = manager.restore_default_state (&manager);
+	status = manager.base.restore_default_state (&manager.base);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, 0xffff, manager.nv_state);
-	CuAssertIntEquals (test, 0x01, manager.volatile_state);
+	CuAssertIntEquals (test, 0xffff, manager.base.nv_state);
+	CuAssertIntEquals (test, 0x01, manager.base.volatile_state);
 
 	status = flash_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
@@ -2686,7 +3582,8 @@ static void host_state_manager_test_restore_default_state (CuTest *test)
 static void host_state_manager_test_restore_default_state_null (CuTest *test)
 {
 	struct flash_mock flash;
-	struct state_manager manager;
+	struct host_state_observer_mock observer;
+	struct host_state_manager manager;
 	int status;
 	uint16_t state[4] = {0xff80, 0xff80, 0xff80, 0};
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
@@ -2695,6 +3592,9 @@ static void host_state_manager_test_restore_default_state_null (CuTest *test)
 	TEST_START;
 
 	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_init (&observer);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&flash.mock, flash.base.get_sector_size, &flash, 0, MOCK_ARG_NOT_NULL);
@@ -2720,18 +3620,21 @@ static void host_state_manager_test_restore_default_state_null (CuTest *test)
 
 	status = host_state_manager_init (&manager, &flash.base, 0x10000);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, 0xff80, manager.nv_state);
-	CuAssertIntEquals (test, 0x01, manager.volatile_state);
+	CuAssertIntEquals (test, 0xff80, manager.base.nv_state);
+	CuAssertIntEquals (test, 0x01, manager.base.volatile_state);
 
 	host_state_manager_set_pfm_dirty (&manager, false);
 	host_state_manager_set_run_time_validation (&manager, HOST_STATE_PREVALIDATED_FLASH);
 
-	status = manager.restore_default_state (NULL);
+	status = manager.base.restore_default_state (NULL);
 	CuAssertIntEquals (test, STATE_MANAGER_INVALID_ARGUMENT, status);
-	CuAssertIntEquals (test, 0xff80, manager.nv_state);
-	CuAssertIntEquals (test, 0x02, manager.volatile_state);
+	CuAssertIntEquals (test, 0xff80, manager.base.nv_state);
+	CuAssertIntEquals (test, 0x02, manager.base.volatile_state);
 
 	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_validate_and_release (&observer);
 	CuAssertIntEquals (test, 0, status);
 
 	host_state_manager_release (&manager);
@@ -2740,7 +3643,7 @@ static void host_state_manager_test_restore_default_state_null (CuTest *test)
 static void host_state_manager_test_is_bypass_mode (CuTest *test)
 {
 	struct flash_mock flash;
-	struct state_manager manager;
+	struct host_state_manager manager;
 	int status;
 	uint16_t state[4] = {0xff80, 0xff80, 0xff80, 0};
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
@@ -2797,7 +3700,81 @@ static void host_state_manager_test_is_bypass_mode_null (CuTest *test)
 static void host_state_manager_test_set_bypass_mode (CuTest *test)
 {
 	struct flash_mock flash;
-	struct state_manager manager;
+	struct host_state_observer_mock observer;
+	struct host_state_manager manager;
+	int status;
+	uint16_t state[4] = {0xff80, 0xff80, 0xff80, 0};
+	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
+	uint32_t bytes = FLASH_SECTOR_SIZE;
+
+	TEST_START;
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_init (&observer);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&flash.mock, flash.base.get_sector_size, &flash, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10008),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_init (&manager, &flash.base, 0x10000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_add_observer (&manager, &observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&observer.mock, observer.base.on_bypass_mode, &observer, 0,
+		MOCK_ARG (&manager));
+	status |= mock_expect (&observer.mock, observer.base.on_bypass_mode, &observer, 0,
+		MOCK_ARG (&manager));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_is_bypass_mode (&manager);
+	CuAssertIntEquals (test, false, status);
+
+	host_state_manager_set_bypass_mode (&manager, true);
+
+	status = host_state_manager_is_bypass_mode (&manager);
+	CuAssertIntEquals (test, true, status);
+
+	host_state_manager_set_bypass_mode (&manager, false);
+
+	status = host_state_manager_is_bypass_mode (&manager);
+	CuAssertIntEquals (test, false, status);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_validate_and_release (&observer);
+	CuAssertIntEquals (test, 0, status);
+
+	host_state_manager_release (&manager);
+}
+
+static void host_state_manager_test_set_bypass_mode_no_observer (CuTest *test)
+{
+	struct flash_mock flash;
+	struct host_state_manager manager;
 	int status;
 	uint16_t state[4] = {0xff80, 0xff80, 0xff80, 0};
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
@@ -2861,7 +3838,7 @@ static void host_state_manager_test_set_bypass_mode_null (CuTest *test)
 static void host_state_manager_test_is_flash_supported (CuTest *test)
 {
 	struct flash_mock flash;
-	struct state_manager manager;
+	struct host_state_manager manager;
 	int status;
 	uint16_t state[4] = {0xff80, 0xff80, 0xff80, 0};
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
@@ -2918,7 +3895,81 @@ static void host_state_manager_test_is_flash_supported_null (CuTest *test)
 static void host_state_manager_test_set_unsupported_flash (CuTest *test)
 {
 	struct flash_mock flash;
-	struct state_manager manager;
+	struct host_state_observer_mock observer;
+	struct host_state_manager manager;
+	int status;
+	uint16_t state[4] = {0xff80, 0xff80, 0xff80, 0};
+	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
+	uint32_t bytes = FLASH_SECTOR_SIZE;
+
+	TEST_START;
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_init (&observer);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&flash.mock, flash.base.get_sector_size, &flash, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10008),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_init (&manager, &flash.base, 0x10000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_add_observer (&manager, &observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&observer.mock, observer.base.on_unsupported_flash, &observer, 0,
+		MOCK_ARG (&manager));
+	status |= mock_expect (&observer.mock, observer.base.on_unsupported_flash, &observer, 0,
+		MOCK_ARG (&manager));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_is_flash_supported (&manager);
+	CuAssertIntEquals (test, true, status);
+
+	host_state_manager_set_unsupported_flash (&manager, true);
+
+	status = host_state_manager_is_flash_supported (&manager);
+	CuAssertIntEquals (test, false, status);
+
+	host_state_manager_set_unsupported_flash (&manager, false);
+
+	status = host_state_manager_is_flash_supported (&manager);
+	CuAssertIntEquals (test, true, status);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_validate_and_release (&observer);
+	CuAssertIntEquals (test, 0, status);
+
+	host_state_manager_release (&manager);
+}
+
+static void host_state_manager_test_set_unsupported_flash_no_observer (CuTest *test)
+{
+	struct flash_mock flash;
+	struct host_state_manager manager;
 	int status;
 	uint16_t state[4] = {0xff80, 0xff80, 0xff80, 0};
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
@@ -2979,6 +4030,204 @@ static void host_state_manager_test_set_unsupported_flash_null (CuTest *test)
 	host_state_manager_set_unsupported_flash (NULL, true);
 }
 
+static void host_state_manager_test_add_observer_null (CuTest *test)
+{
+	struct flash_mock flash;
+	struct host_state_observer_mock observer;
+	struct host_state_manager manager;
+	int status;
+	uint16_t state[4] = {0xff80, 0xff80, 0xff80, 0};
+	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
+	uint32_t bytes = FLASH_SECTOR_SIZE;
+
+	TEST_START;
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_init (&observer);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&flash.mock, flash.base.get_sector_size, &flash, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10008),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_init (&manager, &flash.base, 0x10000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_add_observer (NULL, &observer.base);
+	CuAssertIntEquals (test, STATE_MANAGER_INVALID_ARGUMENT, status);
+
+	status = host_state_manager_add_observer (&manager, NULL);
+	CuAssertIntEquals (test, OBSERVABLE_INVALID_ARGUMENT, status);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_validate_and_release (&observer);
+	CuAssertIntEquals (test, 0, status);
+
+	host_state_manager_release (&manager);
+}
+
+static void host_state_manager_test_remove_observer (CuTest *test)
+{
+	struct flash_mock flash;
+	struct host_state_observer_mock observer;
+	struct host_state_manager manager;
+	int status;
+	uint16_t state[4] = {0xff80, 0xff80, 0xff80, 0};
+	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
+	spi_filter_cs ro;
+	uint32_t bytes = FLASH_SECTOR_SIZE;
+
+	TEST_START;
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_init (&observer);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&flash.mock, flash.base.get_sector_size, &flash, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10008),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_init (&manager, &flash.base, 0x10000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_add_observer (&manager, &observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_remove_observer (&manager, &observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	ro = host_state_manager_get_read_only_flash (&manager);
+	CuAssertIntEquals (test, SPI_FILTER_CS_1, ro);
+
+	status = host_state_manager_save_read_only_flash (&manager, SPI_FILTER_CS_0);
+	CuAssertIntEquals (test, 0, status);
+
+	ro = host_state_manager_get_read_only_flash (&manager);
+	CuAssertIntEquals (test, SPI_FILTER_CS_0, ro);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_validate_and_release (&observer);
+	CuAssertIntEquals (test, 0, status);
+
+	host_state_manager_release (&manager);
+}
+
+static void host_state_manager_test_remove_observer_null (CuTest *test)
+{
+	struct flash_mock flash;
+	struct host_state_observer_mock observer;
+	struct host_state_manager manager;
+	int status;
+	uint16_t state[4] = {0xff80, 0xff80, 0xff80, 0};
+	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
+	spi_filter_cs ro;
+	uint32_t bytes = FLASH_SECTOR_SIZE;
+
+	TEST_START;
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_init (&observer);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&flash.mock, flash.base.get_sector_size, &flash, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10000),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, state, sizeof (state), 2);
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x10008),
+		MOCK_ARG_NOT_NULL, MOCK_ARG(8));
+	status |= mock_expect_output (&flash.mock, 1, end, sizeof (end), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_init (&manager, &flash.base, 0x10000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_add_observer (&manager, &observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_remove_observer (NULL, &observer.base);
+	CuAssertIntEquals (test, STATE_MANAGER_INVALID_ARGUMENT, status);
+
+	status = host_state_manager_remove_observer (&manager, NULL);
+	CuAssertIntEquals (test, OBSERVABLE_INVALID_ARGUMENT, status);
+
+	status = mock_expect (&observer.mock, observer.base.on_read_only_flash, &observer, 0,
+		MOCK_ARG (&manager));
+	CuAssertIntEquals (test, 0, status);
+
+	ro = host_state_manager_get_read_only_flash (&manager);
+	CuAssertIntEquals (test, SPI_FILTER_CS_1, ro);
+
+	status = host_state_manager_save_read_only_flash (&manager, SPI_FILTER_CS_0);
+	CuAssertIntEquals (test, 0, status);
+
+	ro = host_state_manager_get_read_only_flash (&manager);
+	CuAssertIntEquals (test, SPI_FILTER_CS_0, ro);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_observer_mock_validate_and_release (&observer);
+	CuAssertIntEquals (test, 0, status);
+
+	host_state_manager_release (&manager);
+}
+
 
 CuSuite* get_host_state_manager_suite ()
 {
@@ -2995,6 +4244,7 @@ CuSuite* get_host_state_manager_suite ()
 	SUITE_ADD_TEST (suite, host_state_manager_test_save_read_only_flash_cs1);
 	SUITE_ADD_TEST (suite, host_state_manager_test_save_read_only_flash_unknown_cs);
 	SUITE_ADD_TEST (suite, host_state_manager_test_save_read_only_flash_same_cs);
+	SUITE_ADD_TEST (suite, host_state_manager_test_save_read_only_flash_no_observer);
 	SUITE_ADD_TEST (suite, host_state_manager_test_save_read_only_flash_null);
 	SUITE_ADD_TEST (suite, host_state_manager_test_is_inactive_dirty_not_dirty);
 	SUITE_ADD_TEST (suite, host_state_manager_test_is_inactive_dirty_dirty);
@@ -3011,6 +4261,7 @@ CuSuite* get_host_state_manager_suite ()
 		host_state_manager_test_save_inactive_dirty_not_dirty_with_prevalidated_flash);
 	SUITE_ADD_TEST (suite,
 		host_state_manager_test_save_inactive_dirty_not_dirty_with_prevalidated_flash_and_pfm);
+	SUITE_ADD_TEST (suite, host_state_manager_test_save_inactive_dirty_no_observer);
 	SUITE_ADD_TEST (suite, host_state_manager_test_save_inactive_dirty_null);
 	SUITE_ADD_TEST (suite, host_state_manager_test_get_active_pfm_region1);
 	SUITE_ADD_TEST (suite, host_state_manager_test_get_active_pfm_region2);
@@ -3020,6 +4271,7 @@ CuSuite* get_host_state_manager_suite ()
 	SUITE_ADD_TEST (suite, host_state_manager_test_save_active_pfm_region2);
 	SUITE_ADD_TEST (suite, host_state_manager_test_save_active_pfm_unknown_region);
 	SUITE_ADD_TEST (suite, host_state_manager_test_save_active_pfm_same_region);
+	SUITE_ADD_TEST (suite, host_state_manager_test_save_active_pfm_no_observer);
 	SUITE_ADD_TEST (suite, host_state_manager_test_save_active_pfm_null);
 	SUITE_ADD_TEST (suite, host_state_manager_test_is_manifest_valid);
 	SUITE_ADD_TEST (suite, host_state_manager_test_is_manifest_valid_null);
@@ -3032,10 +4284,12 @@ CuSuite* get_host_state_manager_suite ()
 	SUITE_ADD_TEST (suite, host_state_manager_test_set_pfm_dirty_not_dirty_with_prevalidated_flash);
 	SUITE_ADD_TEST (suite,
 		host_state_manager_test_set_pfm_dirty_not_dirty_with_prevalidated_flash_and_pfm);
+	SUITE_ADD_TEST (suite, host_state_manager_test_set_pfm_dirty_no_observer);
 	SUITE_ADD_TEST (suite, host_state_manager_test_set_pfm_dirty_null);
 	SUITE_ADD_TEST (suite, host_state_manager_test_get_run_time_validation);
 	SUITE_ADD_TEST (suite, host_state_manager_test_get_run_time_validation_null);
 	SUITE_ADD_TEST (suite, host_state_manager_test_set_run_time_validation);
+	SUITE_ADD_TEST (suite, host_state_manager_test_set_run_time_validation_no_observer);
 	SUITE_ADD_TEST (suite, host_state_manager_test_set_run_time_validation_null);
 	SUITE_ADD_TEST (suite, host_state_manager_test_get_active_recovery_image_region1);
 	SUITE_ADD_TEST (suite, host_state_manager_test_get_active_recovery_image_region2);
@@ -3045,17 +4299,25 @@ CuSuite* get_host_state_manager_suite ()
 	SUITE_ADD_TEST (suite, host_state_manager_test_save_active_recovery_image_region2);
 	SUITE_ADD_TEST (suite, host_state_manager_test_save_active_recovery_image_unknown_region);
 	SUITE_ADD_TEST (suite, host_state_manager_test_save_active_recovery_image_same_region);
+	SUITE_ADD_TEST (suite, host_state_manager_test_save_active_recovery_image_no_observer);
 	SUITE_ADD_TEST (suite, host_state_manager_test_save_active_recovery_image_null);
 	SUITE_ADD_TEST (suite, host_state_manager_test_restore_default_state);
+	SUITE_ADD_TEST (suite, host_state_manager_test_restore_default_state_no_change);
+	SUITE_ADD_TEST (suite, host_state_manager_test_restore_default_state_no_observer);
 	SUITE_ADD_TEST (suite, host_state_manager_test_restore_default_state_null);
 	SUITE_ADD_TEST (suite, host_state_manager_test_is_bypass_mode);
 	SUITE_ADD_TEST (suite, host_state_manager_test_is_bypass_mode_null);
 	SUITE_ADD_TEST (suite, host_state_manager_test_set_bypass_mode);
+	SUITE_ADD_TEST (suite, host_state_manager_test_set_bypass_mode_no_observer);
 	SUITE_ADD_TEST (suite, host_state_manager_test_set_bypass_mode_null);
 	SUITE_ADD_TEST (suite, host_state_manager_test_is_flash_supported);
 	SUITE_ADD_TEST (suite, host_state_manager_test_is_flash_supported_null);
 	SUITE_ADD_TEST (suite, host_state_manager_test_set_unsupported_flash);
+	SUITE_ADD_TEST (suite, host_state_manager_test_set_unsupported_flash_no_observer);
 	SUITE_ADD_TEST (suite, host_state_manager_test_set_unsupported_flash_null);
+	SUITE_ADD_TEST (suite, host_state_manager_test_add_observer_null);
+	SUITE_ADD_TEST (suite, host_state_manager_test_remove_observer);
+	SUITE_ADD_TEST (suite, host_state_manager_test_remove_observer_null);
 
 	return suite;
 }

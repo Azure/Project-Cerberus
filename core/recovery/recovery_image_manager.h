@@ -4,16 +4,15 @@
 #ifndef RECOVERY_IMAGE_MANAGER_H_
 #define RECOVERY_IMAGE_MANAGER_H_
 
+#include "platform.h"
 #include "recovery_image.h"
 #include "common/observable.h"
+#include "common/signature_verification.h"
 #include "recovery_image_observer.h"
 #include "flash/flash.h"
-#include "recovery_image.h"
-#include "crypto/hash.h"
-#include "common/signature_verification.h"
-#include "platform.h"
-#include "host_fw/host_state_manager.h"
 #include "flash/flash_updater.h"
+#include "crypto/hash.h"
+#include "host_fw/host_state_manager.h"
 
 
 /**
@@ -129,7 +128,7 @@ struct recovery_image_manager {
 	struct pfm_manager *pfm;							/**< The PFM manager for recovery image verification. */
 	platform_mutex lock;								/**< Synchronization for recovery image manager state. */
 	int port;											/**< Port identifier for the manager. */
-	struct state_manager *state;						/**< State manager interface. */
+	struct host_state_manager *state;					/**< State manager interface. */
 	struct flash_updater *updating;                 	/**< The update manager being used to write
 															 new recovery image data. */
 };
@@ -139,7 +138,7 @@ int recovery_image_manager_init (struct recovery_image_manager *manager,
 	struct recovery_image *image, struct hash_engine *hash,
 	struct signature_verification *verification, struct pfm_manager *pfm, size_t max_size);
 int recovery_image_manager_init_two_region (struct recovery_image_manager *manager,
-	struct recovery_image *image1, struct recovery_image *image2, struct state_manager *state,
+	struct recovery_image *image1, struct recovery_image *image2, struct host_state_manager *state,
 	struct hash_engine *hash, struct signature_verification *verification, struct pfm_manager *pfm,
 	size_t max_size);
 void recovery_image_manager_release (struct recovery_image_manager *manager);

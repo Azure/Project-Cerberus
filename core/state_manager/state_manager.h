@@ -15,8 +15,8 @@
  * Definitions to indicate which region of flash holds the active manifest.
  */
 enum manifest_region {
-	MANIFEST_REGION_1,					/**< The primary manifest region contains the active manifest. */
-	MANIFEST_REGION_2,					/**< The secondary manifest region contains the active manifest. */
+	MANIFEST_REGION_1,			/**< The primary manifest region contains the active manifest. */
+	MANIFEST_REGION_2,			/**< The secondary manifest region contains the active manifest. */
 };
 
 
@@ -24,14 +24,14 @@ enum manifest_region {
  * Manager for state information.
  */
 struct state_manager {
-	struct flash *nv_store;				/**< The flash that contains the stored state. */
-	uint32_t base_addr;					/**< The first address of the state storage. */
-	uint32_t store_addr;				/**< The address of the last storage location used. */
-	uint16_t nv_state;					/**< The current non-volatile state. */
-	uint16_t last_nv_stored;			/**< The last state value stored in flash. */
-	uint8_t volatile_state;				/**< The current volatile state. */
-	platform_mutex state_lock;			/**< Synchronization lock for state. */
-	platform_mutex store_lock;			/**< Synchronization lock for store actions. */
+	struct flash *nv_store;		/**< The flash that contains the stored state. */
+	uint32_t base_addr;			/**< The first address of the state storage. */
+	uint32_t store_addr;		/**< The address of the last storage location used. */
+	uint16_t nv_state;			/**< The current non-volatile state. */
+	uint16_t last_nv_stored;	/**< The last state value stored in flash. */
+	uint8_t volatile_state;		/**< The current volatile state. */
+	platform_mutex state_lock;	/**< Synchronization lock for state. */
+	platform_mutex store_lock;	/**< Synchronization lock for store actions. */
 
 	/**
 	 * Save the setting for the manifest region that contains the active manifest.
@@ -54,7 +54,8 @@ struct state_manager {
 	 *
 	 * @return The active manifest region.
 	 */
-	enum manifest_region (*get_active_manifest) (struct state_manager *manager, uint8_t manifest_index);
+	enum manifest_region (*get_active_manifest) (struct state_manager *manager,
+		uint8_t manifest_index);
 
 	/**
 	 * Restore all state information to the default values.  This does not erase non-volatile state,

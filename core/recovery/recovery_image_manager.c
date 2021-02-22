@@ -475,7 +475,7 @@ release_observer:
  * @return 0 if the recovery image manager was initialized successfully or an error code.
  */
 int recovery_image_manager_init_two_region (struct recovery_image_manager *manager,
-	struct recovery_image *image1, struct recovery_image *image2, struct state_manager *state,
+	struct recovery_image *image1, struct recovery_image *image2, struct host_state_manager *state,
 	struct hash_engine *hash, struct signature_verification *verification, struct pfm_manager *pfm,
 	size_t max_size)
 {

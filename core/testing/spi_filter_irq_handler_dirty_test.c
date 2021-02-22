@@ -25,7 +25,7 @@ static const char *SUITE = "spi_filter_irq_handler_dirty";
  * @param flash The flash device to initialize for state.
  */
 static void spi_filter_irq_handler_dirty_testing_init_host_state (CuTest *test,
-	struct state_manager *state, struct flash_master_mock *flash_mock, struct spi_flash *flash)
+	struct host_state_manager *state, struct flash_master_mock *flash_mock, struct spi_flash *flash)
 {
 	int status;
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
@@ -66,7 +66,7 @@ static void spi_filter_irq_handler_dirty_test_init (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
 	struct spi_flash flash;
-	struct state_manager host_state;
+	struct host_state_manager host_state;
 	struct host_control_mock control;
 	struct spi_filter_irq_handler_dirty handler;
 	int status;
@@ -98,7 +98,7 @@ static void spi_filter_irq_handler_dirty_test_init_null (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
 	struct spi_flash flash;
-	struct state_manager host_state;
+	struct host_state_manager host_state;
 	struct host_control_mock control;
 	struct spi_filter_irq_handler_dirty handler;
 	int status;
@@ -139,7 +139,7 @@ static void spi_filter_irq_handler_dirty_test_ro_flash_dirty (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
 	struct spi_flash flash;
-	struct state_manager host_state;
+	struct host_state_manager host_state;
 	struct host_control_mock control;
 	struct spi_filter_irq_handler_dirty handler;
 	int status;
@@ -177,7 +177,7 @@ static void spi_filter_irq_handler_dirty_test_ro_flash_dirty_null (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
 	struct spi_flash flash;
-	struct state_manager host_state;
+	struct host_state_manager host_state;
 	struct host_control_mock control;
 	struct spi_filter_irq_handler_dirty handler;
 	int status;
