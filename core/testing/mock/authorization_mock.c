@@ -7,7 +7,7 @@
 #include "authorization_mock.h"
 
 
-static int authorization_mock_authorize (struct authorization *auth, uint8_t **nonce,
+static int authorization_mock_authorize (struct authorization *auth, uint8_t **token,
 	size_t *length)
 {
 	struct authorization_mock *mock = (struct authorization_mock*) auth;
@@ -16,7 +16,7 @@ static int authorization_mock_authorize (struct authorization *auth, uint8_t **n
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, authorization_mock_authorize, auth, MOCK_ARG_CALL (nonce),
+	MOCK_RETURN (&mock->mock, authorization_mock_authorize, auth, MOCK_ARG_CALL (token),
 		MOCK_ARG_CALL (length));
 }
 
@@ -45,7 +45,7 @@ static const char* authorization_mock_arg_name_map (void *func, int arg)
 	if (func == authorization_mock_authorize) {
 		switch (arg) {
 			case 0:
-				return "nonce";
+				return "token";
 
 			case 1:
 				return "length";

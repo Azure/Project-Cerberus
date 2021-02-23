@@ -31,6 +31,8 @@ enum config_reset_status {
 	CONFIG_RESET_STATUS_TASK_NOT_RUNNING,		/**< The task servicing reset operations is not running. */
 	CONFIG_RESET_STATUS_INTERNAL_ERROR,			/**< An unspecified, internal error occurred. */
 	CONFIG_RESET_STATUS_UNKNOWN,				/**< The configuration reset status could not be determined. */
+	CONFIG_RESET_STATUS_CLEAR_PLATFORM_CONFIG,	/**< Platform configuration is being cleared. */
+	CONFIG_RESET_STATUS_PLATFORM_CONFIG_FAILED,	/**< Failed to clear platform configuration. */
 };
 
 /**
@@ -52,14 +54,15 @@ struct config_reset {
 
 
 int config_reset_init (struct config_reset *reset, struct manifest_manager **bypass_config,
-	size_t bypass_count, struct manifest_manager **default_config, size_t default_count,
+	size_t bypass_count, struct manifest_manager **platform_config, size_t platform_count,
 	struct state_manager **state, size_t state_count, struct riot_key_manager *riot,
-	struct aux_attestation *aux, struct recovery_image_manager *recovery, 
+	struct aux_attestation *aux, struct recovery_image_manager *recovery,
 	struct keystore **keystores, size_t keystore_count);
 void config_reset_release (struct config_reset *reset);
 
 int config_reset_restore_bypass (struct config_reset *reset);
 int config_reset_restore_defaults (struct config_reset *reset);
+int config_reset_restore_platform_config (struct config_reset *reset);
 
 
 #define	CONFIG_RESET_ERROR(code)		ROT_ERROR (ROT_MODULE_CONFIG_RESET, code)

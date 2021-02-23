@@ -823,6 +823,11 @@ int cerberus_protocol_reset_config (struct cmd_authorization *cmd_auth,
 			action = background->restore_defaults;
 			break;
 
+		case 2:
+			auth = cmd_auth->authorize_clear_platform_config;
+			action = background->clear_platform_config;
+			break;
+
 		default:
 			return CMD_HANDLER_UNSUPPORTED_INDEX;
 	}

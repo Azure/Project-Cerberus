@@ -7,7 +7,7 @@
 #include "authorization_allowed.h"
 
 
-static int authorization_allowed_authorize (struct authorization *auth, uint8_t **nonce,
+static int authorization_allowed_authorize (struct authorization *auth, uint8_t **token,
 	size_t *length)
 {
 	return 0;

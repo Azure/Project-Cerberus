@@ -8,14 +8,14 @@
 
 
 static int cmd_authorization_authorize_revert_bypass (struct cmd_authorization *auth,
-	uint8_t **nonce, size_t *length)
+	uint8_t **token, size_t *length)
 {
 	if (auth == NULL) {
 		return CMD_AUTHORIZATION_INVALID_ARGUMENT;
 	}
 
 	if (auth->bypass) {
-		return auth->bypass->authorize (auth->bypass, nonce, length);
+		return auth->bypass->authorize (auth->bypass, token, length);
 	}
 	else {
 		return AUTHORIZATION_NOT_AUTHORIZED;
@@ -23,14 +23,29 @@ static int cmd_authorization_authorize_revert_bypass (struct cmd_authorization *
 }
 
 static int cmd_authorization_authorize_reset_defaults (struct cmd_authorization *auth,
-	uint8_t **nonce, size_t *length)
+	uint8_t **token, size_t *length)
 {
 	if (auth == NULL) {
 		return CMD_AUTHORIZATION_INVALID_ARGUMENT;
 	}
 
 	if (auth->defaults) {
-		return auth->defaults->authorize (auth->defaults, nonce, length);
+		return auth->defaults->authorize (auth->defaults, token, length);
+	}
+	else {
+		return AUTHORIZATION_NOT_AUTHORIZED;
+	}
+}
+
+static int cmd_authorization_authorize_clear_platform_config (struct cmd_authorization *auth,
+	uint8_t **token, size_t *length)
+{
+	if (auth == NULL) {
+		return CMD_AUTHORIZATION_INVALID_ARGUMENT;
+	}
+
+	if (auth->platform) {
+		return auth->platform->authorize (auth->platform, token, length);
 	}
 	else {
 		return AUTHORIZATION_NOT_AUTHORIZED;
@@ -45,11 +60,13 @@ static int cmd_authorization_authorize_reset_defaults (struct cmd_authorization 
  * operation.
  * @param defaults The authorization context to restore default configuration.  Set to null to
  * disallow this operation.
+ * @param platform The authorization context to clear platform-specific configuration.  Set to null
+ * to disallow this operation.
  *
  * @return 0 if the handler was successfully initialized or an error code.
  */
 int cmd_authorization_init (struct cmd_authorization *auth, struct authorization *bypass,
-	struct authorization *defaults)
+	struct authorization *defaults, struct authorization *platform)
 {
 	if (auth == NULL) {
 		return CMD_AUTHORIZATION_INVALID_ARGUMENT;
@@ -59,9 +76,11 @@ int cmd_authorization_init (struct cmd_authorization *auth, struct authorization
 
 	auth->authorize_revert_bypass = cmd_authorization_authorize_revert_bypass;
 	auth->authorize_reset_defaults = cmd_authorization_authorize_reset_defaults;
+	auth->authorize_clear_platform_config = cmd_authorization_authorize_clear_platform_config;
 
 	auth->bypass = bypass;
 	auth->defaults = defaults;
+	auth->platform = platform;
 
 	return 0;
 }

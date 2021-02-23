@@ -7,7 +7,7 @@
 #include "authorization_disallowed.h"
 
 
-static int authorization_disallowed_authorize (struct authorization *auth, uint8_t **nonce,
+static int authorization_disallowed_authorize (struct authorization *auth, uint8_t **token,
 	size_t *length)
 {
 	return AUTHORIZATION_NOT_AUTHORIZED;

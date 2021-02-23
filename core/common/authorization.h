@@ -19,31 +19,31 @@ struct authorization {
 	 *
 	 * There are two ways in which this operation can be called:
 	 *
-	 * 1. A null nonce buffer.  This will check if the operation is allowed without any
+	 * 1. A null token buffer.  This will check if the operation is allowed without any
 	 * authorization.  If the operation is not allowed under any condition,
 	 * AUTHORIZATION_NOT_AUTHORIZED will be returned.  If authorization is required,
-	 * AUTHORIZATION_CHALLENGE will be returned and a nonce will be generated that must be signed to
-	 * provide authorization for the operation.  The memory for the nonce is owned by the
+	 * AUTHORIZATION_CHALLENGE will be returned and a token will be generated that must be signed to
+	 * provide authorization for the operation.  The memory for the token is owned by the
 	 * authorization context.
 	 *
-	 * 2. A non-null nonce buffer with an authorization nonce.  This will check for authorization
-	 * based on the provided nonce.  If the nonce is not correct or the operation is not allowed,
-	 * AUTHORIZATION_NOT_AUTHORIZED will be returned.  Nothing will be done with the nonce buffer
-	 * provided to the call.  After a successful authorization, a new authorization nonce must be
+	 * 2. A non-null token buffer with an authorization token.  This will check for authorization
+	 * based on the provided token.  If the token is not correct or the operation is not allowed,
+	 * AUTHORIZATION_NOT_AUTHORIZED will be returned.  Nothing will be done with the token buffer
+	 * provided to the call.  After a successful authorization, a new authorization token must be
 	 * generated for additional authorization checks.
 	 *
 	 * @param auth The authorization manager to query.
-	 * @param nonce Pointer to a buffer containing the authorization nonce.  The pointer itself
+	 * @param token Pointer to a buffer containing the authorization token.  The pointer itself
 	 * cannot be null, but it can point to a null buffer.  In this case, no authentication data is
-	 * being provided, and the call may generate an authorization nonce.  The output nonce will only
+	 * being provided, and the call may generate an authorization token.  The output token will only
 	 * be valid if AUTHORIZATION_CHALLENGE is returned.
-	 * @param length The length of the authorization nonce.  If a nonce is allocated by the the
-	 * call, this will be set to the length of the nonce.
+	 * @param length The length of the authorization token.  If a token is allocated by the the
+	 * call, this will be set to the length of the token.
 	 *
-	 * @return 0 if the operation is authorized or an error code.  If a nonce was generated,
+	 * @return 0 if the operation is authorized or an error code.  If a token was generated,
 	 * AUTHORIZATION_CHALLENGE will be returned.
 	 */
-	int (*authorize) (struct authorization *auth, uint8_t **nonce, size_t *length);
+	int (*authorize) (struct authorization *auth, uint8_t **token, size_t *length);
 };
 
 

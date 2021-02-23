@@ -35,6 +35,8 @@ enum {
 	CMD_LOGGING_NO_BACKGROUND_HANDELR,		/**< No background task handler provided for an event. */
 	CMD_LOGGING_AUX_KEY,					/**< Done generating auxiliary attestation key. */
 	CMD_LOGGING_GENERATE_AUX_KEY,			/**< Generating auxiliary attestation key. */
+	CMD_LOGGING_CLEAR_PLATFORM_CONFIG,		/**< Device platform configuration has been cleared. */
+	CMD_LOGGING_CLEAR_PLATFORM_FAIL,		/**< Failed to clear platform configuration. */
 };
 
 

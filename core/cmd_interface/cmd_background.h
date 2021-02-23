@@ -70,14 +70,22 @@ struct cmd_background {
 	int (*reset_bypass) (struct cmd_background *cmd);
 
 	/**
-	 * Remove all configuration and state from the device, restoring it to a clean state.  This
-	 * does not clear any stored attestation certificates or keys.
+	 * Remove all configuration and state from the device, restoring it to a clean state.
 	 *
 	 * @param cmd The background context for executing the operation.
 	 *
 	 * @return 0 if the operation was successfully scheduled or an error code.
 	 */
 	int (*restore_defaults) (struct cmd_background *cmd);
+
+	/**
+	 * Remove all configuration for a specific platform from the device.
+	 *
+	 * @param cmd The background context for executing the operation.
+	 *
+	 * @return 0 if the operation was successfully scheduled or an error code.
+	 */
+	int (*clear_platform_config) (struct cmd_background *cmd);
 
 	/**
 	 * Get the status of the last configuration reset operation.
@@ -150,6 +158,7 @@ enum {
 	CMD_BACKGROUND_NO_TASK = CMD_BACKGROUND_ERROR (0x09),				/**< No manager command task is running. */
 	CMD_BACKGROUND_TASK_BUSY = CMD_BACKGROUND_ERROR (0x0A),				/**< The command task is busy performing an operation. */
 	CMD_BACKGROUND_UNSUPPORTED_OP = CMD_BACKGROUND_ERROR (0x0B),		/**< The scheduled operation is not understood by the task. */
+	CMD_BACKGROUND_PLATFORM_CFG_FAILED = CMD_BACKGROUND_ERROR (0x0C),	/**< Failed to clear platform configuration. */
 };
 
 

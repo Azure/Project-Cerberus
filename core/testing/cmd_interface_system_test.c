@@ -6042,6 +6042,131 @@ static void cmd_interface_system_test_process_restore_defaults_error (CuTest *te
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
+static void cmd_interface_system_test_process_clear_platform_config_no_nonce_authorized (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM, true);
+	cerberus_protocol_optional_commands_testing_process_clear_platform_config_no_nonce_authorized (
+		test, &cmd.handler.base, &cmd.auth, &cmd.background);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_clear_platform_config_no_nonce_challenge (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM, true);
+	cerberus_protocol_optional_commands_testing_process_clear_platform_config_no_nonce_challenge (
+		test, &cmd.handler.base, &cmd.auth);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_clear_platform_config_no_nonce_max_challenge (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM, true);
+	cerberus_protocol_optional_commands_testing_process_clear_platform_config_no_nonce_max_challenge (
+		test, &cmd.handler.base, &cmd.auth);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_clear_platform_config_no_nonce_not_authorized (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM, true);
+	cerberus_protocol_optional_commands_testing_process_clear_platform_config_no_nonce_not_authorized (
+		test, &cmd.handler.base, &cmd.auth);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_clear_platform_config_with_nonce_authorized (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM, true);
+	cerberus_protocol_optional_commands_testing_process_clear_platform_config_with_nonce_authorized (
+		test, &cmd.handler.base, &cmd.auth, &cmd.background);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_clear_platform_config_with_nonce_not_authorized (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM, true);
+	cerberus_protocol_optional_commands_testing_process_clear_platform_config_with_nonce_not_authorized (
+		test, &cmd.handler.base, &cmd.auth);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_clear_platform_config_no_nonce_invalid_challenge (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM, true);
+	cerberus_protocol_optional_commands_testing_process_clear_platform_config_no_nonce_invalid_challenge (
+		test, &cmd.handler.base, &cmd.auth);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_clear_platform_config_no_nonce_invalid_challenge_limited_response (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM, true);
+	cerberus_protocol_optional_commands_testing_process_clear_platform_config_no_nonce_invalid_challenge_limited_response (
+		test, &cmd.handler.base, &cmd.auth);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_clear_platform_config_error (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM, true);
+	cerberus_protocol_optional_commands_testing_process_clear_platform_config_error (test,
+		&cmd.handler.base, &cmd.auth, &cmd.background);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
 static void cmd_interface_system_test_process_reset_config_invalid_len (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
@@ -7717,6 +7842,23 @@ CuSuite* get_cmd_interface_system_suite ()
 	SUITE_ADD_TEST (suite,
 		cmd_interface_system_test_process_restore_defaults_no_nonce_invalid_challenge_limited_response);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_restore_defaults_error);
+	SUITE_ADD_TEST (suite,
+		cmd_interface_system_test_process_clear_platform_config_no_nonce_authorized);
+	SUITE_ADD_TEST (suite,
+		cmd_interface_system_test_process_clear_platform_config_no_nonce_challenge);
+	SUITE_ADD_TEST (suite,
+		cmd_interface_system_test_process_clear_platform_config_no_nonce_max_challenge);
+	SUITE_ADD_TEST (suite,
+		cmd_interface_system_test_process_clear_platform_config_no_nonce_not_authorized);
+	SUITE_ADD_TEST (suite,
+		cmd_interface_system_test_process_clear_platform_config_with_nonce_authorized);
+	SUITE_ADD_TEST (suite,
+		cmd_interface_system_test_process_clear_platform_config_with_nonce_not_authorized);
+	SUITE_ADD_TEST (suite,
+		cmd_interface_system_test_process_clear_platform_config_no_nonce_invalid_challenge);
+	SUITE_ADD_TEST (suite,
+		cmd_interface_system_test_process_clear_platform_config_no_nonce_invalid_challenge_limited_response);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_clear_platform_config_error);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_reset_config_invalid_len);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_reset_config_invalid_request_subtype);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_device_certificate);

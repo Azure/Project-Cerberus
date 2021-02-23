@@ -14,9 +14,9 @@
  * @param reset The configuration reset manager to initialize.
  * @param bypass_config A list of managers for the configuration to clear for bypass mode.
  * @param bypass_count The number of managers in the bypass configuration list.
- * @param default_config A list of managers for the configuration to clear only when restoring
- * defaults.
- * @param default_count The number of managers in the defaults configuration list.
+ * @param platform_config A list of managers for the configuration to clear for restoring platform
+ * configuration.
+ * @param platform_count The number of managers in the platform configuration list.
  * @param state A list of managers for state information to reset.
  * @param state_count The number of managers in the state list.
  * @param riot Manager RIoT keys to be cleared.
@@ -28,18 +28,18 @@
  * @return 0 if the manager was initialized successfully or an error code.
  */
 int config_reset_init (struct config_reset *reset, struct manifest_manager **bypass_config,
-	size_t bypass_count, struct manifest_manager **default_config, size_t default_count,
+	size_t bypass_count, struct manifest_manager **platform_config, size_t platform_count,
 	struct state_manager **state, size_t state_count, struct riot_key_manager *riot,
 	struct aux_attestation *aux, struct recovery_image_manager *recovery,
 	struct keystore **keystores, size_t keystore_count)
 {
 	if ((reset == NULL) || (bypass_count && (bypass_config == NULL)) ||
-		(default_count && (default_config == NULL)) || (state_count && (state == NULL)) ||
+		(platform_count && (platform_config == NULL)) || (state_count && (state == NULL)) ||
 		(keystore_count && (keystores == NULL))) {
 		return CONFIG_RESET_INVALID_ARGUMENT;
 	}
 
-	if (state_count && !default_count && !bypass_count) {
+	if (state_count && !platform_count && !bypass_count) {
 		return CONFIG_RESET_NO_MANIFESTS;
 	}
 
@@ -47,8 +47,8 @@ int config_reset_init (struct config_reset *reset, struct manifest_manager **byp
 
 	reset->bypass = bypass_config;
 	reset->bypass_count = bypass_count;
-	reset->config = default_config;
-	reset->config_count = default_count;
+	reset->config = platform_config;
+	reset->config_count = platform_count;
 	reset->state = state;
 	reset->state_count = state_count;
 	reset->riot = riot;
@@ -167,4 +167,34 @@ int config_reset_restore_defaults (struct config_reset *reset)
 	}
 
 	return status;
+}
+
+/**
+ * Erase all managed configuration for platform-specific properties.
+ *
+ * @param reset The configuration that should be reset.
+ *
+ * @return 0 if defaults were restored or an error code.
+ */
+int config_reset_restore_platform_config (struct config_reset *reset)
+{
+	size_t i;
+	int status;
+
+	if (reset == NULL) {
+		return CONFIG_RESET_INVALID_ARGUMENT;
+	}
+
+	if (!reset->config_count) {
+		return CONFIG_RESET_NO_MANIFESTS;
+	}
+
+	for (i = 0; i < reset->config_count; i++) {
+		status = (reset->config[i])->clear_all_manifests (reset->config[i]);
+		if (status != 0) {
+			return status;
+		}
+	}
+
+	return 0;
 }

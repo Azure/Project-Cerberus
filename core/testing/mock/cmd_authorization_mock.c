@@ -8,7 +8,7 @@
 
 
 static int cmd_authorization_mock_authorize_revert_bypass (struct cmd_authorization *auth,
-	uint8_t **nonce, size_t *length)
+	uint8_t **token, size_t *length)
 {
 	struct cmd_authorization_mock *mock = (struct cmd_authorization_mock*) auth;
 
@@ -17,11 +17,11 @@ static int cmd_authorization_mock_authorize_revert_bypass (struct cmd_authorizat
 	}
 
 	MOCK_RETURN (&mock->mock, cmd_authorization_mock_authorize_revert_bypass, auth,
-		MOCK_ARG_CALL (nonce), MOCK_ARG_CALL (length));
+		MOCK_ARG_CALL (token), MOCK_ARG_CALL (length));
 }
 
 static int cmd_authorization_mock_authorize_reset_defaults (struct cmd_authorization *auth,
-	uint8_t **nonce, size_t *length)
+	uint8_t **token, size_t *length)
 {
 	struct cmd_authorization_mock *mock = (struct cmd_authorization_mock*) auth;
 
@@ -30,13 +30,27 @@ static int cmd_authorization_mock_authorize_reset_defaults (struct cmd_authoriza
 	}
 
 	MOCK_RETURN (&mock->mock, cmd_authorization_mock_authorize_reset_defaults, auth,
-		MOCK_ARG_CALL (nonce), MOCK_ARG_CALL (length));
+		MOCK_ARG_CALL (token), MOCK_ARG_CALL (length));
+}
+
+static int cmd_authorization_mock_authorize_clear_platform_config (struct cmd_authorization *auth,
+	uint8_t **token, size_t *length)
+{
+	struct cmd_authorization_mock *mock = (struct cmd_authorization_mock*) auth;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, cmd_authorization_mock_authorize_clear_platform_config, auth,
+		MOCK_ARG_CALL (token), MOCK_ARG_CALL (length));
 }
 
 static int cmd_authorization_mock_func_arg_count (void *func)
 {
 	if ((func == cmd_authorization_mock_authorize_revert_bypass) ||
-		(func == cmd_authorization_mock_authorize_reset_defaults)) {
+		(func == cmd_authorization_mock_authorize_reset_defaults) ||
+		(func == cmd_authorization_mock_authorize_clear_platform_config)) {
 		return 2;
 	}
 	else {
@@ -52,6 +66,9 @@ static const char* cmd_authorization_mock_func_name_map (void *func)
 	else if (func == cmd_authorization_mock_authorize_reset_defaults) {
 		return "authorize_reset_defaults";
 	}
+	else if (func == cmd_authorization_mock_authorize_clear_platform_config) {
+		return "authorize_clear_platform_config";
+	}
 	else {
 		return "unknown";
 	}
@@ -62,7 +79,7 @@ static const char* cmd_authorization_mock_arg_name_map (void *func, int arg)
 	if (func == cmd_authorization_mock_authorize_revert_bypass) {
 		switch (arg) {
 			case 0:
-				return "nonce";
+				return "token";
 
 			case 1:
 				return "length";
@@ -72,7 +89,17 @@ static const char* cmd_authorization_mock_arg_name_map (void *func, int arg)
 	else if (func == cmd_authorization_mock_authorize_reset_defaults) {
 		switch (arg) {
 			case 0:
-				return "nonce";
+				return "token";
+
+			case 1:
+				return "length";
+
+		}
+	}
+	else if (func == cmd_authorization_mock_authorize_clear_platform_config) {
+		switch (arg) {
+			case 0:
+				return "token";
 
 			case 1:
 				return "length";
@@ -109,6 +136,8 @@ int cmd_authorization_mock_init (struct cmd_authorization_mock *mock)
 
 	mock->base.authorize_revert_bypass = cmd_authorization_mock_authorize_revert_bypass;
 	mock->base.authorize_reset_defaults = cmd_authorization_mock_authorize_reset_defaults;
+	mock->base.authorize_clear_platform_config =
+		cmd_authorization_mock_authorize_clear_platform_config;
 
 	mock->mock.func_arg_count = cmd_authorization_mock_func_arg_count;
 	mock->mock.func_name_map = cmd_authorization_mock_func_name_map;
