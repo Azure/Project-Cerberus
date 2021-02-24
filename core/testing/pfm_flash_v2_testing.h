@@ -24,6 +24,7 @@ extern const struct pfm_v2_testing_data PFM_V2_MAX_VERSION;
 extern const struct pfm_v2_testing_data PFM_V2_RW_TEST;
 extern const struct pfm_v2_testing_data PFM_V2_THREE_FW;
 extern const struct pfm_v2_testing_data PFM_V2_IMG_TEST;
+extern const struct pfm_v2_testing_data PFM_V2_BAD_REGIONS;
 
 
 #endif /* PFM_FLASH_V2_TESTING_H_ */

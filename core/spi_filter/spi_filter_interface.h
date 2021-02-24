@@ -321,7 +321,8 @@ struct spi_filter_interface {
 	 * @param start_addr The first address in the filtered region.
 	 * @param end_addr One past the last address in the filtered region.
 	 *
-	 * @return Completion status, 0 if success or an error code.
+	 * @return Completion status, 0 if success or an error code.  If the region specified is not
+	 * supported by the filter, SPI_FILTER_UNSUPPORTED_RW_REGION will be returned.
 	 */
 	int (*get_filter_rw_region) (struct spi_filter_interface *filter, uint8_t region,
 		uint32_t *start_addr, uint32_t *end_addr);
@@ -334,7 +335,8 @@ struct spi_filter_interface {
 	 * @param start_addr The first address in the filtered region.
 	 * @param end_addr One past the last address in the filtered region.
 	 *
-	 * @return Completion status, 0 if success or an error code.
+	 * @return Completion status, 0 if success or an error code.  If the region specified is not
+	 * supported by the filter, SPI_FILTER_UNSUPPORTED_RW_REGION will be returned.
 	 */
 	int (*set_filter_rw_region) (struct spi_filter_interface *filter, uint8_t region,
 		uint32_t start_addr, uint32_t end_addr);
@@ -387,7 +389,7 @@ enum {
 	SPI_FILTER_GET_RW_FAILED = SPI_FILTER_ERROR (0x12),				/**< Could not get the configured RW filter. */
 	SPI_FILTER_SET_RW_FAILED = SPI_FILTER_ERROR (0x13),				/**< The RW filter was not set. */
 	SPI_FILTER_CLEAR_RW_FAILED = SPI_FILTER_ERROR (0x14),			/**< The RW filters were not cleared. */
-	SPI_FILTER_UNSUPPORTED_RW_FILTER = SPI_FILTER_ERROR (0x15),		/**< The specified RW filter is not supported by the filter. */
+	SPI_FILTER_UNSUPPORTED_RW_REGION = SPI_FILTER_ERROR (0x15),		/**< The specified R/W region is not supported by the filter. */
 	SPI_FILTER_MISALIGNED_ADDRESS = SPI_FILTER_ERROR (0x16),		/**< A filter address was not aligned properly. */
 	SPI_FILTER_UNSUPPORTED_PORT = SPI_FILTER_ERROR (0x17),			/**< The port identifier is not supported by the filter. */
 	SPI_FILTER_UNKNOWN_VERSION = SPI_FILTER_ERROR (0x18),			/**< The filter version could not be determined. */

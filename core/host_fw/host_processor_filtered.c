@@ -266,6 +266,14 @@ static void host_processor_filtered_config_rw (struct host_processor_filtered *h
 			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_HOST_FW,
 				HOST_LOGGING_FILTER_RW_REGIONS_ERROR, host->base.port, status);
 			log_status = status;
+
+			if (status == SPI_FILTER_UNSUPPORTED_RW_REGION) {
+				/* The current R/W configuration is not supported by the filter.  By this point,
+				 * everything is expecting to run the new FW, so just log this error and move on.
+				 * Without correct R/W filtering, the host FW may not operate correctly, but this
+				 * should not be a production scenario with validated FW. */
+				return;
+			}
 		}
 	} while (status != 0);
 

@@ -5643,6 +5643,247 @@ const struct pfm_v2_testing_data PFM_V2_IMG_TEST = {
 	.fw = PFM_V2_FW_IMG_TEST
 };
 
+/**
+ * Test PFM in v2 format.  Contains two images with bad region definitions.  The first has the end
+ * addresses lower than the start.  The second has the start and end addresses the same.
+ *
+ * PLATFORM="PFM Test2" NUM_FW=2 BAD_REGIONS=1 ./generate_pfm.sh 19 ../../core/testing/keys/eccpriv.pem
+ */
+static const uint8_t PFM_V2_BAD_REGIONS_DATA[] = {
+	0x39,0x02,0x6d,0x70,0x13,0x00,0x00,0x00,0x49,0x00,0x40,0x00,0x06,0x06,0x00,0x00,
+	0x10,0xff,0x00,0x00,0x20,0x01,0x04,0x00,0x11,0xff,0x01,0x04,0x24,0x01,0x0c,0x00,
+	0x12,0x11,0x01,0x01,0x30,0x01,0x48,0x00,0x00,0xff,0x01,0x03,0x78,0x01,0x10,0x00,
+	0x11,0xff,0x01,0x05,0x88,0x01,0x10,0x00,0x12,0x11,0x01,0x02,0x98,0x01,0x58,0x00,
+	0x9c,0x36,0x29,0xb0,0xe1,0xf5,0x54,0xa3,0x41,0xcf,0x0b,0xf0,0x7f,0xb0,0xcb,0x57,
+	0x36,0xa7,0x3b,0xce,0x8c,0x4c,0xb4,0x52,0xea,0x0a,0x31,0xd9,0x9f,0xc5,0x02,0x83,
+	0x24,0x2e,0x84,0x90,0x35,0x47,0xa3,0x1e,0x13,0xc8,0x20,0x71,0x3e,0x6d,0xa9,0x12,
+	0xe5,0xe7,0x92,0x01,0x89,0x3f,0x00,0x56,0x73,0x46,0x77,0x54,0x87,0xe1,0xae,0x12,
+	0xc1,0xae,0x9f,0x8a,0x15,0x15,0x21,0xf3,0x26,0x1f,0x05,0x09,0x1d,0x0b,0x3d,0x67,
+	0x50,0xb5,0xc2,0xcd,0xfe,0x59,0x13,0xe6,0xc1,0xed,0x67,0x71,0xe6,0xdc,0x2a,0x9a,
+	0x67,0x98,0x4a,0xa9,0x89,0x7c,0xed,0x76,0xe5,0x8a,0x8e,0x7f,0xec,0xa4,0x38,0xdc,
+	0x7a,0x8f,0x2c,0x8b,0x33,0x0b,0x87,0x09,0x53,0xbb,0xd2,0x88,0x5f,0xee,0x0d,0xe8,
+	0x13,0x48,0x15,0xa0,0xd1,0xfb,0x58,0x01,0xae,0x7a,0xa2,0x15,0xb4,0xf1,0x98,0x57,
+	0xda,0x88,0x4d,0x95,0x99,0x18,0x27,0x0f,0x98,0x11,0xfe,0xe5,0xd4,0x0e,0x5b,0x6c,
+	0xbf,0xa8,0xbe,0x1e,0x12,0xa0,0x18,0xd5,0x25,0xec,0xf8,0xc1,0x97,0x00,0xdb,0xd7,
+	0xe8,0xaa,0x94,0x96,0x24,0xe9,0xde,0x93,0x00,0x0b,0x66,0x8b,0x5c,0x2e,0x96,0x37,
+	0xc6,0xab,0xa6,0x78,0x86,0x79,0x49,0x82,0x9b,0x56,0x0b,0x0e,0xb9,0x6d,0x21,0xe2,
+	0xbf,0x69,0x9d,0x96,0x0c,0x08,0x67,0x3b,0x1b,0xee,0x31,0x8d,0xf7,0x6c,0x47,0x5d,
+	0xff,0x02,0x00,0x00,0x01,0x08,0x00,0x00,0x46,0x69,0x72,0x6d,0x77,0x61,0x72,0x65,
+	0x01,0x01,0x07,0x00,0x45,0x23,0x01,0x00,0x54,0x65,0x73,0x74,0x69,0x6e,0x67,0x00,
+	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x02,0xff,0xff,0xff,0x01,0x00,0x01,0x01,0x00,
+	0x75,0x5b,0x69,0x06,0x25,0x9f,0xed,0x5b,0x08,0x0c,0xbd,0xeb,0x3d,0x0d,0xc1,0x88,
+	0x2a,0xeb,0x68,0x35,0x1d,0x94,0x71,0xcf,0xd9,0x87,0x7e,0x9f,0xc4,0x4a,0xc1,0x3f,
+	0x00,0x00,0x00,0x01,0xff,0xff,0xff,0x00,0x09,0x00,0x00,0x00,0x50,0x46,0x4d,0x20,
+	0x54,0x65,0x73,0x74,0x32,0x00,0x00,0x00,0x01,0x09,0x00,0x00,0x46,0x69,0x72,0x6d,
+	0x77,0x61,0x72,0x65,0x32,0x00,0x00,0x00,0x01,0x01,0x08,0x00,0x45,0x23,0x11,0x01,
+	0x54,0x65,0x73,0x74,0x69,0x6e,0x67,0x32,0x01,0x00,0x00,0x00,0x00,0x00,0x00,0x06,
+	0x00,0x00,0x00,0x06,0x01,0x01,0x01,0x00,0xca,0xdc,0x17,0xb3,0x8e,0xf4,0x5a,0x2b,
+	0xae,0xaa,0xb5,0x6a,0x39,0x6d,0x5e,0x90,0x15,0x86,0x4e,0xdd,0x83,0x5e,0x94,0x82,
+	0x8f,0x27,0xc5,0x63,0x27,0xb4,0x24,0x27,0xed,0x43,0xed,0xbe,0x25,0xfa,0xa9,0xed,
+	0x46,0x14,0xec,0x42,0x50,0x59,0x88,0xd9,0x00,0x00,0x00,0x04,0x00,0x00,0x00,0x04,
+	0x30,0x45,0x02,0x21,0x00,0xe7,0x5d,0x89,0x60,0x6e,0x2d,0xf1,0x7c,0xfb,0xf8,0x20,
+	0x87,0x39,0x46,0x78,0x58,0x8b,0x96,0xc8,0x9b,0x91,0x1e,0xb6,0x8c,0x94,0xa3,0xe0,
+	0x71,0x59,0xf6,0x10,0xe4,0x02,0x20,0x2a,0xf9,0x96,0x01,0xaf,0x93,0x47,0x57,0xcb,
+	0x81,0x59,0xf4,0xb1,0xbf,0x84,0x1f,0x87,0x75,0x45,0x23,0x04,0x2b,0xe0,0x10,0xc7,
+	0xc1,0x98,0x3b,0x62,0x09,0x7a,0x9d,0x00,0x00
+};
+
+/**
+ * PFM_V2_BAD_REGIONS_DATA hash for testing.
+ *
+ * head -c -73 pfm.img | openssl dgst -sha256
+ */
+static const uint8_t PFM_V2_BAD_REGIONS_HASH[] = {
+	0x47,0xeb,0x72,0x26,0x94,0xe5,0x6d,0x6f,0xda,0x48,0x16,0x10,0xab,0x89,0xdb,0x18,
+	0xbd,0x5b,0xc3,0xf7,0x3e,0x9b,0x76,0x25,0x87,0x7d,0x1c,0x41,0x9a,0x7b,0xb6,0xd3
+};
+
+
+/**
+ * Bad image region for the first firmware component.
+ */
+static const struct pfm_v2_testing_data_region PFM_V2_BAD_REGIONS_IMG1_REGION[] = {
+	{
+		.start_addr = 0x1000000,
+		.end_addr = 0x0ffffff,
+	}
+};
+
+/**
+ * First firmware image for the test v2 PFM with bad region definitions.
+ */
+static const struct pfm_v2_testing_data_image PFM_V2_FW_IMG_BAD_REGIONS_1[] = {
+	{
+		.img_offset = 0x014c,
+		.hash = PFM_V2_BAD_REGIONS_DATA + 0x0150,
+		.hash_len = 32,
+		.hash_type = HASH_TYPE_SHA256,
+		.flags = 1,
+		.region_count = 1,
+		.region = PFM_V2_BAD_REGIONS_IMG1_REGION
+	}
+};
+
+/**
+ * Bad R/W region for the first firmware component.
+ */
+static const struct pfm_v2_testing_data_rw PFM_V2_BAD_REGIONS_RW1[] = {
+	{
+		.start_addr = 0x2000000,
+		.end_addr = 0x1ffffff,
+		.flags = 0
+	}
+};
+
+/**
+ * First firmware version components of the test v2 PFM with bad region definitions.
+ */
+static const struct pfm_v2_testing_data_fw_ver PFM_V2_FW_VER_BAD_REGIONS_1[] = {
+	{
+		.fw_version = PFM_V2_BAD_REGIONS_DATA + 0x0130,
+		.fw_version_len = 0x0048,
+		.version_str = PFM_V2_FW_VERSION,
+		.version_str_len = sizeof (PFM_V2_FW_VERSION) - 1,
+		.version_str_pad = PFM_V2_FW_VERSION_PAD,
+		.fw_version_offset = 0x0130,
+		.fw_version_entry = 2,
+		.fw_version_hash = 1,
+		.version_addr = 0x012345,
+		.rw_count = 1,
+		.rw = PFM_V2_BAD_REGIONS_RW1,
+		.img_count = 1,
+		.img = PFM_V2_FW_IMG_BAD_REGIONS_1
+	}
+};
+
+/**
+ * Bad image region for the second firmware component.
+ */
+static const struct pfm_v2_testing_data_region PFM_V2_BAD_REGIONS_IMG2_REGION[] = {
+	{
+		.start_addr = 0x4000000,
+		.end_addr = 0x4000000,
+	}
+};
+
+/**
+ * Second firmware image for the test v2 PFM with bad region definitions.
+ */
+static const struct pfm_v2_testing_data_image PFM_V2_FW_IMG_BAD_REGIONS_2[] = {
+	{
+		.img_offset = 0x01b4,
+		.hash = PFM_V2_BAD_REGIONS_DATA + 0x01b8,
+		.hash_len = 48,
+		.hash_type = HASH_TYPE_SHA384,
+		.flags = 1,
+		.region_count = 1,
+		.region = PFM_V2_BAD_REGIONS_IMG2_REGION
+	}
+};
+
+/**
+ * Bad R/W region for the second firmware component.
+ */
+static const struct pfm_v2_testing_data_rw PFM_V2_BAD_REGIONS_RW2[] = {
+	{
+		.start_addr = 0x6000000,
+		.end_addr = 0x6000000,
+		.flags = 1
+	}
+};
+
+/**
+ * Second firmware version components of the test v2 PFM with bad region definitions.
+ */
+static const struct pfm_v2_testing_data_fw_ver PFM_V2_FW_VER_BAD_REGIONS_2[] = {
+	{
+		.fw_version = PFM_V2_BAD_REGIONS_DATA + 0x0198,
+		.fw_version_len = 0x0058,
+		.version_str = PFM_V2_FW_VERSION2,
+		.version_str_len = sizeof (PFM_V2_FW_VERSION2) - 1,
+		.version_str_pad = PFM_V2_FW_VERSION2_PAD,
+		.fw_version_offset = 0x0198,
+		.fw_version_entry = 5,
+		.fw_version_hash = 2,
+		.version_addr = 0x112345,
+		.rw_count = 1,
+		.rw = PFM_V2_BAD_REGIONS_RW2,
+		.img_count = 1,
+		.img = PFM_V2_FW_IMG_BAD_REGIONS_2
+	}
+};
+
+/**
+ * Firmware components of the test v2 PFM with bad region definitions.
+ */
+static const struct pfm_v2_testing_data_fw PFM_V2_FW_BAD_REGIONS[] = {
+	{
+		.fw = PFM_V2_BAD_REGIONS_DATA + 0x0124,
+		.fw_len = 0x000c,
+		.fw_id_str = PFM_V2_FIRMWARE_ID,
+		.fw_id_str_len = sizeof (PFM_V2_FIRMWARE_ID) - 1,
+		.fw_id_str_pad = PFM_V2_FIRMWARE_ID_PAD,
+		.fw_offset = 0x0124,
+		.fw_entry = 1,
+		.fw_hash = 4,
+		.version_count = 1,
+		.version = PFM_V2_FW_VER_BAD_REGIONS_1
+	},
+	{
+		.fw = PFM_V2_BAD_REGIONS_DATA + 0x0188,
+		.fw_len = 0x0010,
+		.fw_id_str = PFM_V2_FIRMWARE_ID2,
+		.fw_id_str_len = sizeof (PFM_V2_FIRMWARE_ID2) - 1,
+		.fw_id_str_pad = PFM_V2_FIRMWARE_ID2_PAD,
+		.fw_offset = 0x0188,
+		.fw_entry = 4,
+		.fw_hash = 5,
+		.version_count = 1,
+		.version = PFM_V2_FW_VER_BAD_REGIONS_2
+	}
+};
+
+/**
+ * Components of the test v2 PFM with bad region definitions.
+ */
+const struct pfm_v2_testing_data PFM_V2_BAD_REGIONS = {
+	.manifest = {
+		.raw = PFM_V2_BAD_REGIONS_DATA,
+		.length = sizeof (PFM_V2_BAD_REGIONS_DATA),
+		.hash = PFM_V2_BAD_REGIONS_HASH,
+		.hash_len = sizeof (PFM_V2_BAD_REGIONS_HASH),
+		.id = 3,
+		.signature = PFM_V2_BAD_REGIONS_DATA + (sizeof (PFM_V2_BAD_REGIONS_DATA) - 73),
+		.sig_len = 73,
+		.sig_offset = (sizeof (PFM_V2_BAD_REGIONS_DATA) - 73),
+		.sig_hash_type = HASH_TYPE_SHA256,
+		.toc = PFM_V2_BAD_REGIONS_DATA + MANIFEST_V2_TOC_HDR_OFFSET,
+		.toc_len = 0x0114,
+		.toc_hash = PFM_V2_BAD_REGIONS_DATA + 0x0100,
+		.toc_hash_len = 32,
+		.toc_hash_offset = 0x0100,
+		.toc_hash_type = HASH_TYPE_SHA256,
+		.toc_entries = 6,
+		.toc_hashes = 6,
+		.plat_id = PFM_V2_BAD_REGIONS_DATA + 0x0178,
+		.plat_id_len = 0x0010,
+		.plat_id_str = PFM_V2_PLATFORM_ID2,
+		.plat_id_str_len = sizeof (PFM_V2_PLATFORM_ID2) - 1,
+		.plat_id_str_pad = PFM_V2_PLATFORM_ID2_PAD,
+		.plat_id_offset = 0x0178,
+		.plat_id_entry = 3,
+		.plat_id_hash = 3
+	},
+	.flash_dev = PFM_V2_BAD_REGIONS_DATA + 0x0120,
+	.flash_dev_len = 4,
+	.flash_dev_offset = 0x0120,
+	.flash_dev_entry = 0,
+	.flash_dev_hash = 0,
+	.blank_byte = 0xff,
+	.fw_count = 2,
+	.fw = PFM_V2_FW_BAD_REGIONS
+};
+
 
 /**
  * Dependencies for testing v2 PFMs.
@@ -6168,6 +6409,24 @@ static void pfm_flash_v2_test_verify_img_test (CuTest *test)
 	pfm_flash_v2_testing_init (test, &pfm, 0x10000);
 
 	pfm_flash_v2_testing_verify_pfm (test, &pfm, &PFM_V2_IMG_TEST, 0);
+
+	status = pfm.test.base.base.verify (&pfm.test.base.base, &pfm.manifest.hash.base,
+		&pfm.manifest.verification.base, NULL, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	pfm_flash_v2_testing_validate_and_release (test, &pfm);
+}
+
+static void pfm_flash_v2_test_bad_regions_test (CuTest *test)
+{
+	struct pfm_flash_v2_testing pfm;
+	int status;
+
+	TEST_START;
+
+	pfm_flash_v2_testing_init (test, &pfm, 0x10000);
+
+	pfm_flash_v2_testing_verify_pfm (test, &pfm, &PFM_V2_BAD_REGIONS, 0);
 
 	status = pfm.test.base.base.verify (&pfm.test.base.base, &pfm.manifest.hash.base,
 		&pfm.manifest.verification.base, NULL, 0);
@@ -8894,6 +9153,50 @@ static void pfm_flash_v2_test_get_read_write_regions_bad_fw_version_element_leng
 	pfm_flash_v2_testing_validate_and_release (test, &pfm);
 }
 
+static void pfm_flash_v2_test_get_read_write_regions_end_before_start (CuTest *test)
+{
+	struct pfm_flash_v2_testing pfm;
+	const struct pfm_v2_testing_data *test_pfm = &PFM_V2_BAD_REGIONS;
+	int fw_index = 0;
+	int ver_index = 0;
+	int status;
+	struct pfm_read_write_regions writable;
+
+	TEST_START;
+
+	pfm_flash_v2_testing_init_and_verify (test, &pfm, 0x10000, test_pfm, 0, false, 0);
+
+	pfm_flash_v2_testing_find_version_entry (test, &pfm, test_pfm, fw_index, ver_index);
+
+	status = pfm.test.base.get_read_write_regions (&pfm.test.base, test_pfm->fw[fw_index].fw_id_str,
+		test_pfm->fw[fw_index].version[ver_index].version_str, &writable);
+	CuAssertIntEquals (test, PFM_MALFORMED_FW_VER_ELEMENT, status);
+
+	pfm_flash_v2_testing_validate_and_release (test, &pfm);
+}
+
+static void pfm_flash_v2_test_get_read_write_regions_end_equals_start (CuTest *test)
+{
+	struct pfm_flash_v2_testing pfm;
+	const struct pfm_v2_testing_data *test_pfm = &PFM_V2_BAD_REGIONS;
+	int fw_index = 1;
+	int ver_index = 0;
+	int status;
+	struct pfm_read_write_regions writable;
+
+	TEST_START;
+
+	pfm_flash_v2_testing_init_and_verify (test, &pfm, 0x10000, test_pfm, 0, false, 0);
+
+	pfm_flash_v2_testing_find_version_entry (test, &pfm, test_pfm, fw_index, ver_index);
+
+	status = pfm.test.base.get_read_write_regions (&pfm.test.base, test_pfm->fw[fw_index].fw_id_str,
+		test_pfm->fw[fw_index].version[ver_index].version_str, &writable);
+	CuAssertIntEquals (test, PFM_MALFORMED_FW_VER_ELEMENT, status);
+
+	pfm_flash_v2_testing_validate_and_release (test, &pfm);
+}
+
 static void pfm_flash_v2_test_get_firmware_images_sha256 (CuTest *test)
 {
 	struct pfm_flash_v2_testing pfm;
@@ -10936,6 +11239,50 @@ static void pfm_flash_v2_test_get_firmware_images_additional_element_read_bad_fw
 	pfm_flash_v2_testing_validate_and_release (test, &pfm);
 }
 
+static void pfm_flash_v2_test_get_firmware_images_region_end_before_start (CuTest *test)
+{
+	struct pfm_flash_v2_testing pfm;
+	const struct pfm_v2_testing_data *test_pfm = &PFM_V2_BAD_REGIONS;
+	int fw_index = 0;
+	int ver_index = 0;
+	int status;
+	struct pfm_image_list img_list;
+
+	TEST_START;
+
+	pfm_flash_v2_testing_init_and_verify (test, &pfm, 0x10000, test_pfm, 0, false, 0);
+
+	pfm_flash_v2_testing_find_version_entry (test, &pfm, test_pfm, fw_index, ver_index);
+
+	status = pfm.test.base.get_firmware_images (&pfm.test.base, test_pfm->fw[fw_index].fw_id_str,
+		test_pfm->fw[fw_index].version[ver_index].version_str, &img_list);
+	CuAssertIntEquals (test, PFM_MALFORMED_FW_VER_ELEMENT, status);
+
+	pfm_flash_v2_testing_validate_and_release (test, &pfm);
+}
+
+static void pfm_flash_v2_test_get_firmware_images_region_end_equals_start (CuTest *test)
+{
+	struct pfm_flash_v2_testing pfm;
+	const struct pfm_v2_testing_data *test_pfm = &PFM_V2_BAD_REGIONS;
+	int fw_index = 1;
+	int ver_index = 0;
+	int status;
+	struct pfm_image_list img_list;
+
+	TEST_START;
+
+	pfm_flash_v2_testing_init_and_verify (test, &pfm, 0x10000, test_pfm, 0, false, 0);
+
+	pfm_flash_v2_testing_find_version_entry (test, &pfm, test_pfm, fw_index, ver_index);
+
+	status = pfm.test.base.get_firmware_images (&pfm.test.base, test_pfm->fw[fw_index].fw_id_str,
+		test_pfm->fw[fw_index].version[ver_index].version_str, &img_list);
+	CuAssertIntEquals (test, PFM_MALFORMED_FW_VER_ELEMENT, status);
+
+	pfm_flash_v2_testing_validate_and_release (test, &pfm);
+}
+
 static void pfm_flash_v2_test_buffer_supported_versions (CuTest *test)
 {
 	struct pfm_flash_v2_testing pfm;
@@ -12059,6 +12406,7 @@ CuSuite* get_pfm_flash_v2_suite ()
 	SUITE_ADD_TEST (suite, pfm_flash_v2_test_verify_three_firmware);
 	SUITE_ADD_TEST (suite, pfm_flash_v2_test_verify_multiple_image_regions);
 	SUITE_ADD_TEST (suite, pfm_flash_v2_test_verify_img_test);
+	SUITE_ADD_TEST (suite, pfm_flash_v2_test_bad_regions_test);
 	SUITE_ADD_TEST (suite, pfm_flash_v2_test_verify_null);
 	SUITE_ADD_TEST (suite, pfm_flash_v2_test_verify_header_read_error);
 	SUITE_ADD_TEST (suite, pfm_flash_v2_test_verify_flash_device_element_read_error);
@@ -12142,6 +12490,8 @@ CuSuite* get_pfm_flash_v2_suite ()
 		pfm_flash_v2_test_get_read_write_regions_bad_fw_version_element_length_less_than_version);
 	SUITE_ADD_TEST (suite,
 		pfm_flash_v2_test_get_read_write_regions_bad_fw_version_element_length_less_than_rw);
+	SUITE_ADD_TEST (suite, pfm_flash_v2_test_get_read_write_regions_end_before_start);
+	SUITE_ADD_TEST (suite, pfm_flash_v2_test_get_read_write_regions_end_equals_start);
 	SUITE_ADD_TEST (suite, pfm_flash_v2_test_get_firmware_images_sha256);
 	SUITE_ADD_TEST (suite, pfm_flash_v2_test_get_firmware_images_multiple_firmware_sha384);
 	SUITE_ADD_TEST (suite, pfm_flash_v2_test_get_firmware_images_multiple_firmware_sha512);
@@ -12190,6 +12540,8 @@ CuSuite* get_pfm_flash_v2_suite ()
 		pfm_flash_v2_test_get_firmware_images_additional_element_read_bad_fw_version_element_length_less_than_img_min);
 	SUITE_ADD_TEST (suite,
 		pfm_flash_v2_test_get_firmware_images_additional_element_read_bad_fw_version_element_length_less_than_img);
+	SUITE_ADD_TEST (suite, pfm_flash_v2_test_get_firmware_images_region_end_before_start);
+	SUITE_ADD_TEST (suite, pfm_flash_v2_test_get_firmware_images_region_end_equals_start);
 	SUITE_ADD_TEST (suite, pfm_flash_v2_test_buffer_supported_versions);
 	SUITE_ADD_TEST (suite, pfm_flash_v2_test_buffer_supported_versions_multiple_fw);
 	SUITE_ADD_TEST (suite, pfm_flash_v2_test_buffer_supported_versions_multiple_versions);

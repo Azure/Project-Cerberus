@@ -356,17 +356,27 @@ create_firmware_version_element() {
 	if [ $NUM_FW_VER -eq 1 ] && [ -z "$MAX_VERSION" ] && [ -z "$RW_TEST" ] && [ -z "$IMG_TEST" ]; then
 		case $3 in
 			0)
-				add_rw_region "$ver_tmp" "0" "0x2000000" "0x3ffffff"
-				if [ -z "$IMG_MULTI_REGION" ]; then
-					add_image "$ver_tmp" "0" "32" "1" "1" "0x0000000,0x1ffffff"
+				if [ -z "$BAD_REGIONS" ]; then
+					add_rw_region "$ver_tmp" "0" "0x2000000" "0x3ffffff"
+					if [ -z "$IMG_MULTI_REGION" ]; then
+						add_image "$ver_tmp" "0" "32" "1" "1" "0x0000000,0x1ffffff"
+					else
+						add_image "$ver_tmp" "0" "32" "1" "4" "0x0000000,0x004ffff 0x0060000,0x00bffff 0x1000000,0x108ffff 0x1100000,0x1ffffff"
+					fi
 				else
-					add_image "$ver_tmp" "0" "32" "1" "4" "0x0000000,0x004ffff 0x0060000,0x00bffff 0x1000000,0x108ffff 0x1100000,0x1ffffff"
+					add_rw_region "$ver_tmp" "0" "0x2000000" "0x1ffffff"
+					add_image "$ver_tmp" "0" "32" "1" "1" "0x1000000,0x0ffffff"
 				fi
 				;;
 
 			1)
-				add_rw_region "$ver_tmp" "1" "0x6000000" "0x7ffffff"
-				add_image "$ver_tmp" "1" "48" "1" "1" "0x4000000,0x5ffffff"
+				if [ -z "$BAD_REGIONS" ]; then
+					add_rw_region "$ver_tmp" "1" "0x6000000" "0x7ffffff"
+					add_image "$ver_tmp" "1" "48" "1" "1" "0x4000000,0x5ffffff"
+				else
+					add_rw_region "$ver_tmp" "1" "0x6000000" "0x6000000"
+					add_image "$ver_tmp" "1" "48" "1" "1" "0x4000000,0x4000000"
+				fi
 				;;
 
 			2)

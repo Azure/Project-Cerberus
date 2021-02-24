@@ -777,7 +777,7 @@ error:
  *
  * @return 0 if the region was read successfully or an error code.
  */
-static int pfm_flash_read_region (struct manifest_flash *pfm, uint32_t addr,
+static int pfm_flash_read_region_v1 (struct manifest_flash *pfm, uint32_t addr,
 	struct flash_region *region)
 {
 	struct pfm_flash_region rw_region;
@@ -805,14 +805,14 @@ static int pfm_flash_read_region (struct manifest_flash *pfm, uint32_t addr,
  *
  * @return 0 if the flash regions were read successfully or an error code.
  */
-static int pfm_flash_read_multiple_regions (struct manifest_flash *pfm, size_t count,
+static int pfm_flash_read_multiple_regions_v1 (struct manifest_flash *pfm, size_t count,
 	struct flash_region *region_list, uint32_t *addr)
 {
 	size_t i;
 	int status;
 
 	for (i = 0; i < count; i++) {
-		status = pfm_flash_read_region (pfm, *addr, &region_list[i]);
+		status = pfm_flash_read_region_v1 (pfm, *addr, &region_list[i]);
 		if (status != 0) {
 			return status;
 		}
@@ -875,7 +875,7 @@ static int pfm_flash_get_read_write_regions_v1 (struct pfm_flash *pfm, const cha
 		next_addr += (4 - (fw_header.version_length % 4));
 	}
 
-	status = pfm_flash_read_multiple_regions (&pfm->base_flash, fw_header.rw_count, region_list,
+	status = pfm_flash_read_multiple_regions_v1 (&pfm->base_flash, fw_header.rw_count, region_list,
 		&next_addr);
 	if (status != 0) {
 		goto error;
@@ -1027,6 +1027,11 @@ static int pfm_flash_get_read_write_regions_v2 (struct pfm_flash *pfm, const cha
 		&buffer.ver_element.version[buffer.ver_element.version_length + version_pad];
 
 	for (i = 0; i < writable->count; i++) {
+		if (rw_region[i].region.end_addr <= rw_region[i].region.start_addr) {
+			status = PFM_MALFORMED_FW_VER_ELEMENT;
+			goto error;
+		}
+
 		region_list[i].start_addr = rw_region[i].region.start_addr;
 		region_list[i].length = (rw_region[i].region.end_addr - rw_region[i].region.start_addr) + 1;
 		prop_list[i].on_failure = pfm_get_rw_operation_on_failure (&rw_region[i]);
@@ -1164,7 +1169,7 @@ static int pfm_flash_get_firmware_images_v1 (struct pfm_flash *pfm, const char *
 		}
 
 		next_addr += img_header.sig_length;
-		status = pfm_flash_read_multiple_regions (&pfm->base_flash, img_header.region_count,
+		status = pfm_flash_read_multiple_regions_v1 (&pfm->base_flash, img_header.region_count,
 			region_list, &next_addr);
 		if (status != 0) {
 			goto error;
@@ -1415,6 +1420,11 @@ static int pfm_flash_get_firmware_images_v2 (struct pfm_flash *pfm, const char *
 		img_regions = (struct pfm_flash_region*) &buffer.ver_element.version[buf_offset];
 
 		for (j = 0; j < images[i].count; j++) {
+			if (img_regions[j].end_addr <= img_regions[j].start_addr) {
+				status = PFM_MALFORMED_FW_VER_ELEMENT;
+				goto error;
+			}
+
 			region_list[j].start_addr = img_regions[j].start_addr;
 			region_list[j].length = (img_regions[j].end_addr - img_regions[j].start_addr) + 1;
 		}
