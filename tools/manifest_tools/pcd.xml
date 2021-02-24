@@ -1,4 +1,4 @@
-<PCD sku="C2030" version="0x1A">
+<PCD sku="SKU1" version="0x1A">
 	<RoT type="PA-RoT">
 		<Ports>
 			<Port id="0">
@@ -21,7 +21,7 @@
 			<BridgeAddress>0x10</BridgeAddress>
 		</Interface>
 	</RoT>
-	<CPLD>
+	<PowerController>
 		<Interface type="I2C">
 			<Bus>2</Bus>
 			<EID>0x14</EID>
@@ -38,9 +38,9 @@
 				</Mux>
 			</Muxes>
 		</Interface>
-	</CPLD>
+	</PowerController>
 	<Components>
-		<Component type="Corsica" connection="Direct">
+		<Component type="Alpha" connection="Direct">
 			<Policy>Passive</Policy>
 			<Interface type="I2C">
 				<Bus>3</Bus>
@@ -59,7 +59,7 @@
 				<Mask>0xe0</Mask>
 			</PwrCtrl>
 		</Component>
-			<Component type="Overlake" connection="MCTPBridge" count="2">
+		<Component type="Beta" connection="MCTPBridge" count="2">
 			<Policy>Passive</Policy>
 			<DeviceID>0x0a</DeviceID>
 			<VendorID>0x0b</VendorID>

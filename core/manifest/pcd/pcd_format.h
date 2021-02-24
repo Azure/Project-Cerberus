@@ -8,135 +8,200 @@
 #include "manifest/manifest_format.h"
 
 
-#define PCD_ROT_HDR_IS_PA_ROT_SHIFT						0
-#define PCD_ROT_HDR_IS_PA_ROT_SET_MASK					(1U << PCD_ROT_HDR_IS_PA_ROT_SHIFT)
-#define PCD_ROT_HDR_IS_PA_ROT_CLR_MASK					(~PCD_ROT_HDR_IS_PA_ROT_SET_MASK)
-
-#define PCD_COMPONENT_HDR_I2C_MODE_SHIFT				0
-#define PCD_COMPONENT_HDR_I2C_MODE_SET_MASK				(1U << PCD_COMPONENT_HDR_I2C_MODE_SHIFT)
-#define PCD_COMPONENT_HDR_I2C_MODE_CLR_MASK				(~PCD_COMPONENT_HDR_I2C_MODE_SET_MASK)
-
+/**
+ * Type identifiers for PCD v2 elements.
+ */
+enum pcd_element_type {
+	PCD_ROT = 0x40,												/**< Information about the RoT configuration. */
+	PCD_POWER_CONTROLLER = 0x41,								/**< Information about power controller utilized by RoT. */
+	PCD_COMPONENT_DIRECT = 0x42,								/**< A single component connected directly to RoT. */
+	PCD_COMPONENT_MCTP_BRIDGE = 0x43,							/**< A components connected to RoT through an MCTP bridge. */
+};
 
 /**
- * The PCD is a variable length structure that has the following format:
+ * Flags for policy failure action.
+ */
+enum pcd_policy_failure_action {
+	PCD_POLICY_FAILURE_ACTION_PASSIVE = 0x0,					/**< Report policy failure through attestation. */
+	PCD_POLICY_FAILURE_ACTION_ACTIVE = 0x1,						/**< Prevent failed device from booting. */
+};
+
+
+#pragma pack(push, 1)
+struct pcd_rot_element {
+	uint8_t rot_flags;											/**< Flags pertaining to RoT configuration. */
+	uint8_t port_count;											/**< The number of ports protected by RoT. */
+	uint8_t components_count;									/**< The number of components attested by RoT. */
+	uint8_t rot_address;										/**< RoT slave address to utilize. */
+	uint8_t rot_eid;											/**< Default RoT MCTP EID to utilize. */
+	uint8_t bridge_address;										/**< MCTP bridge slave address. */
+	uint8_t bridge_eid;											/**< MCTP bridge EID. */
+	uint8_t reserved;											/**< Unused. */
+};
+
+#define PCD_ROT_FLAGS_ROT_TYPE_SHIFT							0
+#define PCD_ROT_FLAGS_ROT_TYPE_SET_MASK							(1 << PCD_ROT_FLAGS_ROT_TYPE_SHIFT)
+
+/**
+ * Flags for RoT configuration.
+ */
+enum pcd_rot_type_flags {
+	PCD_ROT_TYPE_PA_ROT = 0x0,									/**< PA-ROT. */
+	PCD_ROT_TYPE_AC_ROT = 0x1,									/**< AC-ROT. */
+};
+
+/**
+ * Get RoT type.
  *
- * struct {
- * 		struct manifest_header
- * 		struct pcd_header
- * 		struct pcd_rot_header
- * 		<struct pcd_port_header> [pcd_rot_header.num_ports]
- * 		struct pcd_components_header
- * 		<components> [pcd_components_header.num_components]
- * 		struct pcd_platform_header
- * 		char platform_id[pcd_platform_header.id_len]
- * 		uint8_t signature[manifest_header.sig_length]
- * }
+ * @param rot Pointer to a pcd_rot element.
+ */
+#define	pcd_get_rot_type(rot)	(enum pcd_rot_type_flags) (((rot)->rot_flags) & \
+	PCD_ROT_FLAGS_ROT_TYPE_SET_MASK)
+
+/**
+ * A port section defined in PCD as part of RoT element.
+ */
+struct pcd_port {
+	uint8_t port_id;											/**< Port ID. */
+	uint8_t port_flags;											/**< Flags with port configuration. */
+	uint8_t policy;												/**< Port attestation policy. */
+	uint8_t reserved;											/**< Unused. */
+	uint32_t spi_frequency_hz;									/**< Flash SPI frequency in Hz. */
+};
+
+#define PCD_PORT_FLAGS_FLASH_MODE_SHIFT							2
+#define PCD_PORT_FLAGS_FLASH_MODE_SET_MASK						(3 << PCD_PORT_FLAGS_FLASH_MODE_SHIFT)
+
+#define PCD_PORT_FLAGS_RESET_CTRL_SHIFT							0
+#define PCD_PORT_FLAGS_RESET_CTRL_SET_MASK						(3 << PCD_PORT_FLAGS_RESET_CTRL_SHIFT)
+
+/**
+ * Flags for port flash mode.
+ */
+enum pcd_port_flash_mode {
+	PCD_PORT_FLASH_MODE_DUAL = 0x0,								/**< Dual flash mode. */
+	PCD_PORT_FLASH_MODE_SINGLE = 0x1,							/**< Single flash mode. */
+};
+
+/**
+ * Flags for port reset control.
+ */
+enum pcd_port_reset_control {
+	PCD_PORT_RESET_CTRL_NOTIFY = 0x0,							/**< Notify when port reset pin toggled. */
+	PCD_PORT_RESET_CTRL_RESET = 0x1,							/**< Reset port when port reset pin toggled. */
+};
+
+/**
+ * Get port flash mode.
  *
- * Each component is a variable length structure that has the following format:
+ * @param port Pointer to a pcd_port element.
+ */
+#define	pcd_get_port_flash_mode(port)		(enum pcd_port_flash_mode) ((((port)->port_flags) & \
+	PCD_PORT_FLAGS_FLASH_MODE_SET_MASK) >> PCD_PORT_FLAGS_FLASH_MODE_SHIFT)
+
+/**
+ * Get port reset control setting.
  *
- * struct {
- * 		struct pcd_component_header
- * 		<struct pcd_mux_header> [pcd_component_header.num_muxes]
- * }
+ * @param port Pointer to a pcd_port element.
  */
+#define	pcd_get_port_reset_control(port)	(enum pcd_port_reset_control) (((port)->port_flags) & \
+	PCD_PORT_FLAGS_RESET_CTRL_SET_MASK)
 
 /**
- * The header information for the PCD.
+ * A single I2C mux section.
  */
-struct pcd_header {
-	uint16_t length;						/**< Total length of PCD without manifest header and signature. */
-	uint16_t header_len;					/**< PCD header length. */
-	uint8_t format_id;						/**< PCD format ID. */
-	uint8_t reserved1;						/**< Reserved. */
-	uint8_t reserved2;						/**< Reserved. */
-	uint8_t reserved3;						/**< Reserved. */
+struct pcd_mux {
+	uint8_t mux_address;										/**< I2C slave address of mux. */
+	uint8_t mux_channel;										/**< Channel to activate on mux. */
+	uint16_t reserved;											/**< Unused. */
 };
 
 /**
- * The header information for the PCD RoT.
+ * Container for fields common to I2C interface sections in elements.
  */
-struct pcd_rot_header {
-	uint16_t length;						/**< Total length of PCD RoT section including header. */
-	uint16_t header_len;					/**< Length of PCD RoT header. */
-	uint8_t format_id;						/**< PCD RoT format ID. */
-	uint8_t num_ports;						/**< Number of ports in RoT. */
-	uint8_t addr;							/**< I2C slave address */
-	uint8_t bmc_i2c_addr;					/**< BMC I2C address */
-	uint8_t cpld_addr;						/**< CPLD I2C slave address */
-	uint8_t cpld_channel;					/**< CPLD I2C bus channel */
-	uint8_t active;						   	/**< Policy active */
-	uint8_t default_failure_action;		   	/**< Default action on attestation failure */
-	uint8_t flags;							/**< Field for flags */
-	uint8_t reserved1;						/**< Reserved. */
-	uint8_t reserved2;						/**< Reserved. */
-	uint8_t reserved3;						/**< Reserved. */
+struct pcd_i2c_interface {
+	uint8_t mux_count:4;										/**< Number of muxes in I2C path from RoT to device. */
+	uint8_t i2c_flags:4;										/**< Flags with I2C configuration. */
+	uint8_t bus;												/**< I2C bus device is on. */
+	uint8_t address;											/**< Device I2C slave address. */
+	uint8_t eid;												/**< Device MCTP EID, 0x00 if not utilizing MCTP. */
+};
+
+#define PCD_I2C_FLAGS_I2C_MODE_SHIFT							0
+#define PCD_I2C_FLAGS_I2C_MODE_SET_MASK							(3 << PCD_I2C_FLAGS_I2C_MODE_SHIFT)
+
+/**
+ * Flags for I2C mode.
+ */
+enum pcd_i2c_mode {
+	PCD_I2C_MODE_MULTIMASTER = 0x0,								/**< MultiMaster I2C communication scheme. */
+	PCD_I2C_MODE_MASTER_SLAVE = 0x1,							/**< Master/Slave I2C communication scheme. */
 };
 
 /**
- * The header information for a RoT port section.
+ * Get i2c mode for i2c interface.
+ *
+ * @param i2c Pointer to a pcd_i2c_interface element.
  */
-struct pcd_port_header {
-	uint16_t length;						/**< Total length of RoT ports section. */
-	uint16_t header_len;					/**< Length of PCD port header. */
-	uint8_t format_id;						/**< RoT ports format ID. */
-	uint8_t id;								/**< Port ID */
-	uint8_t reserverd1;						/**< Reserved. */
-	uint8_t reserverd2;						/**< Reserved. */
-	uint32_t frequency;						/**< Bus frequency */
+#define	pcd_get_i2c_interface_i2c_mode(i2c)	(enum pcd_i2c_mode) (((i2c)->i2c_flags) & \
+	PCD_I2C_FLAGS_I2C_MODE_SET_MASK)
+
+/**
+ * An I2C power controller element.
+ */
+struct pcd_power_controller_element {
+	struct pcd_i2c_interface i2c;								/**< Power controller I2C interface. */
 };
 
 /**
- * The header information for the PCD components section.
+ * Container for fields common to component elements.
  */
-struct pcd_components_header {
-	uint16_t length;						/**< Total length of PCD components section. */
-	uint16_t header_len;					/**< Length of PCD components header. */
-	uint8_t format_id;						/**< PCD components format ID. */
-	uint8_t num_components;					/**< Number of components in PCD. */
-	uint8_t reserved1;						/**< Reserved. */
-	uint8_t reserved2;						/**< Reserved. */
+struct pcd_component_common {
+	uint8_t policy;												/**< Component attestation policy. */
+	uint8_t power_ctrl_reg;										/**< Power control register. */
+	uint8_t power_ctrl_mask;									/**< Power control mask. */
+	uint8_t type_len;											/**< Component type length. */
+	uint8_t type[MANIFEST_MAX_STRING];							/**< Component type. */
 };
 
 /**
- * The header information for a PCD component.
+ * Element for a component with direct I2C connection to RoT. 
  */
-struct pcd_component_header {
-	uint16_t length;						/**< Total length of PCD component. */
-	uint16_t header_len;					/**< Length of PCD component header. */
-	uint8_t format_id;						/**< PCD component format ID. */
-	uint8_t num_muxes;						/**< Number of muxes in component. */
-	uint8_t addr;							/**< I2C slave address */
-	uint8_t channel;						/**< I2C bus channel */
-	uint8_t flags;							/**< Field for flags */
-	uint8_t eid;							/**< MCTP EID */
-	uint8_t power_ctrl_reg;					/**< Power control register */
-	uint8_t power_ctrl_mask; 				/**< Power control bitmask */
-	uint32_t id; 							/**< Component ID. */
+struct pcd_direct_i2c_component_element {
+	struct pcd_component_common component;						/**< Common component configuration. */
+	struct pcd_i2c_interface i2c;								/**< Component I2C interface. */
 };
 
 /**
- * The header information for a mux section.
+ * Container for connection information for a component with connection to RoT through MCTP bridge. 
  */
-struct pcd_mux_header {
-	uint16_t length;						/**< Total length of component mux section. */
-	uint16_t header_len;					/**< Length of PCD mux header */
-	uint8_t format_id;						/**< Component mux format ID. */
-	uint8_t addr;							/**< I2C slave address */
-	uint8_t channel;						/**< I2C bus channel */
-	uint8_t mux_level;						/**< Mux level */
+struct pcd_mctp_bridge_component_connection {
+	uint16_t device_id;											/**< Device ID. */
+	uint16_t vendor_id;											/**< Vendor ID. */
+	uint16_t subsystem_device_id;								/**< Subsystem device ID. */
+	uint16_t subsystem_vendor_id;								/**< Subsystem vendor ID. */
+	uint8_t components_count;									/**< Number of identical components this element describes. */
+	uint8_t eid;												/**< Default EID to use if cannot retrieve EID table from MCTP bridge. */
+	uint16_t reserved;											/**< Unused. */ 
 };
 
 /**
- * The header information for the platform information.
+ * Element for a component with connection to RoT through MCTP bridge. 
  */
-struct pcd_platform_header {
-	uint16_t length;						/**< The total length of the platform descriptor. */
-	uint16_t header_len;					/**< Length of PCD platform header. */
-	uint8_t format_id;						/**< PCD platform header format ID. */
-	uint8_t id_len;							/**< Platform ID length. */
-	uint8_t reserved1;						/**< Reserved. */
-	uint8_t reserved2;						/**< Reserved. */
+struct pcd_mctp_bridge_component_element {
+	struct pcd_component_common component;						/**< Common component configuration. */
+	struct pcd_mctp_bridge_component_connection connection;		/**< Component connection information. */
 };
+
+/**
+ * Get component connection portion from a MCTP bridge component element container.
+ *
+ * @param component Pointer to a buffer containing a pcd_mctp_bridge_component_element element.
+ * @param len Length of buffer
+ */
+#define	pcd_get_mctp_bridge_component_connection(component, len) ((struct pcd_mctp_bridge_component_connection*) \
+	((component) + len - sizeof (struct pcd_mctp_bridge_component_connection)))
+#pragma pack(pop)
 
 
 #endif /* PCD_FORMAT_H_ */

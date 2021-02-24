@@ -19,8 +19,8 @@
 #define	PFM_V2_MAGIC_NUM			0x706D
 #define CFM_MAGIC_NUM				0xA592
 #define	CFM_V2_MAGIC_NUM			MANIFEST_NOT_SUPPORTED
-#define PCD_MAGIC_NUM				0x8EBC
-#define	PCD_V2_MAGIC_NUM			MANIFEST_NOT_SUPPORTED
+#define PCD_MAGIC_NUM				MANIFEST_NOT_SUPPORTED
+#define	PCD_V2_MAGIC_NUM			0x1029
 
 /**
  * Identifier for the hash algorithm used for signatures and other verificitaion hashes in
@@ -58,6 +58,7 @@ enum manifest_key_type {
  */
 #define	manifest_get_key_type(sig_type)		((enum manifest_key_type) ((sig_type) & 0xf8))
 
+#pragma pack(push, 1)
 /**
  * The header information on a manifest.
  */
@@ -138,6 +139,7 @@ struct manifest_platform_id {
 	uint8_t id_length;				/**< Length of the platform ID string. */
 	uint8_t reserved[3];			/**< Unused. */
 };
+#pragma pack(pop)
 
 
 #endif /* MANIFEST_FORMAT_H_ */

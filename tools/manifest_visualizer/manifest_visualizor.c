@@ -487,25 +487,26 @@ int32_t visualize_pcd_rot_element (uint8_t *start, const char* prefix)
 	return (pointer - start);
 }
 
-int32_t visualize_pcd_cpld_element (uint8_t *start, const char* prefix)
+int32_t visualize_pcd_power_controller_element (uint8_t *start, const char* prefix)
 {
 	uint8_t *pointer = start;
-	struct pcd_cpld_element *cpld = (struct pcd_cpld_element*) pointer;
+	struct pcd_power_controller_element *power_controller = 
+		(struct pcd_power_controller_element*) pointer;
 
-	pointer += sizeof (struct pcd_cpld_element);
+	pointer += sizeof (struct pcd_power_controller_element);
 
-	printf ("%spcd_cpld_element\n", prefix);
+	printf ("%spcd_power_controller_element\n", prefix);
 	printf ("%s{\n", prefix);
-	printf ("%s\tmux_count: %i\n", prefix, cpld->interface.mux_count);
-	printf ("%s\ti2c_flags: 0x%x\n", prefix, cpld->interface.i2c_flags);
-	printf ("%s\tbus: %i\n", prefix, cpld->interface.bus);
-	printf ("%s\taddress: 0x%x\n", prefix, cpld->interface.address);
-	printf ("%s\teid: 0x%x\n", prefix, cpld->interface.eid);
+	printf ("%s\tmux_count: %i\n", prefix, power_controller->i2c.mux_count);
+	printf ("%s\ti2c_flags: 0x%x\n", prefix, power_controller->i2c.i2c_flags);
+	printf ("%s\tbus: %i\n", prefix, power_controller->i2c.bus);
+	printf ("%s\taddress: 0x%x\n", prefix, power_controller->i2c.address);
+	printf ("%s\teid: 0x%x\n", prefix, power_controller->i2c.eid);
 
 	printf ("%s\tMuxes\n", prefix);
 	printf ("%s\t[\n", prefix);
 
-	for (int i = 0; i < cpld->interface.mux_count; ++i) {
+	for (int i = 0; i < power_controller->i2c.mux_count; ++i) {
 		struct pcd_mux *mux = (struct pcd_mux*) pointer;
 		pointer += sizeof (struct pcd_mux);
 
@@ -698,8 +699,8 @@ int32_t visualize_pcd (uint8_t *start)
 			case PCD_ROT:
 				offset = visualize_pcd_rot_element (pointer, "");
 				break;
-			case PCD_CPLD:
-				offset = visualize_pcd_cpld_element (pointer, "");
+			case PCD_POWER_CONTROLLER:
+				offset = visualize_pcd_power_controller_element (pointer, "");
 				break;
 			case PCD_COMPONENT_DIRECT:
 				offset = visualize_pcd_direct_i2c_component_element (pointer, "");

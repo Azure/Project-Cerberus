@@ -44,7 +44,7 @@ XML_ROT_EID_TAG = "RoTEID"
 XML_BRIDGE_EID_TAG = "BridgeEID"
 XML_BRIDGE_ADDRESS_TAG = "BridgeAddress"
 XML_EID_TAG = "EID"
-XML_CPLD_TAG = "CPLD"
+XML_POWER_CONTROLLER_TAG = "PowerController"
 XML_CHANNEL_TAG = "Channel"
 XML_COMPONENTS_TAG = "Components"
 XML_COMPONENT_TAG = "Component"
@@ -508,15 +508,15 @@ def process_pcd (root):
 
     xml["rot"]["interface"].update (result)
 
-    cpld = xml_find_single_tag (root, XML_CPLD_TAG, False)
-    if cpld is not None:
-        xml["cpld"] = {}
+    power_controller = xml_find_single_tag (root, XML_POWER_CONTROLLER_TAG, False)
+    if power_controller is not None:
+        xml["power_controller"] = {}
 
-        interface = xml_find_single_tag (cpld, XML_INTERFACE_TAG)
+        interface = xml_find_single_tag (power_controller, XML_INTERFACE_TAG)
         if interface is None:
             return None, None
 
-        xml["cpld"]["interface"] = {}
+        xml["power_controller"]["interface"] = {}
 
         interface_type = xml_extract_attrib (interface, XML_TYPE_ATTRIB, True)
         if interface_type is None:
@@ -524,9 +524,9 @@ def process_pcd (root):
         if interface_type == PCD_INTERFACE_TYPE_I2C:
             interface_type = 0
         else:
-            print ("Unknown CPLD interface type: {0}".format (interface_type))
+            print ("Unknown PowerController interface type: {0}".format (interface_type))
 
-        xml["cpld"]["interface"].update ({"type":interface_type})
+        xml["power_controller"]["interface"].update ({"type":interface_type})
 
         result = xml_extract_single_value (interface, {"bus": XML_BUS_TAG, 
             "eid": XML_EID_TAG, "address": XML_ADDRESS_TAG, "i2cmode": XML_I2CMODE_TAG})
@@ -543,13 +543,13 @@ def process_pcd (root):
         elif result["i2cmode"] == PCD_INTERFACE_I2C_MODE_MS:
             result["i2cmode"] = 1
         else:
-            print ("Unknown CPLD interface I2C mode: {0}".format (result["i2cmode"]))
+            print ("Unknown PowerController interface I2C mode: {0}".format (result["i2cmode"]))
 
-        xml["cpld"]["interface"].update (result)
+        xml["power_controller"]["interface"].update (result)
 
         muxes = xml_find_single_tag (interface, XML_MUXES_TAG, False)
         if muxes is not None:
-            xml["cpld"]["interface"]["muxes"] = {}
+            xml["power_controller"]["interface"]["muxes"] = {}
 
             for mux in muxes.findall (XML_MUX_TAG):
                 level = xml_extract_attrib (mux, XML_LEVEL_ATTRIB, False)
@@ -563,7 +563,7 @@ def process_pcd (root):
 
                 result["address"] = int (result["address"], 16)
 
-                xml["cpld"]["interface"]["muxes"].update ({level:result})
+                xml["power_controller"]["interface"]["muxes"].update ({level:result})
 
     components = xml_find_single_tag (root, XML_COMPONENTS_TAG, False)
     if components is not None:

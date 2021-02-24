@@ -11,4 +11,4 @@ build
 *~
 *.bin
 *.pyc
-
+tools/manifest_visualizer/manifest_visualizor

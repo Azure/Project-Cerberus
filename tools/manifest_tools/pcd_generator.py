@@ -144,38 +144,42 @@ def generate_muxes_buf (xml_muxes):
 
     return muxes_buf, muxes_len, num_muxes
 
-def generate_cpld (xml_cpld, hash_engine):
+def generate_power_controller (xml_power_controller, hash_engine):
     """
-    Create a CPLD object from parsed XML list
+    Create a power_controller object from parsed XML list
 
-    :param xml_cpld: List of parsed XML of CPLD to be included in CPLD object
+    :param xml_power_controller: List of parsed XML of power_controller to be included in 
+        power_controller object
     :param hash_engine: Hashing engine
 
-    :return Instance of a CPLD object, CPLD's TOC entry, hash of CPLD object
+    :return Instance of a power_controller object, power_controller's TOC entry, 
+        hash of power_controller object
     """
 
-    if xml_cpld["interface"]["type"] is not 0:
-        raise ValueError ("Unsupported CPLD interface type: {0}".format (
-            xml_cpld["interface"]["type"]))
+    if xml_power_controller["interface"]["type"] is not 0:
+        raise ValueError ("Unsupported power_controller interface type: {0}".format (
+            xml_power_controller["interface"]["type"]))
 
-    if "muxes" in xml_cpld["interface"]:
-        muxes, muxes_len, num_muxes = generate_muxes_buf (xml_cpld["interface"]["muxes"])
+    if "muxes" in xml_power_controller["interface"]:
+        muxes, muxes_len, num_muxes = generate_muxes_buf (
+            xml_power_controller["interface"]["muxes"])
     else:
         muxes = (ctypes.c_ubyte * 0)()
         muxes_len = 0
         num_muxes = 0
 
-    bus = int (manifest_common.get_key_from_dict (xml_cpld["interface"], "bus", "CPLD interface"))
-    address = int (manifest_common.get_key_from_dict (xml_cpld["interface"], "address", 
-        "CPLD interface"))
-    eid = int (manifest_common.get_key_from_dict (xml_cpld["interface"], "eid", 
-        "CPLD interface"))
-    i2cmode = int (manifest_common.get_key_from_dict (xml_cpld["interface"], "i2cmode", 
-        "CPLD interface"))
+    bus = int (manifest_common.get_key_from_dict (xml_power_controller["interface"], "bus", 
+        "Power controller interface"))
+    address = int (manifest_common.get_key_from_dict (xml_power_controller["interface"], "address", 
+        "Power controller interface"))
+    eid = int (manifest_common.get_key_from_dict (xml_power_controller["interface"], "eid", 
+        "Power controller interface"))
+    i2cmode = int (manifest_common.get_key_from_dict (xml_power_controller["interface"], "i2cmode", 
+        "Power controller interface"))
 
     i2c_flags = i2cmode 
 
-    class pcd_cpld_element (ctypes.LittleEndianStructure):
+    class pcd_power_controller_element (ctypes.LittleEndianStructure):
         _pack_ = 1
         _fields_ = [('mux_count', ctypes.c_ubyte, 4),
                     ('i2c_flags', ctypes.c_ubyte, 4),
@@ -184,14 +188,15 @@ def generate_cpld (xml_cpld, hash_engine):
                     ('eid', ctypes.c_ubyte),
                     ('muxes', ctypes.c_ubyte * muxes_len)]
 
-    cpld = pcd_cpld_element (num_muxes, i2c_flags, bus, address, eid, muxes)
-    cpld_len = ctypes.sizeof (cpld)
-    cpld_toc_entry = manifest_common.manifest_toc_entry (manifest_common.PCD_V2_I2C_CPLD_TYPE_ID, 
-        manifest_common.V2_BASE_TYPE_ID, 1, 0, 0, cpld_len)
+    power_controller = pcd_power_controller_element (num_muxes, i2c_flags, bus, address, eid, muxes)
+    power_controller_len = ctypes.sizeof (power_controller)
+    power_controller_toc_entry = manifest_common.manifest_toc_entry (
+        manifest_common.PCD_V2_I2C_POWER_CONTROLLER_TYPE_ID, manifest_common.V2_BASE_TYPE_ID, 1, 0, 
+        0, power_controller_len)
 
-    cpld_hash = manifest_common.generate_hash (cpld, hash_engine)
+    power_controller_hash = manifest_common.generate_hash (power_controller, hash_engine)
 
-    return cpld, cpld_toc_entry, cpld_hash
+    return power_controller, power_controller_toc_entry, power_controller_hash
 
 def generate_direct_component_buf (xml_component):
     """
@@ -414,13 +419,14 @@ elements_list.append (platform_id)
 toc_list.append (platform_id_toc_entry)
 hash_list.append (platform_id_hash)
 
-if "cpld" in processed_xml:
-    cpld, cpld_toc_entry, cpld_hash = generate_cpld (processed_xml["cpld"], hash_engine)
+if "power_controller" in processed_xml:
+    power_controller, power_controller_toc_entry, power_controller_hash = \
+        generate_power_controller (processed_xml["power_controller"], hash_engine)
     
-    pcd_len += ctypes.sizeof (cpld)
-    elements_list.append (cpld)
-    toc_list.append (cpld_toc_entry)
-    hash_list.append (cpld_hash)
+    pcd_len += ctypes.sizeof (power_controller)
+    elements_list.append (power_controller)
+    toc_list.append (power_controller_toc_entry)
+    hash_list.append (power_controller_hash)
 
 if "components" in processed_xml:
     components, num_components, components_toc_list, components_hash_list = generate_components (

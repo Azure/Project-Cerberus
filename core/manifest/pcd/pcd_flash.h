@@ -19,8 +19,8 @@ struct pcd_flash {
 };
 
 
-int pcd_flash_init (struct pcd_flash *pcd, struct flash *flash, uint32_t base_addr,
-	uint8_t *signature_cache, size_t max_signature, uint8_t *platform_id_cache,
+int pcd_flash_init (struct pcd_flash *pcd, struct flash *flash, struct hash_engine *hash, 
+	uint32_t base_addr, uint8_t *signature_cache, size_t max_signature, uint8_t *platform_id_cache,
 	size_t max_platform_id);
 void pcd_flash_release (struct pcd_flash *pcd);
 

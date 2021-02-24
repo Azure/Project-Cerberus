@@ -14,22 +14,1041 @@
 #include "pcd_testing.h"
 #include "cmd_interface/device_manager.h"
 #include "flash/flash.h"
+#include "manifest_flash_v2_testing.h"
 
 
 static const char *SUITE = "pcd_flash";
 
 
 /**
+ * PCD with no POWER_CONTROLLER for testing.
+ */
+const uint8_t PCD_NO_POWER_CONTROLLER_DATA[] = {
+	0x20,0x02,0x29,0x10,0x1a,0x00,0x00,0x00,0x00,0x01,0x00,0x00,0x04,0x04,0x00,0x00,
+	0x00,0xff,0x01,0x00,0xd0,0x00,0x0c,0x00,0x42,0xff,0x01,0x01,0xdc,0x00,0x14,0x00,
+	0x43,0xff,0x01,0x02,0xf0,0x00,0x18,0x00,0x40,0xff,0x01,0x03,0x08,0x01,0x18,0x00,
+	0xe4,0xbc,0x4b,0xc0,0x40,0x7e,0x07,0xf7,0x96,0x9b,0x2e,0xab,0xb8,0x70,0xf8,0x6d,
+	0x26,0xfa,0x7d,0x0d,0x15,0x06,0x47,0xd0,0xef,0x37,0xd4,0x4a,0x1a,0xd2,0xf2,0x22,
+	0x5e,0x7a,0xf5,0x15,0xba,0x4f,0x0b,0x4a,0x80,0xea,0x69,0x22,0xcc,0x77,0xdc,0x29,
+	0x23,0xa3,0xc3,0x17,0x46,0x4e,0xe4,0xb3,0xda,0x61,0xbe,0x6f,0xdf,0xbd,0xc9,0xe8,
+	0x6e,0xb5,0x9d,0xc9,0x35,0x16,0xed,0xce,0x7c,0xc4,0x2b,0xb8,0xad,0x2a,0x87,0xe7,
+	0x47,0x2f,0x15,0x7d,0xfd,0x94,0xdc,0xa2,0x2f,0x27,0xb4,0xbc,0xc8,0x4e,0x9c,0x72,
+	0x09,0x3e,0xb3,0x0f,0x76,0x3d,0x15,0x0d,0x80,0x0a,0x24,0x95,0xf3,0xca,0xd1,0x27,
+	0x5d,0x24,0x18,0x80,0xb2,0xae,0x4b,0x81,0xd3,0x15,0x6f,0x9e,0x0f,0xe6,0xc5,0xc8,
+	0x78,0x2f,0x6c,0xa3,0x14,0xc8,0x91,0x7d,0xc4,0xae,0x9b,0xa8,0xc5,0xba,0x47,0x4b,
+	0xe1,0x0c,0x49,0xd9,0xb9,0xfd,0x52,0x58,0x9b,0xaf,0xfd,0x36,0x12,0x6a,0xfc,0x3c,
+	0x05,0x00,0x00,0x00,0x43,0x32,0x30,0x33,0x30,0x00,0x00,0x00,0x00,0x50,0xe0,0x07,
+	0x43,0x6f,0x72,0x73,0x69,0x63,0x61,0x00,0x01,0x03,0x75,0x77,0x55,0x03,0x00,0x00,
+	0x00,0x70,0xf0,0x08,0x4f,0x76,0x65,0x72,0x6c,0x61,0x6b,0x65,0x0a,0x00,0x0b,0x00,
+	0x0c,0x00,0x0d,0x00,0x02,0x30,0x00,0x00,0x00,0x02,0x02,0x41,0x0b,0x10,0x0a,0x00,
+	0x00,0x01,0x00,0x00,0x00,0x48,0xe8,0x01,0x01,0x04,0x01,0x00,0x00,0x90,0xd0,0x03,
+	0x96,0x8d,0x75,0x6d,0x5f,0xed,0xec,0xe7,0x73,0x9d,0x2f,0x18,0x7f,0x8e,0x1c,0x79,
+	0x05,0x57,0x3b,0xc4,0xc8,0x95,0x8c,0x2d,0xf9,0x6e,0xef,0x8c,0xc4,0xfc,0x71,0x6f,
+	0xdb,0xca,0x05,0xd5,0xce,0x89,0x65,0x8b,0x9e,0x16,0xf7,0x81,0x0f,0x9a,0x6b,0xb3,
+	0x1e,0x0d,0x9d,0x40,0x6d,0xdc,0x7b,0xcc,0x3c,0x35,0x55,0xa4,0xdf,0x29,0x12,0xd8,
+	0xb7,0x51,0x61,0x61,0xe6,0xb2,0x8e,0xa8,0x74,0x4f,0xa3,0xe8,0xa9,0xec,0x42,0x60,
+	0x37,0x5f,0x56,0xb6,0x5d,0x85,0xc7,0x60,0x64,0x4b,0x98,0x68,0xa3,0x15,0x90,0xad,
+	0x49,0x60,0xfe,0x66,0x1e,0x1e,0x95,0xb4,0xb7,0xe6,0xf5,0x21,0x34,0xe6,0x55,0xd9,
+	0x74,0x50,0x3a,0x20,0x28,0x69,0x3a,0x3e,0xeb,0xa9,0xe9,0xf5,0x34,0x02,0xc6,0x9d,
+	0x9d,0x33,0x09,0x8c,0x19,0x08,0xc6,0x53,0x1d,0xc0,0x4f,0x8f,0x32,0xa6,0xa5,0x1c,
+	0x79,0x82,0x86,0x4d,0xc5,0x63,0xa2,0xc5,0xf9,0x86,0xea,0x11,0xd9,0x66,0xe5,0x1e,
+	0x83,0xbe,0x5b,0x18,0xeb,0xf0,0xce,0x6e,0xfc,0x63,0x53,0xaa,0xa6,0xd4,0xf3,0x80,
+	0xaf,0x70,0xfd,0xa8,0x55,0xdf,0x65,0x21,0xc4,0x79,0xd4,0xc4,0x75,0xec,0x80,0xb4,
+	0xe9,0xb0,0x91,0x05,0x1a,0x7d,0x8e,0xdd,0x36,0x5e,0x7b,0x5c,0x8f,0x09,0xd8,0xf3,
+	0x0b,0x15,0x57,0x53,0x02,0x5c,0xa8,0x93,0x1f,0x3f,0x5b,0xbe,0xea,0x70,0x31,0xb3,
+	0xab,0xdd,0xf0,0xc1,0x0a,0xfb,0xa1,0x41,0x02,0x54,0x78,0x82,0x81,0x07,0xc7,0xd6,
+	0x44,0xc6,0xc3,0x02,0x44,0x88,0x53,0x74,0x52,0xa0,0x06,0xe4,0x1c,0xb8,0xb1,0x23
+};
+
+/**
+ * PCD with no components for testing.
+ */
+const uint8_t PCD_NO_COMPONENTS_DATA[] = {
+	0xd8,0x01,0x29,0x10,0x1a,0x00,0x00,0x00,0x00,0x01,0x00,0x00,0x03,0x03,0x00,0x00,
+	0x00,0xff,0x01,0x00,0xa8,0x00,0x0c,0x00,0x41,0xff,0x01,0x01,0xb4,0x00,0x0c,0x00,
+	0x40,0xff,0x01,0x02,0xc0,0x00,0x18,0x00,0xe4,0xbc,0x4b,0xc0,0x40,0x7e,0x07,0xf7,
+	0x96,0x9b,0x2e,0xab,0xb8,0x70,0xf8,0x6d,0x26,0xfa,0x7d,0x0d,0x15,0x06,0x47,0xd0,
+	0xef,0x37,0xd4,0x4a,0x1a,0xd2,0xf2,0x22,0x4d,0x9a,0x65,0x85,0x38,0xe7,0x61,0xba,
+	0xbb,0xb3,0xdc,0x6a,0x01,0x3f,0xb4,0x11,0x77,0x16,0x30,0x68,0x93,0x9c,0xc5,0x89,
+	0xf1,0xd1,0x9a,0x66,0xab,0xc9,0x09,0x7f,0x61,0x60,0xb3,0x3f,0xc9,0x71,0x9d,0xae,
+	0x44,0xa4,0xd3,0xe2,0x12,0xd4,0xd4,0x50,0x1c,0x8a,0x88,0x8f,0x01,0xdf,0xc1,0xd7,
+	0xa6,0x8c,0x93,0x46,0xae,0x46,0xac,0xe1,0xbd,0x21,0x0d,0x6b,0x5c,0x6c,0xf3,0x3a,
+	0xc8,0x18,0x38,0x97,0x75,0xe1,0x28,0xf0,0x3b,0xaa,0xd4,0xd5,0x0d,0xc1,0x98,0xbe,
+	0x96,0xd0,0x86,0x12,0x48,0x02,0x02,0xef,0x05,0x00,0x00,0x00,0x43,0x32,0x30,0x33,
+	0x30,0x00,0x00,0x00,0x02,0x02,0x22,0x14,0x66,0x07,0x00,0x00,0x45,0x04,0x00,0x00,
+	0x00,0x02,0x00,0x41,0x0b,0x10,0x0a,0x00,0x00,0x01,0x00,0x00,0x00,0x48,0xe8,0x01,
+	0x01,0x04,0x01,0x00,0x00,0x90,0xd0,0x03,0x4b,0x26,0x93,0xa3,0xf8,0x93,0xda,0xfe,
+	0x03,0x10,0xf2,0x69,0xe9,0x8f,0x70,0x26,0x63,0xdc,0x63,0x7e,0x6b,0x79,0xb6,0x7c,
+	0x53,0xaa,0xe8,0x9a,0x13,0x84,0xc2,0x72,0x56,0x1e,0x21,0xd4,0xc0,0xc8,0x83,0x74,
+	0xee,0x34,0x42,0x24,0x63,0xc9,0x98,0xfd,0xba,0xc0,0x08,0xc8,0x07,0x11,0xb8,0xdb,
+	0x9f,0x8d,0x54,0xac,0xc2,0x79,0x64,0x42,0x35,0x7c,0xdc,0xd7,0x32,0xc9,0x02,0x38,
+	0xa8,0xe9,0x7f,0x1c,0x79,0x6d,0x8e,0xd7,0xe4,0x8d,0x80,0x54,0x5a,0x42,0xf1,0x44,
+	0x8c,0x94,0x4b,0xa9,0xa0,0xd6,0x30,0x44,0x95,0x77,0xee,0xc3,0xe7,0x8a,0x74,0x09,
+	0xc0,0x48,0xd9,0xc4,0xc4,0x81,0x90,0x00,0x3c,0x3d,0xcf,0x8f,0xb7,0x96,0x0e,0x52,
+	0x53,0xc6,0x50,0xa9,0x34,0x8f,0x2f,0x5f,0xa1,0x69,0xf0,0x01,0xd7,0x99,0x20,0xd1,
+	0x9f,0x66,0xb8,0x7f,0x3e,0xd1,0x9e,0x66,0x3a,0x7f,0x5d,0xb1,0x5d,0x52,0xf9,0x6c,
+	0x77,0x7c,0xd4,0x3b,0x5a,0x01,0xd5,0xa5,0xd6,0xc6,0x18,0x9b,0x08,0x0a,0xab,0xc7,
+	0x96,0xed,0x8a,0x7c,0x4e,0xc8,0xd0,0xae,0x03,0xaf,0x3f,0x3f,0xb8,0xcf,0xb2,0x61,
+	0x24,0x92,0xeb,0x5f,0xb7,0xae,0x53,0x3f,0x07,0x4e,0x94,0xd5,0x11,0xee,0x3d,0x75,
+	0x1e,0xa7,0x76,0xcf,0x51,0xad,0x07,0x07,0x59,0x4b,0x15,0x83,0x77,0x31,0xe8,0xe1,
+	0xa7,0x07,0xf2,0x81,0x7f,0xde,0xd6,0xb5,0xb9,0x69,0x1b,0xb4,0x73,0x70,0x7a,0x05,
+	0x5a,0xfe,0xc0,0x94,0xc8,0x06,0x2d,0xd1,0x97,0xc9,0xed,0x79,0xa9,0x57,0xb3,0xeb,
+	0x09,0x4b,0xf0,0x82,0x78,0x58,0x13,0xf7
+};
+
+/**
+ * PCD with no ports for testing.
+ */
+const uint8_t PCD_NO_PORTS_DATA[] = {
+	0x44,0x02,0x29,0x10,0x1a,0x00,0x00,0x00,0x00,0x01,0x00,0x00,0x05,0x05,0x00,0x00,
+	0x00,0xff,0x01,0x00,0xf8,0x00,0x0c,0x00,0x41,0xff,0x01,0x01,0x04,0x01,0x0c,0x00,
+	0x42,0xff,0x01,0x02,0x10,0x01,0x14,0x00,0x43,0xff,0x01,0x03,0x24,0x01,0x18,0x00,
+	0x40,0xff,0x01,0x04,0x3c,0x01,0x08,0x00,0xe4,0xbc,0x4b,0xc0,0x40,0x7e,0x07,0xf7,
+	0x96,0x9b,0x2e,0xab,0xb8,0x70,0xf8,0x6d,0x26,0xfa,0x7d,0x0d,0x15,0x06,0x47,0xd0,
+	0xef,0x37,0xd4,0x4a,0x1a,0xd2,0xf2,0x22,0x4d,0x9a,0x65,0x85,0x38,0xe7,0x61,0xba,
+	0xbb,0xb3,0xdc,0x6a,0x01,0x3f,0xb4,0x11,0x77,0x16,0x30,0x68,0x93,0x9c,0xc5,0x89,
+	0xf1,0xd1,0x9a,0x66,0xab,0xc9,0x09,0x7f,0x5e,0x7a,0xf5,0x15,0xba,0x4f,0x0b,0x4a,
+	0x80,0xea,0x69,0x22,0xcc,0x77,0xdc,0x29,0x23,0xa3,0xc3,0x17,0x46,0x4e,0xe4,0xb3,
+	0xda,0x61,0xbe,0x6f,0xdf,0xbd,0xc9,0xe8,0x6e,0xb5,0x9d,0xc9,0x35,0x16,0xed,0xce,
+	0x7c,0xc4,0x2b,0xb8,0xad,0x2a,0x87,0xe7,0x47,0x2f,0x15,0x7d,0xfd,0x94,0xdc,0xa2,
+	0x2f,0x27,0xb4,0xbc,0xc8,0x4e,0x9c,0x72,0xd5,0xe0,0x5d,0x36,0xa4,0xb0,0x62,0xc7,
+	0xb8,0x37,0x02,0x51,0x83,0x69,0xaa,0x81,0xb4,0xd4,0x94,0xe2,0x29,0x68,0x7f,0xf4,
+	0xea,0x53,0x81,0x17,0x39,0x1e,0xb5,0x3d,0xa6,0xa2,0x94,0x43,0x9b,0x1f,0x4b,0x44,
+	0x76,0x85,0xfc,0x61,0xce,0xcc,0xda,0xad,0xd5,0xf0,0x70,0xe0,0x63,0x1a,0x75,0xdd,
+	0x9c,0x65,0x53,0xf5,0xcb,0x68,0x62,0xce,0x05,0x00,0x00,0x00,0x43,0x32,0x30,0x33,
+	0x30,0x00,0x00,0x00,0x02,0x02,0x22,0x14,0x66,0x07,0x00,0x00,0x45,0x04,0x00,0x00,
+	0x00,0x50,0xe0,0x07,0x43,0x6f,0x72,0x73,0x69,0x63,0x61,0x00,0x01,0x03,0x75,0x77,
+	0x55,0x03,0x00,0x00,0x00,0x70,0xf0,0x08,0x4f,0x76,0x65,0x72,0x6c,0x61,0x6b,0x65,
+	0x0a,0x00,0x0b,0x00,0x0c,0x00,0x0d,0x00,0x02,0x30,0x00,0x00,0x00,0x00,0x02,0x41,
+	0x0b,0x10,0x0a,0x00,0x73,0x21,0x9e,0x56,0x3f,0x08,0xa1,0xab,0x3d,0x11,0x86,0x13,
+	0xc6,0x77,0x89,0x9c,0x12,0xa1,0xa8,0x63,0x43,0x73,0x7c,0xb3,0x1f,0x91,0x67,0x83,
+	0x1a,0x6d,0xf9,0xa6,0x2a,0x06,0xe5,0x83,0xe3,0xc2,0x33,0xfe,0xd3,0x8a,0x83,0xf6,
+	0xe9,0xa7,0x0f,0xae,0x02,0xfe,0x66,0xdf,0x81,0x81,0xd4,0xc8,0x71,0xdd,0x42,0x11,
+	0x0c,0x8d,0xcc,0x99,0x4e,0x3a,0xd9,0x1b,0x8a,0x06,0x69,0x1c,0x58,0xbf,0xec,0x43,
+	0xcd,0x8d,0x48,0x3b,0x98,0xd2,0x79,0x5c,0xf8,0x29,0xe5,0xaa,0xd4,0x89,0xf6,0x8e,
+	0x28,0x04,0x6e,0xdb,0xc9,0x9c,0x7b,0x72,0x9a,0xe0,0x24,0x34,0x5b,0x25,0x87,0x76,
+	0x88,0x5d,0xbb,0xd1,0xb5,0xf1,0x4a,0x21,0x83,0x2a,0x23,0x69,0x1e,0xe2,0xbd,0x64,
+	0x00,0x9a,0x16,0x80,0xea,0xd0,0x99,0x92,0x67,0xb8,0x56,0xac,0xff,0x67,0x73,0xa1,
+	0xa4,0x54,0xb6,0x94,0xae,0xcc,0xd4,0x9f,0xf2,0xe9,0x6b,0xa5,0x97,0xa0,0x10,0xcc,
+	0xd2,0xbb,0x60,0xf6,0x03,0x96,0x93,0x78,0x3a,0xd0,0xfc,0x1a,0x95,0xba,0x94,0x12,
+	0xd5,0xb1,0x98,0x66,0xb0,0x54,0x66,0x6f,0x6a,0xf1,0xc3,0x9a,0xf0,0x1f,0xff,0x41,
+	0xdc,0x59,0x19,0x4b,0x00,0x92,0x42,0x49,0xfd,0xf3,0x0c,0x57,0x78,0xfc,0x24,0x87,
+	0x9d,0x49,0xeb,0x74,0x60,0xc8,0xa5,0xc1,0xf9,0x32,0xa5,0xe2,0xb1,0x70,0xfb,0x96,
+	0xad,0xd7,0x9c,0xb6,0x9c,0x2f,0xaf,0x1e,0x09,0x04,0x27,0xfc,0xd1,0x9c,0x6e,0x18,
+	0x36,0x28,0x65,0xd3,0x72,0x85,0x43,0x8e,0xb8,0xd0,0xe9,0xd9,0xb8,0x8c,0xb5,0xca,
+	0x9d,0x6e,0x9d,0xdf
+};
+
+/**
+ * PCD with no ports, power controller, or components for testing.
+ */
+const uint8_t PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_DATA[] = {
+	0x94,0x01,0x29,0x10,0x1a,0x00,0x00,0x00,0x00,0x01,0x00,0x00,0x02,0x02,0x00,0x00,
+	0x00,0xff,0x01,0x00,0x80,0x00,0x0c,0x00,0x40,0xff,0x01,0x01,0x8c,0x00,0x08,0x00,
+	0xe4,0xbc,0x4b,0xc0,0x40,0x7e,0x07,0xf7,0x96,0x9b,0x2e,0xab,0xb8,0x70,0xf8,0x6d,
+	0x26,0xfa,0x7d,0x0d,0x15,0x06,0x47,0xd0,0xef,0x37,0xd4,0x4a,0x1a,0xd2,0xf2,0x22,
+	0xe8,0x58,0xbc,0x23,0x93,0xad,0xe0,0xff,0x20,0xfb,0x2a,0x56,0x5b,0x22,0x85,0xef,
+	0xb3,0x2c,0x62,0xf6,0x02,0xdc,0x54,0xf7,0x0f,0xd5,0xb8,0x07,0x2e,0x92,0xb1,0x4b,
+	0x17,0x48,0x28,0xa2,0xe7,0xad,0x0f,0x42,0x34,0x73,0x21,0xa5,0xb1,0x68,0x16,0x74,
+	0x79,0x98,0x30,0xa5,0x06,0x55,0xe7,0x6a,0xb7,0x3c,0x32,0xbb,0x05,0x5e,0x01,0xd6,
+	0x05,0x00,0x00,0x00,0x43,0x32,0x30,0x33,0x30,0x00,0x00,0x00,0x00,0x00,0x00,0x41,
+	0x0b,0x10,0x0a,0x00,0x0d,0x7a,0x33,0xe5,0x97,0xfa,0x32,0xcd,0xce,0x40,0xd3,0xcf,
+	0xa2,0xcb,0x07,0xd9,0x85,0x42,0xd7,0xbb,0xfa,0x1b,0x90,0xcc,0x7e,0xfb,0x41,0x26,
+	0x77,0x43,0x12,0x18,0xf9,0xe4,0x62,0x1e,0xf8,0x2d,0x92,0xc2,0x4d,0xb5,0xa8,0x48,
+	0x97,0x1a,0x88,0x58,0xb7,0x11,0x34,0xcc,0xed,0x3d,0x97,0xd8,0x5f,0x1d,0x30,0x1b,
+	0x63,0xd1,0x20,0x30,0xdc,0x50,0xc0,0xee,0xcf,0x0e,0xa4,0x4a,0xb7,0x4e,0x55,0xba,
+	0xcc,0x1f,0x4e,0x46,0x32,0x68,0x0a,0x69,0xc9,0x1d,0x8b,0x22,0xdc,0x21,0x17,0xe3,
+	0x3d,0x11,0xa8,0xdd,0xcd,0xec,0x7d,0xbd,0xf9,0xec,0x37,0xae,0x65,0x7c,0x2f,0xec,
+	0xae,0xdd,0xd0,0x46,0xcf,0x03,0xee,0xab,0x7b,0x06,0xa8,0x46,0xef,0x09,0x7e,0x9b,
+	0x5a,0x20,0x07,0x9a,0xc1,0x43,0x32,0x46,0x0d,0xcb,0xeb,0x69,0xe2,0x9f,0xfa,0x81,
+	0xfc,0x67,0x0a,0x6d,0xa2,0xe4,0x0e,0xfa,0x94,0x34,0xa5,0x5e,0x14,0x96,0xb8,0x37,
+	0x55,0x7e,0xfd,0x93,0xf5,0x20,0x64,0xee,0x26,0x3c,0xc1,0x14,0x4f,0x2b,0x84,0x61,
+	0xe1,0x49,0xcd,0x14,0x0c,0x82,0x31,0x59,0x28,0x75,0x4b,0x3d,0x92,0x19,0x55,0x95,
+	0x05,0xb7,0x62,0x09,0x66,0xdb,0x3b,0xdf,0x5f,0xcd,0xfd,0x5c,0xdb,0x03,0xac,0xac,
+	0xd8,0xe4,0x07,0xda,0xef,0x7a,0xfd,0xda,0xf4,0x92,0x30,0x66,0x65,0x87,0x8f,0xe8,
+	0x05,0xdf,0x56,0x28,0x3c,0x48,0x80,0x82,0x07,0x1b,0x0d,0x9a,0x7b,0x28,0x04,0xf0,
+	0xd7,0x12,0xae,0x28,0x82,0xcd,0xbb,0xb6,0x1a,0x97,0x26,0x51,0xe5,0x04,0x00,0x3d,
+	0x50,0x42,0xd7,0xfe
+};
+
+/**
+ * PCD with only direct components for testing.
+ */
+const uint8_t PCD_ONLY_DIRECT_COMPONENTS_DATA[] = {
+	0x4c,0x02,0x29,0x10,0x1a,0x00,0x00,0x00,0x00,0x01,0x00,0x00,0x05,0x05,0x00,0x00,
+	0x00,0xff,0x01,0x00,0xf8,0x00,0x08,0x00,0x41,0xff,0x01,0x01,0x00,0x01,0x0c,0x00,
+	0x42,0xff,0x01,0x02,0x0c,0x01,0x14,0x00,0x42,0xff,0x01,0x03,0x20,0x01,0x14,0x00,
+	0x40,0xff,0x01,0x04,0x34,0x01,0x18,0x00,0x13,0xe9,0x1c,0x16,0x0e,0xcf,0xd2,0xbb,
+	0x3a,0x86,0x83,0xb6,0x01,0xc4,0xba,0xcb,0x04,0xf0,0xa5,0x18,0x9b,0x97,0xd9,0x2d,
+	0x67,0xf4,0x6d,0x69,0xea,0x1e,0x25,0x36,0x4d,0x9a,0x65,0x85,0x38,0xe7,0x61,0xba,
+	0xbb,0xb3,0xdc,0x6a,0x01,0x3f,0xb4,0x11,0x77,0x16,0x30,0x68,0x93,0x9c,0xc5,0x89,
+	0xf1,0xd1,0x9a,0x66,0xab,0xc9,0x09,0x7f,0x1e,0x1d,0x1a,0xe3,0x7c,0xef,0x8e,0xdd,
+	0x91,0x64,0x59,0x14,0x19,0xf4,0x5d,0x67,0x74,0xc3,0x8d,0x5e,0xc9,0x77,0x2e,0xf2,
+	0xc8,0x79,0xac,0x7f,0x2d,0x5e,0x78,0x52,0x9f,0x0d,0x0d,0xc3,0xb5,0x59,0xe0,0x8d,
+	0x57,0xca,0x6a,0x8e,0x91,0x97,0x8d,0xb8,0x10,0x32,0xb5,0x47,0x10,0xf4,0xff,0x86,
+	0x0f,0xce,0x96,0xae,0x45,0x91,0xc8,0x85,0x09,0x3e,0xb3,0x0f,0x76,0x3d,0x15,0x0d,
+	0x80,0x0a,0x24,0x95,0xf3,0xca,0xd1,0x27,0x5d,0x24,0x18,0x80,0xb2,0xae,0x4b,0x81,
+	0xd3,0x15,0x6f,0x9e,0x0f,0xe6,0xc5,0xc8,0x33,0x0b,0x5d,0x2f,0x79,0x59,0x1d,0x20,
+	0x9c,0xe8,0x10,0xf7,0x6d,0xa7,0xee,0x53,0x82,0x46,0x53,0x1e,0x9c,0x7c,0x93,0x73,
+	0xd7,0xb0,0x18,0xcb,0x1b,0x14,0xc0,0xb3,0x04,0x00,0x00,0x00,0x53,0x4b,0x55,0x31,
+	0x02,0x02,0x22,0x14,0x66,0x07,0x00,0x00,0x45,0x04,0x00,0x00,0x00,0x50,0xe0,0x05,
+	0x41,0x6c,0x70,0x68,0x61,0x00,0x00,0x00,0x01,0x03,0x75,0x77,0x55,0x03,0x00,0x00,
+	0x00,0x50,0xe0,0x05,0x54,0x68,0x65,0x74,0x61,0x00,0x00,0x00,0x01,0x03,0x81,0x88,
+	0x15,0x03,0x00,0x00,0x00,0x02,0x02,0x41,0x0b,0x10,0x0a,0x00,0x00,0x01,0x00,0x00,
+	0x00,0x48,0xe8,0x01,0x01,0x04,0x01,0x00,0x00,0x90,0xd0,0x03,0x18,0xd4,0x74,0x2f,
+	0x1b,0xba,0x0b,0xf5,0x9b,0x32,0x2f,0xfd,0xda,0xd4,0x04,0x12,0xd2,0xa0,0x05,0x3a,
+	0x9c,0xbb,0x83,0xb6,0xc0,0x14,0xcf,0xae,0x17,0xd7,0x1a,0x68,0xd1,0xd4,0x0e,0xa8,
+	0x96,0x95,0x28,0xe6,0xf6,0xd3,0x81,0x25,0xac,0xe0,0x70,0x77,0xab,0xbd,0xc6,0x56,
+	0xb6,0xab,0x54,0xb7,0x22,0xa5,0xc0,0xf7,0xf4,0x81,0x23,0x65,0x80,0x1d,0xe9,0xc1,
+	0x1a,0x60,0xf8,0xf2,0x0b,0x41,0x9c,0x47,0xe1,0x36,0xab,0x3d,0x31,0x53,0xb8,0xf5,
+	0xbd,0x97,0xdd,0x4c,0xb6,0x49,0xbe,0x64,0x5c,0xeb,0xce,0xd4,0x43,0x65,0x52,0x2a,
+	0x86,0xa6,0xf9,0x1a,0xdf,0xbd,0xa5,0xbf,0x72,0xd5,0x8b,0x25,0xa5,0x04,0x02,0x8c,
+	0x2d,0xf5,0x5d,0xd2,0xf8,0xed,0xc4,0x73,0x19,0xa3,0xd2,0x89,0xbd,0xec,0xdc,0x34,
+	0xf7,0x43,0x2e,0xcd,0x5f,0x0f,0xf4,0x72,0x46,0x8f,0x97,0x44,0x09,0x42,0x4f,0x79,
+	0x35,0x2b,0xad,0xc4,0x27,0x48,0x16,0x1d,0xc0,0x1b,0xa1,0x1a,0x41,0x12,0x1e,0xd5,
+	0x12,0xef,0xdf,0x99,0xf7,0xa7,0x35,0x80,0xb8,0xa4,0xbd,0x65,0xd2,0x89,0xed,0xd3,
+	0xec,0x00,0x0e,0x7d,0x6d,0xdf,0xf5,0x89,0xb2,0x36,0x18,0xb8,0xd2,0x3f,0x94,0xa0,
+	0x36,0xb3,0xef,0xdd,0xa8,0x1d,0xea,0xd0,0x6c,0x22,0x4d,0x72,0x59,0xd3,0x9a,0x77,
+	0x94,0x03,0x6c,0x6b,0x25,0xdf,0x19,0x77,0x84,0x87,0x38,0x53,0xa9,0xa4,0x35,0x00,
+	0x76,0x77,0x5b,0xd5,0x77,0x00,0xb4,0xa5,0x11,0x54,0x24,0x15,0xd2,0x0b,0xe5,0xa2,
+	0x7f,0xcf,0x7f,0x93,0x85,0x51,0x33,0x2d,0xb8,0xb9,0x19,0xcd
+};
+
+/**
+ * PCD with multiple direct components for testing.
+ */
+const uint8_t PCD_MULTIPLE_DIRECT_COMPONENTS_DATA[] = {
+	0x88,0x02,0x29,0x10,0x1a,0x00,0x00,0x00,0x00,0x01,0x00,0x00,0x06,0x06,0x00,0x00,
+	0x00,0xff,0x01,0x00,0x20,0x01,0x08,0x00,0x41,0xff,0x01,0x01,0x28,0x01,0x0c,0x00,
+	0x42,0xff,0x01,0x02,0x34,0x01,0x14,0x00,0x42,0xff,0x01,0x03,0x48,0x01,0x14,0x00,
+	0x43,0xff,0x01,0x04,0x5c,0x01,0x14,0x00,0x40,0xff,0x01,0x05,0x70,0x01,0x18,0x00,
+	0x13,0xe9,0x1c,0x16,0x0e,0xcf,0xd2,0xbb,0x3a,0x86,0x83,0xb6,0x01,0xc4,0xba,0xcb,
+	0x04,0xf0,0xa5,0x18,0x9b,0x97,0xd9,0x2d,0x67,0xf4,0x6d,0x69,0xea,0x1e,0x25,0x36,
+	0x4d,0x9a,0x65,0x85,0x38,0xe7,0x61,0xba,0xbb,0xb3,0xdc,0x6a,0x01,0x3f,0xb4,0x11,
+	0x77,0x16,0x30,0x68,0x93,0x9c,0xc5,0x89,0xf1,0xd1,0x9a,0x66,0xab,0xc9,0x09,0x7f,
+	0x1e,0x1d,0x1a,0xe3,0x7c,0xef,0x8e,0xdd,0x91,0x64,0x59,0x14,0x19,0xf4,0x5d,0x67,
+	0x74,0xc3,0x8d,0x5e,0xc9,0x77,0x2e,0xf2,0xc8,0x79,0xac,0x7f,0x2d,0x5e,0x78,0x52,
+	0x9f,0x0d,0x0d,0xc3,0xb5,0x59,0xe0,0x8d,0x57,0xca,0x6a,0x8e,0x91,0x97,0x8d,0xb8,
+	0x10,0x32,0xb5,0x47,0x10,0xf4,0xff,0x86,0x0f,0xce,0x96,0xae,0x45,0x91,0xc8,0x85,
+	0x76,0x05,0xa2,0x2a,0xcd,0x69,0xcd,0x01,0xf7,0x2c,0x5e,0x18,0xc7,0xe1,0xbb,0x27,
+	0x77,0xed,0x3d,0x11,0xd9,0x2b,0xe4,0x3d,0xbd,0x58,0x28,0x98,0xf3,0x2b,0x63,0xc1,
+	0x71,0xd0,0x62,0x63,0x38,0xda,0x6b,0x56,0xa7,0x12,0x88,0xb8,0x30,0x33,0xf6,0x84,
+	0x08,0x73,0x53,0x94,0xb2,0xce,0xd7,0x64,0xcc,0x4d,0x90,0x1c,0x17,0x60,0xec,0xec,
+	0x63,0x97,0x1e,0x37,0x24,0x8c,0x66,0xb8,0x37,0x11,0x1e,0x05,0x3a,0x9f,0x54,0xe1,
+	0x83,0x2e,0xc9,0xe7,0x05,0x7e,0x2b,0x1c,0xf9,0x67,0xfa,0x2d,0x06,0x98,0xca,0xcb,
+	0x04,0x00,0x00,0x00,0x53,0x4b,0x55,0x31,0x02,0x02,0x22,0x14,0x66,0x07,0x00,0x00,
+	0x45,0x04,0x00,0x00,0x00,0x50,0xe0,0x05,0x41,0x6c,0x70,0x68,0x61,0x00,0x00,0x00,
+	0x01,0x03,0x75,0x77,0x55,0x03,0x00,0x00,0x00,0x50,0xe0,0x05,0x54,0x68,0x65,0x74,
+	0x61,0x00,0x00,0x00,0x01,0x03,0x81,0x88,0x15,0x03,0x00,0x00,0x00,0x70,0xf0,0x04,
+	0x42,0x65,0x74,0x61,0x0a,0x00,0x0b,0x00,0x0c,0x00,0x0d,0x00,0x02,0x30,0x00,0x00,
+	0x00,0x02,0x03,0x41,0x0b,0x10,0x0a,0x00,0x00,0x01,0x00,0x00,0x00,0x48,0xe8,0x01,
+	0x01,0x04,0x01,0x00,0x00,0x90,0xd0,0x03,0x6e,0xc6,0x08,0x60,0x93,0x22,0x57,0x58,
+	0xf2,0x9f,0xde,0x77,0xc3,0x91,0x2d,0x87,0xa3,0x83,0xd8,0xe9,0xd8,0xc0,0x5d,0xee,
+	0x85,0x53,0xa3,0x73,0xfb,0x2c,0x45,0x63,0x54,0xaa,0x9b,0x72,0xcc,0x70,0x39,0x14,
+	0x49,0x1d,0xde,0x6d,0x63,0x85,0xef,0x52,0x94,0x10,0x43,0x24,0x4f,0x02,0x13,0x88,
+	0x6c,0xaf,0x34,0xbd,0xb4,0xa8,0xbe,0x70,0xc4,0xd4,0x1a,0xcf,0x71,0xad,0x2e,0x53,
+	0x1c,0x6b,0x03,0x4c,0x49,0x85,0xc9,0xe1,0xb2,0x20,0xc6,0xa5,0xae,0x62,0x90,0x50,
+	0x80,0x5c,0xf4,0x96,0x84,0xac,0xd4,0x5f,0x55,0xdf,0x01,0xae,0x12,0x3c,0x6f,0x23,
+	0x67,0x04,0xeb,0xb9,0xfd,0xd4,0x70,0x3f,0x63,0x73,0x75,0x6e,0xaa,0xe1,0x3e,0x24,
+	0xa1,0x0c,0x9e,0x36,0xc8,0xb9,0x2c,0xd2,0x39,0x26,0xb8,0xa4,0xdb,0xe4,0x5a,0xb9,
+	0x50,0xa9,0xb4,0xb7,0x44,0xf5,0xfe,0x62,0x35,0x89,0x7c,0xcc,0x21,0x6a,0xb6,0x3e,
+	0x89,0xdb,0xaf,0x4a,0xdf,0x83,0xad,0x9a,0xc0,0xa1,0x94,0x54,0xf0,0x36,0x21,0x2e,
+	0xc4,0x15,0x9d,0x6d,0xe7,0x2c,0x5f,0xc6,0x8c,0x1c,0x71,0x4f,0xca,0xf5,0x8d,0x07,
+	0x1b,0x1d,0xed,0x49,0xda,0xff,0x7e,0x98,0xcd,0x3c,0x98,0x81,0x94,0x86,0xef,0xe9,
+	0x56,0x4b,0xf2,0xcd,0x4e,0xdc,0xf5,0x16,0x55,0xaf,0xe7,0xe7,0xa6,0x5e,0xd7,0xec,
+	0x78,0xbe,0xe2,0xa8,0x0f,0x6c,0xf6,0x26,0x05,0xc0,0xce,0x61,0xe5,0x80,0xac,0xc6,
+	0xce,0x2e,0x93,0x08,0xe4,0x01,0x33,0x4c,0xf7,0x31,0x66,0x3c,0xc3,0x11,0x62,0xd9,
+	0xa0,0x4e,0x2b,0x35,0x65,0x38,0xc8,0xc4
+};
+
+/**
+ * PCD with only bridge components for testing.
+ */
+const uint8_t PCD_ONLY_BRIDGE_COMPONENTS_DATA[] = {
+	0x50,0x02,0x29,0x10,0x1a,0x00,0x00,0x00,0x00,0x01,0x00,0x00,0x05,0x05,0x00,0x00,
+	0x00,0xff,0x01,0x00,0xf8,0x00,0x08,0x00,0x41,0xff,0x01,0x01,0x00,0x01,0x0c,0x00,
+	0x43,0xff,0x01,0x02,0x0c,0x01,0x14,0x00,0x43,0xff,0x01,0x03,0x20,0x01,0x18,0x00,
+	0x40,0xff,0x01,0x04,0x38,0x01,0x18,0x00,0x13,0xe9,0x1c,0x16,0x0e,0xcf,0xd2,0xbb,
+	0x3a,0x86,0x83,0xb6,0x01,0xc4,0xba,0xcb,0x04,0xf0,0xa5,0x18,0x9b,0x97,0xd9,0x2d,
+	0x67,0xf4,0x6d,0x69,0xea,0x1e,0x25,0x36,0x4d,0x9a,0x65,0x85,0x38,0xe7,0x61,0xba,
+	0xbb,0xb3,0xdc,0x6a,0x01,0x3f,0xb4,0x11,0x77,0x16,0x30,0x68,0x93,0x9c,0xc5,0x89,
+	0xf1,0xd1,0x9a,0x66,0xab,0xc9,0x09,0x7f,0x76,0x05,0xa2,0x2a,0xcd,0x69,0xcd,0x01,
+	0xf7,0x2c,0x5e,0x18,0xc7,0xe1,0xbb,0x27,0x77,0xed,0x3d,0x11,0xd9,0x2b,0xe4,0x3d,
+	0xbd,0x58,0x28,0x98,0xf3,0x2b,0x63,0xc1,0x70,0x22,0x4d,0x5f,0xe6,0x1f,0x75,0x24,
+	0x4e,0xb4,0x6d,0x43,0xcb,0x1a,0xce,0xbc,0xe5,0x3f,0xd8,0xbd,0xde,0x3c,0xac,0x83,
+	0x40,0xdd,0xb4,0x67,0x88,0x93,0xb5,0xd8,0x09,0x3e,0xb3,0x0f,0x76,0x3d,0x15,0x0d,
+	0x80,0x0a,0x24,0x95,0xf3,0xca,0xd1,0x27,0x5d,0x24,0x18,0x80,0xb2,0xae,0x4b,0x81,
+	0xd3,0x15,0x6f,0x9e,0x0f,0xe6,0xc5,0xc8,0xe4,0x75,0x54,0xee,0x21,0x38,0xd3,0xae,
+	0x41,0xa9,0x59,0x9d,0xf4,0xe5,0xc0,0xe2,0x53,0xdc,0x0b,0x82,0x3d,0x31,0xae,0xcd,
+	0x3b,0x12,0x75,0x03,0x47,0x63,0x5b,0x56,0x04,0x00,0x00,0x00,0x53,0x4b,0x55,0x31,
+	0x02,0x02,0x22,0x14,0x66,0x07,0x00,0x00,0x45,0x04,0x00,0x00,0x00,0x70,0xf0,0x04,
+	0x42,0x65,0x74,0x61,0x0a,0x00,0x0b,0x00,0x0c,0x00,0x0d,0x00,0x02,0x30,0x00,0x00,
+	0x00,0x71,0xf1,0x05,0x54,0x68,0x65,0x74,0x61,0x00,0x00,0x00,0x0c,0x00,0x0d,0x00,
+	0x0e,0x00,0x0f,0x00,0x01,0x31,0x00,0x00,0x00,0x02,0x02,0x41,0x0b,0x10,0x0a,0x00,
+	0x00,0x01,0x00,0x00,0x00,0x48,0xe8,0x01,0x01,0x04,0x01,0x00,0x00,0x90,0xd0,0x03,
+	0x71,0xea,0x0c,0x43,0xf1,0x08,0x28,0x3f,0x03,0x88,0xa0,0x1b,0x1a,0x73,0xde,0x99,
+	0xbb,0x02,0x1e,0x91,0xc3,0x39,0xe3,0xa2,0x6d,0xb2,0xa8,0x84,0xae,0x28,0x84,0x2c,
+	0x68,0x6c,0x9c,0xd1,0x91,0xe0,0xc5,0x4b,0x26,0x6e,0xf3,0xcb,0xc2,0x21,0xfc,0xef,
+	0x5f,0xb1,0xf5,0x5a,0xce,0x17,0x93,0x78,0x8d,0x4d,0x56,0xd9,0xd6,0x1c,0x03,0xd6,
+	0x4e,0x26,0xb4,0x39,0x1e,0xaa,0xc2,0xce,0x8b,0x1f,0xa2,0x1d,0xdd,0x7d,0x15,0x4d,
+	0x68,0x95,0x47,0xd0,0x84,0xf3,0x25,0x6e,0xab,0x57,0x6b,0xda,0xa4,0x17,0x3d,0xc1,
+	0x68,0x8d,0x63,0x93,0xf5,0x34,0x45,0xc0,0x98,0x03,0x04,0xd4,0x55,0xc6,0xd6,0x5a,
+	0x26,0xe0,0xcb,0x37,0xe3,0x42,0x91,0x76,0xb3,0x79,0x7e,0xce,0xa3,0x12,0x02,0x1a,
+	0xab,0x34,0xb8,0x06,0xb2,0x8e,0xcb,0x46,0xab,0x14,0x58,0x7e,0x7b,0x6d,0x59,0x84,
+	0x04,0xe7,0x98,0x99,0xc9,0xd4,0xce,0xd5,0x61,0xf5,0xc3,0xbd,0x23,0xd4,0x1a,0xb7,
+	0xe7,0xff,0x5a,0x74,0x92,0x2a,0x11,0x17,0xdb,0xe3,0x62,0x16,0x2f,0xcf,0xdb,0xe6,
+	0x13,0x6d,0x54,0x92,0xd7,0x2e,0x49,0x46,0xb0,0xaa,0xb6,0x79,0x81,0xcf,0x12,0x1c,
+	0x6c,0x90,0x91,0x50,0x88,0x96,0xcd,0xbd,0xc6,0x3f,0xb1,0x38,0x7d,0x29,0x3c,0xaf,
+	0x83,0x88,0x96,0x2a,0xe2,0x22,0xf4,0x11,0x2a,0xe6,0x62,0xbb,0xca,0x0a,0xa4,0x7d,
+	0x35,0x8b,0x7f,0xb2,0x93,0x9b,0x5f,0x82,0x12,0x15,0xab,0xb2,0x34,0x40,0xa1,0xdd,
+	0xb9,0xfb,0xfc,0x5b,0xfc,0xda,0xaa,0x67,0x7e,0xd8,0xe1,0x49,0x80,0xc1,0x65,0x87
+};
+
+/**
+ * PCD with multiple bridge components for testing.
+ */
+const uint8_t PCD_MULTIPLE_BRIDGE_COMPONENTS_DATA[] = {
+	0x8c,0x02,0x29,0x10,0x1a,0x00,0x00,0x00,0x00,0x01,0x00,0x00,0x06,0x06,0x00,0x00,
+	0x00,0xff,0x01,0x00,0x20,0x01,0x08,0x00,0x41,0xff,0x01,0x01,0x28,0x01,0x0c,0x00,
+	0x42,0xff,0x01,0x02,0x34,0x01,0x14,0x00,0x43,0xff,0x01,0x03,0x48,0x01,0x14,0x00,
+	0x43,0xff,0x01,0x04,0x5c,0x01,0x18,0x00,0x40,0xff,0x01,0x05,0x74,0x01,0x18,0x00,
+	0x13,0xe9,0x1c,0x16,0x0e,0xcf,0xd2,0xbb,0x3a,0x86,0x83,0xb6,0x01,0xc4,0xba,0xcb,
+	0x04,0xf0,0xa5,0x18,0x9b,0x97,0xd9,0x2d,0x67,0xf4,0x6d,0x69,0xea,0x1e,0x25,0x36,
+	0x4d,0x9a,0x65,0x85,0x38,0xe7,0x61,0xba,0xbb,0xb3,0xdc,0x6a,0x01,0x3f,0xb4,0x11,
+	0x77,0x16,0x30,0x68,0x93,0x9c,0xc5,0x89,0xf1,0xd1,0x9a,0x66,0xab,0xc9,0x09,0x7f,
+	0x1e,0x1d,0x1a,0xe3,0x7c,0xef,0x8e,0xdd,0x91,0x64,0x59,0x14,0x19,0xf4,0x5d,0x67,
+	0x74,0xc3,0x8d,0x5e,0xc9,0x77,0x2e,0xf2,0xc8,0x79,0xac,0x7f,0x2d,0x5e,0x78,0x52,
+	0x76,0x05,0xa2,0x2a,0xcd,0x69,0xcd,0x01,0xf7,0x2c,0x5e,0x18,0xc7,0xe1,0xbb,0x27,
+	0x77,0xed,0x3d,0x11,0xd9,0x2b,0xe4,0x3d,0xbd,0x58,0x28,0x98,0xf3,0x2b,0x63,0xc1,
+	0x70,0x22,0x4d,0x5f,0xe6,0x1f,0x75,0x24,0x4e,0xb4,0x6d,0x43,0xcb,0x1a,0xce,0xbc,
+	0xe5,0x3f,0xd8,0xbd,0xde,0x3c,0xac,0x83,0x40,0xdd,0xb4,0x67,0x88,0x93,0xb5,0xd8,
+	0x71,0xd0,0x62,0x63,0x38,0xda,0x6b,0x56,0xa7,0x12,0x88,0xb8,0x30,0x33,0xf6,0x84,
+	0x08,0x73,0x53,0x94,0xb2,0xce,0xd7,0x64,0xcc,0x4d,0x90,0x1c,0x17,0x60,0xec,0xec,
+	0x48,0x42,0x8a,0x1b,0x20,0xc6,0x03,0xd3,0x9f,0xdc,0x0b,0x4c,0x5b,0xd8,0x9a,0x9a,
+	0x86,0x96,0xfd,0x6d,0x7e,0x7d,0xcf,0xf3,0x20,0xcf,0x5e,0x0b,0x4c,0xbb,0xc7,0xa8,
+	0x04,0x00,0x00,0x00,0x53,0x4b,0x55,0x31,0x02,0x02,0x22,0x14,0x66,0x07,0x00,0x00,
+	0x45,0x04,0x00,0x00,0x00,0x50,0xe0,0x05,0x41,0x6c,0x70,0x68,0x61,0x00,0x00,0x00,
+	0x01,0x03,0x75,0x77,0x55,0x03,0x00,0x00,0x00,0x70,0xf0,0x04,0x42,0x65,0x74,0x61,
+	0x0a,0x00,0x0b,0x00,0x0c,0x00,0x0d,0x00,0x02,0x30,0x00,0x00,0x00,0x71,0xf1,0x05,
+	0x54,0x68,0x65,0x74,0x61,0x00,0x00,0x00,0x0c,0x00,0x0d,0x00,0x0e,0x00,0x0f,0x00,
+	0x01,0x31,0x00,0x00,0x00,0x02,0x03,0x41,0x0b,0x10,0x0a,0x00,0x00,0x01,0x00,0x00,
+	0x00,0x48,0xe8,0x01,0x01,0x04,0x01,0x00,0x00,0x90,0xd0,0x03,0x19,0x87,0x3d,0x79,
+	0xab,0x18,0xf1,0xc3,0xc7,0x9a,0xe5,0x50,0x85,0xf1,0x8d,0x0e,0xde,0x33,0x53,0x52,
+	0x9d,0x0c,0x5c,0xeb,0x00,0x36,0x33,0xa7,0x3e,0xf0,0xa0,0xf1,0x9f,0xde,0x9d,0xc7,
+	0x1a,0x0e,0x4b,0x96,0xb2,0xfc,0x67,0x55,0xbe,0x5d,0x11,0x29,0xce,0xa7,0x53,0x37,
+	0x00,0x8e,0xf5,0x43,0x87,0xfc,0x8a,0x55,0x9c,0x0b,0x84,0x07,0x4e,0x1a,0xfe,0x03,
+	0xfc,0x36,0xcc,0x08,0x3f,0x71,0xcb,0xde,0x1d,0x81,0x30,0xc0,0x68,0xbe,0xb7,0x28,
+	0xb1,0xb7,0x5b,0x83,0x97,0x55,0xa9,0x29,0xef,0xfa,0x91,0x62,0xb0,0xac,0xf4,0xd0,
+	0xff,0x4c,0x86,0x8a,0x4b,0x30,0xd2,0x5c,0x68,0x2a,0xcd,0x55,0x15,0x3d,0xb5,0x1c,
+	0xc7,0xb5,0x3a,0xbe,0x04,0xf7,0xca,0xcf,0xbf,0xc8,0x08,0xc5,0xf6,0xa5,0x8a,0xd5,
+	0x2d,0xeb,0xb9,0x91,0xea,0xd3,0x3e,0x87,0x60,0x03,0x24,0xa2,0xfb,0x29,0x70,0xdd,
+	0x1f,0xeb,0x77,0x5c,0x24,0x46,0xf4,0xa3,0x83,0xb8,0x0c,0xc0,0xaa,0x27,0x2f,0xcc,
+	0x56,0x9c,0xd8,0x39,0x41,0x8b,0x88,0x36,0x51,0xa1,0x3f,0x7a,0x21,0x3c,0x68,0xfa,
+	0x18,0xba,0x43,0x31,0x35,0x72,0x2a,0xf3,0xba,0x98,0x67,0x07,0xa9,0x02,0xe4,0xdf,
+	0xbe,0x49,0x22,0x50,0xf8,0x3a,0x99,0x98,0x85,0xfc,0x98,0x04,0x16,0x56,0xc6,0x0d,
+	0xe3,0xae,0x21,0x1a,0x10,0x76,0x38,0xc9,0xfa,0x82,0x43,0xa3,0xf0,0xdb,0x68,0xbc,
+	0xdd,0xac,0x19,0x45,0x18,0xca,0xa9,0x5b,0xa7,0xe2,0x7c,0x9d,0x2e,0x85,0x42,0x3e,
+	0x2f,0xbf,0x19,0xcd,0x88,0x56,0x83,0x4f,0xa1,0xd5,0x01,0x22
+};
+
+/**
+ * Length of the testing PCD with no power controller.
+ */
+const uint32_t PCD_NO_POWER_CONTROLLER_DATA_LEN = sizeof (PCD_NO_POWER_CONTROLLER_DATA);
+
+/**
+ * Length of the testing PCD with no components.
+ */
+const uint32_t PCD_NO_COMPONENTS_DATA_LEN = sizeof (PCD_NO_COMPONENTS_DATA);
+
+/**
+ * Length of the testing PCD with no ports.
+ */
+const uint32_t PCD_NO_PORTS_DATA_LEN = sizeof (PCD_NO_PORTS_DATA);
+
+/**
+ * Length of the testing PCD with no ports, power controller, nor components.
+ */
+const uint32_t PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_DATA_LEN = 
+	sizeof (PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_DATA);
+
+/**
+ * Length of the testing PCD with only direct components.
+ */
+const uint32_t PCD_ONLY_DIRECT_COMPONENTS_DATA_LEN = 
+	sizeof (PCD_ONLY_DIRECT_COMPONENTS_DATA);
+
+/**
+ * Length of the testing PCD with multiple direct components.
+ */
+const uint32_t PCD_MULTIPLE_DIRECT_COMPONENTS_DATA_LEN = 
+	sizeof (PCD_MULTIPLE_DIRECT_COMPONENTS_DATA);
+
+/**
+ * Length of the testing PCD with only bridge components.
+ */
+const uint32_t PCD_ONLY_BRIDGE_COMPONENTS_DATA_LEN = 
+	sizeof (PCD_ONLY_BRIDGE_COMPONENTS_DATA);
+
+/**
+ * Length of the testing PCD with multiple bridge components.
+ */
+const uint32_t PCD_MULTIPLE_BRIDGE_COMPONENTS_DATA_LEN = 
+	sizeof (PCD_MULTIPLE_BRIDGE_COMPONENTS_DATA);
+
+/**
+ * PCD_NO_POWER_CONTROLLER_DATA hash for testing.
+ */
+const uint8_t PCD_NO_POWER_CONTROLLER_HASH[] = {
+	0xf3,0x37,0xd2,0x7d,0x72,0x29,0x2f,0xf4,0xdd,0x9e,0xd5,0x6d,0x3f,0x04,0x27,0x91,
+	0x72,0x87,0xd7,0x83,0x9b,0xa4,0xcc,0x0a,0x57,0x41,0x4e,0x5d,0x20,0x69,0x42,0x91
+};
+
+/**
+ * PCD_NO_COMPONENTS_DATA hash for testing.
+ */
+const uint8_t PCD_NO_COMPONENTS_HASH[] = {
+	0xc8,0x57,0x93,0x19,0xe8,0x73,0xa4,0x6b,0x3c,0x8b,0x96,0x76,0x54,0x36,0x28,0x7c,
+	0x11,0xe5,0xbe,0xb6,0x95,0xb2,0xc1,0x27,0xdd,0x62,0xb9,0x57,0xa3,0xd9,0x75,0xd1
+};
+
+/**
+ * PCD_NO_PORTS_DATA hash for testing.
+ */
+const uint8_t PCD_NO_PORTS_HASH[] = {
+	0x73,0xbc,0x10,0xc9,0x86,0x8a,0xd0,0xb8,0x16,0xf0,0x2f,0x53,0x64,0x51,0xea,0x30,
+	0xe4,0x74,0xc0,0x12,0x53,0xdb,0xe5,0xa2,0x35,0x64,0x4d,0x49,0xec,0x30,0xbe,0x55
+};
+
+/**
+ * PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_DATA hash for testing.
+ */
+const uint8_t PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_HASH[] = {
+	0xc9,0xcf,0x19,0xb9,0x53,0xe3,0x17,0x61,0x96,0x28,0x79,0x90,0x1a,0xb9,0x87,0x8f,
+	0xdd,0x3e,0xd9,0x8c,0xa4,0x6f,0xed,0x52,0x21,0x79,0x5a,0x54,0x0b,0xf7,0x77,0x66
+};
+
+/**
+ * PCD_ONLY_DIRECT_COMPONENTS_DATA hash for testing.
+ */
+const uint8_t PCD_ONLY_DIRECT_COMPONENTS_HASH[] = {
+	0x6b,0x10,0x36,0x1a,0x90,0x7b,0x06,0xf3,0x71,0x23,0x5b,0x31,0x53,0x19,0x18,0x4b,
+	0xe4,0x2b,0xd4,0xe1,0x54,0x70,0xcf,0x23,0x0c,0x5c,0x02,0x85,0xac,0x59,0x42,0xfc
+};
+
+/**
+ * PCD_MULTIPLE_DIRECT_COMPONENTS_DATA hash for testing.
+ */
+const uint8_t PCD_MULTIPLE_DIRECT_COMPONENTS_HASH[] = {
+	0x12,0x32,0x55,0x46,0xc6,0xbc,0x41,0x5e,0xbe,0xdb,0x70,0xf0,0xbd,0x4e,0x6a,0x79,
+	0x92,0x10,0xe4,0xa2,0x52,0x70,0xca,0x82,0xc3,0xdf,0x00,0x37,0x95,0x2d,0xff,0x2f
+};
+
+/**
+ * PCD_ONLY_BRIDGE_COMPONENTS_DATA hash for testing.
+ */
+const uint8_t PCD_ONLY_BRIDGE_COMPONENTS_HASH[] = {
+	0x13,0x30,0x10,0xf6,0x23,0xf7,0x75,0x7c,0x37,0x47,0x90,0xeb,0xb8,0x5b,0xd1,0x5f,
+	0x13,0xa2,0x30,0x1e,0xe5,0x3e,0xef,0xfe,0x6d,0xb3,0x43,0x24,0xec,0x8c,0x0b,0x78
+};
+
+/**
+ * PCD_MULTIPLE_BRIDGE_COMPONENTS_DATA hash for testing.
+ */
+const uint8_t PCD_MULTIPLE_BRIDGE_COMPONENTS_HASH[] = {
+	0x01,0xa5,0xb4,0x62,0x06,0x9e,0xc4,0x81,0xee,0xa8,0x6e,0x12,0xe1,0xf2,0x13,0x8f,
+	0xa1,0x26,0xd1,0x0e,0xce,0x75,0x27,0x3b,0x1c,0x23,0x65,0x48,0xee,0x63,0x69,0xaf
+};
+
+/**
+ * PCD_NO_POWER_CONTROLLER_DATA TOC hash for testing.
+ */
+const uint8_t PCD_NO_POWER_CONTROLLER_TOC_HASH[] = {
+	0x78,0x2f,0x6c,0xa3,0x14,0xc8,0x91,0x7d,0xc4,0xae,0x9b,0xa8,0xc5,0xba,0x47,0x4b,
+	0xe1,0x0c,0x49,0xd9,0xb9,0xfd,0x52,0x58,0x9b,0xaf,0xfd,0x36,0x12,0x6a,0xfc,0x3c
+};
+
+/**
+ * PCD_NO_COMPONENTS_DATA TOC hash for testing.
+ */
+const uint8_t PCD_NO_COMPONENTS_TOC_HASH[] = {
+	0xbd,0x21,0x0d,0x6b,0x5c,0x6c,0xf3,0x3a,0xc8,0x18,0x38,0x97,0x75,0xe1,0x28,0xf0,
+	0x3b,0xaa,0xd4,0xd5,0x0d,0xc1,0x98,0xbe,0x96,0xd0,0x86,0x12,0x48,0x02,0x02,0xef
+};
+
+/**
+ * PCD_NO_PORTS_DATA TOC hash for testing.
+ */
+const uint8_t PCD_NO_PORTS_TOC_HASH[] = {
+	0xa6,0xa2,0x94,0x43,0x9b,0x1f,0x4b,0x44,0x76,0x85,0xfc,0x61,0xce,0xcc,0xda,0xad,
+	0xd5,0xf0,0x70,0xe0,0x63,0x1a,0x75,0xdd,0x9c,0x65,0x53,0xf5,0xcb,0x68,0x62,0xce
+};
+
+/**
+ * PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_DATA TOC hash for testing.
+ */
+const uint8_t PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_TOC_HASH[] = {
+	0x17,0x48,0x28,0xa2,0xe7,0xad,0x0f,0x42,0x34,0x73,0x21,0xa5,0xb1,0x68,0x16,0x74,
+	0x79,0x98,0x30,0xa5,0x06,0x55,0xe7,0x6a,0xb7,0x3c,0x32,0xbb,0x05,0x5e,0x01,0xd6
+};
+
+/**
+ * PCD_ONLY_DIRECT_COMPONENTS_DATA TOC hash for testing.
+ */
+const uint8_t PCD_ONLY_DIRECT_COMPONENTS_TOC_HASH[] = {
+	0x33,0x0b,0x5d,0x2f,0x79,0x59,0x1d,0x20,0x9c,0xe8,0x10,0xf7,0x6d,0xa7,0xee,0x53,
+	0x82,0x46,0x53,0x1e,0x9c,0x7c,0x93,0x73,0xd7,0xb0,0x18,0xcb,0x1b,0x14,0xc0,0xb3
+};
+
+/**
+ * PCD_MULITPLE_DIRECT_DATA TOC hash for testing.
+ */
+const uint8_t PCD_MULTIPLE_DIRECT_COMPONENTS_TOC_HASH[] = {
+	0x63,0x97,0x1e,0x37,0x24,0x8c,0x66,0xb8,0x37,0x11,0x1e,0x05,0x3a,0x9f,0x54,0xe1,
+	0x83,0x2e,0xc9,0xe7,0x05,0x7e,0x2b,0x1c,0xf9,0x67,0xfa,0x2d,0x06,0x98,0xca,0xcb
+};
+
+/**
+ * PCD_ONLY_BRIDGE_COMPONENTS_DATA TOC hash for testing.
+ */
+const uint8_t PCD_ONLY_BRIDGE_COMPONENTS_TOC_HASH[] = {
+	0xe4,0x75,0x54,0xee,0x21,0x38,0xd3,0xae,0x41,0xa9,0x59,0x9d,0xf4,0xe5,0xc0,0xe2,
+	0x53,0xdc,0x0b,0x82,0x3d,0x31,0xae,0xcd,0x3b,0x12,0x75,0x03,0x47,0x63,0x5b,0x56
+};
+
+/**
+ * PCD_MULTPILE_BRIDGE_DATA TOC hash for testing.
+ */
+const uint8_t PCD_MULITPLE_BRIDGE_COMPONENTS_TOC_HASH[] = {
+	0x48,0x42,0x8a,0x1b,0x20,0xc6,0x03,0xd3,0x9f,0xdc,0x0b,0x4c,0x5b,0xd8,0x9a,0x9a,
+	0x86,0x96,0xfd,0x6d,0x7e,0x7d,0xcf,0xf3,0x20,0xcf,0x5e,0x0b,0x4c,0xbb,0xc7,0xa8
+};
+
+/**
+ * The platform ID for the PCD with no components.
+ */
+const char PCD_NO_COMPONENTS_PLATFORM_ID[] = "C2030";
+
+/**
+ * The platform ID for the PCD with no ports.
+ */
+const char PCD_NO_PORTS_PLATFORM_ID[] = "C2030";
+
+/**
+ * The platform ID for the PCD with no ports, power controller, nor components.
+ */
+const char PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_PLATFORM_ID[] = "C2030";
+
+/**
+ * The platform ID for the PCD with no power controller.
+ */
+const char PCD_NO_POWER_CONTROLLER_PLATFORM_ID[] = "C2030";
+
+/**
+ * The platform ID for the PCD with only direct components.
+ */
+const char PCD_ONLY_DIRECT_COMPONENTS_PLATFORM_ID[] = "SKU1";
+
+/**
+ * The platform ID for the PCD with multiple direct components.
+ */
+const char PCD_MULTIPLE_DIRECT_COMPONENTS_PLATFORM_ID[] = "SKU1";
+
+/**
+ * The platform ID for the PCD with only bridge components.
+ */
+const char PCD_ONLY_BRIDGE_COMPONENTS_PLATFORM_ID[] = "SKU1";
+
+/**
+ * The platform ID for the PCD with multiple bridge components.
+ */
+const char PCD_MULTIPLE_BRIDGE_COMPONENTS_PLATFORM_ID[] = "SKU1";
+
+/**
+ * The length of the PCD with only direct components platform ID.
+ */
+const size_t PCD_ONLY_DIRECT_COMPONENTS_PLATFORM_ID_LEN = 
+	sizeof (PCD_ONLY_DIRECT_COMPONENTS_PLATFORM_ID) - 1;
+
+/**
+ * The length of the PCD with multiple direct components platform ID.
+ */
+const size_t PCD_MULTIPLE_DIRECT_COMPONENTS_PLATFORM_ID_LEN = 
+	sizeof (PCD_MULTIPLE_DIRECT_COMPONENTS_PLATFORM_ID) - 1;
+
+/**
+ * The length of the PCD with only bridge components platform ID.
+ */
+const size_t PCD_ONLY_BRIDGE_COMPONENTS_PLATFORM_ID_LEN = 
+	sizeof (PCD_ONLY_BRIDGE_COMPONENTS_PLATFORM_ID) - 1;
+
+/**
+ * The length of the PCD with multiple bridge components platform ID.
+ */
+const size_t PCD_MULTIPLE_BRIDGE_COMPONENTS_PLATFORM_ID_LEN = 
+	sizeof (PCD_MULTIPLE_BRIDGE_COMPONENTS_PLATFORM_ID) - 1;
+
+
+/**
+ * Components of the no components PCD.
+ */
+static struct pcd_testing_data PCD_NO_COMPONENTS_TESTING = {
+	.manifest = {
+		.raw = PCD_NO_COMPONENTS_DATA,
+		.length = sizeof (PCD_NO_COMPONENTS_DATA),
+		.hash = PCD_NO_COMPONENTS_HASH,
+		.hash_len = sizeof (PCD_NO_COMPONENTS_HASH),
+		.id = 0x1A,
+		.signature = PCD_NO_COMPONENTS_DATA + (sizeof (PCD_NO_COMPONENTS_DATA) - 256),
+		.sig_len = 256,
+		.sig_offset = (sizeof (PCD_NO_COMPONENTS_DATA) - 256),
+		.sig_hash_type = HASH_TYPE_SHA256,
+		.toc = PCD_NO_COMPONENTS_DATA + MANIFEST_V2_TOC_HDR_OFFSET,
+		.toc_len = MANIFEST_V2_TOC_HEADER_SIZE + MANIFEST_V2_TOC_ENTRY_SIZE * 3 + 
+			SHA256_HASH_LENGTH * 4,
+		.toc_hash = PCD_NO_COMPONENTS_TOC_HASH,
+		.toc_hash_len = SHA256_HASH_LENGTH,
+		.toc_hash_offset = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * 3 + 
+			SHA256_HASH_LENGTH * 3,
+		.toc_hash_type = HASH_TYPE_SHA256,
+		.toc_entries = 3,
+		.toc_hashes = 3,
+		.plat_id = PCD_NO_COMPONENTS_DATA + MANIFEST_V2_TOC_ENTRY_OFFSET + 
+			MANIFEST_V2_TOC_ENTRY_SIZE * 3 + SHA256_HASH_LENGTH * 4,
+		.plat_id_len = sizeof (PCD_NO_COMPONENTS_PLATFORM_ID) + sizeof (struct manifest_platform_id) + 2,
+		.plat_id_str = PCD_NO_COMPONENTS_PLATFORM_ID,
+		.plat_id_str_len = sizeof (PCD_NO_COMPONENTS_PLATFORM_ID) - 1,
+		.plat_id_str_pad = 3,
+		.plat_id_offset = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * 3 + 
+			SHA256_HASH_LENGTH * 4,
+		.plat_id_entry = 0,
+		.plat_id_hash = 0
+	},
+	.rot_len = sizeof (struct pcd_rot_element) + 2 * sizeof (struct pcd_port),
+	.rot_offset = sizeof (PCD_NO_COMPONENTS_DATA) - 256 - 
+		(sizeof (struct pcd_port) * 2 + sizeof (struct pcd_rot_element)),
+	.rot_entry = 2,
+	.rot_hash = 2,
+	.power_ctrl_len = sizeof (struct pcd_power_controller_element) + 2 * sizeof (struct pcd_mux),
+	.power_ctrl_offset = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * 5 + 
+			SHA256_HASH_LENGTH * 6 + sizeof (PCD_NO_COMPONENTS_PLATFORM_ID) + 
+			sizeof (struct manifest_platform_id) + 2,
+	.power_ctrl_entry = 1,
+	.power_ctrl_hash = 1,
+	.bridge_component_len = 0,
+	.bridge_component_offset = 0,
+	.bridge_component_entry = -1,
+	.bridge_component_hash = -1,
+	.direct_component_len = 0,
+	.direct_component_offset = 0,
+	.direct_component_entry = -1,
+	.direct_component_hash = -1
+};
+
+/**
+ * Components of the no ports PCD.
+ */
+static struct pcd_testing_data PCD_NO_PORTS_TESTING = {
+	.manifest = {
+		.raw = PCD_NO_PORTS_DATA,
+		.length = sizeof (PCD_NO_PORTS_DATA),
+		.hash = PCD_NO_PORTS_HASH,
+		.hash_len = sizeof (PCD_NO_PORTS_HASH),
+		.id = 0x1A,
+		.signature = PCD_NO_PORTS_DATA + (sizeof (PCD_NO_PORTS_DATA) - 256),
+		.sig_len = 256,
+		.sig_offset = (sizeof (PCD_NO_PORTS_DATA) - 256),
+		.sig_hash_type = HASH_TYPE_SHA256,
+		.toc = PCD_NO_PORTS_DATA + MANIFEST_V2_TOC_HDR_OFFSET,
+		.toc_len = MANIFEST_V2_TOC_HEADER_SIZE + MANIFEST_V2_TOC_ENTRY_SIZE * 5 + 
+			SHA256_HASH_LENGTH * 6,
+		.toc_hash = PCD_NO_PORTS_TOC_HASH,
+		.toc_hash_len = SHA256_HASH_LENGTH,
+		.toc_hash_offset = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * 5 + 
+			SHA256_HASH_LENGTH * 5,
+		.toc_hash_type = HASH_TYPE_SHA256,
+		.toc_entries = 5,
+		.toc_hashes = 5,
+		.plat_id = PCD_NO_PORTS_DATA + MANIFEST_V2_TOC_ENTRY_OFFSET + 
+			MANIFEST_V2_TOC_ENTRY_SIZE * 5 + SHA256_HASH_LENGTH * 6,
+		.plat_id_len = sizeof (PCD_NO_PORTS_PLATFORM_ID) + sizeof (struct manifest_platform_id) + 2,
+		.plat_id_str = PCD_NO_PORTS_PLATFORM_ID,
+		.plat_id_str_len = sizeof (PCD_NO_PORTS_PLATFORM_ID) - 1,
+		.plat_id_str_pad = 3,
+		.plat_id_offset = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * 5 + 
+			SHA256_HASH_LENGTH * 6,
+		.plat_id_entry = 0,
+		.plat_id_hash = 0
+	},
+	.rot_len = sizeof (struct pcd_rot_element),
+	.rot_offset = sizeof (PCD_NO_PORTS_DATA) - 256 - sizeof (struct pcd_port),
+	.rot_entry = 4,
+	.rot_hash = 4,
+	.power_ctrl_len = sizeof (struct pcd_power_controller_element) + 2 * sizeof (struct pcd_mux),
+	.power_ctrl_offset = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * 5 + 
+			SHA256_HASH_LENGTH * 6 + sizeof (PCD_NO_PORTS_PLATFORM_ID) + 
+			sizeof (struct manifest_platform_id) + 2,
+	.power_ctrl_entry = 1,
+	.power_ctrl_hash = 1,
+	.bridge_component_len = 24,
+	.bridge_component_offset = 292,
+	.bridge_component_entry = 3,
+	.bridge_component_hash = 3,
+	.direct_component_len = 20,
+	.direct_component_offset = 260,
+	.direct_component_entry = 1,
+	.direct_component_hash = 1
+};
+
+/**
+ * Components of the no components PCD.
+ */
+static struct pcd_testing_data PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_TESTING = {
+	.manifest = {
+		.raw = PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_DATA,
+		.length = sizeof (PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_DATA),
+		.hash = PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_HASH,
+		.hash_len = sizeof (PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_HASH),
+		.id = 0x1A,
+		.signature = PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_DATA + 
+			(sizeof (PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_DATA) - 256),
+		.sig_len = 256,
+		.sig_offset = (sizeof (PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_DATA) - 256),
+		.sig_hash_type = HASH_TYPE_SHA256,
+		.toc = PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_DATA + MANIFEST_V2_TOC_HDR_OFFSET,
+		.toc_len = MANIFEST_V2_TOC_HEADER_SIZE + MANIFEST_V2_TOC_ENTRY_SIZE * 2 + 
+			SHA256_HASH_LENGTH * 3,
+		.toc_hash = PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_TOC_HASH,
+		.toc_hash_len = SHA256_HASH_LENGTH,
+		.toc_hash_offset = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * 2 + 
+			SHA256_HASH_LENGTH * 2,
+		.toc_hash_type = HASH_TYPE_SHA256,
+		.toc_entries = 2,
+		.toc_hashes = 2,
+		.plat_id = PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_DATA + MANIFEST_V2_TOC_ENTRY_OFFSET + 
+			MANIFEST_V2_TOC_ENTRY_SIZE * 2 + SHA256_HASH_LENGTH * 3,
+		.plat_id_len = sizeof (PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_PLATFORM_ID) + 
+			sizeof (struct manifest_platform_id) + 2,
+		.plat_id_str = PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_PLATFORM_ID,
+		.plat_id_str_len = sizeof (PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_PLATFORM_ID) - 1,
+		.plat_id_str_pad = 3,
+		.plat_id_offset = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * 2 + 
+			SHA256_HASH_LENGTH * 3,
+		.plat_id_entry = 0,
+		.plat_id_hash = 0
+	},
+	.rot_len = sizeof (struct pcd_rot_element) + 2 * sizeof (struct pcd_port),
+	.rot_offset = sizeof (PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_DATA) - 256 - 
+		(sizeof (struct pcd_port) * 2 + sizeof (struct pcd_rot_element)),
+	.rot_entry = 1,
+	.rot_hash = 1,
+	.power_ctrl_len = 0,
+	.power_ctrl_offset = 0,
+	.power_ctrl_entry = -1,
+	.power_ctrl_hash = -1,
+	.bridge_component_len = 0,
+	.bridge_component_offset = 0,
+	.bridge_component_entry = -1,
+	.bridge_component_hash = -1,
+	.direct_component_len = 0,
+	.direct_component_offset = 0,
+	.direct_component_entry = -1,
+	.direct_component_hash = -1
+};
+
+/**
+ * Components of the no power controller PCD.
+ */
+static struct pcd_testing_data PCD_NO_POWER_CONTROLLER_TESTING = {
+	.manifest = {
+		.raw = PCD_NO_POWER_CONTROLLER_DATA,
+		.length = sizeof (PCD_NO_POWER_CONTROLLER_DATA),
+		.hash = PCD_NO_POWER_CONTROLLER_HASH,
+		.hash_len = sizeof (PCD_NO_POWER_CONTROLLER_HASH),
+		.id = 0x1A,
+		.signature = PCD_NO_POWER_CONTROLLER_DATA + (sizeof (PCD_NO_POWER_CONTROLLER_DATA) - 256),
+		.sig_len = 256,
+		.sig_offset = (sizeof (PCD_NO_POWER_CONTROLLER_DATA) - 256),
+		.sig_hash_type = HASH_TYPE_SHA256,
+		.toc = PCD_NO_POWER_CONTROLLER_DATA + MANIFEST_V2_TOC_HDR_OFFSET,
+		.toc_len = MANIFEST_V2_TOC_HEADER_SIZE + MANIFEST_V2_TOC_ENTRY_SIZE * 4 + 
+			SHA256_HASH_LENGTH * 5,
+		.toc_hash = PCD_NO_POWER_CONTROLLER_TOC_HASH,
+		.toc_hash_len = SHA256_HASH_LENGTH,
+		.toc_hash_offset = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * 4 + 
+			SHA256_HASH_LENGTH * 4,
+		.toc_hash_type = HASH_TYPE_SHA256,
+		.toc_entries = 4,
+		.toc_hashes = 4,
+		.plat_id = PCD_NO_POWER_CONTROLLER_DATA + MANIFEST_V2_TOC_ENTRY_OFFSET + 
+			MANIFEST_V2_TOC_ENTRY_SIZE * 4 + SHA256_HASH_LENGTH * 5,
+		.plat_id_len = sizeof (PCD_NO_POWER_CONTROLLER_PLATFORM_ID) + 
+			sizeof (struct manifest_platform_id) + 2,
+		.plat_id_str = PCD_NO_POWER_CONTROLLER_PLATFORM_ID,
+		.plat_id_str_len = sizeof (PCD_NO_POWER_CONTROLLER_PLATFORM_ID) - 1,
+		.plat_id_str_pad = 3,
+		.plat_id_offset = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * 4 + 
+			SHA256_HASH_LENGTH * 5,
+		.plat_id_entry = 0,
+		.plat_id_hash = 0
+	},
+	.rot_len = sizeof (struct pcd_rot_element) + 2 * sizeof (struct pcd_port),
+	.rot_offset = sizeof (PCD_NO_POWER_CONTROLLER_DATA) - 256 - 
+		(sizeof (struct pcd_port) * 2 + sizeof (struct pcd_rot_element)),
+	.rot_entry = 3,
+	.rot_hash = 3,
+	.power_ctrl_len = 0,
+	.power_ctrl_offset = 0,
+	.power_ctrl_entry = -1,
+	.power_ctrl_hash = -1,
+	.bridge_component_len = 24,
+	.bridge_component_offset = 292,
+	.bridge_component_entry = 3,
+	.bridge_component_hash = 3,
+	.direct_component_len = 20,
+	.direct_component_offset = 260,
+	.direct_component_entry = 1,
+	.direct_component_hash = 1
+};
+
+/**
+ * Components of the test PCD with only direct components.
+ */
+const struct pcd_testing_data PCD_ONLY_DIRECT_COMPONENTS_TESTING = {
+	.manifest = {
+		.raw = PCD_ONLY_DIRECT_COMPONENTS_DATA,
+		.length = sizeof (PCD_ONLY_DIRECT_COMPONENTS_DATA),
+		.hash = PCD_ONLY_DIRECT_COMPONENTS_HASH,
+		.hash_len = sizeof (PCD_ONLY_DIRECT_COMPONENTS_HASH),
+		.id = 0x1A,
+		.signature = PCD_ONLY_DIRECT_COMPONENTS_DATA + 
+			(sizeof (PCD_ONLY_DIRECT_COMPONENTS_DATA) - 256),
+		.sig_len = 256,
+		.sig_offset = (sizeof (PCD_ONLY_DIRECT_COMPONENTS_DATA) - 256),
+		.sig_hash_type = HASH_TYPE_SHA256,
+		.toc = PCD_ONLY_DIRECT_COMPONENTS_DATA + MANIFEST_V2_TOC_HDR_OFFSET,
+		.toc_len = MANIFEST_V2_TOC_HEADER_SIZE + MANIFEST_V2_TOC_ENTRY_SIZE * 5 + 
+			SHA256_HASH_LENGTH * 6,
+		.toc_hash = PCD_ONLY_DIRECT_COMPONENTS_TOC_HASH,
+		.toc_hash_len = SHA256_HASH_LENGTH,
+		.toc_hash_offset = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * 5 + 
+			SHA256_HASH_LENGTH * 5,
+		.toc_hash_type = HASH_TYPE_SHA256,
+		.toc_entries = 5,
+		.toc_hashes = 5,
+		.plat_id = PCD_ONLY_DIRECT_COMPONENTS_DATA + MANIFEST_V2_TOC_ENTRY_OFFSET + 
+			MANIFEST_V2_TOC_ENTRY_SIZE * 5 + SHA256_HASH_LENGTH * 6,
+		.plat_id_len = sizeof (PCD_ONLY_DIRECT_COMPONENTS_PLATFORM_ID) + 
+			sizeof (struct manifest_platform_id) + 2,
+		.plat_id_str = PCD_ONLY_DIRECT_COMPONENTS_PLATFORM_ID,
+		.plat_id_str_len = sizeof (PCD_ONLY_DIRECT_COMPONENTS_PLATFORM_ID) - 1,
+		.plat_id_str_pad = 4,
+		.plat_id_offset = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * 5 + 
+			SHA256_HASH_LENGTH * 6,
+		.plat_id_entry = 0,
+		.plat_id_hash = 0
+	},
+	.rot_len = sizeof (struct pcd_rot_element) + 2 * sizeof (struct pcd_port),
+	.rot_offset = sizeof (PCD_ONLY_DIRECT_COMPONENTS_DATA) - 256 - 
+		(sizeof (struct pcd_port) * 2 + sizeof (struct pcd_rot_element)),
+	.rot_entry = 4,
+	.rot_hash = 4,
+	.power_ctrl_len = sizeof (struct pcd_power_controller_element) + 2 * sizeof (struct pcd_mux),
+	.power_ctrl_offset = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * 5 + 
+			SHA256_HASH_LENGTH * 6 + sizeof (PCD_ONLY_DIRECT_COMPONENTS_PLATFORM_ID) + 
+			sizeof (struct manifest_platform_id) + 2,
+	.power_ctrl_entry = 1,
+	.power_ctrl_hash = 1,
+	.bridge_component_len = 0,
+	.bridge_component_offset = 0,
+	.bridge_component_entry = -1,
+	.bridge_component_hash = -1,
+	.direct_component_len = 20,
+	.direct_component_offset = 268,
+	.direct_component_entry = 2,
+	.direct_component_hash = 2
+};
+
+/**
+ * Components of the test PCD with multiple direct components.
+ */
+const struct pcd_testing_data PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING = {
+	.manifest = {
+		.raw = PCD_MULTIPLE_DIRECT_COMPONENTS_DATA,
+		.length = sizeof (PCD_MULTIPLE_DIRECT_COMPONENTS_DATA),
+		.hash = PCD_MULTIPLE_DIRECT_COMPONENTS_HASH,
+		.hash_len = sizeof (PCD_MULTIPLE_DIRECT_COMPONENTS_HASH),
+		.id = 0x1A,
+		.signature = PCD_MULTIPLE_DIRECT_COMPONENTS_DATA + 
+			(sizeof (PCD_MULTIPLE_DIRECT_COMPONENTS_DATA) - 256),
+		.sig_len = 256,
+		.sig_offset = (sizeof (PCD_MULTIPLE_DIRECT_COMPONENTS_DATA) - 256),
+		.sig_hash_type = HASH_TYPE_SHA256,
+		.toc = PCD_MULTIPLE_DIRECT_COMPONENTS_DATA + MANIFEST_V2_TOC_HDR_OFFSET,
+		.toc_len = MANIFEST_V2_TOC_HEADER_SIZE + MANIFEST_V2_TOC_ENTRY_SIZE * 6 + 
+			SHA256_HASH_LENGTH * 7,
+		.toc_hash = PCD_MULTIPLE_DIRECT_COMPONENTS_TOC_HASH,
+		.toc_hash_len = SHA256_HASH_LENGTH,
+		.toc_hash_offset = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * 6 + 
+			SHA256_HASH_LENGTH * 6,
+		.toc_hash_type = HASH_TYPE_SHA256,
+		.toc_entries = 6,
+		.toc_hashes = 6,
+		.plat_id = PCD_MULTIPLE_DIRECT_COMPONENTS_DATA + MANIFEST_V2_TOC_ENTRY_OFFSET + 
+			MANIFEST_V2_TOC_ENTRY_SIZE * 6 + SHA256_HASH_LENGTH * 7,
+		.plat_id_len = sizeof (PCD_MULTIPLE_DIRECT_COMPONENTS_PLATFORM_ID) + 
+			sizeof (struct manifest_platform_id) + 2,
+		.plat_id_str = PCD_MULTIPLE_DIRECT_COMPONENTS_PLATFORM_ID,
+		.plat_id_str_len = sizeof (PCD_MULTIPLE_DIRECT_COMPONENTS_PLATFORM_ID) - 1,
+		.plat_id_str_pad = 4,
+		.plat_id_offset = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * 6 + 
+			SHA256_HASH_LENGTH * 7,
+		.plat_id_entry = 0,
+		.plat_id_hash = 0
+	},
+	.rot_len = sizeof (struct pcd_rot_element) + 2 * sizeof (struct pcd_port),
+	.rot_offset = sizeof (PCD_MULTIPLE_DIRECT_COMPONENTS_DATA) - 256 - 
+		(sizeof (struct pcd_port) * 2 + sizeof (struct pcd_rot_element)),
+	.rot_entry = 5,
+	.rot_hash = 5,
+	.power_ctrl_len = sizeof (struct pcd_power_controller_element) + 2 * sizeof (struct pcd_mux),
+	.power_ctrl_offset = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * 6 + 
+		SHA256_HASH_LENGTH * 7 + sizeof (PCD_MULTIPLE_DIRECT_COMPONENTS_PLATFORM_ID) + 
+		sizeof (struct manifest_platform_id) + 2,
+	.power_ctrl_entry = 1,
+	.power_ctrl_hash = 1,
+	.bridge_component_len = 20,
+	.bridge_component_offset = 348,
+	.bridge_component_entry = 4,
+	.bridge_component_hash = 4,
+	.direct_component_len = 20,
+	.direct_component_offset = 308,
+	.direct_component_entry = 2,
+	.direct_component_hash = 2
+};
+
+/**
+ * Components of the test PCD with only bridge components.
+ */
+const struct pcd_testing_data PCD_ONLY_BRIDGE_COMPONENTS_TESTING = {
+	.manifest = {
+		.raw = PCD_ONLY_BRIDGE_COMPONENTS_DATA,
+		.length = sizeof (PCD_ONLY_BRIDGE_COMPONENTS_DATA),
+		.hash = PCD_ONLY_BRIDGE_COMPONENTS_HASH,
+		.hash_len = sizeof (PCD_ONLY_BRIDGE_COMPONENTS_HASH),
+		.id = 0x1A,
+		.signature = PCD_ONLY_BRIDGE_COMPONENTS_DATA + 
+			(sizeof (PCD_ONLY_BRIDGE_COMPONENTS_DATA) - 256),
+		.sig_len = 256,
+		.sig_offset = (sizeof (PCD_ONLY_BRIDGE_COMPONENTS_DATA) - 256),
+		.sig_hash_type = HASH_TYPE_SHA256,
+		.toc = PCD_ONLY_BRIDGE_COMPONENTS_DATA + MANIFEST_V2_TOC_HDR_OFFSET,
+		.toc_len = MANIFEST_V2_TOC_HEADER_SIZE + MANIFEST_V2_TOC_ENTRY_SIZE * 5 + 
+			SHA256_HASH_LENGTH * 6,
+		.toc_hash = PCD_ONLY_BRIDGE_COMPONENTS_TOC_HASH,
+		.toc_hash_len = SHA256_HASH_LENGTH,
+		.toc_hash_offset = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * 5 + 
+			SHA256_HASH_LENGTH * 5,
+		.toc_hash_type = HASH_TYPE_SHA256,
+		.toc_entries = 5,
+		.toc_hashes = 5,
+		.plat_id = PCD_ONLY_BRIDGE_COMPONENTS_DATA + MANIFEST_V2_TOC_ENTRY_OFFSET + 
+			MANIFEST_V2_TOC_ENTRY_SIZE * 5 + SHA256_HASH_LENGTH * 6,
+		.plat_id_len = sizeof (PCD_ONLY_BRIDGE_COMPONENTS_PLATFORM_ID) + 
+			sizeof (struct manifest_platform_id) + 2,
+		.plat_id_str = PCD_ONLY_BRIDGE_COMPONENTS_PLATFORM_ID,
+		.plat_id_str_len = sizeof (PCD_ONLY_BRIDGE_COMPONENTS_PLATFORM_ID) - 1,
+		.plat_id_str_pad = 4,
+		.plat_id_offset = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * 5 + 
+			SHA256_HASH_LENGTH * 6,
+		.plat_id_entry = 0,
+		.plat_id_hash = 0
+	},
+	.rot_len = sizeof (struct pcd_rot_element) + 2 * sizeof (struct pcd_port),
+	.rot_offset = sizeof (PCD_ONLY_BRIDGE_COMPONENTS_DATA) - 256 - 
+		(sizeof (struct pcd_port) * 2 + sizeof (struct pcd_rot_element)),
+	.rot_entry = 4,
+	.rot_hash = 4,
+	.power_ctrl_len = sizeof (struct pcd_power_controller_element) + 2 * sizeof (struct pcd_mux),
+	.power_ctrl_offset = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * 5 + 
+			SHA256_HASH_LENGTH * 6 + sizeof (PCD_ONLY_BRIDGE_COMPONENTS_PLATFORM_ID) + 
+			sizeof (struct manifest_platform_id) + 2,
+	.power_ctrl_entry = 1,
+	.power_ctrl_hash = 1,
+	.bridge_component_len = 20,
+	.bridge_component_offset = 268,
+	.bridge_component_entry = 2,
+	.bridge_component_hash = 2,
+	.direct_component_len = 0,
+	.direct_component_offset = 0,
+	.direct_component_entry = -1,
+	.direct_component_hash = -1
+};
+
+/**
+ * Components of the test PCD with multiple bridge components.
+ */
+const struct pcd_testing_data PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING = {
+	.manifest = {
+		.raw = PCD_MULTIPLE_BRIDGE_COMPONENTS_DATA,
+		.length = sizeof (PCD_MULTIPLE_BRIDGE_COMPONENTS_DATA),
+		.hash = PCD_MULTIPLE_BRIDGE_COMPONENTS_HASH,
+		.hash_len = sizeof (PCD_MULTIPLE_BRIDGE_COMPONENTS_HASH),
+		.id = 0x1A,
+		.signature = PCD_MULTIPLE_BRIDGE_COMPONENTS_DATA + 
+			(sizeof (PCD_MULTIPLE_BRIDGE_COMPONENTS_DATA) - 256),
+		.sig_len = 256,
+		.sig_offset = (sizeof (PCD_MULTIPLE_BRIDGE_COMPONENTS_DATA) - 256),
+		.sig_hash_type = HASH_TYPE_SHA256,
+		.toc = PCD_MULTIPLE_BRIDGE_COMPONENTS_DATA + MANIFEST_V2_TOC_HDR_OFFSET,
+		.toc_len = MANIFEST_V2_TOC_HEADER_SIZE + MANIFEST_V2_TOC_ENTRY_SIZE * 6 + 
+			SHA256_HASH_LENGTH * 7,
+		.toc_hash = PCD_MULITPLE_BRIDGE_COMPONENTS_TOC_HASH,
+		.toc_hash_len = SHA256_HASH_LENGTH,
+		.toc_hash_offset = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * 6 + 
+			SHA256_HASH_LENGTH * 6,
+		.toc_hash_type = HASH_TYPE_SHA256,
+		.toc_entries = 6,
+		.toc_hashes = 6,
+		.plat_id = PCD_MULTIPLE_BRIDGE_COMPONENTS_DATA + MANIFEST_V2_TOC_ENTRY_OFFSET + 
+			MANIFEST_V2_TOC_ENTRY_SIZE * 6 + SHA256_HASH_LENGTH * 7,
+		.plat_id_len = sizeof (PCD_MULTIPLE_BRIDGE_COMPONENTS_PLATFORM_ID) + 
+			sizeof (struct manifest_platform_id) + 2,
+		.plat_id_str = PCD_MULTIPLE_BRIDGE_COMPONENTS_PLATFORM_ID,
+		.plat_id_str_len = sizeof (PCD_MULTIPLE_BRIDGE_COMPONENTS_PLATFORM_ID) - 1,
+		.plat_id_str_pad = 4,
+		.plat_id_offset = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * 6 + 
+			SHA256_HASH_LENGTH * 7,
+		.plat_id_entry = 0,
+		.plat_id_hash = 0
+	},
+	.rot_len = sizeof (struct pcd_rot_element) + 2 * sizeof (struct pcd_port),
+	.rot_offset = sizeof (PCD_MULTIPLE_BRIDGE_COMPONENTS_DATA) - 256 - 
+		(sizeof (struct pcd_port) * 2 + sizeof (struct pcd_rot_element)),
+	.rot_entry = 5,
+	.rot_hash = 5,
+	.power_ctrl_len = sizeof (struct pcd_power_controller_element) + 2 * sizeof (struct pcd_mux),
+	.power_ctrl_offset = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * 6 + 
+			SHA256_HASH_LENGTH * 7 + sizeof (PCD_MULTIPLE_BRIDGE_COMPONENTS_PLATFORM_ID) + 
+			sizeof (struct manifest_platform_id) + 2,
+	.power_ctrl_entry = 1,
+	.power_ctrl_hash = 1,
+	.bridge_component_len = 20,
+	.bridge_component_offset = 328,
+	.bridge_component_entry = 3,
+	.bridge_component_hash = 3,
+	.direct_component_len = 20,
+	.direct_component_offset = 308,
+	.direct_component_entry = 2,
+	.direct_component_hash = 2
+};
+
+
+/**
  * Dependencies for testing PCDs.
  */
 struct pcd_flash_testing {
-	HASH_TESTING_ENGINE hash;							/**< Hashing engine for validation. */
-	struct signature_verification_mock verification;	/**< PCD signature verification. */
-	struct flash_master_mock flash_mock;				/**< Flash master for the PCD flash. */
-	struct spi_flash flash;								/**< Flash where the PCD is stored. */
-	uint32_t addr;										/**< Base address of the PCD. */
-	uint8_t signature[256];								/**< Buffer for the manifest signature. */
-	uint8_t platform_id[256];							/**< Cache for the platform ID. */
+	struct manifest_flash_v2_testing manifest;			/**< Common dependencies for manifest testing. */
 	struct pcd_flash test;								/**< PCD instance under test. */
 };
 
@@ -44,24 +1063,7 @@ struct pcd_flash_testing {
 static void pcd_flash_testing_init_dependencies (CuTest *test, struct pcd_flash_testing *pcd,
 	uint32_t address)
 {
-	int status;
-
-	status = HASH_TESTING_ENGINE_INIT (&pcd->hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_init (&pcd->verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_init (&pcd->flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_init (&pcd->flash, &pcd->flash_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_flash_set_device_size (&pcd->flash, 0x1000000);
-	CuAssertIntEquals (test, 0, status);
-
-	pcd->addr = address;
+	manifest_flash_v2_testing_init_dependencies (test, &pcd->manifest, address);;
 }
 
 /**
@@ -70,19 +1072,10 @@ static void pcd_flash_testing_init_dependencies (CuTest *test, struct pcd_flash_
  * @param test The testing framework.
  * @param pcd The testing components to release.
  */
-void pcd_flash_testing_validate_and_release_dependencies (CuTest *test,
+static void pcd_flash_testing_validate_and_release_dependencies (CuTest *test,
 	struct pcd_flash_testing *pcd)
 {
-	int status;
-
-	status = flash_master_mock_validate_and_release (&pcd->flash_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&pcd->verification);
-	CuAssertIntEquals (test, 0, status);
-
-	spi_flash_release (&pcd->flash);
-	HASH_TESTING_ENGINE_RELEASE (&pcd->hash);
+	manifest_flash_v2_testing_validate_and_release_dependencies (test, &pcd->manifest);
 }
 
 /**
@@ -97,15 +1090,17 @@ static void pcd_flash_testing_init (CuTest *test, struct pcd_flash_testing *pcd,
 	int status;
 
 	pcd_flash_testing_init_dependencies (test, pcd, address);
+	manifest_flash_v2_testing_init_common (test, &pcd->manifest, 0x1000);
 
-	status = pcd_flash_init (&pcd->test, &pcd->flash.base, address, pcd->signature,
-		sizeof (pcd->signature), pcd->platform_id, sizeof (pcd->platform_id));
+	status = pcd_flash_init (&pcd->test, &pcd->manifest.flash.base, &pcd->manifest.hash.base, 
+		address, pcd->manifest.signature, sizeof (pcd->manifest.signature), 
+		pcd->manifest.platform_id, sizeof (pcd->manifest.platform_id));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_validate (&pcd->flash_mock.mock);
+	status = mock_validate (&pcd->manifest.flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_validate (&pcd->verification.mock);
+	status = mock_validate (&pcd->manifest.verification.mock);
 	CuAssertIntEquals (test, 0, status);
 }
 
@@ -127,146 +1122,14 @@ static void pcd_flash_testing_validate_and_release (CuTest *test, struct pcd_fla
  *
  * @param test The testing framework.
  * @param pcd The testing components.
- * @param data The PCD data to read.
- * @param length The length of the PCD data.
- * @param hash The PCD hash.  Null to skip hash checking.
- * @param signature The PCD signature.
- * @param sig_offset Offset of the PCD signature.
- * @param platform_id_len Length of the platform ID string.
+ * @param testing_data Container with testing data.
  * @param sig_result Result of the signature verification call.
  */
 static void pcd_flash_testing_verify_pcd (CuTest *test, struct pcd_flash_testing *pcd,
-	const uint8_t *data, size_t length, const uint8_t *hash, const uint8_t *signature,
-	uint32_t sig_offset, size_t platform_id_len, int sig_result)
+	const struct pcd_testing_data *testing_data, int sig_result)
 {
-	uint32_t pcd_offset;
-	int status;
-
-	status = flash_master_mock_expect_rx_xfer (&pcd->flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd->flash_mock, 0, data, PCD_HEADER_SIZE,
-		FLASH_EXP_READ_CMD (0x03, pcd->addr, 0, -1, PCD_HEADER_SIZE));
-
-	status = flash_master_mock_expect_rx_xfer (&pcd->flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd->flash_mock, 0, signature, PCD_SIGNATURE_LEN,
-		FLASH_EXP_READ_CMD (0x03, pcd->addr + sig_offset, 0, -1, PCD_SIGNATURE_LEN));
-
-	status |= flash_master_mock_expect_verify_flash (&pcd->flash_mock, pcd->addr, data,
-		length - PCD_SIGNATURE_LEN);
-
-	if (hash) {
-		status |= mock_expect (&pcd->verification.mock, pcd->verification.base.verify_signature,
-			&pcd->verification, sig_result, MOCK_ARG_PTR_CONTAINS (hash, PCD_HASH_LEN),
-			MOCK_ARG (PCD_HASH_LEN), MOCK_ARG_PTR_CONTAINS (signature, PCD_SIGNATURE_LEN),
-			MOCK_ARG (PCD_SIGNATURE_LEN));
-	}
-	else {
-		status |= mock_expect (&pcd->verification.mock, pcd->verification.base.verify_signature,
-			&pcd->verification, sig_result, MOCK_ARG_NOT_NULL, MOCK_ARG (PCD_HASH_LEN),
-			MOCK_ARG_PTR_CONTAINS (signature, PCD_SIGNATURE_LEN), MOCK_ARG (PCD_SIGNATURE_LEN));
-	}
-
-	CuAssertIntEquals (test, 0, status);
-
-	if (sig_result == 0) {
-		/* Structure verification. */
-		pcd_offset = PCD_HEADER_SIZE;
-
-		status |= flash_master_mock_expect_rx_xfer (&pcd->flash_mock, 0, &WIP_STATUS, 1,
-			FLASH_EXP_READ_STATUS_REG);
-		status |= flash_master_mock_expect_rx_xfer (&pcd->flash_mock, 0, data + pcd_offset,
-			length - pcd_offset,
-			FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, sizeof (struct pcd_header)));
-
-		pcd_offset += sizeof (struct pcd_header);
-
-		status |= flash_master_mock_expect_rx_xfer (&pcd->flash_mock, 0, &WIP_STATUS, 1,
-			FLASH_EXP_READ_STATUS_REG);
-		status |= flash_master_mock_expect_rx_xfer (&pcd->flash_mock, 0, data + pcd_offset,
-			length - pcd_offset,
-			FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, sizeof (struct pcd_rot_header)));
-
-		pcd_offset += sizeof (struct pcd_rot_header);
-
-		status |= flash_master_mock_expect_rx_xfer (&pcd->flash_mock, 0, &WIP_STATUS, 1,
-			FLASH_EXP_READ_STATUS_REG);
-		status |= flash_master_mock_expect_rx_xfer (&pcd->flash_mock, 0, data + pcd_offset,
-			length - pcd_offset,
-			FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-				sizeof (struct pcd_port_header)));
-
-		pcd_offset += sizeof (struct pcd_port_header);
-
-		status |= flash_master_mock_expect_rx_xfer (&pcd->flash_mock, 0, &WIP_STATUS, 1,
-			FLASH_EXP_READ_STATUS_REG);
-		status |= flash_master_mock_expect_rx_xfer (&pcd->flash_mock, 0, data + pcd_offset,
-			length - pcd_offset,
-			FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-				sizeof (struct pcd_port_header)));
-
-		pcd_offset += sizeof (struct pcd_port_header);
-
-		status |= flash_master_mock_expect_rx_xfer (&pcd->flash_mock, 0, &WIP_STATUS, 1,
-			FLASH_EXP_READ_STATUS_REG);
-		status |= flash_master_mock_expect_rx_xfer (&pcd->flash_mock, 0, data + pcd_offset,
-			length - pcd_offset,
-			FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-				sizeof (struct pcd_components_header)));
-
-		pcd_offset += sizeof (struct pcd_components_header);
-
-		status |= flash_master_mock_expect_rx_xfer (&pcd->flash_mock, 0, &WIP_STATUS, 1,
-			FLASH_EXP_READ_STATUS_REG);
-		status |= flash_master_mock_expect_rx_xfer (&pcd->flash_mock, 0, data + pcd_offset,
-			length - pcd_offset,
-			FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-				sizeof (struct pcd_component_header)));
-
-		pcd_offset += sizeof (struct pcd_component_header);
-
-		status |= flash_master_mock_expect_rx_xfer (&pcd->flash_mock, 0, &WIP_STATUS, 1,
-			FLASH_EXP_READ_STATUS_REG);
-		status |= flash_master_mock_expect_rx_xfer (&pcd->flash_mock, 0, data + pcd_offset,
-			length - pcd_offset,
-			FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-				sizeof (struct pcd_component_header)));
-
-		pcd_offset += sizeof (struct pcd_component_header);
-
-		status |= flash_master_mock_expect_rx_xfer (&pcd->flash_mock, 0, &WIP_STATUS, 1,
-			FLASH_EXP_READ_STATUS_REG);
-		status |= flash_master_mock_expect_rx_xfer (&pcd->flash_mock, 0, data + pcd_offset,
-			length - pcd_offset,
-			FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, sizeof (struct pcd_mux_header)));
-
-		pcd_offset += sizeof (struct pcd_mux_header);
-
-		status |= flash_master_mock_expect_rx_xfer (&pcd->flash_mock, 0, &WIP_STATUS, 1,
-			FLASH_EXP_READ_STATUS_REG);
-		status |= flash_master_mock_expect_rx_xfer (&pcd->flash_mock, 0, data + pcd_offset,
-			length - pcd_offset,
-			FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, sizeof (struct pcd_mux_header)));
-
-		pcd_offset += sizeof (struct pcd_mux_header);
-
-		status |= flash_master_mock_expect_rx_xfer (&pcd->flash_mock, 0, &WIP_STATUS, 1,
-			FLASH_EXP_READ_STATUS_REG);
-		status |= flash_master_mock_expect_rx_xfer (&pcd->flash_mock, 0, data + pcd_offset,
-			length - pcd_offset,
-			FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-				sizeof (struct pcd_platform_header)));
-
-		pcd_offset += sizeof (struct pcd_platform_header);
-
-		status |= flash_master_mock_expect_rx_xfer (&pcd->flash_mock, 0, &WIP_STATUS, 1,
-			FLASH_EXP_READ_STATUS_REG);
-		status |= flash_master_mock_expect_rx_xfer (&pcd->flash_mock, 0, data + pcd_offset,
-			length - pcd_offset,
-			FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, platform_id_len));
-
-		CuAssertIntEquals (test, 0, status);
-	}
+	manifest_flash_v2_testing_verify_manifest (test, &pcd->manifest, &testing_data->manifest, 
+		sig_result);
 }
 
 /**
@@ -275,32 +1138,25 @@ static void pcd_flash_testing_verify_pcd (CuTest *test, struct pcd_flash_testing
  * @param test The testing framework.
  * @param pcd The testing components to initialize.
  * @param address The base address for the PCD data.
- * @param data The PCD data to read.
- * @param length The length of the PCD data.
- * @param hash The PCD hash.
- * @param signature The PCD signature.
- * @param sig_offset Offset of the PCD signature.
- * @param platform_id_len Length of the platform ID string.
+ * @param testing_data Container with testing data.
  * @param sig_result Result of the signature verification call.
  */
 static void pcd_flash_testing_init_and_verify (CuTest *test, struct pcd_flash_testing *pcd,
-	uint32_t address, const uint8_t *data, size_t length, const uint8_t *hash,
-	const uint8_t *signature, uint32_t sig_offset, size_t platform_id_len, int sig_result)
+	uint32_t address, const struct pcd_testing_data *testing_data, int sig_result)
 {
 	int status;
 
 	pcd_flash_testing_init (test, pcd, address);
-	pcd_flash_testing_verify_pcd (test, pcd, data, length, hash, signature, sig_offset,
-		platform_id_len, sig_result);
+	pcd_flash_testing_verify_pcd (test, pcd, testing_data, sig_result);
 
-	status = pcd->test.base.base.verify (&pcd->test.base.base, &pcd->hash.base,
-		&pcd->verification.base, NULL, 0);
+	status = pcd->test.base.base.verify (&pcd->test.base.base, &pcd->manifest.hash.base,
+		&pcd->manifest.verification.base, NULL, 0);
 	CuAssertIntEquals (test, sig_result, status);
 
-	status = mock_validate (&pcd->flash_mock.mock);
+	status = mock_validate (&pcd->manifest.flash.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_validate (&pcd->verification.mock);
+	status = mock_validate (&pcd->manifest.verification.mock);
 	CuAssertIntEquals (test, 0, status);
 }
 
@@ -316,9 +1172,11 @@ static void pcd_flash_test_init (CuTest *test)
 	TEST_START;
 
 	pcd_flash_testing_init_dependencies (test, &pcd, 0x10000);
+	manifest_flash_v2_testing_init_common (test, &pcd.manifest, 0x1000);
 
-	status = pcd_flash_init (&pcd.test, &pcd.flash.base, 0x10000, pcd.signature,
-		sizeof (pcd.signature), pcd.platform_id, sizeof (pcd.platform_id));
+	status = pcd_flash_init (&pcd.test, &pcd.manifest.flash.base, &pcd.manifest.hash.base, 0x10000, 
+		pcd.manifest.signature, sizeof (pcd.manifest.signature), pcd.manifest.platform_id, 
+		sizeof (pcd.manifest.platform_id));
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrNotNull (test, pcd.test.base.base.verify);
@@ -331,9 +1189,10 @@ static void pcd_flash_test_init (CuTest *test)
 	CuAssertPtrNotNull (test, pcd.test.base.get_devices_info);
 	CuAssertPtrNotNull (test, pcd.test.base.get_rot_info);
 	CuAssertPtrNotNull (test, pcd.test.base.get_port_info);
+	CuAssertPtrNotNull (test, pcd.test.base.get_power_controller_info);
 
 	CuAssertIntEquals (test, 0x10000, manifest_flash_get_addr (&pcd.test.base_flash));
-	CuAssertPtrEquals (test, &pcd.flash, manifest_flash_get_flash (&pcd.test.base_flash));
+	CuAssertPtrEquals (test, &pcd.manifest.flash, manifest_flash_get_flash (&pcd.test.base_flash));
 
 	pcd_flash_testing_validate_and_release (test, &pcd);
 }
@@ -347,20 +1206,29 @@ static void pcd_flash_test_init_null (CuTest *test)
 
 	pcd_flash_testing_init_dependencies (test, &pcd, 0x10000);
 
-	status = pcd_flash_init (NULL, &pcd.flash.base, 0x10000, pcd.signature,
-		sizeof (pcd.signature), pcd.platform_id, sizeof (pcd.platform_id));
+	status = pcd_flash_init (NULL, &pcd.manifest.flash.base, &pcd.manifest.hash.base, 0x10000, 
+		pcd.manifest.signature, sizeof (pcd.manifest.signature), pcd.manifest.platform_id, 
+		sizeof (pcd.manifest.platform_id));
 	CuAssertIntEquals (test, PCD_INVALID_ARGUMENT, status);
 
-	status = pcd_flash_init (&pcd.test, NULL, 0x10000, pcd.signature,
-		sizeof (pcd.signature), pcd.platform_id, sizeof (pcd.platform_id));
+	status = pcd_flash_init (&pcd.test, NULL, &pcd.manifest.hash.base, 0x10000, 
+		pcd.manifest.signature, sizeof (pcd.manifest.signature), pcd.manifest.platform_id, 
+		sizeof (pcd.manifest.platform_id));
 	CuAssertIntEquals (test, MANIFEST_INVALID_ARGUMENT, status);
 
-	status = pcd_flash_init (&pcd.test, &pcd.flash.base, 0x10000, NULL,
-		sizeof (pcd.signature), pcd.platform_id, sizeof (pcd.platform_id));
+	status = pcd_flash_init (&pcd.test, &pcd.manifest.flash.base, NULL, 0x10000, 
+		pcd.manifest.signature, sizeof (pcd.manifest.signature), pcd.manifest.platform_id, 
+		sizeof (pcd.manifest.platform_id));
+	CuAssertIntEquals (test, MANIFEST_INVALID_ARGUMENT, status);
+
+	status = pcd_flash_init (&pcd.test, &pcd.manifest.flash.base, &pcd.manifest.hash.base, 0x10000, 
+		NULL, sizeof (pcd.manifest.signature), pcd.manifest.platform_id, 
+		sizeof (pcd.manifest.platform_id));
 	CuAssertIntEquals (test, PCD_INVALID_ARGUMENT, status);
 
-	status = pcd_flash_init (&pcd.test, NULL, 0x10000, pcd.signature,
-		sizeof (pcd.signature), NULL, sizeof (pcd.platform_id));
+	status = pcd_flash_init (&pcd.test, NULL, &pcd.manifest.hash.base, 0x10000, 
+		pcd.manifest.signature, sizeof (pcd.manifest.signature), NULL, 
+		sizeof (pcd.manifest.platform_id));
 	CuAssertIntEquals (test, PCD_INVALID_ARGUMENT, status);
 
 	pcd_flash_testing_validate_and_release_dependencies (test, &pcd);
@@ -374,9 +1242,11 @@ static void pcd_flash_test_init_manifest_flash_init_fail (CuTest *test)
 	TEST_START;
 
 	pcd_flash_testing_init_dependencies (test, &pcd, 0x10001);
+	manifest_flash_v2_testing_init_common (test, &pcd.manifest, 0x1000);
 
-	status = pcd_flash_init (&pcd.test, &pcd.flash.base, 0x10001, pcd.signature,
-		sizeof (pcd.signature), pcd.platform_id, sizeof (pcd.platform_id));
+	status = pcd_flash_init (&pcd.test, &pcd.manifest.flash.base, &pcd.manifest.hash.base, 0x10001, 
+		pcd.manifest.signature, sizeof (pcd.manifest.signature), pcd.manifest.platform_id, 
+		sizeof (pcd.manifest.platform_id));
 	CuAssertIntEquals (test, MANIFEST_STORAGE_NOT_ALIGNED, status);
 
 	pcd_flash_testing_validate_and_release_dependencies (test, &pcd);
@@ -398,11 +1268,10 @@ static void pcd_flash_test_verify (CuTest *test)
 
 	pcd_flash_testing_init (test, &pcd, 0x10000);
 
-	pcd_flash_testing_verify_pcd (test, &pcd, PCD_DATA, PCD_DATA_LEN, PCD_HASH, PCD_SIGNATURE,
-		PCD_SIGNATURE_OFFSET, PCD_PLATFORM_ID_LEN, 0);
+	pcd_flash_testing_verify_pcd (test, &pcd, &PCD_TESTING, 0);
 
-	status = pcd.test.base.base.verify (&pcd.test.base.base, &pcd.hash.base, &pcd.verification.base,
-		NULL, 0);
+	status = pcd.test.base.base.verify (&pcd.test.base.base, &pcd.manifest.hash.base, 
+		&pcd.manifest.verification.base, NULL, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	pcd_flash_testing_validate_and_release (test, &pcd);
@@ -417,14 +1286,17 @@ static void pcd_flash_test_verify_null (CuTest *test)
 
 	pcd_flash_testing_init (test, &pcd, 0x10000);
 
-	status = pcd.test.base.base.verify (NULL, &pcd.hash.base, &pcd.verification.base, NULL, 0);
+	status = pcd.test.base.base.verify (NULL, &pcd.manifest.hash.base, 
+		&pcd.manifest.verification.base, NULL, 0);
 	CuAssertIntEquals (test, PCD_INVALID_ARGUMENT, status);
 
-	status = pcd.test.base.base.verify (&pcd.test.base.base, NULL, &pcd.verification.base, NULL, 0);
-	CuAssertIntEquals (test, PCD_INVALID_ARGUMENT, status);
+	status = pcd.test.base.base.verify (&pcd.test.base.base, NULL, &pcd.manifest.verification.base, 
+		NULL, 0);
+	CuAssertIntEquals (test, MANIFEST_INVALID_ARGUMENT, status);
 
-	status = pcd.test.base.base.verify (&pcd.test.base.base, &pcd.hash.base, NULL, NULL, 0);
-	CuAssertIntEquals (test, PCD_INVALID_ARGUMENT, status);
+	status = pcd.test.base.base.verify (&pcd.test.base.base, &pcd.manifest.hash.base, NULL, NULL, 
+		0);
+	CuAssertIntEquals (test, MANIFEST_INVALID_ARGUMENT, status);
 
 	pcd_flash_testing_validate_and_release (test, &pcd);
 }
@@ -438,1514 +1310,14 @@ static void pcd_flash_test_verify_read_header_fail (CuTest *test)
 
 	pcd_flash_testing_init (test, &pcd, 0x10000);
 
-	status = flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA,
-		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_SIGNATURE,
-		PCD_SIGNATURE_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_SIGNATURE_OFFSET, 0, -1, PCD_SIGNATURE_LEN));
-
-	status |= flash_master_mock_expect_verify_flash (&pcd.flash_mock, 0x10000, PCD_DATA,
-		PCD_DATA_LEN - PCD_SIGNATURE_LEN);
-
-	status |= mock_expect (&pcd.verification.mock, pcd.verification.base.verify_signature,
-		&pcd.verification, 0, MOCK_ARG_PTR_CONTAINS (PCD_HASH, PCD_HASH_LEN),
-		MOCK_ARG (PCD_HASH_LEN), MOCK_ARG_PTR_CONTAINS (PCD_SIGNATURE, PCD_SIGNATURE_LEN),
-		MOCK_ARG (PCD_SIGNATURE_LEN));
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, FLASH_NO_MEMORY, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
+	status = mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read, 
+		&pcd.manifest.flash, FLASH_NO_MEMORY, MOCK_ARG (pcd.manifest.addr), MOCK_ARG_NOT_NULL, 
+		MOCK_ARG (MANIFEST_V2_HEADER_SIZE));
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcd.test.base.base.verify (&pcd.test.base.base, &pcd.hash.base, &pcd.verification.base,
-		NULL, 0);
+	status = pcd.test.base.base.verify (&pcd.test.base.base, &pcd.manifest.hash.base, 
+		&pcd.manifest.verification.base, NULL, 0);
 	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
-
-	pcd_flash_testing_validate_and_release (test, &pcd);
-}
-
-static void pcd_flash_test_verify_read_rot_header_fail (CuTest *test)
-{
-	struct pcd_flash_testing pcd;
-	uint32_t pcd_offset;
-	int status;
-
-	TEST_START;
-
-	pcd_flash_testing_init (test, &pcd, 0x10000);
-
-	status = flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA,
-		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_SIGNATURE,
-		PCD_SIGNATURE_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_SIGNATURE_OFFSET, 0, -1, PCD_SIGNATURE_LEN));
-
-	status |= flash_master_mock_expect_verify_flash (&pcd.flash_mock, 0x10000, PCD_DATA,
-		PCD_DATA_LEN - PCD_SIGNATURE_LEN);
-
-	status |= mock_expect (&pcd.verification.mock, pcd.verification.base.verify_signature,
-		&pcd.verification, 0, MOCK_ARG_PTR_CONTAINS (PCD_HASH, PCD_HASH_LEN),
-		MOCK_ARG (PCD_HASH_LEN), MOCK_ARG_PTR_CONTAINS (PCD_SIGNATURE, PCD_SIGNATURE_LEN),
-		MOCK_ARG (PCD_SIGNATURE_LEN));
-
-	pcd_offset = PCD_HEADER_SIZE;
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_header)));
-
-	pcd_offset += sizeof (struct pcd_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, FLASH_NO_MEMORY, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pcd.test.base.base.verify (&pcd.test.base.base, &pcd.hash.base, &pcd.verification.base,
-		NULL, 0);
-	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
-
-	pcd_flash_testing_validate_and_release (test, &pcd);
-}
-
-static void pcd_flash_test_verify_read_port_header_fail (CuTest *test)
-{
-	struct pcd_flash_testing pcd;
-	uint32_t pcd_offset;
-	int status;
-
-	TEST_START;
-
-	pcd_flash_testing_init (test, &pcd, 0x10000);
-
-	status = flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA,
-		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_SIGNATURE,
-		PCD_SIGNATURE_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_SIGNATURE_OFFSET, 0, -1, PCD_SIGNATURE_LEN));
-
-	status |= flash_master_mock_expect_verify_flash (&pcd.flash_mock, 0x10000, PCD_DATA,
-		PCD_DATA_LEN - PCD_SIGNATURE_LEN);
-
-	status |= mock_expect (&pcd.verification.mock, pcd.verification.base.verify_signature,
-		&pcd.verification, 0, MOCK_ARG_PTR_CONTAINS (PCD_HASH, PCD_HASH_LEN),
-		MOCK_ARG (PCD_HASH_LEN), MOCK_ARG_PTR_CONTAINS (PCD_SIGNATURE, PCD_SIGNATURE_LEN),
-		MOCK_ARG (PCD_SIGNATURE_LEN));
-
-	pcd_offset = PCD_HEADER_SIZE;
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_header)));
-
-	pcd_offset += sizeof (struct pcd_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_rot_header)));
-
-	pcd_offset += sizeof (struct pcd_rot_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, FLASH_NO_MEMORY, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pcd.test.base.base.verify (&pcd.test.base.base, &pcd.hash.base, &pcd.verification.base,
-		NULL, 0);
-	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
-
-	pcd_flash_testing_validate_and_release (test, &pcd);
-}
-
-static void pcd_flash_test_verify_read_components_header_fail (CuTest *test)
-{
-	struct pcd_flash_testing pcd;
-	uint32_t pcd_offset;
-	int status;
-
-	TEST_START;
-
-	pcd_flash_testing_init (test, &pcd, 0x10000);
-
-	status = flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA,
-		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_SIGNATURE,
-		PCD_SIGNATURE_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_SIGNATURE_OFFSET, 0, -1, PCD_SIGNATURE_LEN));
-
-	status |= flash_master_mock_expect_verify_flash (&pcd.flash_mock, 0x10000, PCD_DATA,
-		PCD_DATA_LEN - PCD_SIGNATURE_LEN);
-
-	status |= mock_expect (&pcd.verification.mock, pcd.verification.base.verify_signature,
-		&pcd.verification, 0, MOCK_ARG_PTR_CONTAINS (PCD_HASH, PCD_HASH_LEN),
-		MOCK_ARG (PCD_HASH_LEN), MOCK_ARG_PTR_CONTAINS (PCD_SIGNATURE, PCD_SIGNATURE_LEN),
-		MOCK_ARG (PCD_SIGNATURE_LEN));
-
-	pcd_offset = PCD_HEADER_SIZE;
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_header)));
-
-	pcd_offset += sizeof (struct pcd_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_rot_header)));
-
-	pcd_offset += sizeof (struct pcd_rot_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_port_header)));
-
-	pcd_offset += sizeof (struct pcd_port_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_port_header)));
-
-	pcd_offset += sizeof (struct pcd_port_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, FLASH_NO_MEMORY, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pcd.test.base.base.verify (&pcd.test.base.base, &pcd.hash.base, &pcd.verification.base,
-		NULL, 0);
-	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
-
-	pcd_flash_testing_validate_and_release (test, &pcd);
-}
-
-static void pcd_flash_test_verify_read_component_header_fail (CuTest *test)
-{
-	struct pcd_flash_testing pcd;
-	uint32_t pcd_offset;
-	int status;
-
-	TEST_START;
-
-	pcd_flash_testing_init (test, &pcd, 0x10000);
-
-	status = flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA,
-		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_SIGNATURE,
-		PCD_SIGNATURE_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_SIGNATURE_OFFSET, 0, -1, PCD_SIGNATURE_LEN));
-
-	status |= flash_master_mock_expect_verify_flash (&pcd.flash_mock, 0x10000, PCD_DATA,
-		PCD_DATA_LEN - PCD_SIGNATURE_LEN);
-
-	status |= mock_expect (&pcd.verification.mock, pcd.verification.base.verify_signature,
-		&pcd.verification, 0, MOCK_ARG_PTR_CONTAINS (PCD_HASH, PCD_HASH_LEN),
-		MOCK_ARG (PCD_HASH_LEN), MOCK_ARG_PTR_CONTAINS (PCD_SIGNATURE, PCD_SIGNATURE_LEN),
-		MOCK_ARG (PCD_SIGNATURE_LEN));
-
-	pcd_offset = PCD_HEADER_SIZE;
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_header)));
-
-	pcd_offset += sizeof (struct pcd_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_rot_header)));
-
-	pcd_offset += sizeof (struct pcd_rot_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_port_header)));
-
-	pcd_offset += sizeof (struct pcd_port_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_port_header)));
-
-	pcd_offset += sizeof (struct pcd_port_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_components_header)));
-
-	pcd_offset += sizeof (struct pcd_components_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, FLASH_NO_MEMORY, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pcd.test.base.base.verify (&pcd.test.base.base, &pcd.hash.base, &pcd.verification.base,
-		NULL, 0);
-	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
-
-	pcd_flash_testing_validate_and_release (test, &pcd);
-}
-
-static void pcd_flash_test_verify_read_mux_header_fail (CuTest *test)
-{
-	struct pcd_flash_testing pcd;
-	uint32_t pcd_offset;
-	int status;
-
-	TEST_START;
-
-	pcd_flash_testing_init (test, &pcd, 0x10000);
-
-	status = flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA,
-		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_SIGNATURE,
-		PCD_SIGNATURE_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_SIGNATURE_OFFSET, 0, -1, PCD_SIGNATURE_LEN));
-
-	status |= flash_master_mock_expect_verify_flash (&pcd.flash_mock, 0x10000, PCD_DATA,
-		PCD_DATA_LEN - PCD_SIGNATURE_LEN);
-
-	status |= mock_expect (&pcd.verification.mock, pcd.verification.base.verify_signature,
-		&pcd.verification, 0, MOCK_ARG_PTR_CONTAINS (PCD_HASH, PCD_HASH_LEN),
-		MOCK_ARG (PCD_HASH_LEN), MOCK_ARG_PTR_CONTAINS (PCD_SIGNATURE, PCD_SIGNATURE_LEN),
-		MOCK_ARG (PCD_SIGNATURE_LEN));
-
-	pcd_offset = PCD_HEADER_SIZE;
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_header)));
-
-	pcd_offset += sizeof (struct pcd_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_rot_header)));
-
-	pcd_offset += sizeof (struct pcd_rot_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_port_header)));
-
-	pcd_offset += sizeof (struct pcd_port_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_port_header)));
-
-	pcd_offset += sizeof (struct pcd_port_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_components_header)));
-
-	pcd_offset += sizeof (struct pcd_components_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_component_header)));
-
-	pcd_offset += sizeof (struct pcd_component_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_component_header)));
-
-	pcd_offset += sizeof (struct pcd_component_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, FLASH_NO_MEMORY, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pcd.test.base.base.verify (&pcd.test.base.base, &pcd.hash.base, &pcd.verification.base,
-		NULL, 0);
-	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
-
-	pcd_flash_testing_validate_and_release (test, &pcd);
-}
-
-static void pcd_flash_test_verify_read_platform_header_fail (CuTest *test)
-{
-	struct pcd_flash_testing pcd;
-	uint32_t pcd_offset;
-	int status;
-
-	TEST_START;
-
-	pcd_flash_testing_init (test, &pcd, 0x10000);
-
-	status = flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA,
-		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_SIGNATURE,
-		PCD_SIGNATURE_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_SIGNATURE_OFFSET, 0, -1, PCD_SIGNATURE_LEN));
-
-	status |= flash_master_mock_expect_verify_flash (&pcd.flash_mock, 0x10000, PCD_DATA,
-		PCD_DATA_LEN - PCD_SIGNATURE_LEN);
-
-	status |= mock_expect (&pcd.verification.mock, pcd.verification.base.verify_signature,
-		&pcd.verification, 0, MOCK_ARG_PTR_CONTAINS (PCD_HASH, PCD_HASH_LEN),
-		MOCK_ARG (PCD_HASH_LEN), MOCK_ARG_PTR_CONTAINS (PCD_SIGNATURE, PCD_SIGNATURE_LEN),
-		MOCK_ARG (PCD_SIGNATURE_LEN));
-
-	pcd_offset = PCD_HEADER_SIZE;
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_header)));
-
-	pcd_offset += sizeof (struct pcd_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_rot_header)));
-
-	pcd_offset += sizeof (struct pcd_rot_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_port_header)));
-
-	pcd_offset += sizeof (struct pcd_port_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_port_header)));
-
-	pcd_offset += sizeof (struct pcd_port_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_components_header)));
-
-	pcd_offset += sizeof (struct pcd_components_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_component_header)));
-
-	pcd_offset += sizeof (struct pcd_component_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_component_header)));
-
-	pcd_offset += sizeof (struct pcd_component_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_mux_header)));
-
-	pcd_offset += sizeof (struct pcd_mux_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_mux_header)));
-
-	pcd_offset += sizeof (struct pcd_mux_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, FLASH_NO_MEMORY, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pcd.test.base.base.verify (&pcd.test.base.base, &pcd.hash.base, &pcd.verification.base,
-		NULL, 0);
-	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
-
-	pcd_flash_testing_validate_and_release (test, &pcd);
-}
-
-static void pcd_flash_test_verify_platform_id_too_long (CuTest *test)
-{
-	struct pcd_flash_testing pcd;
-	uint32_t pcd_offset;
-	int status;
-
-	TEST_START;
-
-	pcd_flash_testing_init_dependencies (test, &pcd, 0x10000);
-
-	status = pcd_flash_init (&pcd.test, &pcd.flash.base, 0x10000, pcd.signature,
-		sizeof (pcd.signature), pcd.platform_id, PCD_PLATFORM_ID_LEN);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA,
-		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_SIGNATURE,
-		PCD_SIGNATURE_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_SIGNATURE_OFFSET, 0, -1, PCD_SIGNATURE_LEN));
-
-	status |= flash_master_mock_expect_verify_flash (&pcd.flash_mock, 0x10000, PCD_DATA,
-		PCD_DATA_LEN - PCD_SIGNATURE_LEN);
-
-	status |= mock_expect (&pcd.verification.mock, pcd.verification.base.verify_signature,
-		&pcd.verification, 0, MOCK_ARG_PTR_CONTAINS (PCD_HASH, PCD_HASH_LEN),
-		MOCK_ARG (PCD_HASH_LEN), MOCK_ARG_PTR_CONTAINS (PCD_SIGNATURE, PCD_SIGNATURE_LEN),
-		MOCK_ARG (PCD_SIGNATURE_LEN));
-
-	pcd_offset = PCD_HEADER_SIZE;
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_header)));
-
-	pcd_offset += sizeof (struct pcd_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_rot_header)));
-
-	pcd_offset += sizeof (struct pcd_rot_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_port_header)));
-
-	pcd_offset += sizeof (struct pcd_port_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_port_header)));
-
-	pcd_offset += sizeof (struct pcd_port_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_components_header)));
-
-	pcd_offset += sizeof (struct pcd_components_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_component_header)));
-
-	pcd_offset += sizeof (struct pcd_component_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_component_header)));
-
-	pcd_offset += sizeof (struct pcd_component_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_mux_header)));
-
-	pcd_offset += sizeof (struct pcd_mux_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_mux_header)));
-
-	pcd_offset += sizeof (struct pcd_mux_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_platform_header)));
-	CuAssertIntEquals (test, 0, status);
-
-	status = pcd.test.base.base.verify (&pcd.test.base.base, &pcd.hash.base, &pcd.verification.base,
-		NULL, 0);
-	CuAssertIntEquals (test, MANIFEST_PLAT_ID_BUFFER_TOO_SMALL, status);
-
-	pcd_flash_testing_validate_and_release (test, &pcd);
-}
-
-static void pcd_flash_test_verify_read_platform_id_fail (CuTest *test)
-{
-	struct pcd_flash_testing pcd;
-	uint32_t pcd_offset;
-	int status;
-
-	TEST_START;
-
-	pcd_flash_testing_init (test, &pcd, 0x10000);
-
-	status = flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA,
-		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_SIGNATURE,
-		PCD_SIGNATURE_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_SIGNATURE_OFFSET, 0, -1, PCD_SIGNATURE_LEN));
-
-	status |= flash_master_mock_expect_verify_flash (&pcd.flash_mock, 0x10000, PCD_DATA,
-		PCD_DATA_LEN - PCD_SIGNATURE_LEN);
-
-	status |= mock_expect (&pcd.verification.mock, pcd.verification.base.verify_signature,
-		&pcd.verification, 0, MOCK_ARG_PTR_CONTAINS (PCD_HASH, PCD_HASH_LEN),
-		MOCK_ARG (PCD_HASH_LEN), MOCK_ARG_PTR_CONTAINS (PCD_SIGNATURE, PCD_SIGNATURE_LEN),
-		MOCK_ARG (PCD_SIGNATURE_LEN));
-
-	pcd_offset = PCD_HEADER_SIZE;
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_header)));
-
-	pcd_offset += sizeof (struct pcd_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_rot_header)));
-
-	pcd_offset += sizeof (struct pcd_rot_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_port_header)));
-
-	pcd_offset += sizeof (struct pcd_port_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_port_header)));
-
-	pcd_offset += sizeof (struct pcd_port_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_components_header)));
-
-	pcd_offset += sizeof (struct pcd_components_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_component_header)));
-
-	pcd_offset += sizeof (struct pcd_component_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_component_header)));
-
-	pcd_offset += sizeof (struct pcd_component_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_mux_header)));
-
-	pcd_offset += sizeof (struct pcd_mux_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_mux_header)));
-
-	pcd_offset += sizeof (struct pcd_mux_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-			sizeof (struct pcd_platform_header)));
-
-	status |= flash_master_mock_expect_xfer (&pcd.flash_mock, FLASH_MASTER_XFER_FAILED,
-			FLASH_EXP_READ_STATUS_REG);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pcd.test.base.base.verify (&pcd.test.base.base, &pcd.hash.base, &pcd.verification.base,
-		NULL, 0);
-	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
-
-	pcd_flash_testing_validate_and_release (test, &pcd);
-}
-
-static void pcd_flash_test_verify_pcd_rot_too_big (CuTest *test)
-{
-	struct pcd_flash_testing pcd;
-	struct pcd_rot_header pcd_rot_header = {0};
-	uint32_t pcd_offset;
-	int status;
-
-	TEST_START;
-
-	memcpy (&pcd_rot_header, PCD_DATA + PCD_HEADER_SIZE + sizeof (struct pcd_header),
-		sizeof (struct pcd_rot_header));
-	pcd_rot_header.length = PCD_DATA_LEN;
-
-	pcd_flash_testing_init (test, &pcd, 0x10000);
-
-	status = flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA,
-		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_SIGNATURE,
-		PCD_SIGNATURE_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_SIGNATURE_OFFSET, 0, -1, PCD_SIGNATURE_LEN));
-
-	status |= flash_master_mock_expect_verify_flash (&pcd.flash_mock, 0x10000, PCD_DATA,
-		PCD_DATA_LEN - PCD_SIGNATURE_LEN);
-
-	status |= mock_expect (&pcd.verification.mock, pcd.verification.base.verify_signature,
-		&pcd.verification, 0, MOCK_ARG_PTR_CONTAINS (PCD_HASH, PCD_HASH_LEN),
-		MOCK_ARG (PCD_HASH_LEN), MOCK_ARG_PTR_CONTAINS (PCD_SIGNATURE, PCD_SIGNATURE_LEN),
-		MOCK_ARG (PCD_SIGNATURE_LEN));
-
-	pcd_offset = PCD_HEADER_SIZE;
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_header)));
-
-	pcd_offset += sizeof (struct pcd_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, (uint8_t*) &pcd_rot_header,
-		sizeof (struct pcd_rot_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_rot_header)));
-	CuAssertIntEquals (test, 0, status);
-
-	status = pcd.test.base.base.verify (&pcd.test.base.base, &pcd.hash.base, &pcd.verification.base,
-		NULL, 0);
-	CuAssertIntEquals (test, PCD_INVALID_SEG_LEN, status);
-
-	pcd_flash_testing_validate_and_release (test, &pcd);
-}
-
-static void pcd_flash_test_verify_pcd_rot_too_big2 (CuTest *test)
-{
-	struct pcd_flash_testing pcd;
-	struct pcd_rot_header pcd_rot_header = {0};
-	uint32_t pcd_offset;
-	int status;
-
-	TEST_START;
-
-	memcpy (&pcd_rot_header, PCD_DATA + PCD_HEADER_SIZE + sizeof (struct pcd_header),
-		sizeof (struct pcd_rot_header));
-	pcd_rot_header.length += 1;
-
-	pcd_flash_testing_init (test, &pcd, 0x10000);
-
-	status = flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA,
-		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_SIGNATURE,
-		PCD_SIGNATURE_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_SIGNATURE_OFFSET, 0, -1, PCD_SIGNATURE_LEN));
-
-	status |= flash_master_mock_expect_verify_flash (&pcd.flash_mock, 0x10000, PCD_DATA,
-		PCD_DATA_LEN - PCD_SIGNATURE_LEN);
-
-	status |= mock_expect (&pcd.verification.mock, pcd.verification.base.verify_signature,
-		&pcd.verification, 0, MOCK_ARG_PTR_CONTAINS (PCD_HASH, PCD_HASH_LEN),
-		MOCK_ARG (PCD_HASH_LEN), MOCK_ARG_PTR_CONTAINS (PCD_SIGNATURE, PCD_SIGNATURE_LEN),
-		MOCK_ARG (PCD_SIGNATURE_LEN));
-
-	pcd_offset = PCD_HEADER_SIZE;
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_header)));
-
-	pcd_offset += sizeof (struct pcd_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, (uint8_t*) &pcd_rot_header,
-		sizeof (struct pcd_rot_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_rot_header)));
-
-	pcd_offset += sizeof (struct pcd_rot_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_port_header)));
-
-	pcd_offset += sizeof (struct pcd_port_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_port_header)));
-	CuAssertIntEquals (test, 0, status);
-
-	status = pcd.test.base.base.verify (&pcd.test.base.base, &pcd.hash.base, &pcd.verification.base,
-		NULL, 0);
-	CuAssertIntEquals (test, PCD_INVALID_SEG_LEN, status);
-
-	pcd_flash_testing_validate_and_release (test, &pcd);
-}
-
-static void pcd_flash_test_verify_pcd_components_too_big (CuTest *test)
-{
-	struct pcd_flash_testing pcd;
-	struct pcd_components_header pcd_components_header = {0};
-	uint32_t pcd_offset;
-	int status;
-
-	TEST_START;
-
-	memcpy (&pcd_components_header, PCD_DATA + PCD_HEADER_SIZE + sizeof (struct pcd_header) +
-		sizeof (struct pcd_rot_header) + 2 * sizeof (struct pcd_port_header),
-		sizeof (struct pcd_components_header));
-	pcd_components_header.length = PCD_DATA_LEN;
-
-	pcd_flash_testing_init (test, &pcd, 0x10000);
-
-	status = flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA,
-		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_SIGNATURE,
-		PCD_SIGNATURE_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_SIGNATURE_OFFSET, 0, -1, PCD_SIGNATURE_LEN));
-
-	status |= flash_master_mock_expect_verify_flash (&pcd.flash_mock, 0x10000, PCD_DATA,
-		PCD_DATA_LEN - PCD_SIGNATURE_LEN);
-
-	status |= mock_expect (&pcd.verification.mock, pcd.verification.base.verify_signature,
-		&pcd.verification, 0, MOCK_ARG_PTR_CONTAINS (PCD_HASH, PCD_HASH_LEN),
-		MOCK_ARG (PCD_HASH_LEN), MOCK_ARG_PTR_CONTAINS (PCD_SIGNATURE, PCD_SIGNATURE_LEN),
-		MOCK_ARG (PCD_SIGNATURE_LEN));
-
-	pcd_offset = PCD_HEADER_SIZE;
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_header)));
-
-	pcd_offset += sizeof (struct pcd_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_rot_header)));
-
-	pcd_offset += sizeof (struct pcd_rot_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_port_header)));
-
-	pcd_offset += sizeof (struct pcd_port_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_port_header)));
-
-	pcd_offset += sizeof (struct pcd_port_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0,
-		(uint8_t*) &pcd_components_header, sizeof (struct pcd_components_header),
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-			sizeof (struct pcd_components_header)));
-	CuAssertIntEquals (test, 0, status);
-
-	status = pcd.test.base.base.verify (&pcd.test.base.base, &pcd.hash.base, &pcd.verification.base,
-		NULL, 0);
-	CuAssertIntEquals (test, PCD_INVALID_SEG_LEN, status);
-
-	pcd_flash_testing_validate_and_release (test, &pcd);
-}
-
-static void pcd_flash_test_verify_pcd_components_too_big2 (CuTest *test)
-{
-	struct pcd_flash_testing pcd;
-	struct pcd_components_header pcd_components_header = {0};
-	uint32_t pcd_offset;
-	int status;
-
-	TEST_START;
-
-	memcpy (&pcd_components_header, PCD_DATA + PCD_HEADER_SIZE + sizeof (struct pcd_header) +
-		sizeof (struct pcd_rot_header) + 2 * sizeof (struct pcd_port_header),
-		sizeof (struct pcd_components_header));
-	pcd_components_header.length += 1;
-
-	pcd_flash_testing_init (test, &pcd, 0x10000);
-
-	status = flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA,
-		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_SIGNATURE,
-		PCD_SIGNATURE_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_SIGNATURE_OFFSET, 0, -1, PCD_SIGNATURE_LEN));
-
-	status |= flash_master_mock_expect_verify_flash (&pcd.flash_mock, 0x10000, PCD_DATA,
-		PCD_DATA_LEN - PCD_SIGNATURE_LEN);
-
-	status |= mock_expect (&pcd.verification.mock, pcd.verification.base.verify_signature,
-		&pcd.verification, 0, MOCK_ARG_PTR_CONTAINS (PCD_HASH, PCD_HASH_LEN),
-		MOCK_ARG (PCD_HASH_LEN), MOCK_ARG_PTR_CONTAINS (PCD_SIGNATURE, PCD_SIGNATURE_LEN),
-		MOCK_ARG (PCD_SIGNATURE_LEN));
-
-	pcd_offset = PCD_HEADER_SIZE;
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_header)));
-
-	pcd_offset += sizeof (struct pcd_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_rot_header)));
-
-	pcd_offset += sizeof (struct pcd_rot_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_port_header)));
-
-	pcd_offset += sizeof (struct pcd_port_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_port_header)));
-
-	pcd_offset += sizeof (struct pcd_port_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0,
-		(uint8_t*) &pcd_components_header, sizeof (struct pcd_components_header),
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-			sizeof (struct pcd_components_header)));
-
-	pcd_offset += sizeof (struct pcd_components_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_component_header)));
-
-	pcd_offset += sizeof (struct pcd_component_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_component_header)));
-
-	pcd_offset += sizeof (struct pcd_component_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_mux_header)));
-
-	pcd_offset += sizeof (struct pcd_mux_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_mux_header)));
-	CuAssertIntEquals (test, 0, status);
-
-	status = pcd.test.base.base.verify (&pcd.test.base.base, &pcd.hash.base, &pcd.verification.base,
-		NULL, 0);
-	CuAssertIntEquals (test, PCD_INVALID_SEG_LEN, status);
-
-	pcd_flash_testing_validate_and_release (test, &pcd);
-}
-
-static void pcd_flash_test_verify_pcd_component_too_big (CuTest *test)
-{
-	struct pcd_flash_testing pcd;
-	struct pcd_component_header pcd_component_header = {0};
-	uint32_t pcd_offset;
-	int status;
-
-	TEST_START;
-
-	memcpy (&pcd_component_header, PCD_DATA + PCD_HEADER_SIZE + sizeof (struct pcd_header) +
-		sizeof (struct pcd_rot_header) + 2 * sizeof (struct pcd_port_header) +
-		sizeof (struct pcd_components_header), sizeof (struct pcd_component_header));
-	pcd_component_header.length = PCD_DATA_LEN;
-
-	pcd_flash_testing_init (test, &pcd, 0x10000);
-
-	status = flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA,
-		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_SIGNATURE,
-		PCD_SIGNATURE_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_SIGNATURE_OFFSET, 0, -1, PCD_SIGNATURE_LEN));
-
-	status |= flash_master_mock_expect_verify_flash (&pcd.flash_mock, 0x10000, PCD_DATA,
-		PCD_DATA_LEN - PCD_SIGNATURE_LEN);
-
-	status |= mock_expect (&pcd.verification.mock, pcd.verification.base.verify_signature,
-		&pcd.verification, 0, MOCK_ARG_PTR_CONTAINS (PCD_HASH, PCD_HASH_LEN),
-		MOCK_ARG (PCD_HASH_LEN), MOCK_ARG_PTR_CONTAINS (PCD_SIGNATURE, PCD_SIGNATURE_LEN),
-		MOCK_ARG (PCD_SIGNATURE_LEN));
-
-	pcd_offset = PCD_HEADER_SIZE;
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_header)));
-
-	pcd_offset += sizeof (struct pcd_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_rot_header)));
-
-	pcd_offset += sizeof (struct pcd_rot_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_port_header)));
-
-	pcd_offset += sizeof (struct pcd_port_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_port_header)));
-
-	pcd_offset += sizeof (struct pcd_port_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_components_header)));
-
-	pcd_offset += sizeof (struct pcd_components_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0,
-		(uint8_t*) &pcd_component_header, sizeof (struct pcd_component_header),
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-			sizeof (struct pcd_component_header)));
-	CuAssertIntEquals (test, 0, status);
-
-	status = pcd.test.base.base.verify (&pcd.test.base.base, &pcd.hash.base, &pcd.verification.base,
-		NULL, 0);
-	CuAssertIntEquals (test, PCD_INVALID_SEG_LEN, status);
-
-	pcd_flash_testing_validate_and_release (test, &pcd);
-}
-
-static void pcd_flash_test_verify_pcd_component_too_big2 (CuTest *test)
-{
-	struct pcd_flash_testing pcd;
-	struct pcd_component_header pcd_component_header = {0};
-	uint32_t pcd_offset;
-	int status;
-
-	TEST_START;
-
-	memcpy (&pcd_component_header, PCD_DATA + PCD_HEADER_SIZE + sizeof (struct pcd_header) +
-		sizeof (struct pcd_rot_header) + 2 * sizeof (struct pcd_port_header) +
-		sizeof (struct pcd_components_header), sizeof (struct pcd_component_header));
-	pcd_component_header.length += 1;
-
-	pcd_flash_testing_init (test, &pcd, 0x10000);
-
-	status = flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA,
-		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_SIGNATURE,
-		PCD_SIGNATURE_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_SIGNATURE_OFFSET, 0, -1, PCD_SIGNATURE_LEN));
-
-	status |= flash_master_mock_expect_verify_flash (&pcd.flash_mock, 0x10000, PCD_DATA,
-		PCD_DATA_LEN - PCD_SIGNATURE_LEN);
-
-	status |= mock_expect (&pcd.verification.mock, pcd.verification.base.verify_signature,
-		&pcd.verification, 0, MOCK_ARG_PTR_CONTAINS (PCD_HASH, PCD_HASH_LEN),
-		MOCK_ARG (PCD_HASH_LEN), MOCK_ARG_PTR_CONTAINS (PCD_SIGNATURE, PCD_SIGNATURE_LEN),
-		MOCK_ARG (PCD_SIGNATURE_LEN));
-
-	pcd_offset = PCD_HEADER_SIZE;
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_header)));
-
-	pcd_offset += sizeof (struct pcd_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_rot_header)));
-
-	pcd_offset += sizeof (struct pcd_rot_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_port_header)));
-
-	pcd_offset += sizeof (struct pcd_port_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_port_header)));
-
-	pcd_offset += sizeof (struct pcd_port_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_components_header)));
-
-	pcd_offset += sizeof (struct pcd_components_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0,
-		(uint8_t*) &pcd_component_header, sizeof (struct pcd_component_header),
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-			sizeof (struct pcd_component_header)));
-	CuAssertIntEquals (test, 0, status);
-
-	status = pcd.test.base.base.verify (&pcd.test.base.base, &pcd.hash.base, &pcd.verification.base,
-		NULL, 0);
-	CuAssertIntEquals (test, PCD_INVALID_SEG_LEN, status);
-
-	pcd_flash_testing_validate_and_release (test, &pcd);
-}
-
-static void pcd_flash_test_verify_pcd_platform_too_big (CuTest *test)
-{
-	struct pcd_flash_testing pcd;
-	struct pcd_platform_header pcd_platform_header = {0};
-	uint32_t pcd_offset;
-	int status;
-
-	TEST_START;
-
-	memcpy (&pcd_platform_header, PCD_DATA + PCD_HEADER_SIZE + sizeof (struct pcd_header) +
-		sizeof (struct pcd_rot_header) + 2 * sizeof (struct pcd_port_header) +
-		sizeof (struct pcd_components_header) + 2 * sizeof (struct pcd_component_header) +
-		2 * sizeof (struct pcd_mux_header), sizeof (struct pcd_platform_header));
-	pcd_platform_header.length += 1;
-
-	pcd_flash_testing_init (test, &pcd, 0x10000);
-
-	status = flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA,
-		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_SIGNATURE,
-		PCD_SIGNATURE_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_SIGNATURE_OFFSET, 0, -1, PCD_SIGNATURE_LEN));
-
-	status |= flash_master_mock_expect_verify_flash (&pcd.flash_mock, 0x10000, PCD_DATA,
-		PCD_DATA_LEN - PCD_SIGNATURE_LEN);
-
-	status |= mock_expect (&pcd.verification.mock, pcd.verification.base.verify_signature,
-		&pcd.verification, 0, MOCK_ARG_PTR_CONTAINS (PCD_HASH, PCD_HASH_LEN),
-		MOCK_ARG (PCD_HASH_LEN), MOCK_ARG_PTR_CONTAINS (PCD_SIGNATURE, PCD_SIGNATURE_LEN),
-		MOCK_ARG (PCD_SIGNATURE_LEN));
-
-	pcd_offset = PCD_HEADER_SIZE;
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_header)));
-
-	pcd_offset += sizeof (struct pcd_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_rot_header)));
-
-	pcd_offset += sizeof (struct pcd_rot_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_port_header)));
-
-	pcd_offset += sizeof (struct pcd_port_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_port_header)));
-
-	pcd_offset += sizeof (struct pcd_port_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_components_header)));
-
-	pcd_offset += sizeof (struct pcd_components_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_component_header)));
-
-	pcd_offset += sizeof (struct pcd_component_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_component_header)));
-
-	pcd_offset += sizeof (struct pcd_component_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_mux_header)));
-
-	pcd_offset += sizeof (struct pcd_mux_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_mux_header)));
-
-	pcd_offset += sizeof (struct pcd_mux_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, (uint8_t*) &pcd_platform_header,
-		sizeof (struct pcd_platform_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_platform_header)));
-	CuAssertIntEquals (test, 0, status);
-
-	status = pcd.test.base.base.verify (&pcd.test.base.base, &pcd.hash.base, &pcd.verification.base,
-		NULL, 0);
-	CuAssertIntEquals (test, PCD_INVALID_SEG_LEN, status);
-
-	pcd_flash_testing_validate_and_release (test, &pcd);
-}
-
-static void pcd_flash_test_verify_invalid_pcd_platform_header_header_len (CuTest *test)
-{
-	struct pcd_flash_testing pcd;
-	struct pcd_platform_header pcd_platform_header = {0};
-	uint32_t pcd_offset;
-	int status;
-
-	TEST_START;
-
-	memcpy (&pcd_platform_header, PCD_DATA + PCD_HEADER_SIZE + sizeof (struct pcd_header) +
-		sizeof (struct pcd_rot_header) + 2 * sizeof (struct pcd_port_header) +
-		sizeof (struct pcd_components_header) + 2 * sizeof (struct pcd_component_header) +
-		2 * sizeof (struct pcd_mux_header), sizeof (struct pcd_platform_header));
-	pcd_platform_header.header_len += 1;
-
-	pcd_flash_testing_init (test, &pcd, 0x10000);
-
-	status = flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA,
-		PCD_DATA_LEN - PCD_HEADER_SIZE, FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_SIGNATURE,
-		PCD_SIGNATURE_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_SIGNATURE_OFFSET, 0, -1, PCD_SIGNATURE_LEN));
-
-	status |= flash_master_mock_expect_verify_flash (&pcd.flash_mock, 0x10000, PCD_DATA,
-		PCD_DATA_LEN - PCD_SIGNATURE_LEN);
-
-	status |= mock_expect (&pcd.verification.mock, pcd.verification.base.verify_signature,
-		&pcd.verification, 0, MOCK_ARG_PTR_CONTAINS (PCD_HASH, PCD_HASH_LEN),
-		MOCK_ARG (PCD_HASH_LEN), MOCK_ARG_PTR_CONTAINS (PCD_SIGNATURE, PCD_SIGNATURE_LEN),
-		MOCK_ARG (PCD_SIGNATURE_LEN));
-
-	pcd_offset = PCD_HEADER_SIZE;
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_header)));
-
-	pcd_offset += sizeof (struct pcd_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_rot_header)));
-
-	pcd_offset += sizeof (struct pcd_rot_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_port_header)));
-
-	pcd_offset += sizeof (struct pcd_port_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_port_header)));
-
-	pcd_offset += sizeof (struct pcd_port_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_components_header)));
-
-	pcd_offset += sizeof (struct pcd_components_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_component_header)));
-
-	pcd_offset += sizeof (struct pcd_component_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_component_header)));
-
-	pcd_offset += sizeof (struct pcd_component_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_mux_header)));
-
-	pcd_offset += sizeof (struct pcd_mux_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		PCD_DATA_LEN - pcd_offset, FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_mux_header)));
-
-	pcd_offset += sizeof (struct pcd_mux_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, (uint8_t*) &pcd_platform_header,
-		sizeof (struct pcd_platform_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_platform_header)));
-	CuAssertIntEquals (test, 0, status);
-
-	status = pcd.test.base.base.verify (&pcd.test.base.base, &pcd.hash.base, &pcd.verification.base,
-		NULL, 0);
-	CuAssertIntEquals (test, PCD_INVALID_SEG_HDR_LEN, status);
 
 	pcd_flash_testing_validate_and_release (test, &pcd);
 }
@@ -1954,7 +1326,7 @@ static void pcd_flash_test_verify_bad_magic_number (CuTest *test)
 {
 	struct pcd_flash_testing pcd;
 	int status;
-	uint8_t pcd_bad_data[PCD_SIGNATURE_OFFSET];
+	uint8_t pcd_bad_data[MANIFEST_V2_HEADER_SIZE];
 
 	TEST_START;
 
@@ -1963,20 +1335,21 @@ static void pcd_flash_test_verify_bad_magic_number (CuTest *test)
 
 	pcd_flash_testing_init (test, &pcd, 0x10000);
 
-	status = flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, pcd_bad_data,
-		sizeof (pcd_bad_data), FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
+	status = mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read, 
+		&pcd.manifest.flash, 0, MOCK_ARG (pcd.manifest.addr), MOCK_ARG_NOT_NULL, 
+		MOCK_ARG (MANIFEST_V2_HEADER_SIZE));
+	status |= mock_expect_output (&pcd.manifest.flash.mock, 1, pcd_bad_data, 
+		MANIFEST_V2_HEADER_SIZE, 2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcd.test.base.base.verify (&pcd.test.base.base, &pcd.hash.base, &pcd.verification.base,
-		NULL, 0);
+	status = pcd.test.base.base.verify (&pcd.test.base.base, &pcd.manifest.hash.base, 
+		&pcd.manifest.verification.base, NULL, 0);
 	CuAssertIntEquals (test, MANIFEST_BAD_MAGIC_NUMBER, status);
 
 	pcd_flash_testing_validate_and_release (test, &pcd);
 }
 
-static void pcd_flash_test_verify_header_read_error (CuTest *test)
+static void pcd_flash_test_verify_no_power_controller (CuTest *test)
 {
 	struct pcd_flash_testing pcd;
 	int status;
@@ -1985,13 +1358,65 @@ static void pcd_flash_test_verify_header_read_error (CuTest *test)
 
 	pcd_flash_testing_init (test, &pcd, 0x10000);
 
-	status = flash_master_mock_expect_rx_xfer (&pcd.flash_mock, FLASH_NO_MEMORY, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
+	pcd_flash_testing_verify_pcd (test, &pcd, &PCD_NO_POWER_CONTROLLER_TESTING, 0);
+
+	status = pcd.test.base.base.verify (&pcd.test.base.base, &pcd.manifest.hash.base, 
+		&pcd.manifest.verification.base, NULL, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcd.test.base.base.verify (&pcd.test.base.base, &pcd.hash.base, &pcd.verification.base,
-		NULL, 0);
-	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_verify_no_components (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	int status;
+
+	TEST_START;
+
+	pcd_flash_testing_init (test, &pcd, 0x10000);
+
+	pcd_flash_testing_verify_pcd (test, &pcd, &PCD_NO_COMPONENTS_TESTING, 0);
+
+	status = pcd.test.base.base.verify (&pcd.test.base.base, &pcd.manifest.hash.base, 
+		&pcd.manifest.verification.base, NULL, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_verify_no_ports (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	int status;
+
+	TEST_START;
+
+	pcd_flash_testing_init (test, &pcd, 0x10000);
+
+	pcd_flash_testing_verify_pcd (test, &pcd, &PCD_NO_PORTS_TESTING, 0);
+
+	status = pcd.test.base.base.verify (&pcd.test.base.base, &pcd.manifest.hash.base, 
+		&pcd.manifest.verification.base, NULL, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_verify_no_ports_power_controller_components (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	int status;
+
+	TEST_START;
+
+	pcd_flash_testing_init (test, &pcd, 0x10000);
+
+	pcd_flash_testing_verify_pcd (test, &pcd, &PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_TESTING, 0);
+
+	status = pcd.test.base.base.verify (&pcd.test.base.base, &pcd.manifest.hash.base, 
+		&pcd.manifest.verification.base, NULL, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	pcd_flash_testing_validate_and_release (test, &pcd);
 }
@@ -2004,12 +1429,11 @@ static void pcd_flash_test_get_id (CuTest *test)
 
 	TEST_START;
 
-	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, PCD_DATA, PCD_DATA_LEN, PCD_HASH,
-		PCD_SIGNATURE, PCD_SIGNATURE_OFFSET, PCD_PLATFORM_ID_LEN, 0);
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0);
 
 	status = pcd.test.base.base.get_id (&pcd.test.base.base, &id);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, 1, id);
+	CuAssertIntEquals (test, 0x1A, id);
 
 	pcd_flash_testing_validate_and_release (test, &pcd);
 }
@@ -2022,8 +1446,7 @@ static void pcd_flash_test_get_id_null (CuTest *test)
 
 	TEST_START;
 
-	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, PCD_DATA, PCD_DATA_LEN, PCD_HASH,
-		PCD_SIGNATURE, PCD_SIGNATURE_OFFSET, PCD_PLATFORM_ID_LEN, 0);
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0);
 
 	status = pcd.test.base.base.get_id (NULL, &id);
 	CuAssertIntEquals (test, PCD_INVALID_ARGUMENT, status);
@@ -2060,17 +1483,19 @@ static void pcd_flash_test_get_hash (CuTest *test)
 
 	pcd_flash_testing_init (test, &pcd, 0x10000);
 
-	status = flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA, PCD_HEADER_SIZE,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
+	/* Read manifest header. */
+	status = mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read, 
+		&pcd.manifest.flash, 0, MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, 
+		MOCK_ARG (MANIFEST_V2_HEADER_SIZE));
+	status |= mock_expect_output (&pcd.manifest.flash.mock, 1, PCD_DATA, MANIFEST_V2_HEADER_SIZE, 
+		2);
 
-	status |= flash_master_mock_expect_verify_flash (&pcd.flash_mock, 0x10000, PCD_DATA,
+	status |= flash_mock_expect_verify_flash (&pcd.manifest.flash, 0x10000,	PCD_DATA, 
 		PCD_DATA_LEN - PCD_SIGNATURE_LEN);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcd.test.base.base.get_hash (&pcd.test.base.base, &pcd.hash.base, hash_out,
+	status = pcd.test.base.base.get_hash (&pcd.test.base.base, &pcd.manifest.hash.base, hash_out,
 		sizeof (hash_out));
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
@@ -2088,10 +1513,9 @@ static void pcd_flash_test_get_hash_after_verify (CuTest *test)
 
 	TEST_START;
 
-	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, PCD_DATA, PCD_DATA_LEN, PCD_HASH,
-		PCD_SIGNATURE, PCD_SIGNATURE_OFFSET, PCD_PLATFORM_ID_LEN, 0);
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0);
 
-	status = pcd.test.base.base.get_hash (&pcd.test.base.base, &pcd.hash.base, hash_out,
+	status = pcd.test.base.base.get_hash (&pcd.test.base.base, &pcd.manifest.hash.base, hash_out,
 		sizeof (hash_out));
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
@@ -2109,10 +1533,9 @@ static void pcd_flash_test_get_hash_null (CuTest *test)
 
 	TEST_START;
 
-	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, PCD_DATA, PCD_DATA_LEN, PCD_HASH,
-		PCD_SIGNATURE, PCD_SIGNATURE_OFFSET, PCD_PLATFORM_ID_LEN, 0);
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0);
 
-	status = pcd.test.base.base.get_hash (NULL, &pcd.hash.base, hash_out,
+	status = pcd.test.base.base.get_hash (NULL, &pcd.manifest.hash.base, hash_out,
 		sizeof (hash_out));
 	CuAssertIntEquals (test, PCD_INVALID_ARGUMENT, status);
 
@@ -2120,7 +1543,7 @@ static void pcd_flash_test_get_hash_null (CuTest *test)
 		sizeof (hash_out));
 	CuAssertIntEquals (test, MANIFEST_INVALID_ARGUMENT, status);
 
-	status = pcd.test.base.base.get_hash (&pcd.test.base.base, &pcd.hash.base, NULL,
+	status = pcd.test.base.base.get_hash (&pcd.test.base.base, &pcd.manifest.hash.base, NULL,
 		sizeof (hash_out));
 	CuAssertIntEquals (test, MANIFEST_INVALID_ARGUMENT, status);
 
@@ -2141,14 +1564,14 @@ static void pcd_flash_test_get_hash_bad_magic_num (CuTest *test)
 
 	pcd_flash_testing_init (test, &pcd, 0x10000);
 
-	status = flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, pcd_bad_data,
-		sizeof (pcd_bad_data), FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
-
+	status = mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read, 
+		&pcd.manifest.flash, 0, MOCK_ARG (pcd.manifest.addr), MOCK_ARG_NOT_NULL, 
+		MOCK_ARG (MANIFEST_V2_HEADER_SIZE));
+	status |= mock_expect_output (&pcd.manifest.flash.mock, 1, pcd_bad_data, 
+		MANIFEST_V2_HEADER_SIZE, 2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcd.test.base.base.get_hash (&pcd.test.base.base, &pcd.hash.base, hash_out,
+	status = pcd.test.base.base.get_hash (&pcd.test.base.base, &pcd.manifest.hash.base, hash_out,
 		sizeof (hash_out));
 	CuAssertIntEquals (test, MANIFEST_BAD_MAGIC_NUMBER, status);
 
@@ -2165,16 +1588,16 @@ static void pcd_flash_test_get_signature (CuTest *test)
 
 	pcd_flash_testing_init (test, &pcd, 0x10000);
 
-	status = flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA, PCD_HEADER_SIZE,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
+	status = mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read, 
+		&pcd.manifest.flash, 0, MOCK_ARG (pcd.manifest.addr), MOCK_ARG_NOT_NULL, 
+		MOCK_ARG (MANIFEST_V2_HEADER_SIZE));
+	status |= mock_expect_output (&pcd.manifest.flash.mock, 1, PCD_DATA, MANIFEST_V2_HEADER_SIZE, 
+		2);
 
-	status = flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_SIGNATURE,
-		PCD_SIGNATURE_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_SIGNATURE_OFFSET, 0, -1, PCD_SIGNATURE_LEN));
+	status |= mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read, 
+		&pcd.manifest.flash, 0, MOCK_ARG (pcd.manifest.addr + PCD_SIGNATURE_OFFSET), 
+		MOCK_ARG_NOT_NULL, MOCK_ARG (PCD_SIGNATURE_LEN));
+	status |= mock_expect_output (&pcd.manifest.flash.mock, 1, PCD_SIGNATURE, PCD_SIGNATURE_LEN, 2);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2195,8 +1618,7 @@ static void pcd_flash_test_get_signature_after_verify (CuTest *test)
 
 	TEST_START;
 
-	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, PCD_DATA, PCD_DATA_LEN, PCD_HASH,
-		PCD_SIGNATURE, PCD_SIGNATURE_OFFSET, PCD_PLATFORM_ID_LEN, 0);
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0);
 
 	status = pcd.test.base.base.get_signature (&pcd.test.base.base, sig_out, sizeof (sig_out));
 	CuAssertIntEquals (test, PCD_SIGNATURE_LEN, status);
@@ -2215,8 +1637,7 @@ static void pcd_flash_test_get_signature_null (CuTest *test)
 
 	TEST_START;
 
-	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, PCD_DATA, PCD_DATA_LEN, PCD_HASH,
-		PCD_SIGNATURE, PCD_SIGNATURE_OFFSET, PCD_PLATFORM_ID_LEN, 0);
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0);
 
 	status = pcd.test.base.base.get_signature (NULL, sig_out, sizeof (sig_out));
 	CuAssertIntEquals (test, PCD_INVALID_ARGUMENT, status);
@@ -2232,7 +1653,7 @@ static void pcd_flash_test_get_signature_bad_magic_number (CuTest *test)
 	struct pcd_flash_testing pcd;
 	uint8_t sig_out[SHA256_HASH_LENGTH];
 	int status;
-	uint8_t pcd_bad_data[PCD_SIGNATURE_OFFSET];
+	uint8_t pcd_bad_data[MANIFEST_V2_HEADER_SIZE];
 
 	TEST_START;
 
@@ -2241,10 +1662,13 @@ static void pcd_flash_test_get_signature_bad_magic_number (CuTest *test)
 
 	pcd_flash_testing_init (test, &pcd, 0x10000);
 
-	status = flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, pcd_bad_data,
-		sizeof (pcd_bad_data), FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_HEADER_SIZE));
+	
+
+	status = mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read, 
+		&pcd.manifest.flash, 0, MOCK_ARG (pcd.manifest.addr), MOCK_ARG_NOT_NULL, 
+		MOCK_ARG (MANIFEST_V2_HEADER_SIZE));
+	status |= mock_expect_output (&pcd.manifest.flash.mock, 1, pcd_bad_data, 
+		MANIFEST_V2_HEADER_SIZE, 2);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2263,8 +1687,7 @@ static void pcd_flash_test_get_platform_id (CuTest *test)
 
 	TEST_START;
 
-	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, PCD_DATA, PCD_DATA_LEN, PCD_HASH,
-		PCD_SIGNATURE, PCD_SIGNATURE_OFFSET, PCD_PLATFORM_ID_LEN, 0);
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0);
 
 	status = pcd.test.base.base.get_platform_id (&pcd.test.base.base, &id, sizeof (buffer));
 	CuAssertIntEquals (test, 0, status);
@@ -2282,8 +1705,7 @@ static void pcd_flash_test_get_platform_id_manifest_allocation (CuTest *test)
 
 	TEST_START;
 
-	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, PCD_DATA, PCD_DATA_LEN, PCD_HASH,
-		PCD_SIGNATURE, PCD_SIGNATURE_OFFSET, PCD_PLATFORM_ID_LEN, 0);
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0);
 
 	status = pcd.test.base.base.get_platform_id (&pcd.test.base.base, &id, 0);
 	CuAssertIntEquals (test, 0, status);
@@ -2303,8 +1725,7 @@ static void pcd_flash_test_get_platform_id_null (CuTest *test)
 
 	TEST_START;
 
-	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, PCD_DATA, PCD_DATA_LEN, PCD_HASH,
-		PCD_SIGNATURE, PCD_SIGNATURE_OFFSET, PCD_PLATFORM_ID_LEN, 0);
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0);
 
 	status = pcd.test.base.base.get_platform_id (NULL, &id, 0);
 	CuAssertIntEquals (test, PCD_INVALID_ARGUMENT, status);
@@ -2335,62 +1756,37 @@ static void pcd_flash_test_get_platform_id_verify_never_run (CuTest *test)
 static void pcd_flash_test_get_devices_info (CuTest *test)
 {
 	struct pcd_flash_testing pcd;
-	struct device_manager_info *devices_info;
+	struct device_manager_info *info;
 	size_t num_devices;
-	size_t pcd_offset;
 	int status;
 
 	TEST_START;
 
-	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, PCD_DATA, PCD_DATA_LEN, PCD_HASH,
-		PCD_SIGNATURE, PCD_SIGNATURE_OFFSET, PCD_PLATFORM_ID_LEN, 0);
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0);
 
-	status = flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + PCD_HEADER_OFFSET,
-		sizeof (struct pcd_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_HEADER_OFFSET, 0, -1,
-		sizeof (struct pcd_header)));
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest, 
+		PCD_TESTING.rot_entry, 0, PCD_TESTING.rot_hash, PCD_TESTING.rot_offset, PCD_TESTING.rot_len, 
+		sizeof (struct pcd_rot_element), 0);
 
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + PCD_ROT_OFFSET,
-		sizeof (struct pcd_rot_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_ROT_OFFSET, 0, -1,
-		sizeof (struct pcd_rot_header)));
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest, 
+		PCD_TESTING.direct_component_entry, 0, PCD_TESTING.direct_component_hash, 
+		PCD_TESTING.direct_component_offset, PCD_TESTING.direct_component_len, 20, 0);
 
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0,
-		PCD_DATA + PCD_COMPONENTS_OFFSET, sizeof (struct pcd_components_header),
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_COMPONENTS_OFFSET, 0, -1,
-			sizeof (struct pcd_components_header)));
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest, -1, 3, -1, 
+		0, 0, 0, 0);
 
-	pcd_offset = PCD_COMPONENTS_OFFSET + sizeof (struct pcd_components_header);
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest, 
+		PCD_TESTING.bridge_component_entry, 0, PCD_TESTING.bridge_component_hash, 
+		PCD_TESTING.bridge_component_offset, PCD_TESTING.bridge_component_len, 24, 0);
 
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		sizeof (struct pcd_component_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_component_header)));
-
-	pcd_offset += sizeof (struct pcd_component_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		sizeof (struct pcd_component_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_component_header)));
-
-	status = pcd.test.base.get_devices_info (&pcd.test.base, &devices_info, &num_devices);
+	status = pcd.test.base.get_devices_info (&pcd.test.base, &info, &num_devices);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 2, num_devices);
-	CuAssertPtrNotNull (test, devices_info);
+	CuAssertIntEquals (test, 0x75, info[0].smbus_addr);
+	CuAssertIntEquals (test, 0x77, info[0].eid);
+	CuAssertIntEquals (test, 0x30, info[1].eid);
 
-	CuAssertIntEquals (test, 0x10, devices_info[0].smbus_addr);
-	CuAssertIntEquals (test, 0x0C, devices_info[0].eid);
-	CuAssertIntEquals (test, 0x15, devices_info[1].smbus_addr);
-	CuAssertIntEquals (test, 0x0D, devices_info[1].eid);
-
-	platform_free (devices_info);
+	platform_free (info);
 
 	pcd_flash_testing_validate_and_release (test, &pcd);
 }
@@ -2398,22 +1794,21 @@ static void pcd_flash_test_get_devices_info (CuTest *test)
 static void pcd_flash_test_get_devices_info_null (CuTest *test)
 {
 	struct pcd_flash_testing pcd;
-	struct device_manager_info *devices_info;
+	struct device_manager_info *info;
 	size_t num_devices;
 	int status;
 
 	TEST_START;
 
-	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, PCD_DATA, PCD_DATA_LEN, PCD_HASH,
-		PCD_SIGNATURE, PCD_SIGNATURE_OFFSET, PCD_PLATFORM_ID_LEN, 0);
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0);
 
-	status = pcd.test.base.get_devices_info (NULL, &devices_info, &num_devices);
+	status = pcd.test.base.get_devices_info (NULL, &info, &num_devices);
 	CuAssertIntEquals (test, PCD_INVALID_ARGUMENT, status);
 
 	status = pcd.test.base.get_devices_info (&pcd.test.base, NULL, &num_devices);
 	CuAssertIntEquals (test, PCD_INVALID_ARGUMENT, status);
 
-	status = pcd.test.base.get_devices_info (&pcd.test.base, &devices_info, NULL);
+	status = pcd.test.base.get_devices_info (&pcd.test.base, &info, NULL);
 	CuAssertIntEquals (test, PCD_INVALID_ARGUMENT, status);
 
 	pcd_flash_testing_validate_and_release (test, &pcd);
@@ -2422,7 +1817,7 @@ static void pcd_flash_test_get_devices_info_null (CuTest *test)
 static void pcd_flash_test_get_devices_info_verify_never_run (CuTest *test)
 {
 	struct pcd_flash_testing pcd;
-	struct device_manager_info *devices_info;
+	struct device_manager_info *info;
 	size_t num_devices;
 	int status;
 
@@ -2430,154 +1825,323 @@ static void pcd_flash_test_get_devices_info_verify_never_run (CuTest *test)
 
 	pcd_flash_testing_init (test, &pcd, 0x10000);
 
-	status = pcd.test.base.get_devices_info (&pcd.test.base, &devices_info, &num_devices);
+	status = pcd.test.base.get_devices_info (&pcd.test.base, &info, &num_devices);
 	CuAssertIntEquals (test, MANIFEST_NO_MANIFEST, status);
 
 	pcd_flash_testing_validate_and_release (test, &pcd);
 }
 
-static void pcd_flash_test_get_devices_info_pcd_header_read_error (CuTest *test)
+static void pcd_flash_test_get_devices_info_no_components (CuTest *test)
 {
 	struct pcd_flash_testing pcd;
-	struct device_manager_info *devices_info;
+	struct device_manager_info *info;
 	size_t num_devices;
 	int status;
 
 	TEST_START;
 
-	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, PCD_DATA, PCD_DATA_LEN, PCD_HASH,
-		PCD_SIGNATURE, PCD_SIGNATURE_OFFSET, PCD_PLATFORM_ID_LEN, 0);
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_NO_COMPONENTS_TESTING, 0);
 
-	status = flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, FLASH_NO_MEMORY,
-		PCD_DATA + PCD_HEADER_SIZE, PCD_DATA_LEN - PCD_HEADER_SIZE,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_HEADER_SIZE, 0, -1, sizeof (struct pcd_header)));
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, 
+		&PCD_NO_COMPONENTS_TESTING.manifest, PCD_NO_COMPONENTS_TESTING.rot_entry, 0, 
+		PCD_NO_COMPONENTS_TESTING.rot_hash, PCD_NO_COMPONENTS_TESTING.rot_offset, 
+		PCD_NO_COMPONENTS_TESTING.rot_len, sizeof (struct pcd_rot_element), 0);
 
-	status = pcd.test.base.get_devices_info (&pcd.test.base, &devices_info, &num_devices);
-	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
-	CuAssertPtrEquals (test, devices_info, NULL);
-	CuAssertIntEquals (test, num_devices, 0);
-
-	pcd_flash_testing_validate_and_release (test, &pcd);
-}
-
-static void pcd_flash_test_get_devices_info_rot_header_read_error (CuTest *test)
-{
-	struct pcd_flash_testing pcd;
-	struct device_manager_info *devices_info;
-	size_t num_devices;
-	int status;
-
-	TEST_START;
-
-	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, PCD_DATA, PCD_DATA_LEN, PCD_HASH,
-		PCD_SIGNATURE, PCD_SIGNATURE_OFFSET, PCD_PLATFORM_ID_LEN, 0);
-
-	status = flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + PCD_HEADER_SIZE,
-		PCD_DATA_LEN - PCD_HEADER_SIZE,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_HEADER_SIZE, 0, -1, sizeof (struct pcd_header)));
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, FLASH_NO_MEMORY,
-		PCD_DATA + PCD_ROT_OFFSET, PCD_DATA_LEN - PCD_ROT_OFFSET,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_ROT_OFFSET, 0, -1, sizeof (struct pcd_rot_header)));
-
-	status = pcd.test.base.get_devices_info (&pcd.test.base, &devices_info, &num_devices);
-	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
-	CuAssertPtrEquals (test, devices_info, NULL);
-	CuAssertIntEquals (test, num_devices, 0);
-
-	pcd_flash_testing_validate_and_release (test, &pcd);
-}
-
-static void pcd_flash_test_get_devices_info_components_header_read_error (CuTest *test)
-{
-	struct pcd_flash_testing pcd;
-	struct device_manager_info *devices_info;
-	size_t num_devices;
-	int status;
-
-	TEST_START;
-
-	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, PCD_DATA, PCD_DATA_LEN, PCD_HASH,
-		PCD_SIGNATURE, PCD_SIGNATURE_OFFSET, PCD_PLATFORM_ID_LEN, 0);
-
-	status = flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + PCD_HEADER_SIZE,
-		PCD_DATA_LEN - PCD_HEADER_SIZE,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_HEADER_SIZE, 0, -1, sizeof (struct pcd_header)));
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0,	PCD_DATA + PCD_ROT_OFFSET,
-		PCD_DATA_LEN - PCD_ROT_OFFSET,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_ROT_OFFSET, 0, -1, sizeof (struct pcd_rot_header)));
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, FLASH_NO_MEMORY,
-		PCD_DATA + PCD_COMPONENTS_OFFSET, PCD_DATA_LEN - PCD_COMPONENTS_OFFSET,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_COMPONENTS_OFFSET, 0, -1,
-		sizeof (struct pcd_components_header)));
-
-	status = pcd.test.base.get_devices_info (&pcd.test.base, &devices_info, &num_devices);
-	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
-	CuAssertPtrEquals (test, devices_info, NULL);
-	CuAssertIntEquals (test, num_devices, 0);
-
-	pcd_flash_testing_validate_and_release (test, &pcd);
-}
-
-static void pcd_flash_test_get_devices_info_component_header_read_error (CuTest *test)
-{
-	struct pcd_flash_testing pcd;
-	struct device_manager_info *devices_info;
-	size_t num_devices;
-	size_t pcd_offset;
-	int status;
-
-	TEST_START;
-
-	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, PCD_DATA, PCD_DATA_LEN, PCD_HASH,
-		PCD_SIGNATURE, PCD_SIGNATURE_OFFSET, PCD_PLATFORM_ID_LEN, 0);
-
-	status = flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + PCD_HEADER_OFFSET,
-		sizeof (struct pcd_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_HEADER_OFFSET, 0, -1,
-		sizeof (struct pcd_header)));
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + PCD_ROT_OFFSET,
-		sizeof (struct pcd_rot_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_ROT_OFFSET, 0, -1,
-		sizeof (struct pcd_rot_header)));
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0,
-		PCD_DATA + PCD_COMPONENTS_OFFSET, sizeof (struct pcd_components_header),
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_COMPONENTS_OFFSET, 0, -1,
-			sizeof (struct pcd_components_header)));
-
-	pcd_offset = PCD_COMPONENTS_OFFSET + sizeof (struct pcd_components_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, FLASH_NO_MEMORY,
-		PCD_DATA + pcd_offset, sizeof (struct pcd_component_header),
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-			sizeof (struct pcd_component_header)));
-
-	status = pcd.test.base.get_devices_info (&pcd.test.base, &devices_info, &num_devices);
-	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
+	status = pcd.test.base.get_devices_info (&pcd.test.base, &info, &num_devices);
+	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, num_devices);
-	CuAssertPtrEquals (test, NULL, devices_info);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_get_devices_info_only_direct_components (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	struct device_manager_info *info;
+	size_t num_devices;
+	int status;
+
+	TEST_START;
+
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_ONLY_DIRECT_COMPONENTS_TESTING, 0);
+
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, 
+		&PCD_ONLY_DIRECT_COMPONENTS_TESTING.manifest, PCD_ONLY_DIRECT_COMPONENTS_TESTING.rot_entry, 
+		0, PCD_ONLY_DIRECT_COMPONENTS_TESTING.rot_hash, 
+		PCD_ONLY_DIRECT_COMPONENTS_TESTING.rot_offset, PCD_ONLY_DIRECT_COMPONENTS_TESTING.rot_len, 
+		sizeof (struct pcd_rot_element), 0);
+
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, 
+		&PCD_ONLY_DIRECT_COMPONENTS_TESTING.manifest, 
+		PCD_ONLY_DIRECT_COMPONENTS_TESTING.direct_component_entry, 0, 
+		PCD_ONLY_DIRECT_COMPONENTS_TESTING.direct_component_hash, 
+		PCD_ONLY_DIRECT_COMPONENTS_TESTING.direct_component_offset, 
+		PCD_ONLY_DIRECT_COMPONENTS_TESTING.direct_component_len, 20, 0);
+
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, 
+		&PCD_ONLY_DIRECT_COMPONENTS_TESTING.manifest, 
+		PCD_ONLY_DIRECT_COMPONENTS_TESTING.direct_component_entry + 1, 
+		PCD_ONLY_DIRECT_COMPONENTS_TESTING.direct_component_entry + 1, 
+		PCD_ONLY_DIRECT_COMPONENTS_TESTING.direct_component_hash + 1, 
+		PCD_ONLY_DIRECT_COMPONENTS_TESTING.direct_component_offset + 
+		PCD_ONLY_DIRECT_COMPONENTS_TESTING.direct_component_len, 
+		PCD_ONLY_DIRECT_COMPONENTS_TESTING.direct_component_len, 20, 0);
+
+	status = pcd.test.base.get_devices_info (&pcd.test.base, &info, &num_devices);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 2, num_devices);
+	CuAssertIntEquals (test, 0x75, info[0].smbus_addr);
+	CuAssertIntEquals (test, 0x77, info[0].eid);
+	CuAssertIntEquals (test, 0x88, info[1].eid);
+
+	platform_free (info);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_get_devices_info_multiple_direct_components (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	struct device_manager_info *info;
+	size_t num_devices;
+	int status;
+
+	TEST_START;
+
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING, 
+		0);
+
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, 
+		&PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.manifest, 
+		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.rot_entry, 0, 
+		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.rot_hash, 
+		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.rot_offset, 
+		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.rot_len, 
+		sizeof (struct pcd_rot_element), 0);
+
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, 
+		&PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.manifest, 
+		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.direct_component_entry, 0, 
+		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.direct_component_hash, 
+		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.direct_component_offset, 
+		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.direct_component_len, 20, 0);
+
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, 
+		&PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.manifest, 
+		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.direct_component_entry + 1, 
+		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.direct_component_entry + 1, 
+		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.direct_component_hash + 1, 
+		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.direct_component_offset + 
+		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.direct_component_len, 
+		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.direct_component_len, 20, 0);
+
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, 
+		&PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.manifest, -1, 
+		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.direct_component_entry + 2, -1, 0, 0, 0, 0);
+
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, 
+		&PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.manifest, 
+		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.bridge_component_entry, 0, 
+		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.bridge_component_hash, 
+		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.bridge_component_offset, 
+		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.bridge_component_len, 20, 0);
+
+	status = pcd.test.base.get_devices_info (&pcd.test.base, &info, &num_devices);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 3, num_devices);
+	CuAssertIntEquals (test, 0x75, info[0].smbus_addr);
+	CuAssertIntEquals (test, 0x77, info[0].eid);
+	CuAssertIntEquals (test, 0x81, info[1].smbus_addr);
+	CuAssertIntEquals (test, 0x88, info[1].eid);
+	CuAssertIntEquals (test, 0x30, info[2].eid);
+
+	platform_free (info);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_get_devices_info_only_bridge_components (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	struct device_manager_info *info;
+	size_t num_devices;
+	int status;
+
+	TEST_START;
+
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_ONLY_BRIDGE_COMPONENTS_TESTING, 0);
+
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, 
+		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest, PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_entry, 
+		0, PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_hash, 
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_offset, PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_len, 
+		sizeof (struct pcd_rot_element), 0);
+	
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, 
+		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest, -1, 0, -1, 0, 0, 0, 0);
+
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, 
+		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest, 
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_entry, 0, 
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_hash, 
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_offset, 
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len, 20, 0);
+
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, 
+		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest, 
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_entry + 1, 
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_entry + 1, 
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_hash + 1, 
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_offset + 
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len, 24, 24, 0);
+
+	status = pcd.test.base.get_devices_info (&pcd.test.base, &info, &num_devices);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 2, num_devices);
+	CuAssertIntEquals (test, 0x30, info[0].eid);
+	CuAssertIntEquals (test, 0x31, info[1].eid);
+
+	platform_free (info);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_get_devices_info_multiple_bridge_components (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	struct device_manager_info *info;
+	size_t num_devices;
+	int status;
+
+	TEST_START;
+
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING, 
+		0);
+
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, 
+		&PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.manifest, 
+		PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.rot_entry, 0, 
+		PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.rot_hash, 
+		PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.rot_offset, 
+		PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.rot_len, 
+		sizeof (struct pcd_rot_element), 0);
+
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, 
+		&PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.manifest, 
+		PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.direct_component_entry, 0, 
+		PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.direct_component_hash, 
+		PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.direct_component_offset, 
+		PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.direct_component_len, 20, 0);
+
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, 
+		&PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.manifest, -1, 
+		PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.direct_component_entry + 1, -1, 0, 0, 0, 0);
+
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, 
+		&PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.manifest, 
+		PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.bridge_component_entry, 0, 
+		PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.bridge_component_hash, 
+		PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.bridge_component_offset, 
+		PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.bridge_component_len, 20, 0);
+
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, 
+		&PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.manifest, 
+		PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.bridge_component_entry + 1, 
+		PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.bridge_component_entry + 1, 
+		PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.bridge_component_hash + 1, 
+		PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.bridge_component_offset + 
+		PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.bridge_component_len, 24, 24, 0);
+
+	status = pcd.test.base.get_devices_info (&pcd.test.base, &info, &num_devices);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 3, num_devices);
+	CuAssertIntEquals (test, 0x75, info[0].smbus_addr);
+	CuAssertIntEquals (test, 0x77, info[0].eid);
+	CuAssertIntEquals (test, 0x30, info[1].eid);
+	CuAssertIntEquals (test, 0x31, info[2].eid);
+
+	platform_free (info);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_get_devices_info_rot_read_error (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	struct device_manager_info *info;
+	size_t num_devices;
+	int status;
+
+	TEST_START;
+
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0);
+
+	status = mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read, 
+		&pcd.manifest.flash, FLASH_NO_MEMORY, MOCK_ARG (0x10000 + MANIFEST_V2_TOC_ENTRY_OFFSET), 
+		MOCK_ARG_NOT_NULL, MOCK_ARG (0x08));
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcd.test.base.get_devices_info (&pcd.test.base, &info, &num_devices);
+	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_get_devices_info_direct_read_error (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	struct device_manager_info *info;
+	size_t num_devices;
+	int status;
+
+	TEST_START;
+
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0);
+
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest, 
+		PCD_TESTING.rot_entry, 0, PCD_TESTING.rot_hash, PCD_TESTING.rot_offset, PCD_TESTING.rot_len, 
+		sizeof (struct pcd_rot_element), 0);
+
+	status = mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read, 
+		&pcd.manifest.flash, FLASH_NO_MEMORY, MOCK_ARG (0x10000 + MANIFEST_V2_TOC_ENTRY_OFFSET), 
+		MOCK_ARG_NOT_NULL, MOCK_ARG (0x08));
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcd.test.base.get_devices_info (&pcd.test.base, &info, &num_devices);
+	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_get_devices_info_bridge_read_error (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	struct device_manager_info *info;
+	size_t num_devices;
+	int status;
+
+	TEST_START;
+
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0);
+
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest, 
+		PCD_TESTING.rot_entry, 0, PCD_TESTING.rot_hash, PCD_TESTING.rot_offset, PCD_TESTING.rot_len, 
+		sizeof (struct pcd_rot_element), 0);
+
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest, 
+		PCD_TESTING.direct_component_entry, 0, PCD_TESTING.direct_component_hash, 
+		PCD_TESTING.direct_component_offset, PCD_TESTING.direct_component_len, 20, 0);
+
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest, -1, 3, -1, 
+		0, 0, 0, 0);
+
+	status = mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read, 
+		&pcd.manifest.flash, FLASH_NO_MEMORY, MOCK_ARG (0x10000 + MANIFEST_V2_TOC_ENTRY_OFFSET), 
+		MOCK_ARG_NOT_NULL, MOCK_ARG (0x08));
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcd.test.base.get_devices_info (&pcd.test.base, &info, &num_devices);
+	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
 
 	pcd_flash_testing_validate_and_release (test, &pcd);
 }
@@ -2590,26 +2154,21 @@ static void pcd_flash_test_get_rot_info (CuTest *test)
 
 	TEST_START;
 
-	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, PCD_DATA, PCD_DATA_LEN, PCD_HASH,
-		PCD_SIGNATURE, PCD_SIGNATURE_OFFSET, PCD_PLATFORM_ID_LEN, 0);
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0);
 
-	status = flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + PCD_HEADER_OFFSET,
-		sizeof (struct pcd_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_HEADER_OFFSET, 0, -1,
-		sizeof (struct pcd_header)));
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + PCD_ROT_OFFSET,
-		sizeof (struct pcd_rot_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_ROT_OFFSET, 0, -1,
-		sizeof (struct pcd_rot_header)));
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest, 
+		PCD_TESTING.rot_entry, 0, PCD_TESTING.rot_hash, PCD_TESTING.rot_offset, PCD_TESTING.rot_len, 
+		sizeof (struct pcd_rot_element), 0);
 
 	status = pcd.test.base.get_rot_info (&pcd.test.base, &info);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, info.is_pa_rot);
+	CuAssertIntEquals (test, 2, info.port_count);
+	CuAssertIntEquals (test, 2, info.components_count);
 	CuAssertIntEquals (test, 0x41, info.i2c_slave_addr);
-	CuAssertIntEquals (test, 0x10, info.bmc_i2c_addr);
+	CuAssertIntEquals (test, 0x0B, info.eid);
+	CuAssertIntEquals (test, 0x10, info.bridge_i2c_addr);
+	CuAssertIntEquals (test, 0x0A, info.bridge_eid);
 
 	pcd_flash_testing_validate_and_release (test, &pcd);
 }
@@ -2622,8 +2181,7 @@ static void pcd_flash_test_get_rot_info_null (CuTest *test)
 
 	TEST_START;
 
-	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, PCD_DATA, PCD_DATA_LEN, PCD_HASH,
-		PCD_SIGNATURE, PCD_SIGNATURE_OFFSET, PCD_PLATFORM_ID_LEN, 0);
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0);
 
 	status = pcd.test.base.get_rot_info (NULL, &info);
 	CuAssertIntEquals (test, PCD_INVALID_ARGUMENT, status);
@@ -2650,7 +2208,7 @@ static void pcd_flash_test_get_rot_info_verify_never_run (CuTest *test)
 	pcd_flash_testing_validate_and_release (test, &pcd);
 }
 
-static void pcd_flash_test_get_rot_info_pcd_header_read_error (CuTest *test)
+static void pcd_flash_test_get_rot_info_rot_read_error (CuTest *test)
 {
 	struct pcd_flash_testing pcd;
 	struct pcd_rot_info info;
@@ -2658,43 +2216,12 @@ static void pcd_flash_test_get_rot_info_pcd_header_read_error (CuTest *test)
 
 	TEST_START;
 
-	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, PCD_DATA, PCD_DATA_LEN, PCD_HASH,
-		PCD_SIGNATURE, PCD_SIGNATURE_OFFSET, PCD_PLATFORM_ID_LEN, 0);
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0);
 
-	status = flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, FLASH_NO_MEMORY,
-		PCD_DATA + PCD_HEADER_SIZE, PCD_DATA_LEN - PCD_HEADER_SIZE,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_HEADER_SIZE, 0, -1, sizeof (struct pcd_header)));
-
-	status = pcd.test.base.get_rot_info (&pcd.test.base, &info);
-	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
-
-	pcd_flash_testing_validate_and_release (test, &pcd);
-}
-
-static void pcd_flash_test_get_rot_info_rot_header_read_error (CuTest *test)
-{
-	struct pcd_flash_testing pcd;
-	struct pcd_rot_info info;
-	int status;
-
-	TEST_START;
-
-	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, PCD_DATA, PCD_DATA_LEN, PCD_HASH,
-		PCD_SIGNATURE, PCD_SIGNATURE_OFFSET, PCD_PLATFORM_ID_LEN, 0);
-
-	status = flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + PCD_HEADER_SIZE,
-		PCD_DATA_LEN - PCD_HEADER_SIZE,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_HEADER_SIZE, 0, -1, sizeof (struct pcd_header)));
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, FLASH_NO_MEMORY,
-		PCD_DATA + PCD_ROT_OFFSET, PCD_DATA_LEN - PCD_ROT_OFFSET,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_ROT_OFFSET, 0, -1, sizeof (struct pcd_rot_header)));
+	status = mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read, 
+		&pcd.manifest.flash, FLASH_NO_MEMORY, MOCK_ARG (0x10000 + MANIFEST_V2_TOC_ENTRY_OFFSET), 
+		MOCK_ARG_NOT_NULL, MOCK_ARG (0x08));
+	CuAssertIntEquals (test, 0, status);
 
 	status = pcd.test.base.get_rot_info (&pcd.test.base, &info);
 	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
@@ -2706,69 +2233,33 @@ static void pcd_flash_test_get_port_info (CuTest *test)
 {
 	struct pcd_flash_testing pcd;
 	struct pcd_port_info info;
-	size_t pcd_offset;
 	int status;
 
 	TEST_START;
 
-	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, PCD_DATA, PCD_DATA_LEN, PCD_HASH,
-		PCD_SIGNATURE, PCD_SIGNATURE_OFFSET, PCD_PLATFORM_ID_LEN, 0);
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0);
 
-	status = flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + PCD_HEADER_OFFSET,
-		sizeof (struct pcd_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_HEADER_OFFSET, 0, -1,
-		sizeof (struct pcd_header)));
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + PCD_ROT_OFFSET,
-		sizeof (struct pcd_rot_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_ROT_OFFSET, 0, -1,
-		sizeof (struct pcd_rot_header)));
-
-	pcd_offset = PCD_ROT_OFFSET + sizeof (struct pcd_rot_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		sizeof (struct pcd_port_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_port_header)));
-
-	pcd_offset += sizeof (struct pcd_port_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		sizeof (struct pcd_port_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_port_header)));
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest, 
+		PCD_TESTING.rot_entry, 0, PCD_TESTING.rot_hash, PCD_TESTING.rot_offset, PCD_TESTING.rot_len, 
+		sizeof (struct pcd_rot_element) + 2 * sizeof (struct pcd_port), 0);
 
 	status = pcd.test.base.get_port_info (&pcd.test.base, 0, &info);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, 48000000, info.spi_freq);
+	CuAssertIntEquals (test, 32000000, info.spi_freq);
+	CuAssertIntEquals (test, 0, info.flash_mode);
+	CuAssertIntEquals (test, 1, info.reset_ctrl);
+	CuAssertIntEquals (test, 0, info.policy);
 
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + PCD_HEADER_OFFSET,
-		sizeof (struct pcd_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_HEADER_OFFSET, 0, -1,
-		sizeof (struct pcd_header)));
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + PCD_ROT_OFFSET,
-		sizeof (struct pcd_rot_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_ROT_OFFSET, 0, -1,
-		sizeof (struct pcd_rot_header)));
-
-	pcd_offset = PCD_ROT_OFFSET + sizeof (struct pcd_rot_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		sizeof (struct pcd_port_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_port_header)));
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest, 
+		PCD_TESTING.rot_entry, 0, PCD_TESTING.rot_hash, PCD_TESTING.rot_offset, PCD_TESTING.rot_len, 
+		sizeof (struct pcd_rot_element) + 2 * sizeof (struct pcd_port), 0);
 
 	status = pcd.test.base.get_port_info (&pcd.test.base, 1, &info);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, 32000000, info.spi_freq);
+	CuAssertIntEquals (test, 64000000, info.spi_freq);
+	CuAssertIntEquals (test, 1, info.flash_mode);
+	CuAssertIntEquals (test, 0, info.reset_ctrl);
+	CuAssertIntEquals (test, 1, info.policy);
 
 	pcd_flash_testing_validate_and_release (test, &pcd);
 }
@@ -2781,8 +2272,7 @@ static void pcd_flash_test_get_port_info_null (CuTest *test)
 
 	TEST_START;
 
-	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, PCD_DATA, PCD_DATA_LEN, PCD_HASH,
-		PCD_SIGNATURE, PCD_SIGNATURE_OFFSET, PCD_PLATFORM_ID_LEN, 0);
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0);
 
 	status = pcd.test.base.get_port_info (NULL, 0, &info);
 	CuAssertIntEquals (test, PCD_INVALID_ARGUMENT, status);
@@ -2809,7 +2299,7 @@ static void pcd_flash_test_get_port_info_verify_never_run (CuTest *test)
 	pcd_flash_testing_validate_and_release (test, &pcd);
 }
 
-static void pcd_flash_test_get_port_info_pcd_header_read_error (CuTest *test)
+static void pcd_flash_test_get_port_info_no_ports (CuTest *test)
 {
 	struct pcd_flash_testing pcd;
 	struct pcd_port_info info;
@@ -2817,84 +2307,15 @@ static void pcd_flash_test_get_port_info_pcd_header_read_error (CuTest *test)
 
 	TEST_START;
 
-	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, PCD_DATA, PCD_DATA_LEN, PCD_HASH,
-		PCD_SIGNATURE, PCD_SIGNATURE_OFFSET, PCD_PLATFORM_ID_LEN, 0);
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_NO_PORTS_TESTING, 0);
 
-	status = flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, FLASH_NO_MEMORY,
-		PCD_DATA + PCD_HEADER_SIZE, PCD_DATA_LEN - PCD_HEADER_SIZE,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_HEADER_SIZE, 0, -1, sizeof (struct pcd_header)));
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_NO_PORTS_TESTING.manifest, 
+		PCD_NO_PORTS_TESTING.rot_entry, 0, PCD_NO_PORTS_TESTING.rot_hash, 
+		PCD_NO_PORTS_TESTING.rot_offset, PCD_NO_PORTS_TESTING.rot_len, 
+		sizeof (struct pcd_rot_element), 0);
 
 	status = pcd.test.base.get_port_info (&pcd.test.base, 0, &info);
-	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
-
-	pcd_flash_testing_validate_and_release (test, &pcd);
-}
-
-static void pcd_flash_test_get_port_info_rot_header_read_error (CuTest *test)
-{
-	struct pcd_flash_testing pcd;
-	struct pcd_port_info info;
-	int status;
-
-	TEST_START;
-
-	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, PCD_DATA, PCD_DATA_LEN, PCD_HASH,
-		PCD_SIGNATURE, PCD_SIGNATURE_OFFSET, PCD_PLATFORM_ID_LEN, 0);
-
-	status = flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + PCD_HEADER_SIZE,
-		PCD_DATA_LEN - PCD_HEADER_SIZE,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_HEADER_SIZE, 0, -1, sizeof (struct pcd_header)));
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, FLASH_NO_MEMORY,
-		PCD_DATA + PCD_ROT_OFFSET, PCD_DATA_LEN - PCD_ROT_OFFSET,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_ROT_OFFSET, 0, -1, sizeof (struct pcd_rot_header)));
-
-	status = pcd.test.base.get_port_info (&pcd.test.base, 0, &info);
-	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
-
-	pcd_flash_testing_validate_and_release (test, &pcd);
-}
-
-static void pcd_flash_test_get_port_info_port_header_read_error (CuTest *test)
-{
-	struct pcd_flash_testing pcd;
-	size_t pcd_offset;
-	struct pcd_port_info info;
-	int status;
-
-	TEST_START;
-
-	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, PCD_DATA, PCD_DATA_LEN, PCD_HASH,
-		PCD_SIGNATURE, PCD_SIGNATURE_OFFSET, PCD_PLATFORM_ID_LEN, 0);
-
-	status = flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + PCD_HEADER_OFFSET,
-		sizeof (struct pcd_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_HEADER_OFFSET, 0, -1,
-		sizeof (struct pcd_header)));
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + PCD_ROT_OFFSET,
-		sizeof (struct pcd_rot_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_ROT_OFFSET, 0, -1,
-		sizeof (struct pcd_rot_header)));
-
-	pcd_offset = PCD_ROT_OFFSET + sizeof (struct pcd_rot_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, FLASH_NO_MEMORY,
-		PCD_DATA + pcd_offset, sizeof (struct pcd_port_header),
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1, sizeof (struct pcd_port_header)));
-
-	status = pcd.test.base.get_port_info (&pcd.test.base, 0, &info);
-	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
+	CuAssertIntEquals (test, PCD_INVALID_PORT, status);
 
 	pcd_flash_testing_validate_and_release (test, &pcd);
 }
@@ -2903,41 +2324,15 @@ static void pcd_flash_test_get_port_info_port_id_invalid (CuTest *test)
 {
 	struct pcd_flash_testing pcd;
 	struct pcd_port_info info;
-	size_t pcd_offset;
 	int status;
 
 	TEST_START;
 
-	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, PCD_DATA, PCD_DATA_LEN, PCD_HASH,
-		PCD_SIGNATURE, PCD_SIGNATURE_OFFSET, PCD_PLATFORM_ID_LEN, 0);
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0);
 
-	status = flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + PCD_HEADER_OFFSET,
-		sizeof (struct pcd_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_HEADER_OFFSET, 0, -1,
-		sizeof (struct pcd_header)));
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + PCD_ROT_OFFSET,
-		sizeof (struct pcd_rot_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_ROT_OFFSET, 0, -1,
-		sizeof (struct pcd_rot_header)));
-
-	pcd_offset = PCD_ROT_OFFSET + sizeof (struct pcd_rot_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		sizeof (struct pcd_port_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_port_header)));
-
-	pcd_offset += sizeof (struct pcd_port_header);
-
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&pcd.flash_mock, 0, PCD_DATA + pcd_offset,
-		sizeof (struct pcd_port_header), FLASH_EXP_READ_CMD (0x03, 0x10000 + pcd_offset, 0, -1,
-		sizeof (struct pcd_port_header)));
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest, 
+		PCD_TESTING.rot_entry, 0, PCD_TESTING.rot_hash, PCD_TESTING.rot_offset, PCD_TESTING.rot_len, 
+		sizeof (struct pcd_rot_element) + 2 * sizeof (struct pcd_port), 0);
 
 	status = pcd.test.base.get_port_info (&pcd.test.base, 2, &info);
 	CuAssertIntEquals (test, PCD_INVALID_PORT, status);
@@ -2945,6 +2340,129 @@ static void pcd_flash_test_get_port_info_port_id_invalid (CuTest *test)
 	pcd_flash_testing_validate_and_release (test, &pcd);
 }
 
+static void pcd_flash_test_get_port_info_rot_read_error (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	struct pcd_port_info info;
+	int status;
+
+	TEST_START;
+
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0);
+
+	status = mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read, 
+		&pcd.manifest.flash, FLASH_NO_MEMORY, MOCK_ARG (0x10000 + MANIFEST_V2_TOC_ENTRY_OFFSET), 
+		MOCK_ARG_NOT_NULL, MOCK_ARG (0x08));
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcd.test.base.get_port_info (&pcd.test.base, 0, &info);
+	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_get_power_controller_info (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	struct pcd_power_controller_info info;
+	int status;
+
+	TEST_START;
+
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0);
+
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest, 
+		PCD_TESTING.power_ctrl_entry, 0, PCD_TESTING.power_ctrl_hash, PCD_TESTING.power_ctrl_offset, 
+		PCD_TESTING.power_ctrl_len, sizeof (struct pcd_power_controller_element), 0);
+
+	status = pcd.test.base.get_power_controller_info (&pcd.test.base, &info);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 2, info.mux_count);
+	CuAssertIntEquals (test, PCD_I2C_MODE_MULTIMASTER, info.i2c_mode);
+	CuAssertIntEquals (test, 2, info.bus);
+	CuAssertIntEquals (test, 0x22, info.address);
+	CuAssertIntEquals (test, 0x14, info.eid);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_get_power_controller_info_null (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	struct pcd_power_controller_info info;
+	int status;
+
+	TEST_START;
+
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0);
+
+	status = pcd.test.base.get_power_controller_info (NULL, &info);
+	CuAssertIntEquals (test, PCD_INVALID_ARGUMENT, status);
+
+	status = pcd.test.base.get_power_controller_info (&pcd.test.base, NULL);
+	CuAssertIntEquals (test, PCD_INVALID_ARGUMENT, status);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_get_power_controller_info_verify_never_run (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	struct pcd_power_controller_info info;
+	int status;
+
+	TEST_START;
+
+	pcd_flash_testing_init (test, &pcd, 0x10000);
+
+	status = pcd.test.base.get_power_controller_info (&pcd.test.base, &info);
+	CuAssertIntEquals (test, MANIFEST_NO_MANIFEST, status);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_get_power_controller_info_no_power_controller (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	struct pcd_power_controller_info info;
+	int status;
+
+	TEST_START;
+
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_NO_POWER_CONTROLLER_TESTING, 0);
+
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, 
+		&PCD_NO_POWER_CONTROLLER_TESTING.manifest, PCD_NO_POWER_CONTROLLER_TESTING.power_ctrl_entry, 
+		0, PCD_NO_POWER_CONTROLLER_TESTING.power_ctrl_hash, 
+		PCD_NO_POWER_CONTROLLER_TESTING.power_ctrl_offset, 
+		PCD_NO_POWER_CONTROLLER_TESTING.power_ctrl_len, 0, 0);
+
+	status = pcd.test.base.get_power_controller_info (&pcd.test.base, &info);
+	CuAssertIntEquals (test, MANIFEST_ELEMENT_NOT_FOUND, status);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_get_power_controller_info_power_controller_read_error (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	struct pcd_power_controller_info info;
+	int status;
+
+	TEST_START;
+
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0);
+
+	status = mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read, 
+		&pcd.manifest.flash, FLASH_NO_MEMORY, MOCK_ARG (0x10000 + MANIFEST_V2_TOC_ENTRY_OFFSET), 
+		MOCK_ARG_NOT_NULL, MOCK_ARG (0x08));
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcd.test.base.get_power_controller_info (&pcd.test.base, &info);
+	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
 
 CuSuite* get_pcd_flash_suite ()
 {
@@ -2957,24 +2475,11 @@ CuSuite* get_pcd_flash_suite ()
 	SUITE_ADD_TEST (suite, pcd_flash_test_verify);
 	SUITE_ADD_TEST (suite, pcd_flash_test_verify_null);
 	SUITE_ADD_TEST (suite, pcd_flash_test_verify_read_header_fail);
-	SUITE_ADD_TEST (suite, pcd_flash_test_verify_read_rot_header_fail);
-	SUITE_ADD_TEST (suite, pcd_flash_test_verify_read_port_header_fail);
-	SUITE_ADD_TEST (suite, pcd_flash_test_verify_read_components_header_fail);
-	SUITE_ADD_TEST (suite, pcd_flash_test_verify_read_component_header_fail);
-	SUITE_ADD_TEST (suite, pcd_flash_test_verify_read_mux_header_fail);
-	SUITE_ADD_TEST (suite, pcd_flash_test_verify_read_platform_header_fail);
-	SUITE_ADD_TEST (suite, pcd_flash_test_verify_platform_id_too_long);
-	SUITE_ADD_TEST (suite, pcd_flash_test_verify_read_platform_id_fail);
-	SUITE_ADD_TEST (suite, pcd_flash_test_verify_pcd_rot_too_big);
-	SUITE_ADD_TEST (suite, pcd_flash_test_verify_pcd_rot_too_big2);
-	SUITE_ADD_TEST (suite, pcd_flash_test_verify_pcd_components_too_big);
-	SUITE_ADD_TEST (suite, pcd_flash_test_verify_pcd_components_too_big2);
-	SUITE_ADD_TEST (suite, pcd_flash_test_verify_pcd_component_too_big);
-	SUITE_ADD_TEST (suite, pcd_flash_test_verify_pcd_component_too_big2);
-	SUITE_ADD_TEST (suite, pcd_flash_test_verify_pcd_platform_too_big);
-	SUITE_ADD_TEST (suite, pcd_flash_test_verify_invalid_pcd_platform_header_header_len);
 	SUITE_ADD_TEST (suite, pcd_flash_test_verify_bad_magic_number);
-	SUITE_ADD_TEST (suite, pcd_flash_test_verify_header_read_error);
+	SUITE_ADD_TEST (suite, pcd_flash_test_verify_no_power_controller);
+	SUITE_ADD_TEST (suite, pcd_flash_test_verify_no_components);
+	SUITE_ADD_TEST (suite, pcd_flash_test_verify_no_ports);
+	SUITE_ADD_TEST (suite, pcd_flash_test_verify_no_ports_power_controller_components);
 	SUITE_ADD_TEST (suite, pcd_flash_test_get_id);
 	SUITE_ADD_TEST (suite, pcd_flash_test_get_id_null);
 	SUITE_ADD_TEST (suite, pcd_flash_test_get_id_verify_never_run);
@@ -2993,22 +2498,29 @@ CuSuite* get_pcd_flash_suite ()
 	SUITE_ADD_TEST (suite, pcd_flash_test_get_devices_info);
 	SUITE_ADD_TEST (suite, pcd_flash_test_get_devices_info_null);
 	SUITE_ADD_TEST (suite, pcd_flash_test_get_devices_info_verify_never_run);
-	SUITE_ADD_TEST (suite, pcd_flash_test_get_devices_info_pcd_header_read_error);
-	SUITE_ADD_TEST (suite, pcd_flash_test_get_devices_info_rot_header_read_error);
-	SUITE_ADD_TEST (suite, pcd_flash_test_get_devices_info_components_header_read_error);
-	SUITE_ADD_TEST (suite, pcd_flash_test_get_devices_info_component_header_read_error);
+	SUITE_ADD_TEST (suite, pcd_flash_test_get_devices_info_no_components);
+	SUITE_ADD_TEST (suite, pcd_flash_test_get_devices_info_only_direct_components);
+	SUITE_ADD_TEST (suite, pcd_flash_test_get_devices_info_multiple_direct_components);
+	SUITE_ADD_TEST (suite, pcd_flash_test_get_devices_info_only_bridge_components);
+	SUITE_ADD_TEST (suite, pcd_flash_test_get_devices_info_multiple_bridge_components);
+	SUITE_ADD_TEST (suite, pcd_flash_test_get_devices_info_rot_read_error);
+	SUITE_ADD_TEST (suite, pcd_flash_test_get_devices_info_direct_read_error);
+	SUITE_ADD_TEST (suite, pcd_flash_test_get_devices_info_bridge_read_error);
 	SUITE_ADD_TEST (suite, pcd_flash_test_get_rot_info);
 	SUITE_ADD_TEST (suite, pcd_flash_test_get_rot_info_null);
 	SUITE_ADD_TEST (suite, pcd_flash_test_get_rot_info_verify_never_run);
-	SUITE_ADD_TEST (suite, pcd_flash_test_get_rot_info_pcd_header_read_error);
-	SUITE_ADD_TEST (suite, pcd_flash_test_get_rot_info_rot_header_read_error);
+	SUITE_ADD_TEST (suite, pcd_flash_test_get_rot_info_rot_read_error);
 	SUITE_ADD_TEST (suite, pcd_flash_test_get_port_info);
 	SUITE_ADD_TEST (suite, pcd_flash_test_get_port_info_null);
 	SUITE_ADD_TEST (suite, pcd_flash_test_get_port_info_verify_never_run);
-	SUITE_ADD_TEST (suite, pcd_flash_test_get_port_info_pcd_header_read_error);
-	SUITE_ADD_TEST (suite, pcd_flash_test_get_port_info_rot_header_read_error);
-	SUITE_ADD_TEST (suite, pcd_flash_test_get_port_info_port_header_read_error);
+	SUITE_ADD_TEST (suite, pcd_flash_test_get_port_info_no_ports);
 	SUITE_ADD_TEST (suite, pcd_flash_test_get_port_info_port_id_invalid);
+	SUITE_ADD_TEST (suite, pcd_flash_test_get_port_info_rot_read_error);
+	SUITE_ADD_TEST (suite, pcd_flash_test_get_power_controller_info);
+	SUITE_ADD_TEST (suite, pcd_flash_test_get_power_controller_info_null);
+	SUITE_ADD_TEST (suite, pcd_flash_test_get_power_controller_info_verify_never_run);
+	SUITE_ADD_TEST (suite, pcd_flash_test_get_power_controller_info_no_power_controller);
+	SUITE_ADD_TEST (suite, pcd_flash_test_get_power_controller_info_power_controller_read_error);
 
 	return suite;
 }

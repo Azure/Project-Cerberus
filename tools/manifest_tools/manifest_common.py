@@ -34,7 +34,7 @@ PFM_V2_FW_TYPE_ID = int ("0x11", 16)
 PFM_V2_FW_VERSION_TYPE_ID = int ("0x12", 16)
 
 PCD_V2_ROT_TYPE_ID = int ("0x40", 16)
-PCD_V2_I2C_CPLD_TYPE_ID = int ("0x41", 16)
+PCD_V2_I2C_POWER_CONTROLLER_TYPE_ID = int ("0x41", 16)
 PCD_V2_DIRECT_COMPONENT_TYPE_ID = int ("0x42", 16)
 PCD_V2_MCTP_BRIDGE_COMPONENT_TYPE_ID = int ("0x43", 16)
 
@@ -519,14 +519,14 @@ def generate_toc (hash_engine, hash_type, toc_list, hash_list):
     hash_len = hash_engine.digest_size 
 
     toc_len = ctypes.sizeof (manifest_toc_header) + \
-        (ctypes.sizeof (manifest_toc_entry) * num_entries) + ((num_entries + 1) * hash_len)
+        (ctypes.sizeof (manifest_toc_entry) + hash_len) * num_entries
     toc = (ctypes.c_ubyte * toc_len) ()
 
     toc_header_len = ctypes.sizeof (manifest_toc_header)
     toc_header = manifest_toc_header (num_entries, num_entries, hash_type, 0)
     ctypes.memmove (ctypes.addressof (toc), ctypes.addressof (toc_header), toc_header_len)
 
-    offset = ctypes.sizeof (manifest_header) + toc_len
+    offset = ctypes.sizeof (manifest_header) + toc_len + hash_len
     hash_id = 0
     toc_entry_len = ctypes.sizeof (manifest_toc_entry)
     toc_offset = toc_header_len
@@ -548,6 +548,11 @@ def generate_toc (hash_engine, hash_type, toc_list, hash_list):
         toc_offset += hash_len
 
     table_hash = generate_hash (toc, hash_engine)
-    ctypes.memmove (ctypes.addressof (toc) + toc_offset, ctypes.addressof (table_hash), hash_len)
 
-    return toc
+    toc_w_hash = (ctypes.c_ubyte * (toc_len + hash_len)) ()
+
+    ctypes.memmove (ctypes.addressof (toc_w_hash), ctypes.addressof (toc), toc_len)
+    ctypes.memmove (ctypes.addressof (toc_w_hash) + toc_offset, ctypes.addressof (table_hash), 
+        hash_len)
+
+    return toc_w_hash
