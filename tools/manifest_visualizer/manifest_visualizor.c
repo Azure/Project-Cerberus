@@ -463,25 +463,25 @@ int32_t visualize_pcd_rot_element (uint8_t *start, const char* prefix)
 	printf ("%s\tbridge_address: 0x%x\n", prefix, rot->bridge_address);
 	printf ("%s\tbridge_eid: 0x%x\n", prefix, rot->bridge_eid);
 	printf ("%s\treserved: %i\n", prefix, rot->reserved);
+	printf ("%s}\n", prefix);
 
-	printf ("%s\tPorts\n", prefix);
-	printf ("%s\t[\n", prefix);
+	return (pointer - start);
+}
 
-	for (int i = 0; i < rot->port_count; ++i) {
-		struct pcd_port *port = (struct pcd_port*) pointer;
-		pointer += sizeof (struct pcd_port);
+int32_t visualize_pcd_port_element (uint8_t *start, const char* prefix)
+{
+	uint8_t *pointer = start;
+	struct pcd_port_element *port = (struct pcd_port_element*) pointer;
+	
+	pointer += sizeof (struct pcd_port_element);
 
-		printf ("%s\t\tpcd_port\n", prefix);
-		printf ("%s\t\t{\n", prefix);
-		printf ("%s\t\t\tport_id: %i\n", prefix, port->port_id);
-		printf ("%s\t\t\tport_flags: 0x%x\n", prefix, port->port_flags);
-		printf ("%s\t\t\tpolicy: 0x%x\n", prefix, port->policy);
-		printf ("%s\t\t\treserved: %i\n", prefix, port->reserved);
-		printf ("%s\t\t\tspi_frequency_hz: %i\n", prefix, port->spi_frequency_hz);
-		printf ("%s\t\t}\n", prefix);
-	}
-
-	printf ("%s\t]\n", prefix);
+	printf ("%spcd_port_element\n", prefix);
+	printf ("%s{\n", prefix);
+	printf ("%s\tport_id: %i\n", prefix, port->port_id);
+	printf ("%s\tport_flags: 0x%x\n", prefix, port->port_flags);
+	printf ("%s\tpolicy: 0x%x\n", prefix, port->policy);
+	printf ("%s\tpulse_interval: %i\n", prefix, port->pulse_interval);
+	printf ("%s\tspi_frequency_hz: %i\n", prefix, port->spi_frequency_hz);
 	printf ("%s}\n", prefix);
 
 	return (pointer - start);
@@ -541,7 +541,7 @@ int32_t visualize_pcd_direct_i2c_component_element (uint8_t *start, const char* 
 	printf ("%s\tpower_ctrl_mask: 0x%x\n", prefix, component->power_ctrl_mask);
 	printf ("%s\ttype_len: %i\n", prefix, component->type_len);
 
-	type = malloc (component->type_len + 1);
+	type = malloc ((size_t) component->type_len + 1);
 	if (type == NULL) {
 		printf ("Failed to allocate type buffer.\n");
 		return -1;
@@ -553,7 +553,7 @@ int32_t visualize_pcd_direct_i2c_component_element (uint8_t *start, const char* 
 	printf ("%s\tType: %s\n", prefix, type);
 	free (type);
 
-	type_len = ((component->type_len + 3) & ~((size_t) 3));
+	type_len = (((size_t) component->type_len + 3) & ~((size_t) 3));
 	pointer += type_len;
 
 	interface = (struct pcd_i2c_interface*) pointer;
@@ -602,7 +602,7 @@ int32_t visualize_pcd_mctp_bridge_component_element (uint8_t *start, const char*
 	printf ("%s\tpower_ctrl_mask: 0x%x\n", prefix, component->power_ctrl_mask);
 	printf ("%s\ttype_len: %i\n", prefix, component->type_len);
 
-	type = malloc (component->type_len + 1);
+	type = malloc ((size_t) component->type_len + 1);
 	if (type == NULL) {
 		printf ("Failed to allocate type buffer.\n");
 		return -1;
@@ -614,7 +614,7 @@ int32_t visualize_pcd_mctp_bridge_component_element (uint8_t *start, const char*
 	printf ("%s\tType: %s\n", prefix, type);
 	free (type);
 
-	type_len = ((component->type_len + 3) & ~((size_t) 3));
+	type_len = (((size_t) component->type_len + 3) & ~((size_t) 3));
 	pointer += type_len;
 
 	printf ("%s\tdevice_id: 0x%x\n", prefix, *((uint16_t*) pointer));
@@ -698,6 +698,9 @@ int32_t visualize_pcd (uint8_t *start)
 		switch (element_types[i]) {
 			case PCD_ROT:
 				offset = visualize_pcd_rot_element (pointer, "");
+				break;
+			case PCD_SPI_FLASH_PORT:
+				offset = visualize_pcd_port_element (pointer, "");
 				break;
 			case PCD_POWER_CONTROLLER:
 				offset = visualize_pcd_power_controller_element (pointer, "");

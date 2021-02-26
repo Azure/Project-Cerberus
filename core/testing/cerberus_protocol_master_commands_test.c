@@ -2893,7 +2893,7 @@ void cerberus_protocol_master_commands_testing_process_get_pcd_id_platform (CuTe
 	struct cerberus_protocol_get_pcd_id *req = (struct cerberus_protocol_get_pcd_id*) data;
 	struct cerberus_protocol_get_pcd_id_platform_response *resp =
 		(struct cerberus_protocol_get_pcd_id_platform_response*) data;
-	size_t id_length = PCD_PLATFORM_ID_LEN + 1;
+	size_t id_length = PCD_TESTING.manifest.plat_id_str_len + 1;
 	int max = CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG - 1;
 	int status;
 
@@ -2920,7 +2920,8 @@ void cerberus_protocol_master_commands_testing_process_get_pcd_id_platform (CuTe
 
 	status |= mock_expect (&pcd_mock.mock, pcd_mock.base.base.get_platform_id, &pcd_mock, 0,
 		MOCK_ARG_PTR_PTR_NOT_NULL, MOCK_ARG (max));
-	status |= mock_expect_output_ptr (&pcd_mock.mock, 0, PCD_PLATFORM_ID, id_length, -1);
+	status |= mock_expect_output_ptr (&pcd_mock.mock, 0, PCD_TESTING.manifest.plat_id_str, 
+		id_length, -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2939,7 +2940,8 @@ void cerberus_protocol_master_commands_testing_process_get_pcd_id_platform (CuTe
 	CuAssertIntEquals (test, 0, resp->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_PCD_ID, resp->header.command);
 	CuAssertIntEquals (test, 1, resp->valid);
-	CuAssertStrEquals (test, PCD_PLATFORM_ID, (char*) &resp->platform);
+	CuAssertStrEquals (test, (const char*) PCD_TESTING.manifest.plat_id_str, 
+		(const char*) &resp->platform);
 	CuAssertIntEquals (test, false, request.new_request);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 

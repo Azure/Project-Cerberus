@@ -75,71 +75,38 @@ static int pcd_flash_get_signature (struct manifest *pcd, uint8_t *signature, si
 	return manifest_flash_get_signature (&pcd_flash->base_flash, signature, length);
 }
 
-static int pcd_flash_get_port_info (struct pcd *pcd, uint8_t port_id, struct pcd_port_info *info)
+/**
+ * Helper function that grabs RoT element information from PCD.
+ *
+ * @param pcd The PCD instance to utilize.
+ * @param rot_element_ptr Pointer to an pcd_rot_element instance.
+ * @param found Optional buffer to contain index of RoT element if found, set to NULL if unused.
+ *
+ * @return 0 if completed successfully or an error code.
+ */
+static int pcd_flash_get_rot_element_ptr (struct pcd *pcd, uint8_t *rot_element_ptr, uint8_t *found) 
 {
 	struct pcd_flash *pcd_flash = (struct pcd_flash*) pcd;
-	struct pcd_rot_element *rot_element = NULL;
-	struct pcd_port *port_element;
-	int i_port;
 	int status;
 
-	if ((pcd_flash == NULL) || (info == NULL)) {
-		return PCD_INVALID_ARGUMENT;
-	}
-
-	if (!pcd_flash->base_flash.manifest_valid) {
-		return MANIFEST_NO_MANIFEST;
-	}
-
 	status = manifest_flash_read_element_data (&pcd_flash->base_flash, pcd_flash->base_flash.hash,
-		PCD_ROT, 0, MANIFEST_NO_PARENT, 0, NULL, NULL, NULL, (uint8_t**) &rot_element, 0);
+		PCD_ROT, 0, MANIFEST_NO_PARENT, 0, found, NULL, NULL, &rot_element_ptr, 
+		sizeof (struct pcd_rot_element));
 	if (ROT_IS_ERROR (status)) {
 		return status;
 	}
 
 	if (status < (int) (sizeof (struct pcd_rot_element))) {
-		status = PCD_MALFORMED_ROT_ELEMENT;
-		goto done;
+		return PCD_MALFORMED_ROT_ELEMENT;
 	}
 
-	if (rot_element->port_count == 0) {
-		goto port_not_found;
-	}
-
-	if (status < (int) (sizeof (struct pcd_rot_element) + 
-		sizeof (struct pcd_port) * rot_element->port_count)) {
-		status = PCD_MALFORMED_ROT_ELEMENT;
-		goto done;
-	}
-
-	port_element = (struct pcd_port*) (((uint8_t*) rot_element) + sizeof (struct pcd_rot_element));
-
-	for (i_port = 0; i_port < rot_element->port_count; ++i_port, ++port_element) {
-		if (port_element->port_id == port_id) {
-	 		info->spi_freq = port_element->spi_frequency_hz;
-			info->flash_mode = pcd_get_port_flash_mode (port_element);
-			info->reset_ctrl = pcd_get_port_reset_control (port_element);
-			info->policy = port_element->policy;
-
-			status = 0;
-			goto done;
-		}
-	}
-
-port_not_found:
-	status = PCD_INVALID_PORT;
-
-done:
-	platform_free (rot_element);
-
-	return status;
+	return 0;
 }
 
 static int pcd_flash_get_rot_info (struct pcd *pcd, struct pcd_rot_info *info)
 {
 	struct pcd_flash *pcd_flash = (struct pcd_flash*) pcd;
 	struct pcd_rot_element rot_element;
-	uint8_t *rot_element_ptr = (uint8_t*) &rot_element;
 	int status;
 
 	if ((pcd_flash == NULL) || (info == NULL)) {
@@ -150,15 +117,9 @@ static int pcd_flash_get_rot_info (struct pcd *pcd, struct pcd_rot_info *info)
 		return MANIFEST_NO_MANIFEST;
 	}
 
-	status = manifest_flash_read_element_data (&pcd_flash->base_flash, pcd_flash->base_flash.hash,
-		PCD_ROT, 0, MANIFEST_NO_PARENT, 0, NULL, NULL, NULL, &rot_element_ptr, 
-		sizeof (struct pcd_rot_element));
-	if (ROT_IS_ERROR (status)) {
+	status = pcd_flash_get_rot_element_ptr (pcd, (uint8_t*) &rot_element, NULL);
+	if (status != 0) {
 		return status;
-	}
-
-	if (status < (int) sizeof (struct pcd_rot_element)) {
-		return PCD_MALFORMED_ROT_ELEMENT;
 	}
 
 	info->is_pa_rot = (pcd_get_rot_type (&rot_element) == PCD_ROT_TYPE_PA_ROT);
@@ -170,6 +131,68 @@ static int pcd_flash_get_rot_info (struct pcd *pcd, struct pcd_rot_info *info)
 	info->bridge_eid = rot_element.bridge_eid;
 
 	return 0;
+}
+
+static int pcd_flash_get_port_info (struct pcd *pcd, uint8_t port_id, struct pcd_port_info *info)
+{
+	struct pcd_flash *pcd_flash = (struct pcd_flash*) pcd;
+	struct pcd_port_element port_element;
+	uint8_t *port_element_ptr = (uint8_t*) &port_element;
+	struct pcd_rot_element rot_element;
+	uint8_t found; 
+	int start = 0;
+	int i_port;
+	int status;
+
+	if ((pcd_flash == NULL) || (info == NULL)) {
+		return PCD_INVALID_ARGUMENT;
+	}
+
+	if (!pcd_flash->base_flash.manifest_valid) {
+		return MANIFEST_NO_MANIFEST;
+	}
+
+	status = pcd_flash_get_rot_element_ptr (pcd, (uint8_t*) &rot_element, &found);
+	if (status != 0) {
+		return status;
+	}
+
+	if (rot_element.port_count == 0) {
+		return PCD_INVALID_PORT;
+	}
+
+	start = found + 1;
+
+	for (i_port = 0; i_port < rot_element.port_count; ++i_port) {
+		status = manifest_flash_read_element_data (&pcd_flash->base_flash, 
+			pcd_flash->base_flash.hash, PCD_SPI_FLASH_PORT, start, PCD_ROT, 0, &found, 
+			NULL, NULL, &port_element_ptr, sizeof (struct pcd_port_element));
+		if (status == MANIFEST_CHILD_NOT_FOUND) {
+			return PCD_INVALID_PORT;
+		}
+		if (ROT_IS_ERROR (status)) {
+			return status;
+		}
+		if (((size_t) status) < (sizeof (struct pcd_port_element))) {
+			return PCD_MALFORMED_PORT_ELEMENT;
+		}
+		if (port_element.port_id != port_id) {
+			start = found + 1;
+			continue;
+		}
+
+		info->spi_freq = port_element.spi_frequency_hz;
+		info->flash_mode = pcd_get_port_flash_mode (&port_element);
+		info->reset_ctrl = pcd_get_port_reset_control (&port_element);
+		info->runtime_verification = pcd_get_port_runtime_verification (&port_element);
+		info->watchdog_monitoring = pcd_get_port_watchdog_monitoring (&port_element);
+		info->policy = port_element.policy;
+		info->pulse_interval = port_element.pulse_interval;
+
+		return 0;
+	}
+
+	return PCD_INVALID_PORT;
 }
 
 static int pcd_flash_get_power_controller_info (struct pcd *pcd, 

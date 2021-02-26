@@ -34,9 +34,10 @@ PFM_V2_FW_TYPE_ID = int ("0x11", 16)
 PFM_V2_FW_VERSION_TYPE_ID = int ("0x12", 16)
 
 PCD_V2_ROT_TYPE_ID = int ("0x40", 16)
-PCD_V2_I2C_POWER_CONTROLLER_TYPE_ID = int ("0x41", 16)
-PCD_V2_DIRECT_COMPONENT_TYPE_ID = int ("0x42", 16)
-PCD_V2_MCTP_BRIDGE_COMPONENT_TYPE_ID = int ("0x43", 16)
+PCD_V2_SPI_FLASH_PORT_TYPE_ID = int ("0x41", 16)
+PCD_V2_I2C_POWER_CONTROLLER_TYPE_ID = int ("0x42", 16)
+PCD_V2_DIRECT_COMPONENT_TYPE_ID = int ("0x43", 16)
+PCD_V2_MCTP_BRIDGE_COMPONENT_TYPE_ID = int ("0x44", 16)
 
 class manifest_header (ctypes.LittleEndianStructure):
     _pack_ = 1
@@ -190,9 +191,9 @@ def generate_manifest_header (manifest_id, key_size, manifest_type, hash_type, k
     sig_type = 0
     key_strength = 0
 
-    if key_size is not None:
+    if key_size != None:
         sig_len = key_size
-        if key_type is not None:
+        if key_type != None:
             if key_type == 1:
                 sig_len = ((key_size + 1) * 2) + 6
                 key_strength = 2 if key_size == 66 else 1 if key_size == 48 else 0
@@ -201,7 +202,7 @@ def generate_manifest_header (manifest_id, key_size, manifest_type, hash_type, k
 
             sig_type |= key_type << 6 | key_strength << 3
 
-        if hash_type is not None:
+        if hash_type != None:
             sig_type |= hash_type << 0
 
     return manifest_header (0, magic_num, int (manifest_id), sig_len, sig_type, 0)
@@ -514,6 +515,9 @@ def generate_toc (hash_engine, hash_type, toc_list, hash_list):
     if len (toc_list) != len (hash_list):
         raise ValueError ("toc_list and hash_list lengths dont match: {0} vs {1}".format (
             len (toc_list), len (hash_list)))
+    if len (toc_list) >= 256:
+        raise ValueError ("Number of ToC elements too large: {0} vs {1}".format (len (toc_list), 
+        256))
 
     num_entries = len (toc_list)
     hash_len = hash_engine.digest_size 

@@ -6,12 +6,18 @@
 				<ResetCtrl>Reset</ResetCtrl>
 				<FlashMode>Dual</FlashMode>
 				<Policy>Passive</Policy>
+				<RuntimeVerification>Enabled</RuntimeVerification>
+				<WatchdogMonitoring>Enabled</WatchdogMonitoring>
+				<PulseInterval>0</PulseInterval>
 			</Port>
 			<Port id="1">
 				<SPIFreq>64000000</SPIFreq>
 				<ResetCtrl>Notify</ResetCtrl>
 				<FlashMode>Single</FlashMode>
 				<Policy>Active</Policy>
+				<RuntimeVerification>Disabled</RuntimeVerification>
+				<WatchdogMonitoring>Disabled</WatchdogMonitoring>
+				<PulseInterval>10</PulseInterval>
 			</Port>
 		</Ports>
 		<Interface type="I2C">

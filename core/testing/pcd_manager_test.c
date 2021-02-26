@@ -606,10 +606,10 @@ static void pcd_manager_test_get_platform_id_measured_data (CuTest *test)
 {
 	struct pcd_mock pcd;
 	struct pcd_manager_mock manager;
-	uint8_t buffer[PCD_PLATFORM_ID_LEN + 1];
+	uint8_t buffer[PCD_TESTING.manifest.plat_id_str_len + 1];
 	size_t length = sizeof (buffer);
-	size_t id_length = PCD_PLATFORM_ID_LEN + 1;
-	const char *id = PCD_PLATFORM_ID;
+	size_t id_length = PCD_TESTING.manifest.plat_id_str_len + 1;
+	const char *id = PCD_TESTING.manifest.plat_id_str;
 	uint32_t total_len;
 	int status;
 
@@ -639,7 +639,8 @@ static void pcd_manager_test_get_platform_id_measured_data (CuTest *test)
 	CuAssertIntEquals (test, id_length, status);
 	CuAssertIntEquals (test, id_length, total_len);
 
-	status = testing_validate_array ((uint8_t*) PCD_PLATFORM_ID, buffer, id_length);
+	status = testing_validate_array ((uint8_t*) PCD_TESTING.manifest.plat_id_str, buffer, 
+		id_length);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcd_mock_validate_and_release (&pcd);
@@ -653,10 +654,10 @@ static void pcd_manager_test_get_platform_id_measured_data_offset (CuTest *test)
 {
 	struct pcd_mock pcd;
 	struct pcd_manager_mock manager;
-	uint8_t buffer[PCD_PLATFORM_ID_LEN + 1];
+	uint8_t buffer[PCD_TESTING.manifest.plat_id_str_len + 1];
 	size_t length = sizeof (buffer);
-	size_t id_length = PCD_PLATFORM_ID_LEN + 1;
-	const char *id = PCD_PLATFORM_ID;
+	size_t id_length = PCD_TESTING.manifest.plat_id_str_len + 1;
+	const char *id = PCD_TESTING.manifest.plat_id_str;
 	uint32_t total_len;
 	int status;
 
@@ -686,7 +687,8 @@ static void pcd_manager_test_get_platform_id_measured_data_offset (CuTest *test)
 	CuAssertIntEquals (test, id_length - 2, status);
 	CuAssertIntEquals (test, id_length, total_len);
 
-	status = testing_validate_array ((uint8_t*) PCD_PLATFORM_ID + 2, buffer, id_length - 2);
+	status = testing_validate_array ((uint8_t*) PCD_TESTING.manifest.plat_id_str + 2, buffer, 
+		id_length - 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcd_mock_validate_and_release (&pcd);
@@ -702,7 +704,7 @@ static void pcd_manager_test_get_platform_id_measured_data_small_buffer (CuTest 
 	struct pcd_manager_mock manager;
 	uint8_t buffer[5];
 	size_t length = sizeof (buffer);
-	const char *id = PCD_PLATFORM_ID;
+	const char *id = PCD_TESTING.manifest.plat_id_str;
 	uint32_t total_len;
 	int status;
 
@@ -730,9 +732,9 @@ static void pcd_manager_test_get_platform_id_measured_data_small_buffer (CuTest 
 	status = pcd_manager_get_platform_id_measured_data (&manager.base, 0, buffer, length,
 		&total_len);
 	CuAssertIntEquals (test, length, status);
-	CuAssertIntEquals (test, PCD_PLATFORM_ID_LEN + 1, total_len);
+	CuAssertIntEquals (test, PCD_TESTING.manifest.plat_id_str_len + 1, total_len);
 
-	status = testing_validate_array ((uint8_t*) PCD_PLATFORM_ID, buffer, length);
+	status = testing_validate_array ((uint8_t*) PCD_TESTING.manifest.plat_id_str, buffer, length);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcd_mock_validate_and_release (&pcd);
@@ -780,10 +782,10 @@ static void pcd_manager_test_get_platform_id_measured_data_0_bytes_read (CuTest 
 {
 	struct pcd_mock pcd;
 	struct pcd_manager_mock manager;
-	uint8_t buffer[PCD_PLATFORM_ID_LEN + 1];
+	uint8_t buffer[PCD_TESTING.manifest.plat_id_str_len + 1];
 	size_t length = sizeof (buffer);
-	size_t id_length = PCD_PLATFORM_ID_LEN + 1;
-	const char *id = PCD_PLATFORM_ID;
+	size_t id_length = PCD_TESTING.manifest.plat_id_str_len + 1;
+	const char *id = PCD_TESTING.manifest.plat_id_str;
 	uint32_t total_len;
 	int status;
 
@@ -824,7 +826,7 @@ static void pcd_manager_test_get_platform_id_measured_data_null (CuTest *test)
 {
 	struct pcd_mock pcd;
 	struct pcd_manager_mock manager;
-	uint8_t buffer[PCD_PLATFORM_ID_LEN];
+	uint8_t buffer[PCD_TESTING.manifest.plat_id_str_len];
 	size_t length = sizeof (buffer);
 	uint32_t total_len;
 	int status;
@@ -916,17 +918,19 @@ static void pcd_manager_test_get_pcd_measured_data (CuTest *test)
 	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager,
 		0, MOCK_ARG (&pcd.base));
 
-	status |= mock_expect (&pcd.mock, pcd.base.base.get_hash, &pcd, PCD_HASH_LEN,
+	status |= mock_expect (&pcd.mock, pcd.base.base.get_hash, &pcd, PCD_TESTING.manifest.hash_len,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
-	status |= mock_expect_output (&pcd.mock, 1, PCD_HASH, PCD_HASH_LEN, 2);
+	status |= mock_expect_output (&pcd.mock, 1, PCD_TESTING.manifest.hash, 
+		PCD_TESTING.manifest.hash_len, 2);
 
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcd_manager_get_pcd_measured_data (&manager.base, 0, buffer, length, &total_len);
-	CuAssertIntEquals (test, PCD_HASH_LEN, status);
-	CuAssertIntEquals (test, PCD_HASH_LEN, total_len);
+	CuAssertIntEquals (test, PCD_TESTING.manifest.hash_len, status);
+	CuAssertIntEquals (test, PCD_TESTING.manifest.hash_len, total_len);
 
-	status = testing_validate_array (PCD_HASH, buffer, PCD_HASH_LEN);
+	status = testing_validate_array (PCD_TESTING.manifest.hash, buffer, 
+		PCD_TESTING.manifest.hash_len);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcd_mock_validate_and_release (&pcd);
@@ -1049,17 +1053,19 @@ static void pcd_manager_test_get_pcd_measured_data_offset (CuTest *test)
 	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager,
 		0, MOCK_ARG (&pcd.base));
 
-	status |= mock_expect (&pcd.mock, pcd.base.base.get_hash, &pcd, PCD_HASH_LEN,
+	status |= mock_expect (&pcd.mock, pcd.base.base.get_hash, &pcd, PCD_TESTING.manifest.hash_len,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
-	status |= mock_expect_output (&pcd.mock, 1, PCD_HASH, PCD_HASH_LEN, 2);
+	status |= mock_expect_output (&pcd.mock, 1, PCD_TESTING.manifest.hash, 
+		PCD_TESTING.manifest.hash_len, 2);
 
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcd_manager_get_pcd_measured_data (&manager.base, offset, buffer, length, &total_len);
-	CuAssertIntEquals (test, PCD_HASH_LEN - offset, status);
-	CuAssertIntEquals (test, PCD_HASH_LEN, total_len);
+	CuAssertIntEquals (test, PCD_TESTING.manifest.hash_len - offset, status);
+	CuAssertIntEquals (test, PCD_TESTING.manifest.hash_len, total_len);
 
-	status = testing_validate_array (PCD_HASH + 2, buffer, PCD_HASH_LEN - 2);
+	status = testing_validate_array (PCD_TESTING.manifest.hash + 2, buffer, 
+		PCD_TESTING.manifest.hash_len - 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcd_mock_validate_and_release (&pcd);
@@ -1090,18 +1096,20 @@ static void pcd_manager_test_get_pcd_measured_data_small_buffer (CuTest *test)
 	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager,
 		0, MOCK_ARG (&pcd.base));
 
-	status |= mock_expect (&pcd.mock, pcd.base.base.get_hash, &pcd, PCD_HASH_LEN,
+	status |= mock_expect (&pcd.mock, pcd.base.base.get_hash, &pcd, PCD_TESTING.manifest.hash_len,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
-	status |= mock_expect_output (&pcd.mock, 1, PCD_HASH, PCD_HASH_LEN, 2);
+	status |= mock_expect_output (&pcd.mock, 1, PCD_TESTING.manifest.hash, 
+		PCD_TESTING.manifest.hash_len, 2);
 
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcd_manager_get_pcd_measured_data (&manager.base, 0, buffer,
 		SHA256_HASH_LENGTH - 2, &total_len);
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH - 2, status);
-	CuAssertIntEquals (test, PCD_HASH_LEN, total_len);
+	CuAssertIntEquals (test, PCD_TESTING.manifest.hash_len, total_len);
 
-	status = testing_validate_array (PCD_HASH, buffer, PCD_HASH_LEN - 2);
+	status = testing_validate_array (PCD_TESTING.manifest.hash, buffer, 
+		PCD_TESTING.manifest.hash_len - 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcd_mock_validate_and_release (&pcd);
@@ -1135,7 +1143,7 @@ static void pcd_manager_test_get_pcd_measured_data_no_active_pcd (CuTest *test)
 
 	status = pcd_manager_get_pcd_measured_data (&manager.base, 0, buffer, length, &total_len);
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
-	CuAssertIntEquals (test, PCD_HASH_LEN, total_len);
+	CuAssertIntEquals (test, PCD_TESTING.manifest.hash_len, total_len);
 
 	status = testing_validate_array (zero, buffer, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
@@ -1167,19 +1175,20 @@ static void pcd_manager_test_get_pcd_measured_data_0_bytes_read (CuTest *test)
 	status = mock_expect (&manager.mock, manager.base.get_active_pcd, &manager,
 		(intptr_t) &pcd.base);
 
-	status |= mock_expect (&pcd.mock, pcd.base.base.get_hash, &pcd, PCD_HASH_LEN,
+	status |= mock_expect (&pcd.mock, pcd.base.base.get_hash, &pcd, PCD_TESTING.manifest.hash_len,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
-	status |= mock_expect_output (&pcd.mock, 1, PCD_HASH, PCD_HASH_LEN, 2);
+	status |= mock_expect_output (&pcd.mock, 1, PCD_TESTING.manifest.hash, 
+		PCD_TESTING.manifest.hash_len, 2);
 
 	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager,
 		0, MOCK_ARG (&pcd.base));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcd_manager_get_pcd_measured_data (&manager.base, PCD_HASH_LEN, buffer, length,
-		&total_len);
+	status = pcd_manager_get_pcd_measured_data (&manager.base, PCD_TESTING.manifest.hash_len, 
+		buffer, length,	&total_len);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, PCD_HASH_LEN, total_len);
+	CuAssertIntEquals (test, PCD_TESTING.manifest.hash_len, total_len);
 
 	status = pcd_mock_validate_and_release (&pcd);
 	CuAssertIntEquals (test, 0, status);

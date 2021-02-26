@@ -6,6 +6,7 @@
 
 #include <stdint.h>
 #include "manifest/manifest_format.h"
+#include "manifest/pcd/pcd.h"
 
 
 /**
@@ -13,9 +14,10 @@
  */
 enum pcd_element_type {
 	PCD_ROT = 0x40,												/**< Information about the RoT configuration. */
-	PCD_POWER_CONTROLLER = 0x41,								/**< Information about power controller utilized by RoT. */
-	PCD_COMPONENT_DIRECT = 0x42,								/**< A single component connected directly to RoT. */
-	PCD_COMPONENT_MCTP_BRIDGE = 0x43,							/**< A components connected to RoT through an MCTP bridge. */
+	PCD_SPI_FLASH_PORT = 0x41,									/**< Information about protected firmware stored on SPI flash. */
+	PCD_POWER_CONTROLLER = 0x42,								/**< Information about power controller utilized by RoT. */
+	PCD_COMPONENT_DIRECT = 0x43,								/**< A single component connected directly to RoT. */
+	PCD_COMPONENT_MCTP_BRIDGE = 0x44,							/**< A components connected to RoT through an MCTP bridge. */
 };
 
 /**
@@ -61,13 +63,19 @@ enum pcd_rot_type_flags {
 /**
  * A port section defined in PCD as part of RoT element.
  */
-struct pcd_port {
+struct pcd_port_element {
 	uint8_t port_id;											/**< Port ID. */
 	uint8_t port_flags;											/**< Flags with port configuration. */
 	uint8_t policy;												/**< Port attestation policy. */
-	uint8_t reserved;											/**< Unused. */
+	uint8_t pulse_interval;										/**< Pulse interval if port is to pulse reset. */
 	uint32_t spi_frequency_hz;									/**< Flash SPI frequency in Hz. */
 };
+
+#define PCD_PORT_FLAGS_WATCHDOG_MONITORING_SHIFT				5
+#define PCD_PORT_FLAGS_WATCHDOG_MONITORING_SET_MASK				(1 << PCD_PORT_FLAGS_WATCHDOG_MONITORING_SHIFT)
+
+#define PCD_PORT_FLAGS_RUNTIME_VERIFICATION_SHIFT				4
+#define PCD_PORT_FLAGS_RUNTIME_VERIFICATION_SET_MASK			(1 << PCD_PORT_FLAGS_RUNTIME_VERIFICATION_SHIFT)
 
 #define PCD_PORT_FLAGS_FLASH_MODE_SHIFT							2
 #define PCD_PORT_FLAGS_FLASH_MODE_SET_MASK						(3 << PCD_PORT_FLAGS_FLASH_MODE_SHIFT)
@@ -76,27 +84,27 @@ struct pcd_port {
 #define PCD_PORT_FLAGS_RESET_CTRL_SET_MASK						(3 << PCD_PORT_FLAGS_RESET_CTRL_SHIFT)
 
 /**
- * Flags for port flash mode.
+ * Get port watchdog monitoring setting.
+ *
+ * @param port Pointer to a pcd_port element.
  */
-enum pcd_port_flash_mode {
-	PCD_PORT_FLASH_MODE_DUAL = 0x0,								/**< Dual flash mode. */
-	PCD_PORT_FLASH_MODE_SINGLE = 0x1,							/**< Single flash mode. */
-};
+#define	pcd_get_port_watchdog_monitoring(port)	(enum pcd_port_watchdog_monitoring) ((((port)->port_flags) & \
+	PCD_PORT_FLAGS_WATCHDOG_MONITORING_SET_MASK) >> PCD_PORT_FLAGS_WATCHDOG_MONITORING_SHIFT)
 
 /**
- * Flags for port reset control.
+ * Get port runtime verification setting.
+ *
+ * @param port Pointer to a pcd_port element.
  */
-enum pcd_port_reset_control {
-	PCD_PORT_RESET_CTRL_NOTIFY = 0x0,							/**< Notify when port reset pin toggled. */
-	PCD_PORT_RESET_CTRL_RESET = 0x1,							/**< Reset port when port reset pin toggled. */
-};
+#define	pcd_get_port_runtime_verification(port)	(enum pcd_port_runtime_verification) ((((port)->port_flags) & \
+	PCD_PORT_FLAGS_RUNTIME_VERIFICATION_SET_MASK) >> PCD_PORT_FLAGS_RUNTIME_VERIFICATION_SHIFT)
 
 /**
  * Get port flash mode.
  *
  * @param port Pointer to a pcd_port element.
  */
-#define	pcd_get_port_flash_mode(port)		(enum pcd_port_flash_mode) ((((port)->port_flags) & \
+#define	pcd_get_port_flash_mode(port)	(enum pcd_port_flash_mode) ((((port)->port_flags) & \
 	PCD_PORT_FLAGS_FLASH_MODE_SET_MASK) >> PCD_PORT_FLAGS_FLASH_MODE_SHIFT)
 
 /**
@@ -129,14 +137,6 @@ struct pcd_i2c_interface {
 
 #define PCD_I2C_FLAGS_I2C_MODE_SHIFT							0
 #define PCD_I2C_FLAGS_I2C_MODE_SET_MASK							(3 << PCD_I2C_FLAGS_I2C_MODE_SHIFT)
-
-/**
- * Flags for I2C mode.
- */
-enum pcd_i2c_mode {
-	PCD_I2C_MODE_MULTIMASTER = 0x0,								/**< MultiMaster I2C communication scheme. */
-	PCD_I2C_MODE_MASTER_SLAVE = 0x1,							/**< Master/Slave I2C communication scheme. */
-};
 
 /**
  * Get i2c mode for i2c interface.

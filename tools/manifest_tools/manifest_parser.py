@@ -61,6 +61,9 @@ XML_ACTIVE_TAG = "Active"
 XML_SPIFREQ_TAG = "SPIFreq"
 XML_RESETCTRL_TAG = "ResetCtrl"
 XML_FLASHMODE_TAG = "FlashMode"
+XML_PULSEINTERVAL_TAG = "PulseInterval"
+XML_RUNTIMEVERIFICATION_TAG = "RuntimeVerification"
+XML_WATCHDOGMONITORING_TAG = "WatchdogMonitoring"
 XML_RUNTIME_UPDATE_TAG = "RuntimeUpdate"
 XML_OPERATION_ON_FAILURE_TAG = "OperationOnFailure"
 XML_IMAGE_HASH_TAG = "Hash"
@@ -74,8 +77,11 @@ PCD_ROT_TYPE_PA_ROT = "PA-RoT"
 PCD_ROT_TYPE_AC_ROT = "AC-RoT"
 PCD_FLASH_MODE_SINGLE = "Single"
 PCD_FLASH_MODE_DUAL = "Dual"
+PCD_FLASH_MODE_SINGLE_FILTERED_BYPASS = "SingleFilteredBypass"
+PCD_FLASH_MODE_DUAL_FILTERED_BYPASS = "DualFilteredBypass"
 PCD_RESET_CTRL_NOTIFY = "Notify"
 PCD_RESET_CTRL_RESET = "Reset"
+PCD_RESET_CTRL_PULSE = "Pulse"
 PCD_POLICY_ACTIVE = "Active"
 PCD_POLICY_PASSIVE = "Passive"
 PCD_INTERFACE_TYPE_I2C = "I2C"
@@ -83,6 +89,8 @@ PCD_INTERFACE_I2C_MODE_MM = "MultiMaster"
 PCD_INTERFACE_I2C_MODE_MS = "MasterSlave"
 PCD_COMPONENT_CONNECTION_DIRECT = "Direct"
 PCD_COMPONENT_CONNECTION_MCTP_BRIDGE = "MCTPBridge"
+PCD_ENABLED = "Enabled"
+PCD_DISABLED = "Disabled"
 
 
 def xml_extract_attrib (root, attrib_name, string, required=True):
@@ -205,7 +213,7 @@ def process_pfm (root):
 
     firmware_type = root.attrib.get(XML_TYPE_ATTRIB)
 
-    if firmware_type is not None:
+    if firmware_type != None:
         pfm_version = manifest_types.VERSION_2
         xml["fw_type"] = firmware_type.strip().encode("utf8")
         runtime_update = root.findall (XML_RUNTIME_UPDATE_TAG)
@@ -440,7 +448,7 @@ def process_pcd (root):
     xml["rot"].update ({"type":result})
 
     ports = xml_find_single_tag (rot, XML_PORTS_TAG, False)
-    if ports is not None:
+    if ports != None:
         xml["rot"]["ports"] = {}
 
         for port in ports.findall (XML_PORT_TAG):
@@ -450,25 +458,33 @@ def process_pcd (root):
 
             xml["rot"]["ports"][port_id] = {}
 
-            result = xml_extract_single_value (port, {"spifreq": XML_SPIFREQ_TAG, 
-                "flashmode": XML_FLASHMODE_TAG, "resetctrl": XML_RESETCTRL_TAG, 
-                "policy": XML_POLICY_TAG})
+            result = xml_extract_single_value (port, {"spi_freq": XML_SPIFREQ_TAG, 
+                "flash_mode": XML_FLASHMODE_TAG, "reset_ctrl": XML_RESETCTRL_TAG, 
+                "policy": XML_POLICY_TAG, "pulse_interval": XML_PULSEINTERVAL_TAG, 
+                "runtime_verification": XML_RUNTIMEVERIFICATION_TAG, 
+                "watchdog_monitoring": XML_WATCHDOGMONITORING_TAG})
             if result is None:
                 return None, None
 
-            if result["flashmode"] == PCD_FLASH_MODE_DUAL:
-                result["flashmode"] = 0
-            elif result["flashmode"] == PCD_FLASH_MODE_SINGLE:
-                result["flashmode"] = 1
+            if result["flash_mode"] == PCD_FLASH_MODE_DUAL:
+                result["flash_mode"] = 0
+            elif result["flash_mode"] == PCD_FLASH_MODE_SINGLE:
+                result["flash_mode"] = 1
+            elif result["flash_mode"] == PCD_FLASH_MODE_DUAL_FILTERED_BYPASS:
+                result["flash_mode"] = 2
+            elif result["flash_mode"] == PCD_FLASH_MODE_SINGLE_FILTERED_BYPASS:
+                result["flash_mode"] = 3
             else: 
-                print ("Unknown port {0} flash mode: {1}".format (port_id, result["flashmode"]))
+                print ("Unknown port {0} flash mode: {1}".format (port_id, result["flash_mode"]))
 
-            if result["resetctrl"] == PCD_RESET_CTRL_NOTIFY:
-                result["resetctrl"] = 0
-            elif result["resetctrl"] == PCD_RESET_CTRL_RESET:
-                result["resetctrl"] = 1
+            if result["reset_ctrl"] == PCD_RESET_CTRL_NOTIFY:
+                result["reset_ctrl"] = 0
+            elif result["reset_ctrl"] == PCD_RESET_CTRL_RESET:
+                result["reset_ctrl"] = 1
+            elif result["reset_ctrl"] == PCD_RESET_CTRL_PULSE:
+                result["reset_ctrl"] = 2
             else: 
-                print ("Unknown port {0} reset control: {1}".format (port_id, result["resetctrl"]))
+                print ("Unknown port {0} reset control: {1}".format (port_id, result["reset_ctrl"]))
 
             if result["policy"] == PCD_POLICY_PASSIVE:
                 result["policy"] = 0
@@ -476,6 +492,22 @@ def process_pcd (root):
                 result["policy"] = 1
             else: 
                 print ("Unknown port {0} policy: {1}".format (port_id, result["policy"]))
+
+            if result["runtime_verification"] == PCD_DISABLED:
+                result["runtime_verification"] = 0
+            elif result["runtime_verification"] == PCD_ENABLED:
+                result["runtime_verification"] = 1
+            else: 
+                print ("Unknown port {0} runtime verification setting: {1}".format (port_id, 
+                    result["runtime_verification"]))
+
+            if result["watchdog_monitoring"] == PCD_DISABLED:
+                result["watchdog_monitoring"] = 0
+            elif result["watchdog_monitoring"] == PCD_ENABLED:
+                result["watchdog_monitoring"] = 1
+            else: 
+                print ("Unknown port {0} watchdog monitoring setting: {1}".format (port_id, 
+                    result["watchdog_monitoring"]))
 
             xml["rot"]["ports"].update ({port_id:result})
 
@@ -496,20 +528,20 @@ def process_pcd (root):
     xml["rot"]["interface"].update ({"type":interface_type})
 
     result = xml_extract_single_value (interface, {"address": XML_ADDRESS_TAG, 
-        "roteid": XML_ROT_EID_TAG, "bridgeeid": XML_BRIDGE_EID_TAG, 
-        "bridgeaddress": XML_BRIDGE_ADDRESS_TAG})
+        "rot_eid": XML_ROT_EID_TAG, "bridge_eid": XML_BRIDGE_EID_TAG, 
+        "bridge_address": XML_BRIDGE_ADDRESS_TAG})
     if result is None:
         return None, None
 
     result["address"] = int (result["address"], 16)
-    result["roteid"] = int (result["roteid"], 16)
-    result["bridgeeid"] = int (result["bridgeeid"], 16)
-    result["bridgeaddress"] = int (result["bridgeaddress"], 16)
+    result["rot_eid"] = int (result["rot_eid"], 16)
+    result["bridge_eid"] = int (result["bridge_eid"], 16)
+    result["bridge_address"] = int (result["bridge_address"], 16)
 
     xml["rot"]["interface"].update (result)
 
     power_controller = xml_find_single_tag (root, XML_POWER_CONTROLLER_TAG, False)
-    if power_controller is not None:
+    if power_controller != None:
         xml["power_controller"] = {}
 
         interface = xml_find_single_tag (power_controller, XML_INTERFACE_TAG)
@@ -529,26 +561,26 @@ def process_pcd (root):
         xml["power_controller"]["interface"].update ({"type":interface_type})
 
         result = xml_extract_single_value (interface, {"bus": XML_BUS_TAG, 
-            "eid": XML_EID_TAG, "address": XML_ADDRESS_TAG, "i2cmode": XML_I2CMODE_TAG})
+            "eid": XML_EID_TAG, "address": XML_ADDRESS_TAG, "i2c_mode": XML_I2CMODE_TAG})
         if result is None:
             return None, None
 
         result["eid"] = int (result["eid"], 16)
         result["address"] = int (result["address"], 16)
 
-        if result["i2cmode"] is None:
+        if result["i2c_mode"] is None:
             return None, None
-        if result["i2cmode"] == PCD_INTERFACE_I2C_MODE_MM:
-            result["i2cmode"] = 0
-        elif result["i2cmode"] == PCD_INTERFACE_I2C_MODE_MS:
-            result["i2cmode"] = 1
+        if result["i2c_mode"] == PCD_INTERFACE_I2C_MODE_MM:
+            result["i2c_mode"] = 0
+        elif result["i2c_mode"] == PCD_INTERFACE_I2C_MODE_MS:
+            result["i2c_mode"] = 1
         else:
-            print ("Unknown PowerController interface I2C mode: {0}".format (result["i2cmode"]))
+            print ("Unknown PowerController interface I2C mode: {0}".format (result["i2c_mode"]))
 
         xml["power_controller"]["interface"].update (result)
 
         muxes = xml_find_single_tag (interface, XML_MUXES_TAG, False)
-        if muxes is not None:
+        if muxes != None:
             xml["power_controller"]["interface"]["muxes"] = {}
 
             for mux in muxes.findall (XML_MUX_TAG):
@@ -566,7 +598,7 @@ def process_pcd (root):
                 xml["power_controller"]["interface"]["muxes"].update ({level:result})
 
     components = xml_find_single_tag (root, XML_COMPONENTS_TAG, False)
-    if components is not None:
+    if components != None:
         xml["components"] = []
 
         for component in components.findall (XML_COMPONENT_TAG):
@@ -602,27 +634,27 @@ def process_pcd (root):
                 curr_component["interface"].update ({"type":interface_type})
 
                 result = xml_extract_single_value (interface, {"bus": XML_BUS_TAG, 
-                    "eid": XML_EID_TAG, "address": XML_ADDRESS_TAG, "i2cmode": XML_I2CMODE_TAG})
+                    "eid": XML_EID_TAG, "address": XML_ADDRESS_TAG, "i2c_mode": XML_I2CMODE_TAG})
                 if result is None:
                     return None, None
 
                 result["eid"] = int (result["eid"], 16)
                 result["address"] = int (result["address"], 16)
 
-                if result["i2cmode"] is None:
+                if result["i2c_mode"] is None:
                     return None, None
-                if result["i2cmode"] == PCD_INTERFACE_I2C_MODE_MM:
-                    result["i2cmode"] = 0
-                elif result["i2cmode"] == PCD_INTERFACE_I2C_MODE_MS:
-                    result["i2cmode"] = 1
+                if result["i2c_mode"] == PCD_INTERFACE_I2C_MODE_MM:
+                    result["i2c_mode"] = 0
+                elif result["i2c_mode"] == PCD_INTERFACE_I2C_MODE_MS:
+                    result["i2c_mode"] = 1
                 else:
                     print ("Unknown component {0} interface I2C mode: {1}".format (
-                        curr_component["type"], result["i2cmode"]))
+                        curr_component["type"], result["i2c_mode"]))
 
                 curr_component["interface"].update (result)
 
                 muxes = xml_find_single_tag (interface, XML_MUXES_TAG, False)
-                if muxes is not None:
+                if muxes != None:
                     curr_component["interface"]["muxes"] = {}
 
                     for mux in muxes.findall (XML_MUX_TAG):

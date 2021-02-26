@@ -768,7 +768,7 @@ def generate_pfm_v2(pfm_header_instance, toc_header_instance, toc_element_list, 
             allowable_fw_size += ctypes.sizeof(allowable_fw)
 
     flash_device_size = 0
-    if flash_device_instance is not None:
+    if flash_device_instance != None:
         flash_device_size = ctypes.sizeof(flash_device_instance)
 
     flash_device_buf = (ctypes.c_ubyte * flash_device_size)()
@@ -846,7 +846,7 @@ def generate_pfm_toc (manifest_header_len, toc_header, platform_id_element, flas
 
     toc_elements_hash_list.append(manifest_common.generate_hash(platform_id_element, hash_algo))
 
-    if flash_device_element is not None:
+    if flash_device_element != None:
         flash_device_entry = manifest_common.manifest_toc_entry (
             manifest_common.PFM_V2_FLASH_DEVICE_TYPE_ID, manifest_common.V2_BASE_TYPE_ID, 0, 
             hash_id, offset, ctypes.sizeof (flash_device_element))

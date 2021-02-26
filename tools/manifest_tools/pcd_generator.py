@@ -18,14 +18,6 @@ from Crypto.PublicKey import RSA
 PCD_CONFIG_FILENAME = "pcd_generator.config"
 
 
-class pcd_port (ctypes.LittleEndianStructure):
-    _pack_ = 1
-    _fields_ = [('port_id', ctypes.c_ubyte),
-                ('port_flags', ctypes.c_ubyte),
-                ('policy', ctypes.c_ubyte),
-                ('reserved', ctypes.c_ubyte),
-    			('spi_frequency_hz', ctypes.c_uint)]
-
 class pcd_mux (ctypes.LittleEndianStructure):
     _pack_ = 1
     _fields_ = [('mux_address', ctypes.c_ubyte),
@@ -33,66 +25,92 @@ class pcd_mux (ctypes.LittleEndianStructure):
                 ('reserved', ctypes.c_ushort)]
 
 
-def generate_ports_buf (xml_ports):
+def generate_ports (xml_ports, hash_engine):
     """
-    Create a buffer of pcd_port struct instances from parsed XML list
+    Create a list of SPI flash port objects from parsed XML list
 
     :param xml_ports: List of parsed XML of ports to be included in PCD
 
-    :return Ports buffer, number of ports
+    :return Ports buffer, number of ports, list of port ToC entries, list of port hashes
     """
 
     if xml_ports is None or len (xml_ports) < 1:
-        return None, 0
+        return None, 0, None, None
 
+    ports = []
+    toc_entries = []
+    hashes = []
     num_ports = len (xml_ports)
-    ports_buf = (ctypes.c_ubyte * (ctypes.sizeof (pcd_port) * num_ports)) ()
-    ports_len = 0
+    ports_len = 0 
+    class pcd_port (ctypes.LittleEndianStructure):
+        _pack_ = 1
+        _fields_ = [('port_id', ctypes.c_ubyte),
+                    ('port_flags', ctypes.c_ubyte),
+                    ('policy', ctypes.c_ubyte),
+                    ('pulse_interval', ctypes.c_ubyte),
+                    ('spi_frequency_hz', ctypes.c_uint)]
 
     for id, port in xml_ports.items ():
-        spifreq = int (manifest_common.get_key_from_dict (port, "spifreq", "Port"))
-        resetctrl = int (manifest_common.get_key_from_dict (port, "resetctrl", "Port"))
-        flashmode = int (manifest_common.get_key_from_dict (port, "flashmode", "Port"))
+        spi_freq = int (manifest_common.get_key_from_dict (port, "spi_freq", "Port"))
+        reset_ctrl = int (manifest_common.get_key_from_dict (port, "reset_ctrl", "Port"))
+        flash_mode = int (manifest_common.get_key_from_dict (port, "flash_mode", "Port"))
         policy = int (manifest_common.get_key_from_dict (port, "policy", "Port"))
+        runtime_verification = int (manifest_common.get_key_from_dict (port, "runtime_verification", 
+            "Port"))
+        watchdog_monitoring = int (manifest_common.get_key_from_dict (port, "watchdog_monitoring", 
+            "Port"))
+        pulse_interval = int (manifest_common.get_key_from_dict (port, "pulse_interval", "Port"))
 
-        portflags = (flashmode << 2) | resetctrl 
+        port_flags = (watchdog_monitoring << 5) | (runtime_verification << 4) | \
+            (flash_mode << 2) | reset_ctrl 
 
-        port_body = pcd_port (int (id), portflags, policy, 0, spifreq)
+        port_buf = pcd_port (int (id), port_flags, policy, pulse_interval, spi_freq)
+        port_toc_entry = manifest_common.manifest_toc_entry (
+            manifest_common.PCD_V2_SPI_FLASH_PORT_TYPE_ID, manifest_common.PCD_V2_ROT_TYPE_ID, 1, 0, 
+            0, ctypes.sizeof (pcd_port))
+        port_hash = manifest_common.generate_hash (port_buf, hash_engine)
 
-        ctypes.memmove (ctypes.addressof (ports_buf) + ports_len, ctypes.addressof (port_body),
-            ctypes.sizeof (pcd_port))
-        ports_len += ctypes.sizeof (pcd_port)
+        ports.append (port_buf)
+        toc_entries.append (port_toc_entry)
+        hashes.append (port_hash)
+        
+        ports_len += ctypes.sizeof (port_buf)
 
-    return ports_buf, num_ports
+    ports_buf = (ctypes.c_ubyte * ports_len) ()
+    offset = 0
 
-def generate_rot (xml_rot, num_components, hash_engine):
+    for port in ports:
+        port_len = ctypes.sizeof (port)
+        ctypes.memmove (ctypes.addressof (ports_buf) + offset, ctypes.addressof (port),
+            port_len)
+
+        offset += port_len
+
+    return ports_buf, num_ports, toc_entries, hashes
+
+def generate_rot (xml_rot, num_components, num_ports, hash_engine):
     """
     Create an RoT object from parsed XML list and ports buffer
 
     :param xml_rot: List of parsed XML of RoT to be included in RoT object
     :param num_components: Number of components
+    :param num_ports: Number of SPI flash ports
     :param hash_engine: Hashing engine
 
     :return Instance of an RoT object, RoT's TOC entry, RoT hash
     """
 
-    rottype = int (manifest_common.get_key_from_dict (xml_rot, "type", "RoT"))
-    rotaddress = int (manifest_common.get_key_from_dict (xml_rot["interface"], "address", 
+    rot_type = int (manifest_common.get_key_from_dict (xml_rot, "type", "RoT"))
+    rot_address = int (manifest_common.get_key_from_dict (xml_rot["interface"], "address", 
         "RoT interface"))
-    roteid = int (manifest_common.get_key_from_dict (xml_rot["interface"], "roteid", 
+    rot_eid = int (manifest_common.get_key_from_dict (xml_rot["interface"], "rot_eid", 
         "RoT interface"))
-    bridgeeid = int (manifest_common.get_key_from_dict (xml_rot["interface"], "bridgeeid", 
+    bridge_eid = int (manifest_common.get_key_from_dict (xml_rot["interface"], "bridge_eid", 
         "RoT interface"))
-    bridgeaddress = int (manifest_common.get_key_from_dict (xml_rot["interface"], "bridgeaddress", 
+    bridge_address = int (manifest_common.get_key_from_dict (xml_rot["interface"], "bridge_address", 
         "RoT interface"))
 
-    rotflags = rottype
-
-    if "ports" in xml_rot:
-        ports, num_ports = generate_ports_buf (xml_rot["ports"])
-    else:
-        ports = (ctypes.c_ubyte * 0) ()
-        num_ports = 0
+    rot_flags = rot_type
 
     class pcd_rot_element (ctypes.LittleEndianStructure):
         _pack_ = 1
@@ -103,11 +121,10 @@ def generate_rot (xml_rot, num_components, hash_engine):
                     ('rot_eid', ctypes.c_ubyte),
                     ('bridge_address', ctypes.c_ubyte),
                     ('bridge_eid', ctypes.c_ubyte),
-                    ('reserved', ctypes.c_ubyte),
-                    ('ports', ctypes.c_ubyte * ctypes.sizeof (ports))]
+                    ('reserved', ctypes.c_ubyte)]
 
-    rot = pcd_rot_element (rotflags, num_ports, num_components, rotaddress, roteid, bridgeaddress, 
-        bridgeeid, 0, ports)
+    rot = pcd_rot_element (rot_flags, num_ports, num_components, rot_address, rot_eid, 
+        bridge_address, bridge_eid, 0)
     rot_len = ctypes.sizeof (rot)
     rot_toc_entry = manifest_common.manifest_toc_entry (manifest_common.PCD_V2_ROT_TYPE_ID, 
         manifest_common.V2_BASE_TYPE_ID, 1, 0, 0, rot_len)
@@ -156,7 +173,7 @@ def generate_power_controller (xml_power_controller, hash_engine):
         hash of power_controller object
     """
 
-    if xml_power_controller["interface"]["type"] is not 0:
+    if xml_power_controller["interface"]["type"] != 0:
         raise ValueError ("Unsupported power_controller interface type: {0}".format (
             xml_power_controller["interface"]["type"]))
 
@@ -174,10 +191,10 @@ def generate_power_controller (xml_power_controller, hash_engine):
         "Power controller interface"))
     eid = int (manifest_common.get_key_from_dict (xml_power_controller["interface"], "eid", 
         "Power controller interface"))
-    i2cmode = int (manifest_common.get_key_from_dict (xml_power_controller["interface"], "i2cmode", 
-        "Power controller interface"))
+    i2c_mode = int (manifest_common.get_key_from_dict (xml_power_controller["interface"], 
+        "i2c_mode", "Power controller interface"))
 
-    i2c_flags = i2cmode 
+    i2c_flags = i2c_mode 
 
     class pcd_power_controller_element (ctypes.LittleEndianStructure):
         _pack_ = 1
@@ -207,7 +224,7 @@ def generate_direct_component_buf (xml_component):
     :return Instance of a component object, component's TOC entry, component hash
     """
 
-    if xml_component["interface"]["type"] is not 0:
+    if xml_component["interface"]["type"] != 0:
         raise ValueError ("Unsupported direct component interface type: {0}".format (
             xml_component["interface"]["type"]))
 
@@ -217,7 +234,7 @@ def generate_direct_component_buf (xml_component):
     powerctrl_mask = int (manifest_common.get_key_from_dict (xml_component["powerctrl"], "mask",
         "Direct Component"))
     component_type = manifest_common.get_key_from_dict (xml_component, "type", "Direct Component")
-    i2cmode = int (manifest_common.get_key_from_dict (xml_component["interface"], "i2cmode", 
+    i2c_mode = int (manifest_common.get_key_from_dict (xml_component["interface"], "i2c_mode", 
         "Direct Component"))
     bus = int (manifest_common.get_key_from_dict (xml_component["interface"], "bus", 
         "Direct Component"))
@@ -227,9 +244,13 @@ def generate_direct_component_buf (xml_component):
         "Direct Component"))
 
     type_len = len (component_type)
-    i2c_flags = i2cmode 
+    i2c_flags = i2c_mode 
 
-    padding_len = ((type_len + 3) & (~3)) - type_len
+    if type_len <= 255: 
+        padding_len = ((type_len + 3) & (~3)) - type_len
+    else:
+        raise ValueError ("Component type too long: {0}".format (type_len))
+
     padding = (ctypes.c_ubyte * padding_len) ()
     ctypes.memset (padding, 0, ctypes.sizeof (ctypes.c_ubyte) * padding_len)
 
@@ -301,7 +322,11 @@ def generate_mctp_bridge_component_buf (xml_component):
 
     type_len = len (component_type)
 
-    padding_len = ((type_len + 3) & (~3)) - type_len
+    if type_len <= 255: 
+        padding_len = ((type_len + 3) & (~3)) - type_len
+    else:
+        raise ValueError ("Component type too long: {0}".format (type_len))
+
     padding = (ctypes.c_ubyte * padding_len) ()
     ctypes.memset (padding, 0, ctypes.sizeof (ctypes.c_ubyte) * padding_len)
 
@@ -401,6 +426,7 @@ hash_engine = manifest_common.get_hash_engine (hash_type)
 processed_xml = list (processed_xml.items())[0][1]
 
 num_components = 0
+num_ports = 0
 pcd_len = 0
 elements_list = []
 toc_list = []
@@ -437,12 +463,23 @@ if "components" in processed_xml:
     toc_list.extend (components_toc_list)
     hash_list.extend (components_hash_list)
 
-rot, rot_toc_entry, rot_hash = generate_rot (processed_xml["rot"], num_components, hash_engine)
+if "ports" in processed_xml["rot"]:
+    ports, num_ports, ports_toc_entries, ports_hash = generate_ports (processed_xml["rot"]["ports"], 
+        hash_engine)
+
+rot, rot_toc_entry, rot_hash = generate_rot (processed_xml["rot"], num_components, num_ports, 
+    hash_engine)
     
 pcd_len += ctypes.sizeof (rot)
 elements_list.append (rot)
 toc_list.append (rot_toc_entry)
 hash_list.append (rot_hash)
+
+if num_ports > 0:
+    pcd_len += ctypes.sizeof (ports)
+    elements_list.append (ports)
+    toc_list.extend (ports_toc_entries)
+    hash_list.extend (ports_hash)
 
 toc = manifest_common.generate_toc (hash_engine, hash_type, toc_list, hash_list)
 toc_len = ctypes.sizeof (toc)

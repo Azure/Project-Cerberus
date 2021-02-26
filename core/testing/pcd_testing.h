@@ -29,37 +29,17 @@ struct pcd_testing_data {
 	uint32_t direct_component_offset;					/**< Offset of a direct component element. */
 	int direct_component_entry;							/**< TOC entry for a direct component element. */
 	int direct_component_hash;							/**< TOC hash for a direct component element. */
+	size_t port_len;									/**< SPI flash port element data length. */
+	uint32_t port_offset;								/**< Offset of a SPI flash port element. */
+	int port_entry;										/**< TOC entry for a SPI flash port element. */
+	int port_hash;										/**< TOC hash for a SPI flash port element. */
+	int num_optional_elements;							/**< Number of optional PCD elements. */
 };
 
 
-extern const uint8_t PCD_DATA[];
-extern const uint32_t PCD_DATA_LEN;
-
-extern const uint8_t *PCD_SIGNATURE;
-extern const uint8_t *PCD2_SIGNATURE;
-extern const size_t PCD_SIGNATURE_LEN;
-extern const uint32_t PCD_SIGNATURE_OFFSET;
-
-extern const uint8_t PCD2_DATA[];
-extern const uint32_t PCD2_DATA_LEN;
-
-extern const uint8_t PCD_HASH[];
-extern const uint8_t PCD_HASH_DIGEST[];
-extern const uint8_t PCD2_HASH[];
-extern const uint32_t PCD_HASH_LEN;
-
-extern const uint32_t PCD_HEADER_OFFSET;
-extern const uint32_t PCD_ROT_OFFSET;
-extern const uint32_t PCD_COMPONENTS_OFFSET;
-extern const uint32_t PCD_PLATFORM_ID_HDR_OFFSET;
-extern const uint32_t PCD_PLATFORM_ID_OFFSET;
-
-extern const char PCD_PLATFORM_ID[];
-extern const size_t PCD_PLATFORM_ID_LEN;
-
-extern const uint8_t PCD_TOC_HASH[];
-
 extern const struct pcd_testing_data PCD_TESTING;
+extern const struct pcd_testing_data PCD_NO_COMPONENTS_TESTING;
+extern const struct pcd_testing_data PCD_NO_PORTS_TESTING;
 
 
 #endif /* PCD_TESTING_H_ */
