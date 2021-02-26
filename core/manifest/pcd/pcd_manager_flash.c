@@ -96,7 +96,6 @@ static int pcd_manager_flash_verify_pending_pcd (struct manifest_manager *manage
 	status = manifest_manager_flash_verify_pending_manifest (&pcd_mgr->manifest_manager);
 	if (status == 0) {
 		pcd_manager_on_pcd_verified (&pcd_mgr->base);
-		pcd_manager_flash_activate_pending_pcd (manager);
 	}
 
 	return status;

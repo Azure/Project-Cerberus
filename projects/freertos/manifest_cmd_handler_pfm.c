@@ -61,7 +61,7 @@ static int manifest_cmd_handler_pfm_activation (struct manifest_cmd_handler *tas
 
 	spi_filter_log_configuration (pfm->filter);
 
-	return op_status;;
+	return op_status;
 }
 
 /**
