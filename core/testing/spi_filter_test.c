@@ -10,6 +10,7 @@
 #include "spi_filter/spi_filter_logging.h"
 #include "mock/spi_filter_interface_mock.h"
 #include "mock/logging_mock.h"
+#include "debug_log_testing.h"
 
 
 static const char *SUITE = "spi_filter";
@@ -205,29 +206,30 @@ static void spi_filter_test_log_configuration_port0 (CuTest *test)
 	status |= mock_expect_output (&filter.mock, 2, &region6_end, sizeof (region6_end), -1);
 
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, sizeof (entry)), MOCK_ARG (sizeof (entry)));
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED), 
+        MOCK_ARG (sizeof (entry)));
 
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_size, sizeof (entry_size)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_size, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_size)));
 
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region1, sizeof (entry_region1)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region1, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region1)));
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region2, sizeof (entry_region2)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region2, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region2)));
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region3, sizeof (entry_region3)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region3, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region3)));
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region4, sizeof (entry_region4)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region4, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region4)));
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region5, sizeof (entry_region5)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region5, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region5)));
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region6, sizeof (entry_region6)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region6, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region6)));
 
 	CuAssertIntEquals (test, 0, status);
@@ -419,29 +421,30 @@ static void spi_filter_test_log_configuration_port1 (CuTest *test)
 	status |= mock_expect_output (&filter.mock, 2, &region6_end, sizeof (region6_end), -1);
 
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, sizeof (entry)), MOCK_ARG (sizeof (entry)));
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED), 
+        MOCK_ARG (sizeof (entry)));
 
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_size, sizeof (entry_size)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_size, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_size)));
 
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region1, sizeof (entry_region1)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region1, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region1)));
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region2, sizeof (entry_region2)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region2, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region2)));
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region3, sizeof (entry_region3)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region3, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region3)));
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region4, sizeof (entry_region4)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region4, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region4)));
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region5, sizeof (entry_region5)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region5, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region5)));
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region6, sizeof (entry_region6)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region6, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region6)));
 
 	CuAssertIntEquals (test, 0, status);
@@ -633,29 +636,30 @@ static void spi_filter_test_log_configuration_bypass_cs1 (CuTest *test)
 	status |= mock_expect_output (&filter.mock, 2, &region6_end, sizeof (region6_end), -1);
 
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, sizeof (entry)), MOCK_ARG (sizeof (entry)));
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED), 
+        MOCK_ARG (sizeof (entry)));
 
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_size, sizeof (entry_size)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_size, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_size)));
 
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region1, sizeof (entry_region1)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region1, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region1)));
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region2, sizeof (entry_region2)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region2, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region2)));
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region3, sizeof (entry_region3)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region3, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region3)));
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region4, sizeof (entry_region4)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region4, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region4)));
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region5, sizeof (entry_region5)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region5, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region5)));
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region6, sizeof (entry_region6)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region6, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region6)));
 
 	CuAssertIntEquals (test, 0, status);
@@ -847,29 +851,30 @@ static void spi_filter_test_log_configuration_full_rw (CuTest *test)
 	status |= mock_expect_output (&filter.mock, 2, &region6_end, sizeof (region6_end), -1);
 
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, sizeof (entry)), MOCK_ARG (sizeof (entry)));
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED), 
+        MOCK_ARG (sizeof (entry)));
 
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_size, sizeof (entry_size)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_size, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_size)));
 
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region1, sizeof (entry_region1)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region1, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region1)));
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region2, sizeof (entry_region2)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region2, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region2)));
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region3, sizeof (entry_region3)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region3, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region3)));
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region4, sizeof (entry_region4)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region4, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region4)));
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region5, sizeof (entry_region5)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region5, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region5)));
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region6, sizeof (entry_region6)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region6, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region6)));
 
 	CuAssertIntEquals (test, 0, status);
@@ -1042,29 +1047,30 @@ static void spi_filter_test_log_configuration_unsupported_operations (CuTest *te
 		SPI_FILTER_UNSUPPORTED_OPERATION, MOCK_ARG (6), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, sizeof (entry)), MOCK_ARG (sizeof (entry)));
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED), 
+        MOCK_ARG (sizeof (entry)));
 
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_size, sizeof (entry_size)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_size, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_size)));
 
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region1, sizeof (entry_region1)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region1, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region1)));
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region2, sizeof (entry_region2)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region2, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region2)));
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region3, sizeof (entry_region3)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region3, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region3)));
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region4, sizeof (entry_region4)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region4, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region4)));
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region5, sizeof (entry_region5)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region5, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region5)));
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region6, sizeof (entry_region6)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region6, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region6)));
 
 	CuAssertIntEquals (test, 0, status);
@@ -1256,29 +1262,30 @@ static void spi_filter_test_log_configuration_single_flash (CuTest *test)
 	status |= mock_expect_output (&filter.mock, 2, &region6_end, sizeof (region6_end), -1);
 
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, sizeof (entry)), MOCK_ARG (sizeof (entry)));
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED), 
+        MOCK_ARG (sizeof (entry)));
 
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_size, sizeof (entry_size)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_size, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_size)));
 
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region1, sizeof (entry_region1)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region1, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region1)));
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region2, sizeof (entry_region2)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region2, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region2)));
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region3, sizeof (entry_region3)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region3, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region3)));
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region4, sizeof (entry_region4)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region4, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region4)));
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region5, sizeof (entry_region5)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region5, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region5)));
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region6, sizeof (entry_region6)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region6, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region6)));
 
 	CuAssertIntEquals (test, 0, status);
@@ -1470,29 +1477,30 @@ static void spi_filter_test_log_configuration_single_flash_cs1 (CuTest *test)
 	status |= mock_expect_output (&filter.mock, 2, &region6_end, sizeof (region6_end), -1);
 
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, sizeof (entry)), MOCK_ARG (sizeof (entry)));
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED), 
+        MOCK_ARG (sizeof (entry)));
 
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_size, sizeof (entry_size)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_size, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_size)));
 
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region1, sizeof (entry_region1)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region1, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region1)));
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region2, sizeof (entry_region2)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region2, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region2)));
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region3, sizeof (entry_region3)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region3, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region3)));
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region4, sizeof (entry_region4)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region4, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region4)));
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region5, sizeof (entry_region5)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region5, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region5)));
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region6, sizeof (entry_region6)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region6, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region6)));
 
 	CuAssertIntEquals (test, 0, status);
@@ -1595,20 +1603,21 @@ static void spi_filter_test_log_filter_config_port0 (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, sizeof (entry)), MOCK_ARG (sizeof (entry)));
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED), 
+        MOCK_ARG (sizeof (entry)));
 
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_size, sizeof (entry_size)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_size, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_size)));
 
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region1, sizeof (entry_region1)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region1, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region1)));
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region2, sizeof (entry_region2)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region2, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region2)));
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region3, sizeof (entry_region3)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region3, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region3)));
 
 	CuAssertIntEquals (test, 0, status);
@@ -1691,20 +1700,21 @@ static void spi_filter_test_log_filter_config_port1 (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, sizeof (entry)), MOCK_ARG (sizeof (entry)));
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED), 
+        MOCK_ARG (sizeof (entry)));
 
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_size, sizeof (entry_size)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_size, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_size)));
 
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region1, sizeof (entry_region1)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region1, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region1)));
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region2, sizeof (entry_region2)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region2, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region2)));
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region3, sizeof (entry_region3)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region3, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region3)));
 
 	CuAssertIntEquals (test, 0, status);
@@ -1783,20 +1793,21 @@ static void spi_filter_test_log_filter_config_bypass_cs1 (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, sizeof (entry)), MOCK_ARG (sizeof (entry)));
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED), 
+        MOCK_ARG (sizeof (entry)));
 
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_size, sizeof (entry_size)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_size, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_size)));
 
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region1, sizeof (entry_region1)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region1, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region1)));
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region2, sizeof (entry_region2)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region2, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region2)));
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region3, sizeof (entry_region3)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region3, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region3)));
 
 	CuAssertIntEquals (test, 0, status);
@@ -1879,20 +1890,21 @@ static void spi_filter_test_log_filter_config_full_fw (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, sizeof (entry)), MOCK_ARG (sizeof (entry)));
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED), 
+        MOCK_ARG (sizeof (entry)));
 
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_size, sizeof (entry_size)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_size, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_size)));
 
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region1, sizeof (entry_region1)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region1, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region1)));
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region2, sizeof (entry_region2)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region2, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region2)));
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region3, sizeof (entry_region3)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region3, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region3)));
 
 	CuAssertIntEquals (test, 0, status);
@@ -1967,17 +1979,18 @@ static void spi_filter_test_log_filter_config_two_regions (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, sizeof (entry)), MOCK_ARG (sizeof (entry)));
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED), 
+        MOCK_ARG (sizeof (entry)));
 
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_size, sizeof (entry_size)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_size, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_size)));
 
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region1, sizeof (entry_region1)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region1, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region1)));
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region2, sizeof (entry_region2)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region2, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region2)));
 
 	CuAssertIntEquals (test, 0, status);
@@ -2060,20 +2073,21 @@ static void spi_filter_test_log_filter_config_single_flash (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, sizeof (entry)), MOCK_ARG (sizeof (entry)));
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED), 
+        MOCK_ARG (sizeof (entry)));
 
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_size, sizeof (entry_size)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_size, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_size)));
 
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region1, sizeof (entry_region1)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region1, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region1)));
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region2, sizeof (entry_region2)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region2, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region2)));
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region3, sizeof (entry_region3)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region3, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region3)));
 
 	CuAssertIntEquals (test, 0, status);
@@ -2156,20 +2170,21 @@ static void spi_filter_test_log_filter_config_single_flash_cs1 (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, sizeof (entry)), MOCK_ARG (sizeof (entry)));
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED), 
+        MOCK_ARG (sizeof (entry)));
 
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_size, sizeof (entry_size)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_size, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_size)));
 
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region1, sizeof (entry_region1)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region1, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region1)));
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region2, sizeof (entry_region2)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region2, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region2)));
 	status |= mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region3, sizeof (entry_region3)),
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_region3, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry_region3)));
 
 	CuAssertIntEquals (test, 0, status);

@@ -162,6 +162,16 @@ int platform_has_timeout_expired (platform_clock *timeout)
 }
 
 /**
+ * Get the elapsed time in milliseconds since last boot
+ *
+ * @return elapsed time in milliseconds since last boot.
+ */
+uint64_t platform_get_time_since_boot (void)
+{
+    return (uint64_t) xTaskGetTickCount () * portTICK_PERIOD_MS;
+}
+
+/**
  * Get the duration between two clock instances.  These are expected to be initialized with
  * {@link platform_init_current_tick}.
  *

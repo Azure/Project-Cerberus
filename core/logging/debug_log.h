@@ -64,6 +64,7 @@ struct debug_log_entry_info {
 	uint8_t msg_index;			/**< Identifier for the entry message. */
 	uint32_t arg1;				/**< Message specific argument. */
 	uint32_t arg2;				/**< Message specific argument. */
+    uint64_t time;              /**< Elapsed time in milliseconds since boot. */
 };
 
 /**

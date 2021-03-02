@@ -13,6 +13,7 @@
 #include "mock/logging_mock.h"
 #include "mock/flash_mock.h"
 #include "engines/hash_testing_engine.h"
+#include "debug_log_testing.h"
 
 
 static const char *SUITE = "host_processor_observer_pcr";
@@ -368,7 +369,8 @@ static void host_processor_observer_pcr_test_on_bypass_mode_error (CuTest *test)
 	status |= mock_expect (&hash.mock, hash.base.cancel, &hash, 0);
 
 	status |= mock_expect (&logger.mock, logger.base.create_entry, &logger, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, sizeof (entry)), MOCK_ARG (sizeof (entry)));
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED), 
+        MOCK_ARG (sizeof (entry)));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -489,7 +491,8 @@ static void host_processor_observer_pcr_test_on_active_mode_error (CuTest *test)
 	status |= mock_expect (&hash.mock, hash.base.cancel, &hash, 0);
 
 	status |= mock_expect (&logger.mock, logger.base.create_entry, &logger, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, sizeof (entry)), MOCK_ARG (sizeof (entry)));
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED), 
+        MOCK_ARG (sizeof (entry)));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -610,7 +613,8 @@ static void host_processor_observer_pcr_test_on_recovery_error (CuTest *test)
 	status |= mock_expect (&hash.mock, hash.base.cancel, &hash, 0);
 
 	status |= mock_expect (&logger.mock, logger.base.create_entry, &logger, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, sizeof (entry)), MOCK_ARG (sizeof (entry)));
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED), 
+        MOCK_ARG (sizeof (entry)));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -796,7 +800,8 @@ static void host_processor_observer_pcr_test_on_inactive_dirty_error (CuTest *te
 	status |= mock_expect (&hash.mock, hash.base.cancel, &hash, 0);
 
 	status |= mock_expect (&logger.mock, logger.base.create_entry, &logger, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, sizeof (entry)), MOCK_ARG (sizeof (entry)));
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED), 
+        MOCK_ARG (sizeof (entry)));
 
 	CuAssertIntEquals (test, 0, status);
 
