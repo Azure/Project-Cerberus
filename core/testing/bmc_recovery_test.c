@@ -2719,7 +2719,7 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_timeout_after_recovery_imag
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, BMC_RECOVERY_STATE_ROLLBACK_DONE, recovery.state);
 
-	platform_msleep (500);
+	platform_msleep (600);
 
 	recovery.state = BMC_RECOVERY_STATE_IN_RESET;
 
@@ -2841,7 +2841,7 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_timeout_after_no_recovery_i
 	CuAssertIntEquals (test, HOST_PROCESSOR_NO_RECOVERY_IMAGE, status);
 	CuAssertIntEquals (test, BMC_RECOVERY_STATE_ROLLBACK_DONE, recovery.state);
 
-	platform_msleep (500);
+	platform_msleep (600);
 
 	recovery.state = BMC_RECOVERY_STATE_IN_RESET;
 
@@ -5213,7 +5213,7 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_timeout_after_recovery_im
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, BMC_RECOVERY_STATE_ROLLBACK_DONE, recovery.state);
 
-	platform_msleep (500);
+	platform_msleep (600);
 
 	recovery.state = BMC_RECOVERY_STATE_EXIT_RESET;
 
@@ -5335,7 +5335,7 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_timeout_after_no_recovery
 	CuAssertIntEquals (test, HOST_PROCESSOR_NO_RECOVERY_IMAGE, status);
 	CuAssertIntEquals (test, BMC_RECOVERY_STATE_ROLLBACK_DONE, recovery.state);
 
-	platform_msleep (500);
+	platform_msleep (600);
 
 	recovery.state = BMC_RECOVERY_STATE_EXIT_RESET;
 
