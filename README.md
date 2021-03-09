@@ -70,7 +70,7 @@ The core set of source code provides a set of basline functionality that can be 
 require Cerberus functionality.  Most of the code available here is agnostic to the actual device that it will run on,
 with abstraction layers defined where necessary.
 
-The source tree is structured as follows:
+The Cerberus source tree is structured as follows:
 
 | Folder            | Description                                     |
 |-------------------|-------------------------------------------------|
@@ -78,8 +78,8 @@ The source tree is structured as follows:
 | external          | Required external components.                   |
 | projects          | Platform specific implementations.              |
 | testing           | Primitives to support unit tests.               |
+| tools             | Scripts and other useful tools.                 |
 | cmake             | CMake toolchain and core dependency scripts.    |
-| .repo             | Configuration and state used by the repo tool.  |
 
 ### Existing Projects
 
