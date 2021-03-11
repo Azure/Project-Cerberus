@@ -753,7 +753,7 @@ def load_and_process_xml (xml_file, xml_type):
 
 def get_manifest_format (xml_file):
     root = et.parse(xml_file).getroot()
-    fw_type = xml_extract_attrib (root, XML_FW_TYPE_ATTRIB, True, False)
+    fw_type = xml_extract_attrib (root, XML_TYPE_ATTRIB, True, False)
     return manifest_types.VERSION_1 if fw_type is None else manifest_types.VERSION_2
 
 def get_manifest_version (xml_file):
@@ -762,4 +762,4 @@ def get_manifest_version (xml_file):
 
 def get_manifest_type (xml_file):
     root = et.parse(xml_file).getroot()
-    return xml_extract_attrib (root, XML_FW_TYPE_ATTRIB, True, False)
+    return xml_extract_attrib (root, XML_TYPE_ATTRIB, True, False)

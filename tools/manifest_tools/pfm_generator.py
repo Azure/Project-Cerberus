@@ -513,16 +513,16 @@ def generate_allowable_fw_list_v2(xml_list, xml_version):
 
         if xml["fw_type"] not in fw_type_version_list:
             fw_type_version_list[xml["fw_type"]] = list()
-            fw_type_version_list[xml["fw_type"]].append(xml["version_id"])
         else:
-            for version_list in fw_type_version_list[xml["fw_type"]]:
-                for version in version_list:
-                    if version == xml["version_id"]:
-                        raise KeyError("Failed to generate PFM: Duplicate version ID - {0}".format (
-                            xml["version_id"]))
-                    elif version.startswith(xml["version_id"]) or xml["version_id"].startswith(version):
-                        raise ValueError("Failed to generate PFM: Ambiguous version ID - {0}, {1}".format (
-                            xml["version_id"], version))
+            for version in fw_type_version_list[xml["fw_type"]]:
+                if version == xml["version_id"]:
+                    raise KeyError("Failed to generate PFM: Duplicate version ID - {0}".format (
+                        xml["version_id"]))
+                elif version.startswith(xml["version_id"]) or xml["version_id"].startswith(version):
+                    raise ValueError("Failed to generate PFM: Ambiguous version ID - {0}, {1}".format (
+                        xml["version_id"], version))
+
+        fw_type_version_list[xml["fw_type"]].append(xml["version_id"])
 
         if unused_byte > 255:
             raise ValueError("Unused byte value ({0}) is not valid - {1}".format(
