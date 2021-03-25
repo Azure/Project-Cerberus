@@ -638,6 +638,7 @@ int firmware_update_run_update (struct firmware_update *updater,
 	if (updater->flash->recovery_flash && updater->recovery_bad) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CERBERUS_FW,
 			FIRMWARE_LOGGING_RECOVERY_UPDATE, 0, 0);
+		debug_log_flush ();
 
 		status = firmware_update_write_image (updater, callback, updater->flash->recovery_flash,
 			updater->flash->recovery_addr, NULL, 0, new_len, UPDATE_STATUS_BACKUP_RECOVERY,
@@ -700,6 +701,7 @@ int firmware_update_run_update (struct firmware_update *updater,
 			/* Update the recovery image from staging flash. */
 			debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CERBERUS_FW,
 				FIRMWARE_LOGGING_RECOVERY_UPDATE, 0, 0);
+			debug_log_flush ();
 
 			status = firmware_update_write_image (updater, callback, updater->flash->recovery_flash,
 				updater->flash->recovery_addr, backup, backup_addr, new_len,

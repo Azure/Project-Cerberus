@@ -66,6 +66,7 @@ static void fw_update_task_updater (struct fw_update_task *task)
 		if (notification & RUN_UPDATE_BIT) {
 			debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CERBERUS_FW,
 				FIRMWARE_LOGGING_UPDATE_START, 0, 0);
+			debug_log_flush ();
 
 			status = firmware_update_run_update (task->updater, &task->notify.base);
 			if (status != 0) {
@@ -76,7 +77,7 @@ static void fw_update_task_updater (struct fw_update_task *task)
 			else {
 				debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CERBERUS_FW,
 					FIRMWARE_LOGGING_UPDATE_COMPLETE, 0, 0);
-
+				
 				reset = true;
 			}
 #endif
