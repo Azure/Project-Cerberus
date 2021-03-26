@@ -887,7 +887,7 @@ def generate_pfm_toc (manifest_header_len, toc_header, platform_id_element, flas
 default_config = os.path.join (os.path.dirname (os.path.abspath (__file__)), PFM_CONFIG_FILENAME)
 parser = argparse.ArgumentParser (description = 'Create a PFM')
 parser.add_argument ('config', nargs = '?', default = default_config,
-    help = 'Path to configurtaion file')
+    help = 'Path to configuration file')
 parser.add_argument ('--bypass', action = 'store_true', help = 'Create a bypass mode PFM')
 args = parser.parse_args ()
 platform_header = None

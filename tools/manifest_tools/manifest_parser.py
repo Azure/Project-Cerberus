@@ -20,6 +20,7 @@ XML_LEVEL_ATTRIB = "level"
 XML_TYPE_ATTRIB = "type"
 XML_CONNECTION_ATTRIB = "connection"
 XML_COUNT_ATTRIB = "count"
+XML_EMPTY_ATTRIB = "empty"
 
 XML_FW_TAG = "Firmware"
 XML_DIGEST_TAG = "Digest"
@@ -105,7 +106,7 @@ def xml_extract_attrib (root, attrib_name, string, required=True):
     :return Attribute value
     """
 
-    attrib = root.attrib.get(attrib_name)
+    attrib = root.attrib.get (attrib_name)
     if not attrib:
         if required:
             print ("Missing {0} attribute in manifest".format (attrib_name))
@@ -169,7 +170,7 @@ def process_pfm (root):
 
     :param root: XML to utilize
 
-    :return List of PFM values, manifest version
+    :return List of PFM values, manifest version, a boolean False since PFM XMLs are never empty
     """
 
     xml = {}
@@ -200,13 +201,13 @@ def process_pfm (root):
 
     if version_id is None:
         print ("No Firmware version ID provided")
-        return None, None
+        return None, None, False
 
     platform_id = root.attrib.get(XML_PLATFORM_ATTRIB)
 
     if platform_id is None:
         print ("No Platform ID provided")
-        return None, None
+        return None, None, False
 
     xml["version_id"] = version_id.strip().encode("utf8")
     xml["platform_id"] = platform_id.strip().encode("utf8")
@@ -221,7 +222,7 @@ def process_pfm (root):
         if runtime_update is None or len (runtime_update) > 1:
             print ("Invalid number of RuntimeUpdate tags in Firmware: {0}".format (
                     xml["fw_type"].decode("utf8")))
-            return None, None
+            return None, None, False
 
         xml["runtime_update"] = runtime_update[0].text.strip().lower()
 
@@ -229,7 +230,7 @@ def process_pfm (root):
 
     if not version or len (version) > 1:
         print ("Invalid number of VersionAddr tags in Firmware: {0}".format (xml["version_id"]))
-        return None, None
+        return None, None, False
 
     xml["version_addr"] = version[0].text.strip()
 
@@ -237,7 +238,7 @@ def process_pfm (root):
 
     if len (unused_byte) > 1:
         print ("Invalid number of UnusedByte tags in Firmware: {0}".format (xml["version_id"]))
-        return None, None
+        return None, None, False
 
     if unused_byte:
         xml["unused_byte"] = unused_byte[0].text.strip()
@@ -251,14 +252,14 @@ def process_pfm (root):
             processed_region = process_region (region, xml["version_id"])
 
             if processed_region is None:
-                return None, None
+                return None, None, False
             else:
                 if "fw_type" in xml:
                     fail_operation = region.findall (XML_OPERATION_ON_FAILURE_TAG)
 
                     if len (fail_operation) > 1:
                         print ("Invalid number of OperationOnFailure tags in ReadWrite: {0}".format (version_id))
-                        return None, None
+                        return None, None, False
 
                     if fail_operation and fail_operation[0].text.strip() == "Erase":
                         processed_region["operation_fail"] = "0x2"
@@ -279,7 +280,7 @@ def process_pfm (root):
 
             if not img_hash or len (img_hash) > 1:
                 print ("Invalid number of Image Hash tags in SignedImage, Firmware {0} - {1}".format (xml["version_id"], xml["fw_type"]))
-                return None, None
+                return None, None, False
 
             image["hash"] = binascii.a2b_hex(re.sub("\s", "", img_hash[0].text.strip()))
 
@@ -287,7 +288,7 @@ def process_pfm (root):
 
             if len (hash_type) > 1:
                 print ("Invalid number of Image Hash Type tags in SignedImage, Firmware {0} - {1}".format (xml["version_id"], xml["fw_type"]))
-                return None, None
+                return None, None, False
 
             if hash_type and hash_type[0].text.strip() == "SHA512":
                 image["hash_type"] = "0x2"
@@ -301,7 +302,7 @@ def process_pfm (root):
 
             if not pbkey or len (pbkey) > 1:
                 print ("Invalid number of PublicKey tags in SignedImage, Firmware {0}".format (xml["version_id"]))
-                return None, None
+                return None, None, False
 
             image["pbkey"] = pbkey[0].text.strip()
 
@@ -309,7 +310,7 @@ def process_pfm (root):
 
             if not sig or len (sig) > 1:
                print ("Invalid number of Signature tags in SignedImage, Firmware {0}".format (xml["version_id"]))
-               return None, None
+               return None, None, False
 
             image["signature"] = binascii.a2b_hex(re.sub("\s", "", sig[0].text.strip()))
 
@@ -317,19 +318,19 @@ def process_pfm (root):
             processed_region = process_region (region, xml["version_id"])
 
             if processed_region is None:
-                return None, None
+                return None, None, False
 
             image["regions"].append (processed_region)
 
         if not image["regions"]:
             print ("No regions found for SignedImage, Firmware: {0}".format (xml["version_id"]))
-            return None, None
+            return None, None, False
 
         prop = img.findall (XML_VALIDATE_TAG)
 
         if not prop or len (prop) > 1:
             print ("Invalid number of ValidateOnBoot tags in SignedImage, Firmware {0}".format (xml["version_id"]))
-            return None, None
+            return None, None, False
 
         image["validate"] = prop[0].text.strip()
 
@@ -337,9 +338,9 @@ def process_pfm (root):
 
     if not xml["signed_imgs"]:
         print ("No signed images found for Firmware: {0}".format (xml["version_id"]))
-        return None, None
+        return None, None, False
 
-    return xml, pfm_version
+    return xml, pfm_version, False
 
 def process_cfm (root):
     """
@@ -347,7 +348,7 @@ def process_cfm (root):
 
     :param root: XML to utilize
 
-    :return List of CFM values, manifest version
+    :return List of CFM values, manifest version, boolean for whether XML is for an empty CFM
     """
 
     xml = {}
@@ -357,7 +358,7 @@ def process_cfm (root):
 
     if device_id is None:
         print ("No Device ID provided")
-        return None, None
+        return None, None, False
 
     xml["device_id"] = device_id.strip()
 
@@ -369,7 +370,7 @@ def process_cfm (root):
 
         if version is None:
             print ("No Firmware version provided for Device: {0}".format (xml["device_id"]))
-            return None, None
+            return None, None, False
 
         firmware["version"] = version.strip()
 
@@ -380,7 +381,7 @@ def process_cfm (root):
 
             if not digest or len (digest) > 1:
                 print ("Invalid number of Digest tags in Device: {0}, Firmware: {1}".format (xml["device_id"], firmware["version"]))
-                return None, None
+                return None, None, False
 
             image["digest"] = binascii.a2b_hex(re.sub("\s", "", digest[0].text.strip()))
 
@@ -388,7 +389,7 @@ def process_cfm (root):
 
             if not action or len (action) > 1:
                 print ("Invalid number of FailureAction tags in Device: {0}, Firmware: {1}".format (xml["device_id"], firmware["version"]))
-                return None, None
+                return None, None, False
 
             image["failure_action"] = action[0].text.strip()
 
@@ -396,15 +397,15 @@ def process_cfm (root):
 
         if not firmware["signed_imgs"]:
             print ("No signed images found for Device: {0}, Firmware: {1}".format (xml["device_id"], firmware["version"]))
-            return None, None
+            return None, None, False
 
         xml["fw_list"].append (firmware)
 
     if not xml["fw_list"]:
         print ("No firmware found for Device: {0}".format (xml["device_id"]))
-        return None, None
+        return None, None, False
 
-    return xml, manifest_types.VERSION_1
+    return xml, manifest_types.VERSION_1, False
 
 def process_pcd (root):
     """
@@ -412,32 +413,36 @@ def process_pcd (root):
 
     :param root: XML to utilize
 
-    :return List of PCD values, manifest version
+    :return List of PCD values, manifest version, boolean for whether manifest is for an empty PCD
     """
 
     xml = {}
 
     result = xml_extract_attrib (root, XML_SKU_ATTRIB, True)
     if result is None:
-        return None, None
+        return None, None, False
 
     xml.update ({"platform_id":result})
 
     result = xml_extract_attrib (root, XML_VERSION_ATTRIB, False)
     if result is None:
-        return None, None
+        return None, None, False
 
     xml.update ({"version":int (result, 16)})
 
+    result = xml_extract_attrib (root, XML_EMPTY_ATTRIB, True, False)
+    if result == "True": 
+        return xml, manifest_types.VERSION_2, True       
+
     rot = xml_find_single_tag (root, XML_ROT_TAG)
     if rot is None:
-        return None, None
+        return None, None, False
 
     xml["rot"] = {}
 
     result = xml_extract_attrib (rot, XML_TYPE_ATTRIB, True)
     if result is None:
-        return None, None
+        return None, None, False
     if result == PCD_ROT_TYPE_PA_ROT:
         result = 0
     elif result == PCD_ROT_TYPE_AC_ROT:
@@ -454,7 +459,7 @@ def process_pcd (root):
         for port in ports.findall (XML_PORT_TAG):
             port_id = xml_extract_attrib (port, XML_ID_ATTRIB, False)
             if port_id is None:
-                return None, None
+                return None, None, False
 
             xml["rot"]["ports"][port_id] = {}
 
@@ -464,7 +469,7 @@ def process_pcd (root):
                 "runtime_verification": XML_RUNTIMEVERIFICATION_TAG, 
                 "watchdog_monitoring": XML_WATCHDOGMONITORING_TAG})
             if result is None:
-                return None, None
+                return None, None, False
 
             if result["flash_mode"] == PCD_FLASH_MODE_DUAL:
                 result["flash_mode"] = 0
@@ -513,13 +518,13 @@ def process_pcd (root):
 
     interface = xml_find_single_tag (rot, XML_INTERFACE_TAG)
     if interface is None:
-        return None, None
+        return None, None, False
 
     xml["rot"]["interface"] = {}
 
     interface_type = xml_extract_attrib (interface, XML_TYPE_ATTRIB, True)
     if interface_type is None:
-        return None, None
+        return None, None, False
     if interface_type == PCD_INTERFACE_TYPE_I2C:
         interface_type = 0
     else:
@@ -531,7 +536,7 @@ def process_pcd (root):
         "rot_eid": XML_ROT_EID_TAG, "bridge_eid": XML_BRIDGE_EID_TAG, 
         "bridge_address": XML_BRIDGE_ADDRESS_TAG})
     if result is None:
-        return None, None
+        return None, None, False
 
     result["address"] = int (result["address"], 16)
     result["rot_eid"] = int (result["rot_eid"], 16)
@@ -546,13 +551,13 @@ def process_pcd (root):
 
         interface = xml_find_single_tag (power_controller, XML_INTERFACE_TAG)
         if interface is None:
-            return None, None
+            return None, None, False
 
         xml["power_controller"]["interface"] = {}
 
         interface_type = xml_extract_attrib (interface, XML_TYPE_ATTRIB, True)
         if interface_type is None:
-            return None, None
+            return None, None, False
         if interface_type == PCD_INTERFACE_TYPE_I2C:
             interface_type = 0
         else:
@@ -563,13 +568,13 @@ def process_pcd (root):
         result = xml_extract_single_value (interface, {"bus": XML_BUS_TAG, 
             "eid": XML_EID_TAG, "address": XML_ADDRESS_TAG, "i2c_mode": XML_I2CMODE_TAG})
         if result is None:
-            return None, None
+            return None, None, False
 
         result["eid"] = int (result["eid"], 16)
         result["address"] = int (result["address"], 16)
 
         if result["i2c_mode"] is None:
-            return None, None
+            return None, None, False
         if result["i2c_mode"] == PCD_INTERFACE_I2C_MODE_MM:
             result["i2c_mode"] = 0
         elif result["i2c_mode"] == PCD_INTERFACE_I2C_MODE_MS:
@@ -586,12 +591,12 @@ def process_pcd (root):
             for mux in muxes.findall (XML_MUX_TAG):
                 level = xml_extract_attrib (mux, XML_LEVEL_ATTRIB, False)
                 if level is None:
-                    return None, None
+                    return None, None, False
 
                 result = xml_extract_single_value (mux, {"address": XML_ADDRESS_TAG, 
                     "channel": XML_CHANNEL_TAG})
                 if result is None:
-                    return None, None
+                    return None, None, False
 
                 result["address"] = int (result["address"], 16)
 
@@ -606,25 +611,25 @@ def process_pcd (root):
 
             result = xml_extract_attrib (component, XML_TYPE_ATTRIB, True)
             if result is None:
-                return None, None
+                return None, None, False
 
             curr_component.update ({"type":result})
 
             cnxn_type = xml_extract_attrib (component, XML_CONNECTION_ATTRIB, True)
             if cnxn_type is None:
-                return None, None
+                return None, None, False
             if cnxn_type == PCD_COMPONENT_CONNECTION_DIRECT:
                 curr_component.update ({"connection":PCD_COMPONENT_CONNECTION_DIRECT})
 
                 interface = xml_find_single_tag (component, XML_INTERFACE_TAG)
                 if interface is None:
-                    return None, None
+                    return None, None, False
 
                 curr_component["interface"] = {}
 
                 interface_type = xml_extract_attrib (interface, XML_TYPE_ATTRIB, True)
                 if interface_type is None:
-                    return None, None
+                    return None, None, False
                 if interface_type == PCD_INTERFACE_TYPE_I2C:
                     interface_type = 0
                 else:
@@ -636,13 +641,13 @@ def process_pcd (root):
                 result = xml_extract_single_value (interface, {"bus": XML_BUS_TAG, 
                     "eid": XML_EID_TAG, "address": XML_ADDRESS_TAG, "i2c_mode": XML_I2CMODE_TAG})
                 if result is None:
-                    return None, None
+                    return None, None, False
 
                 result["eid"] = int (result["eid"], 16)
                 result["address"] = int (result["address"], 16)
 
                 if result["i2c_mode"] is None:
-                    return None, None
+                    return None, None, False
                 if result["i2c_mode"] == PCD_INTERFACE_I2C_MODE_MM:
                     result["i2c_mode"] = 0
                 elif result["i2c_mode"] == PCD_INTERFACE_I2C_MODE_MS:
@@ -660,12 +665,12 @@ def process_pcd (root):
                     for mux in muxes.findall (XML_MUX_TAG):
                         level = xml_extract_attrib (mux, XML_LEVEL_ATTRIB, False)
                         if level is None:
-                            return None, None
+                            return None, None, False
 
                         result = xml_extract_single_value (mux, {"address": XML_ADDRESS_TAG, 
                             "channel": XML_CHANNEL_TAG})
                         if result is None:
-                            return None, None
+                            return None, None, False
 
                         result["address"] = int (result["address"], 16)
 
@@ -676,7 +681,7 @@ def process_pcd (root):
 
                 count = xml_extract_attrib (component, XML_COUNT_ATTRIB, False)
                 if count is None:
-                    return None, None
+                    return None, None, False
 
                 curr_component.update ({"count": int (count)})
 
@@ -684,7 +689,7 @@ def process_pcd (root):
                     "deviceid": XML_DEVICE_ID_TAG, "vendorid": XML_VENDOR_ID_TAG, 
                     "subdeviceid": XML_SUB_DEVICE_ID_TAG, "subvendorid": XML_SUB_VENDOR_ID_TAG})
                 if result is None:
-                    return None, None
+                    return None, None, False
 
                 result["eid"] = int (result["eid"], 16)
                 result["deviceid"] = int (result["deviceid"], 16)
@@ -699,7 +704,7 @@ def process_pcd (root):
 
             result = xml_extract_single_value (component, {"policy": XML_POLICY_TAG})
             if result is None:
-                return None, None
+                return None, None, False
             if result["policy"] == PCD_POLICY_PASSIVE:
                 result["policy"] = 0
             elif result["policy"] == PCD_POLICY_ACTIVE:
@@ -712,14 +717,14 @@ def process_pcd (root):
 
             powerctrl = xml_find_single_tag (component, XML_PWRCTRL_TAG)
             if powerctrl is None:
-                return None, None
+                return None, None, False
 
             curr_component["powerctrl"] = {}
 
             result = xml_extract_single_value (powerctrl, {"register": XML_REGISTER_TAG, 
                 "mask": XML_MASK_TAG})
             if result is None:
-                return None, None
+                return None, None, False
 
             result["register"] = int (result["register"], 16)
             result["mask"] = int (result["mask"], 16)
@@ -728,7 +733,7 @@ def process_pcd (root):
 
             xml["components"].append (curr_component)
 
-    return xml, manifest_types.VERSION_2
+    return xml, manifest_types.VERSION_2, False
 
 def load_and_process_xml (xml_file, xml_type):
     """
@@ -737,7 +742,7 @@ def load_and_process_xml (xml_file, xml_type):
     :param xml_file: XML to utilize
     :param xml_type: Type of manifest
 
-    :return List of manifest values, manifest version
+    :return List of manifest values, manifest version, boolean for whether XML is for an empty manifest
     """
 
     root = et.parse (xml_file).getroot ()

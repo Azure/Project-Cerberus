@@ -157,7 +157,7 @@ def load_key (key_type, key_size, prv_key_path):
 
         return True, keysize, key
     else:
-        print ("No RSA private key provided in config, unsigned PFM will be generated.")
+        print ("No RSA private key provided in config, unsigned manifest will be generated.")
         return False, key_size, None
 
 def generate_manifest_header (manifest_id, key_size, manifest_type, hash_type, key_type, 
@@ -216,7 +216,8 @@ def load_xmls (config_filename, max_num_xmls, xml_type):
     :param xml_type: Type of XML
 
     :return list of XML elements, boolean indicating whether to sign output or not, key size,
-        key to use for signing, output ID, output filename and manifest xml version
+        key to use for signing, output ID, output filename and manifest xml version, boolean for 
+        whether XML is for an empty manifest
     """
 
     config = load_config (config_filename)
@@ -225,6 +226,7 @@ def load_xmls (config_filename, max_num_xmls, xml_type):
     key_type = 0
     hash_type = None
     sign = False
+    empty = False
 
     if "key_type" in config and config["key_type"]:
         if config["key_type"] == "ECC":
@@ -253,7 +255,7 @@ def load_xmls (config_filename, max_num_xmls, xml_type):
     xml_version = None
 
     for xml in config["xml_list"]:
-        parsed_xml, curr_xml_version = manifest_parser.load_and_process_xml (xml, xml_type)
+        parsed_xml, curr_xml_version, empty = manifest_parser.load_and_process_xml (xml, xml_type)
 
         if parsed_xml is None:
             raise RuntimeError ("Failed to parse XML: {0}".format (xml))
@@ -263,7 +265,7 @@ def load_xmls (config_filename, max_num_xmls, xml_type):
 
             if xml_version != curr_xml_version:
                 raise RuntimeError (
-                    "Failed to generate PFM: XML version is different - {0}".format (xml))
+                    "Failed to generate manifest: XML version is different - {0}".format (xml))
 
         processed_xml.update ({xml:parsed_xml})
 
@@ -273,7 +275,7 @@ def load_xmls (config_filename, max_num_xmls, xml_type):
         manifest_id = list (processed_xml.items())[0][1]["version"]
 
     return processed_xml, sign, key_size, key, key_type, hash_type, manifest_id, config["output"], \
-        xml_version
+        xml_version, empty
 
 def write_manifest (xml_version, sign, manifest, key, key_size, key_type, output_filename,
     manifest_length, sig_length):
@@ -336,13 +338,13 @@ def write_manifest (xml_version, sign, manifest, key, key_size, key_type, output
         ctypes.memmove (ctypes.byref (manifest_buf), ctypes.addressof (manifest), manifest_length)
         fh.write (manifest_buf)
 
-def generate_manifest_toc_header (fw_id_list, hash_type, bypass):
+def generate_manifest_toc_header (fw_id_list, hash_type, empty):
     """
     Create a manifest table of contents header
 
     :param fw_id_list: List of FW elements that have different IDs
     :param hash_type: Hash to be used
-    :param bypass: flag indicating if bypass PFM
+    :param empty: flag indicating if empty manifest
 
     :return Instance of a manifest table of contents header
     """
@@ -352,7 +354,7 @@ def generate_manifest_toc_header (fw_id_list, hash_type, bypass):
     if hash_type is None or hash_type > 2:
         raise ValueError ("Invalid manifest hash type: {0}".format (hash_type))
 
-    if not bypass:
+    if not empty:
         entries += 1
 
         for count in fw_id_list.values ():
@@ -422,19 +424,19 @@ def get_platform_id (xml_list):
     platform_id = None
     for filename, xml in xml_list.items ():
         if "platform_id" not in xml:
-            raise KeyError ("Failed to generate PFM: XML has no platform id - {0}".format (
+            raise KeyError ("Failed to generate manifest: XML has no platform id - {0}".format (
                 filename))
 
         if platform_id:
             if platform_id != xml["platform_id"]:
                 raise ValueError (
-                    "Failed to generate PFM: Version platform ids don't match - ({0}, {1})"
+                    "Failed to generate manifest: Version platform ids don't match - ({0}, {1})"
                     .format(platform_id, xml["platform_id"]))
         else:
             platform_id = xml["platform_id"]
 
     if len (platform_id) > 255:
-        raise ValueError ("Failed to generate PFM: Invalid platform id length - ({0})"
+        raise ValueError ("Failed to generate manifest: Invalid platform id length - ({0})"
             .format (len (platform_id)))
 
     return platform_id

@@ -9,6 +9,7 @@ import os
 import sys
 import ctypes
 import binascii
+import argparse
 import manifest_types
 import manifest_common
 import manifest_parser
@@ -413,13 +414,14 @@ def generate_components (xml_components, hash_engine):
 
 #*************************************** Start of Script ***************************************
 
-if len (sys.argv) < 2:
-    path = os.path.join (os.path.dirname (os.path.abspath (__file__)), PCD_CONFIG_FILENAME)
-else:
-    path = os.path.abspath (sys.argv[1])
+default_config = os.path.join (os.path.dirname (os.path.abspath (__file__)), PCD_CONFIG_FILENAME)
+parser = argparse.ArgumentParser (description = 'Create a PCD')
+parser.add_argument ('config', nargs = '?', default = default_config,
+    help = 'Path to configuration file')
+args = parser.parse_args ()
 
-processed_xml, sign, key_size, key, key_type, hash_type, pcd_id, output, xml_version = \
-    manifest_common.load_xmls (path, 1, manifest_types.PCD)
+processed_xml, sign, key_size, key, key_type, hash_type, pcd_id, output, xml_version, empty = \
+    manifest_common.load_xmls (args.config, 1, manifest_types.PCD)
 
 hash_engine = manifest_common.get_hash_engine (hash_type)
 
@@ -445,41 +447,42 @@ elements_list.append (platform_id)
 toc_list.append (platform_id_toc_entry)
 hash_list.append (platform_id_hash)
 
-if "power_controller" in processed_xml:
-    power_controller, power_controller_toc_entry, power_controller_hash = \
-        generate_power_controller (processed_xml["power_controller"], hash_engine)
-    
-    pcd_len += ctypes.sizeof (power_controller)
-    elements_list.append (power_controller)
-    toc_list.append (power_controller_toc_entry)
-    hash_list.append (power_controller_hash)
+if not empty:
+    if "power_controller" in processed_xml:
+        power_controller, power_controller_toc_entry, power_controller_hash = \
+            generate_power_controller (processed_xml["power_controller"], hash_engine)
+        
+        pcd_len += ctypes.sizeof (power_controller)
+        elements_list.append (power_controller)
+        toc_list.append (power_controller_toc_entry)
+        hash_list.append (power_controller_hash)
 
-if "components" in processed_xml:
-    components, num_components, components_toc_list, components_hash_list = generate_components (
-        processed_xml["components"], hash_engine)
+    if "components" in processed_xml:
+        components, num_components, components_toc_list, components_hash_list = generate_components (
+            processed_xml["components"], hash_engine)
 
-    pcd_len += ctypes.sizeof (components)
-    elements_list.append (components)
-    toc_list.extend (components_toc_list)
-    hash_list.extend (components_hash_list)
+        pcd_len += ctypes.sizeof (components)
+        elements_list.append (components)
+        toc_list.extend (components_toc_list)
+        hash_list.extend (components_hash_list)
 
-if "ports" in processed_xml["rot"]:
-    ports, num_ports, ports_toc_entries, ports_hash = generate_ports (processed_xml["rot"]["ports"], 
+    if "ports" in processed_xml["rot"]:
+        ports, num_ports, ports_toc_entries, ports_hash = generate_ports (processed_xml["rot"]["ports"], 
+            hash_engine)
+
+    rot, rot_toc_entry, rot_hash = generate_rot (processed_xml["rot"], num_components, num_ports, 
         hash_engine)
+        
+    pcd_len += ctypes.sizeof (rot)
+    elements_list.append (rot)
+    toc_list.append (rot_toc_entry)
+    hash_list.append (rot_hash)
 
-rot, rot_toc_entry, rot_hash = generate_rot (processed_xml["rot"], num_components, num_ports, 
-    hash_engine)
-    
-pcd_len += ctypes.sizeof (rot)
-elements_list.append (rot)
-toc_list.append (rot_toc_entry)
-hash_list.append (rot_hash)
-
-if num_ports > 0:
-    pcd_len += ctypes.sizeof (ports)
-    elements_list.append (ports)
-    toc_list.extend (ports_toc_entries)
-    hash_list.extend (ports_hash)
+    if num_ports > 0:
+        pcd_len += ctypes.sizeof (ports)
+        elements_list.append (ports)
+        toc_list.extend (ports_toc_entries)
+        hash_list.extend (ports_hash)
 
 toc = manifest_common.generate_toc (hash_engine, hash_type, toc_list, hash_list)
 toc_len = ctypes.sizeof (toc)
