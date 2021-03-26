@@ -47,6 +47,7 @@ static void cmd_background_task_handler (struct cmd_background_task *task)
 {
 	uint32_t notification;
 	int *op_status;
+	bool reset = false;
 	int status;
 
 	do {
@@ -58,7 +59,7 @@ static void cmd_background_task_handler (struct cmd_background_task *task)
 		if (notification & CMD_BACKGROUND_EXTERNAL_HANDLER) {
 			op_status = &status;
 			if (task->ext_handler) {
-				task->ext_handler (task, notification);
+				task->ext_handler (task, notification, &reset);
 			}
 			else {
 				debug_log_create_entry (DEBUG_LOG_SEVERITY_WARNING,
@@ -142,6 +143,9 @@ static void cmd_background_task_handler (struct cmd_background_task *task)
 			if (status == 0) {
 				debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_CMD_INTERFACE,
 					CMD_LOGGING_CLEAR_PLATFORM_CONFIG, 0, 0);
+
+				/* Reset the device to apply the default configuration. */
+				reset = true;
 			}
 			else {
 				debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_CMD_INTERFACE,
@@ -220,8 +224,16 @@ static void cmd_background_task_handler (struct cmd_background_task *task)
 
 		xSemaphoreTake (task->lock, portMAX_DELAY);
 		*op_status = status;
-		task->running = 0;
+		task->running = (reset) ? 1 : 0;
 		xSemaphoreGive (task->lock);
+
+		if (reset) {
+			/* If the action requires it, reset the system.  We need to wait a bit before
+			 * triggering the reset to allow time for the execution status to be reported. */
+			platform_msleep (5000);
+			system_reset (task->system);
+			reset = false;	/* We should never get here, but clear the flag if the reset fails. */
+		}
 	} while (1);
 }
 
@@ -545,6 +557,7 @@ int cmd_background_task_get_riot_cert_chain_state (struct cmd_background *cmd)
  * Initialize the task for executing received requests outside of the main command handler.
  *
  * @param task The background task to initialize.
+ * @param system The manager for system operations.
  * @param attestation The slave attestation manager for the command interface.
  * @param hash The hashing engine to utilize.
  * @param reset Manager for configuration reset operations.
@@ -552,7 +565,7 @@ int cmd_background_task_get_riot_cert_chain_state (struct cmd_background *cmd)
  *
  * @return 0 if the task was successfully initialized or an error code.
  */
-int cmd_background_task_init (struct cmd_background_task *task,
+int cmd_background_task_init (struct cmd_background_task *task, struct system *system,
 	struct attestation_slave *attestation, struct hash_engine *hash, struct config_reset *reset,
 	struct riot_key_manager *riot)
 {
@@ -566,6 +579,8 @@ int cmd_background_task_init (struct cmd_background_task *task,
 	if (task->lock == NULL) {
 		return CMD_BACKGROUND_NO_MEMORY;
 	}
+
+	task->system = system;
 
 	/* Attestation operations. */
 	task->base.unseal_start = cmd_background_task_unseal_start;

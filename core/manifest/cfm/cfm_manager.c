@@ -134,6 +134,23 @@ void cfm_manager_on_cfm_activated (struct cfm_manager *manager)
 }
 
 /**
+ * Notify observers that the active CFM has been cleared.
+ *
+ * @param manager The manager generating the event.
+ */
+void cfm_manager_on_clear_active (struct cfm_manager *manager)
+{
+	if (manager == NULL) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
+			MANIFEST_LOGGING_CFM_CLEAR_ACTIVE_EVENT_FAIL, MANIFEST_MANAGER_INVALID_ARGUMENT, 0);
+		return;
+	}
+
+	observable_notify_observers (&manager->observable,
+		offsetof (struct cfm_observer, on_clear_active));
+}
+
+/**
  * Get the data used for CFM ID measurement.  The CFM instance must be released with the
  * manager.
  *
@@ -192,7 +209,7 @@ int cfm_manager_get_platform_id_measured_data (struct cfm_manager *manager, size
 
 	active = manager->get_active_cfm (manager);
 	if (active == NULL) {
-		status = manifest_manager_get_platform_id_measured_data (NULL, offset, buffer, length, 
+		status = manifest_manager_get_platform_id_measured_data (NULL, offset, buffer, length,
 			total_len);
 	}
 	else {

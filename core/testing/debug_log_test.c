@@ -79,8 +79,8 @@ static void debug_log_test_create_entry (CuTest *test)
 	setup_debug_log_mock_test (test, &logger);
 
 	status = mock_expect (&logger.mock, logger.base.create_entry, &logger, 0,
-		MOCK_ARG_PTR_CONTAINS (&entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED), 
-        MOCK_ARG (sizeof (entry)));
+		MOCK_ARG_PTR_CONTAINS (&entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
 	CuAssertIntEquals (test, 0, status);
 
 	status = debug_log_create_entry (1, 2, 3, 4, 5);

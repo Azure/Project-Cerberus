@@ -806,16 +806,3 @@ int firmware_update_get_update_remaining (struct firmware_update *updater)
 {
 	return flash_updater_get_remaining_bytes (&updater->update_mgr);
 }
-
-/**
- * Notify the system of a pending reset to give components an opportunity to gracefully halt.
- *
- * @param updater The updater generating the notification.
- */
-void firmware_update_shutdown_system (struct firmware_update *updater)
-{
-	if (updater) {
-		observable_notify_observers (&updater->observable,
-			offsetof (struct firmware_update_observer, on_shutdown));
-	}
-}

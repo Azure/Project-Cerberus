@@ -15,6 +15,13 @@ static void cfm_observer_pcr_on_cfm_activated (struct cfm_observer *observer, st
 	manifest_pcr_record_manifest_measurement (&pcr->pcr, &active->base);
 }
 
+static void cfm_observer_pcr_on_clear_active (struct cfm_observer *observer)
+{
+	struct cfm_observer_pcr *pcr = (struct cfm_observer_pcr*) observer;
+
+	manifest_pcr_record_manifest_measurement (&pcr->pcr, NULL);
+}
+
 /**
  * Initialize the CFM observer for updating PCR entries.
  *
@@ -46,6 +53,7 @@ int cfm_observer_pcr_init (struct cfm_observer_pcr *observer, struct hash_engine
 	}
 
 	observer->base.on_cfm_activated = cfm_observer_pcr_on_cfm_activated;
+	observer->base.on_clear_active = cfm_observer_pcr_on_clear_active;
 
 	return 0;
 }

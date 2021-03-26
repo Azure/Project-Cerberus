@@ -20,17 +20,6 @@ static void firmware_update_observer_mock_on_update_start (
 		MOCK_ARG_CALL (update_allowed));
 }
 
-static void firmware_update_observer_mock_on_shutdown (struct firmware_update_observer *observer)
-{
-	struct firmware_update_observer_mock *mock = (struct firmware_update_observer_mock*) observer;
-
-	if (mock == NULL) {
-		return;
-	}
-
-	MOCK_VOID_RETURN_NO_ARGS (&mock->mock, firmware_update_observer_mock_on_shutdown, observer);
-}
-
 static int firmware_update_observer_mock_func_arg_count (void *func)
 {
 	if (func == firmware_update_observer_mock_on_update_start) {
@@ -45,9 +34,6 @@ static const char* firmware_update_observer_mock_func_name_map (void *func)
 {
 	if (func == firmware_update_observer_mock_on_update_start) {
 		return "on_update_start";
-	}
-	else if (func == firmware_update_observer_mock_on_shutdown) {
-		return "on_shutdown";
 	}
 	else {
 		return "unknown";
@@ -91,7 +77,6 @@ int firmware_update_observer_mock_init (struct firmware_update_observer_mock *mo
 	mock_set_name (&mock->mock, "firmware_update_observer");
 
 	mock->base.on_update_start = firmware_update_observer_mock_on_update_start;
-	mock->base.on_shutdown = firmware_update_observer_mock_on_shutdown;
 
 	mock->mock.func_arg_count = firmware_update_observer_mock_func_arg_count;
 	mock->mock.func_name_map = firmware_update_observer_mock_func_name_map;

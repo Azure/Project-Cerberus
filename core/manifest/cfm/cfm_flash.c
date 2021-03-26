@@ -78,6 +78,21 @@ static int cfm_flash_get_signature (struct manifest *cfm, uint8_t *signature, si
 	return manifest_flash_get_signature (&cfm_flash->base_flash, signature, length);
 }
 
+static int cfm_flash_is_empty (struct manifest *cfm)
+{
+	struct cfm_flash *cfm_flash = (struct cfm_flash*) cfm;
+
+	if (cfm_flash == NULL) {
+		return CFM_INVALID_ARGUMENT;
+	}
+
+	if (!cfm_flash->base_flash.manifest_valid) {
+		return MANIFEST_NO_MANIFEST;
+	}
+
+	return 0;
+}
+
 static int cfm_flash_get_supported_component_ids (struct cfm *cfm,
 	struct cfm_component_ids *id_list)
 {
@@ -418,6 +433,7 @@ int cfm_flash_init (struct cfm_flash *cfm, struct flash *flash, uint32_t base_ad
 	cfm->base.base.free_platform_id = cfm_flash_free_platform_id;
 	cfm->base.base.get_hash = cfm_flash_get_hash;
 	cfm->base.base.get_signature = cfm_flash_get_signature;
+	cfm->base.base.is_empty = cfm_flash_is_empty;
 
 	cfm->base.get_supported_component_ids = cfm_flash_get_supported_component_ids;
 	cfm->base.free_component_ids = cfm_flash_free_component_ids;

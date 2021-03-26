@@ -8,7 +8,7 @@
 #include "manifest/manifest_logging.h"
 
 
-static int manifest_cmd_handler_pfm_activation (struct manifest_cmd_handler *task)
+static int manifest_cmd_handler_pfm_activation (struct manifest_cmd_handler *task, bool *reset)
 {
 	struct manifest_cmd_handler_pfm *pfm = (struct manifest_cmd_handler_pfm*) task;
 	int status;

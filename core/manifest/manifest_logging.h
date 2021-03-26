@@ -33,6 +33,12 @@ enum {
 	MANIFEST_LOGGING_EMPTY_PFM,						/**< An empty PFM caused manifests to be cleared. */
 	MANIFEST_LOGGING_GET_ID_FAIL,					/**< Failed to get manifest ID for measurement. */
 	MANIFEST_LOGGING_GET_PLATFORM_ID_FAIL,			/**< Failed to get manifest platform ID for measurement. */
+	MANIFEST_LOGGING_EMPTY_PCD,						/**< An empty PCD caused manifests to be cleared. */
+	MANIFEST_LOGGING_EMPTY_CFM,						/**< An empty CFM caused manifests to be cleared. */
+	MANIFEST_LOGGING_PFM_CLEAR_ACTIVE_EVENT_FAIL,	/**< Failed clear active PFM notification. */
+	MANIFEST_LOGGING_CFM_CLEAR_ACTIVE_EVENT_FAIL,	/**< Failed clear active CFM notification. */
+	MANIFEST_LOGGING_PCD_CLEAR_ACTIVE_EVENT_FAIL,	/**< Failed clear active PCD notification. */
+	MANIFEST_LOGGING_PCD_UPDATE,					/**< Received a PCD update. */
 };
 
 

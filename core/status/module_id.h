@@ -95,6 +95,7 @@ enum {
 	ROT_MODULE_FLASH_STORE = 0x0053,					/**< Block data storage in flash. */
 	ROT_MODULE_KDF = 0x0054,							/**< Key derivation function. */
 	ROT_MODULE_HOST_STATE_OBSERVER = 0x0055,			/**< Observers for host state changes. */
+	ROT_MODULE_SYSTEM = 0x0056,							/**< Main system manager. */
 };
 
 

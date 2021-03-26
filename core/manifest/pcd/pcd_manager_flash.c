@@ -4,8 +4,9 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <string.h>
-#include "state_manager/system_state_manager.h"
 #include "pcd_manager_flash.h"
+#include "manifest/manifest_logging.h"
+#include "system/system_state_manager.h"
 
 
 static struct pcd* pcd_manager_flash_get_pcd (struct pcd_manager_flash *manager, bool active)
@@ -95,7 +96,7 @@ static int pcd_manager_flash_verify_pending_pcd (struct manifest_manager *manage
 
 	status = manifest_manager_flash_verify_pending_manifest (&pcd_mgr->manifest_manager);
 	if (status == 0) {
-		pcd_manager_on_pcd_verified (&pcd_mgr->base);
+		pcd_manager_on_pcd_verified (&pcd_mgr->base, pcd_manager_flash_get_pcd (pcd_mgr, false));
 	}
 
 	return status;
@@ -104,12 +105,18 @@ static int pcd_manager_flash_verify_pending_pcd (struct manifest_manager *manage
 static int pcd_manager_flash_clear_all_manifests (struct manifest_manager *manager)
 {
 	struct pcd_manager_flash *pcd_mgr = (struct pcd_manager_flash*) manager;
+	int status;
 
 	if (pcd_mgr == NULL) {
 		return MANIFEST_MANAGER_INVALID_ARGUMENT;
 	}
 
-	return manifest_manager_flash_clear_all_manifests (&pcd_mgr->manifest_manager);
+	status = manifest_manager_flash_clear_all_manifests (&pcd_mgr->manifest_manager, false);
+	if (status == 0) {
+		pcd_manager_on_clear_active (&pcd_mgr->base);
+	}
+
+	return status;
 }
 
 /**
@@ -145,9 +152,10 @@ int pcd_manager_flash_init (struct pcd_manager_flash *manager, struct pcd_flash 
 		return status;
 	}
 
-	status = manifest_manager_flash_init (&manager->manifest_manager, &pcd_region1->base.base,
-		&pcd_region2->base.base, &pcd_region1->base_flash, &pcd_region2->base_flash, state, hash,
-		verification, SYSTEM_STATE_MANIFEST_PCD);
+	status = manifest_manager_flash_init (&manager->manifest_manager, &manager->base.base,
+		&pcd_region1->base.base, &pcd_region2->base.base, &pcd_region1->base_flash,
+		&pcd_region2->base_flash, state, hash, verification, SYSTEM_STATE_MANIFEST_PCD,
+		MANIFEST_LOGGING_EMPTY_PCD);
 	if (status != 0) {
 		pcd_manager_release (&manager->base);
 		return status;

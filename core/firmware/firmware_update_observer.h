@@ -23,17 +23,6 @@ struct firmware_update_observer {
 	 * any notification processing may optionally be skipped.
 	 */
 	void (*on_update_start) (struct firmware_update_observer *observer, int *update_allowed);
-
-	/**
-	 * Notification that the processor is about to reset.  Observers of this notification have the
-	 * opportunity to delay reset until operations that are in progress have completed or to ensure
-	 * persistent data has been saved.
-	 *
-	 * Arguments passed with the notification will never be null.
-	 *
-	 * @param observer The observer instance being notified.
-	 */
-	void (*on_shutdown) (struct firmware_update_observer *observer);
 };
 
 

@@ -79,6 +79,65 @@ static int pcd_mock_get_signature (struct manifest *pcd, uint8_t *signature, siz
 		MOCK_ARG_CALL (length));
 }
 
+static int pcd_mock_is_empty (struct manifest *pcd)
+{
+	struct pcd_mock *mock = (struct pcd_mock*) pcd;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN_NO_ARGS (&mock->mock, pcd_mock_is_empty, pcd);
+}
+
+static int pcd_mock_get_devices_info (struct pcd *pcd, struct device_manager_info **devices,
+	size_t *num_devices)
+{
+	struct pcd_mock *mock = (struct pcd_mock*) pcd;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, pcd_mock_get_devices_info, pcd, MOCK_ARG_CALL (devices),
+		MOCK_ARG_CALL (num_devices));
+}
+
+static int pcd_mock_get_rot_info (struct pcd *pcd, struct pcd_rot_info *info)
+{
+	struct pcd_mock *mock = (struct pcd_mock*) pcd;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, pcd_mock_get_rot_info, pcd, MOCK_ARG_CALL (info));
+}
+
+static int pcd_mock_get_port_info (struct pcd *pcd, uint8_t port_id, struct pcd_port_info *info)
+{
+	struct pcd_mock *mock = (struct pcd_mock*) pcd;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, pcd_mock_get_port_info, pcd, MOCK_ARG_CALL (port_id),
+		MOCK_ARG_CALL (info));
+}
+
+static int pcd_mock_get_power_controller_info (struct pcd *pcd,
+	struct pcd_power_controller_info *info)
+{
+	struct pcd_mock *mock = (struct pcd_mock*) pcd;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, pcd_mock_get_power_controller_info, pcd, MOCK_ARG_CALL (info));
+}
+
 static int pcd_mock_func_arg_count (void *func)
 {
 	if (func == pcd_mock_verify) {
@@ -87,10 +146,12 @@ static int pcd_mock_func_arg_count (void *func)
 	else if (func == pcd_mock_get_hash) {
 		return 3;
 	}
-	else if ((func == pcd_mock_get_platform_id) || (func == pcd_mock_get_signature)) {
+	else if ((func == pcd_mock_get_platform_id) || (func == pcd_mock_get_signature) ||
+		(func == pcd_mock_get_devices_info) || (func == pcd_mock_get_port_info)) {
 		return 2;
 	}
-	else if ((func == pcd_mock_get_id) || (func == pcd_mock_free_platform_id)) {
+	else if ((func == pcd_mock_get_id) || (func == pcd_mock_free_platform_id) ||
+		(func == pcd_mock_get_rot_info) || (func == pcd_mock_get_power_controller_info)) {
 		return 1;
 	}
 	else {
@@ -117,6 +178,21 @@ static const char* pcd_mock_func_name_map (void *func)
 	}
 	else if (func == pcd_mock_get_signature) {
 		return "get_signature";
+	}
+	else if (func == pcd_mock_is_empty) {
+		return "is_empty";
+	}
+	else if (func == pcd_mock_get_devices_info) {
+		return "get_devices_info";
+	}
+	else if (func == pcd_mock_get_rot_info) {
+		return "get_rot_info";
+	}
+	else if (func == pcd_mock_get_port_info) {
+		return "get_port_info";
+	}
+	else if (func == pcd_mock_get_power_controller_info) {
+		return "get_power_controller_info";
 	}
 	else {
 		return "unknown";
@@ -182,6 +258,36 @@ static const char* pcd_mock_arg_name_map (void *func, int arg)
 				return "length";
 		}
 	}
+	else if (func == pcd_mock_get_devices_info) {
+		switch (arg) {
+			case 0:
+				return "devices";
+
+			case 1:
+				return "num_devices";
+		}
+	}
+	else if (func == pcd_mock_get_rot_info) {
+		switch (arg) {
+			case 0:
+				return "info";
+		}
+	}
+	else if (func == pcd_mock_get_port_info) {
+		switch (arg) {
+			case 0:
+				return "port_id";
+
+			case 1:
+				return "info";
+		}
+	}
+	else if (func == pcd_mock_get_power_controller_info) {
+		switch (arg) {
+			case 0:
+				return "info";
+		}
+	}
 
 	return "unknown";
 }
@@ -216,6 +322,12 @@ int pcd_mock_init (struct pcd_mock *mock)
 	mock->base.base.free_platform_id = pcd_mock_free_platform_id;
 	mock->base.base.get_hash = pcd_mock_get_hash;
 	mock->base.base.get_signature = pcd_mock_get_signature;
+	mock->base.base.is_empty = pcd_mock_is_empty;
+
+	mock->base.get_devices_info = pcd_mock_get_devices_info;
+	mock->base.get_rot_info = pcd_mock_get_rot_info;
+	mock->base.get_port_info = pcd_mock_get_port_info;
+	mock->base.get_power_controller_info = pcd_mock_get_power_controller_info;
 
 	mock->mock.func_arg_count = pcd_mock_func_arg_count;
 	mock->mock.func_name_map = pcd_mock_func_name_map;

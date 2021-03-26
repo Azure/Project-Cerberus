@@ -311,6 +311,86 @@ static void pfm_manager_test_on_pfm_activated_null (CuTest *test)
 	pfm_manager_on_pfm_activated (NULL);
 }
 
+static void pfm_manager_test_on_clear_active_no_observers (CuTest *test)
+{
+	struct pfm_manager_mock manager;
+	int status;
+
+	TEST_START;
+
+	status = pfm_manager_mock_init (&manager);
+	CuAssertIntEquals (test, 0, status);
+
+	pfm_manager_on_clear_active (&manager.base);
+
+	status = pfm_manager_mock_validate_and_release (&manager);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void pfm_manager_test_on_clear_active_one_observer (CuTest *test)
+{
+	struct pfm_manager_mock manager;
+	struct pfm_observer_mock observer;
+	int status;
+
+	TEST_START;
+
+	status = pfm_manager_mock_init (&manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_observer_mock_init (&observer);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_add_observer (&manager.base, &observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&observer.mock, observer.base.on_clear_active, &observer, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	pfm_manager_on_clear_active (&manager.base);
+
+	status = pfm_manager_mock_validate_and_release (&manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_observer_mock_validate_and_release (&observer);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void pfm_manager_test_on_clear_active_no_event_handler (CuTest *test)
+{
+	struct pfm_manager_mock manager;
+	struct pfm_observer_mock observer;
+	int status;
+
+	TEST_START;
+
+	status = pfm_manager_mock_init (&manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_observer_mock_init (&observer);
+	CuAssertIntEquals (test, 0, status);
+
+	observer.base.on_clear_active = NULL;
+
+	status = pfm_manager_add_observer (&manager.base, &observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	pfm_manager_on_clear_active (&manager.base);
+
+	status = pfm_manager_mock_validate_and_release (&manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_observer_mock_validate_and_release (&observer);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void pfm_manager_test_on_clear_active_null (CuTest *test)
+{
+	TEST_START;
+
+	pfm_manager_on_clear_active (NULL);
+}
+
 static void pfm_manager_test_add_observer_null (CuTest *test)
 {
 	struct pfm_mock pfm;
@@ -1304,6 +1384,10 @@ CuSuite* get_pfm_manager_suite ()
 	SUITE_ADD_TEST (suite, pfm_manager_test_on_pfm_activated_no_event_handler);
 	SUITE_ADD_TEST (suite, pfm_manager_test_on_pfm_activated_no_active_pfm);
 	SUITE_ADD_TEST (suite, pfm_manager_test_on_pfm_activated_null);
+	SUITE_ADD_TEST (suite, pfm_manager_test_on_clear_active_no_observers);
+	SUITE_ADD_TEST (suite, pfm_manager_test_on_clear_active_one_observer);
+	SUITE_ADD_TEST (suite, pfm_manager_test_on_clear_active_no_event_handler);
+	SUITE_ADD_TEST (suite, pfm_manager_test_on_clear_active_null);
 	SUITE_ADD_TEST (suite, pfm_manager_test_add_observer_null);
 	SUITE_ADD_TEST (suite, pfm_manager_test_remove_observer_null);
 	SUITE_ADD_TEST (suite, pfm_manager_test_get_id_measured_data);

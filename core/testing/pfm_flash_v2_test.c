@@ -11780,7 +11780,6 @@ static void pfm_flash_v2_test_buffer_supported_versions_verify_never_run (CuTest
 		test_pfm->fw[fw_index].fw_id_str, 0, sizeof (ver_list), ver_list);
 	CuAssertIntEquals (test, MANIFEST_NO_MANIFEST, status);
 
-
 	pfm_flash_v2_testing_validate_and_release (test, &pfm);
 }
 
@@ -12388,6 +12387,85 @@ static void pfm_flash_v2_test_buffer_supported_versions_null_firmware_id_read_el
 	pfm_flash_v2_testing_validate_and_release (test, &pfm);
 }
 
+static void pfm_flash_v2_test_is_empty (CuTest *test)
+{
+	struct pfm_flash_v2_testing pfm;
+	const struct pfm_v2_testing_data *test_pfm = &PFM_V2;
+	int status;
+
+	TEST_START;
+
+	pfm_flash_v2_testing_init_and_verify (test, &pfm, 0x10000, test_pfm, 0, false, 0);
+
+	status = pfm.test.base.base.is_empty (&pfm.test.base.base);
+	CuAssertIntEquals (test, 0, status);
+
+	pfm_flash_v2_testing_validate_and_release (test, &pfm);
+}
+
+static void pfm_flash_v2_test_is_empty_no_flash_dev_element (CuTest *test)
+{
+	struct pfm_flash_v2_testing pfm;
+	const struct pfm_v2_testing_data *test_pfm = &PFM_V2_NO_FLASH_DEV;
+	int status;
+
+	TEST_START;
+
+	pfm_flash_v2_testing_init_and_verify (test, &pfm, 0x10000, test_pfm, 0, false, 0);
+
+	status = pfm.test.base.base.is_empty (&pfm.test.base.base);
+	CuAssertIntEquals (test, 1, status);
+
+	pfm_flash_v2_testing_validate_and_release (test, &pfm);
+}
+
+static void pfm_flash_v2_test_is_empty_no_firmware_entries (CuTest *test)
+{
+	struct pfm_flash_v2_testing pfm;
+	const struct pfm_v2_testing_data *test_pfm = &PFM_V2_EMPTY;
+	int status;
+
+	TEST_START;
+
+	pfm_flash_v2_testing_init_and_verify (test, &pfm, 0x10000, test_pfm, 0, false, 0);
+
+	status = pfm.test.base.base.is_empty (&pfm.test.base.base);
+	CuAssertIntEquals (test, 1, status);
+
+	pfm_flash_v2_testing_validate_and_release (test, &pfm);
+}
+
+static void pfm_flash_v2_test_is_empty_null (CuTest *test)
+{
+	struct pfm_flash_v2_testing pfm;
+	const struct pfm_v2_testing_data *test_pfm = &PFM_V2;
+	int status;
+
+	TEST_START;
+
+	pfm_flash_v2_testing_init_and_verify (test, &pfm, 0x10000, test_pfm, 0, false, 0);
+
+	status = pfm.test.base.base.is_empty (NULL);
+	CuAssertIntEquals (test, PFM_INVALID_ARGUMENT, status);
+
+	pfm_flash_v2_testing_validate_and_release (test, &pfm);
+}
+
+static void pfm_flash_v2_test_is_empty_verify_never_run (CuTest *test)
+{
+	struct pfm_flash_v2_testing pfm;
+	int status;
+
+	TEST_START;
+
+	pfm_flash_v2_testing_init (test, &pfm, 0x10000);
+
+	status = pfm.test.base.base.is_empty (&pfm.test.base.base);
+	CuAssertIntEquals (test, MANIFEST_NO_MANIFEST, status);
+
+	pfm_flash_v2_testing_validate_and_release (test, &pfm);
+}
+
 
 CuSuite* get_pfm_flash_v2_suite ()
 {
@@ -12580,6 +12658,11 @@ CuSuite* get_pfm_flash_v2_suite ()
 		pfm_flash_v2_test_buffer_supported_versions_null_firmware_id_fw_list_error);
 	SUITE_ADD_TEST (suite,
 		pfm_flash_v2_test_buffer_supported_versions_null_firmware_id_read_element_error);
+	SUITE_ADD_TEST (suite, pfm_flash_v2_test_is_empty);
+	SUITE_ADD_TEST (suite, pfm_flash_v2_test_is_empty_no_flash_dev_element);
+	SUITE_ADD_TEST (suite, pfm_flash_v2_test_is_empty_no_firmware_entries);
+	SUITE_ADD_TEST (suite, pfm_flash_v2_test_is_empty_null);
+	SUITE_ADD_TEST (suite, pfm_flash_v2_test_is_empty_verify_never_run);
 
 	return suite;
 }

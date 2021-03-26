@@ -45,7 +45,7 @@ static int recovery_image_cmd_handler_get_status (struct recovery_image_cmd_inte
 }
 
 static void recovery_image_cmd_handler_execute (struct config_cmd_task_handler *handler,
-	uint32_t action)
+	uint32_t action, bool *reset)
 {
 	struct recovery_image_cmd_handler *recovery_handler = TO_DERIVED_TYPE (handler,
 		struct recovery_image_cmd_handler, cmd_base);
@@ -101,7 +101,7 @@ static void recovery_image_cmd_handler_execute (struct config_cmd_task_handler *
 
 	xSemaphoreTake (recovery_handler->task->lock, portMAX_DELAY);
 	recovery_handler->status = status;
-	recovery_handler->task->running = 0;
+	recovery_handler->task->running = (*reset) ? 1 : 0;
 	xSemaphoreGive (recovery_handler->task->lock);
 }
 

@@ -4,8 +4,9 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <string.h>
-#include "state_manager/system_state_manager.h"
 #include "cfm_manager_flash.h"
+#include "manifest/manifest_logging.h"
+#include "system/system_state_manager.h"
 
 
 static struct cfm* cfm_manager_flash_get_cfm (struct cfm_manager_flash *manager, bool active)
@@ -111,12 +112,18 @@ static int cfm_manager_flash_verify_pending_cfm (struct manifest_manager *manage
 static int cfm_manager_flash_clear_all_manifests (struct manifest_manager *manager)
 {
 	struct cfm_manager_flash *cfm_mgr = (struct cfm_manager_flash*) manager;
+	int status;
 
 	if (cfm_mgr == NULL) {
 		return MANIFEST_MANAGER_INVALID_ARGUMENT;
 	}
 
-	return manifest_manager_flash_clear_all_manifests (&cfm_mgr->manifest_manager);
+	status = manifest_manager_flash_clear_all_manifests (&cfm_mgr->manifest_manager, false);
+	if (status == 0) {
+		cfm_manager_on_clear_active (&cfm_mgr->base);
+	}
+
+	return status;
 }
 
 /**
@@ -152,9 +159,10 @@ int cfm_manager_flash_init (struct cfm_manager_flash *manager, struct cfm_flash 
 		return status;
 	}
 
-	status = manifest_manager_flash_init (&manager->manifest_manager, &cfm_region1->base.base,
-		&cfm_region2->base.base, &cfm_region1->base_flash, &cfm_region2->base_flash, state, hash,
-		verification, SYSTEM_STATE_MANIFEST_CFM);
+	status = manifest_manager_flash_init (&manager->manifest_manager, &manager->base.base,
+		&cfm_region1->base.base, &cfm_region2->base.base, &cfm_region1->base_flash,
+		&cfm_region2->base_flash, state, hash, verification, SYSTEM_STATE_MANIFEST_CFM,
+		MANIFEST_LOGGING_EMPTY_CFM);
 	if (status != 0) {
 		cfm_manager_release (&manager->base);
 		return status;

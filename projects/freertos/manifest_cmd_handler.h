@@ -24,10 +24,12 @@ struct manifest_cmd_handler {
 	 * Internal call to use when activation of a manifest is requested.
 	 *
 	 * @param handler The manifest handler context.
+	 * @param reset Output to indicate a device reset is needed as part of activation.  It is only
+	 * necessary to update this value if a reset is required.
 	 *
 	 * @return Raw value to report as the manifest operation status.
 	 */
-	int (*activation) (struct manifest_cmd_handler *handler);
+	int (*activation) (struct manifest_cmd_handler *handler, bool *reset);
 };
 
 

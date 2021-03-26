@@ -5,25 +5,36 @@
 #include <stddef.h>
 #include <string.h>
 #include <limits.h>
+#include "platform.h"
 #include "config_cmd_task.h"
+#include "logging/debug_log.h"
 
 
 /**
  * Task routine to handle commands for registered handlers.
  *
- * @param  task The command task to process event notifications.  
+ * @param  task The command task to process event notifications.
  */
 static void config_cmd_task_process_notification (struct config_cmd_task *task)
 {
 	uint32_t notification;
     uint8_t id;
     uint32_t action;
+    bool reset = false;
 
 	do {
 		xTaskNotifyWait (pdFALSE, ULONG_MAX, &notification, portMAX_DELAY);
         id = (uint8_t) ((notification & 0xff000000u) >> 24);
         action = (notification & 0x00ffffffu);
-		task->handlers[id]->execute (task->handlers[id], action);		
+		task->handlers[id]->execute (task->handlers[id], action, &reset);
+
+		if (reset) {
+			/* If the action requires it, reset the system.  We need to wait a bit before
+			 * triggering the reset to allow time for the execution status to be reported. */
+			platform_msleep (5000);
+			system_reset (task->system);
+			reset = false;	/* We should never get here, but clear the flag if the reset fails. */
+		}
 	} while (1);
 }
 
@@ -51,19 +62,20 @@ int config_cmd_task_notify (struct config_cmd_task *task, uint8_t handler_id, ui
 
 /**
  * Initialize the command task context.
- * 
+ *
  * @param task The command task to initialize.
+ * @param system The manager for system operations.
  * @param handler The list of command handlers to bind to the command task instance.
  * @param num_handlers The number of command handlers.
  *
  * @return 0 if the task was initialized or an error code
  */
-int config_cmd_task_init (struct config_cmd_task *task, struct config_cmd_task_handler **handler,
-	size_t num_handlers)
+int config_cmd_task_init (struct config_cmd_task *task, struct system *system,
+	struct config_cmd_task_handler **handler, size_t num_handlers)
 {
 	int i;
 
-	if ((task ==  NULL) || (handler == NULL)) {
+	if ((task ==  NULL) || (system == NULL) || (handler == NULL)) {
 		return CONFIG_CMD_TASK_INVALID_ARGUMENT;
 	}
 
@@ -74,6 +86,7 @@ int config_cmd_task_init (struct config_cmd_task *task, struct config_cmd_task_h
 		return CONFIG_CMD_TASK_NO_MEMORY;
 	}
 
+	task->system = system;
 	task->num_handlers = num_handlers;
 	task->handlers = handler;
 

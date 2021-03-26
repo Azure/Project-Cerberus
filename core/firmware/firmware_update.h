@@ -171,7 +171,6 @@ int firmware_update_prepare_staging (struct firmware_update *updater,
 int firmware_update_write_to_staging (struct firmware_update *updater,
 	struct firmware_update_notification *callback, uint8_t *buf, size_t buf_len);
 int firmware_update_get_update_remaining (struct firmware_update *updater);
-void firmware_update_shutdown_system (struct firmware_update *updater);
 
 
 #define	FIRMWARE_UPDATE_ERROR(code)		ROT_ERROR (ROT_MODULE_FIRMWARE_UPDATE, code)

@@ -149,18 +149,18 @@ int platform_has_timeout_expired (platform_clock *timeout)
 uint64_t platform_get_time_since_boot (void)
 {
 	struct timespec now;
-    uint64_t time;
-    int status;
+	uint64_t time;
+	int status;
 
 	status = clock_gettime (CLOCK_MONOTONIC, &now);
 	if (status != 0) {
-        time = 0;
+		time = 0;
 	}
-    else {
-        time = (now.tv_sec * 1000) + (now.tv_nsec / 1000000ULL);
-    }
+	else {
+		time = (now.tv_sec * 1000) + (now.tv_nsec / 1000000ULL);
+	}
 
-    return time;
+	return time;
 }
 
 /**

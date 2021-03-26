@@ -5,18 +5,20 @@
 #include <stddef.h>
 #include <string.h>
 #include "manifest_cmd_handler_pcd.h"
+#include "manifest/manifest_logging.h"
 
 
-static int manifest_cmd_handler_pcd_activation (struct manifest_cmd_handler *task)
+static int manifest_cmd_handler_pcd_activation (struct manifest_cmd_handler *task, bool *reset)
 {
-	int status;
+	/* Do not actually activate the PCD here.  PCDs require a device reset for the new settings to
+	 * get applied, so leave the current settings active.  The new PCD will automatically get
+	 * activated after the reset.  Schedule a device reset to activate the PCD. */
+	*reset = true;
 
-	status = task->manifest->activate_pending_manifest (task->manifest);
-	if (status != 0) {
-		status = MANIFEST_CMD_STATUS (MANIFEST_CMD_STATUS_ACTIVATION_FAIL, status);
-	}
+	debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_MANIFEST,
+		MANIFEST_LOGGING_PCD_UPDATE, 0, 0);
 
-	return status;
+	return 0;
 }
 
 /**

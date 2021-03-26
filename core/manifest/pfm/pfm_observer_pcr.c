@@ -15,6 +15,13 @@ static void pfm_observer_pcr_on_pfm_activated (struct pfm_observer *observer, st
 	manifest_pcr_record_manifest_measurement (&pcr->pcr, &active->base);
 }
 
+static void pfm_observer_pcr_on_clear_active (struct pfm_observer *observer)
+{
+	struct pfm_observer_pcr *pcr = (struct pfm_observer_pcr*) observer;
+
+	manifest_pcr_record_manifest_measurement (&pcr->pcr, NULL);
+}
+
 /**
  * Initialize the PFM observer for updating PCR entries.
  *
@@ -47,6 +54,7 @@ int pfm_observer_pcr_init (struct pfm_observer_pcr *observer, struct hash_engine
 	}
 
 	observer->base.on_pfm_activated = pfm_observer_pcr_on_pfm_activated;
+	observer->base.on_clear_active = pfm_observer_pcr_on_clear_active;
 
 	return 0;
 }

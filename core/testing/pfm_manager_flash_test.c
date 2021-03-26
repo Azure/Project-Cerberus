@@ -7,17 +7,20 @@
 #include "testing.h"
 #include "manifest/pfm/pfm_manager_flash.h"
 #include "manifest/pfm/pfm_format.h"
+#include "manifest/manifest_logging.h"
 #include "flash/spi_flash.h"
 #include "host_fw/host_state_manager.h"
 #include "mock/flash_master_mock.h"
 #include "mock/pfm_observer_mock.h"
 #include "mock/signature_verification_mock.h"
+#include "mock/logging_mock.h"
 #include "engines/hash_testing_engine.h"
 #include "engines/rsa_testing_engine.h"
 #include "flash/flash_common.h"
 #include "crypto/ecc.h"
 #include "rsa_testing.h"
 #include "pfm_testing.h"
+#include "debug_log_testing.h"
 
 
 static const char *SUITE = "pfm_manager_flash";
@@ -200,6 +203,7 @@ struct pfm_manager_flash_testing {
 	uint8_t platform_id2[256];							/**< Cache for the second platform ID. */
 	uint32_t pfm2_addr;									/**< Base address of the second PFM. */
 	struct pfm_observer_mock observer;					/**< Observer of manager events. */
+	struct logging_mock log;							/**< Mock for debug logging. */
 	struct pfm_manager_flash test;						/**< Manager instance under test. */
 };
 
@@ -289,6 +293,9 @@ static void pfm_manager_flash_testing_init_dependencies (CuTest *test,
 	status = pfm_observer_mock_init (&manager->observer);
 	CuAssertIntEquals (test, 0, status);
 
+	status = logging_mock_init (&manager->log);
+	CuAssertIntEquals (test, 0, status);
+
 	manager->pfm1_addr = addr1;
 	manager->pfm2_addr = addr2;
 }
@@ -304,6 +311,8 @@ void pfm_manager_flash_testing_validate_and_release_dependencies (CuTest *test,
 {
 	int status;
 
+	debug_log = NULL;
+
 	status = flash_master_mock_validate_and_release (&manager->flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
@@ -314,6 +323,9 @@ void pfm_manager_flash_testing_validate_and_release_dependencies (CuTest *test,
 	CuAssertIntEquals (test, 0, status);
 
 	status = pfm_observer_mock_validate_and_release (&manager->observer);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging_mock_validate_and_release (&manager->log);
 	CuAssertIntEquals (test, 0, status);
 
 	host_state_manager_release (&manager->state_mgr);
@@ -947,6 +959,14 @@ static void pfm_manager_flash_test_init_only_pending_region2_empty_manifest (CuT
 	int sig_offset = plat_offset + PFM_PLATFORM_HEADER_SIZE + strlen (PFM_PLATFORM_ID) + 3;
 	uint8_t pfm[sig_offset + PFM_SIGNATURE_LEN];
 	size_t length = sizeof (pfm);
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_WARNING,
+		.component = DEBUG_LOG_COMPONENT_MANIFEST,
+		.msg_index = MANIFEST_LOGGING_EMPTY_PFM,
+		.arg1 = 0,
+		.arg2 = 0
+	};
 
 	TEST_START;
 
@@ -995,7 +1015,13 @@ static void pfm_manager_flash_test_init_only_pending_region2_empty_manifest (CuT
 	status |= flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x20000);
 	status |= flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x10000);
 
+	status |= mock_expect (&manager.log.mock, manager.log.base.create_entry, &manager.log, 0,
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+
 	CuAssertIntEquals (test, 0, status);
+
+	debug_log = &manager.log.base;
 
 	status = pfm_manager_flash_init (&manager.test, &manager.pfm1, &manager.pfm2,
 		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
@@ -1023,6 +1049,14 @@ static void pfm_manager_flash_test_init_only_pending_region1_empty_manifest (CuT
 	int sig_offset = plat_offset + PFM_PLATFORM_HEADER_SIZE + strlen (PFM_PLATFORM_ID) + 3;
 	uint8_t pfm[sig_offset + PFM_SIGNATURE_LEN];
 	size_t length = sizeof (pfm);
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_WARNING,
+		.component = DEBUG_LOG_COMPONENT_MANIFEST,
+		.msg_index = MANIFEST_LOGGING_EMPTY_PFM,
+		.arg1 = 0,
+		.arg2 = 0
+	};
 
 	TEST_START;
 
@@ -1075,7 +1109,13 @@ static void pfm_manager_flash_test_init_only_pending_region1_empty_manifest (CuT
 	status |= flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x10000);
 	status |= flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x20000);
 
+	status |= mock_expect (&manager.log.mock, manager.log.base.create_entry, &manager.log, 0,
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+
 	CuAssertIntEquals (test, 0, status);
+
+	debug_log = &manager.log.base;
 
 	status = pfm_manager_flash_init (&manager.test, &manager.pfm1, &manager.pfm2,
 		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
@@ -1105,6 +1145,14 @@ static void pfm_manager_flash_test_init_active_and_pending_empty_manifest (CuTes
 	int sig_offset = id_offset + strlen (PFM_PLATFORM_ID) + 3;
 	uint8_t pfm[sig_offset + PFM_SIGNATURE_LEN];
 	size_t length = sizeof (pfm);
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_WARNING,
+		.component = DEBUG_LOG_COMPONENT_MANIFEST,
+		.msg_index = MANIFEST_LOGGING_EMPTY_PFM,
+		.arg1 = 0,
+		.arg2 = 0
+	};
 
 	TEST_START;
 
@@ -1152,7 +1200,13 @@ static void pfm_manager_flash_test_init_active_and_pending_empty_manifest (CuTes
 	status |= flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x20000);
 	status |= flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x10000);
 
+	status |= mock_expect (&manager.log.mock, manager.log.base.create_entry, &manager.log, 0,
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+
 	CuAssertIntEquals (test, 0, status);
+
+	debug_log = &manager.log.base;
 
 	status = pfm_manager_flash_init (&manager.test, &manager.pfm1, &manager.pfm2,
 		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
@@ -1588,6 +1642,14 @@ static void pfm_manager_flash_test_init_empty_manifest_pending_erase_error (CuTe
 	int sig_offset = plat_offset + PFM_PLATFORM_HEADER_SIZE + strlen (PFM_PLATFORM_ID) + 3;
 	uint8_t pfm[sig_offset + PFM_SIGNATURE_LEN];
 	size_t length = sizeof (pfm);
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_ERROR,
+		.component = DEBUG_LOG_COMPONENT_MANIFEST,
+		.msg_index = MANIFEST_LOGGING_EMPTY_PFM,
+		.arg1 = 0,
+		.arg2 = FLASH_MASTER_XFER_FAILED
+	};
 
 	TEST_START;
 
@@ -1636,7 +1698,13 @@ static void pfm_manager_flash_test_init_empty_manifest_pending_erase_error (CuTe
 	status |= flash_master_mock_expect_xfer (&manager.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
+	status |= mock_expect (&manager.log.mock, manager.log.base.create_entry, &manager.log, 0,
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+
 	CuAssertIntEquals (test, 0, status);
+
+	debug_log = &manager.log.base;
 
 	status = pfm_manager_flash_init (&manager.test, &manager.pfm1, &manager.pfm2,
 		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
@@ -1661,6 +1729,14 @@ static void pfm_manager_flash_test_init_empty_manifest_active_erase_error (CuTes
 	int sig_offset = plat_offset + PFM_PLATFORM_HEADER_SIZE + strlen (PFM_PLATFORM_ID) + 3;
 	uint8_t pfm[sig_offset + PFM_SIGNATURE_LEN];
 	size_t length = sizeof (pfm);
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_ERROR,
+		.component = DEBUG_LOG_COMPONENT_MANIFEST,
+		.msg_index = MANIFEST_LOGGING_EMPTY_PFM,
+		.arg1 = 0,
+		.arg2 = FLASH_MASTER_XFER_FAILED
+	};
 
 	TEST_START;
 
@@ -1710,7 +1786,13 @@ static void pfm_manager_flash_test_init_empty_manifest_active_erase_error (CuTes
 	status |= flash_master_mock_expect_xfer (&manager.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
 
+	status |= mock_expect (&manager.log.mock, manager.log.base.create_entry, &manager.log, 0,
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+
 	CuAssertIntEquals (test, 0, status);
+
+	debug_log = &manager.log.base;
 
 	status = pfm_manager_flash_init (&manager.test, &manager.pfm1, &manager.pfm2,
 		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
@@ -1800,6 +1882,96 @@ static void pfm_manager_flash_test_init_port_negative (CuTest *test)
 	CuAssertIntEquals (test, true, status);
 
 	manager.test.base.get_active_pfm (&manager.test.base);
+
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
+}
+
+static void pfm_manager_flash_test_init_port_empty_manifest (CuTest *test)
+{
+	struct pfm_manager_flash_testing manager;
+	int status;
+	struct manifest_header *header;
+	struct pfm_allowable_firmware_header *allowed_header;
+	struct pfm_key_manifest_header *manifest_header;
+	struct pfm_platform_header *platform_header;
+	int man_offset = PFM_HEADER_SIZE + PFM_ALLOWED_HEADER_SIZE;
+	int plat_offset = man_offset + PFM_MANIFEST_HEADER_SIZE;
+	int sig_offset = plat_offset + PFM_PLATFORM_HEADER_SIZE + strlen (PFM_PLATFORM_ID) + 3;
+	uint8_t pfm[sig_offset + PFM_SIGNATURE_LEN];
+	size_t length = sizeof (pfm);
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_WARNING,
+		.component = DEBUG_LOG_COMPONENT_MANIFEST,
+		.msg_index = MANIFEST_LOGGING_EMPTY_PFM,
+		.arg1 = 1,
+		.arg2 = 0
+	};
+
+	TEST_START;
+
+	memset (pfm, 0, sizeof (pfm));
+
+	header = (struct manifest_header*) pfm;
+	header->length = sizeof (pfm);
+	header->magic = PFM_MAGIC_NUM;
+	header->sig_length = PFM_SIGNATURE_LEN;
+
+	allowed_header = (struct pfm_allowable_firmware_header*) &pfm[PFM_HEADER_SIZE];
+	allowed_header->length = PFM_ALLOWED_HEADER_SIZE;
+	allowed_header->fw_count = 0;
+
+	manifest_header = (struct pfm_key_manifest_header*) &pfm[man_offset];
+	manifest_header->length = PFM_MANIFEST_HEADER_SIZE;
+	manifest_header->key_count = 0;
+
+	platform_header = (struct pfm_platform_header*) &pfm[plat_offset];
+	platform_header->length = PFM_PLATFORM_HEADER_SIZE + strlen (PFM_PLATFORM_ID) + 3;
+	platform_header->id_length = strlen (PFM_PLATFORM_ID);
+	memcpy (&pfm[plat_offset + PFM_PLATFORM_HEADER_SIZE], PFM_PLATFORM_ID,
+		strlen (PFM_PLATFORM_ID));
+
+	pfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
+
+	/* Use blank check to simulate empty PFM regions. */
+	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000, PFM_HEADER_SIZE);
+
+	status |= pfm_manager_flash_testing_verify_empty_pfm (&manager, pfm, length, man_offset,
+		plat_offset, sig_offset, 0x20000);
+
+	/* Get versions list. */
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, pfm, length,
+		FLASH_EXP_READ_CMD (0x03, 0x20000, 0, -1, PFM_HEADER_SIZE));
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, pfm + PFM_HEADER_SIZE,
+		length - PFM_HEADER_SIZE,
+		FLASH_EXP_READ_CMD (0x03, 0x20000 + PFM_HEADER_SIZE, 0, -1, PFM_ALLOWED_HEADER_SIZE));
+
+	/* Erase manifest regions. */
+	status |= flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x20000);
+	status |= flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x10000);
+
+	status |= mock_expect (&manager.log.mock, manager.log.base.create_entry, &manager.log, 0,
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	debug_log = &manager.log.base;
+
+	status = pfm_manager_flash_init_port (&manager.test, &manager.pfm1, &manager.pfm2,
+		&manager.state_mgr, &manager.hash.base, &manager.verification.base, 1);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
+
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
+	CuAssertIntEquals (test, true, status);
 
 	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
@@ -4336,6 +4508,78 @@ static void pfm_manager_flash_test_clear_all_manifests_region2 (CuTest *test)
 	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
+static void pfm_manager_flash_test_clear_all_manifests_region1_notify_observers (CuTest *test)
+{
+	struct pfm_manager_flash_testing manager;
+	int status;
+
+	TEST_START;
+
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM_DATA, PFM_DATA_LEN,
+		PFM_HASH, PFM_SIGNATURE, PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH, PFM2_SIGNATURE, true);
+
+	status = pfm_manager_add_observer (&manager.test.base, &manager.observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
+	CuAssertIntEquals (test, true, status);
+
+	status = flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x20000);
+	status |= flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x10000);
+
+	status |= mock_expect (&manager.observer.mock, manager.observer.base.on_clear_active,
+		&manager.observer, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.base.base.clear_all_manifests (&manager.test.base.base);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
+
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
+	CuAssertIntEquals (test, true, status);
+
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
+}
+
+static void pfm_manager_flash_test_clear_all_manifests_region2_notify_observers (CuTest *test)
+{
+	struct pfm_manager_flash_testing manager;
+	int status;
+
+	TEST_START;
+
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM2_DATA, PFM2_DATA_LEN,
+		PFM2_HASH, PFM2_SIGNATURE, PFM_DATA, PFM_DATA_LEN, PFM_HASH, PFM_SIGNATURE, false);
+
+	status = pfm_manager_add_observer (&manager.test.base, &manager.observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
+	CuAssertIntEquals (test, true, status);
+
+	status = flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x10000);
+	status |= flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x20000);
+
+	status |= mock_expect (&manager.observer.mock, manager.observer.base.on_clear_active,
+		&manager.observer, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.base.base.clear_all_manifests (&manager.test.base.base);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
+
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
+	CuAssertIntEquals (test, true, status);
+
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
+}
+
 static void pfm_manager_flash_test_clear_all_manifests_only_active (CuTest *test)
 {
 	struct pfm_manager_flash_testing manager;
@@ -4530,6 +4774,66 @@ static void pfm_manager_flash_test_clear_all_manifests_active_in_use (CuTest *te
 	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
+static void pfm_manager_flash_test_clear_all_manifests_active_in_use_notify_observers (CuTest *test)
+{
+	struct pfm_manager_flash_testing manager;
+	int status;
+	struct pfm *pending;
+	struct pfm *active;
+
+	TEST_START;
+
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM_DATA, PFM_DATA_LEN,
+		PFM_HASH, PFM_SIGNATURE, PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH, PFM2_SIGNATURE, true);
+
+	status = pfm_manager_add_observer (&manager.test.base, &manager.observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
+	CuAssertIntEquals (test, true, status);
+
+	active = manager.test.base.get_active_pfm (&manager.test.base);
+
+	status = flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x20000);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.base.base.clear_all_manifests (&manager.test.base.base);
+	CuAssertIntEquals (test, MANIFEST_MANAGER_ACTIVE_IN_USE, status);
+
+	manager.test.base.free_pfm (&manager.test.base, active);
+
+	active = manager.test.base.get_active_pfm (&manager.test.base);
+	CuAssertPtrEquals (test, &manager.pfm1, active);
+	manager.test.base.free_pfm (&manager.test.base, active);
+
+	pending = manager.test.base.get_pending_pfm (&manager.test.base);
+	CuAssertPtrEquals (test, NULL, pending);
+	manager.test.base.free_pfm (&manager.test.base, pending);
+
+	status = mock_validate (&manager.flash_mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x20000);
+	status |= flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x10000);
+
+	status |= mock_expect (&manager.observer.mock, manager.observer.base.on_clear_active,
+		&manager.observer, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.base.base.clear_all_manifests (&manager.test.base.base);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
+
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
+	CuAssertIntEquals (test, true, status);
+
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
+}
+
 static void pfm_manager_flash_test_clear_all_manifests_during_update (CuTest *test)
 {
 	struct pfm_manager_flash_testing manager;
@@ -4660,6 +4964,41 @@ static void pfm_manager_flash_test_clear_all_manifests_erase_active_error (CuTes
 	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
+static void pfm_manager_flash_test_clear_all_manifests_erase_active_error_notify_observers (
+	CuTest *test)
+{
+	struct pfm_manager_flash_testing manager;
+	int status;
+
+	TEST_START;
+
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM_DATA, PFM_DATA_LEN,
+		PFM_HASH, PFM_SIGNATURE, PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH, PFM2_SIGNATURE, true);
+
+	status = pfm_manager_add_observer (&manager.test.base, &manager.observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
+	CuAssertIntEquals (test, true, status);
+
+	status = flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x20000);
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock, FLASH_MASTER_XFER_FAILED,
+		FLASH_EXP_READ_STATUS_REG);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.base.base.clear_all_manifests (&manager.test.base.base);
+	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
+
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
+
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
+	CuAssertIntEquals (test, true, status);
+
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
+}
+
 
 CuSuite* get_pfm_manager_flash_suite ()
 {
@@ -4692,6 +5031,7 @@ CuSuite* get_pfm_manager_flash_suite ()
 	SUITE_ADD_TEST (suite, pfm_manager_flash_test_init_empty_manifest_active_erase_error);
 	SUITE_ADD_TEST (suite, pfm_manager_flash_test_init_port);
 	SUITE_ADD_TEST (suite, pfm_manager_flash_test_init_port_negative);
+	SUITE_ADD_TEST (suite, pfm_manager_flash_test_init_port_empty_manifest);
 	SUITE_ADD_TEST (suite, pfm_manager_flash_test_init_port_null);
 	SUITE_ADD_TEST (suite, pfm_manager_flash_test_release_null);
 	SUITE_ADD_TEST (suite, pfm_manager_flash_test_get_active_pfm_null);
@@ -4775,15 +5115,21 @@ CuSuite* get_pfm_manager_flash_suite ()
 	SUITE_ADD_TEST (suite, pfm_manager_flash_test_verify_pending_pfm_write_after_incomplete_pfm);
 	SUITE_ADD_TEST (suite, pfm_manager_flash_test_clear_all_manifests_region1);
 	SUITE_ADD_TEST (suite, pfm_manager_flash_test_clear_all_manifests_region2);
+	SUITE_ADD_TEST (suite, pfm_manager_flash_test_clear_all_manifests_region1_notify_observers);
+	SUITE_ADD_TEST (suite, pfm_manager_flash_test_clear_all_manifests_region2_notify_observers);
 	SUITE_ADD_TEST (suite, pfm_manager_flash_test_clear_all_manifests_only_active);
 	SUITE_ADD_TEST (suite, pfm_manager_flash_test_clear_all_manifests_only_pending);
 	SUITE_ADD_TEST (suite, pfm_manager_flash_test_clear_all_manifests_no_pfms);
 	SUITE_ADD_TEST (suite, pfm_manager_flash_test_clear_all_manifests_pending_in_use);
 	SUITE_ADD_TEST (suite, pfm_manager_flash_test_clear_all_manifests_active_in_use);
+	SUITE_ADD_TEST (suite,
+		pfm_manager_flash_test_clear_all_manifests_active_in_use_notify_observers);
 	SUITE_ADD_TEST (suite, pfm_manager_flash_test_clear_all_manifests_during_update);
 	SUITE_ADD_TEST (suite, pfm_manager_flash_test_clear_all_manifests_null);
 	SUITE_ADD_TEST (suite, pfm_manager_flash_test_clear_all_manifests_erase_pending_error);
 	SUITE_ADD_TEST (suite, pfm_manager_flash_test_clear_all_manifests_erase_active_error);
+	SUITE_ADD_TEST (suite,
+		pfm_manager_flash_test_clear_all_manifests_erase_active_error_notify_observers);
 
 	return suite;
 }

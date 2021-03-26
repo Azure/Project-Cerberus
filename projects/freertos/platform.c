@@ -168,7 +168,7 @@ int platform_has_timeout_expired (platform_clock *timeout)
  */
 uint64_t platform_get_time_since_boot (void)
 {
-    return (uint64_t) xTaskGetTickCount () * portTICK_PERIOD_MS;
+	return (uint64_t) xTaskGetTickCount () * portTICK_PERIOD_MS;
 }
 
 /**

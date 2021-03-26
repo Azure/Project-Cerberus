@@ -13,7 +13,7 @@
 #include "firmware/firmware_update.h"
 #include "firmware/firmware_update_control.h"
 #include "cmd_interface/cerberus_protocol.h"
-#include "cmd_interface/cmd_device.h"
+#include "system/system.h"
 
 
 struct fw_update_task;
@@ -33,7 +33,7 @@ struct fw_update_task {
 	struct firmware_update_control base;							/**< The base control instance. */
 	struct fw_update_task_notify notify;							/**< The update notification interface. */
 	struct firmware_update *updater;								/**< The firmware updater. */
-	struct cmd_device *device;										/**< API for device commands. */
+	struct system *system;											/**< The system manager. */
 	int update_status;												/**< The last firmware update status. */
 	uint8_t running;												/**< Flag indicating if an update is running. */
 	TaskHandle_t task;												/**< The task that will run the update. */
@@ -45,7 +45,7 @@ struct fw_update_task {
 
 
 int fw_update_task_init (struct fw_update_task *task, struct firmware_update *updater,
-	struct cmd_device *device);
+	struct system *system);
 int fw_update_task_start (struct fw_update_task *task, bool running_recovery);
 
 

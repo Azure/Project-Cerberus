@@ -31,6 +31,13 @@ struct pcd_observer {
 	 * @param active The PCD that was activated.
 	 */
 	void (*on_pcd_activated) (struct pcd_observer *observer, struct pcd *active);
+
+	/**
+	 * Notification that the active PCD has been erased.
+	 *
+	 * @param observer The observer being notified.
+	 */
+	void (*on_clear_active) (struct pcd_observer *observer);
 };
 
 

@@ -64,6 +64,8 @@ enum {
     HOST_LOGGING_RESET_COUNTER_UPDATE_FAILED,   /**< Reset counter update failed. */
 	HOST_LOGGING_RW_RESTORE_START,				/**< Start condition for restoring active R/W regions. */
 	HOST_LOGGING_RW_RESTORE_FINISH,				/**< End condition for active image R/W regions. */
+	HOST_LOGGING_CHECK_PENDING_FAILED,			/**< Failed an empty check for a pending PFM. */
+	HOST_LOGGING_CLEAR_PFMS,					/**< Clearing all PFMs to enable bypass mode. */
 };
 
 

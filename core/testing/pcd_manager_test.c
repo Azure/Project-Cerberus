@@ -33,7 +33,10 @@ static void pcd_manager_test_on_pcd_verified_no_observers (CuTest *test)
 	status = pcd_manager_mock_init (&manager);
 	CuAssertIntEquals (test, 0, status);
 
-	pcd_manager_on_pcd_verified (&manager.base);
+	status = mock_expect (&manager.mock, manager.base.free_pcd, &manager, 0, MOCK_ARG (&pcd));
+	CuAssertIntEquals (test, 0, status);
+
+	pcd_manager_on_pcd_verified (&manager.base, &pcd.base);
 
 	status = pcd_mock_validate_and_release (&pcd);
 	CuAssertIntEquals (test, 0, status);
@@ -63,7 +66,13 @@ static void pcd_manager_test_on_pcd_verified_one_observer (CuTest *test)
 	status = pcd_manager_add_observer (&manager.base, &observer.base);
 	CuAssertIntEquals (test, 0, status);
 
-	pcd_manager_on_pcd_verified (&manager.base);
+	status = mock_expect (&observer.mock, observer.base.on_pcd_verified, &observer, 0,
+		MOCK_ARG (&pcd));
+	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager, 0, MOCK_ARG (&pcd));
+
+	CuAssertIntEquals (test, 0, status);
+
+	pcd_manager_on_pcd_verified (&manager.base, &pcd.base);
 
 	status = pcd_mock_validate_and_release (&pcd);
 	CuAssertIntEquals (test, 0, status);
@@ -95,10 +104,13 @@ static void pcd_manager_test_on_pcd_verified_no_event_handler (CuTest *test)
 
 	observer.base.on_pcd_verified = NULL;
 
+	status = mock_expect (&manager.mock, manager.base.free_pcd, &manager, 0, MOCK_ARG (&pcd));
+	CuAssertIntEquals (test, 0, status);
+
 	status = pcd_manager_add_observer (&manager.base, &observer.base);
 	CuAssertIntEquals (test, 0, status);
 
-	pcd_manager_on_pcd_verified (&manager.base);
+	pcd_manager_on_pcd_verified (&manager.base, &pcd.base);
 
 	status = pcd_mock_validate_and_release (&pcd);
 	CuAssertIntEquals (test, 0, status);
@@ -110,11 +122,39 @@ static void pcd_manager_test_on_pcd_verified_no_event_handler (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 }
 
-static void pcd_manager_test_on_pcd_verified_null (CuTest *test)
+static void pcd_manager_test_on_pcd_verified_no_pending_pcd (CuTest *test)
 {
+	struct pcd_manager_mock manager;
+	struct pcd_observer_mock observer;
+	int status;
+
 	TEST_START;
 
-	pcd_manager_on_pcd_verified (NULL);
+	status = pcd_manager_mock_init (&manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcd_observer_mock_init (&observer);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcd_manager_add_observer (&manager.base, &observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	pcd_manager_on_pcd_verified (&manager.base, NULL);
+
+	status = pcd_manager_mock_validate_and_release (&manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcd_observer_mock_validate_and_release (&observer);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void pcd_manager_test_on_pcd_verified_null (CuTest *test)
+{
+	struct pcd_mock pcd;
+
+	TEST_START;
+
+	pcd_manager_on_pcd_verified (NULL, &pcd.base);
 }
 
 static void pcd_manager_test_on_pcd_activated_no_observers (CuTest *test)
@@ -261,6 +301,86 @@ static void pcd_manager_test_on_pcd_activated_null (CuTest *test)
 	TEST_START;
 
 	pcd_manager_on_pcd_activated (NULL);
+}
+
+static void pcd_manager_test_on_clear_active_no_observers (CuTest *test)
+{
+	struct pcd_manager_mock manager;
+	int status;
+
+	TEST_START;
+
+	status = pcd_manager_mock_init (&manager);
+	CuAssertIntEquals (test, 0, status);
+
+	pcd_manager_on_clear_active (&manager.base);
+
+	status = pcd_manager_mock_validate_and_release (&manager);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void pcd_manager_test_on_clear_active_one_observer (CuTest *test)
+{
+	struct pcd_manager_mock manager;
+	struct pcd_observer_mock observer;
+	int status;
+
+	TEST_START;
+
+	status = pcd_manager_mock_init (&manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcd_observer_mock_init (&observer);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcd_manager_add_observer (&manager.base, &observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&observer.mock, observer.base.on_clear_active, &observer, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	pcd_manager_on_clear_active (&manager.base);
+
+	status = pcd_manager_mock_validate_and_release (&manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcd_observer_mock_validate_and_release (&observer);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void pcd_manager_test_on_clear_active_no_event_handler (CuTest *test)
+{
+	struct pcd_manager_mock manager;
+	struct pcd_observer_mock observer;
+	int status;
+
+	TEST_START;
+
+	status = pcd_manager_mock_init (&manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcd_observer_mock_init (&observer);
+	CuAssertIntEquals (test, 0, status);
+
+	observer.base.on_clear_active = NULL;
+
+	status = pcd_manager_add_observer (&manager.base, &observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	pcd_manager_on_clear_active (&manager.base);
+
+	status = pcd_manager_mock_validate_and_release (&manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcd_observer_mock_validate_and_release (&observer);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void pcd_manager_test_on_clear_active_null (CuTest *test)
+{
+	TEST_START;
+
+	pcd_manager_on_clear_active (NULL);
 }
 
 static void pcd_manager_test_add_observer_null (CuTest *test)
@@ -639,7 +759,7 @@ static void pcd_manager_test_get_platform_id_measured_data (CuTest *test)
 	CuAssertIntEquals (test, id_length, status);
 	CuAssertIntEquals (test, id_length, total_len);
 
-	status = testing_validate_array ((uint8_t*) PCD_TESTING.manifest.plat_id_str, buffer, 
+	status = testing_validate_array ((uint8_t*) PCD_TESTING.manifest.plat_id_str, buffer,
 		id_length);
 	CuAssertIntEquals (test, 0, status);
 
@@ -687,7 +807,7 @@ static void pcd_manager_test_get_platform_id_measured_data_offset (CuTest *test)
 	CuAssertIntEquals (test, id_length - 2, status);
 	CuAssertIntEquals (test, id_length, total_len);
 
-	status = testing_validate_array ((uint8_t*) PCD_TESTING.manifest.plat_id_str + 2, buffer, 
+	status = testing_validate_array ((uint8_t*) PCD_TESTING.manifest.plat_id_str + 2, buffer,
 		id_length - 2);
 	CuAssertIntEquals (test, 0, status);
 
@@ -920,7 +1040,7 @@ static void pcd_manager_test_get_pcd_measured_data (CuTest *test)
 
 	status |= mock_expect (&pcd.mock, pcd.base.base.get_hash, &pcd, PCD_TESTING.manifest.hash_len,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
-	status |= mock_expect_output (&pcd.mock, 1, PCD_TESTING.manifest.hash, 
+	status |= mock_expect_output (&pcd.mock, 1, PCD_TESTING.manifest.hash,
 		PCD_TESTING.manifest.hash_len, 2);
 
 	CuAssertIntEquals (test, 0, status);
@@ -929,7 +1049,7 @@ static void pcd_manager_test_get_pcd_measured_data (CuTest *test)
 	CuAssertIntEquals (test, PCD_TESTING.manifest.hash_len, status);
 	CuAssertIntEquals (test, PCD_TESTING.manifest.hash_len, total_len);
 
-	status = testing_validate_array (PCD_TESTING.manifest.hash, buffer, 
+	status = testing_validate_array (PCD_TESTING.manifest.hash, buffer,
 		PCD_TESTING.manifest.hash_len);
 	CuAssertIntEquals (test, 0, status);
 
@@ -1055,7 +1175,7 @@ static void pcd_manager_test_get_pcd_measured_data_offset (CuTest *test)
 
 	status |= mock_expect (&pcd.mock, pcd.base.base.get_hash, &pcd, PCD_TESTING.manifest.hash_len,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
-	status |= mock_expect_output (&pcd.mock, 1, PCD_TESTING.manifest.hash, 
+	status |= mock_expect_output (&pcd.mock, 1, PCD_TESTING.manifest.hash,
 		PCD_TESTING.manifest.hash_len, 2);
 
 	CuAssertIntEquals (test, 0, status);
@@ -1064,7 +1184,7 @@ static void pcd_manager_test_get_pcd_measured_data_offset (CuTest *test)
 	CuAssertIntEquals (test, PCD_TESTING.manifest.hash_len - offset, status);
 	CuAssertIntEquals (test, PCD_TESTING.manifest.hash_len, total_len);
 
-	status = testing_validate_array (PCD_TESTING.manifest.hash + 2, buffer, 
+	status = testing_validate_array (PCD_TESTING.manifest.hash + 2, buffer,
 		PCD_TESTING.manifest.hash_len - 2);
 	CuAssertIntEquals (test, 0, status);
 
@@ -1098,7 +1218,7 @@ static void pcd_manager_test_get_pcd_measured_data_small_buffer (CuTest *test)
 
 	status |= mock_expect (&pcd.mock, pcd.base.base.get_hash, &pcd, PCD_TESTING.manifest.hash_len,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
-	status |= mock_expect_output (&pcd.mock, 1, PCD_TESTING.manifest.hash, 
+	status |= mock_expect_output (&pcd.mock, 1, PCD_TESTING.manifest.hash,
 		PCD_TESTING.manifest.hash_len, 2);
 
 	CuAssertIntEquals (test, 0, status);
@@ -1108,7 +1228,7 @@ static void pcd_manager_test_get_pcd_measured_data_small_buffer (CuTest *test)
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH - 2, status);
 	CuAssertIntEquals (test, PCD_TESTING.manifest.hash_len, total_len);
 
-	status = testing_validate_array (PCD_TESTING.manifest.hash, buffer, 
+	status = testing_validate_array (PCD_TESTING.manifest.hash, buffer,
 		PCD_TESTING.manifest.hash_len - 2);
 	CuAssertIntEquals (test, 0, status);
 
@@ -1177,7 +1297,7 @@ static void pcd_manager_test_get_pcd_measured_data_0_bytes_read (CuTest *test)
 
 	status |= mock_expect (&pcd.mock, pcd.base.base.get_hash, &pcd, PCD_TESTING.manifest.hash_len,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
-	status |= mock_expect_output (&pcd.mock, 1, PCD_TESTING.manifest.hash, 
+	status |= mock_expect_output (&pcd.mock, 1, PCD_TESTING.manifest.hash,
 		PCD_TESTING.manifest.hash_len, 2);
 
 	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager,
@@ -1185,7 +1305,7 @@ static void pcd_manager_test_get_pcd_measured_data_0_bytes_read (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcd_manager_get_pcd_measured_data (&manager.base, PCD_TESTING.manifest.hash_len, 
+	status = pcd_manager_get_pcd_measured_data (&manager.base, PCD_TESTING.manifest.hash_len,
 		buffer, length,	&total_len);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, PCD_TESTING.manifest.hash_len, total_len);
@@ -1255,12 +1375,17 @@ CuSuite* get_pcd_manager_suite ()
 	SUITE_ADD_TEST (suite, pcd_manager_test_on_pcd_verified_no_observers);
 	SUITE_ADD_TEST (suite, pcd_manager_test_on_pcd_verified_one_observer);
 	SUITE_ADD_TEST (suite, pcd_manager_test_on_pcd_verified_no_event_handler);
+	SUITE_ADD_TEST (suite, pcd_manager_test_on_pcd_verified_no_pending_pcd);
 	SUITE_ADD_TEST (suite, pcd_manager_test_on_pcd_verified_null);
 	SUITE_ADD_TEST (suite, pcd_manager_test_on_pcd_activated_no_observers);
 	SUITE_ADD_TEST (suite, pcd_manager_test_on_pcd_activated_one_observer);
 	SUITE_ADD_TEST (suite, pcd_manager_test_on_pcd_activated_no_event_handler);
 	SUITE_ADD_TEST (suite, pcd_manager_test_on_pcd_activated_no_active_pcd);
 	SUITE_ADD_TEST (suite, pcd_manager_test_on_pcd_activated_null);
+	SUITE_ADD_TEST (suite, pcd_manager_test_on_clear_active_no_observers);
+	SUITE_ADD_TEST (suite, pcd_manager_test_on_clear_active_one_observer);
+	SUITE_ADD_TEST (suite, pcd_manager_test_on_clear_active_no_event_handler);
+	SUITE_ADD_TEST (suite, pcd_manager_test_on_clear_active_null);
 	SUITE_ADD_TEST (suite, pcd_manager_test_add_observer_null);
 	SUITE_ADD_TEST (suite, pcd_manager_test_remove_observer_null);
 	SUITE_ADD_TEST (suite, pcd_manager_test_get_id_measured_data);

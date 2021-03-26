@@ -101,9 +101,40 @@ static int manifest_manager_flash_check_pending_platform_id (struct manifest_man
 }
 
 /**
+ * If the pending manifest is empty, clear the manifests.
+ *
+ * @param manager The manifest manager to update.
+ * @param clear_msg The logging message identifier to use when manifests are cleared.
+ *
+ * @return 0 if the check completed successfully or an error code.
+ */
+static int manifest_manager_flash_check_empty_manifest (struct manifest_manager_flash *manager,
+	int clear_msg)
+{
+	struct manifest_manager_flash_region *pending;
+	int status = 0;
+
+	pending = manifest_manager_flash_get_region (manager, false);
+	if (pending->is_valid) {
+		status = pending->manifest->is_empty (pending->manifest);
+		if (status == 1) {
+			status = manifest_manager_flash_clear_all_manifests (manager, true);
+
+			debug_log_create_entry (
+				(status == 0) ? DEBUG_LOG_SEVERITY_WARNING : DEBUG_LOG_SEVERITY_ERROR,
+				DEBUG_LOG_COMPONENT_MANIFEST, clear_msg, manifest_manager_get_port (manager->base),
+				status);
+		}
+	}
+
+	return status;
+}
+
+/**
  * Initialize the manager for handling manifests.
  *
  * @param manager The manifest manager to initialize.
+ * @param base The base manager instance
  * @param region1 The manifest instance for the first flash region that can hold a manifest.
  * @param region2 The manifest instance for the second flash region that can hold a manifest.
  * @param region1_flash Flash access for the region 1 manifest.
@@ -111,14 +142,16 @@ static int manifest_manager_flash_check_pending_platform_id (struct manifest_man
  * @param state The state information for manifest management.
  * @param hash The hash engine to be used for manifest validation.
  * @param verification The module to use for manifest verification.
- * @param manifest_index State manager manifest index to utilize.
+ * @param manifest_index State manager manifest index to use for maintaining active region state.
+ * @param log_msg_empty The log message identifier to use when an empty pending manifest is present.
  *
  * @return 0 if the manifest manager was successfully initialized or an error code.
  */
-int manifest_manager_flash_init (struct manifest_manager_flash *manager, struct manifest *region1,
-	struct manifest *region2, struct manifest_flash *region1_flash,
-	struct manifest_flash *region2_flash, struct state_manager *state, struct hash_engine *hash,
-	struct signature_verification *verification, uint8_t manifest_index)
+int manifest_manager_flash_init (struct manifest_manager_flash *manager,
+	struct manifest_manager *base, struct manifest *region1, struct manifest *region2,
+	struct manifest_flash *region1_flash, struct manifest_flash *region2_flash,
+	struct state_manager *state, struct hash_engine *hash,
+	struct signature_verification *verification, uint8_t manifest_index, uint8_t log_msg_empty)
 {
 	int status;
 
@@ -126,6 +159,7 @@ int manifest_manager_flash_init (struct manifest_manager_flash *manager, struct 
 		return MANIFEST_MANAGER_INVALID_ARGUMENT;
 	}
 
+	manager->base = base;
 	manager->region1.manifest = region1;
 	manager->region1.flash = region1_flash;
 	manager->region2.manifest = region2;
@@ -171,19 +205,24 @@ int manifest_manager_flash_init (struct manifest_manager_flash *manager, struct 
 		manifest_flash_get_flash (region2_flash), manifest_flash_get_addr (region2_flash),
 		FLASH_BLOCK_SIZE);
 	if (status != 0) {
-		goto error_updater;
+		goto exit_region1;
+	}
+
+	status = manifest_manager_flash_check_empty_manifest (manager, log_msg_empty);
+	if (status != 0) {
+		goto exit_region2;
 	}
 
 	status = platform_mutex_init (&manager->lock);
 	if (status != 0) {
-		goto error_mutex;
+		goto exit_region2;
 	}
 
 	return 0;
 
-error_mutex:
+exit_region2:
 	flash_updater_release (&manager->region2.updater);
-error_updater:
+exit_region1:
 	flash_updater_release (&manager->region1.updater);
 	return status;
 }
@@ -468,14 +507,18 @@ static int manifest_manager_flash_clear_manifest (struct manifest_manager_flash_
  * Erase both the active and pending regions and mark both manifests as invalid.
  *
  * @param manager The manifest manager to clear.
+ * @param no_lock Flag to skip taking the synchronization lock.
  *
  * @return 0 if the manifests were erased or an error code.
  */
-int manifest_manager_flash_clear_all_manifests (struct manifest_manager_flash *manager)
+int manifest_manager_flash_clear_all_manifests (struct manifest_manager_flash *manager,
+	bool no_lock)
 {
 	int status;
 
-	platform_mutex_lock (&manager->lock);
+	if (!no_lock) {
+		platform_mutex_lock (&manager->lock);
+	}
 
 	status = manifest_manager_flash_clear_manifest (
 		manifest_manager_flash_get_region (manager, false), MANIFEST_MANAGER_PENDING_IN_USE);
@@ -488,6 +531,8 @@ int manifest_manager_flash_clear_all_manifests (struct manifest_manager_flash *m
 		manifest_manager_flash_get_region (manager, true), MANIFEST_MANAGER_ACTIVE_IN_USE);
 
 exit:
-	platform_mutex_unlock (&manager->lock);
+	if (!no_lock) {
+		platform_mutex_unlock (&manager->lock);
+	}
 	return status;
 }

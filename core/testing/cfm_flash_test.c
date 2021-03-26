@@ -382,6 +382,7 @@ static void cfm_flash_test_init (CuTest *test)
 	CuAssertPtrNotNull (test, cfm.test.base.base.free_platform_id);
 	CuAssertPtrNotNull (test, cfm.test.base.base.get_hash);
 	CuAssertPtrNotNull (test, cfm.test.base.base.get_signature);
+	CuAssertPtrNotNull (test, cfm.test.base.base.is_empty);
 
 	CuAssertPtrNotNull (test, cfm.test.base.get_supported_component_ids);
 	CuAssertPtrNotNull (test, cfm.test.base.free_component_ids);
@@ -1623,6 +1624,53 @@ static void cfm_flash_test_get_platform_id_verify_never_run (CuTest *test)
 	cfm_flash_testing_validate_and_release (test, &cfm);
 }
 
+static void cfm_flash_test_is_empty (CuTest *test)
+{
+	struct cfm_flash_testing cfm;
+	int status;
+
+	TEST_START;
+
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
+		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0);
+
+	status = cfm.test.base.base.is_empty (&cfm.test.base.base);
+	CuAssertIntEquals (test, 0, status);
+
+	cfm_flash_testing_validate_and_release (test, &cfm);
+}
+
+static void cfm_flash_test_is_empty_null (CuTest *test)
+{
+	struct cfm_flash_testing cfm;
+	int status;
+
+	TEST_START;
+
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
+		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0);
+
+	status = cfm.test.base.base.is_empty (NULL);
+	CuAssertIntEquals (test, CFM_INVALID_ARGUMENT, status);
+
+	cfm_flash_testing_validate_and_release (test, &cfm);
+}
+
+static void cfm_flash_test_is_empty_verify_never_run (CuTest *test)
+{
+	struct cfm_flash_testing cfm;
+	int status;
+
+	TEST_START;
+
+	cfm_flash_testing_init (test, &cfm, 0x10000);
+
+	status = cfm.test.base.base.is_empty (&cfm.test.base.base);
+	CuAssertIntEquals (test, MANIFEST_NO_MANIFEST, status);
+
+	cfm_flash_testing_validate_and_release (test, &cfm);
+}
+
 
 CuSuite* get_cfm_flash_suite ()
 {
@@ -1671,6 +1719,9 @@ CuSuite* get_cfm_flash_suite ()
 	SUITE_ADD_TEST (suite, cfm_flash_test_get_platform_id_manifest_allocation);
 	SUITE_ADD_TEST (suite, cfm_flash_test_get_platform_id_null);
 	SUITE_ADD_TEST (suite, cfm_flash_test_get_platform_id_verify_never_run);
+	SUITE_ADD_TEST (suite, cfm_flash_test_is_empty);
+	SUITE_ADD_TEST (suite, cfm_flash_test_is_empty_null);
+	SUITE_ADD_TEST (suite, cfm_flash_test_is_empty_verify_never_run);
 
 	return suite;
 }

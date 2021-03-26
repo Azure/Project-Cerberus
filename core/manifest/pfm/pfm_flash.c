@@ -164,6 +164,34 @@ static int pfm_flash_get_signature (struct manifest *pfm, uint8_t *signature, si
 	return manifest_flash_get_signature (&pfm_flash->base_flash, signature, length);
 }
 
+static int pfm_flash_is_empty (struct manifest *pfm)
+{
+	struct pfm_flash *pfm_flash = (struct pfm_flash*) pfm;
+	int status;
+
+	if (pfm_flash == NULL) {
+		return PFM_INVALID_ARGUMENT;
+	}
+
+	if (!pfm_flash->base_flash.manifest_valid) {
+		return MANIFEST_NO_MANIFEST;
+	}
+
+	if (pfm_flash->base_flash.header.magic == PFM_MAGIC_NUM) {
+		uint8_t check;
+
+		status = pfm_flash->base.buffer_supported_versions (&pfm_flash->base, NULL, 0, 1, &check);
+		if ((status == 0) || (status == 1)) {
+			status = !status;
+		}
+	}
+	else {
+		status = (pfm_flash->flash_dev_format < 0) || (pfm_flash->flash_dev.fw_count == 0);
+	}
+
+	return status;
+}
+
 static void pfm_flash_free_firmware (struct pfm *pfm, struct pfm_firmware *fw)
 {
 	size_t i;
@@ -1501,6 +1529,7 @@ int pfm_flash_init (struct pfm_flash *pfm, struct flash *flash, struct hash_engi
 	pfm->base.base.free_platform_id = pfm_flash_free_platform_id;
 	pfm->base.base.get_hash = pfm_flash_get_hash;
 	pfm->base.base.get_signature = pfm_flash_get_signature;
+	pfm->base.base.is_empty = pfm_flash_is_empty;
 
 	pfm->base.get_firmware = pfm_flash_get_firmware;
 	pfm->base.free_firmware = pfm_flash_free_firmware;

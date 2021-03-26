@@ -7,7 +7,7 @@
 #include "testing.h"
 #include "manifest/cfm/cfm_manager_flash.h"
 #include "flash/spi_flash.h"
-#include "state_manager/system_state_manager.h"
+#include "system/system_state_manager.h"
 #include "mock/flash_master_mock.h"
 #include "mock/cfm_observer_mock.h"
 #include "mock/signature_verification_mock.h"
@@ -3798,6 +3798,96 @@ static void cfm_manager_flash_test_clear_all_manifests_region2 (CuTest *test)
 	cfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
+static void cfm_manager_flash_test_clear_all_manifests_region1_notify_observers (CuTest *test)
+{
+	struct cfm_manager_flash_testing manager;
+	int status;
+
+	TEST_START;
+
+	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
+
+	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
+		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x10000);
+	status |= cfm_manager_flash_testing_verify_cfm (&manager, CFM2_DATA, CFM2_DATA_LEN, CFM2_HASH,
+		CFM2_SIGNATURE, CFM2_SIGNATURE_OFFSET, 0x20000);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_flash_init (&manager.test, &manager.cfm1, &manager.cfm2,
+		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&manager.flash_mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_add_observer (&manager.test.base, &manager.observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x20000);
+	status |= flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x10000);
+
+	status |= mock_expect (&manager.observer.mock, manager.observer.base.on_clear_active,
+		&manager.observer, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.base.base.clear_all_manifests (&manager.test.base.base);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_cfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_cfm (&manager.test.base));
+
+	cfm_manager_flash_testing_validate_and_release (test, &manager);
+}
+
+static void cfm_manager_flash_test_clear_all_manifests_region2_notify_observers (CuTest *test)
+{
+	struct cfm_manager_flash_testing manager;
+	int status;
+
+	TEST_START;
+
+	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
+
+	status = manager.state_mgr.save_active_manifest (&manager.state_mgr, SYSTEM_STATE_MANIFEST_CFM,
+		MANIFEST_REGION_2);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM2_DATA, CFM2_DATA_LEN, CFM2_HASH,
+		CFM2_SIGNATURE, CFM2_SIGNATURE_OFFSET, 0x10000);
+	status |= cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
+		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x20000);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_flash_init (&manager.test, &manager.cfm1, &manager.cfm2,
+		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&manager.flash_mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_add_observer (&manager.test.base, &manager.observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x10000);
+	status |= flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x20000);
+
+	status |= mock_expect (&manager.observer.mock, manager.observer.base.on_clear_active,
+		&manager.observer, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.base.base.clear_all_manifests (&manager.test.base.base);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_cfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_cfm (&manager.test.base));
+
+	cfm_manager_flash_testing_validate_and_release (test, &manager);
+}
+
 static void cfm_manager_flash_test_clear_all_manifests_only_active (CuTest *test)
 {
 	struct cfm_manager_flash_testing manager;
@@ -4028,6 +4118,73 @@ static void cfm_manager_flash_test_clear_all_manifests_active_in_use (CuTest *te
 	cfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
+static void cfm_manager_flash_test_clear_all_manifests_active_in_use_notify_observers (CuTest *test)
+{
+	struct cfm_manager_flash_testing manager;
+	int status;
+	struct cfm *pending;
+	struct cfm *active;
+
+	TEST_START;
+
+	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
+
+	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
+		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x10000);
+	status |= cfm_manager_flash_testing_verify_cfm (&manager, CFM2_DATA, CFM2_DATA_LEN, CFM2_HASH,
+		CFM2_SIGNATURE, CFM2_SIGNATURE_OFFSET, 0x20000);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_flash_init (&manager.test, &manager.cfm1, &manager.cfm2,
+		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&manager.flash_mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_add_observer (&manager.test.base, &manager.observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	active = manager.test.base.get_active_cfm (&manager.test.base);
+
+	status = flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x20000);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.base.base.clear_all_manifests (&manager.test.base.base);
+	CuAssertIntEquals (test, MANIFEST_MANAGER_ACTIVE_IN_USE, status);
+
+	manager.test.base.free_cfm (&manager.test.base, active);
+
+	active = manager.test.base.get_active_cfm (&manager.test.base);
+	CuAssertPtrEquals (test, &manager.cfm1, active);
+	manager.test.base.free_cfm (&manager.test.base, active);
+
+	pending = manager.test.base.get_pending_cfm (&manager.test.base);
+	CuAssertPtrEquals (test, NULL, pending);
+	manager.test.base.free_cfm (&manager.test.base, pending);
+
+	status = mock_validate (&manager.flash_mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x20000);
+	status |= flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x10000);
+
+	status |= mock_expect (&manager.observer.mock, manager.observer.base.on_clear_active,
+		&manager.observer, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.base.base.clear_all_manifests (&manager.test.base.base);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_cfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_cfm (&manager.test.base));
+
+	cfm_manager_flash_testing_validate_and_release (test, &manager);
+}
+
 static void cfm_manager_flash_test_clear_all_manifests_during_update (CuTest *test)
 {
 	struct cfm_manager_flash_testing manager;
@@ -4186,6 +4343,48 @@ static void cfm_manager_flash_test_clear_all_manifests_erase_active_error (CuTes
 	cfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
+static void cfm_manager_flash_test_clear_all_manifests_erase_active_error_notify_observers (
+	CuTest *test)
+{
+	struct cfm_manager_flash_testing manager;
+	int status;
+
+	TEST_START;
+
+	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
+
+	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
+		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x10000);
+	status |= cfm_manager_flash_testing_verify_cfm (&manager, CFM2_DATA, CFM2_DATA_LEN, CFM2_HASH,
+		CFM2_SIGNATURE, CFM2_SIGNATURE_OFFSET, 0x20000);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_flash_init (&manager.test, &manager.cfm1, &manager.cfm2,
+		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&manager.flash_mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_add_observer (&manager.test.base, &manager.observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x20000);
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock, FLASH_MASTER_XFER_FAILED,
+		FLASH_EXP_READ_STATUS_REG);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.base.base.clear_all_manifests (&manager.test.base.base);
+	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
+
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_cfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_cfm (&manager.test.base));
+
+	cfm_manager_flash_testing_validate_and_release (test, &manager);
+}
+
 
 CuSuite* get_cfm_manager_flash_suite ()
 {
@@ -4201,6 +4400,7 @@ CuSuite* get_cfm_manager_flash_suite ()
 	SUITE_ADD_TEST (suite, cfm_manager_flash_test_init_region2_pending_same_id);
 	SUITE_ADD_TEST (suite, cfm_manager_flash_test_init_region1_pending_lower_id);
 	SUITE_ADD_TEST (suite, cfm_manager_flash_test_init_region1_pending_same_id);
+	/* TODO: Add tests for empty CFMs. */
 	SUITE_ADD_TEST (suite, cfm_manager_flash_test_init_null);
 	SUITE_ADD_TEST (suite, cfm_manager_flash_test_init_region1_flash_error);
 	SUITE_ADD_TEST (suite, cfm_manager_flash_test_init_region2_flash_error);
@@ -4286,15 +4486,21 @@ CuSuite* get_cfm_manager_flash_suite ()
 	SUITE_ADD_TEST (suite, cfm_manager_flash_test_verify_pending_cfm_write_after_incomplete_cfm);
 	SUITE_ADD_TEST (suite, cfm_manager_flash_test_clear_all_manifests_region1);
 	SUITE_ADD_TEST (suite, cfm_manager_flash_test_clear_all_manifests_region2);
+	SUITE_ADD_TEST (suite, cfm_manager_flash_test_clear_all_manifests_region1_notify_observers);
+	SUITE_ADD_TEST (suite, cfm_manager_flash_test_clear_all_manifests_region2_notify_observers);
 	SUITE_ADD_TEST (suite, cfm_manager_flash_test_clear_all_manifests_only_active);
 	SUITE_ADD_TEST (suite, cfm_manager_flash_test_clear_all_manifests_only_pending);
 	SUITE_ADD_TEST (suite, cfm_manager_flash_test_clear_all_manifests_no_cfms);
 	SUITE_ADD_TEST (suite, cfm_manager_flash_test_clear_all_manifests_pending_in_use);
 	SUITE_ADD_TEST (suite, cfm_manager_flash_test_clear_all_manifests_active_in_use);
+	SUITE_ADD_TEST (suite,
+		cfm_manager_flash_test_clear_all_manifests_active_in_use_notify_observers);
 	SUITE_ADD_TEST (suite, cfm_manager_flash_test_clear_all_manifests_during_update);
 	SUITE_ADD_TEST (suite, cfm_manager_flash_test_clear_all_manifests_null);
 	SUITE_ADD_TEST (suite, cfm_manager_flash_test_clear_all_manifests_erase_pending_error);
 	SUITE_ADD_TEST (suite, cfm_manager_flash_test_clear_all_manifests_erase_active_error);
+	SUITE_ADD_TEST (suite,
+		cfm_manager_flash_test_clear_all_manifests_erase_active_error_notify_observers);
 
 	return suite;
 }

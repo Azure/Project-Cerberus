@@ -100,11 +100,12 @@ static void pcd_manager_notify_observers (struct pcd_manager *manager, struct pc
 }
 
 /**
- * Notify observers that a new CFM has been verified and is now pending.
+ * Notify observers that a new PCD has been verified and is now pending.
  *
  * @param manager The manager generating the event.
+ * @param pending The pending PCD that was verified.
  */
-void pcd_manager_on_pcd_verified (struct pcd_manager *manager)
+void pcd_manager_on_pcd_verified (struct pcd_manager *manager, struct pcd *pending)
 {
 	if (manager == NULL) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
@@ -112,7 +113,8 @@ void pcd_manager_on_pcd_verified (struct pcd_manager *manager)
 		return;
 	}
 
-	pcd_manager_notify_observers (manager, NULL, offsetof (struct pcd_observer, on_pcd_verified));
+	pcd_manager_notify_observers (manager, pending,
+		offsetof (struct pcd_observer, on_pcd_verified));
 }
 
 /**
@@ -130,6 +132,23 @@ void pcd_manager_on_pcd_activated (struct pcd_manager *manager)
 
 	pcd_manager_notify_observers (manager, manager->get_active_pcd (manager),
 		offsetof (struct pcd_observer, on_pcd_activated));
+}
+
+/**
+ * Notify observers that the active PCD has been cleared.
+ *
+ * @param manager The manager generating the event.
+ */
+void pcd_manager_on_clear_active (struct pcd_manager *manager)
+{
+	if (manager == NULL) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
+			MANIFEST_LOGGING_PCD_CLEAR_ACTIVE_EVENT_FAIL, MANIFEST_MANAGER_INVALID_ARGUMENT, 0);
+		return;
+	}
+
+	observable_notify_observers (&manager->observable,
+		offsetof (struct pcd_observer, on_clear_active));
 }
 
 /**
@@ -159,7 +178,7 @@ int pcd_manager_get_id_measured_data (struct pcd_manager *manager, size_t offset
 		status = manifest_manager_get_id_measured_data (NULL, offset, buffer, length, total_len);
 	}
 	else {
-		status = manifest_manager_get_id_measured_data (&active->base, offset, buffer, length, 
+		status = manifest_manager_get_id_measured_data (&active->base, offset, buffer, length,
 			total_len);
 		manager->free_pcd (manager, active);
 	}
@@ -191,7 +210,7 @@ int pcd_manager_get_platform_id_measured_data (struct pcd_manager *manager, size
 
 	active = manager->get_active_pcd (manager);
 	if (active == NULL) {
-		status = manifest_manager_get_platform_id_measured_data (NULL, offset, buffer, length, 
+		status = manifest_manager_get_platform_id_measured_data (NULL, offset, buffer, length,
 			total_len);
 	}
 	else {

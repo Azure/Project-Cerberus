@@ -116,9 +116,8 @@ static void fw_update_task_updater (struct fw_update_task *task)
 			 * triggering the reset to give time for the application that started the update to
 			 * know that it was successful. */
 			platform_msleep (5000);
-			firmware_update_shutdown_system (task->updater);
-			debug_log_flush ();
-			task->device->reset (task->device);
+			system_reset (task->system);
+			reset = false;	/* We should never get here, but clear the flag if the reset fails. */
 		}
 	} while (1);
 }
@@ -269,14 +268,14 @@ static void fw_update_task_status_change (struct firmware_update_notification *c
  *
  * @param task The task interface to initialize.
  * @param updater The updater instance to use in the task.
- * @param device Device instance for handling HW specific operations.
+ * @param system The manager for system operations.
  *
  * @return 0 if the task was successfully initialized or an error code.
  */
 int fw_update_task_init (struct fw_update_task *task, struct firmware_update *updater,
-	struct cmd_device *device)
+	struct system *system)
 {
-	if ((task == NULL) || (updater == NULL) || (device == NULL)) {
+	if ((task == NULL) || (updater == NULL) || (system == NULL)) {
 		return FIRMWARE_UPDATE_INVALID_ARGUMENT;
 	}
 
@@ -288,7 +287,7 @@ int fw_update_task_init (struct fw_update_task *task, struct firmware_update *up
 	}
 
 	task->updater = updater;
-	task->device = device;
+	task->system = system;
 	task->update_status = UPDATE_STATUS_NONE_STARTED;
 
 	task->base.start_update = fw_update_task_start_update;

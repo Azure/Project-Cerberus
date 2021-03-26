@@ -69,6 +69,7 @@ static int pcr_update_buffer_common (struct pcr_bank *pcr, struct hash_engine *h
 	bool include_version, uint8_t version)
 {
 	uint8_t digest[PCR_DIGEST_LENGTH];
+	uint8_t config = 0;
 	int status;
 
 	status = hash->start_sha256 (hash);
@@ -83,6 +84,8 @@ static int pcr_update_buffer_common (struct pcr_bank *pcr, struct hash_engine *h
 		if (status != 0) {
 			goto hash_cancel;
 		}
+
+		config |= PCR_MEASUREMENT_FLAG_EVENT;
 	}
 
 	if (include_version) {
@@ -90,6 +93,11 @@ static int pcr_update_buffer_common (struct pcr_bank *pcr, struct hash_engine *h
 		if (status != 0) {
 			goto hash_cancel;
 		}
+
+		config |= PCR_MEASUREMENT_FLAG_VERSION;
+	}
+	else {
+		version = 0;
 	}
 
 	status = hash->update (hash, buf, buf_len);
@@ -102,21 +110,8 @@ static int pcr_update_buffer_common (struct pcr_bank *pcr, struct hash_engine *h
 		goto hash_cancel;
 	}
 
-	if (include_version && include_event) {
-		return pcr_update_digest_common (pcr, measurement_index, digest, sizeof (digest),
-			PCR_MEASUREMENT_FLAG_VERSION | PCR_MEASUREMENT_FLAG_EVENT, version);
-	}
-	else if (include_version && !include_event) {
-		return pcr_update_digest_common (pcr, measurement_index, digest, sizeof (digest),
-			PCR_MEASUREMENT_FLAG_VERSION, version);
-	}
-	else if (!include_version && include_event) {
-		return pcr_update_digest_common (pcr, measurement_index, digest, sizeof (digest),
-			PCR_MEASUREMENT_FLAG_EVENT, 0);
-	}
-	else {
-		return pcr_update_digest_common (pcr, measurement_index, digest, sizeof (digest), 0, 0);
-	}
+	return pcr_update_digest_common (pcr, measurement_index, digest, sizeof (digest), config,
+		version);
 
 hash_cancel:
 	hash->cancel (hash);

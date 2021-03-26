@@ -93,6 +93,17 @@ struct manifest {
 	 * value.
 	 */
 	int (*get_signature) (struct manifest *manifest, uint8_t *signature, size_t length);
+
+	/**
+	 * Determine if the manifest is considered to be empty.  What indicates an empty manifest will
+	 * depend on the specific implementation, and it doesn't necessarily mean there is no data in
+	 * the manifest.
+	 *
+	 * @param manifest The manifest to query.
+	 *
+	 * @return 1 if the manifest is empty, 0 if it is not, or an error code.
+	 */
+	int (*is_empty) (struct manifest *manifest);
 };
 
 
@@ -128,6 +139,7 @@ enum {
 	MANIFEST_ELEMENT_INVALID = MANIFEST_ERROR (0x15),			/**< A manifest element failed validation. */
 	MANIFEST_WRONG_PARENT = MANIFEST_ERROR (0x16),				/**< Parent element is not of the correct type. */
 	MANIFEST_CHILD_NOT_FOUND = MANIFEST_ERROR (0x17),			/**< A child element was not found in the manifest. */
+	MANIFEST_CHECK_EMPTY_FAILED = MANIFEST_ERROR (0x18),		/**< Failed to determine if the manifest was empty. */
 };
 
 

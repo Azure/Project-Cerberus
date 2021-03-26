@@ -5,8 +5,8 @@
 #include <stddef.h>
 #include <string.h>
 #include "pfm_manager_flash.h"
-#include "host_fw/host_state_manager.h"
 #include "manifest/manifest_logging.h"
+#include "host_fw/host_state_manager.h"
 
 
 static struct pfm* pfm_manager_flash_get_pfm (struct pfm_manager_flash *manager,
@@ -115,48 +115,15 @@ int pfm_manager_flash_verify_pending_pfm (struct manifest_manager *manager)
 static int pfm_manager_flash_clear_all_manifests (struct manifest_manager *manager)
 {
 	struct pfm_manager_flash *pfm_mgr = (struct pfm_manager_flash*) manager;
+	int status;
 
 	if (pfm_mgr == NULL) {
 		return MANIFEST_MANAGER_INVALID_ARGUMENT;
 	}
 
-	return manifest_manager_flash_clear_all_manifests (&pfm_mgr->manifest_manager);
-}
-
-/**
- * If the pending PFM does not support any FW versions, clear the manifests.
- *
- * @param manager The PFM manager to update.
- *
- * @return 0 if the check completed successfully or an error code.
- */
-static int pfm_manager_flash_check_supported_versions (struct pfm_manager_flash *manager)
-{
-	struct manifest_manager_flash_region *pending;
-	struct pfm_flash *pending_pfm;
-	struct pfm_firmware_versions fw;
-	int status = 0;
-	size_t count;
-
-	pending = manifest_manager_flash_get_region (&manager->manifest_manager, false);
-	if (pending->is_valid) {
-		pending_pfm = (struct pfm_flash*) pending->manifest;
-
-		status = pending_pfm->base.get_supported_versions (&pending_pfm->base, NULL, &fw);
-		if (status != 0) {
-			return status;
-		}
-
-		count = fw.count;
-		pending_pfm->base.free_fw_versions (&pending_pfm->base, &fw);
-
-		if (count == 0) {
-			status = pfm_manager_flash_clear_all_manifests (&manager->base.base);
-
-			debug_log_create_entry (DEBUG_LOG_SEVERITY_WARNING, DEBUG_LOG_COMPONENT_MANIFEST,
-				MANIFEST_LOGGING_EMPTY_PFM, manifest_manager_get_port (&manager->base.base),
-				status);
-		}
+	status = manifest_manager_flash_clear_all_manifests (&pfm_mgr->manifest_manager, false);
+	if (status == 0) {
+		pfm_manager_on_clear_active (&pfm_mgr->base);
 	}
 
 	return status;
@@ -221,16 +188,11 @@ int pfm_manager_flash_init_port (struct pfm_manager_flash *manager, struct pfm_f
 		return status;
 	}
 
-	status = manifest_manager_flash_init (&manager->manifest_manager, &pfm_region1->base.base,
-		&pfm_region2->base.base, &pfm_region1->base_flash, &pfm_region2->base_flash, &state->base,
-		hash, verification, 0);
+	status = manifest_manager_flash_init (&manager->manifest_manager, &manager->base.base,
+		&pfm_region1->base.base, &pfm_region2->base.base, &pfm_region1->base_flash,
+		&pfm_region2->base_flash, &state->base, hash, verification, 0, MANIFEST_LOGGING_EMPTY_PFM);
 	if (status != 0) {
 		goto manifest_base_error;
-	}
-
-	status = pfm_manager_flash_check_supported_versions (manager);
-	if (status != 0) {
-		goto platform_id_error;
 	}
 
 	manager->base.get_active_pfm = pfm_manager_flash_get_active_pfm;
@@ -247,8 +209,6 @@ int pfm_manager_flash_init_port (struct pfm_manager_flash *manager, struct pfm_f
 
 	return 0;
 
-platform_id_error:
-	manifest_manager_flash_release (&manager->manifest_manager);
 manifest_base_error:
 	pfm_manager_release (&manager->base);
 	return status;

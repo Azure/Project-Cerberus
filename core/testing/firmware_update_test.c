@@ -104,7 +104,7 @@ static int firmware_update_testing_flash_page_size (struct flash_mock *flash, ui
  *
  * @param test The testing framework.
  * @param updater The testing components to initialize.
- * @param updater.header The updater.header firmware ID.
+ * @param header The updater header firmware ID.
  */
 static void firmware_update_testing_init_dependencies (CuTest *test,
 	struct firmware_update_testing *updater, int header)
@@ -11939,34 +11939,6 @@ static void firmware_update_test_validate_recovery_null_firmware_header (CuTest 
 	firmware_update_testing_validate_and_release (test, &updater);
 }
 
-static void firmware_update_test_shutdown_system (CuTest *test)
-{
-	struct firmware_update_testing updater;
-	int status;
-
-	TEST_START;
-
-	firmware_update_testing_init (test, &updater, 0, 0, 0);
-
-	status = firmware_update_add_observer (&updater.test, &updater.observer.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&updater.observer.mock, updater.observer.base.on_shutdown,
-		&updater.observer, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	firmware_update_shutdown_system (&updater.test);
-
-	firmware_update_testing_validate_and_release (test, &updater);
-}
-
-static void firmware_update_test_shutdown_system_null (CuTest *test)
-{
-	TEST_START;
-
-	firmware_update_shutdown_system (NULL);
-}
-
 static void firmware_update_test_restore_recovery_image (CuTest *test)
 {
 	struct firmware_update_testing updater;
@@ -13451,8 +13423,6 @@ CuSuite* get_firmware_update_suite ()
 	SUITE_ADD_TEST (suite,
 		firmware_update_test_validate_recovery_image_load_verify_fw_header_no_memory);
 	SUITE_ADD_TEST (suite, firmware_update_test_validate_recovery_null_firmware_header);
-	SUITE_ADD_TEST (suite, firmware_update_test_shutdown_system);
-	SUITE_ADD_TEST (suite, firmware_update_test_shutdown_system_null);
 	SUITE_ADD_TEST (suite, firmware_update_test_restore_recovery_image);
 	SUITE_ADD_TEST (suite, firmware_update_test_restore_recovery_image_header_last);
 	SUITE_ADD_TEST (suite, firmware_update_test_restore_recovery_image_header_last_small_page);

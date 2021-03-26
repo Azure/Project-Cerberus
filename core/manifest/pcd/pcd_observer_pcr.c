@@ -15,6 +15,13 @@ static void pcd_observer_pcr_on_pcd_activated (struct pcd_observer *observer, st
 	manifest_pcr_record_manifest_measurement (&pcr->pcr, &active->base);
 }
 
+static void pcd_observer_pcr_on_clear_active (struct pcd_observer *observer)
+{
+	struct pcd_observer_pcr *pcr = (struct pcd_observer_pcr*) observer;
+
+	manifest_pcr_record_manifest_measurement (&pcr->pcr, NULL);
+}
+
 /**
  * Initialize the PCD observer for updating PCR entries.
  *
@@ -46,6 +53,7 @@ int pcd_observer_pcr_init (struct pcd_observer_pcr *observer, struct hash_engine
 	}
 
 	observer->base.on_pcd_activated = pcd_observer_pcr_on_pcd_activated;
+	observer->base.on_clear_active = pcd_observer_pcr_on_clear_active;
 
 	return 0;
 }

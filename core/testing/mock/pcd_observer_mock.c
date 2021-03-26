@@ -31,9 +31,20 @@ static void pcd_observer_mock_on_pcd_verified (struct pcd_observer *observer, st
 		MOCK_ARG_CALL (pending));
 }
 
+static void pcd_observer_mock_on_clear_active (struct pcd_observer *observer)
+{
+	struct pcd_observer_mock *mock = (struct pcd_observer_mock*) observer;
+
+	if (mock == NULL) {
+		return;
+	}
+
+	MOCK_VOID_RETURN_NO_ARGS (&mock->mock, pcd_observer_mock_on_clear_active, observer);
+}
+
 static int pcd_observer_mock_func_arg_count (void *func)
 {
-	if ((func == pcd_observer_mock_on_pcd_activated) || 
+	if ((func == pcd_observer_mock_on_pcd_activated) ||
 		(func == pcd_observer_mock_on_pcd_verified)) {
 		return 1;
 	}
@@ -49,6 +60,9 @@ static const char* pcd_observer_mock_func_name_map (void *func)
 	}
 	else if (func == pcd_observer_mock_on_pcd_verified) {
 		return "on_pcd_verified";
+	}
+	else if (func == pcd_observer_mock_on_clear_active) {
+		return "on_clear_active";
 	}
 	else {
 		return "unknown";
@@ -99,6 +113,7 @@ int pcd_observer_mock_init (struct pcd_observer_mock *mock)
 
 	mock->base.on_pcd_activated = pcd_observer_mock_on_pcd_activated;
 	mock->base.on_pcd_verified = pcd_observer_mock_on_pcd_verified;
+	mock->base.on_clear_active = pcd_observer_mock_on_clear_active;
 
 	mock->mock.func_arg_count = pcd_observer_mock_func_arg_count;
 	mock->mock.func_name_map = pcd_observer_mock_func_name_map;

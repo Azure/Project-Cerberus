@@ -30,7 +30,8 @@ void manifest_cmd_handler_set_status (struct manifest_cmd_handler *handler, int 
 	xSemaphoreGive (handler->task->lock);
 }
 
-static void manifest_cmd_handler_execute (struct config_cmd_task_handler *handler, uint32_t action)
+static void manifest_cmd_handler_execute (struct config_cmd_task_handler *handler, uint32_t action,
+	bool *reset)
 {
 	struct manifest_cmd_handler *manifest_handler = TO_DERIVED_TYPE (handler,
 		struct manifest_cmd_handler, cmd_base);
@@ -72,7 +73,7 @@ static void manifest_cmd_handler_execute (struct config_cmd_task_handler *handle
 				if (manifest_handler->activation) {
 					manifest_cmd_handler_set_status (manifest_handler,
 						MANIFEST_CMD_STATUS_ACTIVATING);
-					status = manifest_handler->activation (manifest_handler);
+					status = manifest_handler->activation (manifest_handler, reset);
 				}
 				else {
 					status = MANIFEST_CMD_STATUS (MANIFEST_CMD_STATUS_ACTIVATION_FAIL,
@@ -105,7 +106,7 @@ static void manifest_cmd_handler_execute (struct config_cmd_task_handler *handle
 
 	xSemaphoreTake (manifest_handler->task->lock, portMAX_DELAY);
 	manifest_handler->status = status;
-	manifest_handler->task->running = 0;
+	manifest_handler->task->running = (*reset) ? 1 : 0;
 	xSemaphoreGive (manifest_handler->task->lock);
 }
 

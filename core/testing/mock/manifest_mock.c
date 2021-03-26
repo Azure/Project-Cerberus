@@ -79,6 +79,17 @@ static int manifest_mock_get_signature (struct manifest *manifest, uint8_t *sign
 		MOCK_ARG_CALL (length));
 }
 
+static int manifest_mock_is_empty (struct manifest *manifest)
+{
+	struct manifest_mock *mock = (struct manifest_mock*) manifest;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN_NO_ARGS (&mock->mock, manifest_mock_is_empty, manifest);
+}
+
 static int manifest_mock_func_arg_count (void *func)
 {
 	if (func == manifest_mock_verify) {
@@ -117,6 +128,9 @@ static const char* manifest_mock_func_name_map (void *func)
 	}
 	else if (func == manifest_mock_get_signature) {
 		return "get_signature";
+	}
+	else if (func == manifest_mock_is_empty) {
+		return "is_empty";
 	}
 	else {
 		return "unknown";
@@ -216,6 +230,7 @@ int manifest_mock_init (struct manifest_mock *mock)
 	mock->base.free_platform_id = manifest_mock_free_platform_id;
 	mock->base.get_hash = manifest_mock_get_hash;
 	mock->base.get_signature = manifest_mock_get_signature;
+	mock->base.is_empty = manifest_mock_is_empty;
 
 	mock->mock.func_arg_count = manifest_mock_func_arg_count;
 	mock->mock.func_name_map = manifest_mock_func_name_map;

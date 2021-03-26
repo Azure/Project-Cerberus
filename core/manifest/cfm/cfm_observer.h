@@ -32,6 +32,13 @@ struct cfm_observer {
 	 * @param active The CFM that was activated.
 	 */
 	void (*on_cfm_activated) (struct cfm_observer *observer, struct cfm *active);
+
+	/**
+	 * Notification that the active CFM has been erased.
+	 *
+	 * @param observer The observer being notified.
+	 */
+	void (*on_clear_active) (struct cfm_observer *observer);
 };
 
 

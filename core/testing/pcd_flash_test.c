@@ -69,6 +69,78 @@ const uint8_t PCD_DATA[] = {
 };
 
 /**
+ * Length of the testing PCD.
+ */
+const uint32_t PCD_DATA_LEN = sizeof (PCD_DATA);
+
+/**
+ * PCD_DATA hash for testing.
+ */
+const uint8_t PCD_HASH[] = {
+	0xb3,0xdb,0xed,0xb3,0x02,0xc2,0x19,0xd7,0x56,0xf1,0x30,0xed,0xad,0xc6,0x9a,0xc2,
+	0x75,0xd6,0xe8,0x55,0x71,0x90,0xb6,0xcb,0xda,0x19,0xf8,0x1b,0xee,0xba,0x23,0xb2
+};
+
+/**
+ * The platform ID for the PCD.
+ */
+const char PCD_PLATFORM_ID[] = "SKU1";
+
+/**
+ * Components of the test PCD.
+ */
+const struct pcd_testing_data PCD_TESTING = {
+	.manifest = {
+		.raw = PCD_DATA,
+		.length = sizeof (PCD_DATA),
+		.hash = PCD_HASH,
+		.hash_len = sizeof (PCD_HASH),
+		.id = 0x1a,
+		.signature = PCD_DATA + (sizeof (PCD_DATA) - 256),
+		.sig_len = 256,
+		.sig_offset = (sizeof (PCD_DATA) - 256),
+		.sig_hash_type = HASH_TYPE_SHA256,
+		.toc = PCD_DATA + MANIFEST_V2_TOC_HDR_OFFSET,
+		.toc_len = 0x013c,
+		.toc_hash = PCD_DATA + 0x0128,
+		.toc_hash_len = 32,
+		.toc_hash_offset = 0x0128,
+		.toc_hash_type = HASH_TYPE_SHA256,
+		.toc_entries = 7,
+		.toc_hashes = 7,
+		.plat_id = PCD_DATA + 0x0148,
+		.plat_id_len = 0x0008,
+		.plat_id_str = PCD_PLATFORM_ID,
+		.plat_id_str_len = sizeof (PCD_PLATFORM_ID) - 1,
+		.plat_id_str_pad = 0,
+		.plat_id_offset = 0x0148,
+		.plat_id_entry = 0,
+		.plat_id_hash = 0
+	},
+	.rot_len = 0x0008,
+	.rot_offset = 0x0184,
+	.rot_entry = 4,
+	.rot_hash = 4,
+	.power_ctrl_len = 0x000c,
+	.power_ctrl_offset = 0x0150,
+	.power_ctrl_entry = 1,
+	.power_ctrl_hash = 1,
+	.bridge_component_len = 0x0014,
+	.bridge_component_offset = 0x0170,
+	.bridge_component_entry = 3,
+	.bridge_component_hash = 3,
+	.direct_component_len = 0x0014,
+	.direct_component_offset = 0x015c,
+	.direct_component_entry = 2,
+	.direct_component_hash = 2,
+	.port_len = 0x0008,
+	.port_offset = 0x018c,
+	.port_entry = 5,
+	.port_hash = 5,
+	.num_optional_elements = 5,
+};
+
+/**
  * PCD with no POWER_CONTROLLER for testing.
  */
 const uint8_t PCD_NO_POWER_CONTROLLER_DATA[] = {
@@ -114,6 +186,78 @@ const uint8_t PCD_NO_POWER_CONTROLLER_DATA[] = {
 };
 
 /**
+ * Length of the testing PCD with no power controller.
+ */
+const uint32_t PCD_NO_POWER_CONTROLLER_DATA_LEN = sizeof (PCD_NO_POWER_CONTROLLER_DATA);
+
+/**
+ * PCD_NO_POWER_CONTROLLER_DATA hash for testing.
+ */
+const uint8_t PCD_NO_POWER_CONTROLLER_HASH[] = {
+	0x6a,0x3e,0x91,0x2a,0x3d,0x8d,0x3e,0xbb,0x40,0x26,0x53,0xf3,0x7d,0x94,0xfd,0x4c,
+	0x0c,0x0a,0x72,0xb3,0xdc,0x60,0xbc,0xc1,0x0d,0x80,0x81,0x26,0x97,0x62,0xe6,0x27
+};
+
+/**
+ * The platform ID for the PCD with no power controller.
+ */
+const char PCD_NO_POWER_CONTROLLER_PLATFORM_ID[] = "SKU1";
+
+/**
+ * Components of the no power controller PCD.
+ */
+static struct pcd_testing_data PCD_NO_POWER_CONTROLLER_TESTING = {
+	.manifest = {
+		.raw = PCD_NO_POWER_CONTROLLER_DATA,
+		.length = sizeof (PCD_NO_POWER_CONTROLLER_DATA),
+		.hash = PCD_NO_POWER_CONTROLLER_HASH,
+		.hash_len = sizeof (PCD_NO_POWER_CONTROLLER_HASH),
+		.id = 0x1a,
+		.signature = PCD_NO_POWER_CONTROLLER_DATA + (sizeof (PCD_NO_POWER_CONTROLLER_DATA) - 256),
+		.sig_len = 256,
+		.sig_offset = (sizeof (PCD_NO_POWER_CONTROLLER_DATA) - 256),
+		.sig_hash_type = HASH_TYPE_SHA256,
+		.toc = PCD_NO_POWER_CONTROLLER_DATA + MANIFEST_V2_TOC_HDR_OFFSET,
+		.toc_len = 0x0114,
+		.toc_hash = PCD_NO_POWER_CONTROLLER_DATA + 0x0100,
+		.toc_hash_len = 32,
+		.toc_hash_offset = 0x0100,
+		.toc_hash_type = HASH_TYPE_SHA256,
+		.toc_entries = 6,
+		.toc_hashes = 6,
+		.plat_id = PCD_NO_POWER_CONTROLLER_DATA + 0x0120,
+		.plat_id_len = 0x0008,
+		.plat_id_str = PCD_NO_POWER_CONTROLLER_PLATFORM_ID,
+		.plat_id_str_len = sizeof (PCD_NO_POWER_CONTROLLER_PLATFORM_ID) - 1,
+		.plat_id_str_pad = 0,
+		.plat_id_offset = 0x0120,
+		.plat_id_entry = 0,
+		.plat_id_hash = 0
+	},
+	.rot_len = 0x0008,
+	.rot_offset = 0x0150,
+	.rot_entry = 3,
+	.rot_hash = 3,
+	.power_ctrl_len = 0,
+	.power_ctrl_offset = 0,
+	.power_ctrl_entry = -1,
+	.power_ctrl_hash = -1,
+	.bridge_component_len = 0x0014,
+	.bridge_component_offset = 0x013c,
+	.bridge_component_entry = 2,
+	.bridge_component_hash = 2,
+	.direct_component_len = 0x0014,
+	.direct_component_offset = 0x0128,
+	.direct_component_entry = 1,
+	.direct_component_hash = 1,
+	.port_len = 0x0008,
+	.port_offset = 0x0158,
+	.port_entry = 4,
+	.port_hash = 4,
+	.num_optional_elements = 4,
+};
+
+/**
  * PCD with no components for testing.
  */
 const uint8_t PCD_NO_COMPONENTS_DATA[] = {
@@ -152,6 +296,78 @@ const uint8_t PCD_NO_COMPONENTS_DATA[] = {
 	0x02,0x35,0xc8,0xed,0x04,0xdc,0xfb,0x22,0xde,0x58,0x4f,0x24,0xb0,0xf0,0x0a,0x53,
 	0xa7,0x0c,0xb4,0x60,0xbc,0xc9,0xcc,0xee,0x6e,0x68,0x28,0x5e,0x38,0xb6,0x67,0x54,
 	0x70,0x4f,0xc6,0x1f
+};
+
+/**
+ * Length of the testing PCD with no components.
+ */
+const uint32_t PCD_NO_COMPONENTS_DATA_LEN = sizeof (PCD_NO_COMPONENTS_DATA);
+
+/**
+ * PCD_NO_COMPONENTS_DATA hash for testing.
+ */
+const uint8_t PCD_NO_COMPONENTS_HASH[] = {
+	0x81,0x94,0x33,0x00,0x28,0xc3,0xeb,0xc2,0xae,0x90,0x0d,0x19,0x03,0x03,0x82,0x53,
+	0xee,0xc4,0x57,0x4a,0xf8,0x64,0x88,0x17,0xb4,0x81,0x58,0x6e,0xf7,0x82,0xd6,0xf8
+};
+
+/**
+ * The platform ID for the PCD with no components.
+ */
+const char PCD_NO_COMPONENTS_PLATFORM_ID[] = "SKU2";
+
+/**
+ * Components of the no components PCD.
+ */
+const struct pcd_testing_data PCD_NO_COMPONENTS_TESTING = {
+	.manifest = {
+		.raw = PCD_NO_COMPONENTS_DATA,
+		.length = sizeof (PCD_NO_COMPONENTS_DATA),
+		.hash = PCD_NO_COMPONENTS_HASH,
+		.hash_len = sizeof (PCD_NO_COMPONENTS_HASH),
+		.id = 0x1a,
+		.signature = PCD_NO_COMPONENTS_DATA + (sizeof (PCD_NO_COMPONENTS_DATA) - 256),
+		.sig_len = 256,
+		.sig_offset = (sizeof (PCD_NO_COMPONENTS_DATA) - 256),
+		.sig_hash_type = HASH_TYPE_SHA256,
+		.toc = PCD_NO_COMPONENTS_DATA + MANIFEST_V2_TOC_HDR_OFFSET,
+		.toc_len = 0x00ec,
+		.toc_hash = PCD_NO_COMPONENTS_DATA + 0x00d8,
+		.toc_hash_len = 32,
+		.toc_hash_offset = 0x00d8,
+		.toc_hash_type = HASH_TYPE_SHA256,
+		.toc_entries = 5,
+		.toc_hashes = 5,
+		.plat_id = PCD_NO_COMPONENTS_DATA + 0x00f8,
+		.plat_id_len = 0x0008,
+		.plat_id_str = PCD_NO_COMPONENTS_PLATFORM_ID,
+		.plat_id_str_len = sizeof (PCD_NO_COMPONENTS_PLATFORM_ID) - 1,
+		.plat_id_str_pad = 0,
+		.plat_id_offset = 0x00f8,
+		.plat_id_entry = 0,
+		.plat_id_hash = 0
+	},
+	.rot_len = 0x0008,
+	.rot_offset = 0x010c,
+	.rot_entry = 2,
+	.rot_hash = 2,
+	.power_ctrl_len = 0x000c,
+	.power_ctrl_offset = 0x0100,
+	.power_ctrl_entry = 1,
+	.power_ctrl_hash = 1,
+	.bridge_component_len = 0,
+	.bridge_component_offset = 0,
+	.bridge_component_entry = -1,
+	.bridge_component_hash = -1,
+	.direct_component_len = 0,
+	.direct_component_offset = 0,
+	.direct_component_entry = -1,
+	.direct_component_hash = -1,
+	.port_len = 0x0008,
+	.port_offset = 0x0114,
+	.port_entry = 3,
+	.port_hash = 3,
+	.num_optional_elements = 3,
 };
 
 /**
@@ -197,6 +413,78 @@ const uint8_t PCD_NO_PORTS_DATA[] = {
 };
 
 /**
+ * Length of the testing PCD with no ports.
+ */
+const uint32_t PCD_NO_PORTS_DATA_LEN = sizeof (PCD_NO_PORTS_DATA);
+
+/**
+ * PCD_NO_PORTS_DATA hash for testing.
+ */
+const uint8_t PCD_NO_PORTS_HASH[] = {
+	0x76,0xa4,0x72,0x4d,0x43,0x4c,0x77,0x67,0xf5,0xd7,0xcc,0x4f,0xee,0x33,0xd4,0x9c,
+	0xa8,0x73,0x40,0xdb,0x48,0x25,0x25,0x9c,0x02,0xc0,0x54,0x73,0x11,0xa3,0x85,0xc1
+};
+
+/**
+ * The platform ID for the PCD with no ports.
+ */
+const char PCD_NO_PORTS_PLATFORM_ID[] = "SKU1";
+
+/**
+ * Components of the no ports PCD.
+ */
+const struct pcd_testing_data PCD_NO_PORTS_TESTING = {
+	.manifest = {
+		.raw = PCD_NO_PORTS_DATA,
+		.length = sizeof (PCD_NO_PORTS_DATA),
+		.hash = PCD_NO_PORTS_HASH,
+		.hash_len = sizeof (PCD_NO_PORTS_HASH),
+		.id = 0x1a,
+		.signature = PCD_NO_PORTS_DATA + (sizeof (PCD_NO_PORTS_DATA) - 256),
+		.sig_len = 256,
+		.sig_offset = (sizeof (PCD_NO_PORTS_DATA) - 256),
+		.sig_hash_type = HASH_TYPE_SHA256,
+		.toc = PCD_NO_PORTS_DATA + MANIFEST_V2_TOC_HDR_OFFSET,
+		.toc_len = 0x00ec,
+		.toc_hash = PCD_NO_PORTS_DATA + 0x00d8,
+		.toc_hash_len = 32,
+		.toc_hash_offset = 0x00d8,
+		.toc_hash_type = HASH_TYPE_SHA256,
+		.toc_entries = 5,
+		.toc_hashes = 5,
+		.plat_id = PCD_NO_PORTS_DATA + 0x00f8,
+		.plat_id_len = 0x0008,
+		.plat_id_str = PCD_NO_PORTS_PLATFORM_ID,
+		.plat_id_str_len = sizeof (PCD_NO_PORTS_PLATFORM_ID) - 1,
+		.plat_id_str_pad = 0,
+		.plat_id_offset = 0x00f8,
+		.plat_id_entry = 0,
+		.plat_id_hash = 0
+	},
+	.rot_len = 0x0008,
+	.rot_offset = 0x0134,
+	.rot_entry = 4,
+	.rot_hash = 4,
+	.power_ctrl_len = 0x000c,
+	.power_ctrl_offset = 0x0100,
+	.power_ctrl_entry = 1,
+	.power_ctrl_hash = 1,
+	.bridge_component_len = 0x0014,
+	.bridge_component_offset = 0x0120,
+	.bridge_component_entry = 3,
+	.bridge_component_hash = 3,
+	.direct_component_len = 0x0014,
+	.direct_component_offset = 0x010c,
+	.direct_component_entry = 2,
+	.direct_component_hash = 2,
+	.port_len = 0,
+	.port_offset = 0,
+	.port_entry = -1,
+	.port_hash = -1,
+	.num_optional_elements = 3,
+};
+
+/**
  * PCD with no ports, power controller, or components for testing.
  */
 const uint8_t PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_DATA[] = {
@@ -225,6 +513,80 @@ const uint8_t PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_DATA[] = {
 	0xe2,0xfe,0xf1,0xe7,0x5f,0x38,0x84,0x5d,0x3a,0xb3,0xa3,0x9b,0xaa,0x6c,0x26,0x55,
 	0xd9,0x51,0x98,0xb9,0xad,0x0e,0xc3,0xb8,0xe8,0x37,0xcd,0xdd,0x03,0x23,0x00,0x87,
 	0x27,0xc5,0x70,0xb1,0x9f,0xa4,0x0d,0x45,0x00,0xc9,0x48,0x0c,0xd0,0xd5,0xff,0xe9
+};
+
+/**
+ * Length of the testing PCD with no ports, power controller, nor components.
+ */
+const uint32_t PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_DATA_LEN =
+	sizeof (PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_DATA);
+
+/**
+ * PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_DATA hash for testing.
+ */
+const uint8_t PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_HASH[] = {
+	0x58,0x5e,0xbe,0xb4,0x18,0xf1,0x1d,0x68,0x55,0x5e,0xae,0x6f,0xe4,0xda,0xef,0xd6,
+	0x76,0x19,0x57,0xd9,0xda,0x8d,0x0a,0x4c,0xe9,0x45,0x56,0xf4,0x48,0x35,0x19,0x0d
+};
+
+/**
+ * The platform ID for the PCD with no ports, power controller, nor components.
+ */
+const char PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_PLATFORM_ID[] = "SKU1";
+
+/**
+ * Components of the no components PCD.
+ */
+static struct pcd_testing_data PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_TESTING = {
+	.manifest = {
+		.raw = PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_DATA,
+		.length = sizeof (PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_DATA),
+		.hash = PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_HASH,
+		.hash_len = sizeof (PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_HASH),
+		.id = 0x1a,
+		.signature = PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_DATA +
+			(sizeof (PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_DATA) - 256),
+		.sig_len = 256,
+		.sig_offset = (sizeof (PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_DATA) - 256),
+		.sig_hash_type = HASH_TYPE_SHA256,
+		.toc = PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_DATA + MANIFEST_V2_TOC_HDR_OFFSET,
+		.toc_len = 0x0074,
+		.toc_hash = PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_DATA + 0x0060,
+		.toc_hash_len = 32,
+		.toc_hash_offset = 0x0060,
+		.toc_hash_type = HASH_TYPE_SHA256,
+		.toc_entries = 2,
+		.toc_hashes = 2,
+		.plat_id = PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_DATA + 0x0080,
+		.plat_id_len = 0x0008,
+		.plat_id_str = PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_PLATFORM_ID,
+		.plat_id_str_len = sizeof (PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_PLATFORM_ID) - 1,
+		.plat_id_str_pad = 0,
+		.plat_id_offset = 0x0080,
+		.plat_id_entry = 0,
+		.plat_id_hash = 0
+	},
+	.rot_len = 0x0008,
+	.rot_offset = 0x0088,
+	.rot_entry = 1,
+	.rot_hash = 1,
+	.power_ctrl_len = 0,
+	.power_ctrl_offset = 0,
+	.power_ctrl_entry = -1,
+	.power_ctrl_hash = -1,
+	.bridge_component_len = 0,
+	.bridge_component_offset = 0,
+	.bridge_component_entry = -1,
+	.bridge_component_hash = -1,
+	.direct_component_len = 0,
+	.direct_component_offset = 0,
+	.direct_component_entry = -1,
+	.direct_component_hash = -1,
+	.port_len = 0,
+	.port_offset = 0,
+	.port_entry = -1,
+	.port_hash = -1,
+	.num_optional_elements = 0,
 };
 
 /**
@@ -273,6 +635,79 @@ const uint8_t PCD_ONLY_DIRECT_COMPONENTS_DATA[] = {
 	0x3b,0x8d,0x96,0x70,0x41,0x23,0xc4,0x4f,0x23,0xeb,0x16,0xd7,0xa4,0x70,0xdf,0xcf,
 	0x79,0x98,0x1f,0xbf,0x09,0x67,0xb2,0xc1,0x40,0xd6,0xc2,0xa2,0xad,0xa6,0x3c,0x65,
 	0x88,0x1f,0xfe,0xa3,0x57,0x4b,0xba,0xec
+};
+
+/**
+ * Length of the testing PCD with only direct components.
+ */
+const uint32_t PCD_ONLY_DIRECT_COMPONENTS_DATA_LEN = sizeof (PCD_ONLY_DIRECT_COMPONENTS_DATA);
+
+/**
+ * PCD_ONLY_DIRECT_COMPONENTS_DATA hash for testing.
+ */
+const uint8_t PCD_ONLY_DIRECT_COMPONENTS_HASH[] = {
+	0x70,0xa2,0x25,0x5c,0x46,0xc6,0x74,0x79,0xa1,0x27,0xa1,0x74,0xd6,0x1d,0xe3,0xd7,
+	0x5f,0x4a,0x79,0x31,0xcf,0x28,0x4e,0x14,0xde,0x8d,0x80,0x42,0xe9,0xa6,0x2a,0x81
+};
+
+/**
+ * The platform ID for the PCD with only direct components.
+ */
+const char PCD_ONLY_DIRECT_COMPONENTS_PLATFORM_ID[] = "SKU1";
+
+/**
+ * Components of the test PCD with only direct components.
+ */
+const struct pcd_testing_data PCD_ONLY_DIRECT_COMPONENTS_TESTING = {
+	.manifest = {
+		.raw = PCD_ONLY_DIRECT_COMPONENTS_DATA,
+		.length = sizeof (PCD_ONLY_DIRECT_COMPONENTS_DATA),
+		.hash = PCD_ONLY_DIRECT_COMPONENTS_HASH,
+		.hash_len = sizeof (PCD_ONLY_DIRECT_COMPONENTS_HASH),
+		.id = 0x1a,
+		.signature = PCD_ONLY_DIRECT_COMPONENTS_DATA +
+			(sizeof (PCD_ONLY_DIRECT_COMPONENTS_DATA) - 256),
+		.sig_len = 256,
+		.sig_offset = (sizeof (PCD_ONLY_DIRECT_COMPONENTS_DATA) - 256),
+		.sig_hash_type = HASH_TYPE_SHA256,
+		.toc = PCD_ONLY_DIRECT_COMPONENTS_DATA + MANIFEST_V2_TOC_HDR_OFFSET,
+		.toc_len = 0x013c,
+		.toc_hash = PCD_ONLY_DIRECT_COMPONENTS_DATA + 0x0128,
+		.toc_hash_len = 32,
+		.toc_hash_offset = 0x0128,
+		.toc_hash_type = HASH_TYPE_SHA256,
+		.toc_entries = 7,
+		.toc_hashes = 7,
+		.plat_id = PCD_ONLY_DIRECT_COMPONENTS_DATA + 0x0148,
+		.plat_id_len = 0x0008,
+		.plat_id_str = PCD_ONLY_DIRECT_COMPONENTS_PLATFORM_ID,
+		.plat_id_str_len = sizeof (PCD_ONLY_DIRECT_COMPONENTS_PLATFORM_ID) - 1,
+		.plat_id_str_pad = 0,
+		.plat_id_offset = 0x0148,
+		.plat_id_entry = 0,
+		.plat_id_hash = 0
+	},
+	.rot_len = 0x0008,
+	.rot_offset = 0x0180,
+	.rot_entry = 4,
+	.rot_hash = 4,
+	.power_ctrl_len = 0x000c,
+	.power_ctrl_offset = 0x0150,
+	.power_ctrl_entry = 1,
+	.power_ctrl_hash = 1,
+	.bridge_component_len = 0,
+	.bridge_component_offset = 0,
+	.bridge_component_entry = -1,
+	.bridge_component_hash = -1,
+	.direct_component_len = 0x0014,
+	.direct_component_offset = 0x015c,
+	.direct_component_entry = 2,
+	.direct_component_hash = 2,
+	.port_len = 0x0008,
+	.port_offset = 0x0188,
+	.port_entry = 5,
+	.port_hash = 5,
+	.num_optional_elements = 5,
 };
 
 /**
@@ -328,6 +763,80 @@ const uint8_t PCD_MULTIPLE_DIRECT_COMPONENTS_DATA[] = {
 };
 
 /**
+ * Length of the testing PCD with multiple direct components.
+ */
+const uint32_t PCD_MULTIPLE_DIRECT_COMPONENTS_DATA_LEN =
+	sizeof (PCD_MULTIPLE_DIRECT_COMPONENTS_DATA);
+
+/**
+ * PCD_MULTIPLE_DIRECT_COMPONENTS_DATA hash for testing.
+ */
+const uint8_t PCD_MULTIPLE_DIRECT_COMPONENTS_HASH[] = {
+	0x82,0xef,0xce,0x60,0x6a,0x9d,0x97,0x40,0x9b,0x78,0x7b,0x82,0xed,0x1b,0x9d,0xcb,
+	0x44,0x57,0x22,0xb9,0x34,0xe9,0xe3,0x1a,0x18,0xf2,0xd6,0x35,0xa8,0x68,0x99,0x5e
+};
+
+/**
+ * The platform ID for the PCD with multiple direct components.
+ */
+const char PCD_MULTIPLE_DIRECT_COMPONENTS_PLATFORM_ID[] = "SKU1";
+
+/**
+ * Components of the test PCD with multiple direct components.
+ */
+const struct pcd_testing_data PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING = {
+	.manifest = {
+		.raw = PCD_MULTIPLE_DIRECT_COMPONENTS_DATA,
+		.length = sizeof (PCD_MULTIPLE_DIRECT_COMPONENTS_DATA),
+		.hash = PCD_MULTIPLE_DIRECT_COMPONENTS_HASH,
+		.hash_len = sizeof (PCD_MULTIPLE_DIRECT_COMPONENTS_HASH),
+		.id = 0x1a,
+		.signature = PCD_MULTIPLE_DIRECT_COMPONENTS_DATA +
+			(sizeof (PCD_MULTIPLE_DIRECT_COMPONENTS_DATA) - 256),
+		.sig_len = 256,
+		.sig_offset = (sizeof (PCD_MULTIPLE_DIRECT_COMPONENTS_DATA) - 256),
+		.sig_hash_type = HASH_TYPE_SHA256,
+		.toc = PCD_MULTIPLE_DIRECT_COMPONENTS_DATA + MANIFEST_V2_TOC_HDR_OFFSET,
+		.toc_len = 0x0164,
+		.toc_hash = PCD_MULTIPLE_DIRECT_COMPONENTS_DATA + 0x0150,
+		.toc_hash_len = 32,
+		.toc_hash_offset = 0x0150,
+		.toc_hash_type = HASH_TYPE_SHA256,
+		.toc_entries = 8,
+		.toc_hashes = 8,
+		.plat_id = PCD_MULTIPLE_DIRECT_COMPONENTS_DATA + 0x0170,
+		.plat_id_len = 0x0008,
+		.plat_id_str = PCD_MULTIPLE_DIRECT_COMPONENTS_PLATFORM_ID,
+		.plat_id_str_len = sizeof (PCD_MULTIPLE_DIRECT_COMPONENTS_PLATFORM_ID) - 1,
+		.plat_id_str_pad = 0,
+		.plat_id_offset = 0x0170,
+		.plat_id_entry = 0,
+		.plat_id_hash = 0
+	},
+	.rot_len = 0x0008,
+	.rot_offset = 0x01c0,
+	.rot_entry = 5,
+	.rot_hash = 5,
+	.power_ctrl_len = 0x000c,
+	.power_ctrl_offset = 0x0178,
+	.power_ctrl_entry = 1,
+	.power_ctrl_hash = 1,
+	.bridge_component_len = 0x0014,
+	.bridge_component_offset = 0x01ac,
+	.bridge_component_entry = 4,
+	.bridge_component_hash = 4,
+	.direct_component_len = 0x0014,
+	.direct_component_offset = 0x0184,
+	.direct_component_entry = 2,
+	.direct_component_hash = 2,
+	.port_len = 0x0008,
+	.port_offset = 0x01c8,
+	.port_entry = 6,
+	.port_hash = 6,
+	.num_optional_elements = 6,
+};
+
+/**
  * PCD with only bridge components for testing.
  */
 const uint8_t PCD_ONLY_BRIDGE_COMPONENTS_DATA[] = {
@@ -373,6 +882,79 @@ const uint8_t PCD_ONLY_BRIDGE_COMPONENTS_DATA[] = {
 	0x86,0xe4,0x17,0xc2,0x5c,0xa5,0x89,0x47,0x63,0x8c,0xf4,0xe8,0x09,0xd9,0x39,0x5d,
 	0xeb,0x09,0xe2,0xdf,0xd0,0x8b,0x96,0x4e,0x11,0x4c,0x91,0x3c,0xa0,0x28,0x82,0x44,
 	0x0f,0x85,0xa6,0x47,0x85,0xcc,0xae,0xfa,0x96,0x6d,0x54,0xfa,0x83,0x7a,0x37,0xb1
+};
+
+/**
+ * Length of the testing PCD with only bridge components.
+ */
+const uint32_t PCD_ONLY_BRIDGE_COMPONENTS_DATA_LEN = sizeof (PCD_ONLY_BRIDGE_COMPONENTS_DATA);
+
+/**
+ * PCD_ONLY_BRIDGE_COMPONENTS_DATA hash for testing.
+ */
+const uint8_t PCD_ONLY_BRIDGE_COMPONENTS_HASH[] = {
+	0x8b,0x4c,0xa4,0x14,0x00,0xfd,0x66,0xad,0xb0,0xd9,0xb2,0xe9,0x0a,0xea,0x72,0xc8,
+	0x04,0x17,0xb8,0x73,0xe4,0x70,0xf3,0x77,0x01,0xdd,0x71,0x1d,0xf7,0x9e,0x4c,0x26
+};
+
+/**
+ * The platform ID for the PCD with only bridge components.
+ */
+const char PCD_ONLY_BRIDGE_COMPONENTS_PLATFORM_ID[] = "SKU1";
+
+/**
+ * Components of the test PCD with only bridge components.
+ */
+const struct pcd_testing_data PCD_ONLY_BRIDGE_COMPONENTS_TESTING = {
+	.manifest = {
+		.raw = PCD_ONLY_BRIDGE_COMPONENTS_DATA,
+		.length = sizeof (PCD_ONLY_BRIDGE_COMPONENTS_DATA),
+		.hash = PCD_ONLY_BRIDGE_COMPONENTS_HASH,
+		.hash_len = sizeof (PCD_ONLY_BRIDGE_COMPONENTS_HASH),
+		.id = 0x1a,
+		.signature = PCD_ONLY_BRIDGE_COMPONENTS_DATA +
+			(sizeof (PCD_ONLY_BRIDGE_COMPONENTS_DATA) - 256),
+		.sig_len = 256,
+		.sig_offset = (sizeof (PCD_ONLY_BRIDGE_COMPONENTS_DATA) - 256),
+		.sig_hash_type = HASH_TYPE_SHA256,
+		.toc = PCD_ONLY_BRIDGE_COMPONENTS_DATA + MANIFEST_V2_TOC_HDR_OFFSET,
+		.toc_len = 0x013c,
+		.toc_hash = PCD_ONLY_BRIDGE_COMPONENTS_DATA + 0x0128,
+		.toc_hash_len = 32,
+		.toc_hash_offset = 0x0128,
+		.toc_hash_type = HASH_TYPE_SHA256,
+		.toc_entries = 7,
+		.toc_hashes = 7,
+		.plat_id = PCD_ONLY_BRIDGE_COMPONENTS_DATA + 0x0148,
+		.plat_id_len = 0x0008,
+		.plat_id_str = PCD_ONLY_BRIDGE_COMPONENTS_PLATFORM_ID,
+		.plat_id_str_len = sizeof (PCD_ONLY_BRIDGE_COMPONENTS_PLATFORM_ID) - 1,
+		.plat_id_str_pad = 0,
+		.plat_id_offset = 0x0148,
+		.plat_id_entry = 0,
+		.plat_id_hash = 0
+	},
+	.rot_len = 0x0008,
+	.rot_offset = 0x0188,
+	.rot_entry = 4,
+	.rot_hash = 4,
+	.power_ctrl_len = 0x000c,
+	.power_ctrl_offset = 0x0150,
+	.power_ctrl_entry = 1,
+	.power_ctrl_hash = 1,
+	.bridge_component_len = 0x0014,
+	.bridge_component_offset = 0x015c,
+	.bridge_component_entry = 2,
+	.bridge_component_hash = 2,
+	.direct_component_len = 0,
+	.direct_component_offset = 0,
+	.direct_component_entry = -1,
+	.direct_component_hash = -1,
+	.port_len = 0x0008,
+	.port_offset = 0x0190,
+	.port_entry = 5,
+	.port_hash = 5,
+	.num_optional_elements = 5,
 };
 
 /**
@@ -425,6 +1007,80 @@ const uint8_t PCD_MULTIPLE_BRIDGE_COMPONENTS_DATA[] = {
 	0x0a,0x89,0x3e,0xc8,0xa8,0xcc,0xc8,0xfb,0x74,0xe2,0x7a,0x04,0x25,0xc3,0x45,0x9f,
 	0xa4,0xcf,0xa1,0xf3,0xa8,0xea,0x20,0x3c,0xd3,0x9b,0xad,0xf3,0x0f,0x18,0x38,0xdc,
 	0xe7,0x61,0xdf,0xbf,0xd3,0x21,0x4f,0xfe,0x0a,0xa1,0x59,0x97
+};
+
+/**
+ * Length of the testing PCD with multiple bridge components.
+ */
+const uint32_t PCD_MULTIPLE_BRIDGE_COMPONENTS_DATA_LEN =
+	sizeof (PCD_MULTIPLE_BRIDGE_COMPONENTS_DATA);
+
+/**
+ * PCD_MULTIPLE_BRIDGE_COMPONENTS_DATA hash for testing.
+ */
+const uint8_t PCD_MULTIPLE_BRIDGE_COMPONENTS_HASH[] = {
+	0x34,0x26,0xf1,0xe8,0x61,0xfc,0x9e,0x45,0x72,0xf2,0x1b,0x3d,0xd8,0xae,0xd3,0xab,
+	0xc5,0x61,0x3c,0xfe,0xb4,0x7f,0x4a,0x7f,0x4a,0x25,0x03,0x24,0x39,0x50,0xcd,0x4e
+};
+
+/**
+ * The platform ID for the PCD with multiple bridge components.
+ */
+const char PCD_MULTIPLE_BRIDGE_COMPONENTS_PLATFORM_ID[] = "SKU1";
+
+/**
+ * Components of the test PCD with multiple bridge components.
+ */
+const struct pcd_testing_data PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING = {
+	.manifest = {
+		.raw = PCD_MULTIPLE_BRIDGE_COMPONENTS_DATA,
+		.length = sizeof (PCD_MULTIPLE_BRIDGE_COMPONENTS_DATA),
+		.hash = PCD_MULTIPLE_BRIDGE_COMPONENTS_HASH,
+		.hash_len = sizeof (PCD_MULTIPLE_BRIDGE_COMPONENTS_HASH),
+		.id = 0x1a,
+		.signature = PCD_MULTIPLE_BRIDGE_COMPONENTS_DATA +
+			(sizeof (PCD_MULTIPLE_BRIDGE_COMPONENTS_DATA) - 256),
+		.sig_len = 256,
+		.sig_offset = (sizeof (PCD_MULTIPLE_BRIDGE_COMPONENTS_DATA) - 256),
+		.sig_hash_type = HASH_TYPE_SHA256,
+		.toc = PCD_MULTIPLE_BRIDGE_COMPONENTS_DATA + MANIFEST_V2_TOC_HDR_OFFSET,
+		.toc_len = 0x0164,
+		.toc_hash = PCD_MULTIPLE_BRIDGE_COMPONENTS_DATA + 0x0150,
+		.toc_hash_len = 32,
+		.toc_hash_offset = 0x0150,
+		.toc_hash_type = HASH_TYPE_SHA256,
+		.toc_entries = 8,
+		.toc_hashes = 8,
+		.plat_id = PCD_MULTIPLE_BRIDGE_COMPONENTS_DATA + 0x0170,
+		.plat_id_len = 0x0008,
+		.plat_id_str = PCD_MULTIPLE_BRIDGE_COMPONENTS_PLATFORM_ID,
+		.plat_id_str_len = sizeof (PCD_MULTIPLE_BRIDGE_COMPONENTS_PLATFORM_ID) - 1,
+		.plat_id_str_pad = 0,
+		.plat_id_offset = 0x0170,
+		.plat_id_entry = 0,
+		.plat_id_hash = 0
+	},
+	.rot_len = 0x0008,
+	.rot_offset = 0x01c4,
+	.rot_entry = 5,
+	.rot_hash = 5,
+	.power_ctrl_len = 0x000c,
+	.power_ctrl_offset = 0x0178,
+	.power_ctrl_entry = 1,
+	.power_ctrl_hash = 1,
+	.bridge_component_len = 0x0014,
+	.bridge_component_offset = 0x0198,
+	.bridge_component_entry = 3,
+	.bridge_component_hash = 3,
+	.direct_component_len = 0x0014,
+	.direct_component_offset = 0x0184,
+	.direct_component_entry = 2,
+	.direct_component_hash = 2,
+	.port_len = 0x0008,
+	.port_offset = 0x01cc,
+	.port_entry = 6,
+	.port_hash = 6,
+	.num_optional_elements = 6,
 };
 
 /**
@@ -506,6 +1162,77 @@ const uint8_t PCD_MAX_LEN_COMPONENTS_DATA[] = {
 	0xfa,0x6d,0x9a,0x94,0x2a,0xa1,0x58,0x82,0x73,0xdd,0x3e,0x92,0xdb,0xd5,0x29,0x09
 };
 
+/**
+ * Length of the testing PCD with components with maximum length type fields.
+ */
+const uint32_t PCD_MAX_LEN_COMPONENTS_DATA_LEN = sizeof (PCD_MAX_LEN_COMPONENTS_DATA);
+
+/**
+ * PCD_MAX_LEN_COMPONENTS_DATA hash for testing.
+ */
+const uint8_t PCD_MAX_LEN_COMPONENTS_HASH[] = {
+	0x5b,0x98,0x78,0x39,0x20,0x56,0x76,0x3a,0xd8,0xf3,0x0e,0xe1,0x7f,0x9e,0x60,0xd2,
+	0xe0,0x92,0x5d,0xcf,0xb3,0x5a,0xce,0x1a,0xbd,0x31,0x17,0xf4,0x3d,0xd3,0x05,0x69
+};
+
+/**
+ * The platform ID for the PCD with components with maximum length type fields.
+ */
+const char PCD_MAX_LEN_COMPONENTS_PLATFORM_ID[] = "SKU1";
+
+/**
+ * Components of the test PCD with components with maximum length type fields.
+ */
+const struct pcd_testing_data PCD_MAX_LEN_COMPONENTS_TESTING = {
+	.manifest = {
+		.raw = PCD_MAX_LEN_COMPONENTS_DATA,
+		.length = sizeof (PCD_MAX_LEN_COMPONENTS_DATA),
+		.hash = PCD_MAX_LEN_COMPONENTS_HASH,
+		.hash_len = sizeof (PCD_MAX_LEN_COMPONENTS_HASH),
+		.id = 0x1a,
+		.signature = PCD_MAX_LEN_COMPONENTS_DATA + (sizeof (PCD_MAX_LEN_COMPONENTS_DATA) - 256),
+		.sig_len = 256,
+		.sig_offset = (sizeof (PCD_MAX_LEN_COMPONENTS_DATA) - 256),
+		.sig_hash_type = HASH_TYPE_SHA256,
+		.toc = PCD_MAX_LEN_COMPONENTS_DATA + MANIFEST_V2_TOC_HDR_OFFSET,
+		.toc_len = 0x013c,
+		.toc_hash = PCD_MAX_LEN_COMPONENTS_DATA + 0x0128,
+		.toc_hash_len = 32,
+		.toc_hash_offset = 0x0128,
+		.toc_hash_type = HASH_TYPE_SHA256,
+		.toc_entries = 7,
+		.toc_hashes = 7,
+		.plat_id = PCD_MAX_LEN_COMPONENTS_DATA + 0x0148,
+		.plat_id_len = 0x0008,
+		.plat_id_str = PCD_MAX_LEN_COMPONENTS_PLATFORM_ID,
+		.plat_id_str_len = sizeof (PCD_MAX_LEN_COMPONENTS_PLATFORM_ID) - 1,
+		.plat_id_str_pad = 1,
+		.plat_id_offset = 0x0148,
+		.plat_id_entry = 0,
+		.plat_id_hash = 0
+	},
+	.rot_len = 0x0008,
+	.rot_offset = 0x0378,
+	.rot_entry = 4,
+	.rot_hash = 4,
+	.power_ctrl_len = 0x000c,
+	.power_ctrl_offset = 0x0150,
+	.power_ctrl_entry = 1,
+	.power_ctrl_hash = 1,
+	.bridge_component_len = 0x0110,
+	.bridge_component_offset = 0x0268,
+	.bridge_component_entry = 3,
+	.bridge_component_hash = 3,
+	.direct_component_len = 0x010c,
+	.direct_component_offset = 0x015c,
+	.direct_component_entry = 2,
+	.direct_component_hash = 2,
+	.port_len = 0x0008,
+	.port_offset = 0x0380,
+	.port_entry = 5,
+	.port_hash = 5,
+	.num_optional_elements = 5,
+};
 
 /**
  * PCD with ports with filtered bypass flash modes and pulse reset control for testing.
@@ -556,145 +1283,10 @@ const uint8_t PCD_FILTERED_BYPASS_PULSE_RESET_DATA[] = {
 };
 
 /**
- * Length of the testing PCD.
- */
-const uint32_t PCD_DATA_LEN = sizeof (PCD_DATA);
-
-/**
- * Length of the testing PCD with no power controller.
- */
-const uint32_t PCD_NO_POWER_CONTROLLER_DATA_LEN = sizeof (PCD_NO_POWER_CONTROLLER_DATA);
-
-/**
- * Length of the testing PCD with no components.
- */
-const uint32_t PCD_NO_COMPONENTS_DATA_LEN = sizeof (PCD_NO_COMPONENTS_DATA);
-
-/**
- * Length of the testing PCD with no ports.
- */
-const uint32_t PCD_NO_PORTS_DATA_LEN = sizeof (PCD_NO_PORTS_DATA);
-
-/**
- * Length of the testing PCD with no ports, power controller, nor components.
- */
-const uint32_t PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_DATA_LEN = 
-	sizeof (PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_DATA);
-
-/**
- * Length of the testing PCD with only direct components.
- */
-const uint32_t PCD_ONLY_DIRECT_COMPONENTS_DATA_LEN = 
-	sizeof (PCD_ONLY_DIRECT_COMPONENTS_DATA);
-
-/**
- * Length of the testing PCD with multiple direct components.
- */
-const uint32_t PCD_MULTIPLE_DIRECT_COMPONENTS_DATA_LEN = 
-	sizeof (PCD_MULTIPLE_DIRECT_COMPONENTS_DATA);
-
-/**
- * Length of the testing PCD with only bridge components.
- */
-const uint32_t PCD_ONLY_BRIDGE_COMPONENTS_DATA_LEN = 
-	sizeof (PCD_ONLY_BRIDGE_COMPONENTS_DATA);
-
-/**
- * Length of the testing PCD with multiple bridge components.
- */
-const uint32_t PCD_MULTIPLE_BRIDGE_COMPONENTS_DATA_LEN = 
-	sizeof (PCD_MULTIPLE_BRIDGE_COMPONENTS_DATA);
-
-/**
- * Length of the testing PCD with components with maximum length type fields.
- */
-const uint32_t PCD_MAX_LEN_COMPONENTS_DATA_LEN = sizeof (PCD_MAX_LEN_COMPONENTS_DATA);
-
-/**
  * Length of the testing PCD with ports with filtered bypass flash modes and pulse reset control.
  */
-const uint32_t PCD_FILTERED_BYPASS_PULSE_RESET_DATA_LEN = 
+const uint32_t PCD_FILTERED_BYPASS_PULSE_RESET_DATA_LEN =
 	sizeof (PCD_FILTERED_BYPASS_PULSE_RESET_DATA);
-
-/**
- * PCD_DATA hash for testing.
- */
-const uint8_t PCD_HASH[] = {
-	0xb3,0xdb,0xed,0xb3,0x02,0xc2,0x19,0xd7,0x56,0xf1,0x30,0xed,0xad,0xc6,0x9a,0xc2,
-	0x75,0xd6,0xe8,0x55,0x71,0x90,0xb6,0xcb,0xda,0x19,0xf8,0x1b,0xee,0xba,0x23,0xb2
-};
-
-/**
- * PCD_NO_POWER_CONTROLLER_DATA hash for testing.
- */
-const uint8_t PCD_NO_POWER_CONTROLLER_HASH[] = {
-	0x6a,0x3e,0x91,0x2a,0x3d,0x8d,0x3e,0xbb,0x40,0x26,0x53,0xf3,0x7d,0x94,0xfd,0x4c,
-	0x0c,0x0a,0x72,0xb3,0xdc,0x60,0xbc,0xc1,0x0d,0x80,0x81,0x26,0x97,0x62,0xe6,0x27
-};
-
-/**
- * PCD_NO_COMPONENTS_DATA hash for testing.
- */
-const uint8_t PCD_NO_COMPONENTS_HASH[] = {
-	0x81,0x94,0x33,0x00,0x28,0xc3,0xeb,0xc2,0xae,0x90,0x0d,0x19,0x03,0x03,0x82,0x53,
-	0xee,0xc4,0x57,0x4a,0xf8,0x64,0x88,0x17,0xb4,0x81,0x58,0x6e,0xf7,0x82,0xd6,0xf8
-};
-
-/**
- * PCD_NO_PORTS_DATA hash for testing.
- */
-const uint8_t PCD_NO_PORTS_HASH[] = {
-	0x76,0xa4,0x72,0x4d,0x43,0x4c,0x77,0x67,0xf5,0xd7,0xcc,0x4f,0xee,0x33,0xd4,0x9c,
-	0xa8,0x73,0x40,0xdb,0x48,0x25,0x25,0x9c,0x02,0xc0,0x54,0x73,0x11,0xa3,0x85,0xc1
-};
-
-/**
- * PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_DATA hash for testing.
- */
-const uint8_t PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_HASH[] = {
-	0x58,0x5e,0xbe,0xb4,0x18,0xf1,0x1d,0x68,0x55,0x5e,0xae,0x6f,0xe4,0xda,0xef,0xd6,
-	0x76,0x19,0x57,0xd9,0xda,0x8d,0x0a,0x4c,0xe9,0x45,0x56,0xf4,0x48,0x35,0x19,0x0d
-};
-
-/**
- * PCD_ONLY_DIRECT_COMPONENTS_DATA hash for testing.
- */
-const uint8_t PCD_ONLY_DIRECT_COMPONENTS_HASH[] = {
-	0x70,0xa2,0x25,0x5c,0x46,0xc6,0x74,0x79,0xa1,0x27,0xa1,0x74,0xd6,0x1d,0xe3,0xd7,
-	0x5f,0x4a,0x79,0x31,0xcf,0x28,0x4e,0x14,0xde,0x8d,0x80,0x42,0xe9,0xa6,0x2a,0x81
-};
-
-/**
- * PCD_MULTIPLE_DIRECT_COMPONENTS_DATA hash for testing.
- */
-const uint8_t PCD_MULTIPLE_DIRECT_COMPONENTS_HASH[] = {
-	0x82,0xef,0xce,0x60,0x6a,0x9d,0x97,0x40,0x9b,0x78,0x7b,0x82,0xed,0x1b,0x9d,0xcb,
-	0x44,0x57,0x22,0xb9,0x34,0xe9,0xe3,0x1a,0x18,0xf2,0xd6,0x35,0xa8,0x68,0x99,0x5e
-};
-
-/**
- * PCD_ONLY_BRIDGE_COMPONENTS_DATA hash for testing.
- */
-const uint8_t PCD_ONLY_BRIDGE_COMPONENTS_HASH[] = {
-	0x8b,0x4c,0xa4,0x14,0x00,0xfd,0x66,0xad,0xb0,0xd9,0xb2,0xe9,0x0a,0xea,0x72,0xc8,
-	0x04,0x17,0xb8,0x73,0xe4,0x70,0xf3,0x77,0x01,0xdd,0x71,0x1d,0xf7,0x9e,0x4c,0x26
-};
-
-/**
- * PCD_MULTIPLE_BRIDGE_COMPONENTS_DATA hash for testing.
- */
-const uint8_t PCD_MULTIPLE_BRIDGE_COMPONENTS_HASH[] = {
-	0x34,0x26,0xf1,0xe8,0x61,0xfc,0x9e,0x45,0x72,0xf2,0x1b,0x3d,0xd8,0xae,0xd3,0xab,
-	0xc5,0x61,0x3c,0xfe,0xb4,0x7f,0x4a,0x7f,0x4a,0x25,0x03,0x24,0x39,0x50,0xcd,0x4e
-};
-
-/**
- * PCD_MAX_LEN_COMPONENTS_DATA hash for testing.
- */
-const uint8_t PCD_MAX_LEN_COMPONENTS_HASH[] = {
-	0x5b,0x98,0x78,0x39,0x20,0x56,0x76,0x3a,0xd8,0xf3,0x0e,0xe1,0x7f,0x9e,0x60,0xd2,
-	0xe0,0x92,0x5d,0xcf,0xb3,0x5a,0xce,0x1a,0xbd,0x31,0x17,0xf4,0x3d,0xd3,0x05,0x69
-};
 
 /**
  * PCD_FILTERED_BYPASS_PULSE_RESET_DATA hash for testing.
@@ -705,374 +1297,146 @@ const uint8_t PCD_FILTERED_BYPASS_PULSE_RESET_HASH[] = {
 };
 
 /**
- * PCD TOC hash for testing.
- */
-const uint8_t PCD_TOC_HASH[] = {
-	0x62,0xbc,0xfb,0x2c,0xb5,0xf6,0x05,0x81,0xfc,0xc5,0x0d,0x37,0xe5,0x34,0xc4,0xdc,
-	0xe9,0xee,0xc5,0x28,0x41,0x62,0x1d,0xd8,0xc7,0x06,0x6d,0x23,0xca,0x9b,0x6a,0x45
-};
-
-/**
- * PCD_NO_POWER_CONTROLLER_DATA TOC hash for testing.
- */
-const uint8_t PCD_NO_POWER_CONTROLLER_TOC_HASH[] = {
-	0x16,0x5c,0x02,0x73,0x31,0x5d,0x0d,0x51,0x58,0xfe,0x64,0x6c,0x38,0x97,0x33,0xf0,
-	0x66,0x77,0x4d,0x4d,0xec,0x38,0x55,0x85,0xed,0x2d,0xfe,0xbe,0x8e,0x01,0xee,0x76
-};
-
-/**
- * PCD_NO_COMPONENTS_DATA TOC hash for testing.
- */
-const uint8_t PCD_NO_COMPONENTS_TOC_HASH[] = {
-	0xef,0x59,0x9c,0x91,0x93,0x97,0xcd,0xa7,0x8a,0x3d,0x85,0x56,0x78,0xac,0x24,0x1c,
-	0x94,0x05,0xde,0xb8,0x2c,0x41,0xd1,0x7f,0x9c,0x20,0x15,0xf9,0x66,0x8b,0xa8,0x43
-};
-
-/**
- * PCD_NO_PORTS_DATA TOC hash for testing.
- */
-const uint8_t PCD_NO_PORTS_TOC_HASH[] = {
-	0xcf,0x83,0x19,0x1b,0xb0,0x17,0x6b,0x8b,0xdb,0x86,0xe9,0xfc,0x5d,0x1c,0x91,0x62,
-	0xaf,0xbe,0x9b,0xf4,0x74,0x2a,0x1b,0x90,0x9b,0x9c,0xb4,0x38,0x60,0xa9,0xa8,0xe1
-};
-
-/**
- * PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_DATA TOC hash for testing.
- */
-const uint8_t PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_TOC_HASH[] = {
-	0x49,0xb5,0x50,0x25,0xed,0xb8,0xd0,0x9a,0xba,0xf3,0x32,0x36,0x58,0xd1,0xc3,0x69,
-	0x95,0x0b,0x4b,0x88,0xc0,0x08,0xe5,0x5f,0x2a,0xd8,0xa8,0x88,0x1f,0xd8,0xe1,0x57
-};
-
-/**
- * PCD_ONLY_DIRECT_COMPONENTS_DATA TOC hash for testing.
- */
-const uint8_t PCD_ONLY_DIRECT_COMPONENTS_TOC_HASH[] = {
-	0x99,0x2a,0x75,0x4e,0x1c,0x69,0x83,0xab,0x95,0x91,0x75,0xc3,0x64,0x25,0x29,0x07,
-	0x0e,0xee,0x09,0x03,0xa4,0x81,0x51,0xcf,0xaf,0x37,0x12,0x54,0x52,0x39,0xe2,0xd6
-};
-
-/**
- * PCD_MULITPLE_DIRECT_DATA TOC hash for testing.
- */
-const uint8_t PCD_MULTIPLE_DIRECT_COMPONENTS_TOC_HASH[] = {
-	0x65,0xa3,0x93,0xb1,0x33,0xc9,0xef,0x69,0x46,0x71,0x88,0x42,0x82,0xce,0xbf,0xc2,
-	0xb8,0xeb,0x16,0x85,0x44,0x54,0xa1,0x3c,0x8e,0xe5,0x5d,0xb5,0xc3,0x9b,0xfb,0x01
-};
-
-/**
- * PCD_ONLY_BRIDGE_COMPONENTS_DATA TOC hash for testing.
- */
-const uint8_t PCD_ONLY_BRIDGE_COMPONENTS_TOC_HASH[] = {
-	0xee,0x72,0x52,0xa3,0xd2,0xf2,0x01,0xcf,0xd3,0x07,0x75,0x8f,0x42,0x1c,0xb0,0x97,
-	0x64,0x3a,0xab,0x94,0x8b,0xbb,0xbc,0x70,0x92,0x4f,0x18,0x31,0x4c,0x65,0x25,0xac
-};
-
-/**
- * PCD_MULTPILE_BRIDGE_DATA TOC hash for testing.
- */
-const uint8_t PCD_MULITPLE_BRIDGE_COMPONENTS_TOC_HASH[] = {
-	0xd1,0xf8,0x57,0xca,0x2d,0xbb,0x25,0x9c,0xda,0x3b,0x58,0xcd,0xc7,0x2b,0x1d,0xc1,
-	0x93,0x8f,0x03,0xf7,0x14,0x3e,0xb3,0xc6,0xbc,0x13,0x04,0x03,0xab,0xdd,0x85,0xd0
-};
-
-/**
- * PCD_MAX_LEN_COMPONENTS_DATA TOC hash for testing.
- */
-const uint8_t PCD_MAX_LEN_COMPONENTS_TOC_HASH[] = {
-	0xd8,0xfc,0xc3,0x66,0x45,0x3b,0xa5,0x9f,0xbb,0x47,0x41,0x56,0xe7,0xd3,0x10,0xce,
-	0x7f,0xc7,0xef,0x99,0x77,0x29,0x3c,0x67,0xbe,0x8e,0x52,0x33,0x94,0xe6,0xde,0x7e
-};
-
-/**
- * PCD_FILTERED_BYPASS_PULSE_RESET_DATA TOC hash for testing.
- */
-const uint8_t PCD_FILTERED_BYPASS_PULSE_RESET_TOC_HASH[] = {
-	0xcb,0x1e,0x5f,0x67,0x68,0x5f,0xc0,0x87,0x9f,0xbc,0xa2,0xe5,0x39,0xa3,0xcc,0x0c,
-	0x19,0x1e,0x54,0xf5,0x79,0xde,0x47,0x20,0x3b,0x4d,0xdb,0x6b,0xd2,0xcc,0x01,0x5d
-};
-
-/**
- * The platform ID for the PCD.
- */
-const char PCD_PLATFORM_ID[] = "SKU1";
-
-/**
- * The platform ID for the PCD with no components.
- */
-const char PCD_NO_COMPONENTS_PLATFORM_ID[] = "SKU2";
-
-/**
- * The platform ID for the PCD with no ports.
- */
-const char PCD_NO_PORTS_PLATFORM_ID[] = "SKU1";
-
-/**
- * The platform ID for the PCD with no ports, power controller, nor components.
- */
-const char PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_PLATFORM_ID[] = "SKU1";
-
-/**
- * The platform ID for the PCD with no power controller.
- */
-const char PCD_NO_POWER_CONTROLLER_PLATFORM_ID[] = "SKU1";
-
-/**
- * The platform ID for the PCD with only direct components.
- */
-const char PCD_ONLY_DIRECT_COMPONENTS_PLATFORM_ID[] = "SKU1";
-
-/**
- * The platform ID for the PCD with multiple direct components.
- */
-const char PCD_MULTIPLE_DIRECT_COMPONENTS_PLATFORM_ID[] = "SKU1";
-
-/**
- * The platform ID for the PCD with only bridge components.
- */
-const char PCD_ONLY_BRIDGE_COMPONENTS_PLATFORM_ID[] = "SKU1";
-
-/**
- * The platform ID for the PCD with multiple bridge components.
- */
-const char PCD_MULTIPLE_BRIDGE_COMPONENTS_PLATFORM_ID[] = "SKU1";
-
-/**
- * The platform ID for the PCD with components with maximum length type fields.
- */
-const char PCD_MAX_LEN_COMPONENTS_PLATFORM_ID[] = "SKU1";
-
-/**
  * The platform ID for the PCD with ports with filtered bypass flash modes and pulse reset control.
  */
 const char PCD_FILTERED_BYPASS_PULSE_RESET_PLATFORM_ID[] = "SKU1";
 
-
 /**
- * Components of the test PCD.
+ * Components of the test PCD with ports with filtered bypass flash modes and pulse reset control.
  */
-const struct pcd_testing_data PCD_TESTING = {
+const struct pcd_testing_data PCD_FILTERED_BYPASS_PULSE_RESET_TESTING = {
 	.manifest = {
-		.raw = PCD_DATA,
-		.length = sizeof (PCD_DATA),
-		.hash = PCD_HASH,
-		.hash_len = sizeof (PCD_HASH),
-		.id = 0x1A,
-		.signature = PCD_DATA + (sizeof (PCD_DATA) - 256),
+		.raw = PCD_FILTERED_BYPASS_PULSE_RESET_DATA,
+		.length = sizeof (PCD_FILTERED_BYPASS_PULSE_RESET_DATA),
+		.hash = PCD_FILTERED_BYPASS_PULSE_RESET_HASH,
+		.hash_len = sizeof (PCD_FILTERED_BYPASS_PULSE_RESET_HASH),
+		.id = 0x1a,
+		.signature = PCD_FILTERED_BYPASS_PULSE_RESET_DATA +
+			(sizeof (PCD_FILTERED_BYPASS_PULSE_RESET_DATA) - 256),
 		.sig_len = 256,
-		.sig_offset = (sizeof (PCD_DATA) - 256),
+		.sig_offset = (sizeof (PCD_FILTERED_BYPASS_PULSE_RESET_DATA) - 256),
 		.sig_hash_type = HASH_TYPE_SHA256,
-		.toc = PCD_DATA + MANIFEST_V2_TOC_HDR_OFFSET,
-		.toc_len = MANIFEST_V2_TOC_HEADER_SIZE + MANIFEST_V2_TOC_ENTRY_SIZE * 7 + 
-			SHA256_HASH_LENGTH * 8,
-		.toc_hash = PCD_TOC_HASH,
-		.toc_hash_len = SHA256_HASH_LENGTH,
-		.toc_hash_offset = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * 7 + 
-			SHA256_HASH_LENGTH * 7,
+		.toc = PCD_FILTERED_BYPASS_PULSE_RESET_DATA + MANIFEST_V2_TOC_HDR_OFFSET,
+		.toc_len = 0x013c,
+		.toc_hash = PCD_FILTERED_BYPASS_PULSE_RESET_DATA + 0x0128,
+		.toc_hash_len = 32,
+		.toc_hash_offset = 0x0128,
 		.toc_hash_type = HASH_TYPE_SHA256,
 		.toc_entries = 7,
 		.toc_hashes = 7,
-		.plat_id = PCD_DATA + MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * 7 + 
-			SHA256_HASH_LENGTH * 8,
-		.plat_id_len = sizeof (PCD_PLATFORM_ID) + sizeof (struct manifest_platform_id) - 1,
-		.plat_id_str = PCD_PLATFORM_ID,
-		.plat_id_str_len = sizeof (PCD_PLATFORM_ID) - 1,
+		.plat_id = PCD_FILTERED_BYPASS_PULSE_RESET_DATA + 0x0148,
+		.plat_id_len = 0x0008,
+		.plat_id_str = PCD_FILTERED_BYPASS_PULSE_RESET_PLATFORM_ID,
+		.plat_id_str_len = sizeof (PCD_FILTERED_BYPASS_PULSE_RESET_PLATFORM_ID) - 1,
 		.plat_id_str_pad = 0,
-		.plat_id_offset = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * 7 + 
-			SHA256_HASH_LENGTH * 8,
+		.plat_id_offset = 0x0148,
 		.plat_id_entry = 0,
 		.plat_id_hash = 0
 	},
-	.rot_len = sizeof (struct pcd_rot_element),
-	.rot_offset = sizeof (PCD_DATA) - 256 - 
-		(sizeof (struct pcd_port_element) * 2 + sizeof (struct pcd_rot_element)),
+	.rot_len = 0x0008,
+	.rot_offset = 0x0184,
 	.rot_entry = 4,
 	.rot_hash = 4,
-	.power_ctrl_len = sizeof (struct pcd_power_controller_element) + 2 * sizeof (struct pcd_mux),
-	.power_ctrl_offset = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * 7 + 
-		SHA256_HASH_LENGTH * 8 + sizeof (PCD_PLATFORM_ID) + 
-		sizeof (struct manifest_platform_id) - 1,
+	.power_ctrl_len = 0x000c,
+	.power_ctrl_offset = 0x0150,
 	.power_ctrl_entry = 1,
 	.power_ctrl_hash = 1,
-	.bridge_component_len = 20,
-	.bridge_component_offset = 368,
+	.bridge_component_len = 0x0014,
+	.bridge_component_offset = 0x0170,
 	.bridge_component_entry = 3,
 	.bridge_component_hash = 3,
-	.direct_component_len = 20,
-	.direct_component_offset = 348,
+	.direct_component_len = 0x0014,
+	.direct_component_offset = 0x015c,
 	.direct_component_entry = 2,
 	.direct_component_hash = 2,
-	.port_len = sizeof (struct pcd_port_element),
-	.port_offset = sizeof (PCD_DATA) - 256 - (sizeof (struct pcd_port_element) * 2),
+	.port_len = 0x0008,
+	.port_offset = 0x018c,
 	.port_entry = 5,
 	.port_hash = 5,
 	.num_optional_elements = 5,
 };
 
 /**
- * Components of the no components PCD.
+ * Empty PCD for testing.
  */
-const struct pcd_testing_data PCD_NO_COMPONENTS_TESTING = {
-	.manifest = {
-		.raw = PCD_NO_COMPONENTS_DATA,
-		.length = sizeof (PCD_NO_COMPONENTS_DATA),
-		.hash = PCD_NO_COMPONENTS_HASH,
-		.hash_len = sizeof (PCD_NO_COMPONENTS_HASH),
-		.id = 0x1A,
-		.signature = PCD_NO_COMPONENTS_DATA + (sizeof (PCD_NO_COMPONENTS_DATA) - 256),
-		.sig_len = 256,
-		.sig_offset = (sizeof (PCD_NO_COMPONENTS_DATA) - 256),
-		.sig_hash_type = HASH_TYPE_SHA256,
-		.toc = PCD_NO_COMPONENTS_DATA + MANIFEST_V2_TOC_HDR_OFFSET,
-		.toc_len = MANIFEST_V2_TOC_HEADER_SIZE + MANIFEST_V2_TOC_ENTRY_SIZE * 5 + 
-			SHA256_HASH_LENGTH * 6,
-		.toc_hash = PCD_NO_COMPONENTS_TOC_HASH,
-		.toc_hash_len = SHA256_HASH_LENGTH,
-		.toc_hash_offset = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * 5 + 
-			SHA256_HASH_LENGTH * 5,
-		.toc_hash_type = HASH_TYPE_SHA256,
-		.toc_entries = 5,
-		.toc_hashes = 5,
-		.plat_id = PCD_NO_COMPONENTS_DATA + MANIFEST_V2_TOC_ENTRY_OFFSET + 
-			MANIFEST_V2_TOC_ENTRY_SIZE * 5 + SHA256_HASH_LENGTH * 6,
-		.plat_id_len = sizeof (PCD_NO_COMPONENTS_PLATFORM_ID) + 
-			sizeof (struct manifest_platform_id) - 1,
-		.plat_id_str = PCD_NO_COMPONENTS_PLATFORM_ID,
-		.plat_id_str_len = sizeof (PCD_NO_COMPONENTS_PLATFORM_ID) - 1,
-		.plat_id_str_pad = 0,
-		.plat_id_offset = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * 5 + 
-			SHA256_HASH_LENGTH * 6,
-		.plat_id_entry = 0,
-		.plat_id_hash = 0
-	},
-	.rot_len = sizeof (struct pcd_rot_element),
-	.rot_offset = sizeof (PCD_NO_COMPONENTS_DATA) - 256 - 
-		(sizeof (struct pcd_port_element) * 2 + sizeof (struct pcd_rot_element)),
-	.rot_entry = 2,
-	.rot_hash = 2,
-	.power_ctrl_len = sizeof (struct pcd_power_controller_element) + 2 * sizeof (struct pcd_mux),
-	.power_ctrl_offset = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * 5 + 
-		SHA256_HASH_LENGTH * 6 + sizeof (PCD_NO_COMPONENTS_PLATFORM_ID) + 
-		sizeof (struct manifest_platform_id) - 1,
-	.power_ctrl_entry = 1,
-	.power_ctrl_hash = 1,
-	.bridge_component_len = 0,
-	.bridge_component_offset = 0,
-	.bridge_component_entry = -1,
-	.bridge_component_hash = -1,
-	.direct_component_len = 0,
-	.direct_component_offset = 0,
-	.direct_component_entry = -1,
-	.direct_component_hash = -1,
-	.port_len = sizeof (struct pcd_port_element),
-	.port_offset = sizeof (PCD_NO_COMPONENTS_DATA) - 256 - (sizeof (struct pcd_port_element) * 2),
-	.port_entry = 3,
-	.port_hash = 3,
-	.num_optional_elements = 3,
+const uint8_t PCD_EMPTY_DATA[] = {
+	0x60,0x01,0x29,0x10,0x20,0x00,0x00,0x00,0x00,0x01,0x00,0x00,0x01,0x01,0x00,0x00,
+	0x00,0xff,0x01,0x00,0x58,0x00,0x08,0x00,0x13,0xe9,0x1c,0x16,0x0e,0xcf,0xd2,0xbb,
+	0x3a,0x86,0x83,0xb6,0x01,0xc4,0xba,0xcb,0x04,0xf0,0xa5,0x18,0x9b,0x97,0xd9,0x2d,
+	0x67,0xf4,0x6d,0x69,0xea,0x1e,0x25,0x36,0xdc,0x10,0x83,0x7f,0x37,0xb5,0x77,0xd9,
+	0x7e,0x1b,0xb5,0xf2,0xbf,0x58,0xf4,0xd7,0xa2,0x05,0xf2,0xc9,0x76,0xcb,0x32,0x0e,
+	0xa2,0xd3,0xbe,0x32,0xbe,0x76,0x0c,0x0b,0x04,0x00,0x00,0x00,0x53,0x4b,0x55,0x31,
+	0xa8,0x6c,0x1b,0xf8,0x53,0xff,0xec,0x09,0x32,0x93,0xb6,0xd0,0x70,0x22,0x15,0x41,
+	0x5b,0x80,0xbb,0x27,0xe3,0x6c,0x13,0xeb,0xc6,0xc9,0x9d,0x90,0x80,0x48,0x06,0x5c,
+	0x39,0xcc,0x96,0x5a,0xfc,0x9f,0x73,0x45,0x28,0xfa,0x52,0xcd,0xf5,0x94,0x8e,0x54,
+	0x62,0x8f,0xf2,0xce,0x76,0x8e,0x1e,0xf4,0x44,0x77,0x03,0x42,0x29,0xca,0xc2,0xd2,
+	0xf2,0x2a,0xe8,0x06,0x1c,0x05,0xda,0xee,0xe3,0x62,0x89,0xb2,0xf1,0x37,0x52,0x4c,
+	0x05,0x01,0xcd,0x18,0x22,0x83,0xa7,0xd7,0xd6,0xef,0xfc,0x4c,0xc9,0x04,0x90,0x55,
+	0x36,0xb9,0x77,0x89,0xe3,0x77,0x42,0x32,0x93,0x09,0x01,0x65,0x09,0xf3,0xe2,0x2c,
+	0x08,0xf0,0x6e,0x38,0xec,0x47,0x09,0xc2,0x43,0x45,0xd9,0xf1,0x54,0xa0,0x85,0x93,
+	0x1e,0x28,0xbb,0xe9,0xf0,0x64,0x69,0x80,0x77,0x94,0xc7,0xc9,0x30,0xd8,0xbe,0x49,
+	0xd1,0x4e,0xad,0x22,0x21,0x06,0x12,0x8b,0xf7,0xd7,0xcb,0xb7,0x65,0x8e,0x87,0x05,
+	0x33,0x52,0x4e,0xdb,0xbe,0x5f,0xcb,0x74,0xb9,0x19,0x98,0xb5,0xa8,0x0c,0xfa,0x83,
+	0xb3,0xa6,0x6a,0xcc,0xe8,0x4f,0xc5,0xac,0x71,0x47,0xd8,0x62,0xd5,0x37,0x96,0x5e,
+	0x64,0x30,0x20,0xc4,0xcf,0x7f,0x5c,0x50,0x5d,0x16,0xd7,0x4e,0xbf,0x46,0x58,0x18,
+	0xc3,0xef,0xbb,0xa1,0x41,0xa1,0xad,0xb1,0x59,0xe4,0x6c,0x9e,0xa6,0x83,0x0d,0x93,
+	0xfa,0xb7,0xc6,0x94,0xed,0x43,0x43,0x4c,0x82,0x56,0xd9,0x93,0x89,0x76,0x14,0x8f,
+	0xec,0xb7,0x7a,0x1e,0x63,0x17,0xc5,0x9a,0x49,0xc1,0x79,0x2b,0x42,0x41,0x70,0x60
 };
 
 /**
- * Components of the no ports PCD.
+ * Length of the testing empty PCD.
  */
-const struct pcd_testing_data PCD_NO_PORTS_TESTING = {
-	.manifest = {
-		.raw = PCD_NO_PORTS_DATA,
-		.length = sizeof (PCD_NO_PORTS_DATA),
-		.hash = PCD_NO_PORTS_HASH,
-		.hash_len = sizeof (PCD_NO_PORTS_HASH),
-		.id = 0x1A,
-		.signature = PCD_NO_PORTS_DATA + (sizeof (PCD_NO_PORTS_DATA) - 256),
-		.sig_len = 256,
-		.sig_offset = (sizeof (PCD_NO_PORTS_DATA) - 256),
-		.sig_hash_type = HASH_TYPE_SHA256,
-		.toc = PCD_NO_PORTS_DATA + MANIFEST_V2_TOC_HDR_OFFSET,
-		.toc_len = MANIFEST_V2_TOC_HEADER_SIZE + MANIFEST_V2_TOC_ENTRY_SIZE * 5 + 
-			SHA256_HASH_LENGTH * 6,
-		.toc_hash = PCD_NO_PORTS_TOC_HASH,
-		.toc_hash_len = SHA256_HASH_LENGTH,
-		.toc_hash_offset = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * 5 + 
-			SHA256_HASH_LENGTH * 5,
-		.toc_hash_type = HASH_TYPE_SHA256,
-		.toc_entries = 5,
-		.toc_hashes = 5,
-		.plat_id = PCD_NO_PORTS_DATA + MANIFEST_V2_TOC_ENTRY_OFFSET + 
-			MANIFEST_V2_TOC_ENTRY_SIZE * 5 + SHA256_HASH_LENGTH * 6,
-		.plat_id_len = sizeof (PCD_NO_PORTS_PLATFORM_ID) + sizeof (struct manifest_platform_id) - 1,
-		.plat_id_str = PCD_NO_PORTS_PLATFORM_ID,
-		.plat_id_str_len = sizeof (PCD_NO_PORTS_PLATFORM_ID) - 1,
-		.plat_id_str_pad = 0,
-		.plat_id_offset = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * 5 + 
-			SHA256_HASH_LENGTH * 6,
-		.plat_id_entry = 0,
-		.plat_id_hash = 0
-	},
-	.rot_len = sizeof (struct pcd_rot_element),
-	.rot_offset = sizeof (PCD_NO_PORTS_DATA) - 256 - sizeof (struct pcd_port_element),
-	.rot_entry = 4,
-	.rot_hash = 4,
-	.power_ctrl_len = sizeof (struct pcd_power_controller_element) + 2 * sizeof (struct pcd_mux),
-	.power_ctrl_offset = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * 5 + 
-		SHA256_HASH_LENGTH * 6 + sizeof (PCD_NO_PORTS_PLATFORM_ID) + 
-		sizeof (struct manifest_platform_id) - 1,
-	.power_ctrl_entry = 1,
-	.power_ctrl_hash = 1,
-	.bridge_component_len = 24,
-	.bridge_component_offset = 292,
-	.bridge_component_entry = 3,
-	.bridge_component_hash = 3,
-	.direct_component_len = 20,
-	.direct_component_offset = 260,
-	.direct_component_entry = 1,
-	.direct_component_hash = 1,
-	.port_len = 0,
-	.port_offset = 0,
-	.port_entry = -1,
-	.port_hash = -1,
-	.num_optional_elements = 3,
+const uint32_t PCD_EMPTY_DATA_LEN = sizeof (PCD_EMPTY_DATA);
+
+/**
+ * PCD_DATA_EMPTY hash for testing.
+ */
+const uint8_t PCD_EMPTY_HASH[] = {
+	0xf1,0xc7,0xcb,0xf1,0x74,0xa8,0x85,0x3e,0xbc,0x13,0xb7,0x73,0xd1,0xeb,0x7a,0x52,
+	0x69,0x8e,0x0a,0x94,0x45,0x36,0x06,0xe3,0x00,0x7b,0xa6,0xf4,0x68,0xcf,0x95,0xe1
 };
 
 /**
- * Components of the no components PCD.
+ * The platform ID for the empty PCD.
  */
-static struct pcd_testing_data PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_TESTING = {
+const char PCD_EMPTY_PLATFORM_ID[] = "SKU1";
+
+/**
+ * Components of the test empty PCD.
+ */
+const struct pcd_testing_data PCD_EMPTY_TESTING = {
 	.manifest = {
-		.raw = PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_DATA,
-		.length = sizeof (PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_DATA),
-		.hash = PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_HASH,
-		.hash_len = sizeof (PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_HASH),
-		.id = 0x1A,
-		.signature = PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_DATA + 
-			(sizeof (PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_DATA) - 256),
+		.raw = PCD_EMPTY_DATA,
+		.length = sizeof (PCD_EMPTY_DATA),
+		.hash = PCD_EMPTY_HASH,
+		.hash_len = sizeof (PCD_EMPTY_HASH),
+		.id = 0x20,
+		.signature = PCD_EMPTY_DATA + (sizeof (PCD_EMPTY_DATA) - 256),
 		.sig_len = 256,
-		.sig_offset = (sizeof (PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_DATA) - 256),
+		.sig_offset = (sizeof (PCD_EMPTY_DATA) - 256),
 		.sig_hash_type = HASH_TYPE_SHA256,
-		.toc = PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_DATA + MANIFEST_V2_TOC_HDR_OFFSET,
-		.toc_len = MANIFEST_V2_TOC_HEADER_SIZE + MANIFEST_V2_TOC_ENTRY_SIZE * 2 + 
-			SHA256_HASH_LENGTH * 3,
-		.toc_hash = PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_TOC_HASH,
-		.toc_hash_len = SHA256_HASH_LENGTH,
-		.toc_hash_offset = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * 2 + 
-			SHA256_HASH_LENGTH * 2,
+		.toc = PCD_EMPTY_DATA + MANIFEST_V2_TOC_HDR_OFFSET,
+		.toc_len = 0x0044,
+		.toc_hash = PCD_EMPTY_DATA + 0x0038,
+		.toc_hash_len = 32,
+		.toc_hash_offset = 0x0038,
 		.toc_hash_type = HASH_TYPE_SHA256,
-		.toc_entries = 2,
-		.toc_hashes = 2,
-		.plat_id = PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_DATA + MANIFEST_V2_TOC_ENTRY_OFFSET + 
-			MANIFEST_V2_TOC_ENTRY_SIZE * 2 + SHA256_HASH_LENGTH * 3,
-		.plat_id_len = sizeof (PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_PLATFORM_ID) + 
-			sizeof (struct manifest_platform_id) - 1,
-		.plat_id_str = PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_PLATFORM_ID,
-		.plat_id_str_len = sizeof (PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_PLATFORM_ID) - 1,
+		.toc_entries = 1,
+		.toc_hashes = 1,
+		.plat_id = PCD_EMPTY_DATA + 0x0058,
+		.plat_id_len = 0x008,
+		.plat_id_str = PCD_EMPTY_PLATFORM_ID,
+		.plat_id_str_len = sizeof (PCD_EMPTY_PLATFORM_ID) - 1,
 		.plat_id_str_pad = 0,
-		.plat_id_offset = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * 2 + 
-			SHA256_HASH_LENGTH * 3,
+		.plat_id_offset = 0x0058,
 		.plat_id_entry = 0,
 		.plat_id_hash = 0
 	},
-	.rot_len = sizeof (struct pcd_rot_element),
-	.rot_offset = sizeof (PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_DATA) - 256 + 
-		sizeof (struct pcd_rot_element),
-	.rot_entry = 1,
-	.rot_hash = 1,
+	.rot_len = 0,
+	.rot_offset = 0,
+	.rot_entry = -1,
+	.rot_hash = -1,
 	.power_ctrl_len = 0,
 	.power_ctrl_offset = 0,
 	.power_ctrl_entry = -1,
@@ -1090,450 +1454,6 @@ static struct pcd_testing_data PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_TESTING 
 	.port_entry = -1,
 	.port_hash = -1,
 	.num_optional_elements = 0,
-};
-
-/**
- * Components of the no power controller PCD.
- */
-static struct pcd_testing_data PCD_NO_POWER_CONTROLLER_TESTING = {
-	.manifest = {
-		.raw = PCD_NO_POWER_CONTROLLER_DATA,
-		.length = sizeof (PCD_NO_POWER_CONTROLLER_DATA),
-		.hash = PCD_NO_POWER_CONTROLLER_HASH,
-		.hash_len = sizeof (PCD_NO_POWER_CONTROLLER_HASH),
-		.id = 0x1A,
-		.signature = PCD_NO_POWER_CONTROLLER_DATA + (sizeof (PCD_NO_POWER_CONTROLLER_DATA) - 256),
-		.sig_len = 256,
-		.sig_offset = (sizeof (PCD_NO_POWER_CONTROLLER_DATA) - 256),
-		.sig_hash_type = HASH_TYPE_SHA256,
-		.toc = PCD_NO_POWER_CONTROLLER_DATA + MANIFEST_V2_TOC_HDR_OFFSET,
-		.toc_len = MANIFEST_V2_TOC_HEADER_SIZE + MANIFEST_V2_TOC_ENTRY_SIZE * 6 + 
-			SHA256_HASH_LENGTH * 7,
-		.toc_hash = PCD_NO_POWER_CONTROLLER_TOC_HASH,
-		.toc_hash_len = SHA256_HASH_LENGTH,
-		.toc_hash_offset = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * 6 + 
-			SHA256_HASH_LENGTH * 6,
-		.toc_hash_type = HASH_TYPE_SHA256,
-		.toc_entries = 6,
-		.toc_hashes = 6,
-		.plat_id = PCD_NO_POWER_CONTROLLER_DATA + MANIFEST_V2_TOC_ENTRY_OFFSET + 
-			MANIFEST_V2_TOC_ENTRY_SIZE * 6 + SHA256_HASH_LENGTH * 7,
-		.plat_id_len = sizeof (PCD_NO_POWER_CONTROLLER_PLATFORM_ID) + 
-			sizeof (struct manifest_platform_id) - 1,
-		.plat_id_str = PCD_NO_POWER_CONTROLLER_PLATFORM_ID,
-		.plat_id_str_len = sizeof (PCD_NO_POWER_CONTROLLER_PLATFORM_ID) - 1,
-		.plat_id_str_pad = 0,
-		.plat_id_offset = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * 6 + 
-			SHA256_HASH_LENGTH * 7,
-		.plat_id_entry = 0,
-		.plat_id_hash = 0
-	},
-	.rot_len = sizeof (struct pcd_rot_element),
-	.rot_offset = sizeof (PCD_NO_POWER_CONTROLLER_DATA) - 256 - 
-		(sizeof (struct pcd_port_element) * 2 + sizeof (struct pcd_rot_element)),
-	.rot_entry = 3,
-	.rot_hash = 3,
-	.power_ctrl_len = 0,
-	.power_ctrl_offset = 0,
-	.power_ctrl_entry = -1,
-	.power_ctrl_hash = -1,
-	.bridge_component_len = 24,
-	.bridge_component_offset = 292,
-	.bridge_component_entry = 3,
-	.bridge_component_hash = 3,
-	.direct_component_len = 20,
-	.direct_component_offset = 260,
-	.direct_component_entry = 1,
-	.direct_component_hash = 1,
-	.port_len = sizeof (struct pcd_port_element),
-	.port_offset = sizeof (PCD_NO_POWER_CONTROLLER_DATA) - 256 - 
-		(sizeof (struct pcd_port_element) * 2),
-	.port_entry = 5,
-	.port_hash = 5,
-	.num_optional_elements = 4,
-};
-
-/**
- * Components of the test PCD with only direct components.
- */
-const struct pcd_testing_data PCD_ONLY_DIRECT_COMPONENTS_TESTING = {
-	.manifest = {
-		.raw = PCD_ONLY_DIRECT_COMPONENTS_DATA,
-		.length = sizeof (PCD_ONLY_DIRECT_COMPONENTS_DATA),
-		.hash = PCD_ONLY_DIRECT_COMPONENTS_HASH,
-		.hash_len = sizeof (PCD_ONLY_DIRECT_COMPONENTS_HASH),
-		.id = 0x1A,
-		.signature = PCD_ONLY_DIRECT_COMPONENTS_DATA + 
-			(sizeof (PCD_ONLY_DIRECT_COMPONENTS_DATA) - 256),
-		.sig_len = 256,
-		.sig_offset = (sizeof (PCD_ONLY_DIRECT_COMPONENTS_DATA) - 256),
-		.sig_hash_type = HASH_TYPE_SHA256,
-		.toc = PCD_ONLY_DIRECT_COMPONENTS_DATA + MANIFEST_V2_TOC_HDR_OFFSET,
-		.toc_len = MANIFEST_V2_TOC_HEADER_SIZE + MANIFEST_V2_TOC_ENTRY_SIZE * 7 + 
-			SHA256_HASH_LENGTH * 8,
-		.toc_hash = PCD_ONLY_DIRECT_COMPONENTS_TOC_HASH,
-		.toc_hash_len = SHA256_HASH_LENGTH,
-		.toc_hash_offset = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * 7 + 
-			SHA256_HASH_LENGTH * 7,
-		.toc_hash_type = HASH_TYPE_SHA256,
-		.toc_entries = 7,
-		.toc_hashes = 7,
-		.plat_id = PCD_ONLY_DIRECT_COMPONENTS_DATA + MANIFEST_V2_TOC_ENTRY_OFFSET + 
-			MANIFEST_V2_TOC_ENTRY_SIZE * 7 + SHA256_HASH_LENGTH * 8,
-		.plat_id_len = sizeof (PCD_ONLY_DIRECT_COMPONENTS_PLATFORM_ID) + 
-			sizeof (struct manifest_platform_id) - 1,
-		.plat_id_str = PCD_ONLY_DIRECT_COMPONENTS_PLATFORM_ID,
-		.plat_id_str_len = sizeof (PCD_ONLY_DIRECT_COMPONENTS_PLATFORM_ID) - 1,
-		.plat_id_str_pad = 0,
-		.plat_id_offset = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * 7 + 
-			SHA256_HASH_LENGTH * 8,
-		.plat_id_entry = 0,
-		.plat_id_hash = 0
-	},
-	.rot_len = sizeof (struct pcd_rot_element),
-	.rot_offset = sizeof (PCD_ONLY_DIRECT_COMPONENTS_DATA) - 256 - 
-		(sizeof (struct pcd_port_element) * 2 + sizeof (struct pcd_rot_element)),
-	.rot_entry = 4,
-	.rot_hash = 4,
-	.power_ctrl_len = sizeof (struct pcd_power_controller_element) + 2 * sizeof (struct pcd_mux),
-	.power_ctrl_offset = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * 7 + 
-		SHA256_HASH_LENGTH * 8 + sizeof (PCD_ONLY_DIRECT_COMPONENTS_PLATFORM_ID) + 
-		sizeof (struct manifest_platform_id) - 1,
-	.power_ctrl_entry = 1,
-	.power_ctrl_hash = 1,
-	.bridge_component_len = 0,
-	.bridge_component_offset = 0,
-	.bridge_component_entry = -1,
-	.bridge_component_hash = -1,
-	.direct_component_len = 20,
-	.direct_component_offset = 348,
-	.direct_component_entry = 2,
-	.direct_component_hash = 2,
-	.port_len = sizeof (struct pcd_port_element),
-	.port_offset = sizeof (PCD_ONLY_DIRECT_COMPONENTS_DATA) - 256 - 
-		(sizeof (struct pcd_port_element) * 2),
-	.port_entry = 5,
-	.port_hash = 5,
-	.num_optional_elements = 5,
-};
-
-/**
- * Components of the test PCD with multiple direct components.
- */
-const struct pcd_testing_data PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING = {
-	.manifest = {
-		.raw = PCD_MULTIPLE_DIRECT_COMPONENTS_DATA,
-		.length = sizeof (PCD_MULTIPLE_DIRECT_COMPONENTS_DATA),
-		.hash = PCD_MULTIPLE_DIRECT_COMPONENTS_HASH,
-		.hash_len = sizeof (PCD_MULTIPLE_DIRECT_COMPONENTS_HASH),
-		.id = 0x1A,
-		.signature = PCD_MULTIPLE_DIRECT_COMPONENTS_DATA + 
-			(sizeof (PCD_MULTIPLE_DIRECT_COMPONENTS_DATA) - 256),
-		.sig_len = 256,
-		.sig_offset = (sizeof (PCD_MULTIPLE_DIRECT_COMPONENTS_DATA) - 256),
-		.sig_hash_type = HASH_TYPE_SHA256,
-		.toc = PCD_MULTIPLE_DIRECT_COMPONENTS_DATA + MANIFEST_V2_TOC_HDR_OFFSET,
-		.toc_len = MANIFEST_V2_TOC_HEADER_SIZE + MANIFEST_V2_TOC_ENTRY_SIZE * 8 + 
-			SHA256_HASH_LENGTH * 9,
-		.toc_hash = PCD_MULTIPLE_DIRECT_COMPONENTS_TOC_HASH,
-		.toc_hash_len = SHA256_HASH_LENGTH,
-		.toc_hash_offset = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * 8 + 
-			SHA256_HASH_LENGTH * 8,
-		.toc_hash_type = HASH_TYPE_SHA256,
-		.toc_entries = 8,
-		.toc_hashes = 8,
-		.plat_id = PCD_MULTIPLE_DIRECT_COMPONENTS_DATA + MANIFEST_V2_TOC_ENTRY_OFFSET + 
-			MANIFEST_V2_TOC_ENTRY_SIZE * 8 + SHA256_HASH_LENGTH * 9,
-		.plat_id_len = sizeof (PCD_MULTIPLE_DIRECT_COMPONENTS_PLATFORM_ID) + 
-			sizeof (struct manifest_platform_id) - 1,
-		.plat_id_str = PCD_MULTIPLE_DIRECT_COMPONENTS_PLATFORM_ID,
-		.plat_id_str_len = sizeof (PCD_MULTIPLE_DIRECT_COMPONENTS_PLATFORM_ID) - 1,
-		.plat_id_str_pad = 0,
-		.plat_id_offset = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * 8 + 
-			SHA256_HASH_LENGTH * 9,
-		.plat_id_entry = 0,
-		.plat_id_hash = 0
-	},
-	.rot_len = sizeof (struct pcd_rot_element),
-	.rot_offset = sizeof (PCD_MULTIPLE_DIRECT_COMPONENTS_DATA) - 256 - 
-		(sizeof (struct pcd_port_element) * 2 + sizeof (struct pcd_rot_element)),
-	.rot_entry = 5,
-	.rot_hash = 5,
-	.power_ctrl_len = sizeof (struct pcd_power_controller_element) + 2 * sizeof (struct pcd_mux),
-	.power_ctrl_offset = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * 8 + 
-		SHA256_HASH_LENGTH * 9 + sizeof (PCD_MULTIPLE_DIRECT_COMPONENTS_PLATFORM_ID) + 
-		sizeof (struct manifest_platform_id) - 1,
-	.power_ctrl_entry = 1,
-	.power_ctrl_hash = 1,
-	.bridge_component_len = 20,
-	.bridge_component_offset = 428,
-	.bridge_component_entry = 4,
-	.bridge_component_hash = 4,
-	.direct_component_len = 20,
-	.direct_component_offset = 388,
-	.direct_component_entry = 2,
-	.direct_component_hash = 2,
-	.port_len = sizeof (struct pcd_port_element),
-	.port_offset = sizeof (PCD_MULTIPLE_DIRECT_COMPONENTS_DATA) - 256 - 
-		(sizeof (struct pcd_port_element) * 2),
-	.port_entry = 6,
-	.port_hash = 6,
-	.num_optional_elements = 6,
-};
-
-/**
- * Components of the test PCD with only bridge components.
- */
-const struct pcd_testing_data PCD_ONLY_BRIDGE_COMPONENTS_TESTING = {
-	.manifest = {
-		.raw = PCD_ONLY_BRIDGE_COMPONENTS_DATA,
-		.length = sizeof (PCD_ONLY_BRIDGE_COMPONENTS_DATA),
-		.hash = PCD_ONLY_BRIDGE_COMPONENTS_HASH,
-		.hash_len = sizeof (PCD_ONLY_BRIDGE_COMPONENTS_HASH),
-		.id = 0x1A,
-		.signature = PCD_ONLY_BRIDGE_COMPONENTS_DATA + 
-			(sizeof (PCD_ONLY_BRIDGE_COMPONENTS_DATA) - 256),
-		.sig_len = 256,
-		.sig_offset = (sizeof (PCD_ONLY_BRIDGE_COMPONENTS_DATA) - 256),
-		.sig_hash_type = HASH_TYPE_SHA256,
-		.toc = PCD_ONLY_BRIDGE_COMPONENTS_DATA + MANIFEST_V2_TOC_HDR_OFFSET,
-		.toc_len = MANIFEST_V2_TOC_HEADER_SIZE + MANIFEST_V2_TOC_ENTRY_SIZE * 7 + 
-			SHA256_HASH_LENGTH * 8,
-		.toc_hash = PCD_ONLY_BRIDGE_COMPONENTS_TOC_HASH,
-		.toc_hash_len = SHA256_HASH_LENGTH,
-		.toc_hash_offset = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * 7 + 
-			SHA256_HASH_LENGTH * 7,
-		.toc_hash_type = HASH_TYPE_SHA256,
-		.toc_entries = 7,
-		.toc_hashes = 7,
-		.plat_id = PCD_ONLY_BRIDGE_COMPONENTS_DATA + MANIFEST_V2_TOC_ENTRY_OFFSET + 
-			MANIFEST_V2_TOC_ENTRY_SIZE * 7 + SHA256_HASH_LENGTH * 8,
-		.plat_id_len = sizeof (PCD_ONLY_BRIDGE_COMPONENTS_PLATFORM_ID) + 
-			sizeof (struct manifest_platform_id) - 1,
-		.plat_id_str = PCD_ONLY_BRIDGE_COMPONENTS_PLATFORM_ID,
-		.plat_id_str_len = sizeof (PCD_ONLY_BRIDGE_COMPONENTS_PLATFORM_ID) - 1,
-		.plat_id_str_pad = 0,
-		.plat_id_offset = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * 7 + 
-			SHA256_HASH_LENGTH * 8,
-		.plat_id_entry = 0,
-		.plat_id_hash = 0
-	},
-	.rot_len = sizeof (struct pcd_rot_element),
-	.rot_offset = sizeof (PCD_ONLY_BRIDGE_COMPONENTS_DATA) - 256 - 
-		(sizeof (struct pcd_port_element) * 2 + sizeof (struct pcd_rot_element)),
-	.rot_entry = 4,
-	.rot_hash = 4,
-	.power_ctrl_len = sizeof (struct pcd_power_controller_element) + 2 * sizeof (struct pcd_mux),
-	.power_ctrl_offset = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * 7 + 
-		SHA256_HASH_LENGTH * 8 + sizeof (PCD_ONLY_BRIDGE_COMPONENTS_PLATFORM_ID) + 
-		sizeof (struct manifest_platform_id) - 1,
-	.power_ctrl_entry = 1,
-	.power_ctrl_hash = 1,
-	.bridge_component_len = 20,
-	.bridge_component_offset = 348,
-	.bridge_component_entry = 2,
-	.bridge_component_hash = 2,
-	.direct_component_len = 0,
-	.direct_component_offset = 0,
-	.direct_component_entry = -1,
-	.direct_component_hash = -1,
-	.port_len = sizeof (struct pcd_port_element),
-	.port_offset = sizeof (PCD_ONLY_BRIDGE_COMPONENTS_DATA) - 256 - 
-		(sizeof (struct pcd_port_element) * 2),
-	.port_entry = 5,
-	.port_hash = 5,
-	.num_optional_elements = 5,
-};
-
-/**
- * Components of the test PCD with multiple bridge components.
- */
-const struct pcd_testing_data PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING = {
-	.manifest = {
-		.raw = PCD_MULTIPLE_BRIDGE_COMPONENTS_DATA,
-		.length = sizeof (PCD_MULTIPLE_BRIDGE_COMPONENTS_DATA),
-		.hash = PCD_MULTIPLE_BRIDGE_COMPONENTS_HASH,
-		.hash_len = sizeof (PCD_MULTIPLE_BRIDGE_COMPONENTS_HASH),
-		.id = 0x1A,
-		.signature = PCD_MULTIPLE_BRIDGE_COMPONENTS_DATA + 
-			(sizeof (PCD_MULTIPLE_BRIDGE_COMPONENTS_DATA) - 256),
-		.sig_len = 256,
-		.sig_offset = (sizeof (PCD_MULTIPLE_BRIDGE_COMPONENTS_DATA) - 256),
-		.sig_hash_type = HASH_TYPE_SHA256,
-		.toc = PCD_MULTIPLE_BRIDGE_COMPONENTS_DATA + MANIFEST_V2_TOC_HDR_OFFSET,
-		.toc_len = MANIFEST_V2_TOC_HEADER_SIZE + MANIFEST_V2_TOC_ENTRY_SIZE * 8 + 
-			SHA256_HASH_LENGTH * 9,
-		.toc_hash = PCD_MULITPLE_BRIDGE_COMPONENTS_TOC_HASH,
-		.toc_hash_len = SHA256_HASH_LENGTH,
-		.toc_hash_offset = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * 8 + 
-			SHA256_HASH_LENGTH * 8,
-		.toc_hash_type = HASH_TYPE_SHA256,
-		.toc_entries = 8,
-		.toc_hashes = 8,
-		.plat_id = PCD_MULTIPLE_BRIDGE_COMPONENTS_DATA + MANIFEST_V2_TOC_ENTRY_OFFSET + 
-			MANIFEST_V2_TOC_ENTRY_SIZE * 8 + SHA256_HASH_LENGTH * 9,
-		.plat_id_len = sizeof (PCD_MULTIPLE_BRIDGE_COMPONENTS_PLATFORM_ID) + 
-			sizeof (struct manifest_platform_id) - 1,
-		.plat_id_str = PCD_MULTIPLE_BRIDGE_COMPONENTS_PLATFORM_ID,
-		.plat_id_str_len = sizeof (PCD_MULTIPLE_BRIDGE_COMPONENTS_PLATFORM_ID) - 1,
-		.plat_id_str_pad = 0,
-		.plat_id_offset = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * 8 + 
-			SHA256_HASH_LENGTH * 9,
-		.plat_id_entry = 0,
-		.plat_id_hash = 0
-	},
-	.rot_len = sizeof (struct pcd_rot_element),
-	.rot_offset = sizeof (PCD_MULTIPLE_BRIDGE_COMPONENTS_DATA) - 256 - 
-		(sizeof (struct pcd_port_element) * 2 + sizeof (struct pcd_rot_element)),
-	.rot_entry = 5,
-	.rot_hash = 5,
-	.power_ctrl_len = sizeof (struct pcd_power_controller_element) + 2 * sizeof (struct pcd_mux),
-	.power_ctrl_offset = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * 8 + 
-		SHA256_HASH_LENGTH * 9 + sizeof (PCD_MULTIPLE_BRIDGE_COMPONENTS_PLATFORM_ID) + 
-		sizeof (struct manifest_platform_id) - 1,
-	.power_ctrl_entry = 1,
-	.power_ctrl_hash = 1,
-	.bridge_component_len = 20,
-	.bridge_component_offset = 408,
-	.bridge_component_entry = 3,
-	.bridge_component_hash = 3,
-	.direct_component_len = 20,
-	.direct_component_offset = 388,
-	.direct_component_entry = 2,
-	.direct_component_hash = 2,
-	.port_len = sizeof (struct pcd_port_element),
-	.port_offset = sizeof (PCD_MULTIPLE_BRIDGE_COMPONENTS_DATA) - 256 - 
-		(sizeof (struct pcd_port_element) * 2),
-	.port_entry = 6,
-	.port_hash = 6,
-	.num_optional_elements = 6,
-};
-
-/**
- * Components of the test PCD with components with maximum length type fields.
- */
-const struct pcd_testing_data PCD_MAX_LEN_COMPONENTS_TESTING = {
-	.manifest = {
-		.raw = PCD_MAX_LEN_COMPONENTS_DATA,
-		.length = sizeof (PCD_MAX_LEN_COMPONENTS_DATA),
-		.hash = PCD_MAX_LEN_COMPONENTS_HASH,
-		.hash_len = sizeof (PCD_MAX_LEN_COMPONENTS_HASH),
-		.id = 0x1A,
-		.signature = PCD_MAX_LEN_COMPONENTS_DATA + (sizeof (PCD_MAX_LEN_COMPONENTS_DATA) - 256),
-		.sig_len = 256,
-		.sig_offset = (sizeof (PCD_MAX_LEN_COMPONENTS_DATA) - 256),
-		.sig_hash_type = HASH_TYPE_SHA256,
-		.toc = PCD_MAX_LEN_COMPONENTS_DATA + MANIFEST_V2_TOC_HDR_OFFSET,
-		.toc_len = MANIFEST_V2_TOC_HEADER_SIZE + MANIFEST_V2_TOC_ENTRY_SIZE * 7 + 
-			SHA256_HASH_LENGTH * 8,
-		.toc_hash = PCD_MAX_LEN_COMPONENTS_TOC_HASH,
-		.toc_hash_len = SHA256_HASH_LENGTH,
-		.toc_hash_offset = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * 7 + 
-			SHA256_HASH_LENGTH * 7,
-		.toc_hash_type = HASH_TYPE_SHA256,
-		.toc_entries = 7,
-		.toc_hashes = 7,
-		.plat_id = PCD_MAX_LEN_COMPONENTS_DATA + MANIFEST_V2_TOC_ENTRY_OFFSET + 
-			MANIFEST_V2_TOC_ENTRY_SIZE * 7 + SHA256_HASH_LENGTH * 8,
-		.plat_id_len = sizeof (PCD_MAX_LEN_COMPONENTS_PLATFORM_ID) + 
-			sizeof (struct manifest_platform_id) - 1,
-		.plat_id_str = PCD_MAX_LEN_COMPONENTS_PLATFORM_ID,
-		.plat_id_str_len = sizeof (PCD_MAX_LEN_COMPONENTS_PLATFORM_ID) - 1,
-		.plat_id_str_pad = 1,
-		.plat_id_offset = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * 7 + 
-			SHA256_HASH_LENGTH * 8,
-		.plat_id_entry = 0,
-		.plat_id_hash = 0
-	},
-	.rot_len = sizeof (struct pcd_rot_element),
-	.rot_offset = sizeof (PCD_MAX_LEN_COMPONENTS_DATA) - 256 - 
-		(sizeof (struct pcd_port_element) * 2 + sizeof (struct pcd_rot_element)),
-	.rot_entry = 4,
-	.rot_hash = 4,
-	.power_ctrl_len = sizeof (struct pcd_power_controller_element) + 2 * sizeof (struct pcd_mux),
-	.power_ctrl_offset = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * 7 + 
-		SHA256_HASH_LENGTH * 8 + sizeof (PCD_MAX_LEN_COMPONENTS_PLATFORM_ID) + 
-		sizeof (struct manifest_platform_id) - 1,
-	.power_ctrl_entry = 1,
-	.power_ctrl_hash = 1,
-	.bridge_component_len = 272,
-	.bridge_component_offset = 616,
-	.bridge_component_entry = 3,
-	.bridge_component_hash = 3,
-	.direct_component_len = 268,
-	.direct_component_offset = 348,
-	.direct_component_entry = 2,
-	.direct_component_hash = 2,
-	.port_len = sizeof (struct pcd_port_element),
-	.port_offset = sizeof (PCD_MAX_LEN_COMPONENTS_DATA) - 256 - 
-		(sizeof (struct pcd_port_element) * 2),
-	.port_entry = 5,
-	.port_hash = 5,
-	.num_optional_elements = 5,
-};
-
-/**
- * Components of the test PCD with ports with filtered bypass flash modes and pulse reset control.
- */
-const struct pcd_testing_data PCD_FILTERED_BYPASS_PULSE_RESET_TESTING = {
-	.manifest = {
-		.raw = PCD_FILTERED_BYPASS_PULSE_RESET_DATA,
-		.length = sizeof (PCD_FILTERED_BYPASS_PULSE_RESET_DATA),
-		.hash = PCD_FILTERED_BYPASS_PULSE_RESET_HASH,
-		.hash_len = sizeof (PCD_FILTERED_BYPASS_PULSE_RESET_HASH),
-		.id = 0x1A,
-		.signature = PCD_FILTERED_BYPASS_PULSE_RESET_DATA + 
-			(sizeof (PCD_FILTERED_BYPASS_PULSE_RESET_DATA) - 256),
-		.sig_len = 256,
-		.sig_offset = (sizeof (PCD_FILTERED_BYPASS_PULSE_RESET_DATA) - 256),
-		.sig_hash_type = HASH_TYPE_SHA256,
-		.toc = PCD_FILTERED_BYPASS_PULSE_RESET_DATA + MANIFEST_V2_TOC_HDR_OFFSET,
-		.toc_len = MANIFEST_V2_TOC_HEADER_SIZE + MANIFEST_V2_TOC_ENTRY_SIZE * 7 + 
-			SHA256_HASH_LENGTH * 8,
-		.toc_hash = PCD_FILTERED_BYPASS_PULSE_RESET_TOC_HASH,
-		.toc_hash_len = SHA256_HASH_LENGTH,
-		.toc_hash_offset = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * 7 + 
-			SHA256_HASH_LENGTH * 7,
-		.toc_hash_type = HASH_TYPE_SHA256,
-		.toc_entries = 7,
-		.toc_hashes = 7,
-		.plat_id = PCD_FILTERED_BYPASS_PULSE_RESET_DATA + MANIFEST_V2_TOC_ENTRY_OFFSET + 
-			MANIFEST_V2_TOC_ENTRY_SIZE * 7 + SHA256_HASH_LENGTH * 8,
-		.plat_id_len = sizeof (PCD_FILTERED_BYPASS_PULSE_RESET_PLATFORM_ID) + 
-			sizeof (struct manifest_platform_id) - 1,
-		.plat_id_str = PCD_FILTERED_BYPASS_PULSE_RESET_PLATFORM_ID,
-		.plat_id_str_len = sizeof (PCD_FILTERED_BYPASS_PULSE_RESET_PLATFORM_ID) - 1,
-		.plat_id_str_pad = 0,
-		.plat_id_offset = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * 7 + 
-			SHA256_HASH_LENGTH * 8,
-		.plat_id_entry = 0,
-		.plat_id_hash = 0
-	},
-	.rot_len = sizeof (struct pcd_rot_element),
-	.rot_offset = sizeof (PCD_FILTERED_BYPASS_PULSE_RESET_DATA) - 256 - 
-		(sizeof (struct pcd_port_element) * 2 + sizeof (struct pcd_rot_element)),
-	.rot_entry = 4,
-	.rot_hash = 4,
-	.power_ctrl_len = sizeof (struct pcd_power_controller_element) + 2 * sizeof (struct pcd_mux),
-	.power_ctrl_offset = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * 7 + 
-		SHA256_HASH_LENGTH * 8 + sizeof (PCD_FILTERED_BYPASS_PULSE_RESET_PLATFORM_ID) + 
-		sizeof (struct manifest_platform_id) - 1,
-	.power_ctrl_entry = 1,
-	.power_ctrl_hash = 1,
-	.bridge_component_len = 20,
-	.bridge_component_offset = 368,
-	.bridge_component_entry = 3,
-	.bridge_component_hash = 3,
-	.direct_component_len = 20,
-	.direct_component_offset = 348,
-	.direct_component_entry = 2,
-	.direct_component_hash = 2,
-	.port_len = sizeof (struct pcd_port_element),
-	.port_offset = sizeof (PCD_FILTERED_BYPASS_PULSE_RESET_DATA) - 256 - 
-		(sizeof (struct pcd_port_element) * 2),
-	.port_entry = 5,
-	.port_hash = 5,
-	.num_optional_elements = 5,
 };
 
 /**
@@ -1584,8 +1504,8 @@ static void pcd_flash_testing_init (CuTest *test, struct pcd_flash_testing *pcd,
 	pcd_flash_testing_init_dependencies (test, pcd, address);
 	manifest_flash_v2_testing_init_common (test, &pcd->manifest, 0x1000);
 
-	status = pcd_flash_init (&pcd->test, &pcd->manifest.flash.base, &pcd->manifest.hash.base, 
-		address, pcd->manifest.signature, sizeof (pcd->manifest.signature), 
+	status = pcd_flash_init (&pcd->test, &pcd->manifest.flash.base, &pcd->manifest.hash.base,
+		address, pcd->manifest.signature, sizeof (pcd->manifest.signature),
 		pcd->manifest.platform_id, sizeof (pcd->manifest.platform_id));
 	CuAssertIntEquals (test, 0, status);
 
@@ -1620,7 +1540,7 @@ static void pcd_flash_testing_validate_and_release (CuTest *test, struct pcd_fla
 static void pcd_flash_testing_verify_pcd (CuTest *test, struct pcd_flash_testing *pcd,
 	const struct pcd_testing_data *testing_data, int sig_result)
 {
-	manifest_flash_v2_testing_verify_manifest (test, &pcd->manifest, &testing_data->manifest, 
+	manifest_flash_v2_testing_verify_manifest (test, &pcd->manifest, &testing_data->manifest,
 		sig_result);
 }
 
@@ -1666,8 +1586,8 @@ static void pcd_flash_test_init (CuTest *test)
 	pcd_flash_testing_init_dependencies (test, &pcd, 0x10000);
 	manifest_flash_v2_testing_init_common (test, &pcd.manifest, 0x1000);
 
-	status = pcd_flash_init (&pcd.test, &pcd.manifest.flash.base, &pcd.manifest.hash.base, 0x10000, 
-		pcd.manifest.signature, sizeof (pcd.manifest.signature), pcd.manifest.platform_id, 
+	status = pcd_flash_init (&pcd.test, &pcd.manifest.flash.base, &pcd.manifest.hash.base, 0x10000,
+		pcd.manifest.signature, sizeof (pcd.manifest.signature), pcd.manifest.platform_id,
 		sizeof (pcd.manifest.platform_id));
 	CuAssertIntEquals (test, 0, status);
 
@@ -1677,6 +1597,7 @@ static void pcd_flash_test_init (CuTest *test)
 	CuAssertPtrNotNull (test, pcd.test.base.base.free_platform_id);
 	CuAssertPtrNotNull (test, pcd.test.base.base.get_hash);
 	CuAssertPtrNotNull (test, pcd.test.base.base.get_signature);
+	CuAssertPtrNotNull (test, pcd.test.base.base.is_empty);
 
 	CuAssertPtrNotNull (test, pcd.test.base.get_devices_info);
 	CuAssertPtrNotNull (test, pcd.test.base.get_rot_info);
@@ -1698,28 +1619,28 @@ static void pcd_flash_test_init_null (CuTest *test)
 
 	pcd_flash_testing_init_dependencies (test, &pcd, 0x10000);
 
-	status = pcd_flash_init (NULL, &pcd.manifest.flash.base, &pcd.manifest.hash.base, 0x10000, 
-		pcd.manifest.signature, sizeof (pcd.manifest.signature), pcd.manifest.platform_id, 
+	status = pcd_flash_init (NULL, &pcd.manifest.flash.base, &pcd.manifest.hash.base, 0x10000,
+		pcd.manifest.signature, sizeof (pcd.manifest.signature), pcd.manifest.platform_id,
 		sizeof (pcd.manifest.platform_id));
 	CuAssertIntEquals (test, PCD_INVALID_ARGUMENT, status);
 
-	status = pcd_flash_init (&pcd.test, NULL, &pcd.manifest.hash.base, 0x10000, 
-		pcd.manifest.signature, sizeof (pcd.manifest.signature), pcd.manifest.platform_id, 
+	status = pcd_flash_init (&pcd.test, NULL, &pcd.manifest.hash.base, 0x10000,
+		pcd.manifest.signature, sizeof (pcd.manifest.signature), pcd.manifest.platform_id,
 		sizeof (pcd.manifest.platform_id));
 	CuAssertIntEquals (test, MANIFEST_INVALID_ARGUMENT, status);
 
-	status = pcd_flash_init (&pcd.test, &pcd.manifest.flash.base, NULL, 0x10000, 
-		pcd.manifest.signature, sizeof (pcd.manifest.signature), pcd.manifest.platform_id, 
+	status = pcd_flash_init (&pcd.test, &pcd.manifest.flash.base, NULL, 0x10000,
+		pcd.manifest.signature, sizeof (pcd.manifest.signature), pcd.manifest.platform_id,
 		sizeof (pcd.manifest.platform_id));
 	CuAssertIntEquals (test, MANIFEST_INVALID_ARGUMENT, status);
 
-	status = pcd_flash_init (&pcd.test, &pcd.manifest.flash.base, &pcd.manifest.hash.base, 0x10000, 
-		NULL, sizeof (pcd.manifest.signature), pcd.manifest.platform_id, 
+	status = pcd_flash_init (&pcd.test, &pcd.manifest.flash.base, &pcd.manifest.hash.base, 0x10000,
+		NULL, sizeof (pcd.manifest.signature), pcd.manifest.platform_id,
 		sizeof (pcd.manifest.platform_id));
 	CuAssertIntEquals (test, PCD_INVALID_ARGUMENT, status);
 
-	status = pcd_flash_init (&pcd.test, NULL, &pcd.manifest.hash.base, 0x10000, 
-		pcd.manifest.signature, sizeof (pcd.manifest.signature), NULL, 
+	status = pcd_flash_init (&pcd.test, NULL, &pcd.manifest.hash.base, 0x10000,
+		pcd.manifest.signature, sizeof (pcd.manifest.signature), NULL,
 		sizeof (pcd.manifest.platform_id));
 	CuAssertIntEquals (test, PCD_INVALID_ARGUMENT, status);
 
@@ -1736,8 +1657,8 @@ static void pcd_flash_test_init_manifest_flash_init_fail (CuTest *test)
 	pcd_flash_testing_init_dependencies (test, &pcd, 0x10001);
 	manifest_flash_v2_testing_init_common (test, &pcd.manifest, 0x1000);
 
-	status = pcd_flash_init (&pcd.test, &pcd.manifest.flash.base, &pcd.manifest.hash.base, 0x10001, 
-		pcd.manifest.signature, sizeof (pcd.manifest.signature), pcd.manifest.platform_id, 
+	status = pcd_flash_init (&pcd.test, &pcd.manifest.flash.base, &pcd.manifest.hash.base, 0x10001,
+		pcd.manifest.signature, sizeof (pcd.manifest.signature), pcd.manifest.platform_id,
 		sizeof (pcd.manifest.platform_id));
 	CuAssertIntEquals (test, MANIFEST_STORAGE_NOT_ALIGNED, status);
 
@@ -1762,7 +1683,205 @@ static void pcd_flash_test_verify (CuTest *test)
 
 	pcd_flash_testing_verify_pcd (test, &pcd, &PCD_TESTING, 0);
 
-	status = pcd.test.base.base.verify (&pcd.test.base.base, &pcd.manifest.hash.base, 
+	status = pcd.test.base.base.verify (&pcd.test.base.base, &pcd.manifest.hash.base,
+		&pcd.manifest.verification.base, NULL, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_verify_no_power_controller (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	int status;
+
+	TEST_START;
+
+	pcd_flash_testing_init (test, &pcd, 0x10000);
+
+	pcd_flash_testing_verify_pcd (test, &pcd, &PCD_NO_POWER_CONTROLLER_TESTING, 0);
+
+	status = pcd.test.base.base.verify (&pcd.test.base.base, &pcd.manifest.hash.base,
+		&pcd.manifest.verification.base, NULL, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_verify_no_components (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	int status;
+
+	TEST_START;
+
+	pcd_flash_testing_init (test, &pcd, 0x10000);
+
+	pcd_flash_testing_verify_pcd (test, &pcd, &PCD_NO_COMPONENTS_TESTING, 0);
+
+	status = pcd.test.base.base.verify (&pcd.test.base.base, &pcd.manifest.hash.base,
+		&pcd.manifest.verification.base, NULL, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_verify_no_ports (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	int status;
+
+	TEST_START;
+
+	pcd_flash_testing_init (test, &pcd, 0x10000);
+
+	pcd_flash_testing_verify_pcd (test, &pcd, &PCD_NO_PORTS_TESTING, 0);
+
+	status = pcd.test.base.base.verify (&pcd.test.base.base, &pcd.manifest.hash.base,
+		&pcd.manifest.verification.base, NULL, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_verify_no_ports_power_controller_components (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	int status;
+
+	TEST_START;
+
+	pcd_flash_testing_init (test, &pcd, 0x10000);
+
+	pcd_flash_testing_verify_pcd (test, &pcd, &PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_TESTING, 0);
+
+	status = pcd.test.base.base.verify (&pcd.test.base.base, &pcd.manifest.hash.base,
+		&pcd.manifest.verification.base, NULL, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_verify_only_direct_components (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	int status;
+
+	TEST_START;
+
+	pcd_flash_testing_init (test, &pcd, 0x10000);
+
+	pcd_flash_testing_verify_pcd (test, &pcd, &PCD_ONLY_DIRECT_COMPONENTS_TESTING, 0);
+
+	status = pcd.test.base.base.verify (&pcd.test.base.base, &pcd.manifest.hash.base,
+		&pcd.manifest.verification.base, NULL, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_verify_multiple_direct_components (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	int status;
+
+	TEST_START;
+
+	pcd_flash_testing_init (test, &pcd, 0x10000);
+
+	pcd_flash_testing_verify_pcd (test, &pcd, &PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING, 0);
+
+	status = pcd.test.base.base.verify (&pcd.test.base.base, &pcd.manifest.hash.base,
+		&pcd.manifest.verification.base, NULL, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_verify_only_bridge_components (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	int status;
+
+	TEST_START;
+
+	pcd_flash_testing_init (test, &pcd, 0x10000);
+
+	pcd_flash_testing_verify_pcd (test, &pcd, &PCD_ONLY_BRIDGE_COMPONENTS_TESTING, 0);
+
+	status = pcd.test.base.base.verify (&pcd.test.base.base, &pcd.manifest.hash.base,
+		&pcd.manifest.verification.base, NULL, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_verify_multiple_bridge_components (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	int status;
+
+	TEST_START;
+
+	pcd_flash_testing_init (test, &pcd, 0x10000);
+
+	pcd_flash_testing_verify_pcd (test, &pcd, &PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING, 0);
+
+	status = pcd.test.base.base.verify (&pcd.test.base.base, &pcd.manifest.hash.base,
+		&pcd.manifest.verification.base, NULL, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_verify_max_len_components (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	int status;
+
+	TEST_START;
+
+	pcd_flash_testing_init (test, &pcd, 0x10000);
+
+	pcd_flash_testing_verify_pcd (test, &pcd, &PCD_MAX_LEN_COMPONENTS_TESTING, 0);
+
+	status = pcd.test.base.base.verify (&pcd.test.base.base, &pcd.manifest.hash.base,
+		&pcd.manifest.verification.base, NULL, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_verify_filtered_bypass_pulse_reset (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	int status;
+
+	TEST_START;
+
+	pcd_flash_testing_init (test, &pcd, 0x10000);
+
+	pcd_flash_testing_verify_pcd (test, &pcd, &PCD_FILTERED_BYPASS_PULSE_RESET_TESTING, 0);
+
+	status = pcd.test.base.base.verify (&pcd.test.base.base, &pcd.manifest.hash.base,
+		&pcd.manifest.verification.base, NULL, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_verify_empty_manifest (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	int status;
+
+	TEST_START;
+
+	pcd_flash_testing_init (test, &pcd, 0x10000);
+
+	pcd_flash_testing_verify_pcd (test, &pcd, &PCD_EMPTY_TESTING, 0);
+
+	status = pcd.test.base.base.verify (&pcd.test.base.base, &pcd.manifest.hash.base,
 		&pcd.manifest.verification.base, NULL, 0);
 	CuAssertIntEquals (test, 0, status);
 
@@ -1778,15 +1897,15 @@ static void pcd_flash_test_verify_null (CuTest *test)
 
 	pcd_flash_testing_init (test, &pcd, 0x10000);
 
-	status = pcd.test.base.base.verify (NULL, &pcd.manifest.hash.base, 
+	status = pcd.test.base.base.verify (NULL, &pcd.manifest.hash.base,
 		&pcd.manifest.verification.base, NULL, 0);
 	CuAssertIntEquals (test, PCD_INVALID_ARGUMENT, status);
 
-	status = pcd.test.base.base.verify (&pcd.test.base.base, NULL, &pcd.manifest.verification.base, 
+	status = pcd.test.base.base.verify (&pcd.test.base.base, NULL, &pcd.manifest.verification.base,
 		NULL, 0);
 	CuAssertIntEquals (test, MANIFEST_INVALID_ARGUMENT, status);
 
-	status = pcd.test.base.base.verify (&pcd.test.base.base, &pcd.manifest.hash.base, NULL, NULL, 
+	status = pcd.test.base.base.verify (&pcd.test.base.base, &pcd.manifest.hash.base, NULL, NULL,
 		0);
 	CuAssertIntEquals (test, MANIFEST_INVALID_ARGUMENT, status);
 
@@ -1802,12 +1921,12 @@ static void pcd_flash_test_verify_read_header_fail (CuTest *test)
 
 	pcd_flash_testing_init (test, &pcd, 0x10000);
 
-	status = mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read, 
-		&pcd.manifest.flash, FLASH_NO_MEMORY, MOCK_ARG (pcd.manifest.addr), MOCK_ARG_NOT_NULL, 
+	status = mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read,
+		&pcd.manifest.flash, FLASH_NO_MEMORY, MOCK_ARG (pcd.manifest.addr), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (MANIFEST_V2_HEADER_SIZE));
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcd.test.base.base.verify (&pcd.test.base.base, &pcd.manifest.hash.base, 
+	status = pcd.test.base.base.verify (&pcd.test.base.base, &pcd.manifest.hash.base,
 		&pcd.manifest.verification.base, NULL, 0);
 	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
 
@@ -1827,88 +1946,16 @@ static void pcd_flash_test_verify_bad_magic_number (CuTest *test)
 
 	pcd_flash_testing_init (test, &pcd, 0x10000);
 
-	status = mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read, 
-		&pcd.manifest.flash, 0, MOCK_ARG (pcd.manifest.addr), MOCK_ARG_NOT_NULL, 
+	status = mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read,
+		&pcd.manifest.flash, 0, MOCK_ARG (pcd.manifest.addr), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (MANIFEST_V2_HEADER_SIZE));
-	status |= mock_expect_output (&pcd.manifest.flash.mock, 1, pcd_bad_data, 
+	status |= mock_expect_output (&pcd.manifest.flash.mock, 1, pcd_bad_data,
 		MANIFEST_V2_HEADER_SIZE, 2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcd.test.base.base.verify (&pcd.test.base.base, &pcd.manifest.hash.base, 
+	status = pcd.test.base.base.verify (&pcd.test.base.base, &pcd.manifest.hash.base,
 		&pcd.manifest.verification.base, NULL, 0);
 	CuAssertIntEquals (test, MANIFEST_BAD_MAGIC_NUMBER, status);
-
-	pcd_flash_testing_validate_and_release (test, &pcd);
-}
-
-static void pcd_flash_test_verify_no_power_controller (CuTest *test)
-{
-	struct pcd_flash_testing pcd;
-	int status;
-
-	TEST_START;
-
-	pcd_flash_testing_init (test, &pcd, 0x10000);
-
-	pcd_flash_testing_verify_pcd (test, &pcd, &PCD_NO_POWER_CONTROLLER_TESTING, 0);
-
-	status = pcd.test.base.base.verify (&pcd.test.base.base, &pcd.manifest.hash.base, 
-		&pcd.manifest.verification.base, NULL, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	pcd_flash_testing_validate_and_release (test, &pcd);
-}
-
-static void pcd_flash_test_verify_no_components (CuTest *test)
-{
-	struct pcd_flash_testing pcd;
-	int status;
-
-	TEST_START;
-
-	pcd_flash_testing_init (test, &pcd, 0x10000);
-
-	pcd_flash_testing_verify_pcd (test, &pcd, &PCD_NO_COMPONENTS_TESTING, 0);
-
-	status = pcd.test.base.base.verify (&pcd.test.base.base, &pcd.manifest.hash.base, 
-		&pcd.manifest.verification.base, NULL, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	pcd_flash_testing_validate_and_release (test, &pcd);
-}
-
-static void pcd_flash_test_verify_no_ports (CuTest *test)
-{
-	struct pcd_flash_testing pcd;
-	int status;
-
-	TEST_START;
-
-	pcd_flash_testing_init (test, &pcd, 0x10000);
-
-	pcd_flash_testing_verify_pcd (test, &pcd, &PCD_NO_PORTS_TESTING, 0);
-
-	status = pcd.test.base.base.verify (&pcd.test.base.base, &pcd.manifest.hash.base, 
-		&pcd.manifest.verification.base, NULL, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	pcd_flash_testing_validate_and_release (test, &pcd);
-}
-
-static void pcd_flash_test_verify_no_ports_power_controller_components (CuTest *test)
-{
-	struct pcd_flash_testing pcd;
-	int status;
-
-	TEST_START;
-
-	pcd_flash_testing_init (test, &pcd, 0x10000);
-
-	pcd_flash_testing_verify_pcd (test, &pcd, &PCD_NO_PORTS_POWER_CONTROLLER_COMPONENTS_TESTING, 0);
-
-	status = pcd.test.base.base.verify (&pcd.test.base.base, &pcd.manifest.hash.base, 
-		&pcd.manifest.verification.base, NULL, 0);
-	CuAssertIntEquals (test, 0, status);
 
 	pcd_flash_testing_validate_and_release (test, &pcd);
 }
@@ -1976,13 +2023,13 @@ static void pcd_flash_test_get_hash (CuTest *test)
 	pcd_flash_testing_init (test, &pcd, 0x10000);
 
 	/* Read manifest header. */
-	status = mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read, 
-		&pcd.manifest.flash, 0, MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, 
+	status = mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read,
+		&pcd.manifest.flash, 0, MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (MANIFEST_V2_HEADER_SIZE));
-	status |= mock_expect_output (&pcd.manifest.flash.mock, 1, PCD_TESTING.manifest.raw, 
+	status |= mock_expect_output (&pcd.manifest.flash.mock, 1, PCD_TESTING.manifest.raw,
 		MANIFEST_V2_HEADER_SIZE, 2);
 
-	status |= flash_mock_expect_verify_flash (&pcd.manifest.flash, 0x10000,	
+	status |= flash_mock_expect_verify_flash (&pcd.manifest.flash, 0x10000,
 		PCD_TESTING.manifest.raw, PCD_DATA_LEN - PCD_TESTING.manifest.sig_len);
 
 	CuAssertIntEquals (test, 0, status);
@@ -1991,7 +2038,7 @@ static void pcd_flash_test_get_hash (CuTest *test)
 		sizeof (hash_out));
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
-	status = testing_validate_array (PCD_TESTING.manifest.hash, hash_out, 
+	status = testing_validate_array (PCD_TESTING.manifest.hash, hash_out,
 		PCD_TESTING.manifest.hash_len);
 	CuAssertIntEquals (test, 0, status);
 
@@ -2012,7 +2059,7 @@ static void pcd_flash_test_get_hash_after_verify (CuTest *test)
 		sizeof (hash_out));
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
-	status = testing_validate_array (PCD_TESTING.manifest.hash, hash_out, 
+	status = testing_validate_array (PCD_TESTING.manifest.hash, hash_out,
 		PCD_TESTING.manifest.hash_len);
 	CuAssertIntEquals (test, 0, status);
 
@@ -2058,10 +2105,10 @@ static void pcd_flash_test_get_hash_bad_magic_num (CuTest *test)
 
 	pcd_flash_testing_init (test, &pcd, 0x10000);
 
-	status = mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read, 
-		&pcd.manifest.flash, 0, MOCK_ARG (pcd.manifest.addr), MOCK_ARG_NOT_NULL, 
+	status = mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read,
+		&pcd.manifest.flash, 0, MOCK_ARG (pcd.manifest.addr), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (MANIFEST_V2_HEADER_SIZE));
-	status |= mock_expect_output (&pcd.manifest.flash.mock, 1, pcd_bad_data, 
+	status |= mock_expect_output (&pcd.manifest.flash.mock, 1, pcd_bad_data,
 		MANIFEST_V2_HEADER_SIZE, 2);
 	CuAssertIntEquals (test, 0, status);
 
@@ -2082,16 +2129,16 @@ static void pcd_flash_test_get_signature (CuTest *test)
 
 	pcd_flash_testing_init (test, &pcd, 0x10000);
 
-	status = mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read, 
-		&pcd.manifest.flash, 0, MOCK_ARG (pcd.manifest.addr), MOCK_ARG_NOT_NULL, 
+	status = mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read,
+		&pcd.manifest.flash, 0, MOCK_ARG (pcd.manifest.addr), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (MANIFEST_V2_HEADER_SIZE));
-	status |= mock_expect_output (&pcd.manifest.flash.mock, 1, PCD_TESTING.manifest.raw, 
+	status |= mock_expect_output (&pcd.manifest.flash.mock, 1, PCD_TESTING.manifest.raw,
 		MANIFEST_V2_HEADER_SIZE, 2);
 
-	status |= mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read, 
-		&pcd.manifest.flash, 0, MOCK_ARG (pcd.manifest.addr + PCD_TESTING.manifest.sig_offset), 
+	status |= mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read,
+		&pcd.manifest.flash, 0, MOCK_ARG (pcd.manifest.addr + PCD_TESTING.manifest.sig_offset),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (PCD_TESTING.manifest.sig_len));
-	status |= mock_expect_output (&pcd.manifest.flash.mock, 1, PCD_TESTING.manifest.signature, 
+	status |= mock_expect_output (&pcd.manifest.flash.mock, 1, PCD_TESTING.manifest.signature,
 		PCD_TESTING.manifest.sig_len, 2);
 
 	CuAssertIntEquals (test, 0, status);
@@ -2099,7 +2146,7 @@ static void pcd_flash_test_get_signature (CuTest *test)
 	status = pcd.test.base.base.get_signature (&pcd.test.base.base, sig_out, sizeof (sig_out));
 	CuAssertIntEquals (test, PCD_TESTING.manifest.sig_len, status);
 
-	status = testing_validate_array (PCD_TESTING.manifest.signature, sig_out, 
+	status = testing_validate_array (PCD_TESTING.manifest.signature, sig_out,
 		PCD_TESTING.manifest.sig_len);
 	CuAssertIntEquals (test, 0, status);
 
@@ -2119,7 +2166,7 @@ static void pcd_flash_test_get_signature_after_verify (CuTest *test)
 	status = pcd.test.base.base.get_signature (&pcd.test.base.base, sig_out, sizeof (sig_out));
 	CuAssertIntEquals (test, PCD_TESTING.manifest.sig_len, status);
 
-	status = testing_validate_array (PCD_TESTING.manifest.signature, sig_out, 
+	status = testing_validate_array (PCD_TESTING.manifest.signature, sig_out,
 		PCD_TESTING.manifest.sig_len);
 	CuAssertIntEquals (test, 0, status);
 
@@ -2159,12 +2206,12 @@ static void pcd_flash_test_get_signature_bad_magic_number (CuTest *test)
 
 	pcd_flash_testing_init (test, &pcd, 0x10000);
 
-	
 
-	status = mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read, 
-		&pcd.manifest.flash, 0, MOCK_ARG (pcd.manifest.addr), MOCK_ARG_NOT_NULL, 
+
+	status = mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read,
+		&pcd.manifest.flash, 0, MOCK_ARG (pcd.manifest.addr), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (MANIFEST_V2_HEADER_SIZE));
-	status |= mock_expect_output (&pcd.manifest.flash.mock, 1, pcd_bad_data, 
+	status |= mock_expect_output (&pcd.manifest.flash.mock, 1, pcd_bad_data,
 		MANIFEST_V2_HEADER_SIZE, 2);
 
 	CuAssertIntEquals (test, 0, status);
@@ -2261,19 +2308,19 @@ static void pcd_flash_test_get_devices_info (CuTest *test)
 
 	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0);
 
-	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest, 
-		PCD_TESTING.rot_entry, 0, PCD_TESTING.rot_hash, PCD_TESTING.rot_offset, PCD_TESTING.rot_len, 
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest,
+		PCD_TESTING.rot_entry, 0, PCD_TESTING.rot_hash, PCD_TESTING.rot_offset, PCD_TESTING.rot_len,
 		PCD_TESTING.rot_len, 0);
 
-	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest, 
-		PCD_TESTING.direct_component_entry, 0, PCD_TESTING.direct_component_hash, 
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest,
+		PCD_TESTING.direct_component_entry, 0, PCD_TESTING.direct_component_hash,
 		PCD_TESTING.direct_component_offset, PCD_TESTING.direct_component_len, 20, 0);
 
-	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest, -1, 3, -1, 
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest, -1, 3, -1,
 		0, 0, 0, 0);
 
-	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest, 
-		PCD_TESTING.bridge_component_entry, 0, PCD_TESTING.bridge_component_hash, 
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest,
+		PCD_TESTING.bridge_component_entry, 0, PCD_TESTING.bridge_component_hash,
 		PCD_TESTING.bridge_component_offset, PCD_TESTING.bridge_component_len, 20, 0);
 
 	status = pcd.test.base.get_devices_info (&pcd.test.base, &info, &num_devices);
@@ -2339,9 +2386,9 @@ static void pcd_flash_test_get_devices_info_no_components (CuTest *test)
 
 	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_NO_COMPONENTS_TESTING, 0);
 
-	manifest_flash_v2_testing_read_element (test, &pcd.manifest, 
-		&PCD_NO_COMPONENTS_TESTING.manifest, PCD_NO_COMPONENTS_TESTING.rot_entry, 0, 
-		PCD_NO_COMPONENTS_TESTING.rot_hash, PCD_NO_COMPONENTS_TESTING.rot_offset, 
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest,
+		&PCD_NO_COMPONENTS_TESTING.manifest, PCD_NO_COMPONENTS_TESTING.rot_entry, 0,
+		PCD_NO_COMPONENTS_TESTING.rot_hash, PCD_NO_COMPONENTS_TESTING.rot_offset,
 		PCD_NO_COMPONENTS_TESTING.rot_len, PCD_TESTING.rot_len, 0);
 
 	status = pcd.test.base.get_devices_info (&pcd.test.base, &info, &num_devices);
@@ -2362,26 +2409,26 @@ static void pcd_flash_test_get_devices_info_only_direct_components (CuTest *test
 
 	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_ONLY_DIRECT_COMPONENTS_TESTING, 0);
 
-	manifest_flash_v2_testing_read_element (test, &pcd.manifest, 
-		&PCD_ONLY_DIRECT_COMPONENTS_TESTING.manifest, PCD_ONLY_DIRECT_COMPONENTS_TESTING.rot_entry, 
-		0, PCD_ONLY_DIRECT_COMPONENTS_TESTING.rot_hash, 
-		PCD_ONLY_DIRECT_COMPONENTS_TESTING.rot_offset, PCD_ONLY_DIRECT_COMPONENTS_TESTING.rot_len, 
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest,
+		&PCD_ONLY_DIRECT_COMPONENTS_TESTING.manifest, PCD_ONLY_DIRECT_COMPONENTS_TESTING.rot_entry,
+		0, PCD_ONLY_DIRECT_COMPONENTS_TESTING.rot_hash,
+		PCD_ONLY_DIRECT_COMPONENTS_TESTING.rot_offset, PCD_ONLY_DIRECT_COMPONENTS_TESTING.rot_len,
 		PCD_TESTING.rot_len, 0);
 
-	manifest_flash_v2_testing_read_element (test, &pcd.manifest, 
-		&PCD_ONLY_DIRECT_COMPONENTS_TESTING.manifest, 
-		PCD_ONLY_DIRECT_COMPONENTS_TESTING.direct_component_entry, 0, 
-		PCD_ONLY_DIRECT_COMPONENTS_TESTING.direct_component_hash, 
-		PCD_ONLY_DIRECT_COMPONENTS_TESTING.direct_component_offset, 
-		PCD_ONLY_DIRECT_COMPONENTS_TESTING.direct_component_len, 
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest,
+		&PCD_ONLY_DIRECT_COMPONENTS_TESTING.manifest,
+		PCD_ONLY_DIRECT_COMPONENTS_TESTING.direct_component_entry, 0,
+		PCD_ONLY_DIRECT_COMPONENTS_TESTING.direct_component_hash,
+		PCD_ONLY_DIRECT_COMPONENTS_TESTING.direct_component_offset,
+		PCD_ONLY_DIRECT_COMPONENTS_TESTING.direct_component_len,
 		PCD_ONLY_DIRECT_COMPONENTS_TESTING.direct_component_len, 0);
 
-	manifest_flash_v2_testing_read_element (test, &pcd.manifest, 
-		&PCD_ONLY_DIRECT_COMPONENTS_TESTING.manifest, 
-		PCD_ONLY_DIRECT_COMPONENTS_TESTING.direct_component_entry + 1, 
-		PCD_ONLY_DIRECT_COMPONENTS_TESTING.direct_component_entry + 1, 
-		PCD_ONLY_DIRECT_COMPONENTS_TESTING.direct_component_hash + 1, 
-		PCD_ONLY_DIRECT_COMPONENTS_TESTING.direct_component_offset + 
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest,
+		&PCD_ONLY_DIRECT_COMPONENTS_TESTING.manifest,
+		PCD_ONLY_DIRECT_COMPONENTS_TESTING.direct_component_entry + 1,
+		PCD_ONLY_DIRECT_COMPONENTS_TESTING.direct_component_entry + 1,
+		PCD_ONLY_DIRECT_COMPONENTS_TESTING.direct_component_hash + 1,
+		PCD_ONLY_DIRECT_COMPONENTS_TESTING.direct_component_offset +
 		PCD_ONLY_DIRECT_COMPONENTS_TESTING.direct_component_len, 16, 16, 0);
 
 	status = pcd.test.base.get_devices_info (&pcd.test.base, &info, &num_devices);
@@ -2405,45 +2452,45 @@ static void pcd_flash_test_get_devices_info_multiple_direct_components (CuTest *
 
 	TEST_START;
 
-	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING, 
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING,
 		0);
 
-	manifest_flash_v2_testing_read_element (test, &pcd.manifest, 
-		&PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.manifest, 
-		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.rot_entry, 0, 
-		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.rot_hash, 
-		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.rot_offset, 
-		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.rot_len, 
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest,
+		&PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.manifest,
+		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.rot_entry, 0,
+		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.rot_hash,
+		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.rot_offset,
+		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.rot_len,
 		PCD_TESTING.rot_len, 0);
 
-	manifest_flash_v2_testing_read_element (test, &pcd.manifest, 
-		&PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.manifest, 
-		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.direct_component_entry, 0, 
-		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.direct_component_hash, 
-		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.direct_component_offset, 
-		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.direct_component_len, 
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest,
+		&PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.manifest,
+		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.direct_component_entry, 0,
+		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.direct_component_hash,
+		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.direct_component_offset,
+		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.direct_component_len,
 		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.direct_component_len, 0);
 
-	manifest_flash_v2_testing_read_element (test, &pcd.manifest, 
-		&PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.manifest, 
-		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.direct_component_entry + 1, 
-		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.direct_component_entry + 1, 
-		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.direct_component_hash + 1, 
-		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.direct_component_offset + 
-		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.direct_component_len, 
-		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.direct_component_len, 
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest,
+		&PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.manifest,
+		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.direct_component_entry + 1,
+		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.direct_component_entry + 1,
+		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.direct_component_hash + 1,
+		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.direct_component_offset +
+		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.direct_component_len,
+		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.direct_component_len,
 		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.direct_component_len, 0);
 
-	manifest_flash_v2_testing_read_element (test, &pcd.manifest, 
-		&PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.manifest, -1, 
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest,
+		&PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.manifest, -1,
 		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.direct_component_entry + 2, -1, 0, 0, 0, 0);
 
-	manifest_flash_v2_testing_read_element (test, &pcd.manifest, 
-		&PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.manifest, 
-		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.bridge_component_entry, 0, 
-		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.bridge_component_hash, 
-		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.bridge_component_offset, 
-		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.bridge_component_len, 
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest,
+		&PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.manifest,
+		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.bridge_component_entry, 0,
+		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.bridge_component_hash,
+		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.bridge_component_offset,
+		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.bridge_component_len,
 		PCD_MULTIPLE_DIRECT_COMPONENTS_TESTING.bridge_component_len, 0);
 
 	status = pcd.test.base.get_devices_info (&pcd.test.base, &info, &num_devices);
@@ -2471,29 +2518,29 @@ static void pcd_flash_test_get_devices_info_only_bridge_components (CuTest *test
 
 	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_ONLY_BRIDGE_COMPONENTS_TESTING, 0);
 
-	manifest_flash_v2_testing_read_element (test, &pcd.manifest, 
-		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest, PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_entry, 
-		0, PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_hash, 
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_offset, PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_len, 
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest,
+		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest, PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_entry,
+		0, PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_hash,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_offset, PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_len,
 		PCD_TESTING.rot_len, 0);
-	
-	manifest_flash_v2_testing_read_element (test, &pcd.manifest, 
+
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest,
 		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest, -1, 0, -1, 0, 0, 0, 0);
 
-	manifest_flash_v2_testing_read_element (test, &pcd.manifest, 
-		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest, 
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_entry, 0, 
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_hash, 
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_offset, 
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len, 
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest,
+		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_entry, 0,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_hash,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_offset,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len,
 		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len, 0);
 
-	manifest_flash_v2_testing_read_element (test, &pcd.manifest, 
-		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest, 
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_entry + 1, 
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_entry + 1, 
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_hash + 1, 
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_offset + 
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest,
+		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_entry + 1,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_entry + 1,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_hash + 1,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_offset +
 		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len, 24, 24, 0);
 
 	status = pcd.test.base.get_devices_info (&pcd.test.base, &info, &num_devices);
@@ -2516,43 +2563,43 @@ static void pcd_flash_test_get_devices_info_multiple_bridge_components (CuTest *
 
 	TEST_START;
 
-	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING, 
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING,
 		0);
 
-	manifest_flash_v2_testing_read_element (test, &pcd.manifest, 
-		&PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.manifest, 
-		PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.rot_entry, 0, 
-		PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.rot_hash, 
-		PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.rot_offset, 
-		PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.rot_len, 
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest,
+		&PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.manifest,
+		PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.rot_entry, 0,
+		PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.rot_hash,
+		PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.rot_offset,
+		PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.rot_len,
 		PCD_TESTING.rot_len, 0);
 
-	manifest_flash_v2_testing_read_element (test, &pcd.manifest, 
-		&PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.manifest, 
-		PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.direct_component_entry, 0, 
-		PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.direct_component_hash, 
-		PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.direct_component_offset, 
-		PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.direct_component_len, 
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest,
+		&PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.manifest,
+		PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.direct_component_entry, 0,
+		PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.direct_component_hash,
+		PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.direct_component_offset,
+		PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.direct_component_len,
 		PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.direct_component_len, 0);
 
-	manifest_flash_v2_testing_read_element (test, &pcd.manifest, 
-		&PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.manifest, -1, 
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest,
+		&PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.manifest, -1,
 		PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.direct_component_entry + 1, -1, 0, 0, 0, 0);
 
-	manifest_flash_v2_testing_read_element (test, &pcd.manifest, 
-		&PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.manifest, 
-		PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.bridge_component_entry, 0, 
-		PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.bridge_component_hash, 
-		PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.bridge_component_offset, 
-		PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.bridge_component_len, 
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest,
+		&PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.manifest,
+		PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.bridge_component_entry, 0,
+		PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.bridge_component_hash,
+		PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.bridge_component_offset,
+		PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.bridge_component_len,
 		PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.bridge_component_len, 0);
 
-	manifest_flash_v2_testing_read_element (test, &pcd.manifest, 
-		&PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.manifest, 
-		PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.bridge_component_entry + 1, 
-		PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.bridge_component_entry + 1, 
-		PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.bridge_component_hash + 1, 
-		PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.bridge_component_offset + 
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest,
+		&PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.manifest,
+		PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.bridge_component_entry + 1,
+		PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.bridge_component_entry + 1,
+		PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.bridge_component_hash + 1,
+		PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.bridge_component_offset +
 		PCD_MULTIPLE_BRIDGE_COMPONENTS_TESTING.bridge_component_len, 24, 24, 0);
 
 	status = pcd.test.base.get_devices_info (&pcd.test.base, &info, &num_devices);
@@ -2577,32 +2624,32 @@ static void pcd_flash_test_get_devices_info_max_len_components (CuTest *test)
 
 	TEST_START;
 
-	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_MAX_LEN_COMPONENTS_TESTING, 
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_MAX_LEN_COMPONENTS_TESTING,
 		0);
 
-	manifest_flash_v2_testing_read_element (test, &pcd.manifest, 
-		&PCD_MAX_LEN_COMPONENTS_TESTING.manifest, PCD_MAX_LEN_COMPONENTS_TESTING.rot_entry, 0, 
-		PCD_MAX_LEN_COMPONENTS_TESTING.rot_hash, PCD_MAX_LEN_COMPONENTS_TESTING.rot_offset, 
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest,
+		&PCD_MAX_LEN_COMPONENTS_TESTING.manifest, PCD_MAX_LEN_COMPONENTS_TESTING.rot_entry, 0,
+		PCD_MAX_LEN_COMPONENTS_TESTING.rot_hash, PCD_MAX_LEN_COMPONENTS_TESTING.rot_offset,
 		PCD_MAX_LEN_COMPONENTS_TESTING.rot_len, PCD_MAX_LEN_COMPONENTS_TESTING.rot_len, 0);
 
-	manifest_flash_v2_testing_read_element (test, &pcd.manifest, 
-		&PCD_MAX_LEN_COMPONENTS_TESTING.manifest, 
-		PCD_MAX_LEN_COMPONENTS_TESTING.direct_component_entry, 0, 
-		PCD_MAX_LEN_COMPONENTS_TESTING.direct_component_hash, 
-		PCD_MAX_LEN_COMPONENTS_TESTING.direct_component_offset, 
-		PCD_MAX_LEN_COMPONENTS_TESTING.direct_component_len, 
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest,
+		&PCD_MAX_LEN_COMPONENTS_TESTING.manifest,
+		PCD_MAX_LEN_COMPONENTS_TESTING.direct_component_entry, 0,
+		PCD_MAX_LEN_COMPONENTS_TESTING.direct_component_hash,
+		PCD_MAX_LEN_COMPONENTS_TESTING.direct_component_offset,
+		PCD_MAX_LEN_COMPONENTS_TESTING.direct_component_len,
 		sizeof (struct pcd_direct_i2c_component_element), 0);
 
-	manifest_flash_v2_testing_read_element (test, &pcd.manifest, 
-		&PCD_MAX_LEN_COMPONENTS_TESTING.manifest, -1, 
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest,
+		&PCD_MAX_LEN_COMPONENTS_TESTING.manifest, -1,
 		PCD_MAX_LEN_COMPONENTS_TESTING.direct_component_entry + 1, -1, 0, 0, 0, 0);
 
-	manifest_flash_v2_testing_read_element (test, &pcd.manifest, 
-		&PCD_MAX_LEN_COMPONENTS_TESTING.manifest, 
-		PCD_MAX_LEN_COMPONENTS_TESTING.bridge_component_entry, 0, 
-		PCD_MAX_LEN_COMPONENTS_TESTING.bridge_component_hash, 
-		PCD_MAX_LEN_COMPONENTS_TESTING.bridge_component_offset, 
-		PCD_MAX_LEN_COMPONENTS_TESTING.bridge_component_len, 
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest,
+		&PCD_MAX_LEN_COMPONENTS_TESTING.manifest,
+		PCD_MAX_LEN_COMPONENTS_TESTING.bridge_component_entry, 0,
+		PCD_MAX_LEN_COMPONENTS_TESTING.bridge_component_hash,
+		PCD_MAX_LEN_COMPONENTS_TESTING.bridge_component_offset,
+		PCD_MAX_LEN_COMPONENTS_TESTING.bridge_component_len,
 		PCD_MAX_LEN_COMPONENTS_TESTING.bridge_component_len, 0);
 
 	status = pcd.test.base.get_devices_info (&pcd.test.base, &info, &num_devices);
@@ -2628,8 +2675,8 @@ static void pcd_flash_test_get_devices_info_rot_read_error (CuTest *test)
 
 	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0);
 
-	status = mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read, 
-		&pcd.manifest.flash, FLASH_NO_MEMORY, MOCK_ARG (0x10000 + MANIFEST_V2_TOC_ENTRY_OFFSET), 
+	status = mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read,
+		&pcd.manifest.flash, FLASH_NO_MEMORY, MOCK_ARG (0x10000 + MANIFEST_V2_TOC_ENTRY_OFFSET),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (0x08));
 	CuAssertIntEquals (test, 0, status);
 
@@ -2650,12 +2697,12 @@ static void pcd_flash_test_get_devices_info_direct_read_error (CuTest *test)
 
 	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0);
 
-	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest, 
-		PCD_TESTING.rot_entry, 0, PCD_TESTING.rot_hash, PCD_TESTING.rot_offset, PCD_TESTING.rot_len, 
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest,
+		PCD_TESTING.rot_entry, 0, PCD_TESTING.rot_hash, PCD_TESTING.rot_offset, PCD_TESTING.rot_len,
 		PCD_TESTING.rot_len, 0);
 
-	status = mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read, 
-		&pcd.manifest.flash, FLASH_NO_MEMORY, MOCK_ARG (0x10000 + MANIFEST_V2_TOC_ENTRY_OFFSET), 
+	status = mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read,
+		&pcd.manifest.flash, FLASH_NO_MEMORY, MOCK_ARG (0x10000 + MANIFEST_V2_TOC_ENTRY_OFFSET),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (0x08));
 	CuAssertIntEquals (test, 0, status);
 
@@ -2676,19 +2723,19 @@ static void pcd_flash_test_get_devices_info_bridge_read_error (CuTest *test)
 
 	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0);
 
-	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest, 
-		PCD_TESTING.rot_entry, 0, PCD_TESTING.rot_hash, PCD_TESTING.rot_offset, PCD_TESTING.rot_len, 
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest,
+		PCD_TESTING.rot_entry, 0, PCD_TESTING.rot_hash, PCD_TESTING.rot_offset, PCD_TESTING.rot_len,
 		PCD_TESTING.rot_len, 0);
 
-	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest, 
-		PCD_TESTING.direct_component_entry, 0, PCD_TESTING.direct_component_hash, 
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest,
+		PCD_TESTING.direct_component_entry, 0, PCD_TESTING.direct_component_hash,
 		PCD_TESTING.direct_component_offset, PCD_TESTING.direct_component_len, 20, 0);
 
-	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest, -1, 3, -1, 
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest, -1, 3, -1,
 		0, 0, 0, 0);
 
-	status = mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read, 
-		&pcd.manifest.flash, FLASH_NO_MEMORY, MOCK_ARG (0x10000 + MANIFEST_V2_TOC_ENTRY_OFFSET), 
+	status = mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read,
+		&pcd.manifest.flash, FLASH_NO_MEMORY, MOCK_ARG (0x10000 + MANIFEST_V2_TOC_ENTRY_OFFSET),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (0x08));
 	CuAssertIntEquals (test, 0, status);
 
@@ -2708,8 +2755,8 @@ static void pcd_flash_test_get_rot_info (CuTest *test)
 
 	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0);
 
-	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest, 
-		PCD_TESTING.rot_entry, 0, PCD_TESTING.rot_hash, PCD_TESTING.rot_offset, PCD_TESTING.rot_len, 
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest,
+		PCD_TESTING.rot_entry, 0, PCD_TESTING.rot_hash, PCD_TESTING.rot_offset, PCD_TESTING.rot_len,
 		PCD_TESTING.rot_len, 0);
 
 	status = pcd.test.base.get_rot_info (&pcd.test.base, &info);
@@ -2770,8 +2817,8 @@ static void pcd_flash_test_get_rot_info_rot_read_error (CuTest *test)
 
 	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0);
 
-	status = mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read, 
-		&pcd.manifest.flash, FLASH_NO_MEMORY, MOCK_ARG (0x10000 + MANIFEST_V2_TOC_ENTRY_OFFSET), 
+	status = mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read,
+		&pcd.manifest.flash, FLASH_NO_MEMORY, MOCK_ARG (0x10000 + MANIFEST_V2_TOC_ENTRY_OFFSET),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (0x08));
 	CuAssertIntEquals (test, 0, status);
 
@@ -2791,12 +2838,12 @@ static void pcd_flash_test_get_port_info (CuTest *test)
 
 	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0);
 
-	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest, 
-		PCD_TESTING.rot_entry, 0, PCD_TESTING.rot_hash, PCD_TESTING.rot_offset, PCD_TESTING.rot_len, 
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest,
+		PCD_TESTING.rot_entry, 0, PCD_TESTING.rot_hash, PCD_TESTING.rot_offset, PCD_TESTING.rot_len,
 		PCD_TESTING.rot_len, 0);
 
-	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest, 
-		PCD_TESTING.port_entry, PCD_TESTING.port_entry, PCD_TESTING.port_hash, 
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest,
+		PCD_TESTING.port_entry, PCD_TESTING.port_entry, PCD_TESTING.port_hash,
 		PCD_TESTING.port_offset, PCD_TESTING.port_len, PCD_TESTING.port_len, 0);
 
 	status = pcd.test.base.get_port_info (&pcd.test.base, 0, &info);
@@ -2809,17 +2856,17 @@ static void pcd_flash_test_get_port_info (CuTest *test)
 	CuAssertIntEquals (test, 1, info.watchdog_monitoring);
 	CuAssertIntEquals (test, 0, info.pulse_interval);
 
-	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest, 
-		PCD_TESTING.rot_entry, 0, PCD_TESTING.rot_hash, PCD_TESTING.rot_offset, PCD_TESTING.rot_len, 
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest,
+		PCD_TESTING.rot_entry, 0, PCD_TESTING.rot_hash, PCD_TESTING.rot_offset, PCD_TESTING.rot_len,
 		PCD_TESTING.rot_len, 0);
 
-	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest, 
-		PCD_TESTING.port_entry, PCD_TESTING.port_entry, PCD_TESTING.port_hash, 
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest,
+		PCD_TESTING.port_entry, PCD_TESTING.port_entry, PCD_TESTING.port_hash,
 		PCD_TESTING.port_offset, PCD_TESTING.port_len, PCD_TESTING.port_len, 0);
 
-	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest, 
-		PCD_TESTING.port_entry + 1, PCD_TESTING.port_entry + 1, PCD_TESTING.port_hash + 1, 
-		PCD_TESTING.port_offset + PCD_TESTING.port_len, PCD_TESTING.port_len, PCD_TESTING.port_len, 
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest,
+		PCD_TESTING.port_entry + 1, PCD_TESTING.port_entry + 1, PCD_TESTING.port_hash + 1,
+		PCD_TESTING.port_offset + PCD_TESTING.port_len, PCD_TESTING.port_len, PCD_TESTING.port_len,
 		0);
 
 	status = pcd.test.base.get_port_info (&pcd.test.base, 1, &info);
@@ -2844,24 +2891,24 @@ static void pcd_flash_test_get_port_info_filtered_bypass_flash_modes_and_pulse_r
 
 	TEST_START;
 
-	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, 
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000,
 		&PCD_FILTERED_BYPASS_PULSE_RESET_TESTING, 0);
 
-	manifest_flash_v2_testing_read_element (test, &pcd.manifest, 
-		&PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.manifest, 
-		PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.rot_entry, 0, 
-		PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.rot_hash, 
-		PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.rot_offset, 
-		PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.rot_len, 
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest,
+		&PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.manifest,
+		PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.rot_entry, 0,
+		PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.rot_hash,
+		PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.rot_offset,
+		PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.rot_len,
 		PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.rot_len, 0);
 
-	manifest_flash_v2_testing_read_element (test, &pcd.manifest, 
-		&PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.manifest, 
-		PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.port_entry, 
-		PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.port_entry, 
-		PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.port_hash, 
-		PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.port_offset, 
-		PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.port_len, 
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest,
+		&PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.manifest,
+		PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.port_entry,
+		PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.port_entry,
+		PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.port_hash,
+		PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.port_offset,
+		PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.port_len,
 		PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.port_len, 0);
 
 	status = pcd.test.base.get_port_info (&pcd.test.base, 0, &info);
@@ -2874,31 +2921,31 @@ static void pcd_flash_test_get_port_info_filtered_bypass_flash_modes_and_pulse_r
 	CuAssertIntEquals (test, 1, info.watchdog_monitoring);
 	CuAssertIntEquals (test, 0, info.pulse_interval);
 
-	manifest_flash_v2_testing_read_element (test, &pcd.manifest, 
-		&PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.manifest, 
-		PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.rot_entry, 0, 
-		PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.rot_hash, 
-		PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.rot_offset, 
-		PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.rot_len, 
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest,
+		&PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.manifest,
+		PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.rot_entry, 0,
+		PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.rot_hash,
+		PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.rot_offset,
+		PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.rot_len,
 		PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.rot_len, 0);
 
-	manifest_flash_v2_testing_read_element (test, &pcd.manifest, 
-		&PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.manifest, 
-		PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.port_entry, 
-		PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.port_entry, 
-		PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.port_hash, 
-		PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.port_offset, 
-		PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.port_len, 
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest,
+		&PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.manifest,
+		PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.port_entry,
+		PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.port_entry,
+		PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.port_hash,
+		PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.port_offset,
+		PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.port_len,
 		PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.port_len, 0);
 
-	manifest_flash_v2_testing_read_element (test, &pcd.manifest, 
-		&PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.manifest, 
-		PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.port_entry + 1, 
-		PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.port_entry + 1, 
-		PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.port_hash + 1, 
-		PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.port_offset + 
-		PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.port_len, 
-		PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.port_len, 
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest,
+		&PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.manifest,
+		PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.port_entry + 1,
+		PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.port_entry + 1,
+		PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.port_hash + 1,
+		PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.port_offset +
+		PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.port_len,
+		PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.port_len,
 		PCD_FILTERED_BYPASS_PULSE_RESET_TESTING.port_len, 0);
 
 	status = pcd.test.base.get_port_info (&pcd.test.base, 1, &info);
@@ -2959,9 +3006,9 @@ static void pcd_flash_test_get_port_info_no_ports (CuTest *test)
 
 	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_NO_PORTS_TESTING, 0);
 
-	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_NO_PORTS_TESTING.manifest, 
-		PCD_NO_PORTS_TESTING.rot_entry, 0, PCD_NO_PORTS_TESTING.rot_hash, 
-		PCD_NO_PORTS_TESTING.rot_offset, PCD_NO_PORTS_TESTING.rot_len, PCD_NO_PORTS_TESTING.rot_len, 
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_NO_PORTS_TESTING.manifest,
+		PCD_NO_PORTS_TESTING.rot_entry, 0, PCD_NO_PORTS_TESTING.rot_hash,
+		PCD_NO_PORTS_TESTING.rot_offset, PCD_NO_PORTS_TESTING.rot_len, PCD_NO_PORTS_TESTING.rot_len,
 		0);
 
 	status = pcd.test.base.get_port_info (&pcd.test.base, 0, &info);
@@ -2980,17 +3027,17 @@ static void pcd_flash_test_get_port_info_port_id_invalid (CuTest *test)
 
 	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0);
 
-	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest, 
-		PCD_TESTING.rot_entry, 0, PCD_TESTING.rot_hash, PCD_TESTING.rot_offset, PCD_TESTING.rot_len, 
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest,
+		PCD_TESTING.rot_entry, 0, PCD_TESTING.rot_hash, PCD_TESTING.rot_offset, PCD_TESTING.rot_len,
 		PCD_TESTING.rot_len, 0);
 
-	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest, 
-		PCD_TESTING.port_entry, PCD_TESTING.port_entry, PCD_TESTING.port_hash, 
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest,
+		PCD_TESTING.port_entry, PCD_TESTING.port_entry, PCD_TESTING.port_hash,
 		PCD_TESTING.port_offset, PCD_TESTING.port_len, PCD_TESTING.port_len, 0);
 
-	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest, 
-		PCD_TESTING.port_entry + 1, PCD_TESTING.port_entry + 1, PCD_TESTING.port_hash + 1, 
-		PCD_TESTING.port_offset + PCD_TESTING.port_len, PCD_TESTING.port_len, PCD_TESTING.port_len, 
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest,
+		PCD_TESTING.port_entry + 1, PCD_TESTING.port_entry + 1, PCD_TESTING.port_hash + 1,
+		PCD_TESTING.port_offset + PCD_TESTING.port_len, PCD_TESTING.port_len, PCD_TESTING.port_len,
 		0);
 
 	status = pcd.test.base.get_port_info (&pcd.test.base, 2, &info);
@@ -3009,8 +3056,8 @@ static void pcd_flash_test_get_port_info_rot_read_error (CuTest *test)
 
 	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0);
 
-	status = mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read, 
-		&pcd.manifest.flash, FLASH_NO_MEMORY, MOCK_ARG (0x10000 + MANIFEST_V2_TOC_ENTRY_OFFSET), 
+	status = mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read,
+		&pcd.manifest.flash, FLASH_NO_MEMORY, MOCK_ARG (0x10000 + MANIFEST_V2_TOC_ENTRY_OFFSET),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (0x08));
 	CuAssertIntEquals (test, 0, status);
 
@@ -3030,8 +3077,8 @@ static void pcd_flash_test_get_power_controller_info (CuTest *test)
 
 	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0);
 
-	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest, 
-		PCD_TESTING.power_ctrl_entry, 0, PCD_TESTING.power_ctrl_hash, PCD_TESTING.power_ctrl_offset, 
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest,
+		PCD_TESTING.power_ctrl_entry, 0, PCD_TESTING.power_ctrl_hash, PCD_TESTING.power_ctrl_offset,
 		PCD_TESTING.power_ctrl_len, sizeof (struct pcd_power_controller_element), 0);
 
 	status = pcd.test.base.get_power_controller_info (&pcd.test.base, &info);
@@ -3090,10 +3137,10 @@ static void pcd_flash_test_get_power_controller_info_no_power_controller (CuTest
 
 	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_NO_POWER_CONTROLLER_TESTING, 0);
 
-	manifest_flash_v2_testing_read_element (test, &pcd.manifest, 
-		&PCD_NO_POWER_CONTROLLER_TESTING.manifest, PCD_NO_POWER_CONTROLLER_TESTING.power_ctrl_entry, 
-		0, PCD_NO_POWER_CONTROLLER_TESTING.power_ctrl_hash, 
-		PCD_NO_POWER_CONTROLLER_TESTING.power_ctrl_offset, 
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest,
+		&PCD_NO_POWER_CONTROLLER_TESTING.manifest, PCD_NO_POWER_CONTROLLER_TESTING.power_ctrl_entry,
+		0, PCD_NO_POWER_CONTROLLER_TESTING.power_ctrl_hash,
+		PCD_NO_POWER_CONTROLLER_TESTING.power_ctrl_offset,
 		PCD_NO_POWER_CONTROLLER_TESTING.power_ctrl_len, 0, 0);
 
 	status = pcd.test.base.get_power_controller_info (&pcd.test.base, &info);
@@ -3112,8 +3159,8 @@ static void pcd_flash_test_get_power_controller_info_power_controller_read_error
 
 	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0);
 
-	status = mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read, 
-		&pcd.manifest.flash, FLASH_NO_MEMORY, MOCK_ARG (0x10000 + MANIFEST_V2_TOC_ENTRY_OFFSET), 
+	status = mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read,
+		&pcd.manifest.flash, FLASH_NO_MEMORY, MOCK_ARG (0x10000 + MANIFEST_V2_TOC_ENTRY_OFFSET),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (0x08));
 	CuAssertIntEquals (test, 0, status);
 
@@ -3122,6 +3169,67 @@ static void pcd_flash_test_get_power_controller_info_power_controller_read_error
 
 	pcd_flash_testing_validate_and_release (test, &pcd);
 }
+
+static void pcd_flash_test_is_empty (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	int status;
+
+	TEST_START;
+
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0);
+
+	status = pcd.test.base.base.is_empty (&pcd.test.base.base);
+	CuAssertIntEquals (test, 0, status);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_is_empty_empty_manifest (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	int status;
+
+	TEST_START;
+
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_EMPTY_TESTING, 0);
+
+	status = pcd.test.base.base.is_empty (&pcd.test.base.base);
+	CuAssertIntEquals (test, 1, status);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_is_empty_null (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	int status;
+
+	TEST_START;
+
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0);
+
+	status = pcd.test.base.base.is_empty (NULL);
+	CuAssertIntEquals (test, PCD_INVALID_ARGUMENT, status);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_is_empty_verify_never_run (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	int status;
+
+	TEST_START;
+
+	pcd_flash_testing_init (test, &pcd, 0x10000);
+
+	status = pcd.test.base.base.is_empty (&pcd.test.base.base);
+	CuAssertIntEquals (test, MANIFEST_NO_MANIFEST, status);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
 
 CuSuite* get_pcd_flash_suite ()
 {
@@ -3132,13 +3240,20 @@ CuSuite* get_pcd_flash_suite ()
 	SUITE_ADD_TEST (suite, pcd_flash_test_init_manifest_flash_init_fail);
 	SUITE_ADD_TEST (suite, pcd_flash_test_release_null);
 	SUITE_ADD_TEST (suite, pcd_flash_test_verify);
-	SUITE_ADD_TEST (suite, pcd_flash_test_verify_null);
-	SUITE_ADD_TEST (suite, pcd_flash_test_verify_read_header_fail);
-	SUITE_ADD_TEST (suite, pcd_flash_test_verify_bad_magic_number);
 	SUITE_ADD_TEST (suite, pcd_flash_test_verify_no_power_controller);
 	SUITE_ADD_TEST (suite, pcd_flash_test_verify_no_components);
 	SUITE_ADD_TEST (suite, pcd_flash_test_verify_no_ports);
 	SUITE_ADD_TEST (suite, pcd_flash_test_verify_no_ports_power_controller_components);
+	SUITE_ADD_TEST (suite, pcd_flash_test_verify_only_direct_components);
+	SUITE_ADD_TEST (suite, pcd_flash_test_verify_multiple_direct_components);
+	SUITE_ADD_TEST (suite, pcd_flash_test_verify_only_bridge_components);
+	SUITE_ADD_TEST (suite, pcd_flash_test_verify_multiple_bridge_components);
+	SUITE_ADD_TEST (suite, pcd_flash_test_verify_max_len_components);
+	SUITE_ADD_TEST (suite, pcd_flash_test_verify_filtered_bypass_pulse_reset);
+	SUITE_ADD_TEST (suite, pcd_flash_test_verify_empty_manifest);
+	SUITE_ADD_TEST (suite, pcd_flash_test_verify_null);
+	SUITE_ADD_TEST (suite, pcd_flash_test_verify_read_header_fail);
+	SUITE_ADD_TEST (suite, pcd_flash_test_verify_bad_magic_number);
 	SUITE_ADD_TEST (suite, pcd_flash_test_get_id);
 	SUITE_ADD_TEST (suite, pcd_flash_test_get_id_null);
 	SUITE_ADD_TEST (suite, pcd_flash_test_get_id_verify_never_run);
@@ -3171,7 +3286,7 @@ CuSuite* get_pcd_flash_suite ()
 	SUITE_ADD_TEST (suite, pcd_flash_test_get_rot_info_verify_never_run);
 	SUITE_ADD_TEST (suite, pcd_flash_test_get_rot_info_rot_read_error);
 	SUITE_ADD_TEST (suite, pcd_flash_test_get_port_info);
-	SUITE_ADD_TEST (suite, 
+	SUITE_ADD_TEST (suite,
 		pcd_flash_test_get_port_info_filtered_bypass_flash_modes_and_pulse_reset_control);
 	SUITE_ADD_TEST (suite, pcd_flash_test_get_port_info_null);
 	SUITE_ADD_TEST (suite, pcd_flash_test_get_port_info_verify_never_run);
@@ -3183,6 +3298,10 @@ CuSuite* get_pcd_flash_suite ()
 	SUITE_ADD_TEST (suite, pcd_flash_test_get_power_controller_info_verify_never_run);
 	SUITE_ADD_TEST (suite, pcd_flash_test_get_power_controller_info_no_power_controller);
 	SUITE_ADD_TEST (suite, pcd_flash_test_get_power_controller_info_power_controller_read_error);
+	SUITE_ADD_TEST (suite, pcd_flash_test_is_empty);
+	SUITE_ADD_TEST (suite, pcd_flash_test_is_empty_empty_manifest);
+	SUITE_ADD_TEST (suite, pcd_flash_test_is_empty_null);
+	SUITE_ADD_TEST (suite, pcd_flash_test_is_empty_verify_never_run);
 
 	return suite;
 }

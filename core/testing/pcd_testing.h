@@ -40,6 +40,7 @@ struct pcd_testing_data {
 extern const struct pcd_testing_data PCD_TESTING;
 extern const struct pcd_testing_data PCD_NO_COMPONENTS_TESTING;
 extern const struct pcd_testing_data PCD_NO_PORTS_TESTING;
+extern const struct pcd_testing_data PCD_EMPTY_TESTING;
 
 
 #endif /* PCD_TESTING_H_ */

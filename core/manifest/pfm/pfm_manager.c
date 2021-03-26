@@ -139,6 +139,23 @@ void pfm_manager_on_pfm_activated (struct pfm_manager *manager)
 }
 
 /**
+ * Notify observers that the active PFM has been cleared.
+ *
+ * @param manager The manager generating the event.
+ */
+void pfm_manager_on_clear_active (struct pfm_manager *manager)
+{
+	if (manager == NULL) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
+			MANIFEST_LOGGING_PFM_CLEAR_ACTIVE_EVENT_FAIL, MANIFEST_MANAGER_INVALID_ARGUMENT, 0);
+		return;
+	}
+
+	observable_notify_observers (&manager->observable,
+		offsetof (struct pfm_observer, on_clear_active));
+}
+
+/**
  * Get the data used for PFM ID measurement.  The PFM instance must be released with the
  * manager.
  *
@@ -165,7 +182,7 @@ int pfm_manager_get_id_measured_data (struct pfm_manager *manager, size_t offset
 		status = manifest_manager_get_id_measured_data (NULL, offset, buffer, length, total_len);
 	}
 	else {
-		status = manifest_manager_get_id_measured_data (&active->base, offset, buffer, length, 
+		status = manifest_manager_get_id_measured_data (&active->base, offset, buffer, length,
 			total_len);
 		manager->free_pfm (manager, active);
 	}
@@ -197,7 +214,7 @@ int pfm_manager_get_platform_id_measured_data (struct pfm_manager *manager, size
 
 	active = manager->get_active_pfm (manager);
 	if (active == NULL) {
-		status = manifest_manager_get_platform_id_measured_data (NULL, offset, buffer, length, 
+		status = manifest_manager_get_platform_id_measured_data (NULL, offset, buffer, length,
 			total_len);
 	}
 	else {

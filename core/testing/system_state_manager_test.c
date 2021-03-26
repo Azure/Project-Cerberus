@@ -5,8 +5,7 @@
 #include <stdint.h>
 #include <string.h>
 #include "testing.h"
-#include "state_manager/state_manager.h"
-#include "state_manager/system_state_manager.h"
+#include "system/system_state_manager.h"
 #include "mock/flash_mock.h"
 #include "flash/flash_common.h"
 

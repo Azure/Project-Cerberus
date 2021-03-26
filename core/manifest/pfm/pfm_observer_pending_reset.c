@@ -21,6 +21,11 @@ static void pfm_observer_pending_reset_on_pfm_verified (struct pfm_observer *obs
 	}
 }
 
+static void pfm_observer_pending_reset_on_clear_active (struct pfm_observer *observer)
+{
+	pfm_observer_pending_reset_on_pfm_verified (observer, NULL);
+}
+
 /**
  * Initialize a PFM observer to assert host reset on pending PFM verification.
  *
@@ -39,6 +44,7 @@ int pfm_observer_pending_reset_init (struct pfm_observer_pending_reset *observer
 	memset (observer, 0, sizeof (struct pfm_observer_pending_reset));
 
 	observer->base.on_pfm_verified = pfm_observer_pending_reset_on_pfm_verified;
+	observer->base.on_clear_active = pfm_observer_pending_reset_on_clear_active;
 
 	observer->control = control;
 

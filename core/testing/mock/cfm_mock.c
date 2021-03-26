@@ -79,6 +79,17 @@ static int cfm_mock_get_signature (struct manifest *cfm, uint8_t *signature, siz
 		MOCK_ARG_CALL (length));
 }
 
+static int cfm_mock_is_empty (struct manifest *cfm)
+{
+	struct cfm_mock *mock = (struct cfm_mock*) cfm;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN_NO_ARGS (&mock->mock, cfm_mock_is_empty, cfm);
+}
+
 static int cfm_mock_get_supported_component_ids (struct cfm *cfm, struct cfm_component_ids *ids)
 {
 	struct cfm_mock *mock = (struct cfm_mock*) cfm;
@@ -166,6 +177,9 @@ static const char* cfm_mock_func_name_map (void *func)
 	}
 	else if (func == cfm_mock_get_signature) {
 		return "get_signature";
+	}
+	else if (func == cfm_mock_is_empty) {
+		return "is_empty";
 	}
 	else if (func == cfm_mock_get_supported_component_ids) {
 		return "get_supported_component_ids";
@@ -303,6 +317,7 @@ int cfm_mock_init (struct cfm_mock *mock)
 	mock->base.base.free_platform_id = cfm_mock_free_platform_id;
 	mock->base.base.get_hash = cfm_mock_get_hash;
 	mock->base.base.get_signature = cfm_mock_get_signature;
+	mock->base.base.is_empty = cfm_mock_is_empty;
 
 	mock->base.get_supported_component_ids = cfm_mock_get_supported_component_ids;
 	mock->base.free_component_ids = cfm_mock_free_component_ids;

@@ -3983,6 +3983,7 @@ void cerberus_protocol_optional_commands_testing_process_log_read_debug (CuTest 
 		contents->entry.msg_index = 3;
 		contents->entry.arg1 = 4;
 		contents->entry.arg2 = 5;
+		contents->entry.time = 6;
 	}
 
 	debug_log = &debug->base;
@@ -4086,6 +4087,7 @@ void cerberus_protocol_optional_commands_testing_process_log_read_debug_limited_
 		contents->entry.msg_index = 3;
 		contents->entry.arg1 = 4;
 		contents->entry.arg2 = 5;
+		contents->entry.time = 6;
 	}
 
 	debug_log = &debug->base;

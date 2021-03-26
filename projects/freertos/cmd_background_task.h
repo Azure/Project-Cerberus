@@ -4,6 +4,7 @@
 #ifndef CMD_BACKGROUND_TASK_H_
 #define CMD_BACKGROUND_TASK_H_
 
+#include <stdbool.h>
 #include "FreeRTOS.h"
 #include "semphr.h"
 #include "attestation/attestation_slave.h"
@@ -11,6 +12,7 @@
 #include "cmd_interface/config_reset.h"
 #include "crypto/hash.h"
 #include "riot/riot_key_manager.h"
+#include "system/system.h"
 
 
 /**
@@ -45,6 +47,7 @@ struct cmd_background_riot {
  */
 struct cmd_background_task {
 	struct cmd_background base;						/**< Interface to control the task. */
+	struct system *system;							/**< The system manager. */
 	TaskHandle_t task;								/**< The task that will execute requests. */
 	SemaphoreHandle_t lock;							/**< Synchronization for task status. */
 	uint8_t running;								/**< Flag indicating if an operation is running. */
@@ -59,12 +62,15 @@ struct cmd_background_task {
 	 *
 	 * @param task The task context for the notification.
 	 * @param notification The notification value received by the task.
+	 * @param reset Output indicating whether the device needs to be reset or not as a result of the
+	 * operation.  This will always be false at the time of execution and only needs to be updated
+	 * if a reset is required.
 	 */
-	void (*ext_handler) (struct cmd_background_task *task, uint32_t notification);
+	void (*ext_handler) (struct cmd_background_task *task, uint32_t notification, bool *reset);
 };
 
 
-int cmd_background_task_init (struct cmd_background_task *task,
+int cmd_background_task_init (struct cmd_background_task *task, struct system *system,
 	struct attestation_slave *attestation, struct hash_engine *hash, struct config_reset *reset,
 	struct riot_key_manager *riot);
 int cmd_background_task_start (struct cmd_background_task *task);

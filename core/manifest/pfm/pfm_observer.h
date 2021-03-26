@@ -32,6 +32,13 @@ struct pfm_observer {
 	 * @param active The PFM that was activated.
 	 */
 	void (*on_pfm_activated) (struct pfm_observer *observer, struct pfm *active);
+
+	/**
+	 * Notification that the active PFM has been erased.
+	 *
+	 * @param observer The observer being notified.
+	 */
+	void (*on_clear_active) (struct pfm_observer *observer);
 };
 
 

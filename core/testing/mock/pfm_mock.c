@@ -79,6 +79,17 @@ static int pfm_mock_get_signature (struct manifest *pfm, uint8_t *signature, siz
 		MOCK_ARG_CALL (length));
 }
 
+static int pfm_mock_is_empty (struct manifest *pfm)
+{
+	struct pfm_mock *mock = (struct pfm_mock*) pfm;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN_NO_ARGS (&mock->mock, pfm_mock_is_empty, pfm);
+}
+
 static int pfm_mock_get_firmware (struct pfm *pfm, struct pfm_firmware *fw)
 {
 	struct pfm_mock *mock = (struct pfm_mock*) pfm;
@@ -230,6 +241,9 @@ static const char* pfm_mock_func_name_map (void *func)
 	}
 	else if (func == pfm_mock_get_signature) {
 		return "get_signature";
+	}
+	else if (func == pfm_mock_is_empty) {
+		return "is_empty";
 	}
 	else if (func == pfm_mock_get_firmware) {
 		return "get_firmware";
@@ -434,6 +448,7 @@ int pfm_mock_init (struct pfm_mock *mock)
 	mock->base.base.free_platform_id = pfm_mock_free_platform_id;
 	mock->base.base.get_hash = pfm_mock_get_hash;
 	mock->base.base.get_signature = pfm_mock_get_signature;
+	mock->base.base.is_empty = pfm_mock_is_empty;
 
 	mock->base.get_firmware = pfm_mock_get_firmware;
 	mock->base.free_firmware = pfm_mock_free_firmware;

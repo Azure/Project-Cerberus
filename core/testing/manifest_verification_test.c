@@ -154,9 +154,9 @@ static void manifest_verification_test_init_no_key_stored (CuTest *test)
 
 	CuAssertPtrEquals (test, NULL, verification.base_observer.on_pfm_verified);
 	CuAssertPtrNotNull (test, verification.base_observer.on_pfm_activated);
+	CuAssertPtrEquals (test, NULL, verification.base_observer.on_clear_active);
 
 	CuAssertPtrNotNull (test, verification.base_update.on_update_start);
-	CuAssertPtrEquals (test, NULL, verification.base_update.on_shutdown);
 
 	status = keystore_mock_validate_and_release (&keystore);
 	CuAssertIntEquals (test, 0, status);
@@ -223,9 +223,9 @@ static void manifest_verification_test_init_key_stored (CuTest *test)
 
 	CuAssertPtrEquals (test, NULL, verification.base_observer.on_pfm_verified);
 	CuAssertPtrNotNull (test, verification.base_observer.on_pfm_activated);
+	CuAssertPtrEquals (test, NULL, verification.base_observer.on_clear_active);
 
 	CuAssertPtrNotNull (test, verification.base_update.on_update_start);
-	CuAssertPtrEquals (test, NULL, verification.base_update.on_shutdown);
 
 	status = keystore_mock_validate_and_release (&keystore);
 	CuAssertIntEquals (test, 0, status);
@@ -283,9 +283,9 @@ static void manifest_verification_test_init_bad_key_stored (CuTest *test)
 
 	CuAssertPtrEquals (test, NULL, verification.base_observer.on_pfm_verified);
 	CuAssertPtrNotNull (test, verification.base_observer.on_pfm_activated);
+	CuAssertPtrEquals (test, NULL, verification.base_observer.on_clear_active);
 
 	CuAssertPtrNotNull (test, verification.base_update.on_update_start);
-	CuAssertPtrEquals (test, NULL, verification.base_update.on_shutdown);
 
 	status = keystore_mock_validate_and_release (&keystore);
 	CuAssertIntEquals (test, 0, status);
@@ -358,9 +358,9 @@ static void manifest_verification_test_init_bad_length_stored (CuTest *test)
 
 	CuAssertPtrEquals (test, NULL, verification.base_observer.on_pfm_verified);
 	CuAssertPtrNotNull (test, verification.base_observer.on_pfm_activated);
+	CuAssertPtrEquals (test, NULL, verification.base_observer.on_clear_active);
 
 	CuAssertPtrNotNull (test, verification.base_update.on_update_start);
-	CuAssertPtrEquals (test, NULL, verification.base_update.on_shutdown);
 
 	status = keystore_mock_validate_and_release (&keystore);
 	CuAssertIntEquals (test, 0, status);
@@ -431,9 +431,9 @@ static void manifest_verification_test_init_bad_signature_stored (CuTest *test)
 
 	CuAssertPtrEquals (test, NULL, verification.base_observer.on_pfm_verified);
 	CuAssertPtrNotNull (test, verification.base_observer.on_pfm_activated);
+	CuAssertPtrEquals (test, NULL, verification.base_observer.on_clear_active);
 
 	CuAssertPtrNotNull (test, verification.base_update.on_update_start);
-	CuAssertPtrEquals (test, NULL, verification.base_update.on_shutdown);
 
 	status = keystore_mock_validate_and_release (&keystore);
 	CuAssertIntEquals (test, 0, status);

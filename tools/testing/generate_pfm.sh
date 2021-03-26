@@ -38,6 +38,10 @@ if [ -z "$TOC_HASH_TYPE" ]; then
 	TOC_HASH_TYPE=$HASH_TYPE
 fi
 
+if [ -z "$MAGIC" ]; then
+	MAGIC="0x706d"
+fi
+
 if [ -z "$OUTPUT_DIR" ]; then
 	OUTPUT_DIR=output
 fi
@@ -915,7 +919,7 @@ get_pfm_signature_length $pfm_key
 pfm_tmp=$pfm_out.tmp
 empty_file "$pfm_tmp"
 
-output_binary_word "0x706d" "$pfm_tmp"
+output_binary_word "$MAGIC" "$pfm_tmp"
 output_binary_dword "$pfm_id" "$pfm_tmp"
 output_binary_word "$sig_len" "$pfm_tmp"
 output_binary_byte "$sig_type" "$pfm_tmp"

@@ -44,6 +44,7 @@ enum debug_log_component {
 	DEBUG_LOG_COMPONENT_MCTP,					/**< Log entry for MCTP stack */
 	DEBUG_LOG_COMPONENT_TPM,					/**< Log entry for TPM */
 	DEBUG_LOG_COMPONENT_RIOT,					/**< Log entry for RIoT */
+	DEBUG_LOG_COMPONENT_SYSTEM,					/**< Log entry for system management. */
 	DEBUG_LOG_COMPONENT_DEVICE_SPECIFIC = 0xf0,	/**< Base component ID for device-specific messages. */
 	/* Component IDs 0xf0 - 0xff are reserved for device-specific logging. */
 };
@@ -65,7 +66,7 @@ struct debug_log_entry_info {
 	uint8_t msg_index;			/**< Identifier for the entry message. */
 	uint32_t arg1;				/**< Message specific argument. */
 	uint32_t arg2;				/**< Message specific argument. */
-    uint64_t time;              /**< Elapsed time in milliseconds since boot. */
+	uint64_t time;				/**< Elapsed time in milliseconds since boot. */
 };
 
 /**

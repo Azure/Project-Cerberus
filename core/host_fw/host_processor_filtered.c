@@ -591,7 +591,9 @@ static int host_processor_filtered_validate_flash (struct host_processor_filtere
 	 * all other operations fully complete before we wipe the indication that flash had been
 	 * modified and needed authentication. */
 	if ((dirty_fail != 0) &&
-		(!single && checked_rw && (!is_pending || is_validated || (status == 0)))) {
+		(!single && checked_rw &&
+			(!is_pending || is_validated || (status == 0) ||
+				(is_pending && !active && skip_ro_config)))) {
 		dirty_fail = host->filter->clear_flash_dirty_state (host->filter);
 		if (dirty_fail == 0) {
 			host_state_manager_save_inactive_dirty (host->state, false);
@@ -600,6 +602,53 @@ static int host_processor_filtered_validate_flash (struct host_processor_filtere
 
 exit:
 	return status;
+}
+
+/**
+ * Check if the pending PFM is empty.  If so, clear the PFMs to force the filter into bypass mode.
+ *
+ * @param host The host instance to check.
+ * @param active_pfm The active PFM for the host.
+ * @param pending_pfm The pending PFM for the host.
+ * @param empty_status Output for the status of the empty PFM check.
+ *
+ * @return 0 if the check was successful or an error code.
+ */
+static int host_processor_filtered_check_force_bypass_mode (struct host_processor_filtered *host,
+	struct pfm **active_pfm, struct pfm **pending_pfm, int *empty_status)
+{
+	int status;
+
+	status = (*pending_pfm)->base.is_empty (&(*pending_pfm)->base);
+	if (status == 1) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_WARNING, DEBUG_LOG_COMPONENT_HOST_FW,
+			HOST_LOGGING_CLEAR_PFMS, host_processor_get_port (&host->base), 0);
+
+		if (*active_pfm) {
+			host->pfm->free_pfm (host->pfm, *active_pfm);
+			*active_pfm = NULL;
+		}
+
+		host->pfm->free_pfm (host->pfm, *pending_pfm);
+		*pending_pfm = NULL;
+
+		status = host->pfm->base.clear_all_manifests (&host->pfm->base);
+		if (status != 0) {
+			return status;
+		}
+	}
+	else if (status != 0) {
+		/* We could not determine the state of the pending PFM.  Remove it from being considered for
+		 * validation flows. */
+		host->pfm->free_pfm (host->pfm, *pending_pfm);
+		*pending_pfm = NULL;
+
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_HOST_FW,
+			HOST_LOGGING_CHECK_PENDING_FAILED, host_processor_get_port (&host->base), status);
+	}
+
+	*empty_status = status;
+	return 0;
 }
 
 /**
@@ -636,6 +685,18 @@ int host_processor_filtered_power_on_reset (struct host_processor_filtered *host
 	active_pfm = host->pfm->get_active_pfm (host->pfm);
 	pending_pfm = host->pfm->get_pending_pfm (host->pfm);
 
+	if (pending_pfm) {
+		int empty_status;
+
+		status = host_processor_filtered_check_force_bypass_mode (host, &active_pfm, &pending_pfm,
+			&empty_status);
+		if (status != 0) {
+			goto exit_host;
+		}
+
+		status = empty_status;
+	}
+
 	if (active_pfm) {
 		/* If there is at least an active PFM, use it for validation and don't allow bypass mode.
 		 * If there is a pending PFM, run the initial validation using the pending PFM to see if it
@@ -649,7 +710,7 @@ int host_processor_filtered_power_on_reset (struct host_processor_filtered *host
 			status = host_processor_filtered_validate_flash (host, hash, rsa, pending_pfm, NULL,
 				true, false, false, false, true, false, single, NULL);
 		}
-		else {
+		else if (status == 0) {
 			host_state_manager_set_pfm_dirty (host->state, false);
 		}
 
@@ -685,6 +746,7 @@ int host_processor_filtered_power_on_reset (struct host_processor_filtered *host
 		host_state_manager_set_pfm_dirty (host->state, false);
 
 		host_processor_filtered_config_bypass (host);
+		status = 0;
 	}
 
 exit:
@@ -728,6 +790,7 @@ int host_processor_filtered_update_verification (struct host_processor_filtered 
 	enum host_state_prevalidated flash_checked = HOST_STATE_PREVALIDATED_NONE;
 	bool prevalidated;
 	bool bypass;
+	bool dirty;
 	bool only_validated = false;
 	bool notified = !reset;
 
@@ -748,11 +811,13 @@ int host_processor_filtered_update_verification (struct host_processor_filtered 
 	}
 
 	bypass = host_state_manager_is_bypass_mode (host->state);
+	dirty = host_state_manager_is_inactive_dirty (host->state);
 
-	if (pending_pfm ||
-		(active_pfm && (host_state_manager_is_inactive_dirty (host->state) || bypass))) {
-		if (active_pfm && !host_state_manager_is_inactive_dirty (host->state) &&
-			!host_state_manager_is_pfm_dirty (host->state) && !bypass) {
+	if (pending_pfm || (!pending_pfm && !active_pfm && !bypass) ||
+		(active_pfm && (dirty || bypass))) {
+		/* If nothing has changed since the last validation, just exit. */
+		if (!dirty && !bypass && !host_state_manager_is_pfm_dirty (host->state) &&
+			(active_pfm || (pending_pfm && !active_pfm))) {
 			goto exit;
 		}
 
@@ -765,13 +830,28 @@ int host_processor_filtered_update_verification (struct host_processor_filtered 
 			goto return_flash;
 		}
 
+		if (pending_pfm) {
+			int empty_status;
+
+			status = host_processor_filtered_check_force_bypass_mode (host, &active_pfm,
+				&pending_pfm, &empty_status);
+			if (status != 0) {
+				goto return_flash;
+			}
+
+			status = empty_status;
+			if ((status != 0) && (!active_pfm || (active_pfm && !dirty))) {
+				goto return_flash;
+			}
+		}
+
 		if (!bypass) {
 			flash_checked = host_state_manager_get_run_time_validation (host->state);
 		}
 		host_state_manager_set_run_time_validation (host->state, HOST_STATE_PREVALIDATED_NONE);
 
 		if (pending_pfm) {
-			if (bypass) {
+			if (bypass || !active_pfm) {
 				prevalidated = false;
 			}
 			else {
@@ -795,16 +875,16 @@ int host_processor_filtered_update_verification (struct host_processor_filtered 
 			if (status == 0) {
 				only_validated = prevalidated;
 				status = host_processor_filtered_validate_flash (host, hash, rsa, pending_pfm,
-					bypass ? NULL : active_pfm, true, !active_pfm || bypass, only_validated, true,
-					true, prevalidated, single, NULL);
+					bypass ? NULL : active_pfm, true, bypass, only_validated, true, true,
+					prevalidated, single, NULL);
 			}
 		}
-		else {
+		else if (status == 0) {
 			host_state_manager_set_pfm_dirty (host->state, false);
 		}
 
-		if (!pending_pfm || (active_pfm && (status != 0) && !only_validated &&
-			(host_state_manager_is_inactive_dirty (host->state) || bypass))) {
+		if ((!pending_pfm && active_pfm) ||
+			(active_pfm && (status != 0) && !only_validated && (dirty || bypass))) {
 			if (flash_checked == HOST_STATE_PREVALIDATED_FLASH) {
 				prevalidated = true;
 			}
@@ -814,6 +894,17 @@ int host_processor_filtered_update_verification (struct host_processor_filtered 
 
 			status = host_processor_filtered_validate_flash (host, hash, rsa, active_pfm, NULL,
 				false, bypass, !bypass, true, true, prevalidated, single, NULL);
+		}
+		else if (!pending_pfm && !active_pfm) {
+			/* When there is no PFM available, ensure the system is running in bypass mode.  PFMs
+			 * that were present at POR could have been cleared, so apply bypass configuration. */
+			host->filter->clear_flash_dirty_state (host->filter);
+			host_state_manager_save_inactive_dirty (host->state, false);
+			host_state_manager_set_pfm_dirty (host->state, false);
+
+			if (!bypass) {
+				host_processor_filtered_config_bypass (host);
+			}
 		}
 
 return_flash:
