@@ -44,7 +44,8 @@ enum debug_log_component {
 	DEBUG_LOG_COMPONENT_MCTP,					/**< Log entry for MCTP stack */
 	DEBUG_LOG_COMPONENT_TPM,					/**< Log entry for TPM */
 	DEBUG_LOG_COMPONENT_RIOT,					/**< Log entry for RIoT */
-	DEBUG_LOG_COMPONENT_DEVICE_SPECIFIC = 0xff	/**< Log entry for device-specific messages */
+	DEBUG_LOG_COMPONENT_DEVICE_SPECIFIC = 0xf0,	/**< Base component ID for device-specific messages. */
+	/* Component IDs 0xf0 - 0xff are reserved for device-specific logging. */
 };
 
 #pragma pack(push, 1)
