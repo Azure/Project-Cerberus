@@ -37,6 +37,17 @@ struct logging_entry_header {
 	uint32_t entry_id;				/**< Unique entry identifier. */
 };
 
+/**
+ * Placeholder for the minimum required definition for version 0xCC of the log header.  This will
+ * provide forward compatibility for log parsing.
+ */
+struct logging_entry_header_cc {
+	uint8_t log_magic;				/**< Start of entry marker. */
+	uint16_t length;				/**< Length of the entry. */
+	uint32_t entry_id;				/**< Unique entry identifier. */
+	uint8_t data_offset;			/**< Offset within the entry where the log entry data starts. */
+};
+
 #pragma pack(pop)
 
 /**
