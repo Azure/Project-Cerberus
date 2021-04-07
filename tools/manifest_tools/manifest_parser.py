@@ -431,8 +431,8 @@ def process_pcd (root):
     xml.update ({"version":int (result, 16)})
 
     result = xml_extract_attrib (root, XML_EMPTY_ATTRIB, True, False)
-    if result == "True": 
-        return xml, manifest_types.VERSION_2, True       
+    if result and result.lower () == "true":
+        return xml, manifest_types.VERSION_2, True
 
     rot = xml_find_single_tag (root, XML_ROT_TAG)
     if rot is None:
@@ -463,10 +463,10 @@ def process_pcd (root):
 
             xml["rot"]["ports"][port_id] = {}
 
-            result = xml_extract_single_value (port, {"spi_freq": XML_SPIFREQ_TAG, 
-                "flash_mode": XML_FLASHMODE_TAG, "reset_ctrl": XML_RESETCTRL_TAG, 
-                "policy": XML_POLICY_TAG, "pulse_interval": XML_PULSEINTERVAL_TAG, 
-                "runtime_verification": XML_RUNTIMEVERIFICATION_TAG, 
+            result = xml_extract_single_value (port, {"spi_freq": XML_SPIFREQ_TAG,
+                "flash_mode": XML_FLASHMODE_TAG, "reset_ctrl": XML_RESETCTRL_TAG,
+                "policy": XML_POLICY_TAG, "pulse_interval": XML_PULSEINTERVAL_TAG,
+                "runtime_verification": XML_RUNTIMEVERIFICATION_TAG,
                 "watchdog_monitoring": XML_WATCHDOGMONITORING_TAG})
             if result is None:
                 return None, None, False
@@ -479,7 +479,7 @@ def process_pcd (root):
                 result["flash_mode"] = 2
             elif result["flash_mode"] == PCD_FLASH_MODE_SINGLE_FILTERED_BYPASS:
                 result["flash_mode"] = 3
-            else: 
+            else:
                 print ("Unknown port {0} flash mode: {1}".format (port_id, result["flash_mode"]))
 
             if result["reset_ctrl"] == PCD_RESET_CTRL_NOTIFY:
@@ -488,30 +488,30 @@ def process_pcd (root):
                 result["reset_ctrl"] = 1
             elif result["reset_ctrl"] == PCD_RESET_CTRL_PULSE:
                 result["reset_ctrl"] = 2
-            else: 
+            else:
                 print ("Unknown port {0} reset control: {1}".format (port_id, result["reset_ctrl"]))
 
             if result["policy"] == PCD_POLICY_PASSIVE:
                 result["policy"] = 0
             elif result["policy"] == PCD_POLICY_ACTIVE:
                 result["policy"] = 1
-            else: 
+            else:
                 print ("Unknown port {0} policy: {1}".format (port_id, result["policy"]))
 
             if result["runtime_verification"] == PCD_DISABLED:
                 result["runtime_verification"] = 0
             elif result["runtime_verification"] == PCD_ENABLED:
                 result["runtime_verification"] = 1
-            else: 
-                print ("Unknown port {0} runtime verification setting: {1}".format (port_id, 
+            else:
+                print ("Unknown port {0} runtime verification setting: {1}".format (port_id,
                     result["runtime_verification"]))
 
             if result["watchdog_monitoring"] == PCD_DISABLED:
                 result["watchdog_monitoring"] = 0
             elif result["watchdog_monitoring"] == PCD_ENABLED:
                 result["watchdog_monitoring"] = 1
-            else: 
-                print ("Unknown port {0} watchdog monitoring setting: {1}".format (port_id, 
+            else:
+                print ("Unknown port {0} watchdog monitoring setting: {1}".format (port_id,
                     result["watchdog_monitoring"]))
 
             xml["rot"]["ports"].update ({port_id:result})
@@ -532,8 +532,8 @@ def process_pcd (root):
 
     xml["rot"]["interface"].update ({"type":interface_type})
 
-    result = xml_extract_single_value (interface, {"address": XML_ADDRESS_TAG, 
-        "rot_eid": XML_ROT_EID_TAG, "bridge_eid": XML_BRIDGE_EID_TAG, 
+    result = xml_extract_single_value (interface, {"address": XML_ADDRESS_TAG,
+        "rot_eid": XML_ROT_EID_TAG, "bridge_eid": XML_BRIDGE_EID_TAG,
         "bridge_address": XML_BRIDGE_ADDRESS_TAG})
     if result is None:
         return None, None, False
@@ -565,7 +565,7 @@ def process_pcd (root):
 
         xml["power_controller"]["interface"].update ({"type":interface_type})
 
-        result = xml_extract_single_value (interface, {"bus": XML_BUS_TAG, 
+        result = xml_extract_single_value (interface, {"bus": XML_BUS_TAG,
             "eid": XML_EID_TAG, "address": XML_ADDRESS_TAG, "i2c_mode": XML_I2CMODE_TAG})
         if result is None:
             return None, None, False
@@ -593,7 +593,7 @@ def process_pcd (root):
                 if level is None:
                     return None, None, False
 
-                result = xml_extract_single_value (mux, {"address": XML_ADDRESS_TAG, 
+                result = xml_extract_single_value (mux, {"address": XML_ADDRESS_TAG,
                     "channel": XML_CHANNEL_TAG})
                 if result is None:
                     return None, None, False
@@ -638,7 +638,7 @@ def process_pcd (root):
 
                 curr_component["interface"].update ({"type":interface_type})
 
-                result = xml_extract_single_value (interface, {"bus": XML_BUS_TAG, 
+                result = xml_extract_single_value (interface, {"bus": XML_BUS_TAG,
                     "eid": XML_EID_TAG, "address": XML_ADDRESS_TAG, "i2c_mode": XML_I2CMODE_TAG})
                 if result is None:
                     return None, None, False
@@ -667,7 +667,7 @@ def process_pcd (root):
                         if level is None:
                             return None, None, False
 
-                        result = xml_extract_single_value (mux, {"address": XML_ADDRESS_TAG, 
+                        result = xml_extract_single_value (mux, {"address": XML_ADDRESS_TAG,
                             "channel": XML_CHANNEL_TAG})
                         if result is None:
                             return None, None, False
@@ -675,7 +675,7 @@ def process_pcd (root):
                         result["address"] = int (result["address"], 16)
 
                         curr_component["interface"]["muxes"].update ({level:result})
-                        
+
             elif cnxn_type == PCD_COMPONENT_CONNECTION_MCTP_BRIDGE:
                 curr_component.update ({"connection":PCD_COMPONENT_CONNECTION_MCTP_BRIDGE})
 
@@ -685,8 +685,8 @@ def process_pcd (root):
 
                 curr_component.update ({"count": int (count)})
 
-                result = xml_extract_single_value (component, {"eid": XML_EID_TAG, 
-                    "deviceid": XML_DEVICE_ID_TAG, "vendorid": XML_VENDOR_ID_TAG, 
+                result = xml_extract_single_value (component, {"eid": XML_EID_TAG,
+                    "deviceid": XML_DEVICE_ID_TAG, "vendorid": XML_VENDOR_ID_TAG,
                     "subdeviceid": XML_SUB_DEVICE_ID_TAG, "subvendorid": XML_SUB_VENDOR_ID_TAG})
                 if result is None:
                     return None, None, False
@@ -699,7 +699,7 @@ def process_pcd (root):
 
                 curr_component.update (result)
             else:
-                print ("Unknown component {0} connection type: {1}".format (curr_component["type"], 
+                print ("Unknown component {0} connection type: {1}".format (curr_component["type"],
                     cnxn_type))
 
             result = xml_extract_single_value (component, {"policy": XML_POLICY_TAG})
@@ -709,8 +709,8 @@ def process_pcd (root):
                 result["policy"] = 0
             elif result["policy"] == PCD_POLICY_ACTIVE:
                 result["policy"] = 1
-            else: 
-                print ("Unknown component {0} policy: {1}".format (curr_component["type"], 
+            else:
+                print ("Unknown component {0} policy: {1}".format (curr_component["type"],
                     result["policy"]))
 
             curr_component.update (result)
@@ -721,7 +721,7 @@ def process_pcd (root):
 
             curr_component["powerctrl"] = {}
 
-            result = xml_extract_single_value (powerctrl, {"register": XML_REGISTER_TAG, 
+            result = xml_extract_single_value (powerctrl, {"register": XML_REGISTER_TAG,
                 "mask": XML_MASK_TAG})
             if result is None:
                 return None, None, False
