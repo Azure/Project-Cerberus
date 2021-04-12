@@ -894,8 +894,8 @@ platform_header = None
 allowable_fw_list = None
 pfm = None
 
-processed_xml, sign, key_size, key, key_type, hash_type, pfm_id, output, xml_version = manifest_common.load_xmls (
-    args.config, None, manifest_types.PFM)
+processed_xml, sign, key_size, key, key_type, hash_type, pfm_id, output, xml_version, empty = \
+    manifest_common.load_xmls (args.config, None, manifest_types.PFM)
 
 pfm_header_instance = manifest_common.generate_manifest_header (pfm_id, key_size, 
     manifest_types.PFM, hash_type, key_type, xml_version)
