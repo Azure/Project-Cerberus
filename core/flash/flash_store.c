@@ -176,10 +176,10 @@ int flash_store_write_common (struct flash_store *flash, int id, const uint8_t *
 		if (first != 0) {
 			platform_mutex_lock (&flash->lock);
 			if (!flash->old_header) {
-				memcpy (flash->page_buffer, &header, sizeof (header));
+				memcpy (flash->page_buffer, (uint8_t*) &header, sizeof (header));
 			}
 			else {
-				memcpy (flash->page_buffer, &header.length, sizeof (header.length));
+				memcpy (flash->page_buffer, (uint8_t*) &header.length, sizeof (header.length));
 			}
 			memcpy (&flash->page_buffer[header_len], data, first);
 			if (extra_first) {
