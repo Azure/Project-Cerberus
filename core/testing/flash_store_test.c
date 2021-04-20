@@ -19,8 +19,10 @@ static const char *SUITE = "flash_store";
 struct flash_store_testing {
 	struct flash_mock flash;				/**< The flash device. */
 	struct hash_engine_mock hash;			/**< Hash engine for integrity checking. */
+	uint32_t page;							/**< Number of bytes per flash programming page. */
 	uint32_t sector;						/**< Number of bytes per flash erase sector. */
 	uint32_t bytes;							/**< Total storage for the flash flash device. */
+	uint32_t min_write;						/**< Minimum number of page programming bytes. */
 	struct flash_store test;				/**< Flash storage under test. */
 };
 
@@ -47,18 +49,22 @@ static void flash_store_testing_init_dependencies (CuTest *test, struct flash_st
  *
  * @param test The test framework.
  * @param store Testing dependencies that will be initialized.
+ * @param page Number of bytes per programming page.
  * @param sector Number of bytes per erase sector.
  * @param bytes Total size of the flash device.
+ * @param min_write Minimum number of bytes required to write to a page.
  */
 static void flash_store_testing_prepare_init (CuTest *test, struct flash_store_testing *store,
-	uint32_t sector, uint32_t bytes)
+	uint32_t page, uint32_t sector, uint32_t bytes, uint32_t min_write)
 {
 	int status;
 
 	flash_store_testing_init_dependencies (test, store);
 
+	store->page = page;
 	store->sector = sector;
 	store->bytes = bytes;
+	store->min_write = min_write;
 
 	status = mock_expect (&store->flash.mock, store->flash.base.get_sector_size, &store->flash, 0,
 		MOCK_ARG_NOT_NULL);
@@ -68,6 +74,15 @@ static void flash_store_testing_prepare_init (CuTest *test, struct flash_store_t
 	status |= mock_expect (&store->flash.mock, store->flash.base.get_device_size, &store->flash, 0,
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&store->flash.mock, 0, &store->bytes, sizeof (store->bytes), -1);
+
+	status |= mock_expect (&store->flash.mock, store->flash.base.get_page_size, &store->flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store->flash.mock, 0, &store->page, sizeof (store->page), -1);
+
+	status |= mock_expect (&store->flash.mock, store->flash.base.minimum_write_per_page,
+		&store->flash, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store->flash.mock, 0, &store->min_write,
+		sizeof (store->min_write), -1);
 
 	CuAssertIntEquals (test, 0, status);
 }
@@ -99,8 +114,10 @@ static void flash_store_test_init_fixed_storage_no_hash (CuTest *test)
 {
 	struct flash_store_testing store;
 	int status;
+	uint32_t page = 0x100;
 	uint32_t sector = 0x1000;
 	uint32_t bytes = 0x100000;
+	uint32_t min_write = 1;
 
 	TEST_START;
 
@@ -113,6 +130,14 @@ static void flash_store_test_init_fixed_storage_no_hash (CuTest *test)
 	status |= mock_expect (&store.flash.mock, store.flash.base.get_device_size, &store.flash, 0,
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&store.flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_page_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &page, sizeof (page), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.minimum_write_per_page, &store.flash,
+		0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &min_write, sizeof (min_write), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -148,8 +173,10 @@ static void flash_store_test_init_fixed_storage_with_hash (CuTest *test)
 {
 	struct flash_store_testing store;
 	int status;
+	uint32_t page = 0x100;
 	uint32_t sector = 0x1000;
 	uint32_t bytes = 0x100000;
+	uint32_t min_write = 1;
 
 	TEST_START;
 
@@ -162,6 +189,14 @@ static void flash_store_test_init_fixed_storage_with_hash (CuTest *test)
 	status |= mock_expect (&store.flash.mock, store.flash.base.get_device_size, &store.flash, 0,
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&store.flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_page_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &page, sizeof (page), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.minimum_write_per_page, &store.flash,
+		0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &min_write, sizeof (min_write), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -197,8 +232,10 @@ static void flash_store_test_init_fixed_storage_one_sector_per_block_max_space (
 {
 	struct flash_store_testing store;
 	int status;
+	uint32_t page = 0x100;
 	uint32_t sector = 0x1000;
 	uint32_t bytes = 0x100000;
+	uint32_t min_write = 1;
 
 	TEST_START;
 
@@ -211,6 +248,14 @@ static void flash_store_test_init_fixed_storage_one_sector_per_block_max_space (
 	status |= mock_expect (&store.flash.mock, store.flash.base.get_device_size, &store.flash, 0,
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&store.flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_page_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &page, sizeof (page), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.minimum_write_per_page, &store.flash,
+		0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &min_write, sizeof (min_write), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -236,8 +281,10 @@ static void flash_store_test_init_fixed_storage_one_sector_with_hash_max_space (
 {
 	struct flash_store_testing store;
 	int status;
+	uint32_t page = 0x100;
 	uint32_t sector = 0x1000;
 	uint32_t bytes = 0x100000;
+	uint32_t min_write = 1;
 
 	TEST_START;
 
@@ -250,6 +297,14 @@ static void flash_store_test_init_fixed_storage_one_sector_with_hash_max_space (
 	status |= mock_expect (&store.flash.mock, store.flash.base.get_device_size, &store.flash, 0,
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&store.flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_page_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &page, sizeof (page), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.minimum_write_per_page, &store.flash,
+		0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &min_write, sizeof (min_write), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -275,8 +330,10 @@ static void flash_store_test_init_fixed_storage_multiple_sector_per_block_max_sp
 {
 	struct flash_store_testing store;
 	int status;
+	uint32_t page = 0x100;
 	uint32_t sector = 0x100;
 	uint32_t bytes = 0x100000;
+	uint32_t min_write = 1;
 
 	TEST_START;
 
@@ -289,6 +346,14 @@ static void flash_store_test_init_fixed_storage_multiple_sector_per_block_max_sp
 	status |= mock_expect (&store.flash.mock, store.flash.base.get_device_size, &store.flash, 0,
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&store.flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_page_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &page, sizeof (page), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.minimum_write_per_page, &store.flash,
+		0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &min_write, sizeof (min_write), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -314,8 +379,10 @@ static void flash_store_test_init_fixed_storage_data_not_sector_aligned_max_spac
 {
 	struct flash_store_testing store;
 	int status;
+	uint32_t page = 0x100;
 	uint32_t sector = 0x100;
 	uint32_t bytes = 0x100000;
+	uint32_t min_write = 1;
 
 	TEST_START;
 
@@ -328,6 +395,14 @@ static void flash_store_test_init_fixed_storage_data_not_sector_aligned_max_spac
 	status |= mock_expect (&store.flash.mock, store.flash.base.get_device_size, &store.flash, 0,
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&store.flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_page_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &page, sizeof (page), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.minimum_write_per_page, &store.flash,
+		0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &min_write, sizeof (min_write), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -352,8 +427,10 @@ static void flash_store_test_init_fixed_storage_extra_sector_for_hash_max_space 
 {
 	struct flash_store_testing store;
 	int status;
+	uint32_t page = 0x100;
 	uint32_t sector = 0x100;
 	uint32_t bytes = 0x100000;
+	uint32_t min_write = 1;
 
 	TEST_START;
 
@@ -366,6 +443,14 @@ static void flash_store_test_init_fixed_storage_extra_sector_for_hash_max_space 
 	status |= mock_expect (&store.flash.mock, store.flash.base.get_device_size, &store.flash, 0,
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&store.flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_page_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &page, sizeof (page), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.minimum_write_per_page, &store.flash,
+		0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &min_write, sizeof (min_write), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -391,8 +476,10 @@ static void flash_store_test_init_fixed_storage_max_data_no_hash (CuTest *test)
 {
 	struct flash_store_testing store;
 	int status;
+	uint32_t page = 0x100;
 	uint32_t sector = 0x1000;
 	uint32_t bytes = 0x100000;
+	uint32_t min_write = 1;
 
 	TEST_START;
 
@@ -405,6 +492,14 @@ static void flash_store_test_init_fixed_storage_max_data_no_hash (CuTest *test)
 	status |= mock_expect (&store.flash.mock, store.flash.base.get_device_size, &store.flash, 0,
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&store.flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_page_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &page, sizeof (page), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.minimum_write_per_page, &store.flash,
+		0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &min_write, sizeof (min_write), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -430,8 +525,10 @@ static void flash_store_test_init_fixed_storage_max_data_with_hash (CuTest *test
 {
 	struct flash_store_testing store;
 	int status;
+	uint32_t page = 0x100;
 	uint32_t sector = 0x1000;
 	uint32_t bytes = 0x100000;
+	uint32_t min_write = 1;
 
 	TEST_START;
 
@@ -444,6 +541,14 @@ static void flash_store_test_init_fixed_storage_max_data_with_hash (CuTest *test
 	status |= mock_expect (&store.flash.mock, store.flash.base.get_device_size, &store.flash, 0,
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&store.flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_page_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &page, sizeof (page), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.minimum_write_per_page, &store.flash,
+		0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &min_write, sizeof (min_write), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -758,7 +863,7 @@ static void flash_store_test_init_fixed_storage_extra_sector_for_hash_not_enough
 	flash_store_testing_release_dependencies (test, &store);
 }
 
-static void flash_store_test_init_fixed_storage_decreasing_no_hash (CuTest *test)
+static void flash_store_test_init_fixed_storage_page_size_error (CuTest *test)
 {
 	struct flash_store_testing store;
 	int status;
@@ -776,6 +881,83 @@ static void flash_store_test_init_fixed_storage_decreasing_no_hash (CuTest *test
 	status |= mock_expect (&store.flash.mock, store.flash.base.get_device_size, &store.flash, 0,
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&store.flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_page_size, &store.flash,
+		FLASH_PAGE_SIZE_FAILED, MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3, 256,
+		NULL);
+	CuAssertIntEquals (test, FLASH_PAGE_SIZE_FAILED, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+}
+
+static void flash_store_test_init_fixed_storage_min_write_error (CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint32_t sector = 0x1000;
+	uint32_t bytes = 0x100000;
+
+	TEST_START;
+
+	flash_store_testing_init_dependencies (test, &store);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.get_sector_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &sector, sizeof (sector), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_device_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_page_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &page, sizeof (page), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.minimum_write_per_page, &store.flash,
+		FLASH_MINIMUM_WRITE_FAILED, MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3, 256,
+		NULL);
+	CuAssertIntEquals (test, FLASH_MINIMUM_WRITE_FAILED, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+}
+
+static void flash_store_test_init_fixed_storage_decreasing_no_hash (CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint32_t sector = 0x1000;
+	uint32_t bytes = 0x100000;
+	uint32_t min_write = 1;
+
+	TEST_START;
+
+	flash_store_testing_init_dependencies (test, &store);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.get_sector_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &sector, sizeof (sector), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_device_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_page_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &page, sizeof (page), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.minimum_write_per_page, &store.flash,
+		0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &min_write, sizeof (min_write), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -811,8 +993,10 @@ static void flash_store_test_init_fixed_storage_decreasing_with_hash (CuTest *te
 {
 	struct flash_store_testing store;
 	int status;
+	uint32_t page = 0x100;
 	uint32_t sector = 0x1000;
 	uint32_t bytes = 0x100000;
+	uint32_t min_write = 1;
 
 	TEST_START;
 
@@ -825,6 +1009,14 @@ static void flash_store_test_init_fixed_storage_decreasing_with_hash (CuTest *te
 	status |= mock_expect (&store.flash.mock, store.flash.base.get_device_size, &store.flash, 0,
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&store.flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_page_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &page, sizeof (page), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.minimum_write_per_page, &store.flash,
+		0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &min_write, sizeof (min_write), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -861,8 +1053,10 @@ static void flash_store_test_init_fixed_storage_decreasing_one_sector_per_block_
 {
 	struct flash_store_testing store;
 	int status;
+	uint32_t page = 0x100;
 	uint32_t sector = 0x1000;
 	uint32_t bytes = 0x100000;
+	uint32_t min_write = 1;
 
 	TEST_START;
 
@@ -875,6 +1069,14 @@ static void flash_store_test_init_fixed_storage_decreasing_one_sector_per_block_
 	status |= mock_expect (&store.flash.mock, store.flash.base.get_device_size, &store.flash, 0,
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&store.flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_page_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &page, sizeof (page), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.minimum_write_per_page, &store.flash,
+		0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &min_write, sizeof (min_write), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -901,8 +1103,10 @@ static void flash_store_test_init_fixed_storage_decreasing_one_sector_with_hash_
 {
 	struct flash_store_testing store;
 	int status;
+	uint32_t page = 0x100;
 	uint32_t sector = 0x1000;
 	uint32_t bytes = 0x100000;
+	uint32_t min_write = 1;
 
 	TEST_START;
 
@@ -915,6 +1119,14 @@ static void flash_store_test_init_fixed_storage_decreasing_one_sector_with_hash_
 	status |= mock_expect (&store.flash.mock, store.flash.base.get_device_size, &store.flash, 0,
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&store.flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_page_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &page, sizeof (page), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.minimum_write_per_page, &store.flash,
+		0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &min_write, sizeof (min_write), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -941,8 +1153,10 @@ static void flash_store_test_init_fixed_storage_decreasing_multiple_sector_per_b
 {
 	struct flash_store_testing store;
 	int status;
+	uint32_t page = 0x100;
 	uint32_t sector = 0x100;
 	uint32_t bytes = 0x100000;
+	uint32_t min_write = 1;
 
 	TEST_START;
 
@@ -955,6 +1169,14 @@ static void flash_store_test_init_fixed_storage_decreasing_multiple_sector_per_b
 	status |= mock_expect (&store.flash.mock, store.flash.base.get_device_size, &store.flash, 0,
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&store.flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_page_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &page, sizeof (page), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.minimum_write_per_page, &store.flash,
+		0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &min_write, sizeof (min_write), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -981,8 +1203,10 @@ static void flash_store_test_init_fixed_storage_decreasing_data_not_sector_align
 {
 	struct flash_store_testing store;
 	int status;
+	uint32_t page = 0x100;
 	uint32_t sector = 0x100;
 	uint32_t bytes = 0x100000;
+	uint32_t min_write = 1;
 
 	TEST_START;
 
@@ -995,6 +1219,14 @@ static void flash_store_test_init_fixed_storage_decreasing_data_not_sector_align
 	status |= mock_expect (&store.flash.mock, store.flash.base.get_device_size, &store.flash, 0,
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&store.flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_page_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &page, sizeof (page), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.minimum_write_per_page, &store.flash,
+		0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &min_write, sizeof (min_write), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1021,8 +1253,10 @@ static void flash_store_test_init_fixed_storage_decreasing_extra_sector_for_hash
 {
 	struct flash_store_testing store;
 	int status;
+	uint32_t page = 0x100;
 	uint32_t sector = 0x100;
 	uint32_t bytes = 0x100000;
+	uint32_t min_write = 1;
 
 	TEST_START;
 
@@ -1035,6 +1269,14 @@ static void flash_store_test_init_fixed_storage_decreasing_extra_sector_for_hash
 	status |= mock_expect (&store.flash.mock, store.flash.base.get_device_size, &store.flash, 0,
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&store.flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_page_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &page, sizeof (page), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.minimum_write_per_page, &store.flash,
+		0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &min_write, sizeof (min_write), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1060,8 +1302,10 @@ static void flash_store_test_init_fixed_storage_decreasing_max_data_no_hash (CuT
 {
 	struct flash_store_testing store;
 	int status;
+	uint32_t page = 0x100;
 	uint32_t sector = 0x1000;
 	uint32_t bytes = 0x100000;
+	uint32_t min_write = 1;
 
 	TEST_START;
 
@@ -1074,6 +1318,14 @@ static void flash_store_test_init_fixed_storage_decreasing_max_data_no_hash (CuT
 	status |= mock_expect (&store.flash.mock, store.flash.base.get_device_size, &store.flash, 0,
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&store.flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_page_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &page, sizeof (page), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.minimum_write_per_page, &store.flash,
+		0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &min_write, sizeof (min_write), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1099,8 +1351,10 @@ static void flash_store_test_init_fixed_storage_decreasing_max_data_with_hash (C
 {
 	struct flash_store_testing store;
 	int status;
+	uint32_t page = 0x100;
 	uint32_t sector = 0x1000;
 	uint32_t bytes = 0x100000;
+	uint32_t min_write = 1;
 
 	TEST_START;
 
@@ -1113,6 +1367,14 @@ static void flash_store_test_init_fixed_storage_decreasing_max_data_with_hash (C
 	status |= mock_expect (&store.flash.mock, store.flash.base.get_device_size, &store.flash, 0,
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&store.flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_page_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &page, sizeof (page), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.minimum_write_per_page, &store.flash,
+		0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &min_write, sizeof (min_write), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1457,7 +1719,7 @@ static void flash_store_test_init_fixed_storage_decreasing_extra_sector_for_hash
 	flash_store_testing_release_dependencies (test, &store);
 }
 
-static void flash_store_test_init_variable_storage_no_hash (CuTest *test)
+static void flash_store_test_init_fixed_storage_decreasing_page_size_error (CuTest *test)
 {
 	struct flash_store_testing store;
 	int status;
@@ -1475,6 +1737,83 @@ static void flash_store_test_init_variable_storage_no_hash (CuTest *test)
 	status |= mock_expect (&store.flash.mock, store.flash.base.get_device_size, &store.flash, 0,
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&store.flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_page_size, &store.flash,
+		FLASH_PAGE_SIZE_FAILED, MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_store_init_fixed_storage_decreasing (&store.test, &store.flash.base, 0x10000, 3,
+		256, NULL);
+	CuAssertIntEquals (test, FLASH_PAGE_SIZE_FAILED, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+}
+
+static void flash_store_test_init_fixed_storage_decreasing_min_write_error (CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint32_t sector = 0x1000;
+	uint32_t bytes = 0x100000;
+
+	TEST_START;
+
+	flash_store_testing_init_dependencies (test, &store);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.get_sector_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &sector, sizeof (sector), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_device_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_page_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &page, sizeof (page), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.minimum_write_per_page, &store.flash,
+		FLASH_MINIMUM_WRITE_FAILED, MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_store_init_fixed_storage_decreasing (&store.test, &store.flash.base, 0x10000, 3,
+		256, NULL);
+	CuAssertIntEquals (test, FLASH_MINIMUM_WRITE_FAILED, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+}
+
+static void flash_store_test_init_variable_storage_no_hash (CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint32_t sector = 0x1000;
+	uint32_t bytes = 0x100000;
+	uint32_t min_write = 1;
+
+	TEST_START;
+
+	flash_store_testing_init_dependencies (test, &store);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.get_sector_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &sector, sizeof (sector), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_device_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_page_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &page, sizeof (page), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.minimum_write_per_page, &store.flash,
+		0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &min_write, sizeof (min_write), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1510,8 +1849,10 @@ static void flash_store_test_init_variable_storage_with_hash (CuTest *test)
 {
 	struct flash_store_testing store;
 	int status;
+	uint32_t page = 0x100;
 	uint32_t sector = 0x1000;
 	uint32_t bytes = 0x100000;
+	uint32_t min_write = 1;
 
 	TEST_START;
 
@@ -1524,6 +1865,14 @@ static void flash_store_test_init_variable_storage_with_hash (CuTest *test)
 	status |= mock_expect (&store.flash.mock, store.flash.base.get_device_size, &store.flash, 0,
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&store.flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_page_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &page, sizeof (page), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.minimum_write_per_page, &store.flash,
+		0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &min_write, sizeof (min_write), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1559,8 +1908,10 @@ static void flash_store_test_init_variable_storage_one_sector_per_block_max_spac
 {
 	struct flash_store_testing store;
 	int status;
+	uint32_t page = 0x100;
 	uint32_t sector = 0x1000;
 	uint32_t bytes = 0x100000;
+	uint32_t min_write = 1;
 
 	TEST_START;
 
@@ -1573,6 +1924,14 @@ static void flash_store_test_init_variable_storage_one_sector_per_block_max_spac
 	status |= mock_expect (&store.flash.mock, store.flash.base.get_device_size, &store.flash, 0,
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&store.flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_page_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &page, sizeof (page), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.minimum_write_per_page, &store.flash,
+		0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &min_write, sizeof (min_write), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1598,8 +1957,10 @@ static void flash_store_test_init_variable_storage_one_sector_with_hash_max_spac
 {
 	struct flash_store_testing store;
 	int status;
+	uint32_t page = 0x100;
 	uint32_t sector = 0x1000;
 	uint32_t bytes = 0x100000;
+	uint32_t min_write = 1;
 
 	TEST_START;
 
@@ -1612,6 +1973,14 @@ static void flash_store_test_init_variable_storage_one_sector_with_hash_max_spac
 	status |= mock_expect (&store.flash.mock, store.flash.base.get_device_size, &store.flash, 0,
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&store.flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_page_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &page, sizeof (page), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.minimum_write_per_page, &store.flash,
+		0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &min_write, sizeof (min_write), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1638,8 +2007,10 @@ static void flash_store_test_init_variable_storage_multiple_sector_per_block_max
 {
 	struct flash_store_testing store;
 	int status;
+	uint32_t page = 0x100;
 	uint32_t sector = 0x100;
 	uint32_t bytes = 0x100000;
+	uint32_t min_write = 1;
 
 	TEST_START;
 
@@ -1652,6 +2023,14 @@ static void flash_store_test_init_variable_storage_multiple_sector_per_block_max
 	status |= mock_expect (&store.flash.mock, store.flash.base.get_device_size, &store.flash, 0,
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&store.flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_page_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &page, sizeof (page), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.minimum_write_per_page, &store.flash,
+		0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &min_write, sizeof (min_write), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1677,8 +2056,10 @@ static void flash_store_test_init_variable_storage_data_not_sector_aligned_max_s
 {
 	struct flash_store_testing store;
 	int status;
+	uint32_t page = 0x100;
 	uint32_t sector = 0x100;
 	uint32_t bytes = 0x100000;
+	uint32_t min_write = 1;
 
 	TEST_START;
 
@@ -1691,6 +2072,14 @@ static void flash_store_test_init_variable_storage_data_not_sector_aligned_max_s
 	status |= mock_expect (&store.flash.mock, store.flash.base.get_device_size, &store.flash, 0,
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&store.flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_page_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &page, sizeof (page), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.minimum_write_per_page, &store.flash,
+		0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &min_write, sizeof (min_write), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1716,8 +2105,10 @@ static void flash_store_test_init_variable_storage_extra_sector_for_hash_max_spa
 {
 	struct flash_store_testing store;
 	int status;
+	uint32_t page = 0x100;
 	uint32_t sector = 0x100;
 	uint32_t bytes = 0x100000;
+	uint32_t min_write = 1;
 
 	TEST_START;
 
@@ -1730,6 +2121,14 @@ static void flash_store_test_init_variable_storage_extra_sector_for_hash_max_spa
 	status |= mock_expect (&store.flash.mock, store.flash.base.get_device_size, &store.flash, 0,
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&store.flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_page_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &page, sizeof (page), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.minimum_write_per_page, &store.flash,
+		0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &min_write, sizeof (min_write), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1755,8 +2154,10 @@ static void flash_store_test_init_variable_storage_extra_sector_for_header_max_s
 {
 	struct flash_store_testing store;
 	int status;
+	uint32_t page = 0x100;
 	uint32_t sector = 0x100;
 	uint32_t bytes = 0x100000;
+	uint32_t min_write = 1;
 
 	TEST_START;
 
@@ -1769,6 +2170,14 @@ static void flash_store_test_init_variable_storage_extra_sector_for_header_max_s
 	status |= mock_expect (&store.flash.mock, store.flash.base.get_device_size, &store.flash, 0,
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&store.flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_page_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &page, sizeof (page), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.minimum_write_per_page, &store.flash,
+		0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &min_write, sizeof (min_write), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1794,8 +2203,10 @@ static void flash_store_test_init_variable_storage_max_data_no_hash (CuTest *tes
 {
 	struct flash_store_testing store;
 	int status;
+	uint32_t page = 0x100;
 	uint32_t sector = 0x1000;
 	uint32_t bytes = 0x100000;
+	uint32_t min_write = 1;
 
 	TEST_START;
 
@@ -1808,6 +2219,14 @@ static void flash_store_test_init_variable_storage_max_data_no_hash (CuTest *tes
 	status |= mock_expect (&store.flash.mock, store.flash.base.get_device_size, &store.flash, 0,
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&store.flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_page_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &page, sizeof (page), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.minimum_write_per_page, &store.flash,
+		0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &min_write, sizeof (min_write), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1833,8 +2252,10 @@ static void flash_store_test_init_variable_storage_max_data_with_hash (CuTest *t
 {
 	struct flash_store_testing store;
 	int status;
+	uint32_t page = 0x100;
 	uint32_t sector = 0x1000;
 	uint32_t bytes = 0x100000;
+	uint32_t min_write = 1;
 
 	TEST_START;
 
@@ -1847,6 +2268,14 @@ static void flash_store_test_init_variable_storage_max_data_with_hash (CuTest *t
 	status |= mock_expect (&store.flash.mock, store.flash.base.get_device_size, &store.flash, 0,
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&store.flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_page_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &page, sizeof (page), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.minimum_write_per_page, &store.flash,
+		0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &min_write, sizeof (min_write), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2249,7 +2678,7 @@ static void flash_store_test_init_variable_storage_extra_sector_for_header_block
 	flash_store_testing_release_dependencies (test, &store);
 }
 
-static void flash_store_test_init_variable_storage_decreasing_no_hash (CuTest *test)
+static void flash_store_test_init_variable_storage_page_size_error (CuTest *test)
 {
 	struct flash_store_testing store;
 	int status;
@@ -2267,6 +2696,83 @@ static void flash_store_test_init_variable_storage_decreasing_no_hash (CuTest *t
 	status |= mock_expect (&store.flash.mock, store.flash.base.get_device_size, &store.flash, 0,
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&store.flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_page_size, &store.flash,
+		FLASH_PAGE_SIZE_FAILED, MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 0,
+		NULL);
+	CuAssertIntEquals (test, FLASH_PAGE_SIZE_FAILED, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+}
+
+static void flash_store_test_init_variable_storage_min_write_error (CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint32_t sector = 0x1000;
+	uint32_t bytes = 0x100000;
+
+	TEST_START;
+
+	flash_store_testing_init_dependencies (test, &store);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.get_sector_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &sector, sizeof (sector), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_device_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_page_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &page, sizeof (page), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.minimum_write_per_page, &store.flash,
+		FLASH_MINIMUM_WRITE_FAILED, MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 0,
+		NULL);
+	CuAssertIntEquals (test, FLASH_MINIMUM_WRITE_FAILED, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+}
+
+static void flash_store_test_init_variable_storage_decreasing_no_hash (CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint32_t sector = 0x1000;
+	uint32_t bytes = 0x100000;
+	uint32_t min_write = 1;
+
+	TEST_START;
+
+	flash_store_testing_init_dependencies (test, &store);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.get_sector_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &sector, sizeof (sector), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_device_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_page_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &page, sizeof (page), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.minimum_write_per_page, &store.flash,
+		0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &min_write, sizeof (min_write), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2302,8 +2808,10 @@ static void flash_store_test_init_variable_storage_decreasing_with_hash (CuTest 
 {
 	struct flash_store_testing store;
 	int status;
+	uint32_t page = 0x100;
 	uint32_t sector = 0x1000;
 	uint32_t bytes = 0x100000;
+	uint32_t min_write = 1;
 
 	TEST_START;
 
@@ -2316,6 +2824,14 @@ static void flash_store_test_init_variable_storage_decreasing_with_hash (CuTest 
 	status |= mock_expect (&store.flash.mock, store.flash.base.get_device_size, &store.flash, 0,
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&store.flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_page_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &page, sizeof (page), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.minimum_write_per_page, &store.flash,
+		0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &min_write, sizeof (min_write), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2352,8 +2868,10 @@ static void flash_store_test_init_variable_storage_decreasing_one_sector_per_blo
 {
 	struct flash_store_testing store;
 	int status;
+	uint32_t page = 0x100;
 	uint32_t sector = 0x1000;
 	uint32_t bytes = 0x100000;
+	uint32_t min_write = 1;
 
 	TEST_START;
 
@@ -2366,6 +2884,14 @@ static void flash_store_test_init_variable_storage_decreasing_one_sector_per_blo
 	status |= mock_expect (&store.flash.mock, store.flash.base.get_device_size, &store.flash, 0,
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&store.flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_page_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &page, sizeof (page), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.minimum_write_per_page, &store.flash,
+		0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &min_write, sizeof (min_write), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2392,8 +2918,10 @@ static void flash_store_test_init_variable_storage_decreasing_one_sector_with_ha
 {
 	struct flash_store_testing store;
 	int status;
+	uint32_t page = 0x100;
 	uint32_t sector = 0x1000;
 	uint32_t bytes = 0x100000;
+	uint32_t min_write = 1;
 
 	TEST_START;
 
@@ -2406,6 +2934,14 @@ static void flash_store_test_init_variable_storage_decreasing_one_sector_with_ha
 	status |= mock_expect (&store.flash.mock, store.flash.base.get_device_size, &store.flash, 0,
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&store.flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_page_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &page, sizeof (page), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.minimum_write_per_page, &store.flash,
+		0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &min_write, sizeof (min_write), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2432,8 +2968,10 @@ static void flash_store_test_init_variable_storage_decreasing_multiple_sector_pe
 {
 	struct flash_store_testing store;
 	int status;
+	uint32_t page = 0x100;
 	uint32_t sector = 0x100;
 	uint32_t bytes = 0x100000;
+	uint32_t min_write = 1;
 
 	TEST_START;
 
@@ -2446,6 +2984,14 @@ static void flash_store_test_init_variable_storage_decreasing_multiple_sector_pe
 	status |= mock_expect (&store.flash.mock, store.flash.base.get_device_size, &store.flash, 0,
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&store.flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_page_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &page, sizeof (page), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.minimum_write_per_page, &store.flash,
+		0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &min_write, sizeof (min_write), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2472,8 +3018,10 @@ static void flash_store_test_init_variable_storage_decreasing_data_not_sector_al
 {
 	struct flash_store_testing store;
 	int status;
+	uint32_t page = 0x100;
 	uint32_t sector = 0x100;
 	uint32_t bytes = 0x100000;
+	uint32_t min_write = 1;
 
 	TEST_START;
 
@@ -2486,6 +3034,14 @@ static void flash_store_test_init_variable_storage_decreasing_data_not_sector_al
 	status |= mock_expect (&store.flash.mock, store.flash.base.get_device_size, &store.flash, 0,
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&store.flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_page_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &page, sizeof (page), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.minimum_write_per_page, &store.flash,
+		0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &min_write, sizeof (min_write), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2512,8 +3068,10 @@ static void flash_store_test_init_variable_storage_decreasing_extra_sector_for_h
 {
 	struct flash_store_testing store;
 	int status;
+	uint32_t page = 0x100;
 	uint32_t sector = 0x100;
 	uint32_t bytes = 0x100000;
+	uint32_t min_write = 1;
 
 	TEST_START;
 
@@ -2526,6 +3084,14 @@ static void flash_store_test_init_variable_storage_decreasing_extra_sector_for_h
 	status |= mock_expect (&store.flash.mock, store.flash.base.get_device_size, &store.flash, 0,
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&store.flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_page_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &page, sizeof (page), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.minimum_write_per_page, &store.flash,
+		0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &min_write, sizeof (min_write), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2552,8 +3118,10 @@ static void flash_store_test_init_variable_storage_decreasing_extra_sector_for_h
 {
 	struct flash_store_testing store;
 	int status;
+	uint32_t page = 0x100;
 	uint32_t sector = 0x100;
 	uint32_t bytes = 0x100000;
+	uint32_t min_write = 1;
 
 	TEST_START;
 
@@ -2566,6 +3134,14 @@ static void flash_store_test_init_variable_storage_decreasing_extra_sector_for_h
 	status |= mock_expect (&store.flash.mock, store.flash.base.get_device_size, &store.flash, 0,
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&store.flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_page_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &page, sizeof (page), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.minimum_write_per_page, &store.flash,
+		0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &min_write, sizeof (min_write), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2591,8 +3167,10 @@ static void flash_store_test_init_variable_storage_decreasing_max_data_no_hash (
 {
 	struct flash_store_testing store;
 	int status;
+	uint32_t page = 0x100;
 	uint32_t sector = 0x1000;
 	uint32_t bytes = 0x100000;
+	uint32_t min_write = 1;
 
 	TEST_START;
 
@@ -2605,6 +3183,14 @@ static void flash_store_test_init_variable_storage_decreasing_max_data_no_hash (
 	status |= mock_expect (&store.flash.mock, store.flash.base.get_device_size, &store.flash, 0,
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&store.flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_page_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &page, sizeof (page), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.minimum_write_per_page, &store.flash,
+		0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &min_write, sizeof (min_write), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2630,8 +3216,10 @@ static void flash_store_test_init_variable_storage_decreasing_max_data_with_hash
 {
 	struct flash_store_testing store;
 	int status;
+	uint32_t page = 0x100;
 	uint32_t sector = 0x1000;
 	uint32_t bytes = 0x100000;
+	uint32_t min_write = 1;
 
 	TEST_START;
 
@@ -2644,6 +3232,14 @@ static void flash_store_test_init_variable_storage_decreasing_max_data_with_hash
 	status |= mock_expect (&store.flash.mock, store.flash.base.get_device_size, &store.flash, 0,
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&store.flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_page_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &page, sizeof (page), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.minimum_write_per_page, &store.flash,
+		0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &min_write, sizeof (min_write), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3047,6 +3643,73 @@ static void flash_store_test_init_variable_storage_decreasing_extra_sector_for_h
 	flash_store_testing_release_dependencies (test, &store);
 }
 
+static void flash_store_test_init_variable_storage_decreasing_page_size_error (CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t sector = 0x1000;
+	uint32_t bytes = 0x100000;
+
+	TEST_START;
+
+	flash_store_testing_init_dependencies (test, &store);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.get_sector_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &sector, sizeof (sector), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_device_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_page_size, &store.flash,
+		FLASH_PAGE_SIZE_FAILED, MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
+		3, 0, NULL);
+	CuAssertIntEquals (test, FLASH_PAGE_SIZE_FAILED, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+}
+
+static void flash_store_test_init_variable_storage_decreasing_min_write_error (CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint32_t sector = 0x1000;
+	uint32_t bytes = 0x100000;
+
+	TEST_START;
+
+	flash_store_testing_init_dependencies (test, &store);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.get_sector_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &sector, sizeof (sector), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_device_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &bytes, sizeof (bytes), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.get_page_size, &store.flash, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&store.flash.mock, 0, &page, sizeof (page), -1);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.minimum_write_per_page, &store.flash,
+		FLASH_MINIMUM_WRITE_FAILED, MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
+		3, 0, NULL);
+	CuAssertIntEquals (test, FLASH_MINIMUM_WRITE_FAILED, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+}
+
 static void flash_store_test_release_null (CuTest *test)
 {
 	TEST_START;
@@ -3061,7 +3724,7 @@ static void flash_store_test_get_max_data_length_null (CuTest *test)
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3, 256, NULL);
 	CuAssertIntEquals (test, 0, status);
@@ -3081,7 +3744,7 @@ static void flash_store_test_get_flash_size_null (CuTest *test)
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3, 256, NULL);
 	CuAssertIntEquals (test, 0, status);
@@ -3101,7 +3764,7 @@ static void flash_store_test_get_num_blocks_null (CuTest *test)
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3, 256, NULL);
 	CuAssertIntEquals (test, 0, status);
@@ -3127,7 +3790,7 @@ static void flash_store_test_write_fixed_storage_no_hash (CuTest *test)
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), NULL);
@@ -3162,7 +3825,7 @@ static void flash_store_test_write_fixed_storage_no_hash_last_block (CuTest *tes
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), NULL);
@@ -3198,7 +3861,7 @@ static void flash_store_test_write_fixed_storage_no_hash_multiple_sectors (CuTes
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), NULL);
@@ -3235,7 +3898,7 @@ static void flash_store_test_write_fixed_storage_no_hash_multiple_sectors_last_b
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), NULL);
@@ -3251,6 +3914,233 @@ static void flash_store_test_write_fixed_storage_no_hash_multiple_sectors_last_b
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.write (&store.test, 2, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_fixed_storage_no_hash_less_than_page_size_no_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint8_t data[128];
+	size_t i;
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
+
+	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (data),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, data, sizeof (data));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_fixed_storage_no_hash_less_than_page_size_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint8_t data[128];
+	size_t i;
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (data),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, data, sizeof (data));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_fixed_storage_no_hash_larger_than_page_size_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint8_t data[384];
+	size_t i;
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (data),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, data, sizeof (data));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_fixed_storage_no_hash_multiple_pages_algined_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint8_t data[512];
+	size_t i;
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (data),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, data, sizeof (data));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_fixed_storage_no_hash_multiple_pages_not_algined_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint8_t data[768];
+	size_t i;
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (data),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, data, sizeof (data));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_fixed_storage_no_hash_multiple_store_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint8_t data[384];
+	size_t i;
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (data),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, data, sizeof (data));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (data),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, data, sizeof (data));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
 	CuAssertIntEquals (test, 0, status);
 
 	flash_store_testing_release_dependencies (test, &store);
@@ -3275,7 +4165,7 @@ static void flash_store_test_write_fixed_storage_with_hash (CuTest *test)
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), &store.hash.base);
@@ -3326,7 +4216,7 @@ static void flash_store_test_write_fixed_storage_with_hash_extra_sector_for_hash
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), &store.hash.base);
@@ -3378,7 +4268,7 @@ static void flash_store_test_write_fixed_storage_with_hash_extra_sector_for_hash
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), &store.hash.base);
@@ -3411,6 +4301,696 @@ static void flash_store_test_write_fixed_storage_with_hash_extra_sector_for_hash
 	flash_store_release (&store.test);
 }
 
+static void flash_store_test_write_fixed_storage_with_hash_less_than_page_size_no_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint8_t data[128];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
+
+	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (data),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, data, sizeof (data));
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (hash),
+		MOCK_ARG (0x10000 + sizeof (data)), MOCK_ARG_PTR_CONTAINS (hash, sizeof (hash)),
+		MOCK_ARG (sizeof (hash)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + sizeof (data), hash,
+		sizeof (hash));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_fixed_storage_with_hash_less_than_page_size_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint8_t data[128];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	uint8_t write[sizeof (data) + sizeof (hash)];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, data, sizeof (data));
+	memcpy (&write[sizeof (data)], hash, sizeof (hash));
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_fixed_storage_with_hash_less_than_page_size_last_block_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint8_t data[128];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	uint8_t write[sizeof (data) + sizeof (hash)];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, data, sizeof (data));
+	memcpy (&write[sizeof (data)], hash, sizeof (hash));
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x12000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x12000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x12000, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 2, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_fixed_storage_with_hash_larger_than_page_size_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint8_t data[384];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	uint8_t write[(sizeof (data) % page) + sizeof (hash)];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, &data[page], sizeof (data) - page);
+	memcpy (&write[sizeof (data) - page], hash, sizeof (hash));
+
+	flash_store_testing_prepare_init (test, &store, page, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, page,
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (data, page), MOCK_ARG (page));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, data, page);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x10000 + page), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + page, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_fixed_storage_with_hash_larger_than_page_size_last_block_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint8_t data[384];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	uint8_t write[(sizeof (data) % page) + sizeof (hash)];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, &data[page], sizeof (data) - page);
+	memcpy (&write[sizeof (data) - page], hash, sizeof (hash));
+
+	flash_store_testing_prepare_init (test, &store, page, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x12000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, page,
+		MOCK_ARG (0x12000), MOCK_ARG_PTR_CONTAINS (data, page), MOCK_ARG (page));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x12000, data, page);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x12000 + page), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x12000 + page, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 2, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_fixed_storage_with_hash_multiple_pages_aligned_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint8_t data[512];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (data),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, data, sizeof (data));
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (hash),
+		MOCK_ARG (0x10000 + sizeof (data)), MOCK_ARG_PTR_CONTAINS (hash, sizeof (hash)),
+		MOCK_ARG (sizeof (hash)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + sizeof (data), hash,
+		sizeof (hash));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_fixed_storage_with_hash_multiple_pages_not_aligned_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint8_t data[(page * 2) + 128];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	uint8_t write[128 + sizeof (hash)];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, &data[sizeof (data) - 128], 128);
+	memcpy (&write[128], hash, sizeof (hash));
+
+	flash_store_testing_prepare_init (test, &store, page, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, page * 2,
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (data, page * 2), MOCK_ARG (page * 2));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, data, page * 2);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x10000 + (page * 2)), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + (page * 2), write,
+		sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_fixed_storage_with_hash_hash_across_page_boundary_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	int extra = 16;
+	uint8_t data[page - extra];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	uint8_t write[page];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, data, page - extra);
+	memcpy (&write[page - extra], hash, extra);
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, write, sizeof (write));
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash,
+		sizeof (hash) - extra, MOCK_ARG (0x10000 + page),
+		MOCK_ARG_PTR_CONTAINS (&hash[extra], sizeof (hash) - extra),
+		MOCK_ARG (sizeof (hash) - extra));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + page, &hash[extra],
+		sizeof (hash) - extra);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_fixed_storage_with_hash_hash_across_page_boundary_last_block_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	int extra = 16;
+	uint8_t data[page - extra];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	uint8_t write[page];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, data, page - extra);
+	memcpy (&write[page - extra], hash, extra);
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x12000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x12000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x12000, write, sizeof (write));
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash,
+		sizeof (hash) - extra, MOCK_ARG (0x12000 + page),
+		MOCK_ARG_PTR_CONTAINS (&hash[extra], sizeof (hash) - extra),
+		MOCK_ARG (sizeof (hash) - extra));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x12000 + page, &hash[extra],
+		sizeof (hash) - extra);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 2, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_fixed_storage_with_hash_multiple_pages_hash_across_page_boundary_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	int extra = 16;
+	uint8_t data[(page * 3) - extra];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	uint8_t write[page];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, &data[sizeof (data) - (page - extra)], page - extra);
+	memcpy (&write[page - extra], hash, extra);
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, page * 2,
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (data, page * 2), MOCK_ARG (page * 2));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, data, page * 2);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x10000 + (page * 2)), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + (page * 2), write,
+		sizeof (write));
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash,
+		sizeof (hash) - extra, MOCK_ARG (0x10000 + (page * 3)),
+		MOCK_ARG_PTR_CONTAINS (&hash[extra], sizeof (hash) - extra),
+		MOCK_ARG (sizeof (hash) - extra));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + (page * 3), &hash[extra],
+		sizeof (hash) - extra);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_fixed_storage_with_hash_multiple_pages_hash_across_page_boundary_last_block_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	int extra = 16;
+	uint8_t data[(page * 3) - extra];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	uint8_t write[page];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, &data[sizeof (data) - (page - extra)], page - extra);
+	memcpy (&write[page - extra], hash, extra);
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x12000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, page * 2,
+		MOCK_ARG (0x12000), MOCK_ARG_PTR_CONTAINS (data, page * 2), MOCK_ARG (page * 2));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x12000, data, page * 2);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x12000 + (page * 2)), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x12000 + (page * 2), write,
+		sizeof (write));
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash,
+		sizeof (hash) - extra, MOCK_ARG (0x12000 + (page * 3)),
+		MOCK_ARG_PTR_CONTAINS (&hash[extra], sizeof (hash) - extra),
+		MOCK_ARG (sizeof (hash) - extra));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x12000 + (page * 3), &hash[extra],
+		sizeof (hash) - extra);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 2, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_fixed_storage_with_hash_multiple_store_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint8_t data[384];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	uint8_t write[(sizeof (data) % page) + sizeof (hash)];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, &data[page], sizeof (data) - page);
+	memcpy (&write[sizeof (data) - page], hash, sizeof (hash));
+
+	flash_store_testing_prepare_init (test, &store, page, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, page,
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (data, page), MOCK_ARG (page));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, data, page);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x10000 + page), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + page, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, page,
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (data, page), MOCK_ARG (page));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, data, page);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x10000 + page), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + page, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
 static void flash_store_test_write_fixed_storage_decreasing_no_hash (CuTest *test)
 {
 	struct flash_store_testing store;
@@ -3424,7 +5004,7 @@ static void flash_store_test_write_fixed_storage_decreasing_no_hash (CuTest *tes
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage_decreasing (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), NULL);
@@ -3459,7 +5039,7 @@ static void flash_store_test_write_fixed_storage_decreasing_no_hash_last_block (
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage_decreasing (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), NULL);
@@ -3495,7 +5075,7 @@ static void flash_store_test_write_fixed_storage_decreasing_no_hash_multiple_sec
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage_decreasing (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), NULL);
@@ -3533,7 +5113,7 @@ static void flash_store_test_write_fixed_storage_decreasing_no_hash_multiple_sec
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage_decreasing (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), NULL);
@@ -3549,6 +5129,233 @@ static void flash_store_test_write_fixed_storage_decreasing_no_hash_multiple_sec
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.write (&store.test, 2, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_fixed_storage_decreasing_no_hash_less_than_page_size_no_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint8_t data[128];
+	size_t i;
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
+
+	status = flash_store_init_fixed_storage_decreasing (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (data),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, data, sizeof (data));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_fixed_storage_decreasing_no_hash_less_than_page_size_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint8_t data[128];
+	size_t i;
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_fixed_storage_decreasing (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (data),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, data, sizeof (data));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_fixed_storage_decreasing_no_hash_larger_than_page_size_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint8_t data[384];
+	size_t i;
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_fixed_storage_decreasing (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (data),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, data, sizeof (data));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_fixed_storage_decreasing_no_hash_multiple_pages_aligned_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint8_t data[512];
+	size_t i;
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_fixed_storage_decreasing (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (data),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, data, sizeof (data));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_fixed_storage_decreasing_no_hash_multiple_pages_not_aligned_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint8_t data[768];
+	size_t i;
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_fixed_storage_decreasing (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (data),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, data, sizeof (data));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_fixed_storage_decreasing_no_hash_multiple_store_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint8_t data[384];
+	size_t i;
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_fixed_storage_decreasing (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (data),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, data, sizeof (data));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (data),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, data, sizeof (data));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
 	CuAssertIntEquals (test, 0, status);
 
 	flash_store_testing_release_dependencies (test, &store);
@@ -3573,7 +5380,7 @@ static void flash_store_test_write_fixed_storage_decreasing_with_hash (CuTest *t
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage_decreasing (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), &store.hash.base);
@@ -3625,7 +5432,7 @@ static void flash_store_test_write_fixed_storage_decreasing_with_hash_extra_sect
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage_decreasing (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), &store.hash.base);
@@ -3677,7 +5484,7 @@ static void flash_store_test_write_fixed_storage_decreasing_with_hash_extra_sect
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage_decreasing (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), &store.hash.base);
@@ -3710,6 +5517,696 @@ static void flash_store_test_write_fixed_storage_decreasing_with_hash_extra_sect
 	flash_store_release (&store.test);
 }
 
+static void flash_store_test_write_fixed_storage_decreasing_with_hash_less_than_page_size_no_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint8_t data[128];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
+
+	status = flash_store_init_fixed_storage_decreasing (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (data),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, data, sizeof (data));
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (hash),
+		MOCK_ARG (0x10000 + sizeof (data)), MOCK_ARG_PTR_CONTAINS (hash, sizeof (hash)),
+		MOCK_ARG (sizeof (hash)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + sizeof (data), hash,
+		sizeof (hash));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_fixed_storage_decreasing_with_hash_less_than_page_size_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint8_t data[128];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	uint8_t write[sizeof (data) + sizeof (hash)];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, data, sizeof (data));
+	memcpy (&write[sizeof (data)], hash, sizeof (hash));
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_fixed_storage_decreasing (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_fixed_storage_decreasing_with_hash_less_than_page_size_last_block_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint8_t data[128];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	uint8_t write[sizeof (data) + sizeof (hash)];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, data, sizeof (data));
+	memcpy (&write[sizeof (data)], hash, sizeof (hash));
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_fixed_storage_decreasing (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0xe000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0xe000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0xe000, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 2, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_fixed_storage_decreasing_with_hash_larger_than_page_size_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint8_t data[384];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	uint8_t write[(sizeof (data) % page) + sizeof (hash)];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, &data[page], sizeof (data) - page);
+	memcpy (&write[sizeof (data) - page], hash, sizeof (hash));
+
+	flash_store_testing_prepare_init (test, &store, page, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_fixed_storage_decreasing (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, page,
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (data, page), MOCK_ARG (page));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, data, page);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x10000 + page), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + page, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_fixed_storage_decreasing_with_hash_larger_than_page_size_last_block_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint8_t data[384];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	uint8_t write[(sizeof (data) % page) + sizeof (hash)];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, &data[page], sizeof (data) - page);
+	memcpy (&write[sizeof (data) - page], hash, sizeof (hash));
+
+	flash_store_testing_prepare_init (test, &store, page, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_fixed_storage_decreasing (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0xe000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, page,
+		MOCK_ARG (0xe000), MOCK_ARG_PTR_CONTAINS (data, page), MOCK_ARG (page));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0xe000, data, page);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0xe000 + page), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0xe000 + page, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 2, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_fixed_storage_decreasing_with_hash_multiple_pages_aligned_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint8_t data[512];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_fixed_storage_decreasing (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (data),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, data, sizeof (data));
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (hash),
+		MOCK_ARG (0x10000 + sizeof (data)), MOCK_ARG_PTR_CONTAINS (hash, sizeof (hash)),
+		MOCK_ARG (sizeof (hash)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + sizeof (data), hash,
+		sizeof (hash));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_fixed_storage_decreasing_with_hash_multiple_pages_not_aligned_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint8_t data[(page * 2) + 128];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	uint8_t write[128 + sizeof (hash)];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, &data[sizeof (data) - 128], 128);
+	memcpy (&write[128], hash, sizeof (hash));
+
+	flash_store_testing_prepare_init (test, &store, page, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_fixed_storage_decreasing (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, page * 2,
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (data, page * 2), MOCK_ARG (page * 2));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, data, page * 2);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x10000 + (page * 2)), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + (page * 2), write,
+		sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_fixed_storage_decreasing_with_hash_hash_across_page_boundary_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	int extra = 16;
+	uint8_t data[page - extra];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	uint8_t write[page];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, data, page - extra);
+	memcpy (&write[page - extra], hash, extra);
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_fixed_storage_decreasing (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, write, sizeof (write));
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash,
+		sizeof (hash) - extra, MOCK_ARG (0x10000 + page),
+		MOCK_ARG_PTR_CONTAINS (&hash[extra], sizeof (hash) - extra),
+		MOCK_ARG (sizeof (hash) - extra));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + page, &hash[extra],
+		sizeof (hash) - extra);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_fixed_storage_decreasing_with_hash_hash_across_page_boundary_last_block_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	int extra = 16;
+	uint8_t data[page - extra];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	uint8_t write[page];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, data, page - extra);
+	memcpy (&write[page - extra], hash, extra);
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_fixed_storage_decreasing (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0xe000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0xe000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0xe000, write, sizeof (write));
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash,
+		sizeof (hash) - extra, MOCK_ARG (0xe000 + page),
+		MOCK_ARG_PTR_CONTAINS (&hash[extra], sizeof (hash) - extra),
+		MOCK_ARG (sizeof (hash) - extra));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0xe000 + page, &hash[extra],
+		sizeof (hash) - extra);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 2, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_fixed_storage_decreasing_with_hash_multiple_pages_hash_across_page_boundary_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	int extra = 16;
+	uint8_t data[(page * 3) - extra];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	uint8_t write[page];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, &data[sizeof (data) - (page - extra)], page - extra);
+	memcpy (&write[page - extra], hash, extra);
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_fixed_storage_decreasing (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, page * 2,
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (data, page * 2), MOCK_ARG (page * 2));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, data, page * 2);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x10000 + (page * 2)), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + (page * 2), write,
+		sizeof (write));
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash,
+		sizeof (hash) - extra, MOCK_ARG (0x10000 + (page * 3)),
+		MOCK_ARG_PTR_CONTAINS (&hash[extra], sizeof (hash) - extra),
+		MOCK_ARG (sizeof (hash) - extra));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + (page * 3), &hash[extra],
+		sizeof (hash) - extra);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_fixed_storage_decreasing_with_hash_multiple_pages_hash_across_page_boundary_last_block_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	int extra = 16;
+	uint8_t data[(page * 3) - extra];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	uint8_t write[page];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, &data[sizeof (data) - (page - extra)], page - extra);
+	memcpy (&write[page - extra], hash, extra);
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_fixed_storage_decreasing (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0xe000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, page * 2,
+		MOCK_ARG (0xe000), MOCK_ARG_PTR_CONTAINS (data, page * 2), MOCK_ARG (page * 2));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0xe000, data, page * 2);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0xe000 + (page * 2)), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0xe000 + (page * 2), write,
+		sizeof (write));
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash,
+		sizeof (hash) - extra, MOCK_ARG (0xe000 + (page * 3)),
+		MOCK_ARG_PTR_CONTAINS (&hash[extra], sizeof (hash) - extra),
+		MOCK_ARG (sizeof (hash) - extra));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0xe000 + (page * 3), &hash[extra],
+		sizeof (hash) - extra);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 2, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_fixed_storage_decreasing_with_hash_multiple_store_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint8_t data[384];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	uint8_t write[(sizeof (data) % page) + sizeof (hash)];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, &data[page], sizeof (data) - page);
+	memcpy (&write[sizeof (data) - page], hash, sizeof (hash));
+
+	flash_store_testing_prepare_init (test, &store, page, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_fixed_storage_decreasing (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, page,
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (data, page), MOCK_ARG (page));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, data, page);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x10000 + page), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + page, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, page,
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (data, page), MOCK_ARG (page));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, data, page);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x10000 + page), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + page, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
 static void flash_store_test_write_variable_storage_no_hash (CuTest *test)
 {
 	struct flash_store_testing store;
@@ -3724,7 +6221,7 @@ static void flash_store_test_write_variable_storage_no_hash (CuTest *test)
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), NULL);
@@ -3767,7 +6264,7 @@ static void flash_store_test_write_variable_storage_no_hash_last_block (CuTest *
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), NULL);
@@ -3810,7 +6307,7 @@ static void flash_store_test_write_variable_storage_no_hash_max_length (CuTest *
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 256,
 		NULL);
@@ -3853,7 +6350,7 @@ static void flash_store_test_write_variable_storage_no_hash_old_header (CuTest *
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), NULL);
@@ -3899,7 +6396,7 @@ static void flash_store_test_write_variable_storage_no_hash_multiple_sectors (Cu
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), NULL);
@@ -3945,7 +6442,7 @@ static void flash_store_test_write_variable_storage_no_hash_multiple_sectors_las
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), NULL);
@@ -3990,7 +6487,7 @@ static void flash_store_test_write_variable_storage_no_hash_extra_sector_for_hea
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), NULL);
@@ -4035,7 +6532,7 @@ static void flash_store_test_write_variable_storage_no_hash_extra_sector_for_hea
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), NULL);
@@ -4064,6 +6561,505 @@ static void flash_store_test_write_variable_storage_no_hash_extra_sector_for_hea
 	flash_store_release (&store.test);
 }
 
+static void flash_store_test_write_variable_storage_no_hash_less_than_page_size_no_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint8_t header[] = {0x04, 0xa5, 0x80, 0x00};
+	uint8_t data[128];
+	size_t i;
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
+
+	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (data),
+		MOCK_ARG (0x10000 + sizeof (header)), MOCK_ARG_PTR_CONTAINS (data, sizeof (data)),
+		MOCK_ARG (sizeof (data)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + sizeof (header), data,
+		sizeof (data));
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (header),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (header, sizeof (header)),
+		MOCK_ARG (sizeof (header)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, header, sizeof (header));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_variable_storage_no_hash_less_than_page_size_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint8_t header[] = {0x04, 0xa5, 0x80, 0x00};
+	uint8_t data[128];
+	size_t i;
+	uint8_t write[sizeof (data) + sizeof (header)];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, header, sizeof (header));
+	memcpy (&write[sizeof (header)], data, sizeof (data));
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_variable_storage_no_hash_less_than_page_size_last_block_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint8_t header[] = {0x04, 0xa5, 0x80, 0x00};
+	uint8_t data[128];
+	size_t i;
+	uint8_t write[sizeof (data) + sizeof (header)];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, header, sizeof (header));
+	memcpy (&write[sizeof (header)], data, sizeof (data));
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_expect_erase_flash_sector (&store.flash, 0x12000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x12000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x12000, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 2, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_variable_storage_no_hash_less_than_page_size_old_header_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint8_t header[] = {0x80, 0x00};
+	uint8_t data[128];
+	size_t i;
+	uint8_t write[sizeof (data) + sizeof (header)];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, header, sizeof (header));
+	memcpy (&write[sizeof (header)], data, sizeof (data));
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_use_length_only_header (&store.test);
+
+	status = flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_variable_storage_no_hash_larger_than_page_size_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint8_t header[] = {0x04, 0xa5, 0x80, 0x01};
+	uint8_t data[384];
+	size_t i;
+	uint8_t write[page];
+	int write_data_len = page - sizeof (header);
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, header, sizeof (header));
+	memcpy (&write[sizeof (header)], data, write_data_len);
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash,
+		sizeof (data) - write_data_len, MOCK_ARG (0x10000 + page),
+		MOCK_ARG_PTR_CONTAINS (&data[write_data_len], sizeof (data) - write_data_len),
+		MOCK_ARG (sizeof (data) - write_data_len));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + page, &data[write_data_len],
+		sizeof (data) - write_data_len);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_variable_storage_no_hash_larger_than_page_size_last_block_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint8_t header[] = {0x04, 0xa5, 0x80, 0x01};
+	uint8_t data[384];
+	size_t i;
+	uint8_t write[page];
+	int write_data_len = page - sizeof (header);
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, header, sizeof (header));
+	memcpy (&write[sizeof (header)], data, write_data_len);
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_expect_erase_flash_sector (&store.flash, 0x12000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash,
+		sizeof (data) - write_data_len, MOCK_ARG (0x12000 + page),
+		MOCK_ARG_PTR_CONTAINS (&data[write_data_len], sizeof (data) - write_data_len),
+		MOCK_ARG (sizeof (data) - write_data_len));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x12000 + page, &data[write_data_len],
+		sizeof (data) - write_data_len);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x12000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x12000, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 2, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_variable_storage_no_hash_larger_than_page_size_old_header_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint8_t header[] = {0x80, 0x01};
+	uint8_t data[384];
+	size_t i;
+	uint8_t write[page];
+	int write_data_len = page - sizeof (header);
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, header, sizeof (header));
+	memcpy (&write[sizeof (header)], data, write_data_len);
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_use_length_only_header (&store.test);
+
+	status = flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash,
+		sizeof (data) - write_data_len, MOCK_ARG (0x10000 + page),
+		MOCK_ARG_PTR_CONTAINS (&data[write_data_len], sizeof (data) - write_data_len),
+		MOCK_ARG (sizeof (data) - write_data_len));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + page, &data[write_data_len],
+		sizeof (data) - write_data_len);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_variable_storage_no_hash_multiple_pages_aligned_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint8_t header[] = {0x04, 0xa5, 0xfc, 0x01};
+	uint8_t data[512 - sizeof (header)];
+	size_t i;
+	uint8_t write[page];
+	int write_data_len = page - sizeof (header);
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, header, sizeof (header));
+	memcpy (&write[sizeof (header)], data, write_data_len);
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash,
+		sizeof (data) - write_data_len, MOCK_ARG (0x10000 + page),
+		MOCK_ARG_PTR_CONTAINS (&data[write_data_len], sizeof (data) - write_data_len),
+		MOCK_ARG (sizeof (data) - write_data_len));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + page, &data[write_data_len],
+		sizeof (data) - write_data_len);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_variable_storage_no_hash_multiple_pages_not_aligned_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint8_t header[] = {0x04, 0xa5, 0x80, 0x02};
+	uint8_t data[(page * 2) + 128];
+	size_t i;
+	uint8_t write[page];
+	int write_data_len = page - sizeof (header);
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, header, sizeof (header));
+	memcpy (&write[sizeof (header)], data, write_data_len);
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash,
+		sizeof (data) - write_data_len, MOCK_ARG (0x10000 + page),
+		MOCK_ARG_PTR_CONTAINS (&data[write_data_len], sizeof (data) - write_data_len),
+		MOCK_ARG (sizeof (data) - write_data_len));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + page, &data[write_data_len],
+		sizeof (data) - write_data_len);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_variable_storage_no_hash_multiple_store_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint8_t header[] = {0x04, 0xa5, 0x80, 0x01};
+	uint8_t data[384];
+	size_t i;
+	uint8_t write[page];
+	int write_data_len = page - sizeof (header);
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, header, sizeof (header));
+	memcpy (&write[sizeof (header)], data, write_data_len);
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash,
+		sizeof (data) - write_data_len, MOCK_ARG (0x10000 + page),
+		MOCK_ARG_PTR_CONTAINS (&data[write_data_len], sizeof (data) - write_data_len),
+		MOCK_ARG (sizeof (data) - write_data_len));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + page, &data[write_data_len],
+		sizeof (data) - write_data_len);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash,
+		sizeof (data) - write_data_len, MOCK_ARG (0x10000 + page),
+		MOCK_ARG_PTR_CONTAINS (&data[write_data_len], sizeof (data) - write_data_len),
+		MOCK_ARG (sizeof (data) - write_data_len));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + page, &data[write_data_len],
+		sizeof (data) - write_data_len);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
 static void flash_store_test_write_variable_storage_with_hash (CuTest *test)
 {
 	struct flash_store_testing store;
@@ -4082,7 +7078,7 @@ static void flash_store_test_write_variable_storage_with_hash (CuTest *test)
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), &store.hash.base);
@@ -4140,7 +7136,7 @@ static void flash_store_test_write_variable_storage_with_hash_max_length (CuTest
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 256,
 		&store.hash.base);
@@ -4198,7 +7194,7 @@ static void flash_store_test_write_variable_storage_with_hash_old_header (CuTest
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), &store.hash.base);
@@ -4259,7 +7255,7 @@ static void flash_store_test_write_variable_storage_with_hash_extra_sector_for_h
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), &store.hash.base);
@@ -4319,7 +7315,7 @@ static void flash_store_test_write_variable_storage_with_hash_extra_sector_for_h
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), &store.hash.base);
@@ -4359,6 +7355,918 @@ static void flash_store_test_write_variable_storage_with_hash_extra_sector_for_h
 	flash_store_release (&store.test);
 }
 
+static void flash_store_test_write_variable_storage_with_hash_less_than_page_size_no_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint8_t header[] = {0x04, 0xa5, 0x80, 0x00};
+	uint8_t data[128];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
+
+	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (data),
+		MOCK_ARG (0x10000 + sizeof (header)), MOCK_ARG_PTR_CONTAINS (data, sizeof (data)),
+		MOCK_ARG (sizeof (data)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + sizeof (header), data,
+		sizeof (data));
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (hash),
+		MOCK_ARG (0x10000 + sizeof (header) + sizeof (data)),
+		MOCK_ARG_PTR_CONTAINS (hash, sizeof (hash)), MOCK_ARG (sizeof (hash)));
+	status |= flash_mock_expect_verify_flash (&store.flash,
+		0x10000 + sizeof (header) + sizeof (data), hash, sizeof (hash));
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (header),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (header, sizeof (header)),
+		MOCK_ARG (sizeof (header)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, header, sizeof (header));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_variable_storage_with_hash_less_than_page_size_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint8_t header[] = {0x04, 0xa5, 0x80, 0x00};
+	uint8_t data[128];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	uint8_t write[sizeof (data) + sizeof (header) + sizeof (hash)];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, header, sizeof (header));
+	memcpy (&write[sizeof (header)], data, sizeof (data));
+	memcpy (&write[sizeof (header) + sizeof (data)], hash, sizeof (hash));
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_variable_storage_with_hash_less_than_page_size_last_block_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint8_t header[] = {0x04, 0xa5, 0x80, 0x00};
+	uint8_t data[128];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	uint8_t write[sizeof (data) + sizeof (header) + sizeof (hash)];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, header, sizeof (header));
+	memcpy (&write[sizeof (header)], data, sizeof (data));
+	memcpy (&write[sizeof (header) + sizeof (data)], hash, sizeof (hash));
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x12000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x12000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x12000, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 2, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_variable_storage_with_hash_less_than_page_size_old_header_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint8_t header[] = {0x80, 0x00};
+	uint8_t data[128];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	uint8_t write[sizeof (data) + sizeof (header) + sizeof (hash)];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, header, sizeof (header));
+	memcpy (&write[sizeof (header)], data, sizeof (data));
+	memcpy (&write[sizeof (header) + sizeof (data)], hash, sizeof (hash));
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_use_length_only_header (&store.test);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_variable_storage_with_hash_larger_than_page_size_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint8_t header[] = {0x04, 0xa5, 0x80, 0x01};
+	uint8_t data[384];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	uint8_t write[page];
+	int write_data_len = page - sizeof (header);
+	uint8_t write2[(sizeof (data) - write_data_len) + sizeof (hash)];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, header, sizeof (header));
+	memcpy (&write[sizeof (header)], data, write_data_len);
+
+	memcpy (write2, &data[write_data_len], sizeof (data) - write_data_len);
+	memcpy (&write2[sizeof (data) - write_data_len], hash, sizeof (hash));
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write2),
+		MOCK_ARG (0x10000 + page), MOCK_ARG_PTR_CONTAINS (write2, sizeof (write2)),
+		MOCK_ARG (sizeof (write2)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + page, write2,
+		sizeof (write2));
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_variable_storage_with_hash_larger_than_page_size_last_block_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint8_t header[] = {0x04, 0xa5, 0x80, 0x01};
+	uint8_t data[384];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	uint8_t write[page];
+	int write_data_len = page - sizeof (header);
+	uint8_t write2[(sizeof (data) - write_data_len) + sizeof (hash)];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, header, sizeof (header));
+	memcpy (&write[sizeof (header)], data, write_data_len);
+
+	memcpy (write2, &data[write_data_len], sizeof (data) - write_data_len);
+	memcpy (&write2[sizeof (data) - write_data_len], hash, sizeof (hash));
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x12000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write2),
+		MOCK_ARG (0x12000 + page), MOCK_ARG_PTR_CONTAINS (write2, sizeof (write2)),
+		MOCK_ARG (sizeof (write2)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x12000 + page, write2,
+		sizeof (write2));
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x12000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x12000, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 2, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_variable_storage_with_hash_larger_than_page_size_old_header_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint8_t header[] = {0x80, 0x01};
+	uint8_t data[384];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	uint8_t write[page];
+	int write_data_len = page - sizeof (header);
+	uint8_t write2[(sizeof (data) - write_data_len) + sizeof (hash)];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, header, sizeof (header));
+	memcpy (&write[sizeof (header)], data, write_data_len);
+
+	memcpy (write2, &data[write_data_len], sizeof (data) - write_data_len);
+	memcpy (&write2[sizeof (data) - write_data_len], hash, sizeof (hash));
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_use_length_only_header (&store.test);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write2),
+		MOCK_ARG (0x10000 + page), MOCK_ARG_PTR_CONTAINS (write2, sizeof (write2)),
+		MOCK_ARG (sizeof (write2)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + page, write2,
+		sizeof (write2));
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_variable_storage_with_hash_multiple_pages_aligned_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint8_t header[] = {0x04, 0xa5, 0xfc, 0x01};
+	uint8_t data[512 - sizeof (header)];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	uint8_t write[page];
+	int write_data_len = page - sizeof (header);
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, header, sizeof (header));
+	memcpy (&write[sizeof (header)], data, write_data_len);
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash,
+		sizeof (data) - write_data_len, MOCK_ARG (0x10000 + page),
+		MOCK_ARG_PTR_CONTAINS (&data[write_data_len], sizeof (data) - write_data_len),
+		MOCK_ARG (sizeof (data) - write_data_len));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + page, &data[write_data_len],
+		sizeof (data) - write_data_len);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (hash),
+		MOCK_ARG (0x10000 + sizeof (header) + sizeof (data)),
+		MOCK_ARG_PTR_CONTAINS (hash, sizeof (hash)), MOCK_ARG (sizeof (hash)));
+	status |= flash_mock_expect_verify_flash (&store.flash,
+		0x10000 + sizeof (header) + sizeof (data), hash, sizeof (hash));
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_variable_storage_with_hash_multiple_pages_not_aligned_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint8_t header[] = {0x04, 0xa5, 0x80, 0x02};
+	uint8_t data[(page * 2) + 128];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	uint8_t write[page];
+	int write_data_len = page - sizeof (header);
+	int write2_data_len = (sizeof (data) % page) + sizeof (header);
+	uint8_t write2[write2_data_len + sizeof (hash)];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, header, sizeof (header));
+	memcpy (&write[sizeof (header)], data, write_data_len);
+
+	memcpy (write2, &data[sizeof (data) - write2_data_len], write2_data_len);
+	memcpy (&write2[write2_data_len], hash, sizeof (hash));
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, page,
+		MOCK_ARG (0x10000 + page), MOCK_ARG_PTR_CONTAINS (&data[write_data_len], page),
+		MOCK_ARG (page));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + page, &data[write_data_len],
+		page);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write2),
+		MOCK_ARG (0x10000 + (page * 2)), MOCK_ARG_PTR_CONTAINS (write2, sizeof (write2)),
+		MOCK_ARG (sizeof (write2)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + (page * 2), write2,
+		sizeof (write2));
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_variable_storage_with_hash_hash_across_page_boundary_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint8_t header[] = {0x04, 0xa5, 0xf0, 0x00};
+	int extra = 16;
+	uint8_t data[page - extra];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	int extra_hash = (sizeof (hash) - extra) + sizeof (header);
+	uint8_t write[page];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, header, sizeof (header));
+	memcpy (&write[sizeof (header)], data, sizeof (data));
+	memcpy (&write[sizeof (header) + sizeof (data)], hash, extra - sizeof (header));
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, extra_hash,
+		MOCK_ARG (0x10000 + page),
+		MOCK_ARG_PTR_CONTAINS (&hash[sizeof (hash) - extra_hash], extra_hash),
+		MOCK_ARG (extra_hash));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + page,
+		&hash[sizeof (hash) - extra_hash], extra_hash);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_variable_storage_with_hash_hash_across_page_boundary_last_block_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint8_t header[] = {0x04, 0xa5, 0xf0, 0x00};
+	int extra = 16;
+	uint8_t data[page - extra];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	int extra_hash = (sizeof (hash) - extra) + sizeof (header);
+	uint8_t write[page];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, header, sizeof (header));
+	memcpy (&write[sizeof (header)], data, sizeof (data));
+	memcpy (&write[sizeof (header) + sizeof (data)], hash, extra - sizeof (header));
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x12000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, extra_hash,
+		MOCK_ARG (0x12000 + page),
+		MOCK_ARG_PTR_CONTAINS (&hash[sizeof (hash) - extra_hash], extra_hash),
+		MOCK_ARG (extra_hash));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x12000 + page,
+		&hash[sizeof (hash) - extra_hash], extra_hash);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x12000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x12000, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 2, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_variable_storage_with_hash_multiple_pages_hash_across_page_boundary_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint8_t header[] = {0x04, 0xa5, 0xf0, 0x02};
+	int extra = 16;
+	uint8_t data[(page * 3) - extra];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	uint8_t write[page];
+	int write_data_len = page - sizeof (header);
+	int extra_hash = (sizeof (hash) - extra) + sizeof (header);
+	int write2_data_len = (page - extra) + sizeof (header);
+	uint8_t write2[page];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, header, sizeof (header));
+	memcpy (&write[sizeof (header)], data, write_data_len);
+
+	memcpy (write2, &data[sizeof (data) - write2_data_len], write2_data_len);
+	memcpy (&write2[write2_data_len], hash, extra - sizeof (header));
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, page,
+		MOCK_ARG (0x10000 + page), MOCK_ARG_PTR_CONTAINS (&data[write_data_len], page),
+		MOCK_ARG (page));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + page, &data[write_data_len],
+		page);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write2),
+		MOCK_ARG (0x10000 + (page * 2)), MOCK_ARG_PTR_CONTAINS (write2, sizeof (write2)),
+		MOCK_ARG (sizeof (write2)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + (page * 2), write2,
+		sizeof (write2));
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, extra_hash,
+		MOCK_ARG (0x10000 + (page * 3)),
+		MOCK_ARG_PTR_CONTAINS (&hash[sizeof (hash) - extra_hash], extra_hash),
+		MOCK_ARG (extra_hash));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + (page * 3),
+		&hash[sizeof (hash) - extra_hash], extra_hash);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_variable_storage_with_hash_multiple_pages_hash_across_page_boundary_last_block_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint8_t header[] = {0x04, 0xa5, 0xf0, 0x02};
+	int extra = 16;
+	uint8_t data[(page * 3) - extra];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	uint8_t write[page];
+	int write_data_len = page - sizeof (header);
+	int extra_hash = (sizeof (hash) - extra) + sizeof (header);
+	int write2_data_len = (page - extra) + sizeof (header);
+	uint8_t write2[page];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, header, sizeof (header));
+	memcpy (&write[sizeof (header)], data, write_data_len);
+
+	memcpy (write2, &data[sizeof (data) - write2_data_len], write2_data_len);
+	memcpy (&write2[write2_data_len], hash, extra - sizeof (header));
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x12000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, page,
+		MOCK_ARG (0x12000 + page), MOCK_ARG_PTR_CONTAINS (&data[write_data_len], page),
+		MOCK_ARG (page));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x12000 + page, &data[write_data_len],
+		page);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write2),
+		MOCK_ARG (0x12000 + (page * 2)), MOCK_ARG_PTR_CONTAINS (write2, sizeof (write2)),
+		MOCK_ARG (sizeof (write2)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x12000 + (page * 2), write2,
+		sizeof (write2));
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, extra_hash,
+		MOCK_ARG (0x12000 + (page * 3)),
+		MOCK_ARG_PTR_CONTAINS (&hash[sizeof (hash) - extra_hash], extra_hash),
+		MOCK_ARG (extra_hash));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x12000 + (page * 3),
+		&hash[sizeof (hash) - extra_hash], extra_hash);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x12000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x12000, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 2, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_variable_storage_with_hash_multiple_store_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint8_t header[] = {0x04, 0xa5, 0x80, 0x01};
+	uint8_t data[384];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	uint8_t write[page];
+	int write_data_len = page - sizeof (header);
+	uint8_t write2[(sizeof (data) - write_data_len) + sizeof (hash)];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, header, sizeof (header));
+	memcpy (&write[sizeof (header)], data, write_data_len);
+
+	memcpy (write2, &data[write_data_len], sizeof (data) - write_data_len);
+	memcpy (&write2[sizeof (data) - write_data_len], hash, sizeof (hash));
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write2),
+		MOCK_ARG (0x10000 + page), MOCK_ARG_PTR_CONTAINS (write2, sizeof (write2)),
+		MOCK_ARG (sizeof (write2)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + page, write2,
+		sizeof (write2));
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write2),
+		MOCK_ARG (0x10000 + page), MOCK_ARG_PTR_CONTAINS (write2, sizeof (write2)),
+		MOCK_ARG (sizeof (write2)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + page, write2,
+		sizeof (write2));
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
 static void flash_store_test_write_variable_storage_decreasing_no_hash (CuTest *test)
 {
 	struct flash_store_testing store;
@@ -4373,7 +8281,7 @@ static void flash_store_test_write_variable_storage_decreasing_no_hash (CuTest *
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
 		3, sizeof (data), NULL);
@@ -4416,7 +8324,7 @@ static void flash_store_test_write_variable_storage_decreasing_no_hash_last_bloc
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
 		3, sizeof (data), NULL);
@@ -4459,7 +8367,7 @@ static void flash_store_test_write_variable_storage_decreasing_no_hash_old_heade
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
 		3, sizeof (data), NULL);
@@ -4506,7 +8414,7 @@ static void flash_store_test_write_variable_storage_decreasing_no_hash_multiple_
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
 		3, sizeof (data), NULL);
@@ -4552,7 +8460,7 @@ static void flash_store_test_write_variable_storage_decreasing_no_hash_multiple_
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
 		3, sizeof (data), NULL);
@@ -4598,7 +8506,7 @@ static void flash_store_test_write_variable_storage_decreasing_no_hash_extra_sec
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
 		3, sizeof (data), NULL);
@@ -4643,7 +8551,7 @@ static void flash_store_test_write_variable_storage_decreasing_no_hash_extra_sec
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
 		3, sizeof (data), NULL);
@@ -4672,6 +8580,505 @@ static void flash_store_test_write_variable_storage_decreasing_no_hash_extra_sec
 	flash_store_release (&store.test);
 }
 
+static void flash_store_test_write_variable_storage_decreasing_no_hash_less_than_page_size_no_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint8_t header[] = {0x04, 0xa5, 0x80, 0x00};
+	uint8_t data[128];
+	size_t i;
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
+
+	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
+		3, sizeof (data), NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (data),
+		MOCK_ARG (0x10000 + sizeof (header)), MOCK_ARG_PTR_CONTAINS (data, sizeof (data)),
+		MOCK_ARG (sizeof (data)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + sizeof (header), data,
+		sizeof (data));
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (header),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (header, sizeof (header)),
+		MOCK_ARG (sizeof (header)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, header, sizeof (header));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_variable_storage_decreasing_no_hash_less_than_page_size_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint8_t header[] = {0x04, 0xa5, 0x80, 0x00};
+	uint8_t data[128];
+	size_t i;
+	uint8_t write[sizeof (data) + sizeof (header)];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, header, sizeof (header));
+	memcpy (&write[sizeof (header)], data, sizeof (data));
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
+		3, sizeof (data), NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_variable_storage_decreasing_no_hash_less_than_page_size_last_block_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint8_t header[] = {0x04, 0xa5, 0x80, 0x00};
+	uint8_t data[128];
+	size_t i;
+	uint8_t write[sizeof (data) + sizeof (header)];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, header, sizeof (header));
+	memcpy (&write[sizeof (header)], data, sizeof (data));
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
+		3, sizeof (data), NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_expect_erase_flash_sector (&store.flash, 0xe000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0xe000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0xe000, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 2, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_variable_storage_decreasing_no_hash_less_than_page_size_old_header_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint8_t header[] = {0x80, 0x00};
+	uint8_t data[128];
+	size_t i;
+	uint8_t write[sizeof (data) + sizeof (header)];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, header, sizeof (header));
+	memcpy (&write[sizeof (header)], data, sizeof (data));
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
+		3, sizeof (data), NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_use_length_only_header (&store.test);
+
+	status = flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_variable_storage_decreasing_no_hash_larger_than_page_size_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint8_t header[] = {0x04, 0xa5, 0x80, 0x01};
+	uint8_t data[384];
+	size_t i;
+	uint8_t write[page];
+	int write_data_len = page - sizeof (header);
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, header, sizeof (header));
+	memcpy (&write[sizeof (header)], data, write_data_len);
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
+		3, sizeof (data), NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash,
+		sizeof (data) - write_data_len, MOCK_ARG (0x10000 + page),
+		MOCK_ARG_PTR_CONTAINS (&data[write_data_len], sizeof (data) - write_data_len),
+		MOCK_ARG (sizeof (data) - write_data_len));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + page, &data[write_data_len],
+		sizeof (data) - write_data_len);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_variable_storage_decreasing_no_hash_larger_than_page_size_last_block_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint8_t header[] = {0x04, 0xa5, 0x80, 0x01};
+	uint8_t data[384];
+	size_t i;
+	uint8_t write[page];
+	int write_data_len = page - sizeof (header);
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, header, sizeof (header));
+	memcpy (&write[sizeof (header)], data, write_data_len);
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
+		3, sizeof (data), NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_expect_erase_flash_sector (&store.flash, 0xe000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash,
+		sizeof (data) - write_data_len, MOCK_ARG (0xe000 + page),
+		MOCK_ARG_PTR_CONTAINS (&data[write_data_len], sizeof (data) - write_data_len),
+		MOCK_ARG (sizeof (data) - write_data_len));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0xe000 + page, &data[write_data_len],
+		sizeof (data) - write_data_len);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0xe000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0xe000, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 2, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_variable_storage_decreasing_no_hash_larger_than_page_size_old_header_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint8_t header[] = {0x80, 0x01};
+	uint8_t data[384];
+	size_t i;
+	uint8_t write[page];
+	int write_data_len = page - sizeof (header);
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, header, sizeof (header));
+	memcpy (&write[sizeof (header)], data, write_data_len);
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
+		3, sizeof (data), NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_use_length_only_header (&store.test);
+
+	status = flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash,
+		sizeof (data) - write_data_len, MOCK_ARG (0x10000 + page),
+		MOCK_ARG_PTR_CONTAINS (&data[write_data_len], sizeof (data) - write_data_len),
+		MOCK_ARG (sizeof (data) - write_data_len));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + page, &data[write_data_len],
+		sizeof (data) - write_data_len);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_variable_storage_decreasing_no_hash_multiple_pages_aligned_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint8_t header[] = {0x04, 0xa5, 0xfc, 0x01};
+	uint8_t data[512 - sizeof (header)];
+	size_t i;
+	uint8_t write[page];
+	int write_data_len = page - sizeof (header);
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, header, sizeof (header));
+	memcpy (&write[sizeof (header)], data, write_data_len);
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
+		3, sizeof (data), NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash,
+		sizeof (data) - write_data_len, MOCK_ARG (0x10000 + page),
+		MOCK_ARG_PTR_CONTAINS (&data[write_data_len], sizeof (data) - write_data_len),
+		MOCK_ARG (sizeof (data) - write_data_len));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + page, &data[write_data_len],
+		sizeof (data) - write_data_len);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_variable_storage_decreasing_no_hash_multiple_pages_not_aligned_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint8_t header[] = {0x04, 0xa5, 0x80, 0x02};
+	uint8_t data[(page * 2) + 128];
+	size_t i;
+	uint8_t write[page];
+	int write_data_len = page - sizeof (header);
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, header, sizeof (header));
+	memcpy (&write[sizeof (header)], data, write_data_len);
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
+		3, sizeof (data), NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash,
+		sizeof (data) - write_data_len, MOCK_ARG (0x10000 + page),
+		MOCK_ARG_PTR_CONTAINS (&data[write_data_len], sizeof (data) - write_data_len),
+		MOCK_ARG (sizeof (data) - write_data_len));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + page, &data[write_data_len],
+		sizeof (data) - write_data_len);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_variable_storage_decreasing_no_hash_multiple_store_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint8_t header[] = {0x04, 0xa5, 0x80, 0x01};
+	uint8_t data[384];
+	size_t i;
+	uint8_t write[page];
+	int write_data_len = page - sizeof (header);
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, header, sizeof (header));
+	memcpy (&write[sizeof (header)], data, write_data_len);
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
+		3, sizeof (data), NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash,
+		sizeof (data) - write_data_len, MOCK_ARG (0x10000 + page),
+		MOCK_ARG_PTR_CONTAINS (&data[write_data_len], sizeof (data) - write_data_len),
+		MOCK_ARG (sizeof (data) - write_data_len));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + page, &data[write_data_len],
+		sizeof (data) - write_data_len);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash,
+		sizeof (data) - write_data_len, MOCK_ARG (0x10000 + page),
+		MOCK_ARG_PTR_CONTAINS (&data[write_data_len], sizeof (data) - write_data_len),
+		MOCK_ARG (sizeof (data) - write_data_len));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + page, &data[write_data_len],
+		sizeof (data) - write_data_len);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
 static void flash_store_test_write_variable_storage_decreasing_with_hash (CuTest *test)
 {
 	struct flash_store_testing store;
@@ -4690,7 +9097,7 @@ static void flash_store_test_write_variable_storage_decreasing_with_hash (CuTest
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
 		3, sizeof (data), &store.hash.base);
@@ -4748,7 +9155,7 @@ static void flash_store_test_write_variable_storage_decreasing_with_hash_old_hea
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
 		3, sizeof (data), &store.hash.base);
@@ -4810,7 +9217,7 @@ static void flash_store_test_write_variable_storage_decreasing_with_hash_extra_s
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
 		3, sizeof (data), &store.hash.base);
@@ -4870,7 +9277,7 @@ static void flash_store_test_write_variable_storage_decreasing_with_hash_extra_s
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
 		3, sizeof (data), &store.hash.base);
@@ -4910,6 +9317,918 @@ static void flash_store_test_write_variable_storage_decreasing_with_hash_extra_s
 	flash_store_release (&store.test);
 }
 
+static void flash_store_test_write_variable_storage_decreasing_with_hash_less_than_page_size_no_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint8_t header[] = {0x04, 0xa5, 0x80, 0x00};
+	uint8_t data[128];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
+
+	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
+		3, sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (data),
+		MOCK_ARG (0x10000 + sizeof (header)), MOCK_ARG_PTR_CONTAINS (data, sizeof (data)),
+		MOCK_ARG (sizeof (data)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + sizeof (header), data,
+		sizeof (data));
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (hash),
+		MOCK_ARG (0x10000 + sizeof (header) + sizeof (data)),
+		MOCK_ARG_PTR_CONTAINS (hash, sizeof (hash)), MOCK_ARG (sizeof (hash)));
+	status |= flash_mock_expect_verify_flash (&store.flash,
+		0x10000 + sizeof (header) + sizeof (data), hash, sizeof (hash));
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (header),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (header, sizeof (header)),
+		MOCK_ARG (sizeof (header)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, header, sizeof (header));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_variable_storage_decreasing_with_hash_less_than_page_size_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint8_t header[] = {0x04, 0xa5, 0x80, 0x00};
+	uint8_t data[128];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	uint8_t write[sizeof (data) + sizeof (header) + sizeof (hash)];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, header, sizeof (header));
+	memcpy (&write[sizeof (header)], data, sizeof (data));
+	memcpy (&write[sizeof (header) + sizeof (data)], hash, sizeof (hash));
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
+		3, sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_variable_storage_decreasing_with_hash_less_than_page_size_last_block_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint8_t header[] = {0x04, 0xa5, 0x80, 0x00};
+	uint8_t data[128];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	uint8_t write[sizeof (data) + sizeof (header) + sizeof (hash)];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, header, sizeof (header));
+	memcpy (&write[sizeof (header)], data, sizeof (data));
+	memcpy (&write[sizeof (header) + sizeof (data)], hash, sizeof (hash));
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
+		3, sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0xe000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0xe000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0xe000, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 2, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_variable_storage_decreasing_with_hash_less_than_page_size_old_header_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint8_t header[] = {0x80, 0x00};
+	uint8_t data[128];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	uint8_t write[sizeof (data) + sizeof (header) + sizeof (hash)];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, header, sizeof (header));
+	memcpy (&write[sizeof (header)], data, sizeof (data));
+	memcpy (&write[sizeof (header) + sizeof (data)], hash, sizeof (hash));
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
+		3, sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_use_length_only_header (&store.test);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_variable_storage_decreasing_with_hash_larger_than_page_size_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint8_t header[] = {0x04, 0xa5, 0x80, 0x01};
+	uint8_t data[384];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	uint8_t write[page];
+	int write_data_len = page - sizeof (header);
+	uint8_t write2[(sizeof (data) - write_data_len) + sizeof (hash)];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, header, sizeof (header));
+	memcpy (&write[sizeof (header)], data, write_data_len);
+
+	memcpy (write2, &data[write_data_len], sizeof (data) - write_data_len);
+	memcpy (&write2[sizeof (data) - write_data_len], hash, sizeof (hash));
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
+		3, sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write2),
+		MOCK_ARG (0x10000 + page), MOCK_ARG_PTR_CONTAINS (write2, sizeof (write2)),
+		MOCK_ARG (sizeof (write2)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + page, write2,
+		sizeof (write2));
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_variable_storage_decreasing_with_hash_larger_than_page_size_last_block_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint8_t header[] = {0x04, 0xa5, 0x80, 0x01};
+	uint8_t data[384];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	uint8_t write[page];
+	int write_data_len = page - sizeof (header);
+	uint8_t write2[(sizeof (data) - write_data_len) + sizeof (hash)];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, header, sizeof (header));
+	memcpy (&write[sizeof (header)], data, write_data_len);
+
+	memcpy (write2, &data[write_data_len], sizeof (data) - write_data_len);
+	memcpy (&write2[sizeof (data) - write_data_len], hash, sizeof (hash));
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
+		3, sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0xe000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write2),
+		MOCK_ARG (0xe000 + page), MOCK_ARG_PTR_CONTAINS (write2, sizeof (write2)),
+		MOCK_ARG (sizeof (write2)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0xe000 + page, write2,
+		sizeof (write2));
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0xe000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0xe000, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 2, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_variable_storage_decreasing_with_hash_larger_than_page_size_old_header_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint8_t header[] = {0x80, 0x01};
+	uint8_t data[384];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	uint8_t write[page];
+	int write_data_len = page - sizeof (header);
+	uint8_t write2[(sizeof (data) - write_data_len) + sizeof (hash)];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, header, sizeof (header));
+	memcpy (&write[sizeof (header)], data, write_data_len);
+
+	memcpy (write2, &data[write_data_len], sizeof (data) - write_data_len);
+	memcpy (&write2[sizeof (data) - write_data_len], hash, sizeof (hash));
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
+		3, sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_use_length_only_header (&store.test);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write2),
+		MOCK_ARG (0x10000 + page), MOCK_ARG_PTR_CONTAINS (write2, sizeof (write2)),
+		MOCK_ARG (sizeof (write2)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + page, write2,
+		sizeof (write2));
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_variable_storage_decreasing_with_hash_multiple_pages_aligned_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint8_t header[] = {0x04, 0xa5, 0xfc, 0x01};
+	uint8_t data[512 - sizeof (header)];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	uint8_t write[page];
+	int write_data_len = page - sizeof (header);
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, header, sizeof (header));
+	memcpy (&write[sizeof (header)], data, write_data_len);
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
+		3, sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash,
+		sizeof (data) - write_data_len, MOCK_ARG (0x10000 + page),
+		MOCK_ARG_PTR_CONTAINS (&data[write_data_len], sizeof (data) - write_data_len),
+		MOCK_ARG (sizeof (data) - write_data_len));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + page, &data[write_data_len],
+		sizeof (data) - write_data_len);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (hash),
+		MOCK_ARG (0x10000 + sizeof (header) + sizeof (data)),
+		MOCK_ARG_PTR_CONTAINS (hash, sizeof (hash)), MOCK_ARG (sizeof (hash)));
+	status |= flash_mock_expect_verify_flash (&store.flash,
+		0x10000 + sizeof (header) + sizeof (data), hash, sizeof (hash));
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_variable_storage_decreasing_with_hash_multiple_pages_not_aligned_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint8_t header[] = {0x04, 0xa5, 0x80, 0x02};
+	uint8_t data[(page * 2) + 128];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	uint8_t write[page];
+	int write_data_len = page - sizeof (header);
+	int write2_data_len = (sizeof (data) % page) + sizeof (header);
+	uint8_t write2[write2_data_len + sizeof (hash)];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, header, sizeof (header));
+	memcpy (&write[sizeof (header)], data, write_data_len);
+
+	memcpy (write2, &data[sizeof (data) - write2_data_len], write2_data_len);
+	memcpy (&write2[write2_data_len], hash, sizeof (hash));
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
+		3, sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, page,
+		MOCK_ARG (0x10000 + page), MOCK_ARG_PTR_CONTAINS (&data[write_data_len], page),
+		MOCK_ARG (page));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + page, &data[write_data_len],
+		page);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write2),
+		MOCK_ARG (0x10000 + (page * 2)), MOCK_ARG_PTR_CONTAINS (write2, sizeof (write2)),
+		MOCK_ARG (sizeof (write2)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + (page * 2), write2,
+		sizeof (write2));
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_variable_storage_decreasing_with_hash_hash_across_page_boundary_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint8_t header[] = {0x04, 0xa5, 0xf0, 0x00};
+	int extra = 16;
+	uint8_t data[page - extra];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	int extra_hash = (sizeof (hash) - extra) + sizeof (header);
+	uint8_t write[page];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, header, sizeof (header));
+	memcpy (&write[sizeof (header)], data, sizeof (data));
+	memcpy (&write[sizeof (header) + sizeof (data)], hash, extra - sizeof (header));
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
+		3, sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, extra_hash,
+		MOCK_ARG (0x10000 + page),
+		MOCK_ARG_PTR_CONTAINS (&hash[sizeof (hash) - extra_hash], extra_hash),
+		MOCK_ARG (extra_hash));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + page,
+		&hash[sizeof (hash) - extra_hash], extra_hash);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_variable_storage_decreasing_with_hash_hash_across_page_boundary_last_block_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint8_t header[] = {0x04, 0xa5, 0xf0, 0x00};
+	int extra = 16;
+	uint8_t data[page - extra];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	int extra_hash = (sizeof (hash) - extra) + sizeof (header);
+	uint8_t write[page];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, header, sizeof (header));
+	memcpy (&write[sizeof (header)], data, sizeof (data));
+	memcpy (&write[sizeof (header) + sizeof (data)], hash, extra - sizeof (header));
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
+		3, sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0xe000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, extra_hash,
+		MOCK_ARG (0xe000 + page),
+		MOCK_ARG_PTR_CONTAINS (&hash[sizeof (hash) - extra_hash], extra_hash),
+		MOCK_ARG (extra_hash));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0xe000 + page,
+		&hash[sizeof (hash) - extra_hash], extra_hash);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0xe000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0xe000, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 2, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_variable_storage_decreasing_with_hash_multiple_pages_hash_across_page_boundary_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint8_t header[] = {0x04, 0xa5, 0xf0, 0x02};
+	int extra = 16;
+	uint8_t data[(page * 3) - extra];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	uint8_t write[page];
+	int write_data_len = page - sizeof (header);
+	int extra_hash = (sizeof (hash) - extra) + sizeof (header);
+	int write2_data_len = (page - extra) + sizeof (header);
+	uint8_t write2[page];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, header, sizeof (header));
+	memcpy (&write[sizeof (header)], data, write_data_len);
+
+	memcpy (write2, &data[sizeof (data) - write2_data_len], write2_data_len);
+	memcpy (&write2[write2_data_len], hash, extra - sizeof (header));
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
+		3, sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, page,
+		MOCK_ARG (0x10000 + page), MOCK_ARG_PTR_CONTAINS (&data[write_data_len], page),
+		MOCK_ARG (page));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + page, &data[write_data_len],
+		page);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write2),
+		MOCK_ARG (0x10000 + (page * 2)), MOCK_ARG_PTR_CONTAINS (write2, sizeof (write2)),
+		MOCK_ARG (sizeof (write2)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + (page * 2), write2,
+		sizeof (write2));
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, extra_hash,
+		MOCK_ARG (0x10000 + (page * 3)),
+		MOCK_ARG_PTR_CONTAINS (&hash[sizeof (hash) - extra_hash], extra_hash),
+		MOCK_ARG (extra_hash));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + (page * 3),
+		&hash[sizeof (hash) - extra_hash], extra_hash);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_variable_storage_decreasing_with_hash_multiple_pages_hash_across_page_boundary_last_block_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint8_t header[] = {0x04, 0xa5, 0xf0, 0x02};
+	int extra = 16;
+	uint8_t data[(page * 3) - extra];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	uint8_t write[page];
+	int write_data_len = page - sizeof (header);
+	int extra_hash = (sizeof (hash) - extra) + sizeof (header);
+	int write2_data_len = (page - extra) + sizeof (header);
+	uint8_t write2[page];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, header, sizeof (header));
+	memcpy (&write[sizeof (header)], data, write_data_len);
+
+	memcpy (write2, &data[sizeof (data) - write2_data_len], write2_data_len);
+	memcpy (&write2[write2_data_len], hash, extra - sizeof (header));
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
+		3, sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0xe000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, page,
+		MOCK_ARG (0xe000 + page), MOCK_ARG_PTR_CONTAINS (&data[write_data_len], page),
+		MOCK_ARG (page));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0xe000 + page, &data[write_data_len],
+		page);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write2),
+		MOCK_ARG (0xe000 + (page * 2)), MOCK_ARG_PTR_CONTAINS (write2, sizeof (write2)),
+		MOCK_ARG (sizeof (write2)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0xe000 + (page * 2), write2,
+		sizeof (write2));
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, extra_hash,
+		MOCK_ARG (0xe000 + (page * 3)),
+		MOCK_ARG_PTR_CONTAINS (&hash[sizeof (hash) - extra_hash], extra_hash),
+		MOCK_ARG (extra_hash));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0xe000 + (page * 3),
+		&hash[sizeof (hash) - extra_hash], extra_hash);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0xe000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0xe000, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 2, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_variable_storage_decreasing_with_hash_multiple_store_min_write (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint8_t header[] = {0x04, 0xa5, 0x80, 0x01};
+	uint8_t data[384];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	uint8_t write[page];
+	int write_data_len = page - sizeof (header);
+	uint8_t write2[(sizeof (data) - write_data_len) + sizeof (hash)];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, header, sizeof (header));
+	memcpy (&write[sizeof (header)], data, write_data_len);
+
+	memcpy (write2, &data[write_data_len], sizeof (data) - write_data_len);
+	memcpy (&write2[sizeof (data) - write_data_len], hash, sizeof (hash));
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
+		3, sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write2),
+		MOCK_ARG (0x10000 + page), MOCK_ARG_PTR_CONTAINS (write2, sizeof (write2)),
+		MOCK_ARG (sizeof (write2)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + page, write2,
+		sizeof (write2));
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write2),
+		MOCK_ARG (0x10000 + page), MOCK_ARG_PTR_CONTAINS (write2, sizeof (write2)),
+		MOCK_ARG (sizeof (write2)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + page, write2,
+		sizeof (write2));
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, write, sizeof (write));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
 static void flash_store_test_write_fixed_storage_null (CuTest *test)
 {
 	struct flash_store_testing store;
@@ -4918,7 +10237,7 @@ static void flash_store_test_write_fixed_storage_null (CuTest *test)
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), NULL);
@@ -4946,7 +10265,7 @@ static void flash_store_test_write_fixed_storage_invalid_id (CuTest *test)
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), NULL);
@@ -4971,7 +10290,7 @@ static void flash_store_test_write_fixed_storage_wrong_length (CuTest *test)
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), NULL);
@@ -4996,7 +10315,7 @@ static void flash_store_test_write_fixed_storage_erase_error (CuTest *test)
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), NULL);
@@ -5028,7 +10347,7 @@ static void flash_store_test_write_fixed_storage_write_error (CuTest *test)
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), NULL);
@@ -5063,7 +10382,7 @@ static void flash_store_test_write_fixed_storage_verify_error (CuTest *test)
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), NULL);
@@ -5099,7 +10418,7 @@ static void flash_store_test_write_fixed_storage_hash_error (CuTest *test)
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), &store.hash.base);
@@ -5136,7 +10455,7 @@ static void flash_store_test_write_fixed_storage_write_hash_error (CuTest *test)
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), &store.hash.base);
@@ -5184,7 +10503,7 @@ static void flash_store_test_write_fixed_storage_verify_hash_error (CuTest *test
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), &store.hash.base);
@@ -5217,6 +10536,341 @@ static void flash_store_test_write_fixed_storage_verify_hash_error (CuTest *test
 	flash_store_release (&store.test);
 }
 
+static void flash_store_test_write_fixed_storage_min_write_write_error (CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	int extra = 16;
+	uint8_t data[(page * 3) - extra];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	uint8_t write[page];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, data, page - extra);
+	memcpy (&write[page - extra], hash, extra);
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash,
+		FLASH_WRITE_FAILED, MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (data, page * 2),
+		MOCK_ARG (page * 2));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, FLASH_WRITE_FAILED, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_fixed_storage_min_write_verify_error (CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	int extra = 16;
+	uint8_t data[(page * 3) - extra];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	uint8_t write[page];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, data, page - extra);
+	memcpy (&write[page - extra], hash, extra);
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, page * 2,
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (data, page * 2), MOCK_ARG (page * 2));
+	status |= mock_expect (&store.flash.mock, store.flash.base.read, &store.flash,
+		FLASH_READ_FAILED, MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG_ANY);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, FLASH_READ_FAILED, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_fixed_storage_min_write_write_last_error (CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	int extra = 16;
+	uint8_t data[(page * 3) - extra];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	uint8_t write[page];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, data, page - extra);
+	memcpy (&write[page - extra], hash, extra);
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, page * 2,
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (data, page * 2), MOCK_ARG (page * 2));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, data, page * 2);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash,
+		FLASH_WRITE_FAILED, MOCK_ARG (0x10000 + (page * 2)),
+		MOCK_ARG_PTR_CONTAINS (write, sizeof (write)), MOCK_ARG (sizeof (write)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, FLASH_WRITE_FAILED, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_fixed_storage_min_write_verify_last_error (CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	int extra = 16;
+	uint8_t data[(page * 3) - extra];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	uint8_t write[page];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, data, page - extra);
+	memcpy (&write[page - extra], hash, extra);
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, page * 2,
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (data, page * 2), MOCK_ARG (page * 2));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, data, page * 2);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x10000 + (page * 2)), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= mock_expect (&store.flash.mock, store.flash.base.read, &store.flash,
+		FLASH_READ_FAILED, MOCK_ARG (0x10000 + (page * 2)), MOCK_ARG_NOT_NULL, MOCK_ARG_ANY);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, FLASH_READ_FAILED, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_fixed_storage_min_write_write_hash_error (CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	int extra = 16;
+	uint8_t data[(page * 3) - extra];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	uint8_t write[page];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, data, page - extra);
+	memcpy (&write[page - extra], hash, extra);
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, page * 2,
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (data, page * 2), MOCK_ARG (page * 2));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, data, page * 2);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x10000 + (page * 2)), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + (page * 2), write,
+		sizeof (write));
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash,
+		FLASH_WRITE_FAILED, MOCK_ARG (0x10000 + (page * 3)),
+		MOCK_ARG_PTR_CONTAINS (&hash[extra], sizeof (hash) - extra),
+		MOCK_ARG (sizeof (hash) - extra));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, FLASH_WRITE_FAILED, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_fixed_storage_min_write_verify_hash_error (CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	int extra = 16;
+	uint8_t data[(page * 3) - extra];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	uint8_t write[page];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, data, page - extra);
+	memcpy (&write[page - extra], hash, extra);
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, page * 2,
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (data, page * 2), MOCK_ARG (page * 2));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, data, page * 2);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x10000 + (page * 2)), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + (page * 2), write,
+		sizeof (write));
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash,
+		sizeof (hash) - extra, MOCK_ARG (0x10000 + (page * 3)),
+		MOCK_ARG_PTR_CONTAINS (&hash[extra], sizeof (hash) - extra),
+		MOCK_ARG (sizeof (hash) - extra));
+	status |= mock_expect (&store.flash.mock, store.flash.base.read, &store.flash,
+		FLASH_READ_FAILED, MOCK_ARG (0x10000 + (page * 3)), MOCK_ARG_NOT_NULL, MOCK_ARG_ANY);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, FLASH_READ_FAILED, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
 static void flash_store_test_write_variable_storage_null (CuTest *test)
 {
 	struct flash_store_testing store;
@@ -5225,7 +10879,7 @@ static void flash_store_test_write_variable_storage_null (CuTest *test)
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), NULL);
@@ -5253,7 +10907,7 @@ static void flash_store_test_write_variable_storage_invalid_id (CuTest *test)
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), NULL);
@@ -5278,7 +10932,7 @@ static void flash_store_test_write_variable_storage_no_hash_too_large (CuTest *t
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 256,
 		NULL);
@@ -5300,7 +10954,7 @@ static void flash_store_test_write_variable_storage_with_hash_too_large (CuTest 
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 256,
 		&store.hash.base);
@@ -5322,7 +10976,7 @@ static void flash_store_test_write_variable_storage_erase_error (CuTest *test)
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), NULL);
@@ -5354,7 +11008,7 @@ static void flash_store_test_write_variable_storage_write_error (CuTest *test)
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), NULL);
@@ -5389,7 +11043,7 @@ static void flash_store_test_write_variable_storage_verify_error (CuTest *test)
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), NULL);
@@ -5428,7 +11082,7 @@ static void flash_store_test_write_variable_storage_write_header_error (CuTest *
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), NULL);
@@ -5470,7 +11124,7 @@ static void flash_store_test_write_variable_storage_verify_header_error (CuTest 
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), NULL);
@@ -5514,7 +11168,7 @@ static void flash_store_test_write_variable_storage_write_old_header_error (CuTe
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), NULL);
@@ -5558,7 +11212,7 @@ static void flash_store_test_write_variable_storage_verify_old_header_error (CuT
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), NULL);
@@ -5603,7 +11257,7 @@ static void flash_store_test_write_variable_storage_hash_error (CuTest *test)
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), &store.hash.base);
@@ -5640,7 +11294,7 @@ static void flash_store_test_write_variable_storage_write_hash_error (CuTest *te
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), &store.hash.base);
@@ -5690,7 +11344,7 @@ static void flash_store_test_write_variable_storage_verify_hash_error (CuTest *t
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), &store.hash.base);
@@ -5726,6 +11380,749 @@ static void flash_store_test_write_variable_storage_verify_hash_error (CuTest *t
 	flash_store_release (&store.test);
 }
 
+static void flash_store_test_write_variable_storage_min_write_single_page_write_hash_error (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint8_t header[] = {0x04, 0xa5, 0xf0, 0x00};
+	int extra = 16;
+	uint8_t data[page - extra];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	int extra_hash = (sizeof (hash) - extra) + sizeof (header);
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash,
+		FLASH_WRITE_FAILED, MOCK_ARG (0x10000 + page),
+		MOCK_ARG_PTR_CONTAINS (&hash[sizeof (hash) - extra_hash], extra_hash),
+		MOCK_ARG (extra_hash));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, FLASH_WRITE_FAILED, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_variable_storage_min_write_single_page_verify_hash_error (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint8_t header[] = {0x04, 0xa5, 0xf0, 0x00};
+	int extra = 16;
+	uint8_t data[page - extra];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	int extra_hash = (sizeof (hash) - extra) + sizeof (header);
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, extra_hash,
+		MOCK_ARG (0x10000 + page),
+		MOCK_ARG_PTR_CONTAINS (&hash[sizeof (hash) - extra_hash], extra_hash),
+		MOCK_ARG (extra_hash));
+	status |= mock_expect (&store.flash.mock, store.flash.base.read, &store.flash,
+		FLASH_READ_FAILED, MOCK_ARG (0x10000 + page), MOCK_ARG_NOT_NULL, MOCK_ARG_ANY);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, FLASH_READ_FAILED, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_variable_storage_min_write_single_page_write_error (CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint8_t header[] = {0x04, 0xa5, 0xf0, 0x00};
+	int extra = 16;
+	uint8_t data[page - extra];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	int extra_hash = (sizeof (hash) - extra) + sizeof (header);
+	uint8_t write[page];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, header, sizeof (header));
+	memcpy (&write[sizeof (header)], data, sizeof (data));
+	memcpy (&write[sizeof (header) + sizeof (data)], hash, extra - sizeof (header));
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, extra_hash,
+		MOCK_ARG (0x10000 + page),
+		MOCK_ARG_PTR_CONTAINS (&hash[sizeof (hash) - extra_hash], extra_hash),
+		MOCK_ARG (extra_hash));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + page,
+		&hash[sizeof (hash) - extra_hash], extra_hash);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash,
+		FLASH_WRITE_FAILED, MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, FLASH_WRITE_FAILED, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_variable_storage_min_write_single_page_verify_error (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint8_t header[] = {0x04, 0xa5, 0xf0, 0x00};
+	int extra = 16;
+	uint8_t data[page - extra];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	int extra_hash = (sizeof (hash) - extra) + sizeof (header);
+	uint8_t write[page];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, header, sizeof (header));
+	memcpy (&write[sizeof (header)], data, sizeof (data));
+	memcpy (&write[sizeof (header) + sizeof (data)], hash, extra - sizeof (header));
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, extra_hash,
+		MOCK_ARG (0x10000 + page),
+		MOCK_ARG_PTR_CONTAINS (&hash[sizeof (hash) - extra_hash], extra_hash),
+		MOCK_ARG (extra_hash));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + page,
+		&hash[sizeof (hash) - extra_hash], extra_hash);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= mock_expect (&store.flash.mock, store.flash.base.read, &store.flash,
+		FLASH_READ_FAILED, MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG_ANY);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, FLASH_READ_FAILED, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_variable_storage_min_write_multiple_pages_write_error (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint8_t header[] = {0x04, 0xa5, 0xf0, 0x02};
+	int extra = 16;
+	uint8_t data[(page * 3) - extra];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	int write_data_len = page - sizeof (header);
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash,
+		FLASH_WRITE_FAILED, MOCK_ARG (0x10000 + page),
+		MOCK_ARG_PTR_CONTAINS (&data[write_data_len], page), MOCK_ARG (page));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, FLASH_WRITE_FAILED, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_variable_storage_min_write_multiple_pages_verify_error (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint8_t header[] = {0x04, 0xa5, 0xf0, 0x02};
+	int extra = 16;
+	uint8_t data[(page * 3) - extra];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	int write_data_len = page - sizeof (header);
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, page,
+		MOCK_ARG (0x10000 + page), MOCK_ARG_PTR_CONTAINS (&data[write_data_len], page),
+		MOCK_ARG (page));
+	status |= mock_expect (&store.flash.mock, store.flash.base.read, &store.flash,
+		FLASH_READ_FAILED, MOCK_ARG (0x10000 + page), MOCK_ARG_NOT_NULL, MOCK_ARG_ANY);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, FLASH_READ_FAILED, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_variable_storage_min_write_multiple_pages_write_last_error (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint8_t header[] = {0x04, 0xa5, 0xf0, 0x02};
+	int extra = 16;
+	uint8_t data[(page * 3) - extra];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	int write_data_len = page - sizeof (header);
+	int write2_data_len = (page - extra) + sizeof (header);
+	uint8_t write2[page];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write2, &data[sizeof (data) - write2_data_len], write2_data_len);
+	memcpy (&write2[write2_data_len], hash, extra - sizeof (header));
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, page,
+		MOCK_ARG (0x10000 + page), MOCK_ARG_PTR_CONTAINS (&data[write_data_len], page),
+		MOCK_ARG (page));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + page, &data[write_data_len],
+		page);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash,
+		FLASH_WRITE_FAILED, MOCK_ARG (0x10000 + (page * 2)),
+		MOCK_ARG_PTR_CONTAINS (write2, sizeof (write2)), MOCK_ARG (sizeof (write2)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, FLASH_WRITE_FAILED, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_variable_storage_min_write_multiple_pages_verify_last_error (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint8_t header[] = {0x04, 0xa5, 0xf0, 0x02};
+	int extra = 16;
+	uint8_t data[(page * 3) - extra];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	int write_data_len = page - sizeof (header);
+	int write2_data_len = (page - extra) + sizeof (header);
+	uint8_t write2[page];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write2, &data[sizeof (data) - write2_data_len], write2_data_len);
+	memcpy (&write2[write2_data_len], hash, extra - sizeof (header));
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, page,
+		MOCK_ARG (0x10000 + page), MOCK_ARG_PTR_CONTAINS (&data[write_data_len], page),
+		MOCK_ARG (page));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + page, &data[write_data_len],
+		page);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write2),
+		MOCK_ARG (0x10000 + (page * 2)), MOCK_ARG_PTR_CONTAINS (write2, sizeof (write2)),
+		MOCK_ARG (sizeof (write2)));
+	status |= mock_expect (&store.flash.mock, store.flash.base.read, &store.flash,
+		FLASH_READ_FAILED, MOCK_ARG (0x10000 + (page *2)), MOCK_ARG_NOT_NULL, MOCK_ARG_ANY);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, FLASH_READ_FAILED, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_variable_storage_min_write_multiple_pages_write_hash_error (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint8_t header[] = {0x04, 0xa5, 0xf0, 0x02};
+	int extra = 16;
+	uint8_t data[(page * 3) - extra];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	int write_data_len = page - sizeof (header);
+	int extra_hash = (sizeof (hash) - extra) + sizeof (header);
+	int write2_data_len = (page - extra) + sizeof (header);
+	uint8_t write2[page];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write2, &data[sizeof (data) - write2_data_len], write2_data_len);
+	memcpy (&write2[write2_data_len], hash, extra - sizeof (header));
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, page,
+		MOCK_ARG (0x10000 + page), MOCK_ARG_PTR_CONTAINS (&data[write_data_len], page),
+		MOCK_ARG (page));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + page, &data[write_data_len],
+		page);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write2),
+		MOCK_ARG (0x10000 + (page * 2)), MOCK_ARG_PTR_CONTAINS (write2, sizeof (write2)),
+		MOCK_ARG (sizeof (write2)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + (page * 2), write2,
+		sizeof (write2));
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash,
+		FLASH_WRITE_FAILED, MOCK_ARG (0x10000 + (page * 3)),
+		MOCK_ARG_PTR_CONTAINS (&hash[sizeof (hash) - extra_hash], extra_hash),
+		MOCK_ARG (extra_hash));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, FLASH_WRITE_FAILED, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_variable_storage_min_write_multiple_pages_verify_hash_error (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint8_t header[] = {0x04, 0xa5, 0xf0, 0x02};
+	int extra = 16;
+	uint8_t data[(page * 3) - extra];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	int write_data_len = page - sizeof (header);
+	int extra_hash = (sizeof (hash) - extra) + sizeof (header);
+	int write2_data_len = (page - extra) + sizeof (header);
+	uint8_t write2[page];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write2, &data[sizeof (data) - write2_data_len], write2_data_len);
+	memcpy (&write2[write2_data_len], hash, extra - sizeof (header));
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, page,
+		MOCK_ARG (0x10000 + page), MOCK_ARG_PTR_CONTAINS (&data[write_data_len], page),
+		MOCK_ARG (page));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + page, &data[write_data_len],
+		page);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write2),
+		MOCK_ARG (0x10000 + (page * 2)), MOCK_ARG_PTR_CONTAINS (write2, sizeof (write2)),
+		MOCK_ARG (sizeof (write2)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + (page * 2), write2,
+		sizeof (write2));
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, extra_hash,
+		MOCK_ARG (0x10000 + (page * 3)),
+		MOCK_ARG_PTR_CONTAINS (&hash[sizeof (hash) - extra_hash], extra_hash),
+		MOCK_ARG (extra_hash));
+	status |= mock_expect (&store.flash.mock, store.flash.base.read, &store.flash,
+		FLASH_READ_FAILED, MOCK_ARG (0x10000 + (page * 3)), MOCK_ARG_NOT_NULL, MOCK_ARG_ANY);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, FLASH_READ_FAILED, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_variable_storage_min_write_multiple_pages_write_first_error (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint8_t header[] = {0x04, 0xa5, 0xf0, 0x02};
+	int extra = 16;
+	uint8_t data[(page * 3) - extra];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	uint8_t write[page];
+	int write_data_len = page - sizeof (header);
+	int extra_hash = (sizeof (hash) - extra) + sizeof (header);
+	int write2_data_len = (page - extra) + sizeof (header);
+	uint8_t write2[page];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, header, sizeof (header));
+	memcpy (&write[sizeof (header)], data, write_data_len);
+
+	memcpy (write2, &data[sizeof (data) - write2_data_len], write2_data_len);
+	memcpy (&write2[write2_data_len], hash, extra - sizeof (header));
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, page,
+		MOCK_ARG (0x10000 + page), MOCK_ARG_PTR_CONTAINS (&data[write_data_len], page),
+		MOCK_ARG (page));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + page, &data[write_data_len],
+		page);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write2),
+		MOCK_ARG (0x10000 + (page * 2)), MOCK_ARG_PTR_CONTAINS (write2, sizeof (write2)),
+		MOCK_ARG (sizeof (write2)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + (page * 2), write2,
+		sizeof (write2));
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, extra_hash,
+		MOCK_ARG (0x10000 + (page * 3)),
+		MOCK_ARG_PTR_CONTAINS (&hash[sizeof (hash) - extra_hash], extra_hash),
+		MOCK_ARG (extra_hash));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + (page * 3),
+		&hash[sizeof (hash) - extra_hash], extra_hash);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash,
+		FLASH_WRITE_FAILED, MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, FLASH_WRITE_FAILED, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
+static void flash_store_test_write_variable_storage_min_write_multiple_pages_verify_first_error (
+	CuTest *test)
+{
+	struct flash_store_testing store;
+	int status;
+	uint32_t page = 0x100;
+	uint8_t header[] = {0x04, 0xa5, 0xf0, 0x02};
+	int extra = 16;
+	uint8_t data[(page * 3) - extra];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+	uint8_t write[page];
+	int write_data_len = page - sizeof (header);
+	int extra_hash = (sizeof (hash) - extra) + sizeof (header);
+	int write2_data_len = (page - extra) + sizeof (header);
+	uint8_t write2[page];
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	memcpy (write, header, sizeof (header));
+	memcpy (&write[sizeof (header)], data, write_data_len);
+
+	memcpy (write2, &data[sizeof (data) - write2_data_len], write2_data_len);
+	memcpy (&write2[write2_data_len], hash, extra - sizeof (header));
+
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+
+	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
+		sizeof (data), &store.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, page,
+		MOCK_ARG (0x10000 + page), MOCK_ARG_PTR_CONTAINS (&data[write_data_len], page),
+		MOCK_ARG (page));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + page, &data[write_data_len],
+		page);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write2),
+		MOCK_ARG (0x10000 + (page * 2)), MOCK_ARG_PTR_CONTAINS (write2, sizeof (write2)),
+		MOCK_ARG (sizeof (write2)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + (page * 2), write2,
+		sizeof (write2));
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, extra_hash,
+		MOCK_ARG (0x10000 + (page * 3)),
+		MOCK_ARG_PTR_CONTAINS (&hash[sizeof (hash) - extra_hash], extra_hash),
+		MOCK_ARG (extra_hash));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + (page * 3),
+		&hash[sizeof (hash) - extra_hash], extra_hash);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (write),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (write, sizeof (write)),
+		MOCK_ARG (sizeof (write)));
+	status |= mock_expect (&store.flash.mock, store.flash.base.read, &store.flash,
+		FLASH_READ_FAILED, MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG_ANY);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.test.write (&store.test, 0, data, sizeof (data));
+	CuAssertIntEquals (test, FLASH_READ_FAILED, status);
+
+	flash_store_testing_release_dependencies (test, &store);
+
+	flash_store_release (&store.test);
+}
+
 static void flash_store_test_use_length_only_header_null (CuTest *test)
 {
 	TEST_START;
@@ -5747,7 +12144,7 @@ static void flash_store_test_read_fixed_storage_no_hash (CuTest *test)
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), NULL);
@@ -5784,7 +12181,7 @@ static void flash_store_test_read_fixed_storage_no_hash_last_block (CuTest *test
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), NULL);
@@ -5821,7 +12218,7 @@ static void flash_store_test_read_fixed_storage_no_hash_large_buffer (CuTest *te
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), NULL);
@@ -5859,7 +12256,7 @@ static void flash_store_test_read_fixed_storage_no_hash_multiple_sectors (CuTest
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), NULL);
@@ -5897,7 +12294,7 @@ static void flash_store_test_read_fixed_storage_no_hash_multiple_sectors_last_bl
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), NULL);
@@ -5938,7 +12335,7 @@ static void flash_store_test_read_fixed_storage_with_hash (CuTest *test)
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), &store.hash.base);
@@ -5992,7 +12389,7 @@ static void flash_store_test_read_fixed_storage_with_hash_mismatch (CuTest *test
 	memcpy (bad_hash, hash, sizeof (hash));
 	bad_hash[1] ^= 0x55;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), &store.hash.base);
@@ -6040,7 +12437,7 @@ static void flash_store_test_read_fixed_storage_with_hash_extra_sector_for_hash 
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), &store.hash.base);
@@ -6092,7 +12489,7 @@ static void flash_store_test_read_fixed_storage_with_hash_extra_sector_for_hash_
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), &store.hash.base);
@@ -6138,7 +12535,7 @@ static void flash_store_test_read_fixed_storage_decreasing_no_hash (CuTest *test
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage_decreasing (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), NULL);
@@ -6175,7 +12572,7 @@ static void flash_store_test_read_fixed_storage_decreasing_no_hash_last_block (C
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage_decreasing (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), NULL);
@@ -6212,7 +12609,7 @@ static void flash_store_test_read_fixed_storage_decreasing_no_hash_large_buffer 
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage_decreasing (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), NULL);
@@ -6250,7 +12647,7 @@ static void flash_store_test_read_fixed_storage_decreasing_no_hash_multiple_sect
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage_decreasing (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), NULL);
@@ -6289,7 +12686,7 @@ static void flash_store_test_read_fixed_storage_decreasing_no_hash_multiple_sect
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage_decreasing (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), NULL);
@@ -6330,7 +12727,7 @@ static void flash_store_test_read_fixed_storage_decreasing_with_hash (CuTest *te
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage_decreasing (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), &store.hash.base);
@@ -6384,7 +12781,7 @@ static void flash_store_test_read_fixed_storage_decreasing_with_hash_mismatch (C
 	memcpy (bad_hash, hash, sizeof (hash));
 	bad_hash[1] ^= 0x55;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage_decreasing (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), &store.hash.base);
@@ -6433,7 +12830,7 @@ static void flash_store_test_read_fixed_storage_decreasing_with_hash_extra_secto
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage_decreasing (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), &store.hash.base);
@@ -6485,7 +12882,7 @@ static void flash_store_test_read_fixed_storage_decreasing_with_hash_extra_secto
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage_decreasing (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), &store.hash.base);
@@ -6532,7 +12929,7 @@ static void flash_store_test_read_variable_storage_no_hash (CuTest *test)
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), NULL);
@@ -6574,7 +12971,7 @@ static void flash_store_test_read_variable_storage_no_hash_last_block (CuTest *t
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), NULL);
@@ -6616,7 +13013,7 @@ static void flash_store_test_read_variable_storage_no_hash_max_length (CuTest *t
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), NULL);
@@ -6658,7 +13055,7 @@ static void flash_store_test_read_variable_storage_no_hash_min_length (CuTest *t
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), NULL);
@@ -6701,7 +13098,7 @@ static void flash_store_test_read_variable_storage_no_hash_multiple_sectors (CuT
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), NULL);
@@ -6745,7 +13142,7 @@ static void flash_store_test_read_variable_storage_no_hash_multiple_sectors_last
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), NULL);
@@ -6788,7 +13185,7 @@ static void flash_store_test_read_variable_storage_no_hash_extra_sector_for_head
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), NULL);
@@ -6832,7 +13229,7 @@ static void flash_store_test_read_variable_storage_no_hash_extra_sector_for_head
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), NULL);
@@ -6874,7 +13271,7 @@ static void flash_store_test_read_variable_storage_no_hash_longer_header (CuTest
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), NULL);
@@ -6916,7 +13313,7 @@ static void flash_store_test_read_variable_storage_no_hash_old_format (CuTest *t
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), NULL);
@@ -6962,7 +13359,7 @@ static void flash_store_test_read_variable_storage_with_hash (CuTest *test)
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), &store.hash.base);
@@ -7022,7 +13419,7 @@ static void flash_store_test_read_variable_storage_with_hash_mismatch (CuTest *t
 	memcpy (bad_hash, hash, sizeof (hash));
 	bad_hash[1] ^= 0x55;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), &store.hash.base);
@@ -7075,7 +13472,7 @@ static void flash_store_test_read_variable_storage_with_hash_max_length (CuTest 
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), &store.hash.base);
@@ -7132,7 +13529,7 @@ static void flash_store_test_read_variable_storage_with_hash_extra_sector_for_ha
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), &store.hash.base);
@@ -7190,7 +13587,7 @@ static void flash_store_test_read_variable_storage_with_hash_extra_sector_for_ha
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), &store.hash.base);
@@ -7242,7 +13639,7 @@ static void flash_store_test_read_variable_storage_decreasing_no_hash (CuTest *t
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
 		3, sizeof (data), NULL);
@@ -7284,7 +13681,7 @@ static void flash_store_test_read_variable_storage_decreasing_no_hash_last_block
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
 		3, sizeof (data), NULL);
@@ -7328,7 +13725,7 @@ static void flash_store_test_read_variable_storage_decreasing_no_hash_multiple_s
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
 		3, sizeof (data), NULL);
@@ -7372,7 +13769,7 @@ static void flash_store_test_read_variable_storage_decreasing_no_hash_multiple_s
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
 		3, sizeof (data), NULL);
@@ -7416,7 +13813,7 @@ static void flash_store_test_read_variable_storage_decreasing_no_hash_extra_sect
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
 		3, sizeof (data), NULL);
@@ -7460,7 +13857,7 @@ static void flash_store_test_read_variable_storage_decreasing_no_hash_extra_sect
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
 		3, sizeof (data), NULL);
@@ -7506,7 +13903,7 @@ static void flash_store_test_read_variable_storage_decreasing_with_hash (CuTest 
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
 		3, sizeof (data), &store.hash.base);
@@ -7566,7 +13963,7 @@ static void flash_store_test_read_variable_storage_decreasing_with_hash_mismatch
 	memcpy (bad_hash, hash, sizeof (hash));
 	bad_hash[1] ^= 0x55;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
 		3, sizeof (data), &store.hash.base);
@@ -7621,7 +14018,7 @@ static void flash_store_test_read_variable_storage_decreasing_with_hash_extra_se
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
 		3, sizeof (data), &store.hash.base);
@@ -7679,7 +14076,7 @@ static void flash_store_test_read_variable_storage_decreasing_with_hash_extra_se
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
 		3, sizeof (data), &store.hash.base);
@@ -7724,7 +14121,7 @@ static void flash_store_test_read_fixed_storage_null (CuTest *test)
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (out), NULL);
@@ -7749,7 +14146,7 @@ static void flash_store_test_read_fixed_storage_invalid_id (CuTest *test)
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (out), NULL);
@@ -7774,7 +14171,7 @@ static void flash_store_test_read_fixed_storage_small_buffer (CuTest *test)
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (out) + 1, NULL);
@@ -7796,7 +14193,7 @@ static void flash_store_test_read_fixed_storage_read_error (CuTest *test)
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (out), NULL);
@@ -7829,7 +14226,7 @@ static void flash_store_test_read_fixed_storage_read_hash_error (CuTest *test)
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), &store.hash.base);
@@ -7871,7 +14268,7 @@ static void flash_store_test_read_fixed_storage_hash_error (CuTest *test)
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), &store.hash.base);
@@ -7907,7 +14304,7 @@ static void flash_store_test_read_variable_storage_null (CuTest *test)
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (out), NULL);
@@ -7932,7 +14329,7 @@ static void flash_store_test_read_variable_storage_invalid_id (CuTest *test)
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (out), NULL);
@@ -7958,7 +14355,7 @@ static void flash_store_test_read_variable_storage_small_buffer (CuTest *test)
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (out) + 1, NULL);
@@ -7986,7 +14383,7 @@ static void flash_store_test_read_variable_storage_read_header_error (CuTest *te
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 256,
 		NULL);
@@ -8014,7 +14411,7 @@ static void flash_store_test_read_variable_storage_invalid_header_marker (CuTest
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 256,
 		NULL);
@@ -8043,7 +14440,7 @@ static void flash_store_test_read_variable_storage_short_header (CuTest *test)
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 256,
 		NULL);
@@ -8072,7 +14469,7 @@ static void flash_store_test_read_variable_storage_invalid_data_length (CuTest *
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 256,
 		NULL);
@@ -8101,7 +14498,7 @@ static void flash_store_test_read_variable_storage_old_format_invalid_data_lengt
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 256,
 		NULL);
@@ -8130,7 +14527,7 @@ static void flash_store_test_read_variable_storage_read_error (CuTest *test)
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 256,
 		NULL);
@@ -8169,7 +14566,7 @@ static void flash_store_test_read_variable_storage_read_hash_error (CuTest *test
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), &store.hash.base);
@@ -8216,7 +14613,7 @@ static void flash_store_test_read_variable_storage_hash_error (CuTest *test)
 		data[i] = i;
 	}
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3,
 		sizeof (data), &store.hash.base);
@@ -8256,7 +14653,7 @@ static void flash_store_test_erase_fixed_storage (CuTest *test)
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3, 256, NULL);
 	CuAssertIntEquals (test, 0, status);
@@ -8280,7 +14677,7 @@ static void flash_store_test_erase_fixed_storage_last_block (CuTest *test)
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3, 256, NULL);
 	CuAssertIntEquals (test, 0, status);
@@ -8305,7 +14702,7 @@ static void flash_store_test_erase_fixed_storage_multiple_sectors (CuTest *test)
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3, 512, NULL);
 	CuAssertIntEquals (test, 0, status);
@@ -8331,7 +14728,7 @@ static void flash_store_test_erase_fixed_storage_multiple_sectors_last_block (Cu
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3, 512, NULL);
 	CuAssertIntEquals (test, 0, status);
@@ -8357,7 +14754,7 @@ static void flash_store_test_erase_fixed_storage_extra_sector_for_hash (CuTest *
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3, 512,
 		&store.hash.base);
@@ -8384,7 +14781,7 @@ static void flash_store_test_erase_fixed_storage_extra_sector_for_hash_last_bloc
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3, 512,
 		&store.hash.base);
@@ -8410,7 +14807,7 @@ static void flash_store_test_erase_fixed_storage_decreasing (CuTest *test)
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage_decreasing (&store.test, &store.flash.base, 0x10000, 3,
 		256, NULL);
@@ -8435,7 +14832,7 @@ static void flash_store_test_erase_fixed_storage_decreasing_last_block (CuTest *
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage_decreasing (&store.test, &store.flash.base, 0x10000, 3,
 		256, NULL);
@@ -8461,7 +14858,7 @@ static void flash_store_test_erase_fixed_storage_decreasing_multiple_sectors (Cu
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage_decreasing (&store.test, &store.flash.base, 0x10000, 3,
 		512, NULL);
@@ -8489,7 +14886,7 @@ static void flash_store_test_erase_fixed_storage_decreasing_multiple_sectors_las
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage_decreasing (&store.test, &store.flash.base, 0x10000, 3,
 		512, NULL);
@@ -8516,7 +14913,7 @@ static void flash_store_test_erase_fixed_storage_decreasing_extra_sector_for_has
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage_decreasing (&store.test, &store.flash.base, 0x10000, 3,
 		512, &store.hash.base);
@@ -8544,7 +14941,7 @@ static void flash_store_test_erase_fixed_storage_decreasing_extra_sector_for_has
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage_decreasing (&store.test, &store.flash.base, 0x10000, 3,
 		512, &store.hash.base);
@@ -8570,7 +14967,7 @@ static void flash_store_test_erase_variable_storage (CuTest *test)
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 256,
 		NULL);
@@ -8595,7 +14992,7 @@ static void flash_store_test_erase_variable_storage_last_block (CuTest *test)
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 256,
 		NULL);
@@ -8621,7 +15018,7 @@ static void flash_store_test_erase_variable_storage_multiple_sectors (CuTest *te
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 508,
 		NULL);
@@ -8648,7 +15045,7 @@ static void flash_store_test_erase_variable_storage_multiple_sectors_last_block 
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 508,
 		NULL);
@@ -8675,7 +15072,7 @@ static void flash_store_test_erase_variable_storage_extra_sector_for_header (CuT
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 512,
 		NULL);
@@ -8703,7 +15100,7 @@ static void flash_store_test_erase_variable_storage_extra_sector_for_header_last
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 512,
 		NULL);
@@ -8730,7 +15127,7 @@ static void flash_store_test_erase_variable_storage_extra_sector_for_hash (CuTes
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 508,
 		&store.hash.base);
@@ -8757,7 +15154,7 @@ static void flash_store_test_erase_variable_storage_extra_sector_for_hash_last_b
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 508,
 		&store.hash.base);
@@ -8783,7 +15180,7 @@ static void flash_store_test_erase_variable_storage_decreasing (CuTest *test)
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
 		3, 256, NULL);
@@ -8808,7 +15205,7 @@ static void flash_store_test_erase_variable_storage_decreasing_last_block (CuTes
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
 		3, 256, NULL);
@@ -8834,7 +15231,7 @@ static void flash_store_test_erase_variable_storage_decreasing_multiple_sectors 
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
 		3, 508, NULL);
@@ -8862,7 +15259,7 @@ static void flash_store_test_erase_variable_storage_decreasing_multiple_sectors_
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
 		3, 508, NULL);
@@ -8890,7 +15287,7 @@ static void flash_store_test_erase_variable_storage_decreasing_extra_sector_for_
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
 		3, 512, NULL);
@@ -8918,7 +15315,7 @@ static void flash_store_test_erase_variable_storage_decreasing_extra_sector_for_
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
 		3, 512, NULL);
@@ -8945,7 +15342,7 @@ static void flash_store_test_erase_variable_storage_decreasing_extra_sector_for_
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
 		3, 508, &store.hash.base);
@@ -8973,7 +15370,7 @@ static void flash_store_test_erase_variable_storage_decreasing_extra_sector_for_
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
 		3, 508, &store.hash.base);
@@ -8999,7 +15396,7 @@ static void flash_store_test_erase_fixed_storage_null (CuTest *test)
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3, 256, NULL);
 	CuAssertIntEquals (test, 0, status);
@@ -9019,7 +15416,7 @@ static void flash_store_test_erase_fixed_storage_invalid_id (CuTest *test)
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3, 256, NULL);
 	CuAssertIntEquals (test, 0, status);
@@ -9042,7 +15439,7 @@ static void flash_store_test_erase_fixed_storage_erase_error (CuTest *test)
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3, 256, NULL);
 	CuAssertIntEquals (test, 0, status);
@@ -9067,7 +15464,7 @@ static void flash_store_test_erase_variable_storage_null (CuTest *test)
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 256,
 		NULL);
@@ -9088,7 +15485,7 @@ static void flash_store_test_erase_variable_storage_invalid_id (CuTest *test)
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 256,
 		NULL);
@@ -9112,7 +15509,7 @@ static void flash_store_test_erase_variable_storage_erase_error (CuTest *test)
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 256,
 		NULL);
@@ -9138,7 +15535,7 @@ static void flash_store_test_erase_all_fixed_storage (CuTest *test)
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3, 256, NULL);
 	CuAssertIntEquals (test, 0, status);
@@ -9163,7 +15560,7 @@ static void flash_store_test_erase_all_fixed_storage_multiple_sectors (CuTest *t
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3, 512, NULL);
 	CuAssertIntEquals (test, 0, status);
@@ -9189,7 +15586,7 @@ static void flash_store_test_erase_all_fixed_storage_extra_sector_for_hash (CuTe
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3, 512,
 		&store.hash.base);
@@ -9215,7 +15612,7 @@ static void flash_store_test_erase_all_fixed_storage_decreasing (CuTest *test)
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage_decreasing (&store.test, &store.flash.base, 0x10000, 3,
 		256, NULL);
@@ -9241,7 +15638,7 @@ static void flash_store_test_erase_all_fixed_storage_decreasing_multiple_sectors
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage_decreasing (&store.test, &store.flash.base, 0x10000, 3,
 		512, NULL);
@@ -9268,7 +15665,7 @@ static void flash_store_test_erase_all_fixed_storage_decreasing_extra_sector_for
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage_decreasing (&store.test, &store.flash.base, 0x10000, 3,
 		512, &store.hash.base);
@@ -9294,7 +15691,7 @@ static void flash_store_test_erase_all_variable_storage (CuTest *test)
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 256,
 		NULL);
@@ -9320,7 +15717,7 @@ static void flash_store_test_erase_all_variable_storage_multiple_sectors (CuTest
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 508,
 		NULL);
@@ -9347,7 +15744,7 @@ static void flash_store_test_erase_all_variable_storage_extra_sector_for_header 
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 512,
 		NULL);
@@ -9374,7 +15771,7 @@ static void flash_store_test_erase_all_variable_storage_extra_sector_for_hash (C
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 508,
 		&store.hash.base);
@@ -9400,7 +15797,7 @@ static void flash_store_test_erase_all_variable_storage_decreasing (CuTest *test
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
 		3, 256, NULL);
@@ -9426,7 +15823,7 @@ static void flash_store_test_erase_all_variable_storage_decreasing_multiple_sect
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
 		3, 508, NULL);
@@ -9454,7 +15851,7 @@ static void flash_store_test_erase_all_variable_storage_decreasing_extra_sector_
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
 		3, 512, NULL);
@@ -9482,7 +15879,7 @@ static void flash_store_test_erase_all_variable_storage_decreasing_extra_sector_
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
 		3, 508, &store.hash.base);
@@ -9508,7 +15905,7 @@ static void flash_store_test_erase_all_fixed_storage_null (CuTest *test)
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3, 256, NULL);
 	CuAssertIntEquals (test, 0, status);
@@ -9528,7 +15925,7 @@ static void flash_store_test_erase_all_fixed_storage_erase_error (CuTest *test)
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3, 256, NULL);
 	CuAssertIntEquals (test, 0, status);
@@ -9553,7 +15950,7 @@ static void flash_store_test_erase_all_variable_storage_null (CuTest *test)
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 256,
 		NULL);
@@ -9574,7 +15971,7 @@ static void flash_store_test_erase_all_variable_storage_erase_error (CuTest *tes
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 256,
 		NULL);
@@ -9600,7 +15997,7 @@ static void flash_store_test_get_data_length_fixed_storage (CuTest *test)
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3, 256, NULL);
 	CuAssertIntEquals (test, 0, status);
@@ -9621,7 +16018,7 @@ static void flash_store_test_get_data_length_fixed_storage_multiple_sectors (CuT
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3, 512, NULL);
 	CuAssertIntEquals (test, 0, status);
@@ -9642,7 +16039,7 @@ static void flash_store_test_get_data_length_variable_storage_no_hash (CuTest *t
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 256,
 		NULL);
@@ -9670,7 +16067,7 @@ static void flash_store_test_get_data_length_variable_storage_no_hash_last_block
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 256,
 		NULL);
@@ -9698,7 +16095,7 @@ static void flash_store_test_get_data_length_variable_storage_no_hash_max_length
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 256,
 		NULL);
@@ -9728,7 +16125,7 @@ static void flash_store_test_get_data_length_variable_storage_no_hash_multiple_s
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 508,
 		NULL);
@@ -9758,7 +16155,7 @@ static void flash_store_test_get_data_length_variable_storage_no_hash_multiple_s
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 508,
 		NULL);
@@ -9788,7 +16185,7 @@ static void flash_store_test_get_data_length_variable_storage_no_hash_extra_sect
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 512,
 		NULL);
@@ -9818,7 +16215,7 @@ static void flash_store_test_get_data_length_variable_storage_no_hash_extra_sect
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 512,
 		NULL);
@@ -9846,7 +16243,7 @@ static void flash_store_test_get_data_length_variable_storage_no_hash_longer_hea
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 256,
 		NULL);
@@ -9874,7 +16271,7 @@ static void flash_store_test_get_data_length_variable_storage_no_hash_old_format
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 256,
 		NULL);
@@ -9902,7 +16299,7 @@ static void flash_store_test_get_data_length_variable_storage_with_hash (CuTest 
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 256,
 		&store.hash.base);
@@ -9930,7 +16327,7 @@ static void flash_store_test_get_data_length_variable_storage_with_hash_max_leng
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 256,
 		&store.hash.base);
@@ -9960,7 +16357,7 @@ static void flash_store_test_get_data_length_variable_storage_with_hash_extra_se
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 508,
 		&store.hash.base);
@@ -9990,7 +16387,7 @@ static void flash_store_test_get_data_length_variable_storage_with_hash_extra_se
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 508,
 		&store.hash.base);
@@ -10018,7 +16415,7 @@ static void flash_store_test_get_data_length_variable_storage_decreasing_no_hash
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
 		3, 256, NULL);
@@ -10047,7 +16444,7 @@ static void flash_store_test_get_data_length_variable_storage_decreasing_no_hash
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
 		3, 256, NULL);
@@ -10076,7 +16473,7 @@ static void flash_store_test_get_data_length_variable_storage_decreasing_no_hash
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
 		3, 256, NULL);
@@ -10106,7 +16503,7 @@ static void flash_store_test_get_data_length_variable_storage_decreasing_no_hash
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
 		3, 508, NULL);
@@ -10136,7 +16533,7 @@ static void flash_store_test_get_data_length_variable_storage_decreasing_no_hash
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
 		3, 508, NULL);
@@ -10166,7 +16563,7 @@ static void flash_store_test_get_data_length_variable_storage_decreasing_no_hash
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
 		3, 512, NULL);
@@ -10196,7 +16593,7 @@ static void flash_store_test_get_data_length_variable_storage_decreasing_no_hash
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
 		3, 512, NULL);
@@ -10224,7 +16621,7 @@ static void flash_store_test_get_data_length_variable_storage_decreasing_with_ha
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
 		3, 256, &store.hash.base);
@@ -10253,7 +16650,7 @@ static void flash_store_test_get_data_length_variable_storage_decreasing_with_ha
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
 		3, 256, &store.hash.base);
@@ -10283,7 +16680,7 @@ static void flash_store_test_get_data_length_variable_storage_decreasing_with_ha
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
 		3, 508, &store.hash.base);
@@ -10313,7 +16710,7 @@ static void flash_store_test_get_data_length_variable_storage_decreasing_with_ha
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
 		3, 508, &store.hash.base);
@@ -10340,7 +16737,7 @@ static void flash_store_test_get_data_length_fixed_storage_null (CuTest *test)
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3, 256, NULL);
 	CuAssertIntEquals (test, 0, status);
@@ -10360,7 +16757,7 @@ static void flash_store_test_get_data_length_fixed_storage_invalid_id (CuTest *t
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3, 256, NULL);
 	CuAssertIntEquals (test, 0, status);
@@ -10383,7 +16780,7 @@ static void flash_store_test_get_data_length_variable_storage_null (CuTest *test
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 256,
 		NULL);
@@ -10404,7 +16801,7 @@ static void flash_store_test_get_data_length_variable_storage_invalid_id (CuTest
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 256,
 		NULL);
@@ -10428,7 +16825,7 @@ static void flash_store_test_get_data_length_variable_storage_read_header_error 
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 256,
 		NULL);
@@ -10455,7 +16852,7 @@ static void flash_store_test_get_data_length_variable_storage_invalid_header_mar
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 256,
 		NULL);
@@ -10483,7 +16880,7 @@ static void flash_store_test_get_data_length_variable_storage_short_header (CuTe
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 256,
 		NULL);
@@ -10511,7 +16908,7 @@ static void flash_store_test_get_data_length_variable_storage_invalid_data_lengt
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 256,
 		NULL);
@@ -10540,7 +16937,7 @@ static void flash_store_test_get_data_length_variable_storage_old_format_invalid
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 256,
 		NULL);
@@ -10567,7 +16964,7 @@ static void flash_store_test_has_data_stored_fixed_storage (CuTest *test)
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3, 256, NULL);
 	CuAssertIntEquals (test, 0, status);
@@ -10588,7 +16985,7 @@ static void flash_store_test_has_data_stored_fixed_storage_multiple_sectors (CuT
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3, 512, NULL);
 	CuAssertIntEquals (test, 0, status);
@@ -10609,7 +17006,7 @@ static void flash_store_test_has_data_stored_variable_storage_no_hash (CuTest *t
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 256,
 		NULL);
@@ -10637,7 +17034,7 @@ static void flash_store_test_has_data_stored_variable_storage_no_hash_last_block
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 256,
 		NULL);
@@ -10665,7 +17062,7 @@ static void flash_store_test_has_data_stored_variable_storage_no_hash_max_length
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 256,
 		NULL);
@@ -10695,7 +17092,7 @@ static void flash_store_test_has_data_stored_variable_storage_no_hash_multiple_s
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 508,
 		NULL);
@@ -10725,7 +17122,7 @@ static void flash_store_test_has_data_stored_variable_storage_no_hash_multiple_s
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 508,
 		NULL);
@@ -10755,7 +17152,7 @@ static void flash_store_test_has_data_stored_variable_storage_no_hash_extra_sect
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 512,
 		NULL);
@@ -10785,7 +17182,7 @@ static void flash_store_test_has_data_stored_variable_storage_no_hash_extra_sect
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 512,
 		NULL);
@@ -10813,7 +17210,7 @@ static void flash_store_test_has_data_stored_variable_storage_no_hash_longer_hea
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 256,
 		NULL);
@@ -10841,7 +17238,7 @@ static void flash_store_test_has_data_stored_variable_storage_no_hash_old_format
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 256,
 		NULL);
@@ -10869,7 +17266,7 @@ static void flash_store_test_has_data_stored_variable_storage_with_hash (CuTest 
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 256,
 		&store.hash.base);
@@ -10897,7 +17294,7 @@ static void flash_store_test_has_data_stored_variable_storage_with_hash_max_leng
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 256,
 		&store.hash.base);
@@ -10927,7 +17324,7 @@ static void flash_store_test_has_data_stored_variable_storage_with_hash_extra_se
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 508,
 		&store.hash.base);
@@ -10957,7 +17354,7 @@ static void flash_store_test_has_data_stored_variable_storage_with_hash_extra_se
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 508,
 		&store.hash.base);
@@ -10985,7 +17382,7 @@ static void flash_store_test_has_data_stored_variable_storage_decreasing_no_hash
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
 		3, 256, NULL);
@@ -11014,7 +17411,7 @@ static void flash_store_test_has_data_stored_variable_storage_decreasing_no_hash
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
 		3, 256, NULL);
@@ -11043,7 +17440,7 @@ static void flash_store_test_has_data_stored_variable_storage_decreasing_no_hash
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
 		3, 256, NULL);
@@ -11073,7 +17470,7 @@ static void flash_store_test_has_data_stored_variable_storage_decreasing_no_hash
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
 		3, 508, NULL);
@@ -11103,7 +17500,7 @@ static void flash_store_test_has_data_stored_variable_storage_decreasing_no_hash
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
 		3, 508, NULL);
@@ -11133,7 +17530,7 @@ static void flash_store_test_has_data_stored_variable_storage_decreasing_no_hash
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
 		3, 512, NULL);
@@ -11163,7 +17560,7 @@ static void flash_store_test_has_data_stored_variable_storage_decreasing_no_hash
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
 		3, 512, NULL);
@@ -11191,7 +17588,7 @@ static void flash_store_test_has_data_stored_variable_storage_decreasing_with_ha
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
 		3, 256, &store.hash.base);
@@ -11220,7 +17617,7 @@ static void flash_store_test_has_data_stored_variable_storage_decreasing_with_ha
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
 		3, 256, &store.hash.base);
@@ -11250,7 +17647,7 @@ static void flash_store_test_has_data_stored_variable_storage_decreasing_with_ha
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
 		3, 508, &store.hash.base);
@@ -11280,7 +17677,7 @@ static void flash_store_test_has_data_stored_variable_storage_decreasing_with_ha
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, sector, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
 	status = flash_store_init_variable_storage_decreasing (&store.test, &store.flash.base, 0x10000,
 		3, 508, &store.hash.base);
@@ -11307,7 +17704,7 @@ static void flash_store_test_has_data_stored_fixed_storage_null (CuTest *test)
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3, 256, NULL);
 	CuAssertIntEquals (test, 0, status);
@@ -11327,7 +17724,7 @@ static void flash_store_test_has_data_stored_fixed_storage_invalid_id (CuTest *t
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_fixed_storage (&store.test, &store.flash.base, 0x10000, 3, 256, NULL);
 	CuAssertIntEquals (test, 0, status);
@@ -11350,7 +17747,7 @@ static void flash_store_test_has_data_stored_variable_storage_null (CuTest *test
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 256,
 		NULL);
@@ -11371,7 +17768,7 @@ static void flash_store_test_has_data_stored_variable_storage_invalid_id (CuTest
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 256,
 		NULL);
@@ -11395,7 +17792,7 @@ static void flash_store_test_has_data_stored_variable_storage_read_header_error 
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 256,
 		NULL);
@@ -11422,7 +17819,7 @@ static void flash_store_test_has_data_stored_variable_storage_invalid_header_mar
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 256,
 		NULL);
@@ -11450,7 +17847,7 @@ static void flash_store_test_has_data_stored_variable_storage_short_header (CuTe
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 256,
 		NULL);
@@ -11478,7 +17875,7 @@ static void flash_store_test_has_data_stored_variable_storage_invalid_data_lengt
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 256,
 		NULL);
@@ -11507,7 +17904,7 @@ static void flash_store_test_has_data_stored_variable_storage_old_format_invalid
 
 	TEST_START;
 
-	flash_store_testing_prepare_init (test, &store, 0x1000, 0x100000);
+	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
 	status = flash_store_init_variable_storage (&store.test, &store.flash.base, 0x10000, 3, 256,
 		NULL);
@@ -11570,6 +17967,8 @@ CuSuite* get_flash_store_suite ()
 		flash_store_test_init_fixed_storage_decreasing_data_not_sector_aligned_max_space);
 	SUITE_ADD_TEST (suite,
 		flash_store_test_init_fixed_storage_decreasing_extra_sector_for_hash_max_space);
+	SUITE_ADD_TEST (suite, flash_store_test_init_fixed_storage_page_size_error);
+	SUITE_ADD_TEST (suite, flash_store_test_init_fixed_storage_min_write_error);
 	SUITE_ADD_TEST (suite, flash_store_test_init_fixed_storage_decreasing_max_data_no_hash);
 	SUITE_ADD_TEST (suite, flash_store_test_init_fixed_storage_decreasing_max_data_with_hash);
 	SUITE_ADD_TEST (suite, flash_store_test_init_fixed_storage_decreasing_null);
@@ -11590,6 +17989,8 @@ CuSuite* get_flash_store_suite ()
 		flash_store_test_init_fixed_storage_decreasing_data_not_sector_aligned_not_enough_space);
 	SUITE_ADD_TEST (suite,
 		flash_store_test_init_fixed_storage_decreasing_extra_sector_for_hash_not_enough_space);
+	SUITE_ADD_TEST (suite, flash_store_test_init_fixed_storage_decreasing_page_size_error);
+	SUITE_ADD_TEST (suite, flash_store_test_init_fixed_storage_decreasing_min_write_error);
 	SUITE_ADD_TEST (suite, flash_store_test_init_variable_storage_no_hash);
 	SUITE_ADD_TEST (suite, flash_store_test_init_variable_storage_with_hash);
 	SUITE_ADD_TEST (suite, flash_store_test_init_variable_storage_one_sector_per_block_max_space);
@@ -11626,6 +18027,8 @@ CuSuite* get_flash_store_suite ()
 		flash_store_test_init_variable_storage_extra_sector_for_hash_block_too_large);
 	SUITE_ADD_TEST (suite,
 		flash_store_test_init_variable_storage_extra_sector_for_header_block_too_large);
+	SUITE_ADD_TEST (suite, flash_store_test_init_variable_storage_page_size_error);
+	SUITE_ADD_TEST (suite, flash_store_test_init_variable_storage_min_write_error);
 	SUITE_ADD_TEST (suite, flash_store_test_init_variable_storage_decreasing_no_hash);
 	SUITE_ADD_TEST (suite, flash_store_test_init_variable_storage_decreasing_with_hash);
 	SUITE_ADD_TEST (suite,
@@ -11665,6 +18068,8 @@ CuSuite* get_flash_store_suite ()
 		flash_store_test_init_variable_storage_decreasing_extra_sector_for_hash_block_too_large);
 	SUITE_ADD_TEST (suite,
 		flash_store_test_init_variable_storage_decreasing_extra_sector_for_header_block_too_large);
+	SUITE_ADD_TEST (suite, flash_store_test_init_variable_storage_decreasing_page_size_error);
+	SUITE_ADD_TEST (suite, flash_store_test_init_variable_storage_decreasing_min_write_error);
 	SUITE_ADD_TEST (suite, flash_store_test_release_null);
 	SUITE_ADD_TEST (suite, flash_store_test_get_max_data_length_null);
 	SUITE_ADD_TEST (suite, flash_store_test_get_flash_size_null);
@@ -11674,21 +18079,91 @@ CuSuite* get_flash_store_suite ()
 	SUITE_ADD_TEST (suite, flash_store_test_write_fixed_storage_no_hash_multiple_sectors);
 	SUITE_ADD_TEST (suite,
 		flash_store_test_write_fixed_storage_no_hash_multiple_sectors_last_block);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_fixed_storage_no_hash_less_than_page_size_no_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_fixed_storage_no_hash_less_than_page_size_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_fixed_storage_no_hash_larger_than_page_size_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_fixed_storage_no_hash_multiple_pages_algined_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_fixed_storage_no_hash_multiple_pages_not_algined_min_write);
+	SUITE_ADD_TEST (suite, flash_store_test_write_fixed_storage_no_hash_multiple_store_min_write);
 	SUITE_ADD_TEST (suite, flash_store_test_write_fixed_storage_with_hash);
 	SUITE_ADD_TEST (suite, flash_store_test_write_fixed_storage_with_hash_extra_sector_for_hash);
 	SUITE_ADD_TEST (suite,
 		flash_store_test_write_fixed_storage_with_hash_extra_sector_for_hash_last_block);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_fixed_storage_with_hash_less_than_page_size_no_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_fixed_storage_with_hash_less_than_page_size_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_fixed_storage_with_hash_less_than_page_size_last_block_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_fixed_storage_with_hash_larger_than_page_size_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_fixed_storage_with_hash_larger_than_page_size_last_block_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_fixed_storage_with_hash_multiple_pages_aligned_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_fixed_storage_with_hash_multiple_pages_not_aligned_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_fixed_storage_with_hash_hash_across_page_boundary_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_fixed_storage_with_hash_hash_across_page_boundary_last_block_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_fixed_storage_with_hash_multiple_pages_hash_across_page_boundary_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_fixed_storage_with_hash_multiple_pages_hash_across_page_boundary_last_block_min_write);
+	SUITE_ADD_TEST (suite, flash_store_test_write_fixed_storage_with_hash_multiple_store_min_write);
 	SUITE_ADD_TEST (suite, flash_store_test_write_fixed_storage_decreasing_no_hash);
 	SUITE_ADD_TEST (suite, flash_store_test_write_fixed_storage_decreasing_no_hash_last_block);
 	SUITE_ADD_TEST (suite,
 		flash_store_test_write_fixed_storage_decreasing_no_hash_multiple_sectors);
 	SUITE_ADD_TEST (suite,
 		flash_store_test_write_fixed_storage_decreasing_no_hash_multiple_sectors_last_block);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_fixed_storage_decreasing_no_hash_less_than_page_size_no_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_fixed_storage_decreasing_no_hash_less_than_page_size_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_fixed_storage_decreasing_no_hash_larger_than_page_size_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_fixed_storage_decreasing_no_hash_multiple_pages_aligned_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_fixed_storage_decreasing_no_hash_multiple_pages_not_aligned_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_fixed_storage_decreasing_no_hash_multiple_store_min_write);
 	SUITE_ADD_TEST (suite, flash_store_test_write_fixed_storage_decreasing_with_hash);
 	SUITE_ADD_TEST (suite,
 		flash_store_test_write_fixed_storage_decreasing_with_hash_extra_sector_for_hash);
 	SUITE_ADD_TEST (suite,
 		flash_store_test_write_fixed_storage_decreasing_with_hash_extra_sector_for_hash_last_block);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_fixed_storage_decreasing_with_hash_less_than_page_size_no_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_fixed_storage_decreasing_with_hash_less_than_page_size_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_fixed_storage_decreasing_with_hash_less_than_page_size_last_block_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_fixed_storage_decreasing_with_hash_larger_than_page_size_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_fixed_storage_decreasing_with_hash_larger_than_page_size_last_block_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_fixed_storage_decreasing_with_hash_multiple_pages_aligned_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_fixed_storage_decreasing_with_hash_multiple_pages_not_aligned_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_fixed_storage_decreasing_with_hash_hash_across_page_boundary_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_fixed_storage_decreasing_with_hash_hash_across_page_boundary_last_block_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_fixed_storage_decreasing_with_hash_multiple_pages_hash_across_page_boundary_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_fixed_storage_decreasing_with_hash_multiple_pages_hash_across_page_boundary_last_block_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_fixed_storage_decreasing_with_hash_multiple_store_min_write);
 	SUITE_ADD_TEST (suite, flash_store_test_write_variable_storage_no_hash);
 	SUITE_ADD_TEST (suite, flash_store_test_write_variable_storage_no_hash_last_block);
 	SUITE_ADD_TEST (suite, flash_store_test_write_variable_storage_no_hash_max_length);
@@ -11699,12 +18174,60 @@ CuSuite* get_flash_store_suite ()
 	SUITE_ADD_TEST (suite, flash_store_test_write_variable_storage_no_hash_extra_sector_for_header);
 	SUITE_ADD_TEST (suite,
 		flash_store_test_write_variable_storage_no_hash_extra_sector_for_header_last_block);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_no_hash_less_than_page_size_no_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_no_hash_less_than_page_size_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_no_hash_less_than_page_size_last_block_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_no_hash_less_than_page_size_old_header_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_no_hash_larger_than_page_size_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_no_hash_larger_than_page_size_last_block_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_no_hash_larger_than_page_size_old_header_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_no_hash_multiple_pages_aligned_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_no_hash_multiple_pages_not_aligned_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_no_hash_multiple_store_min_write);
 	SUITE_ADD_TEST (suite, flash_store_test_write_variable_storage_with_hash);
 	SUITE_ADD_TEST (suite, flash_store_test_write_variable_storage_with_hash_max_length);
 	SUITE_ADD_TEST (suite, flash_store_test_write_variable_storage_with_hash_old_header);
 	SUITE_ADD_TEST (suite, flash_store_test_write_variable_storage_with_hash_extra_sector_for_hash);
 	SUITE_ADD_TEST (suite,
 		flash_store_test_write_variable_storage_with_hash_extra_sector_for_hash_last_block);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_with_hash_less_than_page_size_no_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_with_hash_less_than_page_size_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_with_hash_less_than_page_size_last_block_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_with_hash_less_than_page_size_old_header_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_with_hash_larger_than_page_size_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_with_hash_larger_than_page_size_last_block_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_with_hash_larger_than_page_size_old_header_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_with_hash_multiple_pages_aligned_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_with_hash_multiple_pages_not_aligned_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_with_hash_hash_across_page_boundary_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_with_hash_hash_across_page_boundary_last_block_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_with_hash_multiple_pages_hash_across_page_boundary_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_with_hash_multiple_pages_hash_across_page_boundary_last_block_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_with_hash_multiple_store_min_write);
 	SUITE_ADD_TEST (suite, flash_store_test_write_variable_storage_decreasing_no_hash);
 	SUITE_ADD_TEST (suite, flash_store_test_write_variable_storage_decreasing_no_hash_last_block);
 	SUITE_ADD_TEST (suite, flash_store_test_write_variable_storage_decreasing_no_hash_old_header);
@@ -11716,12 +18239,60 @@ CuSuite* get_flash_store_suite ()
 		flash_store_test_write_variable_storage_decreasing_no_hash_multiple_sectors);
 	SUITE_ADD_TEST (suite,
 		flash_store_test_write_variable_storage_decreasing_no_hash_multiple_sectors_last_block);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_decreasing_no_hash_less_than_page_size_no_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_decreasing_no_hash_less_than_page_size_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_decreasing_no_hash_less_than_page_size_last_block_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_decreasing_no_hash_less_than_page_size_old_header_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_decreasing_no_hash_larger_than_page_size_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_decreasing_no_hash_larger_than_page_size_last_block_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_decreasing_no_hash_larger_than_page_size_old_header_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_decreasing_no_hash_multiple_pages_aligned_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_decreasing_no_hash_multiple_pages_not_aligned_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_decreasing_no_hash_multiple_store_min_write);
 	SUITE_ADD_TEST (suite, flash_store_test_write_variable_storage_decreasing_with_hash);
 	SUITE_ADD_TEST (suite, flash_store_test_write_variable_storage_decreasing_with_hash_old_header);
 	SUITE_ADD_TEST (suite,
 		flash_store_test_write_variable_storage_decreasing_with_hash_extra_sector_for_hash);
 	SUITE_ADD_TEST (suite,
 		flash_store_test_write_variable_storage_decreasing_with_hash_extra_sector_for_hash_last_block);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_decreasing_with_hash_less_than_page_size_no_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_decreasing_with_hash_less_than_page_size_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_decreasing_with_hash_less_than_page_size_last_block_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_decreasing_with_hash_less_than_page_size_old_header_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_decreasing_with_hash_larger_than_page_size_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_decreasing_with_hash_larger_than_page_size_last_block_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_decreasing_with_hash_larger_than_page_size_old_header_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_decreasing_with_hash_multiple_pages_aligned_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_decreasing_with_hash_multiple_pages_not_aligned_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_decreasing_with_hash_hash_across_page_boundary_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_decreasing_with_hash_hash_across_page_boundary_last_block_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_decreasing_with_hash_multiple_pages_hash_across_page_boundary_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_decreasing_with_hash_multiple_pages_hash_across_page_boundary_last_block_min_write);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_decreasing_with_hash_multiple_store_min_write);
 	SUITE_ADD_TEST (suite, flash_store_test_write_fixed_storage_null);
 	SUITE_ADD_TEST (suite, flash_store_test_write_fixed_storage_invalid_id);
 	SUITE_ADD_TEST (suite, flash_store_test_write_fixed_storage_wrong_length);
@@ -11731,6 +18302,12 @@ CuSuite* get_flash_store_suite ()
 	SUITE_ADD_TEST (suite, flash_store_test_write_fixed_storage_hash_error);
 	SUITE_ADD_TEST (suite, flash_store_test_write_fixed_storage_write_hash_error);
 	SUITE_ADD_TEST (suite, flash_store_test_write_fixed_storage_verify_hash_error);
+	SUITE_ADD_TEST (suite, flash_store_test_write_fixed_storage_min_write_write_error);
+	SUITE_ADD_TEST (suite, flash_store_test_write_fixed_storage_min_write_verify_error);
+	SUITE_ADD_TEST (suite, flash_store_test_write_fixed_storage_min_write_write_last_error);
+	SUITE_ADD_TEST (suite, flash_store_test_write_fixed_storage_min_write_verify_last_error);
+	SUITE_ADD_TEST (suite, flash_store_test_write_fixed_storage_min_write_write_hash_error);
+	SUITE_ADD_TEST (suite, flash_store_test_write_fixed_storage_min_write_verify_hash_error);
 	SUITE_ADD_TEST (suite, flash_store_test_write_variable_storage_null);
 	SUITE_ADD_TEST (suite, flash_store_test_write_variable_storage_invalid_id);
 	SUITE_ADD_TEST (suite, flash_store_test_write_variable_storage_no_hash_too_large);
@@ -11745,6 +18322,30 @@ CuSuite* get_flash_store_suite ()
 	SUITE_ADD_TEST (suite, flash_store_test_write_variable_storage_hash_error);
 	SUITE_ADD_TEST (suite, flash_store_test_write_variable_storage_write_hash_error);
 	SUITE_ADD_TEST (suite, flash_store_test_write_variable_storage_verify_hash_error);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_min_write_single_page_write_hash_error);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_min_write_single_page_verify_hash_error);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_min_write_single_page_write_error);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_min_write_single_page_verify_error);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_min_write_multiple_pages_write_error);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_min_write_multiple_pages_verify_error);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_min_write_multiple_pages_write_last_error);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_min_write_multiple_pages_verify_last_error);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_min_write_multiple_pages_write_hash_error);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_min_write_multiple_pages_verify_hash_error);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_min_write_multiple_pages_write_first_error);
+	SUITE_ADD_TEST (suite,
+		flash_store_test_write_variable_storage_min_write_multiple_pages_verify_first_error);
 	SUITE_ADD_TEST (suite, flash_store_test_use_length_only_header_null);
 	SUITE_ADD_TEST (suite, flash_store_test_read_fixed_storage_no_hash);
 	SUITE_ADD_TEST (suite, flash_store_test_read_fixed_storage_no_hash_last_block);

@@ -7,6 +7,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
+#include "platform.h"
 #include "status/rot_status.h"
 #include "flash/flash.h"
 #include "crypto/hash.h"
@@ -136,7 +137,10 @@ struct flash_store {
 	bool variable;				/**< Flag indicating block storage is variable length. */
 	uint32_t block_size;		/**< Flash size of each data block. */
 	uint32_t blocks;			/**< The number of managed data blocks. */
+	uint32_t page_size;			/**< Page programming size for the flash device. */
+	uint8_t *page_buffer;		/**< Buffer for ensuring full page programming. */
 	bool old_header;			/**< Flag indicating variable storage header only saves the length. */
+	platform_mutex lock;		/**< Page buffer synchronization. */
 };
 
 

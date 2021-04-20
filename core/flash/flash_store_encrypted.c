@@ -84,7 +84,7 @@ static int flash_store_encrypted_read (struct flash_store *flash, int id, uint8_
  *
  * @param store The flash storage to initialize.
  * @param flash The flash device used for storage.
- * @param base_addr The address of the first storage block.  This must be algined to a minimum erase
+ * @param base_addr The address of the first storage block.  This must be aligned to a minimum erase
  * block.
  * @param block_count The number of data blocks used for storage.
  * @param data_length The minimum length of each data block.
@@ -126,7 +126,7 @@ static int flash_store_encrypted_init_storage_common (struct flash_store_encrypt
  *
  * @param store The flash storage to initialize.
  * @param flash The flash device used for storage.
- * @param base_addr The address of the first storage block.  This must be algined to a minimum erase
+ * @param base_addr The address of the first storage block.  This must be aligned to a minimum erase
  * block.
  * @param block_count The number of data blocks used for storage.
  * @param data_length The length of each data block.
@@ -150,7 +150,7 @@ int flash_store_encrypted_init_fixed_storage (struct flash_store_encrypted *stor
  *
  * @param store The flash storage to initialize.
  * @param flash The flash device used for storage.
- * @param base_addr The address of the first storage block.  This must be algined to a minimum erase
+ * @param base_addr The address of the first storage block.  This must be aligned to a minimum erase
  * block.
  * @param block_count The number of data blocks used for storage.
  * @param data_length The length of each data block.
@@ -173,7 +173,7 @@ int flash_store_encrypted_init_fixed_storage_decreasing (struct flash_store_encr
  *
  * @param store The flash storage to initialize.
  * @param flash The flash device used for storage.
- * @param base_addr The address of the first storage block.  This must be algined to a minimum erase
+ * @param base_addr The address of the first storage block.  This must be aligned to a minimum erase
  * block.
  * @param block_count The number of data blocks used for storage.
  * @param min_length The minimum length required for each data block.  The actual length length will
@@ -198,7 +198,7 @@ int flash_store_encrypted_init_variable_storage (struct flash_store_encrypted *s
  *
  * @param store The flash storage to initialize.
  * @param flash The flash device used for storage.
- * @param base_addr The address of the first storage block.  This must be algined to a minimum erase
+ * @param base_addr The address of the first storage block.  This must be aligned to a minimum erase
  * block.
  * @param block_count The number of data blocks used for storage.
  * @param min_length The minimum length required for each data block.  The actual length length will

@@ -70,16 +70,7 @@ int flash_store_write_common (struct flash_store *flash, int id, const uint8_t *
 	if (flash->decreasing) {
 		base_offset = -base_offset;
 	}
-
 	offset = base_offset;
-	if (flash->variable) {
-		if (!flash->old_header) {
-			offset += FLASH_STORE_HEADER_LENGTH;
-		}
-		else {
-			offset += sizeof (uint16_t);
-		}
-	}
 
 	status = flash_sector_erase_region (flash->flash, flash->base_addr + base_offset,
 		flash->block_size);
@@ -87,37 +78,166 @@ int flash_store_write_common (struct flash_store *flash, int id, const uint8_t *
 		return status;
 	}
 
-	status = flash_write_and_verify (flash->flash, flash->base_addr + offset, data, length);
-	if (status != 0) {
-		return status;
-	}
-
-	if (extra_data) {
-		offset += length;
-		status = flash_write_and_verify (flash->flash, flash->base_addr + offset, extra_data,
-			extra_length);
-		if (status != 0) {
-			return status;
-		}
-	}
-
-	if (flash->variable) {
+	if (flash->page_buffer) {
+		/* It is necessary to ensure that no page is written more than once.  Internal buffering is
+		 * necessary in three cases:
+		 * 1. The first page of data for variable length storage, since that holds the data header.
+		 * 2. The last page of data for storage that appends extra data to the end, but only in
+		 * cases where the stored data does not align to page boundaries.
+		 * 3. The entire amount of data (header, data, and extra data) fits into the first page.
+		 *
+		 * Data that is naturally aligned to full pages is not buffered and is written directly from
+		 * the source data. */
 		struct flash_store_header header = {
 			.header_len = FLASH_STORE_HEADER_LENGTH,
 			.marker = FLASH_STORE_HEADER_MARKER,
 			.length = length
 		};
+		size_t header_len = (!flash->variable) ? 0 :
+			(flash->old_header) ? sizeof (header.length) : sizeof (header);
+		size_t first = flash->page_size - header_len;
+		size_t remain = FLASH_REGION_OFFSET (length + header_len, flash->page_size);
+		size_t write_extra = flash->page_size - remain;
+		size_t middle = (length > remain) ? (length - remain) : length;
+		bool extra_first = false;
 
-		if (!flash->old_header) {
-			status = flash_write_and_verify (flash->flash, flash->base_addr + base_offset,
-				(uint8_t*) &header, sizeof (header));
+		if (flash->variable) {
+			if (middle > first) {
+				middle -= first;
+			}
+			else {
+				if (middle < first) {
+					/* All the data fits into the first flash page. */
+					extra_first = true;
+				}
+				first = middle;
+				middle = 0;
+			}
 		}
 		else {
-			status = flash_write_and_verify (flash->flash, flash->base_addr + base_offset,
-				(uint8_t*) &header.length, sizeof (header.length));
+			if (middle < first) {
+				middle = 0;
+			}
+			first = 0;
 		}
+
+		if (extra_length == 0) {
+			if (!extra_first) {
+				middle += remain;
+			}
+			remain = 0;
+			write_extra = 0;
+		}
+		else if (write_extra > extra_length) {
+			write_extra = extra_length;
+		}
+
+		/* Write full pages of source data. */
+		offset += first + header_len;
+
+		if (middle != 0) {
+			status = flash_write_and_verify (flash->flash, flash->base_addr + offset, &data[first],
+				middle);
+			if (status != 0) {
+				return status;
+			}
+
+			offset += middle;
+		}
+
+		/* Write the additional data appended to the end. */
+		if (!extra_first && (extra_length != 0)) {
+			platform_mutex_lock (&flash->lock);
+			memcpy (flash->page_buffer, &data[length - remain], remain);
+			memcpy (&flash->page_buffer[remain], extra_data, write_extra);
+
+			status = flash_write_and_verify (flash->flash, flash->base_addr + offset,
+				flash->page_buffer, remain + write_extra);
+			platform_mutex_unlock (&flash->lock);
+			if (status != 0) {
+				return status;
+			}
+
+			offset += remain + write_extra;
+		}
+		else {
+			offset += write_extra;
+		}
+
+		if (write_extra < extra_length) {
+			status = flash_write_and_verify (flash->flash, flash->base_addr + offset,
+				&extra_data[write_extra], extra_length - write_extra);
+			if (status != 0) {
+				return status;
+			}
+		}
+
+		/* For variable storage, write the first page with the data header. */
+		if (first != 0) {
+			platform_mutex_lock (&flash->lock);
+			if (!flash->old_header) {
+				memcpy (flash->page_buffer, &header, sizeof (header));
+			}
+			else {
+				memcpy (flash->page_buffer, &header.length, sizeof (header.length));
+			}
+			memcpy (&flash->page_buffer[header_len], data, first);
+			if (extra_first) {
+				memcpy (&flash->page_buffer[header_len + first], extra_data, write_extra);
+				header_len += write_extra;
+			}
+
+			status = flash_write_and_verify (flash->flash, flash->base_addr + base_offset,
+				flash->page_buffer, first + header_len);
+			platform_mutex_unlock (&flash->lock);
+			if (status != 0) {
+				return status;
+			}
+		}
+	}
+	else {
+		/* Each page can be written multiple times without erasing. */
+		if (flash->variable) {
+			if (!flash->old_header) {
+				offset += FLASH_STORE_HEADER_LENGTH;
+			}
+			else {
+				offset += sizeof (uint16_t);
+			}
+		}
+
+		status = flash_write_and_verify (flash->flash, flash->base_addr + offset, data, length);
 		if (status != 0) {
 			return status;
+		}
+
+		if (extra_data) {
+			offset += length;
+			status = flash_write_and_verify (flash->flash, flash->base_addr + offset, extra_data,
+				extra_length);
+			if (status != 0) {
+				return status;
+			}
+		}
+
+		if (flash->variable) {
+			struct flash_store_header header = {
+				.header_len = FLASH_STORE_HEADER_LENGTH,
+				.marker = FLASH_STORE_HEADER_MARKER,
+				.length = length
+			};
+
+			if (!flash->old_header) {
+				status = flash_write_and_verify (flash->flash, flash->base_addr + base_offset,
+					(uint8_t*) &header, sizeof (header));
+			}
+			else {
+				status = flash_write_and_verify (flash->flash, flash->base_addr + base_offset,
+					(uint8_t*) &header.length, sizeof (header.length));
+			}
+			if (status != 0) {
+				return status;
+			}
 		}
 	}
 
@@ -443,7 +563,7 @@ static int flash_store_get_num_blocks (struct flash_store *flash)
  *
  * @param store The flash storage to initialize.
  * @param flash The flash device used for storage.
- * @param base_addr The address of the first storage block.  This must be algined to a minimum erase
+ * @param base_addr The address of the first storage block.  This must be aligned to a minimum erase
  * block.
  * @param block_count The number of data blocks used for storage.
  * @param data_length The minimum length of each data block.
@@ -459,6 +579,7 @@ int flash_store_init_storage_common (struct flash_store *store, struct flash *fl
 {
 	uint32_t sector_size;
 	uint32_t device_size;
+	uint32_t write_size;
 	int status;
 
 	if ((store == NULL) || (flash == NULL)) {
@@ -526,13 +647,39 @@ int flash_store_init_storage_common (struct flash_store *store, struct flash *fl
 		}
 	}
 
+	status = flash->get_page_size (flash, &store->page_size);
+	if (status != 0) {
+		return status;
+	}
+
+	status = flash->minimum_write_per_page (flash, &write_size);
+	if (status != 0) {
+		return status;
+	}
+
+	if ((write_size != 1) &&
+		(variable || (!variable && extra_data &&
+			FLASH_REGION_OFFSET (store->max_size, store->page_size) != 0))) {
+		/* We need to buffer full page writes at the beginning and/or end of the data. */
+		store->page_buffer = platform_malloc (store->page_size);
+		if (store->page_buffer == NULL) {
+			return FLASH_STORE_NO_MEMORY;
+		}
+	}
+
+	status = platform_mutex_init (&store->lock);
+	if (status != 0) {
+		platform_free (store->page_buffer);
+		return status;
+	}
+
 	store->erase = flash_store_erase;
 	store->erase_all = flash_store_erase_all;
 	store->get_data_length = flash_store_get_data_length;
 	store->has_data_stored = flash_store_has_data_stored;
 	store->get_max_data_length = flash_store_get_max_data_length;
 	store->get_flash_size = flash_store_get_flash_size;
-	store->get_num_blocks = flash_store_get_num_blocks; 
+	store->get_num_blocks = flash_store_get_num_blocks;
 
 	store->flash = flash;
 	store->base_addr = base_addr;
@@ -547,7 +694,7 @@ int flash_store_init_storage_common (struct flash_store *store, struct flash *fl
  *
  * @param store The flash storage to initialize.
  * @param flash The flash device used for storage.
- * @param base_addr The address of the first storage block.  This must be algined to a minimum erase
+ * @param base_addr The address of the first storage block.  This must be aligned to a minimum erase
  * block.
  * @param block_count The number of data blocks used for storage.
  * @param data_length The minimum length of each data block.
@@ -591,7 +738,7 @@ static int flash_store_init (struct flash_store *store, struct flash *flash, uin
  *
  * @param store The flash storage to initialize.
  * @param flash The flash device used for storage.
- * @param base_addr The address of the first storage block.  This must be algined to a minimum erase
+ * @param base_addr The address of the first storage block.  This must be aligned to a minimum erase
  * block.
  * @param block_count The number of data blocks used for storage.
  * @param data_length The length of each data block.
@@ -612,7 +759,7 @@ int flash_store_init_fixed_storage (struct flash_store *store, struct flash *fla
  *
  * @param store The flash storage to initialize.
  * @param flash The flash device used for storage.
- * @param base_addr The address of the first storage block.  This must be algined to a minimum erase
+ * @param base_addr The address of the first storage block.  This must be aligned to a minimum erase
  * block.
  * @param block_count The number of data blocks used for storage.
  * @param data_length The length of each data block.
@@ -632,7 +779,7 @@ int flash_store_init_fixed_storage_decreasing (struct flash_store *store, struct
  *
  * @param store The flash storage to initialize.
  * @param flash The flash device used for storage.
- * @param base_addr The address of the first storage block.  This must be algined to a minimum erase
+ * @param base_addr The address of the first storage block.  This must be aligned to a minimum erase
  * block.
  * @param block_count The number of data blocks used for storage.
  * @param min_length The minimum length required for each data block.  The actual length length will
@@ -654,7 +801,7 @@ int flash_store_init_variable_storage (struct flash_store *store, struct flash *
  *
  * @param store The flash storage to initialize.
  * @param flash The flash device used for storage.
- * @param base_addr The address of the first storage block.  This must be algined to a minimum erase
+ * @param base_addr The address of the first storage block.  This must be aligned to a minimum erase
  * block.
  * @param block_count The number of data blocks used for storage.
  * @param min_length The minimum length required for each data block.  The actual length length will
@@ -677,7 +824,10 @@ int flash_store_init_variable_storage_decreasing (struct flash_store *store, str
  */
 void flash_store_release (struct flash_store *store)
 {
-
+	if (store) {
+		platform_free (store->page_buffer);
+		platform_mutex_free (&store->lock);
+	}
 }
 
 /**
