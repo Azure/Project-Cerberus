@@ -621,10 +621,11 @@ int cmd_background_task_init (struct cmd_background_task *task, struct system *s
  * been started.
  *
  * @param task The background command task to start.
+ * @param stack_words The size of the command task stack.  The stack size is measured in words.
  *
  * @return 0 if the task was started or an error code.
  */
-int cmd_background_task_start (struct cmd_background_task *task)
+int cmd_background_task_start (struct cmd_background_task *task, uint16_t stack_words)
 {
 	int status;
 
@@ -632,8 +633,8 @@ int cmd_background_task_start (struct cmd_background_task *task)
 		return CMD_BACKGROUND_INVALID_ARGUMENT;
 	}
 
-	status = xTaskCreate ((TaskFunction_t) cmd_background_task_handler, "CmdBgnd", 6 * 256, task,
-		CERBERUS_PRIORITY_NORMAL, &task->task);
+	status = xTaskCreate ((TaskFunction_t) cmd_background_task_handler, "CmdBgnd", stack_words,
+		task, CERBERUS_PRIORITY_NORMAL, &task->task);
 	if (status != pdPASS) {
 		task->task = NULL;
 		return CMD_BACKGROUND_NO_MEMORY;
@@ -648,7 +649,7 @@ int cmd_background_task_start (struct cmd_background_task *task)
  * @param task The background task to run the key generation.
  * @param aux The auxiliary attestation handler that will generate the key.
  *
- * @return
+ * @return 0 if key generation was scheduled on the task or an error code.
  */
 int cmd_background_task_generate_aux_key (struct cmd_background_task *task,
 	struct aux_attestation *aux)

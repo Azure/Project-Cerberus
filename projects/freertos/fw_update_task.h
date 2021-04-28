@@ -46,7 +46,7 @@ struct fw_update_task {
 
 int fw_update_task_init (struct fw_update_task *task, struct firmware_update *updater,
 	struct system *system);
-int fw_update_task_start (struct fw_update_task *task, bool running_recovery);
+int fw_update_task_start (struct fw_update_task *task, uint16_t stack_words, bool running_recovery);
 
 
 #endif /* FW_UPDATE_TASK_H_ */

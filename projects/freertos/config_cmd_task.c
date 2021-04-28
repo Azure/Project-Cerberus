@@ -102,10 +102,11 @@ int config_cmd_task_init (struct config_cmd_task *task, struct system *system,
  * started.
  *
  * @param task The command task context to start.
+ * @param stack_words The size of the task stack.  The stack size is measured in words.
  *
  * @return 0 if the task was started or an error code.
  */
-int config_cmd_task_start (struct config_cmd_task *task)
+int config_cmd_task_start (struct config_cmd_task *task, uint16_t stack_words)
 {
 	int status;
 
@@ -114,7 +115,7 @@ int config_cmd_task_start (struct config_cmd_task *task)
 	}
 
 	status = xTaskCreate ((TaskFunction_t) config_cmd_task_process_notification, "config_cmd",
-		6 * 256, task, CERBERUS_PRIORITY_NORMAL, &task->task);
+		stack_words, task, CERBERUS_PRIORITY_NORMAL, &task->task);
 	if (status != pdPASS) {
 		task->task = NULL;
 		return CONFIG_CMD_TASK_NO_MEMORY;

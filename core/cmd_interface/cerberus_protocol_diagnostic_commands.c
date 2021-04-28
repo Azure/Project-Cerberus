@@ -8,10 +8,10 @@
 
 
 /**
- * Process request to get heap usage statistics
+ * Process request to get heap usage statistics.
  *
- * @param device Device API to use to query heap stats
- * @param request Log info request to process
+ * @param device Device API to use to query heap stats.
+ * @param request Heap statistics request to process.
  *
  * @return 0 if request completed successfully or an error code.
  */

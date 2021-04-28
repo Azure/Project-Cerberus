@@ -73,7 +73,7 @@ struct cmd_background_task {
 int cmd_background_task_init (struct cmd_background_task *task, struct system *system,
 	struct attestation_slave *attestation, struct hash_engine *hash, struct config_reset *reset,
 	struct riot_key_manager *riot);
-int cmd_background_task_start (struct cmd_background_task *task);
+int cmd_background_task_start (struct cmd_background_task *task, uint16_t stack_words);
 
 int cmd_background_task_generate_aux_key (struct cmd_background_task *task,
 	struct aux_attestation *aux);

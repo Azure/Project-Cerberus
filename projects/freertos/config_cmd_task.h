@@ -58,7 +58,7 @@ struct config_cmd_task_handler {
 
 int config_cmd_task_init (struct config_cmd_task *task, struct system *system,
 	struct config_cmd_task_handler **handler, size_t num_handlers);
-int config_cmd_task_start (struct config_cmd_task *task);
+int config_cmd_task_start (struct config_cmd_task *task, uint16_t stack_words);
 
 int config_cmd_task_notify (struct config_cmd_task *task, uint8_t handler_id, uint32_t action);
 

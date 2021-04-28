@@ -77,7 +77,7 @@ static void fw_update_task_updater (struct fw_update_task *task)
 			else {
 				debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CERBERUS_FW,
 					FIRMWARE_LOGGING_UPDATE_COMPLETE, 0, 0);
-				
+
 				reset = true;
 			}
 #endif
@@ -307,11 +307,12 @@ int fw_update_task_init (struct fw_update_task *task, struct firmware_update *up
  * task that will run the update.  No update can be run until the update task has been started.
  *
  * @param task The update task to start.
+ * @param stack_words The size of the update task stack.  The stack size is measured in words.
  * @param running_recovery Indicate that the system is running from the recovery image.
  *
  * @return 0 if the task was started or an error code.
  */
-int fw_update_task_start (struct fw_update_task *task, bool running_recovery)
+int fw_update_task_start (struct fw_update_task *task, uint16_t stack_words, bool running_recovery)
 {
 	int status;
 
@@ -322,7 +323,7 @@ int fw_update_task_start (struct fw_update_task *task, bool running_recovery)
 	/* The task will clear the running flag after it has finished initializing the updater. */
 	task->running = (running_recovery) ? 2 : 1;
 
-	status = xTaskCreate ((TaskFunction_t) fw_update_task_updater, "FW Update", 6 * 256, task,
+	status = xTaskCreate ((TaskFunction_t) fw_update_task_updater, "FW Update", stack_words, task,
 		CERBERUS_PRIORITY_NORMAL, &task->task);
 	if (status != pdPASS) {
 		task->task = NULL;

@@ -29,11 +29,12 @@ static void mctp_cmd_task_loop (void *data)
  * @param channel The command channel for sending and receiving packets.
  * @param mctp The MCTP protocol handler to use for packet processing.
  * @param priority The priority level for running the command task.
+ * @param stack_words The size of the command task stack.  The stack size is measured in words.
  *
  * @return Initialization status, 0 if success or an error code.
  */
 int mctp_cmd_task_init (struct mctp_cmd_task *task, struct cmd_channel *channel,
-	struct mctp_interface *mctp, int priority)
+	struct mctp_interface *mctp, int priority, uint16_t stack_words)
 {
 	int status;
 
@@ -46,7 +47,7 @@ int mctp_cmd_task_init (struct mctp_cmd_task *task, struct cmd_channel *channel,
 	task->channel = channel;
 	task->mctp = mctp;
 
-	status = xTaskCreate (mctp_cmd_task_loop, "MCTP_LOOP", 6 * 256, task, priority,
+	status = xTaskCreate (mctp_cmd_task_loop, "MCTP_LOOP", stack_words, task, priority,
 		&task->cmd_loop_task);
 	if (status != pdPASS) {
 		return status;
