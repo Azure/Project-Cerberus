@@ -11386,7 +11386,6 @@ static void flash_store_test_write_variable_storage_min_write_single_page_write_
 	struct flash_store_testing store;
 	int status;
 	uint32_t page = 0x100;
-	uint8_t header[] = {0x04, 0xa5, 0xf0, 0x00};
 	int extra = 16;
 	uint8_t data[page - extra];
 	size_t i;
@@ -11394,7 +11393,7 @@ static void flash_store_test_write_variable_storage_min_write_single_page_write_
 		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
 		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
 	};
-	int extra_hash = (sizeof (hash) - extra) + sizeof (header);
+	int extra_hash = (sizeof (hash) - extra) + 4;
 
 	TEST_START;
 
@@ -11436,7 +11435,6 @@ static void flash_store_test_write_variable_storage_min_write_single_page_verify
 	struct flash_store_testing store;
 	int status;
 	uint32_t page = 0x100;
-	uint8_t header[] = {0x04, 0xa5, 0xf0, 0x00};
 	int extra = 16;
 	uint8_t data[page - extra];
 	size_t i;
@@ -11444,7 +11442,7 @@ static void flash_store_test_write_variable_storage_min_write_single_page_verify
 		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
 		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
 	};
-	int extra_hash = (sizeof (hash) - extra) + sizeof (header);
+	int extra_hash = (sizeof (hash) - extra) + 4;
 
 	TEST_START;
 
@@ -11611,7 +11609,6 @@ static void flash_store_test_write_variable_storage_min_write_multiple_pages_wri
 	struct flash_store_testing store;
 	int status;
 	uint32_t page = 0x100;
-	uint8_t header[] = {0x04, 0xa5, 0xf0, 0x02};
 	int extra = 16;
 	uint8_t data[(page * 3) - extra];
 	size_t i;
@@ -11619,7 +11616,7 @@ static void flash_store_test_write_variable_storage_min_write_multiple_pages_wri
 		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
 		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
 	};
-	int write_data_len = page - sizeof (header);
+	int write_data_len = page - 4;
 
 	TEST_START;
 
@@ -11660,7 +11657,6 @@ static void flash_store_test_write_variable_storage_min_write_multiple_pages_ver
 	struct flash_store_testing store;
 	int status;
 	uint32_t page = 0x100;
-	uint8_t header[] = {0x04, 0xa5, 0xf0, 0x02};
 	int extra = 16;
 	uint8_t data[(page * 3) - extra];
 	size_t i;
@@ -11668,7 +11664,7 @@ static void flash_store_test_write_variable_storage_min_write_multiple_pages_ver
 		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
 		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
 	};
-	int write_data_len = page - sizeof (header);
+	int write_data_len = page - 4;
 
 	TEST_START;
 
@@ -11711,7 +11707,6 @@ static void flash_store_test_write_variable_storage_min_write_multiple_pages_wri
 	struct flash_store_testing store;
 	int status;
 	uint32_t page = 0x100;
-	uint8_t header[] = {0x04, 0xa5, 0xf0, 0x02};
 	int extra = 16;
 	uint8_t data[(page * 3) - extra];
 	size_t i;
@@ -11719,8 +11714,8 @@ static void flash_store_test_write_variable_storage_min_write_multiple_pages_wri
 		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
 		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
 	};
-	int write_data_len = page - sizeof (header);
-	int write2_data_len = (page - extra) + sizeof (header);
+	int write_data_len = page - 4;
+	int write2_data_len = (page - extra) + 4;
 	uint8_t write2[page];
 
 	TEST_START;
@@ -11730,7 +11725,7 @@ static void flash_store_test_write_variable_storage_min_write_multiple_pages_wri
 	}
 
 	memcpy (write2, &data[sizeof (data) - write2_data_len], write2_data_len);
-	memcpy (&write2[write2_data_len], hash, extra - sizeof (header));
+	memcpy (&write2[write2_data_len], hash, extra - 4);
 
 	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
 
@@ -11771,7 +11766,6 @@ static void flash_store_test_write_variable_storage_min_write_multiple_pages_ver
 	struct flash_store_testing store;
 	int status;
 	uint32_t page = 0x100;
-	uint8_t header[] = {0x04, 0xa5, 0xf0, 0x02};
 	int extra = 16;
 	uint8_t data[(page * 3) - extra];
 	size_t i;
@@ -11779,8 +11773,8 @@ static void flash_store_test_write_variable_storage_min_write_multiple_pages_ver
 		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
 		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
 	};
-	int write_data_len = page - sizeof (header);
-	int write2_data_len = (page - extra) + sizeof (header);
+	int write_data_len = page - 4;
+	int write2_data_len = (page - extra) + 4;
 	uint8_t write2[page];
 
 	TEST_START;
@@ -11790,7 +11784,7 @@ static void flash_store_test_write_variable_storage_min_write_multiple_pages_ver
 	}
 
 	memcpy (write2, &data[sizeof (data) - write2_data_len], write2_data_len);
-	memcpy (&write2[write2_data_len], hash, extra - sizeof (header));
+	memcpy (&write2[write2_data_len], hash, extra - 4);
 
 	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
 
@@ -11833,7 +11827,6 @@ static void flash_store_test_write_variable_storage_min_write_multiple_pages_wri
 	struct flash_store_testing store;
 	int status;
 	uint32_t page = 0x100;
-	uint8_t header[] = {0x04, 0xa5, 0xf0, 0x02};
 	int extra = 16;
 	uint8_t data[(page * 3) - extra];
 	size_t i;
@@ -11841,9 +11834,9 @@ static void flash_store_test_write_variable_storage_min_write_multiple_pages_wri
 		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
 		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
 	};
-	int write_data_len = page - sizeof (header);
-	int extra_hash = (sizeof (hash) - extra) + sizeof (header);
-	int write2_data_len = (page - extra) + sizeof (header);
+	int write_data_len = page - 4;
+	int extra_hash = (sizeof (hash) - extra) + 4;
+	int write2_data_len = (page - extra) + 4;
 	uint8_t write2[page];
 
 	TEST_START;
@@ -11853,7 +11846,7 @@ static void flash_store_test_write_variable_storage_min_write_multiple_pages_wri
 	}
 
 	memcpy (write2, &data[sizeof (data) - write2_data_len], write2_data_len);
-	memcpy (&write2[write2_data_len], hash, extra - sizeof (header));
+	memcpy (&write2[write2_data_len], hash, extra - 4);
 
 	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
 
@@ -11901,7 +11894,6 @@ static void flash_store_test_write_variable_storage_min_write_multiple_pages_ver
 	struct flash_store_testing store;
 	int status;
 	uint32_t page = 0x100;
-	uint8_t header[] = {0x04, 0xa5, 0xf0, 0x02};
 	int extra = 16;
 	uint8_t data[(page * 3) - extra];
 	size_t i;
@@ -11909,9 +11901,9 @@ static void flash_store_test_write_variable_storage_min_write_multiple_pages_ver
 		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
 		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
 	};
-	int write_data_len = page - sizeof (header);
-	int extra_hash = (sizeof (hash) - extra) + sizeof (header);
-	int write2_data_len = (page - extra) + sizeof (header);
+	int write_data_len = page - 4;
+	int extra_hash = (sizeof (hash) - extra) + 4;
+	int write2_data_len = (page - extra) + 4;
 	uint8_t write2[page];
 
 	TEST_START;
@@ -11921,7 +11913,7 @@ static void flash_store_test_write_variable_storage_min_write_multiple_pages_ver
 	}
 
 	memcpy (write2, &data[sizeof (data) - write2_data_len], write2_data_len);
-	memcpy (&write2[write2_data_len], hash, extra - sizeof (header));
+	memcpy (&write2[write2_data_len], hash, extra - 4);
 
 	flash_store_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
 

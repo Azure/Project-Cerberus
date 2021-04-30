@@ -10201,13 +10201,12 @@ static void flash_store_encrypted_test_write_variable_storage_min_write_single_p
 	struct flash_store_encrypted_testing store;
 	int status;
 	uint32_t page = 0x100;
-	uint8_t header[] = {0x04, 0xa5, 0xf0, 0x00};
 	int extra = 16;
 	uint8_t data[page - extra];
 	uint8_t enc[sizeof (data)];
 	size_t i;
 	uint8_t tag[FLASH_STORE_ENCRYPTED_TEST_TAG_LEN];
-	int extra_tag = (sizeof (tag) - extra) + sizeof (header);
+	int extra_tag = (sizeof (tag) - extra) + 4;
 
 	TEST_START;
 
@@ -10258,13 +10257,12 @@ static void flash_store_encrypted_test_write_variable_storage_min_write_single_p
 	struct flash_store_encrypted_testing store;
 	int status;
 	uint32_t page = 0x100;
-	uint8_t header[] = {0x04, 0xa5, 0xf0, 0x00};
 	int extra = 16;
 	uint8_t data[page - extra];
 	uint8_t enc[sizeof (data)];
 	size_t i;
 	uint8_t tag[FLASH_STORE_ENCRYPTED_TEST_TAG_LEN];
-	int extra_tag = (sizeof (tag) - extra) + sizeof (header);
+	int extra_tag = (sizeof (tag) - extra) + 4;
 
 	TEST_START;
 
@@ -10455,13 +10453,12 @@ static void flash_store_encrypted_test_write_variable_storage_min_write_multiple
 	struct flash_store_encrypted_testing store;
 	int status;
 	uint32_t page = 0x100;
-	uint8_t header[] = {0x04, 0xa5, 0xf0, 0x02};
 	int extra = 16;
 	uint8_t data[(page * 3) - extra];
 	uint8_t enc[sizeof (data)];
 	size_t i;
 	uint8_t tag[FLASH_STORE_ENCRYPTED_TEST_TAG_LEN];
-	int write_data_len = page - sizeof (header);
+	int write_data_len = page - 4;
 
 	TEST_START;
 
@@ -10512,13 +10509,12 @@ static void flash_store_encrypted_test_write_variable_storage_min_write_multiple
 	struct flash_store_encrypted_testing store;
 	int status;
 	uint32_t page = 0x100;
-	uint8_t header[] = {0x04, 0xa5, 0xf0, 0x02};
 	int extra = 16;
 	uint8_t data[(page * 3) - extra];
 	uint8_t enc[sizeof (data)];
 	size_t i;
 	uint8_t tag[FLASH_STORE_ENCRYPTED_TEST_TAG_LEN];
-	int write_data_len = page - sizeof (header);
+	int write_data_len = page - 4;
 
 	TEST_START;
 
@@ -10571,14 +10567,13 @@ static void flash_store_encrypted_test_write_variable_storage_min_write_multiple
 	struct flash_store_encrypted_testing store;
 	int status;
 	uint32_t page = 0x100;
-	uint8_t header[] = {0x04, 0xa5, 0xf0, 0x02};
 	int extra = 16;
 	uint8_t data[(page * 3) - extra];
 	uint8_t enc[sizeof (data)];
 	size_t i;
 	uint8_t tag[FLASH_STORE_ENCRYPTED_TEST_TAG_LEN];
-	int write_data_len = page - sizeof (header);
-	int write2_data_len = (page - extra) + sizeof (header);
+	int write_data_len = page - 4;
+	int write2_data_len = (page - extra) + 4;
 	uint8_t write2[page];
 
 	TEST_START;
@@ -10592,7 +10587,7 @@ static void flash_store_encrypted_test_write_variable_storage_min_write_multiple
 	memcpy (&tag[AES_IV_LEN], AES_RSA_PRIVKEY_GCM_TAG, AES_GCM_TAG_LEN);
 
 	memcpy (write2, &enc[sizeof (enc) - write2_data_len], write2_data_len);
-	memcpy (&write2[write2_data_len], tag, extra - sizeof (header));
+	memcpy (&write2[write2_data_len], tag, extra - 4);
 
 	flash_store_encrypted_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
 
@@ -10639,14 +10634,13 @@ static void flash_store_encrypted_test_write_variable_storage_min_write_multiple
 	struct flash_store_encrypted_testing store;
 	int status;
 	uint32_t page = 0x100;
-	uint8_t header[] = {0x04, 0xa5, 0xf0, 0x02};
 	int extra = 16;
 	uint8_t data[(page * 3) - extra];
 	uint8_t enc[sizeof (data)];
 	size_t i;
 	uint8_t tag[FLASH_STORE_ENCRYPTED_TEST_TAG_LEN];
-	int write_data_len = page - sizeof (header);
-	int write2_data_len = (page - extra) + sizeof (header);
+	int write_data_len = page - 4;
+	int write2_data_len = (page - extra) + 4;
 	uint8_t write2[page];
 
 	TEST_START;
@@ -10660,7 +10654,7 @@ static void flash_store_encrypted_test_write_variable_storage_min_write_multiple
 	memcpy (&tag[AES_IV_LEN], AES_RSA_PRIVKEY_GCM_TAG, AES_GCM_TAG_LEN);
 
 	memcpy (write2, &enc[sizeof (enc) - write2_data_len], write2_data_len);
-	memcpy (&write2[write2_data_len], tag, extra - sizeof (header));
+	memcpy (&write2[write2_data_len], tag, extra - 4);
 
 	flash_store_encrypted_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
 
@@ -10709,15 +10703,14 @@ static void flash_store_encrypted_test_write_variable_storage_min_write_multiple
 	struct flash_store_encrypted_testing store;
 	int status;
 	uint32_t page = 0x100;
-	uint8_t header[] = {0x04, 0xa5, 0xf0, 0x02};
 	int extra = 16;
 	uint8_t data[(page * 3) - extra];
 	uint8_t enc[sizeof (data)];
 	size_t i;
 	uint8_t tag[FLASH_STORE_ENCRYPTED_TEST_TAG_LEN];
-	int write_data_len = page - sizeof (header);
-	int extra_tag = (sizeof (tag) - extra) + sizeof (header);
-	int write2_data_len = (page - extra) + sizeof (header);
+	int write_data_len = page - 4;
+	int extra_tag = (sizeof (tag) - extra) + 4;
+	int write2_data_len = (page - extra) + 4;
 	uint8_t write2[page];
 
 	TEST_START;
@@ -10731,7 +10724,7 @@ static void flash_store_encrypted_test_write_variable_storage_min_write_multiple
 	memcpy (&tag[AES_IV_LEN], AES_RSA_PRIVKEY_GCM_TAG, AES_GCM_TAG_LEN);
 
 	memcpy (write2, &enc[sizeof (enc) - write2_data_len], write2_data_len);
-	memcpy (&write2[write2_data_len], tag, extra - sizeof (header));
+	memcpy (&write2[write2_data_len], tag, extra - 4);
 
 	flash_store_encrypted_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
 
@@ -10784,15 +10777,14 @@ static void flash_store_encrypted_test_write_variable_storage_min_write_multiple
 	struct flash_store_encrypted_testing store;
 	int status;
 	uint32_t page = 0x100;
-	uint8_t header[] = {0x04, 0xa5, 0xf0, 0x02};
 	int extra = 16;
 	uint8_t data[(page * 3) - extra];
 	uint8_t enc[sizeof (data)];
 	size_t i;
 	uint8_t tag[FLASH_STORE_ENCRYPTED_TEST_TAG_LEN];
-	int write_data_len = page - sizeof (header);
-	int extra_tag = (sizeof (tag) - extra) + sizeof (header);
-	int write2_data_len = (page - extra) + sizeof (header);
+	int write_data_len = page - 4;
+	int extra_tag = (sizeof (tag) - extra) + 4;
+	int write2_data_len = (page - extra) + 4;
 	uint8_t write2[page];
 
 	TEST_START;
@@ -10806,7 +10798,7 @@ static void flash_store_encrypted_test_write_variable_storage_min_write_multiple
 	memcpy (&tag[AES_IV_LEN], AES_RSA_PRIVKEY_GCM_TAG, AES_GCM_TAG_LEN);
 
 	memcpy (write2, &enc[sizeof (enc) - write2_data_len], write2_data_len);
-	memcpy (&write2[write2_data_len], tag, extra - sizeof (header));
+	memcpy (&write2[write2_data_len], tag, extra - 4);
 
 	flash_store_encrypted_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
 
