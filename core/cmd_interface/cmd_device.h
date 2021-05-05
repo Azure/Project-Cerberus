@@ -34,7 +34,7 @@ struct cmd_device {
 	 * @param buffer The output buffer to store the chip ID.
 	 * @param buf_len The size of the output buffer.
 	 *
-	 * @return 0 The length of the chip ID or an error code.  Use ROT_IS_ERROR to check the return
+	 * @return The length of the chip ID or an error code.  Use ROT_IS_ERROR to check the return
 	 * value.
 	 */
 	int (*get_uuid) (struct cmd_device *device, uint8_t *buffer, size_t buf_len);

@@ -59,7 +59,8 @@ struct mctp_interface;
  */
 struct cmd_channel {
 	/**
-	 * Receive a command packet from a communication channel.
+	 * Receive a command packet from a communication channel.  This call will block until a packet
+	 * has been received or the timeout has expired.
 	 *
 	 * @param channel The channel to receive a packet from.
 	 * @param packet Output for the packet data being received.
