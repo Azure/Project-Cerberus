@@ -57,7 +57,6 @@ int cmd_interface_process_request (struct cmd_interface *intf,
 	bool rsvd_zero)
 {
 	struct cerberus_protocol_header *header;
-	int status;
 
 	if (request == NULL) {
 		return CMD_HANDLER_INVALID_ARGUMENT;
@@ -93,8 +92,9 @@ int cmd_interface_process_request (struct cmd_interface *intf,
 	*command_set = header->rq;
 
 	if (header->crypt && decrypt) {
+#ifdef CMD_SUPPORT_ENCRYPTED_SESSIONS
 		if (intf->session) {
-			status = intf->session->decrypt_message (intf->session, request);
+			int status = intf->session->decrypt_message (intf->session, request);
 			if (status != 0) {
 				return status;
 			}
@@ -102,7 +102,9 @@ int cmd_interface_process_request (struct cmd_interface *intf,
 			request->max_response -= SESSION_MANAGER_TRAILER_LEN;
 			intf->curr_txn_encrypted = true;
 		}
-		else {
+		else
+#endif
+		{
 			return CMD_HANDLER_ENCRYPTION_UNSUPPORTED;
 		}
 	}
@@ -131,6 +133,7 @@ int cmd_interface_process_response (struct cmd_interface *intf,
 		return CMD_HANDLER_INVALID_ARGUMENT;
 	}
 
+#ifdef CMD_SUPPORT_ENCRYPTED_SESSIONS
 	if (intf->curr_txn_encrypted) {
 		response->max_response += SESSION_MANAGER_TRAILER_LEN;
 
@@ -152,6 +155,7 @@ int cmd_interface_process_response (struct cmd_interface *intf,
 			intf->curr_txn_encrypted = false;
 		}
 	}
+#endif
 
 	return status;
 }
@@ -171,7 +175,6 @@ int cmd_interface_generate_error_packet (struct cmd_interface *intf,
 	struct cmd_interface_request *request, uint8_t error_code, uint32_t error_data, uint8_t cmd_set)
 {
 	struct cerberus_protocol_error *error_msg;
-	int status;
 
 	if ((intf == NULL) || (request == NULL)) {
 		return CMD_HANDLER_INVALID_ARGUMENT;
@@ -190,14 +193,16 @@ int cmd_interface_generate_error_packet (struct cmd_interface *intf,
 
 	request->length = sizeof (struct cerberus_protocol_error);
 
+#if CMD_SUPPORT_ENCRYPTED_SESSIONS
 	if (intf->curr_txn_encrypted) {
-		status = intf->session->encrypt_message (intf->session, request);
+		int status = intf->session->encrypt_message (intf->session, request);
 		if (status != 0) {
 			return status;
 		}
 
 		intf->curr_txn_encrypted = false;
 	}
+#endif
 
 	return 0;
 }

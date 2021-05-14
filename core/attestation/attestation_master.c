@@ -125,8 +125,9 @@ static int attestation_verify_and_load_ecc_leaf_key (struct attestation_master *
 	return status;
 }
 
+#ifdef ATTESTATION_SUPPORT_RSA_CHALLENGE
 /**
- * Load and authenticate certifcate chain then return leaf certificate public key.
+ * Load and authenticate certificate chain then return leaf certificate public key.
  *
  * @param attestation The attestation manager to utilize.
  * @param chain Certificate chain buffer.
@@ -152,6 +153,7 @@ static int attestation_verify_and_load_rsa_leaf_key (struct attestation_master *
 
 	return status;
 }
+#endif
 
 /**
  * Generate digests for certificates in device certificate chain
@@ -339,8 +341,6 @@ static int attestation_store_certificate (struct attestation_master *attestation
 static int attestation_process_challenge_response (struct attestation_master *attestation,
 	uint8_t *buf, size_t buf_len, uint8_t eid)
 {
-	struct ecc_public_key ecc_key;
-	struct rsa_public_key rsa_key;
 	struct device_manager_cert_chain chain;
 	uint8_t challenge[ATTESTATION_NONCE_LEN + 2];
 	uint8_t digest[SHA256_HASH_LENGTH];
@@ -381,7 +381,7 @@ static int attestation_process_challenge_response (struct attestation_master *at
 		return key_type;
 	}
 
-	memcpy (&challenge, (uint8_t*)&attestation->challenge[device_num],
+	memcpy (&challenge, (uint8_t*) &attestation->challenge[device_num],
 		sizeof (struct attestation_challenge));
 
 	status = attestation->hash->start_sha256 (attestation->hash);
@@ -405,6 +405,8 @@ static int attestation_process_challenge_response (struct attestation_master *at
 	}
 
 	if (key_type == X509_PUBLIC_KEY_ECC) {
+		struct ecc_public_key ecc_key;
+
 		status = attestation_verify_and_load_ecc_leaf_key (attestation, &chain, &ecc_key);
 		if (status != 0) {
 			return status;
@@ -415,7 +417,10 @@ static int attestation_process_challenge_response (struct attestation_master *at
 
 		attestation->ecc->release_key_pair (attestation->ecc, NULL, &ecc_key);
 	}
+#ifdef ATTESTATION_SUPPORT_RSA_CHALLENGE
 	else if ((key_type == X509_PUBLIC_KEY_RSA) && (attestation->rsa != NULL)) {
+		struct rsa_public_key rsa_key;
+
 		status = attestation_verify_and_load_rsa_leaf_key (attestation, &chain, &rsa_key);
 		if (status != 0) {
 			return status;
@@ -424,6 +429,7 @@ static int attestation_process_challenge_response (struct attestation_master *at
 		status = attestation->rsa->sig_verify (attestation->rsa, &rsa_key, &buf[buf_len - sig_len],
 			sig_len, digest, SHA256_HASH_LENGTH);
 	}
+#endif
 	else {
 		return ATTESTATION_UNSUPPORTED_ALGORITHM;
 	}

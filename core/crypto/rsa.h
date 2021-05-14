@@ -45,6 +45,7 @@ struct rsa_public_key {
  * be thread-safe.
  */
 struct rsa_engine {
+#ifdef RSA_ENABLE_PRIVATE_KEY
 	/**
 	 * Generate a random RSA key.
 	 *
@@ -67,19 +68,6 @@ struct rsa_engine {
 	 * @return 0 if the key was successfully initialized or an error code.
 	 */
 	int (*init_private_key) (struct rsa_engine *engine, struct rsa_private_key *key,
-		const uint8_t *der, size_t length);
-
-	/**
-	 * Load a DER formatted RSA public key.
-	 *
-	 * @param engine The RSA engine to initialize the key with.
-	 * @param key The key instance to initialize.
-	 * @param der The DER formatted public key data.
-	 * @param length The length of the key data.
-	 *
-	 * @return 0 if the key was successfully initialized or an error code.
-	 */
-	int (*init_public_key) (struct rsa_engine *engine, struct rsa_public_key *key,
 		const uint8_t *der, size_t length);
 
 	/**
@@ -106,21 +94,6 @@ struct rsa_engine {
 		uint8_t **der, size_t *length);
 
 	/**
-	 * Get the DER formatted public key for an RSA private key.
-	 *
-	 * @param engine The RSA engine that initialized the key.
-	 * @param key The private key to get the public key for.
-	 * @param der Output buffer for the DER formatted public key.  This is a dynamically allocated
-	 * buffer, and it is the responsibility of the caller to free it.  This will return null in the
-	 * case of an error.
-	 * @param length Output for the length of the DER key.
-	 *
-	 * @return 0 if the key was successfully encoded or an error code.
-	 */
-	int (*get_public_key_der) (struct rsa_engine *engine, const struct rsa_private_key *key,
-		uint8_t **der, size_t *length);
-
-	/**
 	 * Decrypt data with an RSA private key.  The data is expected to have used OAEP padding.
 	 *
 	 * @param engine The RSA engine to use to decrypt the data.
@@ -139,6 +112,37 @@ struct rsa_engine {
 	int (*decrypt) (struct rsa_engine *engine, const struct rsa_private_key *key,
 		const uint8_t *encrypted, size_t in_length, const uint8_t *label, size_t label_length,
 		enum hash_type pad_hash, uint8_t *decrypted, size_t out_length);
+#endif
+
+#ifdef RSA_ENABLE_DER_PUBLIC_KEY
+	/**
+	 * Load a DER formatted RSA public key.
+	 *
+	 * @param engine The RSA engine to initialize the key with.
+	 * @param key The key instance to initialize.
+	 * @param der The DER formatted public key data.
+	 * @param length The length of the key data.
+	 *
+	 * @return 0 if the key was successfully initialized or an error code.
+	 */
+	int (*init_public_key) (struct rsa_engine *engine, struct rsa_public_key *key,
+		const uint8_t *der, size_t length);
+
+	/**
+	 * Get the DER formatted public key for an RSA private key.
+	 *
+	 * @param engine The RSA engine that initialized the key.
+	 * @param key The private key to get the public key for.
+	 * @param der Output buffer for the DER formatted public key.  This is a dynamically allocated
+	 * buffer, and it is the responsibility of the caller to free it.  This will return null in the
+	 * case of an error.
+	 * @param length Output for the length of the DER key.
+	 *
+	 * @return 0 if the key was successfully encoded or an error code.
+	 */
+	int (*get_public_key_der) (struct rsa_engine *engine, const struct rsa_private_key *key,
+		uint8_t **der, size_t *length);
+#endif
 
 	/**
 	 * Verify that a signature matches the expected SHA-256 hash.  The signature is expected to be

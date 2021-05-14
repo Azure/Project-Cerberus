@@ -266,7 +266,7 @@ int cmd_interface_system_process_request (struct cmd_interface *intf,
 				intf->curr_txn_encrypted);
 			break;
 
-#ifdef ENABLE_DEBUG_COMMANDS
+#ifdef CMD_SUPPORT_DEBUG_COMMANDS
 		case CERBERUS_PROTOCOL_DEBUG_START_ATTESTATION:
 			status = cerberus_protocol_start_attestation (request);
 			break;
@@ -459,7 +459,9 @@ int cmd_interface_system_init (struct cmd_interface_system *intf,
 	intf->base.issue_request = cmd_interface_system_issue_request;
 	intf->base.generate_error_packet = cmd_interface_generate_error_packet;
 
+#if CMD_SUPPORT_ENCRYPTED_SESSIONS
 	intf->base.session = session;
+#endif
 
 	return 0;
 }

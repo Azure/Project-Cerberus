@@ -91,6 +91,7 @@ void aux_attestation_release (struct aux_attestation *aux)
  */
 int aux_attestation_generate_key (struct aux_attestation *aux)
 {
+#ifdef ATTESTATION_SUPPORT_RSA_UNSEAL
 	struct rsa_private_key rsa_key;
 	uint8_t *priv;
 	size_t length;
@@ -121,6 +122,9 @@ int aux_attestation_generate_key (struct aux_attestation *aux)
 	platform_free (priv);
 
 	return status;
+#else
+	return AUX_ATTESTATION_UNSUPPORTED_CRYPTO;
+#endif
 }
 
 /**
@@ -494,6 +498,7 @@ int aux_attestation_decrypt (struct aux_attestation *aux, const uint8_t *encrypt
 	size_t len_encrypted, const uint8_t *label, size_t len_label, enum hash_type pad_hash,
 	uint8_t *decrypted, size_t len_decrypted)
 {
+#ifdef ATTESTATION_SUPPORT_RSA_UNSEAL
 	struct rsa_private_key priv;
 	uint8_t *priv_der;
 	size_t priv_length;
@@ -527,6 +532,9 @@ rsa_init_error:
 	platform_free (priv_der);
 
 	return status;
+#else
+	return AUX_ATTESTATION_UNSUPPORTED_CRYPTO;
+#endif
 }
 
 /**
@@ -545,7 +553,7 @@ rsa_init_error:
 int aux_attestation_generate_ecdh_seed (struct aux_attestation *aux, const uint8_t *ecc_key,
 	size_t key_length, struct hash_engine *hash, uint8_t *seed, size_t seed_length)
 {
-#ifdef ECC_ENABLE_ECDH
+#ifdef ATTESTATION_SUPPORT_ECDH_UNSEAL
 	struct ecc_private_key priv;
 	struct ecc_public_key pub;
 	const struct riot_keys *keys;

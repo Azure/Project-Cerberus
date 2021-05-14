@@ -62,6 +62,7 @@ struct cmd_device {
 	int (*get_reset_counter) (struct cmd_device *device, uint8_t type, uint8_t port,
 		uint16_t *counter);
 
+#ifdef CMD_ENABLE_HEAP_STATS
 	/**
 	 * Retrieve current heap usage statistics.
 	 *
@@ -71,6 +72,7 @@ struct cmd_device {
 	 * @return 0 if the heap statistics were successfully retrieved or an error code.
 	 */
 	int (*get_heap_stats) (struct cmd_device *device, struct cmd_device_heap_stats *heap);
+#endif
 };
 
 

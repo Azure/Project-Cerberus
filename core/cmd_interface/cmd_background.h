@@ -107,7 +107,7 @@ struct cmd_background {
 	 */
 	int (*debug_log_clear) (struct cmd_background *cmd);
 
-#ifdef ENABLE_DEBUG_COMMANDS
+#ifdef CMD_SUPPORT_DEBUG_COMMANDS
 	/**
 	 * Fill debug log for testing purposes.
 	 *

@@ -17,6 +17,7 @@
  */
 int cerberus_protocol_heap_stats (struct cmd_device *device, struct cmd_interface_request *request)
 {
+#ifdef CMD_ENABLE_HEAP_STATS
 	struct cerberus_protocol_heap_stats_response *rsp =
 		(struct cerberus_protocol_heap_stats_response*) request->data;
 
@@ -26,4 +27,7 @@ int cerberus_protocol_heap_stats (struct cmd_device *device, struct cmd_interfac
 
 	request->length = sizeof (struct cerberus_protocol_heap_stats_response);
 	return device->get_heap_stats (device, &rsp->heap);
+#else
+	return CMD_HANDLER_UNSUPPORTED_COMMAND;
+#endif
 }

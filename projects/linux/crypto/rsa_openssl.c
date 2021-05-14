@@ -12,6 +12,7 @@
 #include "platform.h"
 
 
+#ifdef RSA_ENABLE_PRIVATE_KEY
 static int rsa_openssl_generate_key (struct rsa_engine *engine, struct rsa_private_key *key,
 	int bits)
 {
@@ -86,55 +87,6 @@ exit:
 	return status;
 }
 
-static int rsa_openssl_init_public_key (struct rsa_engine *engine, struct rsa_public_key *key,
-	const uint8_t *der, size_t length)
-{
-	RSA *rsa;
-	uint8_t exp[4];
-	int status = 0;
-
-	if ((engine == NULL) || (key == NULL) || (der == NULL) || (length == 0)) {
-		return RSA_ENGINE_INVALID_ARGUMENT;
-	}
-
-	ERR_clear_error ();
-
-	rsa = d2i_RSA_PUBKEY (NULL, &der, length);
-	if (rsa == NULL) {
-		status = ERR_get_error ();
-
-		if ((status == 0xd0680a8) || (status == 0x607907f)) {
-			return RSA_ENGINE_NOT_RSA_KEY;
-		}
-		else {
-			return -status;
-		}
-	}
-
-	key->mod_length = BN_num_bytes (RSA_get0_n (rsa));
-	if (key->mod_length > sizeof (key->modulus)) {
-		status = RSA_ENGINE_UNSUPPORTED_KEY_LENGTH;
-		goto exit;
-	}
-
-	BN_bn2bin (RSA_get0_n (rsa), key->modulus);
-
-	if (BN_num_bytes (RSA_get0_e (rsa)) > (int) sizeof (exp)) {
-		status = RSA_ENGINE_UNSUPPORTED_KEY_LENGTH;
-		goto exit;
-	}
-
-	memset (exp, 0, sizeof (exp));
-	BN_bn2bin (RSA_get0_e (rsa), exp);
-
-	key->exponent = (exp[3] << 24) | (exp[2] << 16) | (exp[1] << 8) | exp[0];
-
-exit:
-	RSA_free (rsa);
-
-	return status;
-}
-
 static void rsa_openssl_release_key (struct rsa_engine *engine, struct rsa_private_key *key)
 {
 	if (engine && key) {
@@ -160,34 +112,6 @@ static int rsa_openssl_get_private_key_der (struct rsa_engine *engine,
 	ERR_clear_error ();
 
 	status = i2d_RSAPrivateKey ((RSA*) key->context, der);
-	if (status >= 0) {
-		*length = status;
-		status = 0;
-	}
-	else {
-		status = -ERR_get_error ();
-	}
-
-	return status;
-}
-
-static int rsa_openssl_get_public_key_der (struct rsa_engine *engine,
-	const struct rsa_private_key *key, uint8_t **der, size_t *length)
-{
-	int status;
-
-	if (der == NULL) {
-		return RSA_ENGINE_INVALID_ARGUMENT;
-	}
-
-	*der = NULL;
-	if ((engine == NULL) || (key == NULL) || (length == NULL)) {
-		return RSA_ENGINE_INVALID_ARGUMENT;
-	}
-
-	ERR_clear_error ();
-
-	status = i2d_RSA_PUBKEY ((RSA*) key->context, der);
 	if (status >= 0) {
 		*length = status;
 		status = 0;
@@ -248,6 +172,86 @@ exit:
 	platform_free (padded);
 	return status;
 }
+#endif
+
+#ifdef RSA_ENABLE_DER_PUBLIC_KEY
+static int rsa_openssl_init_public_key (struct rsa_engine *engine, struct rsa_public_key *key,
+	const uint8_t *der, size_t length)
+{
+	RSA *rsa;
+	uint8_t exp[4];
+	int status = 0;
+
+	if ((engine == NULL) || (key == NULL) || (der == NULL) || (length == 0)) {
+		return RSA_ENGINE_INVALID_ARGUMENT;
+	}
+
+	ERR_clear_error ();
+
+	rsa = d2i_RSA_PUBKEY (NULL, &der, length);
+	if (rsa == NULL) {
+		status = ERR_get_error ();
+
+		if ((status == 0xd0680a8) || (status == 0x607907f)) {
+			return RSA_ENGINE_NOT_RSA_KEY;
+		}
+		else {
+			return -status;
+		}
+	}
+
+	key->mod_length = BN_num_bytes (RSA_get0_n (rsa));
+	if (key->mod_length > sizeof (key->modulus)) {
+		status = RSA_ENGINE_UNSUPPORTED_KEY_LENGTH;
+		goto exit;
+	}
+
+	BN_bn2bin (RSA_get0_n (rsa), key->modulus);
+
+	if (BN_num_bytes (RSA_get0_e (rsa)) > (int) sizeof (exp)) {
+		status = RSA_ENGINE_UNSUPPORTED_KEY_LENGTH;
+		goto exit;
+	}
+
+	memset (exp, 0, sizeof (exp));
+	BN_bn2bin (RSA_get0_e (rsa), exp);
+
+	key->exponent = (exp[3] << 24) | (exp[2] << 16) | (exp[1] << 8) | exp[0];
+
+exit:
+	RSA_free (rsa);
+
+	return status;
+}
+
+static int rsa_openssl_get_public_key_der (struct rsa_engine *engine,
+	const struct rsa_private_key *key, uint8_t **der, size_t *length)
+{
+	int status;
+
+	if (der == NULL) {
+		return RSA_ENGINE_INVALID_ARGUMENT;
+	}
+
+	*der = NULL;
+	if ((engine == NULL) || (key == NULL) || (length == NULL)) {
+		return RSA_ENGINE_INVALID_ARGUMENT;
+	}
+
+	ERR_clear_error ();
+
+	status = i2d_RSA_PUBKEY ((RSA*) key->context, der);
+	if (status >= 0) {
+		*length = status;
+		status = 0;
+	}
+	else {
+		status = -ERR_get_error ();
+	}
+
+	return status;
+}
+#endif
 
 /**
  * Allocate an RSA context and load it with a public key.
@@ -334,13 +338,17 @@ int rsa_openssl_init (struct rsa_engine_openssl *engine)
 
 	memset (engine, 0, sizeof (struct rsa_engine_openssl));
 
+#ifdef RSA_ENABLE_PRIVATE_KEY
 	engine->base.generate_key = rsa_openssl_generate_key;
 	engine->base.init_private_key = rsa_openssl_init_private_key;
-	engine->base.init_public_key = rsa_openssl_init_public_key;
 	engine->base.release_key = rsa_openssl_release_key;
 	engine->base.get_private_key_der = rsa_openssl_get_private_key_der;
-	engine->base.get_public_key_der = rsa_openssl_get_public_key_der;
 	engine->base.decrypt = rsa_openssl_decrypt;
+#endif
+#ifdef RSA_ENABLE_DER_PUBLIC_KEY
+	engine->base.init_public_key = rsa_openssl_init_public_key;
+	engine->base.get_public_key_der = rsa_openssl_get_public_key_der;
+#endif
 	engine->base.sig_verify = rsa_openssl_sig_verify;
 
 	return 0;

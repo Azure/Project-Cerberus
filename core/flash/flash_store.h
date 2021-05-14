@@ -137,10 +137,12 @@ struct flash_store {
 	bool variable;				/**< Flag indicating block storage is variable length. */
 	uint32_t block_size;		/**< Flash size of each data block. */
 	uint32_t blocks;			/**< The number of managed data blocks. */
+#ifdef FLASH_STORE_SUPPORT_NO_PARTIAL_PAGE_WRITE
 	uint32_t page_size;			/**< Page programming size for the flash device. */
 	uint8_t *page_buffer;		/**< Buffer for ensuring full page programming. */
-	bool old_header;			/**< Flag indicating variable storage header only saves the length. */
 	platform_mutex lock;		/**< Page buffer synchronization. */
+#endif
+	bool old_header;			/**< Flag indicating variable storage header only saves the length. */
 };
 
 

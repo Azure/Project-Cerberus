@@ -165,7 +165,7 @@ static void cmd_background_task_handler (struct cmd_background_task *task)
 					CMD_LOGGING_DEBUG_LOG_CLEAR_FAIL, status, 0);
 			}
 		}
-#ifdef ENABLE_DEBUG_COMMANDS
+#ifdef CMD_SUPPORT_DEBUG_COMMANDS
 		else if (notification & CMD_BACKGROUND_DEBUG_LOG_FILL) {
 			int max_count =
 				(FLASH_SECTOR_SIZE / sizeof (struct debug_log_entry)) * LOGGING_FLASH_SECTORS;
@@ -189,6 +189,7 @@ static void cmd_background_task_handler (struct cmd_background_task *task)
 				status = CMD_BACKGROUND_STATUS (RIOT_CERT_STATE_CHAIN_INVALID, status);
 			}
 		}
+#ifdef ATTESTATION_SUPPORT_RSA_UNSEAL
 		else if (notification & CMD_BACKGROUND_AUX_KEY_GEN) {
 			op_status = &status;
 
@@ -202,6 +203,7 @@ static void cmd_background_task_handler (struct cmd_background_task *task)
 					CMD_LOGGING_AUX_KEY, status, 0);
 			}
 		}
+#endif
 		else {
 			debug_log_create_entry (DEBUG_LOG_SEVERITY_WARNING, DEBUG_LOG_COMPONENT_CMD_INTERFACE,
 				CMD_LOGGING_NOTIFICATION_ERROR, notification, 0);
@@ -481,7 +483,7 @@ static int cmd_background_task_debug_log_clear (struct cmd_background *cmd)
 	return 0;
 }
 
-#ifdef ENABLE_DEBUG_COMMANDS
+#ifdef CMD_SUPPORT_DEBUG_COMMANDS
 static int cmd_background_task_debug_log_fill (struct cmd_background *cmd)
 {
 	struct cmd_background_task *task = (struct cmd_background_task*) cmd;
@@ -601,7 +603,7 @@ int cmd_background_task_init (struct cmd_background_task *task, struct system *s
 
 	/* Debug log operations. */
 	task->base.debug_log_clear = cmd_background_task_debug_log_clear;
-#ifdef ENABLE_DEBUG_COMMANDS
+#ifdef CMD_SUPPORT_DEBUG_COMMANDS
 	task->base.debug_log_fill = cmd_background_task_debug_log_fill;
 #endif
 
@@ -654,6 +656,7 @@ int cmd_background_task_start (struct cmd_background_task *task, uint16_t stack_
 int cmd_background_task_generate_aux_key (struct cmd_background_task *task,
 	struct aux_attestation *aux)
 {
+#ifdef ATTESTATION_SUPPORT_RSA_UNSEAL
 	int status = 0;
 
 	if ((task == NULL) || (aux == NULL)) {
@@ -685,4 +688,7 @@ int cmd_background_task_generate_aux_key (struct cmd_background_task *task,
 			CMD_LOGGING_AUX_KEY, status, 0);
 	}
 	return status;
+#else
+	return CMD_BACKGROUND_UNSUPPORTED_REQUEST;
+#endif
 }

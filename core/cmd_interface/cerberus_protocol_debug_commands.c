@@ -7,7 +7,7 @@
 #include "cerberus_protocol_debug_commands.h"
 
 
-#ifdef ENABLE_DEBUG_COMMANDS
+#ifdef CMD_SUPPORT_DEBUG_COMMANDS
 /**
  * Process log fill packet
  *

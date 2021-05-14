@@ -159,7 +159,9 @@ int cmd_interface_slave_init (struct cmd_interface_slave *intf,
 	intf->base.issue_request = cmd_interface_slave_issue_request;
 	intf->base.generate_error_packet = cmd_interface_generate_error_packet;
 
+#ifdef CMD_SUPPORT_ENCRYPTED_SESSIONS
 	intf->base.session = session;
+#endif
 
 	return 0;
 }

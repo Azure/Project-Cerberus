@@ -322,7 +322,7 @@ int mctp_interface_process_packet (struct mctp_interface *interface, struct cmd_
 				return 0;
 			}
 
-#ifdef ENABLE_DEBUG_COMMANDS
+#ifdef CMD_SUPPORT_DEBUG_COMMANDS
 			if (status == ATTESTATION_START_TEST_ESCAPE_SEQ) {
 				uint8_t device_num = (uint8_t) (status >> 16);
 				status = device_manager_get_device_addr (interface->device_manager, device_num);

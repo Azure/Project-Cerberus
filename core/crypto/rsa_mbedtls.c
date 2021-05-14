@@ -18,12 +18,13 @@
 
 
 /**
- * Get the mbedTLS RSA key instance for a private key instance..
+ * Get the mbedTLS RSA key instance for a private key instance.
  *
  * @return The mbedTLS RSA key.
  */
 #define	rsa_mbedtls_get_rsa_key(x)	mbedtls_pk_rsa (*((mbedtls_pk_context*) x->context))
 
+#if (defined RSA_ENABLE_PRIVATE_KEY || defined RSA_ENABLE_DER_PUBLIC_KEY)
 /**
  * Allocate and initialize a context for an RSA key.
  *
@@ -50,7 +51,9 @@ static void rsa_mbedtls_free_key_context (void *context)
 	mbedtls_pk_free ((mbedtls_pk_context*) context);
 	platform_free (context);
 }
+#endif
 
+#ifdef RSA_ENABLE_PRIVATE_KEY
 static int rsa_mbedtls_generate_key (struct rsa_engine *engine, struct rsa_private_key *key,
 	int bits)
 {
@@ -133,6 +136,105 @@ error:
 	return status;
 }
 
+static void rsa_mbedtls_release_key (struct rsa_engine *engine, struct rsa_private_key *key)
+{
+	if (engine && key) {
+		rsa_mbedtls_free_key_context (key->context);
+	}
+}
+
+static int rsa_mbedtls_get_private_key_der (struct rsa_engine *engine,
+	const struct rsa_private_key *key, uint8_t **der, size_t *length)
+{
+	int status;
+
+	if (der == NULL) {
+		return RSA_ENGINE_INVALID_ARGUMENT;
+	}
+
+	*der = NULL;
+	if ((engine == NULL) || (key == NULL) || (length == NULL)) {
+		return RSA_ENGINE_INVALID_ARGUMENT;
+	}
+
+	*der = platform_malloc (RSA_PRIV_DER_MAX_SIZE);
+	if (*der == NULL) {
+		return RSA_ENGINE_NO_MEMORY;
+	}
+
+	status = mbedtls_pk_write_key_der ((mbedtls_pk_context*) key->context, *der,
+		RSA_PRIV_DER_MAX_SIZE);
+	if (status >= 0) {
+		memmove (*der, &(*der)[RSA_PRIV_DER_MAX_SIZE - status], status);
+		*length = status;
+		status = 0;
+	}
+	else {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
+			CRYPTO_LOG_MSG_MBEDTLS_PK_WRITE_KEY_DER_EC, status, 0);
+
+		platform_free (*der);
+		*der = NULL;
+	}
+
+	return status;
+}
+
+static int rsa_mbedtls_decrypt (struct rsa_engine *engine, const struct rsa_private_key *key,
+	const uint8_t *encrypted, size_t in_length, const uint8_t *label, size_t label_length,
+	enum hash_type pad_hash, uint8_t *decrypted, size_t out_length)
+{
+	struct rsa_engine_mbedtls *mbedtls = (struct rsa_engine_mbedtls*) engine;
+	int status;
+	size_t length;
+
+	if ((mbedtls == NULL) || (key == NULL) || (encrypted == NULL) || (in_length == 0) ||
+		(decrypted == NULL)) {
+		return RSA_ENGINE_INVALID_ARGUMENT;
+	}
+
+	if (pad_hash > HASH_TYPE_SHA256) {
+		return RSA_ENGINE_UNSUPPORTED_HASH_TYPE;
+	}
+
+#ifndef MBEDTLS_SHA1_C
+	if (pad_hash == HASH_TYPE_SHA1) {
+		return RSA_ENGINE_UNSUPPORTED_HASH_TYPE;
+	}
+#endif
+#ifndef MBEDTLS_SHA256_C
+	if (pad_hash == HASH_TYPE_SHA256) {
+		return RSA_ENGINE_UNSUPPORTED_HASH_TYPE;
+	}
+#endif
+
+	if (pad_hash == HASH_TYPE_SHA256) {
+		mbedtls_rsa_set_padding (rsa_mbedtls_get_rsa_key (key), MBEDTLS_RSA_PKCS_V21,
+			MBEDTLS_MD_SHA256);
+	}
+
+	status = mbedtls_rsa_rsaes_oaep_decrypt (rsa_mbedtls_get_rsa_key (key), mbedtls_ctr_drbg_random,
+		&mbedtls->ctr_drbg, MBEDTLS_RSA_PRIVATE, label, label_length, &length, encrypted, decrypted,
+		out_length);
+	if (status == 0) {
+		status = length;
+	}
+	else {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
+			CRYPTO_LOG_MSG_MBEDTLS_RSA_OAEP_DECRYPT_EC, status, 0);
+
+		if (status == MBEDTLS_ERR_RSA_OUTPUT_TOO_LARGE) {
+			status = RSA_ENGINE_OUT_BUFFER_TOO_SMALL;
+		}
+	}
+
+	/* Restore the padding hash algorithm to the default. */
+	mbedtls_rsa_set_padding (rsa_mbedtls_get_rsa_key (key), MBEDTLS_RSA_PKCS_V21, MBEDTLS_MD_SHA1);
+	return status;
+}
+#endif
+
+#ifdef RSA_ENABLE_DER_PUBLIC_KEY
 static int rsa_mbedtls_init_public_key (struct rsa_engine *engine, struct rsa_public_key *key,
 	const uint8_t *der, size_t length)
 {
@@ -203,50 +305,6 @@ exit:
 	return status;
 }
 
-static void rsa_mbedtls_release_key (struct rsa_engine *engine, struct rsa_private_key *key)
-{
-	if (engine && key) {
-		rsa_mbedtls_free_key_context (key->context);
-	}
-}
-
-static int rsa_mbedtls_get_private_key_der (struct rsa_engine *engine,
-	const struct rsa_private_key *key, uint8_t **der, size_t *length)
-{
-	int status;
-
-	if (der == NULL) {
-		return RSA_ENGINE_INVALID_ARGUMENT;
-	}
-
-	*der = NULL;
-	if ((engine == NULL) || (key == NULL) || (length == NULL)) {
-		return RSA_ENGINE_INVALID_ARGUMENT;
-	}
-
-	*der = platform_malloc (RSA_PRIV_DER_MAX_SIZE);
-	if (*der == NULL) {
-		return RSA_ENGINE_NO_MEMORY;
-	}
-
-	status = mbedtls_pk_write_key_der ((mbedtls_pk_context*) key->context, *der,
-		RSA_PRIV_DER_MAX_SIZE);
-	if (status >= 0) {
-		memmove (*der, &(*der)[RSA_PRIV_DER_MAX_SIZE - status], status);
-		*length = status;
-		status = 0;
-	}
-	else {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
-			CRYPTO_LOG_MSG_MBEDTLS_PK_WRITE_KEY_DER_EC, status, 0);
-
-		platform_free (*der);
-		*der = NULL;
-	}
-
-	return status;
-}
-
 static int rsa_mbedtls_get_public_key_der (struct rsa_engine *engine,
 	const struct rsa_private_key *key, uint8_t **der, size_t *length)
 {
@@ -283,59 +341,7 @@ static int rsa_mbedtls_get_public_key_der (struct rsa_engine *engine,
 
 	return status;
 }
-
-static int rsa_mbedtls_decrypt (struct rsa_engine *engine, const struct rsa_private_key *key,
-	const uint8_t *encrypted, size_t in_length, const uint8_t *label, size_t label_length,
-	enum hash_type pad_hash, uint8_t *decrypted, size_t out_length)
-{
-	struct rsa_engine_mbedtls *mbedtls = (struct rsa_engine_mbedtls*) engine;
-	int status;
-	size_t length;
-
-	if ((mbedtls == NULL) || (key == NULL) || (encrypted == NULL) || (in_length == 0) ||
-		(decrypted == NULL)) {
-		return RSA_ENGINE_INVALID_ARGUMENT;
-	}
-
-	if (pad_hash > HASH_TYPE_SHA256) {
-		return RSA_ENGINE_UNSUPPORTED_HASH_TYPE;
-	}
-
-#ifndef MBEDTLS_SHA1_C
-	if (pad_hash == HASH_TYPE_SHA1) {
-		return RSA_ENGINE_UNSUPPORTED_HASH_TYPE;
-	}
 #endif
-#ifndef MBEDTLS_SHA256_C
-	if (pad_hash == HASH_TYPE_SHA256) {
-		return RSA_ENGINE_UNSUPPORTED_HASH_TYPE;
-	}
-#endif
-
-	if (pad_hash == HASH_TYPE_SHA256) {
-		mbedtls_rsa_set_padding (rsa_mbedtls_get_rsa_key (key), MBEDTLS_RSA_PKCS_V21,
-			MBEDTLS_MD_SHA256);
-	}
-
-	status = mbedtls_rsa_rsaes_oaep_decrypt (rsa_mbedtls_get_rsa_key (key), mbedtls_ctr_drbg_random,
-		&mbedtls->ctr_drbg, MBEDTLS_RSA_PRIVATE, label, label_length, &length, encrypted, decrypted,
-		out_length);
-	if (status == 0) {
-		status = length;
-	}
-	else {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
-			CRYPTO_LOG_MSG_MBEDTLS_RSA_OAEP_DECRYPT_EC, status, 0);
-
-		if (status == MBEDTLS_ERR_RSA_OUTPUT_TOO_LARGE) {
-			status = RSA_ENGINE_OUT_BUFFER_TOO_SMALL;
-		}
-	}
-
-	/* Restore the padding hash algorithm to the default. */
-	mbedtls_rsa_set_padding (rsa_mbedtls_get_rsa_key (key), MBEDTLS_RSA_PKCS_V21, MBEDTLS_MD_SHA1);
-	return status;
-}
 
 /**
  * Initialize an RSA context with a specified public key.
@@ -453,13 +459,17 @@ int rsa_mbedtls_init (struct rsa_engine_mbedtls *engine)
 		goto exit;
 	}
 
+#ifdef RSA_ENABLE_PRIVATE_KEY
 	engine->base.generate_key = rsa_mbedtls_generate_key;
 	engine->base.init_private_key = rsa_mbedtls_init_private_key;
-	engine->base.init_public_key = rsa_mbedtls_init_public_key;
 	engine->base.release_key = rsa_mbedtls_release_key;
 	engine->base.get_private_key_der = rsa_mbedtls_get_private_key_der;
-	engine->base.get_public_key_der = rsa_mbedtls_get_public_key_der;
 	engine->base.decrypt = rsa_mbedtls_decrypt;
+#endif
+#ifdef RSA_ENABLE_DER_PUBLIC_KEY
+	engine->base.init_public_key = rsa_mbedtls_init_public_key;
+	engine->base.get_public_key_der = rsa_mbedtls_get_public_key_der;
+#endif
 	engine->base.sig_verify = rsa_mbedtls_sig_verify;
 
 	return 0;
