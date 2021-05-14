@@ -101,7 +101,8 @@ ca = ca.not_valid_after (datetime.datetime (9999, 12, 31, 23, 59, 59))
 
 ca = ca.add_extension (x509.SubjectKeyIdentifier.from_public_key (ca_key), critical = False)
 ca = ca.add_extension (x509.AuthorityKeyIdentifier.from_issuer_subject_key_identifier (
-    root_cert.extensions.get_extension_for_class (x509.SubjectKeyIdentifier)), critical = False)
+    root_cert.extensions.get_extension_for_class (x509.SubjectKeyIdentifier).value),
+    critical = False)
 
 ca = ca.add_extension (x509.BasicConstraints (ca = True, path_length = None), critical = True)
 ca = ca.add_extension (x509.KeyUsage (digital_signature = False, content_commitment = False,
@@ -130,7 +131,8 @@ cert = cert.not_valid_after (datetime.datetime (9999, 12, 31, 23, 59, 59))
 cert = cert.add_extension (x509.SubjectKeyIdentifier.from_public_key (csr.public_key ()),
     critical = False)
 cert = cert.add_extension (x509.AuthorityKeyIdentifier.from_issuer_subject_key_identifier (
-    ca_cert.extensions.get_extension_for_class (x509.SubjectKeyIdentifier)), critical = False)
+    ca_cert.extensions.get_extension_for_class (x509.SubjectKeyIdentifier).value),
+    critical = False)
 
 for ext in csr.extensions:
     cert = cert.add_extension (ext.value, critical = ext.critical)
