@@ -340,10 +340,13 @@ int cerberus_protocol_log_clear (struct cmd_background *background,
 
 	request->length = 0;
 
+#ifdef CMD_ENABLE_DEBUG_LOG
 	if (rq->log_type == CERBERUS_PROTOCOL_DEBUG_LOG) {
 		return background->debug_log_clear (background);
 	}
-	else if (rq->log_type == CERBERUS_PROTOCOL_ATTESTATION_LOG) {
+	else
+#endif
+	if (rq->log_type == CERBERUS_PROTOCOL_ATTESTATION_LOG) {
 		return 0;
 	}
 
@@ -694,6 +697,7 @@ int cerberus_protocol_get_host_reset_status (struct host_control *host_0_ctrl,
 int cerberus_protocol_unseal_message (struct cmd_background *background,
 	struct cmd_interface_request *request)
 {
+#ifdef CMD_ENABLE_UNSEAL
 	struct cerberus_protocol_message_unseal *rq =
 		(struct cerberus_protocol_message_unseal*) request->data;
 	uint8_t *end = request->data + request->length;
@@ -738,6 +742,9 @@ int cerberus_protocol_unseal_message (struct cmd_background *background,
 
 	request->length = 0;
 	return status;
+#else
+	return CMD_HANDLER_UNSUPPORTED_COMMAND;
+#endif
 }
 
 /**
@@ -751,6 +758,7 @@ int cerberus_protocol_unseal_message (struct cmd_background *background,
 int cerberus_protocol_unseal_message_result (struct cmd_background *background,
 	struct cmd_interface_request *request)
 {
+#ifdef CMD_ENABLE_UNSEAL
 	struct cerberus_protocol_message_unseal_result_completed_response *rsp =
 		(struct cerberus_protocol_message_unseal_result_completed_response*) request->data;
 	size_t max_buf_len;
@@ -782,6 +790,9 @@ int cerberus_protocol_unseal_message_result (struct cmd_background *background,
 	}
 
 	return 0;
+#else
+	return CMD_HANDLER_UNSUPPORTED_COMMAND;
+#endif
 }
 
 /**
@@ -796,6 +807,7 @@ int cerberus_protocol_unseal_message_result (struct cmd_background *background,
 int cerberus_protocol_reset_config (struct cmd_authorization *cmd_auth,
 	struct cmd_background *background, struct cmd_interface_request *request)
 {
+#ifdef CMD_ENABLE_RESET_CONFIG
 	struct cerberus_protocol_reset_config *rq =
 		(struct cerberus_protocol_reset_config*) request->data;
 	struct cerberus_protocol_reset_config_response *rsp =
@@ -853,6 +865,9 @@ int cerberus_protocol_reset_config (struct cmd_authorization *cmd_auth,
 	}
 
 	return status;
+#else
+	return CMD_HANDLER_UNSUPPORTED_COMMAND;
+#endif
 }
 
 /**

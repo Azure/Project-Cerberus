@@ -53,11 +53,10 @@ static void cmd_background_task_handler (struct cmd_background_task *task)
 	do {
 		/* Wait for a signal to perform update action. */
 		status = CMD_BACKGROUND_UNSUPPORTED_OP;
-		op_status =  &task->config.config_status;
+		op_status =  &status;
 		xTaskNotifyWait (pdFALSE, ULONG_MAX, &notification, portMAX_DELAY);
 
 		if (notification & CMD_BACKGROUND_EXTERNAL_HANDLER) {
-			op_status = &status;
 			if (task->ext_handler) {
 				task->ext_handler (task, notification, &reset);
 			}
@@ -67,6 +66,7 @@ static void cmd_background_task_handler (struct cmd_background_task *task)
 					notification, 0);
 			}
 		}
+#ifdef CMD_ENABLE_UNSEAL
 		else if (notification & CMD_BACKGROUND_RUN_UNSEAL) {
 			struct cerberus_protocol_message_unseal *unseal =
 				(struct cerberus_protocol_message_unseal*) task->attestation.unseal_request;
@@ -103,7 +103,10 @@ static void cmd_background_task_handler (struct cmd_background_task *task)
 			platform_free (task->attestation.unseal_request);
 			task->attestation.unseal_request = NULL;
 		}
+#endif
+#ifdef CMD_ENABLE_RESET_CONFIG
 		else if (notification & CMD_BACKGROUND_RUN_BYPASS) {
+			op_status = &task->config.config_status;
 			cmd_background_task_set_status (task, &task->config.config_status,
 				CONFIG_RESET_STATUS_RESTORE_BYPASS);
 
@@ -120,6 +123,7 @@ static void cmd_background_task_handler (struct cmd_background_task *task)
 			}
 		}
 		else if (notification & CMD_BACKGROUND_RUN_DEFAULTS) {
+			op_status = &task->config.config_status;
 			cmd_background_task_set_status (task, &task->config.config_status,
 				CONFIG_RESET_STATUS_RESTORE_DEFAULTS);
 
@@ -136,6 +140,7 @@ static void cmd_background_task_handler (struct cmd_background_task *task)
 			}
 		}
 		else if (notification & CMD_BACKGROUND_PLATFORM_CFG) {
+			op_status = &task->config.config_status;
 			cmd_background_task_set_status (task, &task->config.config_status,
 				CONFIG_RESET_STATUS_CLEAR_PLATFORM_CONFIG);
 
@@ -154,6 +159,8 @@ static void cmd_background_task_handler (struct cmd_background_task *task)
 				status = CMD_BACKGROUND_STATUS (CONFIG_RESET_STATUS_PLATFORM_CONFIG_FAILED, status);
 			}
 		}
+#endif
+#ifdef CMD_ENABLE_DEBUG_LOG
 		else if (notification & CMD_BACKGROUND_DEBUG_LOG_CLEAR) {
 			status = debug_log_clear ();
 			if (status == 0) {
@@ -178,6 +185,7 @@ static void cmd_background_task_handler (struct cmd_background_task *task)
 			}
 		}
 #endif
+#endif
 		else if (notification & CMD_BACKGROUND_AUTH_RIOT) {
 			op_status = &task->riot.cert_state;
 
@@ -191,8 +199,6 @@ static void cmd_background_task_handler (struct cmd_background_task *task)
 		}
 #ifdef ATTESTATION_SUPPORT_RSA_UNSEAL
 		else if (notification & CMD_BACKGROUND_AUX_KEY_GEN) {
-			op_status = &status;
-
 			status = aux_attestation_generate_key ((struct aux_attestation*) task->arg);
 			if (status == 0) {
 				debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CMD_INTERFACE,
@@ -208,14 +214,20 @@ static void cmd_background_task_handler (struct cmd_background_task *task)
 			debug_log_create_entry (DEBUG_LOG_SEVERITY_WARNING, DEBUG_LOG_COMPONENT_CMD_INTERFACE,
 				CMD_LOGGING_NOTIFICATION_ERROR, notification, 0);
 
+#ifdef CMD_ENABLE_UNSEAL
 			if (task->attestation.attestation_status == ATTESTATION_CMD_STATUS_RUNNING) {
 				op_status = &task->attestation.attestation_status;
 				status = CMD_BACKGROUND_STATUS (ATTESTATION_CMD_STATUS_INTERNAL_ERROR, status);
 			}
-			else if (task->config.config_status == CONFIG_RESET_STATUS_STARTING) {
+			else
+#endif
+#ifdef CMD_ENABLE_RESET_CONFIG
+			if (task->config.config_status == CONFIG_RESET_STATUS_STARTING) {
 				status = CMD_BACKGROUND_STATUS (CONFIG_RESET_STATUS_INTERNAL_ERROR, status);
 			}
-			else if (task->riot.cert_state == RIOT_CERT_STATE_VALIDATING) {
+			else
+#endif
+			if (task->riot.cert_state == RIOT_CERT_STATE_VALIDATING) {
 				op_status = &task->riot.cert_state;
 				status = CMD_BACKGROUND_STATUS (RIOT_CERT_STATE_CHAIN_INVALID, status);
 			}
@@ -239,6 +251,7 @@ static void cmd_background_task_handler (struct cmd_background_task *task)
 	} while (1);
 }
 
+#ifdef CMD_ENABLE_UNSEAL
 static int cmd_background_task_unseal_start (struct cmd_background *cmd,
 	const uint8_t *unseal_request, size_t length)
 {
@@ -329,7 +342,9 @@ static int cmd_background_task_unseal_result (struct cmd_background *cmd, uint8_
 
 	return 0;
 }
+#endif
 
+#ifdef CMD_ENABLE_RESET_CONFIG
 static int cmd_background_task_reset_bypass (struct cmd_background *cmd)
 {
 	struct cmd_background_task *task = (struct cmd_background_task*) cmd;
@@ -460,7 +475,9 @@ static int cmd_background_task_get_config_reset_status (struct cmd_background *c
 
 	return status;
 }
+#endif
 
+#ifdef CMD_ENABLE_DEBUG_LOG
 static int cmd_background_task_debug_log_clear (struct cmd_background *cmd)
 {
 	struct cmd_background_task *task = (struct cmd_background_task*) cmd;
@@ -506,6 +523,7 @@ static int cmd_background_task_debug_log_fill (struct cmd_background *cmd)
 	return 0;
 }
 #endif
+#endif
 
 int cmd_background_task_authenticate_riot_certs (struct cmd_background *cmd)
 {
@@ -526,14 +544,14 @@ int cmd_background_task_authenticate_riot_certs (struct cmd_background *cmd)
 		}
 		else {
 			status = CMD_BACKGROUND_TASK_BUSY;
-			task->config.config_status =
+			task->riot.cert_state =
 				CMD_BACKGROUND_STATUS (RIOT_CERT_STATE_CHAIN_INVALID, status);
 			xSemaphoreGive (task->lock);
 		}
 	}
 	else {
 		status = CMD_BACKGROUND_NO_TASK;
-		task->config.config_status = CMD_BACKGROUND_STATUS (RIOT_CERT_STATE_CHAIN_INVALID, status);
+		task->riot.cert_state = CMD_BACKGROUND_STATUS (RIOT_CERT_STATE_CHAIN_INVALID, status);
 	}
 
 	return status;
@@ -585,14 +603,17 @@ int cmd_background_task_init (struct cmd_background_task *task, struct system *s
 	task->system = system;
 
 	/* Attestation operations. */
+#ifdef CMD_ENABLE_UNSEAL
 	task->base.unseal_start = cmd_background_task_unseal_start;
 	task->base.unseal_result = cmd_background_task_unseal_result;
 
 	task->attestation.attestation = attestation;
 	task->attestation.hash = hash;
 	task->attestation.attestation_status = ATTESTATION_CMD_STATUS_NONE_STARTED;
+#endif
 
 	/* Configuration reset operations. */
+#ifdef CMD_ENABLE_RESET_CONFIG
 	task->base.reset_bypass = cmd_background_task_reset_bypass;
 	task->base.restore_defaults = cmd_background_task_restore_defaults;
 	task->base.clear_platform_config = cmd_background_task_clear_platform_config;
@@ -600,11 +621,14 @@ int cmd_background_task_init (struct cmd_background_task *task, struct system *s
 
 	task->config.reset = reset;
 	task->config.config_status = CONFIG_RESET_STATUS_NONE_STARTED;
+#endif
 
 	/* Debug log operations. */
+#ifdef CMD_ENABLE_DEBUG_LOG
 	task->base.debug_log_clear = cmd_background_task_debug_log_clear;
 #ifdef CMD_SUPPORT_DEBUG_COMMANDS
 	task->base.debug_log_fill = cmd_background_task_debug_log_fill;
+#endif
 #endif
 
 	/* RIoT operations. */

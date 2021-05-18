@@ -31,6 +31,7 @@ enum riot_cert_state {
  * Interface for executing background operations from the command handler.
  */
 struct cmd_background {
+#ifdef CMD_ENABLE_UNSEAL
 	/**
 	 * Process an attestation payload to unseal the device encryption key.
 	 *
@@ -58,7 +59,9 @@ struct cmd_background {
 	 */
 	int (*unseal_result) (struct cmd_background *cmd, uint8_t *key, size_t *key_length,
 		uint32_t *unseal_status);
+#endif
 
+#ifdef CMD_ENABLE_RESET_CONFIG
 	/**
 	 * Remove all configuration necessary for host firmware validation and restore the device to
 	 * bypass mode.
@@ -97,7 +100,9 @@ struct cmd_background {
 	 * operation.
 	 */
 	int (*get_config_reset_status) (struct cmd_background *cmd);
+#endif
 
+#ifdef CMD_ENABLE_DEBUG_LOG
 	/**
 	 * Remove all entries from debug log.
 	 *
@@ -116,6 +121,7 @@ struct cmd_background {
 	 * @return Completion status, 0 if success or an error code.
 	 */
 	int (*debug_log_fill) (struct cmd_background *cmd);
+#endif
 #endif
 
 	/**

@@ -809,12 +809,16 @@ int cerberus_protocol_get_recovery_image_update_status (
 int cerberus_protocol_get_reset_config_status (struct cmd_background *background,
 	struct cerberus_protocol_update_status_response *rsp)
 {
+#ifdef CMD_ENABLE_RESET_CONFIG
 	if (background == NULL) {
 		return CMD_HANDLER_UNSUPPORTED_INDEX;
 	}
 
 	rsp->update_status = background->get_config_reset_status (background);
 	return 0;
+#else
+	return CMD_HANDLER_UNSUPPORTED_COMMAND;
+#endif
 }
 
 /**
@@ -1036,9 +1040,9 @@ int cerberus_protocol_process_certificate_digest (struct attestation_master *att
 	digests.digest_len = SHA256_HASH_LENGTH;
 
 	/* TODO: This flow should be updated to handle the case where multiple certificates don't match.
-	 * Otherwise, a new Get Digets command would need to be sent after getting ecah cert.
+	 * Otherwise, a new Get Digests command would need to be sent after getting each cert.
 	 *
-	 * Maybe instead of issuing the next command directly from here, the device mananger should be
+	 * Maybe instead of issuing the next command directly from here, the device manager should be
 	 * updated with some state indicating that certs need to be refreshed.  The top-level
 	 * orchestrator for attestation would query the device manager and run the next appropriate
 	 * steps. */
