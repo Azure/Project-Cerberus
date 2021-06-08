@@ -44,7 +44,12 @@ int mctp_protocol_interpret (uint8_t *buf, size_t buf_len, uint8_t dest_addr, ui
 		return MCTP_PROTOCOL_INVALID_ARGUMENT;
 	}
 
-	if (buf_len < sizeof (struct mctp_protocol_transport_header)) {
+	if (buf_len <= sizeof (struct mctp_protocol_transport_header)) {
+		return MCTP_PROTOCOL_MSG_TOO_SHORT;
+	}
+
+	if (header->byte_count <= sizeof (struct mctp_protocol_transport_header)) {
+		/* Prevent payload_len underflow caused by manipulated header->byte_count. */
 		return MCTP_PROTOCOL_MSG_TOO_SHORT;
 	}
 
