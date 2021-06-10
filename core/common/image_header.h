@@ -8,6 +8,7 @@
 #include "flash/flash.h"
 
 
+#pragma pack(push,1)
 /**
  * The base header information.
  */
@@ -15,7 +16,8 @@ struct image_header_info {
 	uint16_t length;			/**< The total length of the header, including the length bytes.*/
 	uint16_t format;			/**< The format of the header data. */
 	uint32_t marker;			/**< The marker for a valid header. */
-} __attribute__ ((__packed__));
+};
+#pragma pack(pop)
 
 /**
  * Structure for an image header that provides information about the image.  It is intended only to

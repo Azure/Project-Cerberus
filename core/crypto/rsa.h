@@ -34,11 +34,13 @@ struct rsa_private_key {
 /**
  * Defines the information for an RSA public key.
  */
+#pragma pack(push,1)
 struct rsa_public_key {
 	uint8_t modulus[RSA_MAX_KEY_LENGTH];	/**< The RSA key pair modulus. */
 	size_t mod_length;						/**< The length of the modulus. */
 	uint32_t exponent;						/**< The RSA public exponent. */
-} __attribute__ ((__packed__));
+};
+#pragma pack(pop)
 
 /**
  * A platform-independent API for using RSA key pairs.  RSA engine instances are not guaranteed to

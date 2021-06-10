@@ -58,6 +58,7 @@ struct spi_flash {
  */
 #define	SPI_FLASH_DEVICE_INFO_VERSION	1
 
+#pragma pack(push,1)
 /**
  * Context for saving and restoring a SPI flash device interface.
  */
@@ -77,7 +78,8 @@ struct spi_flash_device_info {
 	uint8_t switch_4byte;				/**< Method for switching to 4-byte addressing. */
 	uint8_t quad_enable;				/**< Method to enable QSPI. */
 	uint8_t flags;						/**< Misc behavior flags. */
-} __attribute__((__packed__));
+};
+#pragma pack(pop)
 
 /* Flags in the device info structure. */
 #define	SPI_FLASH_DEVICE_INFO_BUSY_FLAG			(1U << 0)

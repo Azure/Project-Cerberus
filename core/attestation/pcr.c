@@ -172,7 +172,7 @@ int pcr_init (struct pcr_bank *pcr, uint8_t pcr_num_measurements)
 
 	if (pcr_num_measurements == 0) {
 		pcr_num_measurements = 1;
-		pcr->explicit = true;
+		pcr->explicit_measurement = true;
 	}
 
 	pcr->measurement_list = platform_calloc (pcr_num_measurements, sizeof (struct pcr_measurement));
@@ -363,7 +363,7 @@ int pcr_compute (struct pcr_bank *pcr, struct hash_engine *hash, uint8_t *measur
 		platform_mutex_lock (&pcr->lock);
 	}
 
-	if (!pcr->explicit) {
+	if (!pcr->explicit_measurement) {
 		for (i_measurement = 0; i_measurement < (int) pcr->num_measurements; ++i_measurement) {
 			status = hash->start_sha256 (hash);
 			if (status != 0) {
@@ -402,7 +402,7 @@ int pcr_compute (struct pcr_bank *pcr, struct hash_engine *hash, uint8_t *measur
 		platform_mutex_unlock (&pcr->lock);
 	}
 
-	if (pcr->explicit) {
+	if (pcr->explicit_measurement) {
 		return 1;
 	}
 
@@ -715,7 +715,7 @@ int pcr_get_num_measurements (struct pcr_bank *pcr)
 		return PCR_INVALID_ARGUMENT;
 	}
 
-	if (pcr->explicit) {
+	if (pcr->explicit_measurement) {
 		return 0;
 	}
 
@@ -814,7 +814,7 @@ int pcr_get_tcg_log (struct pcr_bank *pcr, uint32_t pcr_num, uint8_t *buffer, si
 
 	*total_len = 0;
 
-	if (pcr->explicit) {
+	if (pcr->explicit_measurement) {
 		return 0;
 	}
 

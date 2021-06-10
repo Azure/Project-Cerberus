@@ -10,6 +10,7 @@
 #include "flash_master.h"
 
 
+#pragma pack(push,1)
 /**
  * SFDP parameter header format.
  */
@@ -20,7 +21,7 @@ struct spi_flash_sfdp_parameter_header {
 	uint8_t length;					/**< Length of the parameter table, in dwords. */
 	uint8_t table_pointer[3];		/**< Address of the parameter table. */
 	uint8_t id_msb;					/**< MSB of the parameter identifier. */
-} __attribute__((__packed__));
+};
 
 /**
  * SFDP header format.
@@ -32,7 +33,8 @@ struct spi_flash_sfdp_header {
 	uint8_t header_count;								/**< The number of parameters headers. */
 	uint8_t unused;										/**< Unused.  Must be 0xff. */
 	struct spi_flash_sfdp_parameter_header parameter0;	/**< Header for the first parameter table. */
-} __attribute__((__packed__));
+};
+#pragma pack(pop)
 
 /**
  * SFDP interface for a single SPI flash.

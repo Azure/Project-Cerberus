@@ -42,7 +42,7 @@ struct pcr_measurement {
 struct pcr_bank {
 	struct pcr_measurement *measurement_list;				/**< List of measurements */
 	size_t num_measurements;								/**< Number of measurements */
-	bool explicit;											/**< PCR bank contains an explicit measurement */
+	bool explicit_measurement;								/**< PCR bank contains an explicit measurement */
 	platform_mutex lock;									/**< Synchronization lock */
 };
 

@@ -31,17 +31,17 @@ struct mctp_interface {
 };
 
 
-int mctp_interface_init (struct mctp_interface *interface, struct cmd_interface *cmd_interface,
+int mctp_interface_init (struct mctp_interface *interface_mctp, struct cmd_interface *cmd_interface,
 	struct device_manager *device_mgr, uint8_t eid, uint16_t pci_vid, uint16_t protocol_version);
-void mctp_interface_deinit (struct mctp_interface *interface);
+void mctp_interface_deinit (struct mctp_interface *interface_mctp);
 
-int mctp_interface_set_channel_id (struct mctp_interface *interface, int channel_id);
+int mctp_interface_set_channel_id (struct mctp_interface *interface_mctp, int channel_id);
 
-int mctp_interface_process_packet (struct mctp_interface *interface, struct cmd_packet *rx_packet,
+int mctp_interface_process_packet (struct mctp_interface *interface_mctp, struct cmd_packet *rx_packet,
 	struct cmd_message **tx_message);
-void mctp_interface_reset_message_processing (struct mctp_interface *interface);
+void mctp_interface_reset_message_processing (struct mctp_interface *interface_mctp);
 
-int mctp_interface_issue_request (struct mctp_interface *interface, uint8_t dest_addr,
+int mctp_interface_issue_request (struct mctp_interface *interface_mctp, uint8_t dest_addr,
 	uint8_t dest_eid, uint8_t src_addr, uint8_t src_eid, uint8_t command_id, void *request_params,
 	uint8_t *buf, size_t buf_len, uint8_t msg_type);
 
