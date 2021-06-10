@@ -620,6 +620,45 @@ static void mctp_protocol_test_interpret_invalid_buffer_length (CuTest *test)
 	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TOO_SHORT, status);
 }
 
+static void mctp_protocol_test_destination_eid_matches_source_eid (CuTest *test)
+{
+	int status;
+	uint8_t buf[MCTP_PROTOCOL_MAX_PACKET_LEN] = {0};
+	struct mctp_protocol_transport_header *header = (struct mctp_protocol_transport_header*) buf;
+	uint8_t source_addr = 0;
+	bool som = false;
+	bool eom = false;
+	uint8_t src_eid = 0;
+	uint8_t dest_eid = 0;
+	uint8_t msg_tag = 0;
+	uint8_t packet_seq = 0;
+	uint8_t crc = 0;
+	uint8_t msg_type = 0;
+	uint8_t *payload;
+	size_t payload_len;
+
+	TEST_START;
+
+	header->cmd_code = SMBUS_CMD_CODE_MCTP;
+	header->byte_count = 11;
+	header->source_addr = 0xAA;
+	header->rsvd = 0;
+	header->header_version = 1;
+	header->destination_eid = 0x0B;
+	header->source_eid = 0x0B;
+	header->som = 1;
+	header->eom = 0;
+	header->msg_tag = 0x05;
+	header->packet_seq = 2;
+
+	buf[7] = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	buf[13] = checksum_crc8 (0xBA, buf, 13);
+
+	status = mctp_protocol_interpret (buf, 14, 0x5D, &source_addr, &som, &eom, &src_eid, &dest_eid,
+		&payload, &payload_len, &msg_tag, &packet_seq, &crc, &msg_type);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_INVALID_MSG, status);
+}
+
 static void mctp_protocol_test_construct_control_message (CuTest *test)
 {
 	int status;
@@ -1086,6 +1125,7 @@ CuSuite* get_mctp_protocol_suite ()
 	SUITE_ADD_TEST (suite, mctp_protocol_test_interpret_invalid_crc);
 	SUITE_ADD_TEST (suite, mctp_protocol_test_interpret_invalid_header_byte_count);
 	SUITE_ADD_TEST (suite, mctp_protocol_test_interpret_invalid_buffer_length);
+	SUITE_ADD_TEST (suite, mctp_protocol_test_destination_eid_matches_source_eid);
 	SUITE_ADD_TEST (suite, mctp_protocol_test_construct_control_message);
 	SUITE_ADD_TEST (suite, mctp_protocol_test_construct_control_message_overlapping_buffer);
 	SUITE_ADD_TEST (suite,

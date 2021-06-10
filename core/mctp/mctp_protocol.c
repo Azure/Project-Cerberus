@@ -81,7 +81,7 @@ int mctp_protocol_interpret (uint8_t *buf, size_t buf_len, uint8_t dest_addr, ui
 	}
 
 	if ((header->cmd_code != SMBUS_CMD_CODE_MCTP) || (buf_len < packet_len) ||
-		(header->rsvd != 0)) {
+		(header->rsvd != 0) || (*dest_eid == *src_eid)) {
 		return MCTP_PROTOCOL_INVALID_MSG;
 	}
 
