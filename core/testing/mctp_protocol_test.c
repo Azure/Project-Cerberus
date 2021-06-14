@@ -620,7 +620,7 @@ static void mctp_protocol_test_interpret_invalid_buffer_length (CuTest *test)
 	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TOO_SHORT, status);
 }
 
-static void mctp_protocol_test_destination_eid_matches_source_eid (CuTest *test)
+static void mctp_protocol_test_interpret_dest_eid_matches_src_eid (CuTest *test)
 {
 	int status;
 	uint8_t buf[MCTP_PROTOCOL_MAX_PACKET_LEN] = {0};
@@ -1125,7 +1125,7 @@ CuSuite* get_mctp_protocol_suite ()
 	SUITE_ADD_TEST (suite, mctp_protocol_test_interpret_invalid_crc);
 	SUITE_ADD_TEST (suite, mctp_protocol_test_interpret_invalid_header_byte_count);
 	SUITE_ADD_TEST (suite, mctp_protocol_test_interpret_invalid_buffer_length);
-	SUITE_ADD_TEST (suite, mctp_protocol_test_destination_eid_matches_source_eid);
+	SUITE_ADD_TEST (suite, mctp_protocol_test_interpret_dest_eid_matches_src_eid);
 	SUITE_ADD_TEST (suite, mctp_protocol_test_construct_control_message);
 	SUITE_ADD_TEST (suite, mctp_protocol_test_construct_control_message_overlapping_buffer);
 	SUITE_ADD_TEST (suite,
