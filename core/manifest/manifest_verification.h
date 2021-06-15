@@ -21,11 +21,13 @@
 /**
  * Public key used for manifest verification.
  */
+#pragma pack(push,1)
 struct manifest_verification_key {
 	uint32_t id;							/**< ID of the key for revocation. */
 	struct rsa_public_key key;				/**< The public key. */
 	uint8_t signature[RSA_MAX_KEY_LENGTH];	/**< Signature using the root key of the key data. */
-} __attribute__ ((__packed__));
+};
+#pragma pack(pop)
 
 /**
  * Handler for verification of firmware manifests.  As part of verification, the key used to
