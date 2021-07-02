@@ -78,14 +78,7 @@ def generate_ports (xml_ports, hash_engine):
         ports_len += ctypes.sizeof (port_buf)
 
     ports_buf = (ctypes.c_ubyte * ports_len) ()
-    offset = 0
-
-    for port in ports:
-        port_len = ctypes.sizeof (port)
-        ctypes.memmove (ctypes.addressof (ports_buf) + offset, ctypes.addressof (port),
-            port_len)
-
-        offset += port_len
+    ports_buf_len = manifest_common.move_list_to_buffer (ports_buf, 0, ports)
 
     return ports_buf, num_ports, toc_entries, hashes
 
@@ -155,10 +148,7 @@ def generate_muxes_buf (xml_muxes):
         channel = int (manifest_common.get_key_from_dict (mux[1], "channel", "Mux"))
 
         mux_body = pcd_mux (address, channel, 0)
-
-        ctypes.memmove (ctypes.addressof (muxes_buf) + muxes_len, ctypes.addressof (mux_body),
-            ctypes.sizeof (pcd_mux))
-        muxes_len += ctypes.sizeof (pcd_mux)
+        muxes_len = manifest_common.move_list_to_buffer (muxes_buf, muxes_len, [mux_body])
 
     return muxes_buf, muxes_len, num_muxes
 
@@ -247,13 +237,9 @@ def generate_direct_component_buf (xml_component):
     type_len = len (component_type)
     i2c_flags = i2c_mode 
 
-    if type_len <= 255: 
-        padding_len = ((type_len + 3) & (~3)) - type_len
-    else:
-        raise ValueError ("Component type too long: {0}".format (type_len))
-
-    padding = (ctypes.c_ubyte * padding_len) ()
-    ctypes.memset (padding, 0, ctypes.sizeof (ctypes.c_ubyte) * padding_len)
+    manifest_common.check_maximum (type_len, 255, "Component type {0} length".format (
+        component_type))
+    padding, padding_len = manifest_common.generate_4byte_padding_buf (type_len)
 
     if "muxes" in xml_component["interface"]:
         muxes, muxes_len, num_muxes = generate_muxes_buf (xml_component["interface"]["muxes"])
@@ -323,13 +309,9 @@ def generate_mctp_bridge_component_buf (xml_component):
 
     type_len = len (component_type)
 
-    if type_len <= 255: 
-        padding_len = ((type_len + 3) & (~3)) - type_len
-    else:
-        raise ValueError ("Component type too long: {0}".format (type_len))
-
-    padding = (ctypes.c_ubyte * padding_len) ()
-    ctypes.memset (padding, 0, ctypes.sizeof (ctypes.c_ubyte) * padding_len)
+    manifest_common.check_maximum (type_len, 255, "Component type {0} length".format (
+        component_type))
+    padding, padding_len = manifest_common.generate_4byte_padding_buf (type_len)
 
     class pcd_mctp_bridge_component_element (ctypes.LittleEndianStructure):
         _pack_ = 1
@@ -372,7 +354,7 @@ def generate_components (xml_components, hash_engine):
     """
 
     if xml_components is None or len (xml_components) < 1:
-        return None, 0, 0
+        return None, 0, None, None
 
     components_list = []
     components_toc_list = []
@@ -385,11 +367,9 @@ def generate_components (xml_components, hash_engine):
         if connection is manifest_parser.PCD_COMPONENT_CONNECTION_DIRECT:
             component_buf, component_toc_entry, component_hash = generate_direct_component_buf (
                 component)
-
         elif connection is manifest_parser.PCD_COMPONENT_CONNECTION_MCTP_BRIDGE:
             component_buf, component_toc_entry, component_hash = \
                 generate_mctp_bridge_component_buf (component)
-
         else:
             raise ValueError ("Unsupported component connection type: {0}".format (connection))
         
@@ -400,14 +380,7 @@ def generate_components (xml_components, hash_engine):
         components_len += ctypes.sizeof (component_buf)
 
     components_buf = (ctypes.c_ubyte * components_len) ()
-    offset = 0
-
-    for component in components_list:
-        component_len = ctypes.sizeof (component)
-        ctypes.memmove (ctypes.addressof (components_buf) + offset, ctypes.addressof (component),
-            component_len)
-
-        offset += component_len
+    components_buf_len = manifest_common.move_list_to_buffer (components_buf, 0, components_list)
 
     return components_buf, len (xml_components), components_toc_list, hash_list
 
@@ -420,7 +393,7 @@ parser.add_argument ('config', nargs = '?', default = default_config,
     help = 'Path to configuration file')
 args = parser.parse_args ()
 
-processed_xml, sign, key_size, key, key_type, hash_type, pcd_id, output, xml_version, empty = \
+processed_xml, sign, key_size, key, key_type, hash_type, pcd_id, output, xml_version, empty, max_num_rw_sections = \
     manifest_common.load_xmls (args.config, 1, manifest_types.PCD)
 
 hash_engine = manifest_common.get_hash_engine (hash_type)
@@ -429,20 +402,14 @@ processed_xml = list (processed_xml.items())[0][1]
 
 num_components = 0
 num_ports = 0
-pcd_len = 0
 elements_list = []
 toc_list = []
 hash_list = []
 
-manifest_header = manifest_common.generate_manifest_header (pcd_id, key_size, manifest_types.PCD, 
-    hash_type, key_type, xml_version)
-manifest_header_len = ctypes.sizeof (manifest_header)
-pcd_len += manifest_header_len
-
 platform_id, platform_id_toc_entry, platform_id_hash = manifest_common.generate_platform_id_buf (
     processed_xml, hash_engine)
     
-pcd_len += ctypes.sizeof (platform_id)
+pcd_len = ctypes.sizeof (platform_id)
 elements_list.append (platform_id)
 toc_list.append (platform_id_toc_entry)
 hash_list.append (platform_id_hash)
@@ -467,8 +434,8 @@ if not empty:
         hash_list.extend (components_hash_list)
 
     if "ports" in processed_xml["rot"]:
-        ports, num_ports, ports_toc_entries, ports_hash = generate_ports (processed_xml["rot"]["ports"], 
-            hash_engine)
+        ports, num_ports, ports_toc_entries, ports_hash = generate_ports (
+            processed_xml["rot"]["ports"], hash_engine)
 
     rot, rot_toc_entry, rot_hash = generate_rot (processed_xml["rot"], num_components, num_ports, 
         hash_engine)
@@ -484,30 +451,8 @@ if not empty:
         toc_list.extend (ports_toc_entries)
         hash_list.extend (ports_hash)
 
-toc = manifest_common.generate_toc (hash_engine, hash_type, toc_list, hash_list)
-toc_len = ctypes.sizeof (toc)
-pcd_len += toc_len
-
-manifest_header.length = pcd_len + manifest_header.sig_length
-
-pcd_buf = (ctypes.c_ubyte * pcd_len) ()
-offset = 0
-
-ctypes.memmove (ctypes.addressof (pcd_buf) + offset, ctypes.addressof (manifest_header), 
-    manifest_header_len)
-offset += manifest_header_len
-
-ctypes.memmove (ctypes.addressof (pcd_buf) + offset, ctypes.addressof (toc), toc_len)
-offset += toc_len
-
-for element in elements_list:
-    element_len = ctypes.sizeof (element)
-    ctypes.memmove (ctypes.addressof (pcd_buf) + offset, ctypes.addressof (element), element_len)
-
-    offset += element_len
-
-manifest_common.write_manifest (xml_version, sign, pcd_buf, key, key_size, key_type, output, 
-    manifest_header.length - manifest_header.sig_length, manifest_header.sig_length)
+manifest_common.generate_manifest (hash_engine, hash_type, pcd_id, manifest_types.PCD, xml_version, 
+    sign, key, key_size, key_type, toc_list, hash_list, elements_list, pcd_len, output)
 
 print ("Completed PCD generation: {0}".format (output))
 

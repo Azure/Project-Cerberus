@@ -26,7 +26,7 @@ enum {
 };
 
 
-int32_t visualize_pfm (uint8_t *pfm) 
+int32_t visualize_pfm_v1 (uint8_t *pfm) 
 {
 	struct pfm_allowable_firmware_header *allowable_fw_header = 
 		(struct pfm_allowable_firmware_header*) pfm;
@@ -682,6 +682,228 @@ int32_t visualize_common_element (uint8_t type, uint8_t *pointer, const char *pr
 	}
 }
 
+int32_t visualize_pfm_flash_device_element (uint8_t *start, const char* prefix)
+{
+	uint8_t *pointer = start;
+	struct pfm_flash_device_element *flash_device = (struct pfm_flash_device_element*) pointer;
+
+	pointer += sizeof (struct pfm_flash_device_element);
+
+	printf ("%spfm_flash_device_element\n", prefix);
+	printf ("%s{\n", prefix);
+	printf ("%s\tblank_byte: 0x%x\n", prefix, flash_device->blank_byte);
+	printf ("%s\tfw_count: %i\n", prefix, flash_device->fw_count);
+	printf ("%s\treserved: %i\n", prefix, flash_device->reserved);
+	printf ("%s}\n", prefix);
+
+	return (pointer - start);
+}
+
+int32_t visualize_pfm_fw_element (uint8_t *start, const char* prefix)
+{
+	uint8_t *pointer = start;
+	struct pfm_firmware_element *fw = (struct pfm_firmware_element*) pointer;
+	uint8_t *fw_id;
+	size_t fw_id_len;
+
+	pointer += (sizeof (struct pfm_firmware_element) - MANIFEST_MAX_STRING);
+
+	printf ("%spfm_firmware_element\n", prefix);
+	printf ("%s{\n", prefix);
+	printf ("%s\tversion_count: %i\n", prefix, fw->version_count);
+	printf ("%s\tid_length: %i\n", prefix, fw->id_length);
+	printf ("%s\tflags: 0x%x\n", prefix, fw->flags);
+	printf ("%s\treserved: %i\n", prefix, fw->reserved);
+
+	fw_id = malloc ((size_t) fw->id_length + 1);
+	if (fw_id == NULL) {
+		printf ("Failed to allocate FW ID buffer.\n");
+		return -1;
+	}
+
+	memcpy (fw_id, pointer, fw->id_length);
+	fw_id[fw->id_length] = '\0';
+
+	printf ("%s\tFW ID: %s\n", prefix, fw_id);
+	free (fw_id);
+
+	fw_id_len = (((size_t) fw->id_length + 3) & ~((size_t) 3));
+	pointer += fw_id_len;
+
+	printf ("%s}\n", prefix);
+
+	return (pointer - start);
+}
+
+int32_t visualize_pfm_fw_version_element (uint8_t *start, const char* prefix)
+{
+	uint8_t *pointer = start;
+	struct pfm_firmware_version_element *version = (struct pfm_firmware_version_element*) pointer;
+	uint8_t *version_str;
+	size_t version_str_len;
+
+	pointer += (sizeof (struct pfm_firmware_version_element) - MANIFEST_MAX_STRING);
+
+	printf ("%spfm_firmware_version_element\n", prefix);
+	printf ("%s{\n", prefix);
+	printf ("%s\timg_count: %i\n", prefix, version->img_count);
+	printf ("%s\trw_count: %i\n", prefix, version->rw_count);
+	printf ("%s\tversion_length: %i\n", prefix, version->version_length);
+	printf ("%s\treserved: %i\n", prefix, version->reserved);
+	printf ("%s\tversion_addr: 0x%x\n", prefix, version->version_addr);
+
+	version_str = malloc ((size_t) version->version_length + 1);
+	if (version_str == NULL) {
+		printf ("Failed to allocate Version buffer.\n");
+		return -1;
+	}
+
+	memcpy (version_str, pointer, version->version_length);
+	version_str[version->version_length] = '\0';
+
+	printf ("%s\tVersion: %s\n", prefix, version_str);
+	free (version_str);
+
+	version_str_len = (((size_t) version->version_length + 3) & ~((size_t) 3));
+	pointer += version_str_len;
+
+	printf ("%s\tRW Regions\n", prefix);
+	printf ("%s\t[\n", prefix);
+
+	for (int i = 0; i < version->rw_count; ++i) {
+		struct pfm_fw_version_element_rw_region *rw = 
+			(struct pfm_fw_version_element_rw_region*) pointer;
+		pointer += (sizeof (struct pfm_fw_version_element_rw_region) - 
+			sizeof (struct pfm_flash_region));
+		struct pfm_flash_region *region = (struct pfm_flash_region*) pointer;
+		pointer += sizeof (struct pfm_flash_region);
+
+		printf ("%s\t\tpfm_fw_version_element_rw_region\n", prefix);
+		printf ("%s\t\t{\n", prefix);
+		printf ("%s\t\t\tflags: 0x%x\n", prefix, rw->flags);
+		printf ("%s\t\t\treserved_0: %i\n", prefix, rw->reserved[0]);
+		printf ("%s\t\t\treserved_1: %i\n", prefix, rw->reserved[1]);
+		printf ("%s\t\t\treserved_2: %i\n", prefix, rw->reserved[2]);
+		printf ("%s\t\t\tpfm_flash_region\n", prefix);
+		printf ("%s\t\t\t{\n", prefix);
+		printf ("%s\t\t\t\tstart_addr: 0x%x\n", prefix, region->start_addr);
+		printf ("%s\t\t\t\tend_addr: 0x%x\n", prefix, region->end_addr);
+		printf ("%s\t\t\t}\n", prefix);
+		printf ("%s\t\t}\n", prefix);
+	}
+
+	printf ("%s\t]\n", prefix);
+
+	printf ("%s\tImages\n", prefix);
+	printf ("%s\t[\n", prefix);
+
+	for (int i = 0; i < version->img_count; ++i) {
+		struct pfm_fw_version_element_image *img = (struct pfm_fw_version_element_image*) pointer;
+		int hash_len;
+		pointer += sizeof (struct pfm_fw_version_element_image);
+
+		printf ("%s\t\tpfm_fw_version_element_image\n", prefix);
+		printf ("%s\t\t{\n", prefix);
+		printf ("%s\t\t\thash_type: %i\n", prefix, img->hash_type);
+		printf ("%s\t\t\tregion_count: %i\n", prefix, img->region_count);
+		printf ("%s\t\t\tflags: 0x%x\n", prefix, img->flags);
+		printf ("%s\t\t\treserved: %i\n", prefix, img->reserved);
+		
+		switch (img->hash_type) {
+		case MANIFEST_HASH_SHA256:
+			hash_len = SHA256_HASH_LENGTH;
+			break;
+		case MANIFEST_HASH_SHA384:
+			hash_len = SHA384_HASH_LENGTH;
+			break;
+		case MANIFEST_HASH_SHA512:
+			hash_len = SHA512_HASH_LENGTH;
+			break;
+		default:
+			printf ("Unsupported hash type selected: %i\n", img->hash_type);
+			return -1;
+		}
+		
+		printf ("%s\t\t\tHash:\n", prefix);
+		printf ("%s\t\t\t{", prefix);
+		for (int j = 0; j < hash_len; ++j, ++pointer)
+		{
+			if ((j % 32) == 0)
+			{
+				printf ("%s\n\t\t\t\t", prefix);
+			}
+
+			printf ("%02x", *pointer);
+		}
+		printf ("\n");
+		printf ("%s\t\t\t}\n", prefix);
+
+		printf ("%s\t\t\tRegions:\n", prefix);
+		printf ("%s\t\t\t[\n", prefix);
+		for (int j = 0; j < img->region_count; ++j)
+		{
+			uint32_t *address = (uint32_t*) pointer;
+			pointer += sizeof (uint32_t);
+			printf ("%s\t\t\t\tRegion %i\n", prefix, j);
+			printf ("%s\t\t\t\t{\n", prefix);
+			printf ("%s\t\t\t\t\tImage Start Address: 0x%x\n", prefix, *address);
+			
+			address = (uint32_t*) pointer;
+			pointer += sizeof (uint32_t);
+			
+			printf ("%s\t\t\t\t\tImage End Address: 0x%x\n", prefix, *address);
+			printf ("%s\t\t\t\t}\n", prefix);
+		}
+		printf ("\n");
+		printf ("%s\t\t\t]\n", prefix);
+		printf ("%s\t\t}\n", prefix);
+	}
+
+	printf ("%s\t]\n", prefix);
+
+	printf ("%s}\n", prefix);
+
+	return (pointer - start);
+}
+
+int32_t visualize_pfm (uint8_t *start) 
+{
+	uint8_t *pointer = start;
+	int32_t offset;
+
+	offset = visualize_toc (pointer);
+	if (offset == -1) {
+		return offset;
+	}
+
+	pointer += offset;
+
+	for (int i = 0; i < entry_count; ++i) {
+		switch (element_types[i]) {
+			case PFM_FLASH_DEVICE: 
+				offset = visualize_pfm_flash_device_element (pointer, "");
+				break;
+			case PFM_FIRMWARE:
+				offset = visualize_pfm_fw_element (pointer, "");
+				break;
+			case PFM_FIRMWARE_VERSION:
+				offset = visualize_pfm_fw_version_element (pointer, "");
+				break;
+			default:
+				offset = visualize_common_element (element_types[i], pointer, "");
+				break;
+		}
+
+		if (offset == -1) {
+			return -1;
+		}
+
+		pointer += offset;
+	}
+
+	return (pointer - start);
+}
+
 int32_t visualize_pcd (uint8_t *start) 
 {
 	uint8_t *pointer = start;
@@ -730,27 +952,12 @@ int main (int argc, char** argv)
 {
 	FILE *fp;
 	int32_t offset;
-	uint8_t manifest_type;
 	uint8_t *pointer;
 	uint8_t *manifest;
 	unsigned long fileLen;
 
-	if (argc < 3 || argv == NULL) {
+	if (argc < 2 || argv == NULL) {
 		printf ("No manifest file passed in.\n");
-		return -1;
-	}
-
-	if (strncmp (argv[2], "pfm", 3) == 0) {
-		manifest_type = MANIFEST_TYPE_PFM;
-	}
-	else if (strncmp (argv[2], "cfm", 3) == 0) {
-		manifest_type = MANIFEST_TYPE_CFM;
-	}
-	else if (strncmp (argv[2], "pcd", 3) == 0) {
-		manifest_type = MANIFEST_TYPE_PCD;
-	}
-	else {
-		printf ("Manifest type unknown: %s", argv[2]);
 		return -1;
 	}
 
@@ -784,15 +991,18 @@ int main (int argc, char** argv)
 	printf ("\treserved: %i\n", header->reserved);
 	printf ("}\n");
 
-	switch (manifest_type)
+	switch (header->magic)
 	{
-		case MANIFEST_TYPE_PFM:
+		case PFM_MAGIC_NUM:
+			offset = visualize_pfm_v1 (manifest + sizeof (struct manifest_header));
+			break;
+		case PFM_V2_MAGIC_NUM:
 			offset = visualize_pfm (manifest + sizeof (struct manifest_header));
 			break;
-		case MANIFEST_TYPE_CFM:
+		case CFM_MAGIC_NUM:
 			offset = visualize_cfm (manifest + sizeof (struct manifest_header));
 			break;
-		case MANIFEST_TYPE_PCD:
+		case PCD_V2_MAGIC_NUM:
 			offset = visualize_pcd (manifest + sizeof (struct manifest_header));
 			break;
 		default:
