@@ -396,7 +396,7 @@ int state_manager_store_non_volatile_state (struct state_manager *manager)
 		if (status == 0) {
 			in_flash = state_manager_read_state_bits (nv_state, &bit_error, &refresh);
 			if ((in_flash != store_state) || bit_error) {
-				/* The data in flash in flash is bad, so force the state to be rewritten. */
+				/* The data in flash is bad, so force the state to be rewritten. */
 				state_mgr->last_nv_stored = 0xffff;
 
 				if (refresh) {
