@@ -10,16 +10,16 @@
 
 /**
  * Generate a base64 encoding using reference RIoT core.
- * 
+ *
  * @param engine The base64 engine to run.
  * @param data Input data to encode.
  * @param length The length of the input data block.
  * @param encoded Output buffer to store base64 encoding string.
  * @param enc_length The length of the resulting base64 encoding string.
  *
- * @return 0 if the base64 engine successfully encoded the input data block. 
+ * @return 0 if the base64 engine successfully encoded the input data block.
 */
-static int base64_riot_encode (struct base64_engine *engine, const uint8_t *data, 
+static int base64_riot_encode (struct base64_engine *engine, const uint8_t *data,
 	size_t length, uint8_t *encoded, size_t enc_length)
 {
 	int status;
@@ -28,7 +28,7 @@ static int base64_riot_encode (struct base64_engine *engine, const uint8_t *data
 		return BASE64_ENGINE_INVALID_ARGUMENT;
 	}
 
-	status = Base64Encode (data, length, (char *) encoded, &enc_length);
+	status = Base64Encode (data, length, (char*) encoded, &enc_length);
 	if (status == -1) {
 		return BASE64_ENGINE_ENC_BUFFER_TOO_SMALL;
 	}

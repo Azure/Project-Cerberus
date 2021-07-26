@@ -23,6 +23,7 @@ struct logging *debug_log = NULL;
 int debug_log_create_entry (uint8_t severity, uint8_t component, uint8_t msg_index, uint32_t arg1,
 	uint32_t arg2)
 {
+#ifdef LOGGING_SUPPORT_DEBUG_LOG
 	struct debug_log_entry_info entry;
 
 	if (debug_log == NULL) {
@@ -42,6 +43,9 @@ int debug_log_create_entry (uint8_t severity, uint8_t component, uint8_t msg_ind
 	entry.time = platform_get_time_since_boot ();
 
 	return debug_log->create_entry (debug_log, (uint8_t*) &entry, sizeof (entry));
+#else
+	return LOGGING_NO_LOG_AVAILABLE;
+#endif
 }
 
 /**
@@ -51,11 +55,15 @@ int debug_log_create_entry (uint8_t severity, uint8_t component, uint8_t msg_ind
  */
 int debug_log_flush ()
 {
+#ifdef LOGGING_SUPPORT_DEBUG_LOG
 	if (debug_log == NULL) {
 		return LOGGING_NO_LOG_AVAILABLE;
 	}
 
 	return debug_log->flush (debug_log);
+#else
+	return LOGGING_NO_LOG_AVAILABLE;
+#endif
 }
 
 /**
@@ -65,11 +73,15 @@ int debug_log_flush ()
  */
 int debug_log_clear ()
 {
+#ifdef LOGGING_SUPPORT_DEBUG_LOG
 	if (debug_log == NULL) {
 		return LOGGING_NO_LOG_AVAILABLE;
 	}
 
 	return debug_log->clear (debug_log);
+#else
+	return LOGGING_NO_LOG_AVAILABLE;
+#endif
 }
 
 /**
@@ -79,11 +91,15 @@ int debug_log_clear ()
  */
 int debug_log_get_size ()
 {
+#ifdef LOGGING_SUPPORT_DEBUG_LOG
 	if (debug_log == NULL) {
 		return LOGGING_NO_LOG_AVAILABLE;
 	}
 
 	return debug_log->get_size (debug_log);
+#else
+	return LOGGING_NO_LOG_AVAILABLE;
+#endif
 }
 
 /**
@@ -98,9 +114,13 @@ int debug_log_get_size ()
  */
 int debug_log_read_contents (uint32_t offset, uint8_t *contents, size_t length)
 {
+#ifdef LOGGING_SUPPORT_DEBUG_LOG
 	if (debug_log == NULL) {
 		return LOGGING_NO_LOG_AVAILABLE;
 	}
 
 	return debug_log->read_contents (debug_log, offset, contents, length);
+#else
+	return LOGGING_NO_LOG_AVAILABLE;
+#endif
 }

@@ -256,6 +256,7 @@ int cmd_interface_system_process_request (struct cmd_interface *intf,
 			status = cerberus_protocol_get_attestation_data (interface->pcr_store, request);
 			break;
 
+#ifdef CMD_SUPPORT_ENCRYPTED_SESSIONS
 		case CERBERUS_PROTOCOL_EXCHANGE_KEYS:
 			status = cerberus_protocol_key_exchange (interface->base.session, request,
 				intf->curr_txn_encrypted);
@@ -265,6 +266,7 @@ int cmd_interface_system_process_request (struct cmd_interface *intf,
 			status = cerberus_protocol_session_sync (interface->base.session, request,
 				intf->curr_txn_encrypted);
 			break;
+#endif
 
 #ifdef CMD_SUPPORT_DEBUG_COMMANDS
 		case CERBERUS_PROTOCOL_DEBUG_START_ATTESTATION:

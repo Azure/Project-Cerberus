@@ -32,10 +32,10 @@ struct cmd_interface_slave {
 
 
 int cmd_interface_slave_init (struct cmd_interface_slave *intf,
-	struct attestation_slave *slave_attestation, struct device_manager *device_manager, 
-	struct cmd_background *background, struct cmd_interface_fw_version *fw_version, 
-	struct riot_key_manager *riot, struct cmd_device *cmd_device, uint16_t vendor_id, 
-	uint16_t device_id, uint16_t subsystem_vid, uint16_t subsystem_id, 
+	struct attestation_slave *slave_attestation, struct device_manager *device_manager,
+	struct cmd_background *background, struct cmd_interface_fw_version *fw_version,
+	struct riot_key_manager *riot, struct cmd_device *cmd_device, uint16_t vendor_id,
+	uint16_t device_id, uint16_t subsystem_vid, uint16_t subsystem_id,
 	struct session_manager *session);
 void cmd_interface_slave_deinit (struct cmd_interface_slave *intf);
 

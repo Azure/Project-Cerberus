@@ -148,4 +148,4 @@ int attestation_slave_init_no_aux (struct attestation_slave *attestation,
 void attestation_slave_release (struct attestation_slave *attestation);
 
 
-#endif // ATTESTATION_SLAVE_H_
+#endif /* ATTESTATION_SLAVE_H_ */

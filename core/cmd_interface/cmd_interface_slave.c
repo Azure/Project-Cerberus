@@ -84,6 +84,7 @@ static int cmd_interface_slave_process_request (struct cmd_interface *intf,
 			status = cerberus_protocol_reset_counter (slave->cmd_device, request);
 			break;
 
+#ifdef CMD_SUPPORT_ENCRYPTED_SESSIONS
 		case CERBERUS_PROTOCOL_EXCHANGE_KEYS:
 			status = cerberus_protocol_key_exchange (slave->base.session, request,
 				intf->curr_txn_encrypted);
@@ -93,6 +94,7 @@ static int cmd_interface_slave_process_request (struct cmd_interface *intf,
 			status = cerberus_protocol_session_sync (slave->base.session, request,
 				intf->curr_txn_encrypted);
 			break;
+#endif
 
 		default:
 			return CMD_HANDLER_UNKNOWN_COMMAND;

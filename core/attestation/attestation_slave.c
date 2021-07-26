@@ -13,7 +13,7 @@ static int attestation_slave_get_digests (struct attestation_slave *attestation,
 	const struct riot_keys *keys;
 	const struct der_cert *root_ca;
 	const struct der_cert *int_ca;
-	const struct der_cert *aux_cert;
+	const struct der_cert *aux_cert = NULL;
 	size_t offset = 0;
 	int status;
 
@@ -25,7 +25,9 @@ static int attestation_slave_get_digests (struct attestation_slave *attestation,
 		return ATTESTATION_INVALID_SLOT_NUM;
 	}
 
+#ifdef ATTESTATION_SUPPORT_RSA_UNSEAL
 	aux_cert = aux_attestation_get_certificate (attestation->aux);
+#endif
 	if (slot_num == ATTESTATION_AUX_SLOT_NUM) {
 		if (attestation->aux == NULL) {
 			return ATTESTATION_INVALID_SLOT_NUM;
@@ -147,7 +149,7 @@ static int attestation_slave_get_certificate (struct attestation_slave *attestat
 	const struct riot_keys *keys;
 	const struct der_cert *int_ca;
 	const struct der_cert *root_ca;
-	const struct der_cert *aux_cert;
+	const struct der_cert *aux_cert = NULL;
 	int status = 0;
 
 	if ((attestation == NULL) || (cert == NULL)) {
@@ -175,7 +177,9 @@ static int attestation_slave_get_certificate (struct attestation_slave *attestat
 		return ATTESTATION_INVALID_CERT_NUM;
 	}
 
+#ifdef ATTESTATION_SUPPORT_RSA_UNSEAL
 	aux_cert = aux_attestation_get_certificate (attestation->aux);
+#endif
 	if (slot_num == ATTESTATION_AUX_SLOT_NUM) {
 		if (attestation->aux == NULL) {
 			return ATTESTATION_INVALID_SLOT_NUM;
