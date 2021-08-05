@@ -2790,6 +2790,523 @@ static void cmd_channel_test_receive_and_process_multiple_overflow_packet (CuTes
 	mctp_interface_deinit (&mctp);
 }
 
+static void cmd_channel_test_send_message_single_packet (CuTest *test)
+{
+	struct cmd_channel_mock channel;
+	struct cmd_packet tx_packet;
+	struct cmd_message tx_message;
+	struct mctp_protocol_transport_header *header;
+	int status;
+
+	TEST_START;
+
+	memset (&tx_packet, 0, sizeof (tx_packet));
+
+	header = (struct mctp_protocol_transport_header*) tx_packet.data;
+
+	header->cmd_code = SMBUS_CMD_CODE_MCTP;
+	header->byte_count = 11;
+	header->source_addr = 0xBB;
+	header->rsvd = 0;
+	header->header_version = 1;
+	header->destination_eid = MCTP_PROTOCOL_BMC_EID;
+	header->source_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	header->som = 1;
+	header->eom = 1;
+	header->tag_owner = 0;
+	header->msg_tag = 0x00;
+	header->packet_seq = 0;
+
+	tx_packet.data[7] = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	tx_packet.data[8] = 0x00;
+	tx_packet.data[9] = 0x00;
+	tx_packet.data[10] = 0x00;
+	tx_packet.data[11] = 0x0B;
+	tx_packet.data[12] = 0x0A;
+	tx_packet.data[13] = checksum_crc8 (0xAA, tx_packet.data, 13);
+	tx_packet.pkt_size = 14;
+	tx_packet.state = CMD_VALID_PACKET;
+	tx_packet.dest_addr = 0x55;
+	tx_packet.timeout_valid = false;
+
+	tx_message.data = tx_packet.data;
+	tx_message.msg_size = tx_packet.pkt_size;
+	tx_message.pkt_size = tx_packet.pkt_size;
+	tx_message.dest_addr = tx_packet.dest_addr;
+
+	status = cmd_channel_mock_init (&channel, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&channel.mock, channel.base.send_packet, &channel, 0,
+		MOCK_ARG_VALIDATOR (cmd_channel_mock_validate_packet, &tx_packet, sizeof (tx_packet)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_channel_send_message (&channel.base, &tx_message);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_channel_mock_validate_and_release (&channel);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void cmd_channel_test_send_message_multiple_packets (CuTest *test)
+{
+	struct cmd_channel_mock channel;
+	struct cmd_packet tx_packet[2];
+	struct cmd_message tx_message;
+	const int msg_size = 300;
+	uint8_t msg_data[msg_size + (MCTP_PROTOCOL_PACKET_OVERHEAD * 2) + 4];
+	struct mctp_protocol_transport_header *header;
+	uint8_t payload[msg_size];
+	int status;
+	int i;
+
+	TEST_START;
+
+	for (i = 0; i < (int) sizeof (payload); i++) {
+		payload[i] = i;
+	}
+
+	memset (tx_packet, 0, sizeof (tx_packet));
+
+	header = (struct mctp_protocol_transport_header*) tx_packet[0].data;
+
+	header->cmd_code = SMBUS_CMD_CODE_MCTP;
+	header->byte_count = 252;
+	header->source_addr = 0xBB;
+	header->rsvd = 0;
+	header->header_version = 1;
+	header->destination_eid = MCTP_PROTOCOL_BMC_EID;
+	header->source_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	header->som = 1;
+	header->eom = 0;
+	header->tag_owner = 0;
+	header->msg_tag = 0x00;
+	header->packet_seq = 0;
+
+	tx_packet[0].data[7] = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	tx_packet[0].data[8] = 0x00;
+	tx_packet[0].data[9] = 0x00;
+	tx_packet[0].data[10] = 0x00;
+	memcpy (&tx_packet[0].data[11], payload, 255 - 12);
+	tx_packet[0].data[254] = checksum_crc8 (0xAA, tx_packet[0].data, 254);
+	tx_packet[0].pkt_size = 255;
+	tx_packet[0].state = CMD_VALID_PACKET;
+	tx_packet[0].dest_addr = 0x55;
+	tx_packet[0].timeout_valid = false;
+
+	header = (struct mctp_protocol_transport_header*) tx_packet[1].data;
+
+	i = msg_size - (255 - 12) + 7;
+
+	header->cmd_code = SMBUS_CMD_CODE_MCTP;
+	header->byte_count = i - 2;
+	header->source_addr = 0xBB;
+	header->rsvd = 0;
+	header->header_version = 1;
+	header->destination_eid = MCTP_PROTOCOL_BMC_EID;
+	header->source_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	header->som = 0;
+	header->eom = 1;
+	header->tag_owner = 0;
+	header->msg_tag = 0x00;
+	header->packet_seq = 1;
+
+	memcpy (&tx_packet[1].data[7], &payload[255 - 12], msg_size - (255 - 12));
+	tx_packet[1].data[i] = checksum_crc8 (0xAA, tx_packet[1].data, i);
+	tx_packet[1].pkt_size = i + 1;
+	tx_packet[1].state = CMD_VALID_PACKET;
+	tx_packet[1].dest_addr = 0x55;
+	tx_packet[1].timeout_valid = false;
+
+	memcpy (msg_data, tx_packet[0].data, tx_packet[0].pkt_size);
+	memcpy (&msg_data[tx_packet[0].pkt_size], tx_packet[1].data, tx_packet[1].pkt_size);
+
+	tx_message.data = msg_data;
+	tx_message.msg_size = sizeof (msg_data);
+	tx_message.pkt_size = tx_packet[0].pkt_size;
+	tx_message.dest_addr = tx_packet[0].dest_addr;
+
+	status = cmd_channel_mock_init (&channel, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&channel.mock, channel.base.send_packet, &channel, 0,
+		MOCK_ARG_VALIDATOR (cmd_channel_mock_validate_packet, &tx_packet[0],
+			sizeof (struct cmd_packet)));
+	status |= mock_expect (&channel.mock, channel.base.send_packet, &channel, 0,
+		MOCK_ARG_VALIDATOR (cmd_channel_mock_validate_packet, &tx_packet[1],
+			sizeof (struct cmd_packet)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_channel_send_message (&channel.base, &tx_message);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_channel_mock_validate_and_release (&channel);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void cmd_channel_test_send_message_multiple_messages (CuTest *test)
+{
+	struct cmd_channel_mock channel;
+	struct cmd_packet tx_packet[2];
+	struct cmd_message tx_message[2];
+	const int msg_size = 300;
+	struct mctp_protocol_transport_header *header;
+	uint8_t payload[msg_size];
+	int status;
+	int i;
+
+	TEST_START;
+
+	for (i = 0; i < (int) sizeof (payload); i++) {
+		payload[i] = i;
+	}
+
+	memset (tx_packet, 0, sizeof (tx_packet));
+
+	header = (struct mctp_protocol_transport_header*) tx_packet[0].data;
+
+	header->cmd_code = SMBUS_CMD_CODE_MCTP;
+	header->byte_count = 252;
+	header->source_addr = 0xBB;
+	header->rsvd = 0;
+	header->header_version = 1;
+	header->destination_eid = MCTP_PROTOCOL_BMC_EID;
+	header->source_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	header->som = 1;
+	header->eom = 0;
+	header->tag_owner = 0;
+	header->msg_tag = 0x00;
+	header->packet_seq = 0;
+
+	tx_packet[0].data[7] = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	tx_packet[0].data[8] = 0x00;
+	tx_packet[0].data[9] = 0x00;
+	tx_packet[0].data[10] = 0x00;
+	memcpy (&tx_packet[0].data[11], payload, 255 - 12);
+	tx_packet[0].data[254] = checksum_crc8 (0xAA, tx_packet[0].data, 254);
+	tx_packet[0].pkt_size = 255;
+	tx_packet[0].state = CMD_VALID_PACKET;
+	tx_packet[0].dest_addr = 0x55;
+	tx_packet[0].timeout_valid = false;
+
+	header = (struct mctp_protocol_transport_header*) tx_packet[1].data;
+
+	i = msg_size - (255 - 12) + 7;
+
+	header->cmd_code = SMBUS_CMD_CODE_MCTP;
+	header->byte_count = i - 2;
+	header->source_addr = 0xBB;
+	header->rsvd = 0;
+	header->header_version = 1;
+	header->destination_eid = MCTP_PROTOCOL_BMC_EID;
+	header->source_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	header->som = 0;
+	header->eom = 1;
+	header->tag_owner = 0;
+	header->msg_tag = 0x00;
+	header->packet_seq = 1;
+
+	memcpy (&tx_packet[1].data[7], &payload[255 - 12], msg_size - (255 - 12));
+	tx_packet[1].data[i] = checksum_crc8 (0xAA, tx_packet[1].data, i);
+	tx_packet[1].pkt_size = i + 1;
+	tx_packet[1].state = CMD_VALID_PACKET;
+	tx_packet[1].dest_addr = 0x55;
+	tx_packet[1].timeout_valid = false;
+
+	tx_message[0].data = tx_packet[0].data;
+	tx_message[0].msg_size = tx_packet[0].pkt_size;
+	tx_message[0].pkt_size = tx_packet[0].pkt_size;
+	tx_message[0].dest_addr = tx_packet[0].dest_addr;
+
+	tx_message[1].data = tx_packet[1].data;
+	tx_message[1].msg_size = tx_packet[1].pkt_size;
+	tx_message[1].pkt_size = tx_packet[1].pkt_size;
+	tx_message[1].dest_addr = tx_packet[1].dest_addr;
+
+	status = cmd_channel_mock_init (&channel, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&channel.mock, channel.base.send_packet, &channel, 0,
+		MOCK_ARG_VALIDATOR (cmd_channel_mock_validate_packet, &tx_packet[0],
+			sizeof (struct cmd_packet)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_channel_send_message (&channel.base, &tx_message[0]);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&channel.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&channel.mock, channel.base.send_packet, &channel, 0,
+		MOCK_ARG_VALIDATOR (cmd_channel_mock_validate_packet, &tx_packet[1],
+			sizeof (struct cmd_packet)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_channel_send_message (&channel.base, &tx_message[1]);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_channel_mock_validate_and_release (&channel);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void cmd_channel_test_send_message_max_message (CuTest *test)
+{
+	struct cmd_channel_mock channel;
+	struct cmd_packet tx_packet[MCTP_PROTOCOL_MAX_PACKET_PER_MESSAGE];
+	struct cmd_message tx_message;
+	struct mctp_protocol_transport_header *header;
+	uint8_t payload[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t msg_data[MCTP_PROTOCOL_MAX_MESSAGE_BODY +
+		(MCTP_PROTOCOL_PACKET_OVERHEAD * MCTP_PROTOCOL_MAX_PACKET_PER_MESSAGE)];
+	int status;
+	size_t i;
+	size_t remain = MCTP_PROTOCOL_MAX_MESSAGE_BODY -
+		(MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT * (MCTP_PROTOCOL_MAX_PACKET_PER_MESSAGE - 1));
+	size_t last_pkt_len = remain + MCTP_PROTOCOL_PACKET_OVERHEAD;
+
+	TEST_START;
+
+	payload[0] = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	payload[1] = 0;
+	payload[2] = 0;
+	payload[3] = 0;
+	for (i = 4; i < sizeof (payload); i++) {
+		payload[i] = i;
+	}
+
+	memset (tx_packet, 0, sizeof (tx_packet));
+
+	for (i = 0; i < MCTP_PROTOCOL_MAX_PACKET_PER_MESSAGE; i++) {
+		uint8_t len = (i == (MCTP_PROTOCOL_MAX_PACKET_PER_MESSAGE - 1)) ?
+			last_pkt_len : MCTP_PROTOCOL_MAX_PACKET_LEN;
+
+		header = (struct mctp_protocol_transport_header*) tx_packet[i].data;
+
+		header->cmd_code = SMBUS_CMD_CODE_MCTP;
+		header->byte_count = len - 3;
+		header->source_addr = 0xBB;
+		header->rsvd = 0;
+		header->header_version = 1;
+		header->destination_eid = MCTP_PROTOCOL_BMC_EID;
+		header->source_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+		header->som = !i;
+		header->eom = (len == last_pkt_len);
+		header->tag_owner = 0;
+		header->msg_tag = 0x00;
+		header->packet_seq = i % 4;
+
+		memcpy (&tx_packet[i].data[7], &payload[i * MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT], len);
+		tx_packet[i].data[len - 1] = checksum_crc8 (0xAA, tx_packet[i].data, len - 1);
+		tx_packet[i].pkt_size = len;
+		tx_packet[i].state = CMD_VALID_PACKET;
+		tx_packet[i].dest_addr = 0x55;
+		tx_packet[1].timeout_valid = false;
+
+		memcpy (&msg_data[i * MCTP_PROTOCOL_MAX_PACKET_LEN], tx_packet[i].data,
+			tx_packet[i].pkt_size);
+	}
+
+	tx_message.data = msg_data;
+	tx_message.msg_size = sizeof (msg_data);
+	tx_message.pkt_size = tx_packet[0].pkt_size;
+	tx_message.dest_addr = tx_packet[0].dest_addr;
+
+	status = cmd_channel_mock_init (&channel, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	for (i = 0; i < MCTP_PROTOCOL_MAX_PACKET_PER_MESSAGE; i++) {
+		status |= mock_expect (&channel.mock, channel.base.send_packet, &channel, 0,
+			MOCK_ARG_VALIDATOR (cmd_channel_mock_validate_packet, &tx_packet[i],
+				sizeof (struct cmd_packet)));
+	}
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_channel_send_message (&channel.base, &tx_message);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_channel_mock_validate_and_release (&channel);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void cmd_channel_test_send_message_null (CuTest *test)
+{
+	struct cmd_channel_mock channel;
+	struct cmd_message tx_message;
+	int status;
+
+	TEST_START;
+
+	status = cmd_channel_mock_init (&channel, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_channel_send_message (NULL, &tx_message);
+	CuAssertIntEquals (test, CMD_CHANNEL_INVALID_ARGUMENT, status);
+
+	status = cmd_channel_send_message (&channel.base, NULL);
+	CuAssertIntEquals (test, CMD_CHANNEL_INVALID_ARGUMENT, status);
+
+	status = cmd_channel_mock_validate_and_release (&channel);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void cmd_channel_test_send_message_send_failure (CuTest *test)
+{
+	struct cmd_channel_mock channel;
+	struct cmd_packet tx_packet;
+	struct cmd_message tx_message;
+	struct mctp_protocol_transport_header *header;
+	int status;
+
+	TEST_START;
+
+	memset (&tx_packet, 0, sizeof (tx_packet));
+
+	header = (struct mctp_protocol_transport_header*) tx_packet.data;
+
+	header->cmd_code = SMBUS_CMD_CODE_MCTP;
+	header->byte_count = 11;
+	header->source_addr = 0xBB;
+	header->rsvd = 0;
+	header->header_version = 1;
+	header->destination_eid = MCTP_PROTOCOL_BMC_EID;
+	header->source_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	header->som = 1;
+	header->eom = 1;
+	header->tag_owner = 0;
+	header->msg_tag = 0x00;
+	header->packet_seq = 0;
+
+	tx_packet.data[7] = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	tx_packet.data[8] = 0x00;
+	tx_packet.data[9] = 0x00;
+	tx_packet.data[10] = 0x00;
+	tx_packet.data[11] = 0x0B;
+	tx_packet.data[12] = 0x0A;
+	tx_packet.data[13] = checksum_crc8 (0xAA, tx_packet.data, 13);
+	tx_packet.pkt_size = 14;
+	tx_packet.state = CMD_VALID_PACKET;
+	tx_packet.dest_addr = 0x55;
+	tx_packet.timeout_valid = false;
+
+	tx_message.data = tx_packet.data;
+	tx_message.msg_size = tx_packet.pkt_size;
+	tx_message.pkt_size = tx_packet.pkt_size;
+	tx_message.dest_addr = tx_packet.dest_addr;
+
+	status = cmd_channel_mock_init (&channel, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&channel.mock, channel.base.send_packet, &channel, CMD_CHANNEL_TX_FAILED,
+		MOCK_ARG_VALIDATOR (cmd_channel_mock_validate_packet, &tx_packet, sizeof (tx_packet)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_channel_send_message (&channel.base, &tx_message);
+	CuAssertIntEquals (test, CMD_CHANNEL_TX_FAILED, status);
+
+	status = cmd_channel_mock_validate_and_release (&channel);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void cmd_channel_test_send_message_multiple_packets_send_failure (CuTest *test)
+{
+	struct cmd_channel_mock channel;
+	struct cmd_packet tx_packet[2];
+	struct cmd_message tx_message;
+	const int msg_size = 300;
+	uint8_t msg_data[msg_size + (MCTP_PROTOCOL_PACKET_OVERHEAD * 2) + 4];
+	struct mctp_protocol_transport_header *header;
+	uint8_t payload[msg_size];
+	int status;
+	int i;
+
+	TEST_START;
+
+	for (i = 0; i < (int) sizeof (payload); i++) {
+		payload[i] = i;
+	}
+
+	memset (tx_packet, 0, sizeof (tx_packet));
+
+	header = (struct mctp_protocol_transport_header*) tx_packet[0].data;
+
+	header->cmd_code = SMBUS_CMD_CODE_MCTP;
+	header->byte_count = 252;
+	header->source_addr = 0xBB;
+	header->rsvd = 0;
+	header->header_version = 1;
+	header->destination_eid = MCTP_PROTOCOL_BMC_EID;
+	header->source_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	header->som = 1;
+	header->eom = 0;
+	header->tag_owner = 0;
+	header->msg_tag = 0x00;
+	header->packet_seq = 0;
+
+	tx_packet[0].data[7] = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	tx_packet[0].data[8] = 0x00;
+	tx_packet[0].data[9] = 0x00;
+	tx_packet[0].data[10] = 0x00;
+	memcpy (&tx_packet[0].data[11], payload, 255 - 12);
+	tx_packet[0].data[254] = checksum_crc8 (0xAA, tx_packet[0].data, 254);
+	tx_packet[0].pkt_size = 255;
+	tx_packet[0].state = CMD_VALID_PACKET;
+	tx_packet[0].dest_addr = 0x55;
+	tx_packet[0].timeout_valid = false;
+
+	header = (struct mctp_protocol_transport_header*) tx_packet[1].data;
+
+	i = msg_size - (255 - 12) + 7;
+
+	header->cmd_code = SMBUS_CMD_CODE_MCTP;
+	header->byte_count = i - 2;
+	header->source_addr = 0xBB;
+	header->rsvd = 0;
+	header->header_version = 1;
+	header->destination_eid = MCTP_PROTOCOL_BMC_EID;
+	header->source_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	header->som = 0;
+	header->eom = 1;
+	header->tag_owner = 0;
+	header->msg_tag = 0x00;
+	header->packet_seq = 1;
+
+	memcpy (&tx_packet[1].data[7], &payload[255 - 12], msg_size - (255 - 12));
+	tx_packet[1].data[i] = checksum_crc8 (0xAA, tx_packet[1].data, i);
+	tx_packet[1].pkt_size = i + 1;
+	tx_packet[1].state = CMD_VALID_PACKET;
+	tx_packet[1].dest_addr = 0x55;
+	tx_packet[1].timeout_valid = false;
+
+	memcpy (msg_data, tx_packet[0].data, tx_packet[0].pkt_size);
+	memcpy (&msg_data[tx_packet[0].pkt_size], tx_packet[1].data, tx_packet[1].pkt_size);
+
+	tx_message.data = msg_data;
+	tx_message.msg_size = sizeof (msg_data);
+	tx_message.pkt_size = tx_packet[0].pkt_size;
+	tx_message.dest_addr = tx_packet[0].dest_addr;
+
+	status = cmd_channel_mock_init (&channel, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&channel.mock, channel.base.send_packet, &channel, CMD_CHANNEL_TX_FAILED,
+		MOCK_ARG_VALIDATOR (cmd_channel_mock_validate_packet, &tx_packet[0],
+			sizeof (struct cmd_packet)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_channel_send_message (&channel.base, &tx_message);
+	CuAssertIntEquals (test, CMD_CHANNEL_TX_FAILED, status);
+
+	status = cmd_channel_mock_validate_and_release (&channel);
+	CuAssertIntEquals (test, 0, status);
+}
+
 
 CuSuite* get_cmd_channel_suite ()
 {
@@ -2815,6 +3332,13 @@ CuSuite* get_cmd_channel_suite ()
 	SUITE_ADD_TEST (suite, cmd_channel_test_receive_and_process_send_failure);
 	SUITE_ADD_TEST (suite, cmd_channel_test_receive_and_process_overflow_packet);
 	SUITE_ADD_TEST (suite, cmd_channel_test_receive_and_process_multiple_overflow_packet);
+	SUITE_ADD_TEST (suite, cmd_channel_test_send_message_single_packet);
+	SUITE_ADD_TEST (suite, cmd_channel_test_send_message_multiple_packets);
+	SUITE_ADD_TEST (suite, cmd_channel_test_send_message_multiple_messages);
+	SUITE_ADD_TEST (suite, cmd_channel_test_send_message_max_message);
+	SUITE_ADD_TEST (suite, cmd_channel_test_send_message_null);
+	SUITE_ADD_TEST (suite, cmd_channel_test_send_message_send_failure);
+	SUITE_ADD_TEST (suite, cmd_channel_test_send_message_multiple_packets_send_failure);
 
 	return suite;
 }

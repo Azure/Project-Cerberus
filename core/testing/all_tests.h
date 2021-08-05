@@ -121,6 +121,7 @@
 //#define	TESTING_RUN_BUFFER_UTIL_SUITE
 //#define	TESTING_RUN_HOST_STATE_OBSERVER_DIRTY_RESET_SUITE
 //#define	TESTING_RUN_SYSTEM_SUITE
+//#define	TESTING_RUN_PLATFORM_SEMAPHORE_SUITE
 
 
 CuSuite* get_flash_common_suite (void);
@@ -252,6 +253,7 @@ CuSuite* get_kdf_suite (void);
 CuSuite* get_buffer_util_suite (void);
 CuSuite* get_host_state_observer_dirty_reset_suite (void);
 CuSuite* get_system_suite (void);
+CuSuite* get_platform_semaphore_suite (void);
 
 void add_all_tests (CuSuite *suite)
 {
@@ -609,6 +611,9 @@ void add_all_tests (CuSuite *suite)
 #endif
 #ifdef TESTING_RUN_SYSTEM_SUITE
 	CuSuiteAddSuite (suite, get_system_suite ());
+#endif
+#ifdef TESTING_RUN_PLATFORM_SEMAPHORE_SUITE
+	CuSuiteAddSuite (suite, get_platform_semaphore_suite ());
 #endif
 
 	add_all_platform_tests (suite);

@@ -56,6 +56,10 @@ struct mctp_interface;
 
 /**
  * Defines the interface for a communication channel to send and receive command packets.
+ *
+ * Channels must be implemented to allow for simultaneous receive and send calls.  This will
+ * enable senders to be transmitting messages while the channel is blocked waiting to receive
+ * packets.
  */
 struct cmd_channel {
 	/**
@@ -74,6 +78,10 @@ struct cmd_channel {
 	/**
 	 * Send a command packet over a communication channel.
 	 *
+	 * Returning from this function does not guarantee the packet has been fully transmitted.
+	 * Depending on the channel implementation, it is possible the packet is still in flight with
+	 * the data buffered in the channel driver.
+	 *
 	 * @param channel The channel to send a packet on.
 	 * @param packet The packet to send.
 	 *
@@ -81,8 +89,9 @@ struct cmd_channel {
 	 */
 	int (*send_packet) (struct cmd_channel *channel, struct cmd_packet *packet);
 
-	int id;				/**< ID for the command channel. */
-	bool overflow;		/**< Flag if the channel is in an overflow condition. */
+	int id;					/**< ID for the command channel. */
+	bool overflow;			/**< Flag if the channel is in an overflow condition. */
+	platform_mutex lock;	/**< Synchronization for message transmission. */
 };
 
 
@@ -90,6 +99,7 @@ int cmd_channel_get_id (struct cmd_channel *channel);
 
 int cmd_channel_receive_and_process (struct cmd_channel *channel, struct mctp_interface *mctp,
 	int ms_timeout);
+int cmd_channel_send_message (struct cmd_channel *channel, struct cmd_message *message);
 
 /* Internal functions for use by derived types. */
 int cmd_channel_init (struct cmd_channel *channel, int id);
@@ -110,6 +120,7 @@ enum {
 	CMD_CHANNEL_TX_TIMEOUT = CMD_CHANNEL_ERROR (0x05),			/**< Packet transmission timed out. */
 	CMD_CHANNEL_PKT_OVERFLOW = CMD_CHANNEL_ERROR (0x06),		/**< Packet overflow encountered. */
 	CMD_CHANNEL_INVALID_PKT_STATE = CMD_CHANNEL_ERROR (0x07),	/**< Packet state is not valid. */
+	CMD_CHANNEL_PKT_EXPIRED = CMD_CHANNEL_ERROR (0x08),			/**< The timout on a received packet has expired. */
 };
 
 

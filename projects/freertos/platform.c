@@ -11,6 +11,7 @@
 
 #define	INVALID_ARGUMENT	0
 #define	NO_MEMORY			1
+#define	FAILURE				2
 
 
 /**
@@ -488,4 +489,126 @@ uint32_t platform_htonl (uint32_t host_long)
 uint16_t platform_htons (uint16_t host_short)
 {
 	return SWAP_BYTES_UINT16 (host_short);
+}
+
+
+#define	PLATFORM_SEMAPHORE_ERROR(code)		ROT_ERROR (ROT_MODULE_PLATFORM_SEMAPHORE, code)
+
+/**
+ * Initialize a semaphore.
+ *
+ * @param sem The semaphore to initialize.
+ *
+ * @return 0 if the semaphore was initialized successfully or an error code.
+ */
+int platform_semaphore_init (platform_semaphore *sem)
+{
+	if (sem == NULL) {
+		return PLATFORM_SEMAPHORE_ERROR (INVALID_ARGUMENT);
+	}
+
+	*sem = xSemaphoreCreateBinary ();
+	if (*sem == NULL) {
+		return PLATFORM_MUTEX_ERROR (NO_MEMORY);
+	}
+
+	return 0;
+}
+
+/**
+ * Free a semaphore.
+ *
+ * @param sem The semaphore to free.
+ */
+void platform_semaphore_free (platform_semaphore *sem)
+{
+	if (sem && *sem) {
+		vSemaphoreDelete (*sem);
+	}
+}
+
+/**
+ * Signal a semaphore.
+ *
+ * @param sem The semaphore to signal.
+ *
+ * @return 0 if the semaphore was signaled successfully or an error code.
+ */
+int platform_semaphore_post (platform_semaphore *sem)
+{
+	BaseType_t status;
+
+	if (sem == NULL) {
+		return PLATFORM_SEMAPHORE_ERROR (INVALID_ARGUMENT);
+	}
+
+	status = xSemaphoreGive (*sem);
+	return (status == pdTRUE) ? 0 : PLATFORM_SEMAPHORE_ERROR (FAILURE);
+}
+
+/**
+ * Wait for a semaphore to be signaled.  This will block until either the semaphore is signaled or
+ * the timeout expires.  If the semaphore is already signaled, it will return immediately.
+ *
+ * @param sem The semaphore to wait on.
+ * @param ms_timeout The amount of time to wait for the semaphore to be signaled, in milliseconds.
+ * Specifying at timeout of 0 will cause the call to block indefinitely.
+ *
+ * @return 0 if the semaphore was signaled, 1 if the timeout expired, or an error code.
+ */
+int platform_semaphore_wait (platform_semaphore *sem, uint32_t ms_timeout)
+{
+	TickType_t timeout;
+	BaseType_t status;
+
+	if (sem == NULL) {
+		return PLATFORM_SEMAPHORE_ERROR (INVALID_ARGUMENT);
+	}
+
+	if (ms_timeout == 0) {
+		timeout = portMAX_DELAY;
+	}
+	else {
+		timeout = pdMS_TO_TICKS (ms_timeout);
+	}
+
+	status = xSemaphoreTake (*sem, timeout);
+	return (status == pdTRUE) ? 0 : 1;
+}
+
+/**
+ * Check the state of the semaphore and return immediately.  If the semaphore was signaled, checking
+ * the state will consume the signal.
+ *
+ * @param sem The semaphore to check.
+ *
+ * @return 0 if the semaphore was signaled, 1 if it was not, or an error code.
+ */
+int platform_semaphore_try_wait (platform_semaphore *sem)
+{
+	BaseType_t status;
+
+	if (sem == NULL) {
+		return PLATFORM_SEMAPHORE_ERROR (INVALID_ARGUMENT);
+	}
+
+	status = xSemaphoreTake (*sem, 0);
+	return (status == pdTRUE) ? 0 : 1;
+}
+
+/**
+ * Reset a semaphore to the unsignaled state.
+ *
+ * @param sem The semaphore to reset.
+ *
+ * @return 0 if the semaphore was reset successfully or an error code.
+ */
+int platform_semaphore_reset (platform_semaphore *sem)
+{
+	if (sem == NULL) {
+		return PLATFORM_SEMAPHORE_ERROR (INVALID_ARGUMENT);
+	}
+
+	xSemaphoreTake (*sem, 0);
+	return 0;
 }

@@ -442,6 +442,51 @@ void mctp_interface_reset_message_processing (struct mctp_interface *mctp)
 }
 
 /**
+ * Packetize a request message and send it over a command channel.  This call will block until the
+ * full message has been transmitted.
+ *
+ * @param mctp MCTP instance that will be processing the request message.
+ * @param channel Command channel to use for transmitting the packets.
+ * @param dest_addr The destination address for the request.
+ * @param dest_eid The destination EID for the request.
+ * @param request Buffer that contains the request body to send.
+ * @param length Length of the request message before any packtization.
+ * @param msg_buffer Buffer that will be used to store the packetized message.  This can be
+ * overlapping with the request buffer.  If the buffers overlap, the request data will be modified
+ * upon return.
+ * @param max_length Maximum length of the message buffer.  This buffer should be
+ * MCTP_PROTOCOL_MAX_MESSAGE_LEN bytes to ensure any message packetized in any way can fit.
+ *
+ * @return 0 if the request was transmitted successfully or an error code.
+ */
+// int mctp_interface_issue_request (struct mctp_interface *mctp, struct cmd_channel *channel,
+// 	uint8_t dest_addr, uint8_t dest_eid, uint8_t *request, size_t length, uint8_t *msg_buffer,
+// 	size_t max_length)
+// {
+	/* TODO:  Replace the current implementation with this function.  It is assumed some external
+	 * entity will be creating request messages to send.  These messages will be created by calling
+	 * command builders directly, for either Cerberus or MCTP control messages.  The
+	 * cmd_interface->issue_request function may become obsolete.  Once the caller has a message
+	 * body that needs to be sent, this function will be called to packetize and transmit.
+	 *
+	 * 1.  Check the device_manager to deteremine maximum packet size.
+	 * 2.  Query device_manager or cmd_channel to determine source address.
+	 * 3.  Check the buffer length to ensure enough space.
+	 * 4.  Check the msg_buffer and request buffers to see if the overlap, if they do, ensure that
+	 *     all request data is at the end of msg_buffer.
+	 * 5.  Loop through and call mctp_protocol_construct on request.  There is probably some
+	 *     refactoring that can be done here to share the packtization process with the same flow
+	 *     in process_packet.
+	 * 6.  Call cmd_channel_send_message, passing it msg_buffer as the data buffer in a cmd_message
+	 *     structure.
+	 * 7.  Information about the MCTP message that was sent (such as tag), would need to cached in
+	 *     the MCTP layer for comparison against response packets that are received.
+	 */
+
+// 	return -1;
+// }
+
+/**
  * MCTP interface issue request
  *
  * @param mctp MCTP interface instance
@@ -461,6 +506,8 @@ int mctp_interface_issue_request (struct mctp_interface *mctp, uint8_t dest_addr
 	uint8_t dest_eid, uint8_t src_addr, uint8_t src_eid, uint8_t command_id, void *request_params,
 	uint8_t *buf, size_t buf_len, uint8_t msg_type)
 {
+	/* TODO:  Replace with above flow. */
+
 	uint8_t msg_buffer[MCTP_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	int status;
 

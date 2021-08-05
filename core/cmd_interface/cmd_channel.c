@@ -21,11 +21,18 @@
  */
 int cmd_channel_init (struct cmd_channel *channel, int id)
 {
+	int status;
+
 	if (channel == NULL) {
 		return CMD_CHANNEL_INVALID_ARGUMENT;
 	}
 
 	memset (channel, 0, sizeof (struct cmd_channel));
+
+	status = platform_mutex_init (&channel->lock);
+	if (status != 0) {
+		return status;
+	}
 
 	channel->id = id;
 
@@ -39,7 +46,9 @@ int cmd_channel_init (struct cmd_channel *channel, int id)
  */
 void cmd_channel_release (struct cmd_channel *channel)
 {
-
+	if (channel) {
+		platform_mutex_free (&channel->lock);
+	}
 }
 
 /**
@@ -60,6 +69,56 @@ int cmd_channel_get_id (struct cmd_channel *channel)
 }
 
 /**
+ * Send a sequence of packets over a command channel.  Packets will be sequentially sent until all
+ * packets have been successfully trasmitted or there is an error sending a packet.  Sending cannot
+ * be interrupted by a different sequence of packets.  This ensures no interleaving of different
+ * messages over the channel.
+ *
+ * @param channel The channel to send the packets on.
+ * @param message The message container with the packets that should be sent.
+ * @param packet A packet buffer to use for sending the packets.  Once access to the channel is
+ * granted, the timeout on this packet will be checked to see if it should still be sent.
+ *
+ * @return 0 if all packets were successfully sent or an error code.  If no packets were sent due to
+ * the packet timeout value, CMD_CHANNEL_PKT_EXPIRED will be returned.
+ */
+static int cmd_channel_send_packets (struct cmd_channel *channel, struct cmd_message *message,
+	struct cmd_packet *packet)
+{
+	uint8_t *pkt_pos;
+	size_t msg_len;
+	size_t pkt_len;
+	int status = 0;
+
+	platform_mutex_lock (&channel->lock);
+
+	if (!packet->timeout_valid || !platform_has_timeout_expired (&packet->pkt_timeout)) {
+		pkt_pos = message->data;
+		msg_len = message->msg_size;
+
+		memset (packet, 0, sizeof (*packet));
+		packet->state = CMD_VALID_PACKET;
+		packet->dest_addr = message->dest_addr;
+
+		while ((msg_len > 0) && (status == 0)) {
+			pkt_len = min (message->pkt_size, msg_len);
+			memcpy (packet->data, pkt_pos, pkt_len);
+
+			packet->pkt_size = pkt_len;
+			status = channel->send_packet (channel, packet);
+
+			pkt_pos += pkt_len;
+			msg_len -= pkt_len;
+		}
+	}
+	else {
+		status = CMD_CHANNEL_PKT_EXPIRED;
+	}
+
+	platform_mutex_unlock (&channel->lock);
+	return status;
+}
+/**
  * Receive a single packet from the command channel and process it.  Errors will be logged.
  *
  * @param channel The channel to receive a packet from.
@@ -74,9 +133,6 @@ int cmd_channel_receive_and_process (struct cmd_channel *channel, struct mctp_in
 {
 	struct cmd_packet packet;
 	struct cmd_message *message;
-	uint8_t *pkt_pos;
-	size_t msg_len;
-	size_t pkt_len;
 	int status;
 
 	if ((channel == NULL) || (mctp == NULL)) {
@@ -117,38 +173,24 @@ int cmd_channel_receive_and_process (struct cmd_channel *channel, struct mctp_in
 
 	status = mctp_interface_process_packet (mctp, &packet, &message);
 	if (status == 0) {
-		if (!packet.timeout_valid || !platform_has_timeout_expired (&packet.pkt_timeout)) {
-			if (message != NULL) {
-				pkt_pos = message->data;
-				msg_len = message->msg_size;
+		if (message != NULL) {
+			status = cmd_channel_send_packets (channel, message, &packet);
+			if (status != 0) {
+				if (status == CMD_CHANNEL_PKT_EXPIRED) {
+					platform_clock now;
+					platform_init_current_tick (&now);
+					debug_log_create_entry (DEBUG_LOG_SEVERITY_WARNING,
+						DEBUG_LOG_COMPONENT_CMD_INTERFACE, CMD_LOGGING_COMMAND_TIMEOUT, channel->id,
+						platform_get_duration (&packet.pkt_timeout, &now));
 
-				memset (&packet, 0, sizeof (packet));
-				packet.state = CMD_VALID_PACKET;
-				packet.dest_addr = message->dest_addr;
-
-				while ((msg_len > 0) && (status == 0)) {
-					pkt_len = min (message->pkt_size, msg_len);
-					memcpy (packet.data, pkt_pos, pkt_len);
-
-					packet.pkt_size = pkt_len;
-					status = channel->send_packet (channel, &packet);
-					if (status != 0) {
-						debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR,
-							DEBUG_LOG_COMPONENT_CMD_INTERFACE, CMD_LOGGING_SEND_PACKET_FAIL,
-							channel->id, status);
-					}
-
-					pkt_pos += pkt_len;
-					msg_len -= pkt_len;
+					status = 0;
+				}
+				else {
+					debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR,
+						DEBUG_LOG_COMPONENT_CMD_INTERFACE, CMD_LOGGING_SEND_PACKET_FAIL,
+						channel->id, status);
 				}
 			}
-		}
-		else {
-			platform_clock now;
-			platform_init_current_tick (&now);
-			debug_log_create_entry (DEBUG_LOG_SEVERITY_WARNING, DEBUG_LOG_COMPONENT_CMD_INTERFACE,
-				CMD_LOGGING_COMMAND_TIMEOUT, channel->id,
-				platform_get_duration (&packet.pkt_timeout, &now));
 		}
 	}
 	else {
@@ -157,4 +199,25 @@ int cmd_channel_receive_and_process (struct cmd_channel *channel, struct mctp_in
 	}
 
 	return status;
+}
+
+/**
+ * Send a packetized message over a communication channel.  This call will block until the last
+ * packet has been sent, which follows the same postconditions as the send_packet call.
+ *
+ * @param channel The channel to send the message on.
+ * @param message A packetized message to send.
+ *
+ * @return 0 if the message was successfully sent or an error code.
+ */
+int cmd_channel_send_message (struct cmd_channel *channel, struct cmd_message *message)
+{
+	struct cmd_packet packet;
+
+	if ((channel == NULL) || (message == NULL)) {
+		return CMD_CHANNEL_INVALID_ARGUMENT;
+	}
+
+	packet.timeout_valid = false;
+	return cmd_channel_send_packets (channel, message, &packet);
 }

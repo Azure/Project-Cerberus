@@ -69,4 +69,14 @@ int platform_timer_disarm (platform_timer *timer);
 void platform_timer_delete (platform_timer *timer);
 
 
+/* Linux semaphore */
+typedef sem_t platform_semaphore;
+int platform_semaphore_init (platform_semaphore *sem);
+void platform_semaphore_free (platform_semaphore *sem);
+int platform_semaphore_post (platform_semaphore *sem);
+int platform_semaphore_wait (platform_semaphore *sem, uint32_t ms_timeout);
+int platform_semaphore_try_wait (platform_semaphore *sem);
+int platform_semaphore_reset (platform_semaphore *sem);
+
+
 #endif /* LINUX_PLATFORM_H_ */

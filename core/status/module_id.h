@@ -97,6 +97,7 @@ enum {
 	ROT_MODULE_HOST_STATE_OBSERVER = 0x0055,			/**< Observers for host state changes. */
 	ROT_MODULE_SYSTEM = 0x0056,							/**< Main system manager. */
 	ROT_MODULE_SYSTEM_OBSERVER = 0x0057,				/**< Observers for system events. */
+	ROT_MODULE_PLATFORM_SEMAPHORE = 0x0058,				/**< Platform abstraction for semaphores. */
 };
 
 
