@@ -99,6 +99,30 @@ enum {
 	MOCK_ARG_FLAG_OUT_PTR_PTR = 0x80,		/**< The argument output data should be stored at a pointer referenced by another pointer. */
 };
 
+struct mock_call;
+
+/**
+ * Defines a callback that can be provided for an expectation to execute custom workflows in
+ * response to a call at run time.
+ *
+ * This action will be called before processing any of the called arguments.  This means the called
+ * argument list contains the raw argument values passed to the function and have not been updated
+ * with any output data.
+ *
+ * Do not change any contents of either the expected or called structures.  The contents can be
+ * checked as part of the custom workflows, but they must not be modified.
+ *
+ * @param expected The expectation that is being used to validate the current call on the mock.
+ * @param called The context for the actual call on the mock.
+ *
+ * @return This function can return anything that it determines to be appropriate.  A return of 0
+ * causes mock processing for the call to proceed normally.  If it returns non-zero, the return
+ * value of this function will be used as the return value from the mock, overriding the return
+ * value specified when the expectation was created.
+ */
+typedef intptr_t (*mock_call_action) (const struct mock_call *expected,
+	const struct mock_call *called);
+
 /**
  * An expectation for a call to the mock.
  */
@@ -109,6 +133,8 @@ struct mock_call {
 	int argc;					/**< The number of arguments. */
 	struct mock_arg *argv;		/**< The arguments to the function. */
 	intptr_t return_val;		/**< The value to return for the call. */
+	mock_call_action action;	/**< A custom action to execute while processing the call. */
+	void *context;				/**< User context provided for the custom action. */
 };
 
 /**
@@ -380,6 +406,7 @@ struct mock_expect_arg {
 
 
 int mock_expect (struct mock *mock, void *func_call, void *instance, intptr_t return_val, ...);
+
 int mock_expect_output (struct mock *mock, int arg, const void *out_data, size_t out_length,
 	int length_arg);
 int mock_expect_output_tmp (struct mock *mock, int arg, const void *out_data, size_t out_length,
@@ -392,9 +419,12 @@ int mock_expect_output_deep_copy (struct mock *mock, int arg, const void *out_da
 	size_t out_length, mock_arg_copy copy);
 int mock_expect_output_deep_copy_tmp (struct mock *mock, int arg, const void *out_data,
 	size_t out_length, mock_arg_copy copy, mock_arg_alloc_expect out_copy, mock_arg_free free);
+
 int mock_expect_save_arg (struct mock *mock, int arg, int id);
 int mock_expect_next_save_id (struct mock *mock);
 int mock_expect_share_save_arg (struct mock *from, int src_id, struct mock *to, int dest_id);
+
+int mock_expect_external_action (struct mock *mock, mock_call_action action, void *context);
 
 int mock_validate (struct mock *mock);
 

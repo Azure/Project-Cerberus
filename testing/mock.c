@@ -534,6 +534,37 @@ int mock_expect_share_save_arg (struct mock *from, int src_id, struct mock *to, 
 }
 
 /**
+ * Set a custom action to execute while processing an expected call on the mock.  The action will be
+ * executed prior to any argument processing by the mock.
+ *
+ * This will only update the last expectation that was added to the mock and an expectation can only
+ * have one action assigned.  If this is called multiple times, the last action will be the one that
+ * is executed.
+ *
+ * @param mock The mock instance to update.
+ * @param action The action to execute in response to the expected call.
+ * @param context A user context to save with the expectation.  This will be available to the action
+ * through expected parameters for the call that are provided to the action callback.
+ *
+ * @return 0 if the mock was updated successfully or an error code.
+ */
+int mock_expect_external_action (struct mock *mock, mock_call_action action, void *context)
+{
+	if ((mock == NULL) || (action == NULL)) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	if (mock->exp_tail == NULL) {
+		return MOCK_NO_EXPECTATION;
+	}
+
+	mock->exp_tail->action = action;
+	mock->exp_tail->context = context;
+
+	return 0;
+}
+
+/**
  * Print the information for an expected function call.
  *
  * @param mock The mock expecting the function call.
@@ -933,6 +964,11 @@ intptr_t mock_return_from_call (struct mock *mock, struct mock_call *call)
 	}
 
 	if (expected != NULL) {
+		/* Call any external action registered with the expectation. */
+		if (expected->action) {
+			status = expected->action (expected, call);
+		}
+
 		for (i = 0; i < expected->argc; i++) {
 			update_value = false;
 
@@ -993,7 +1029,9 @@ intptr_t mock_return_from_call (struct mock *mock, struct mock_call *call)
 			}
 		}
 
-		status = expected->return_val;
+		if (status == 0) {
+			status = expected->return_val;
+		}
 		mock->next_call = expected->next;
 	}
 
