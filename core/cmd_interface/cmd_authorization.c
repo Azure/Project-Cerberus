@@ -52,6 +52,21 @@ static int cmd_authorization_authorize_clear_platform_config (struct cmd_authori
 	}
 }
 
+static int cmd_authorization_authorize_reset_intrusion (struct cmd_authorization *auth,
+	uint8_t **token, size_t *length)
+{
+	if (auth == NULL) {
+		return CMD_AUTHORIZATION_INVALID_ARGUMENT;
+	}
+
+	if (auth->intrusion) {
+		return auth->intrusion->authorize (auth->intrusion, token, length);
+	}
+	else {
+		return AUTHORIZATION_NOT_AUTHORIZED;
+	}
+}
+
 /**
  * Initialize the handler for authorizing requested operations.
  *
@@ -62,11 +77,14 @@ static int cmd_authorization_authorize_clear_platform_config (struct cmd_authori
  * disallow this operation.
  * @param platform The authorization context to clear platform-specific configuration.  Set to null
  * to disallow this operation.
+ * @param intrusion The authorization context to reset intrusion state.  Set to null to disallow 
+ * this operation.
  *
  * @return 0 if the handler was successfully initialized or an error code.
  */
 int cmd_authorization_init (struct cmd_authorization *auth, struct authorization *bypass,
-	struct authorization *defaults, struct authorization *platform)
+	struct authorization *defaults, struct authorization *platform, 
+	struct authorization *intrusion)
 {
 	if (auth == NULL) {
 		return CMD_AUTHORIZATION_INVALID_ARGUMENT;
@@ -77,10 +95,12 @@ int cmd_authorization_init (struct cmd_authorization *auth, struct authorization
 	auth->authorize_revert_bypass = cmd_authorization_authorize_revert_bypass;
 	auth->authorize_reset_defaults = cmd_authorization_authorize_reset_defaults;
 	auth->authorize_clear_platform_config = cmd_authorization_authorize_clear_platform_config;
+	auth->authorize_reset_intrusion = cmd_authorization_authorize_reset_intrusion;
 
 	auth->bypass = bypass;
 	auth->defaults = defaults;
 	auth->platform = platform;
+	auth->intrusion = intrusion;
 
 	return 0;
 }

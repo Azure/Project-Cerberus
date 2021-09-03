@@ -90,7 +90,7 @@ enum {
 	CERBERUS_PROTOCOL_DEBUG_GET_DEVICE_MANAGER_CERT,			/**< Debug command to retrieve device certificate */
 	CERBERUS_PROTOCOL_DEBUG_GET_DEVICE_MANAGER_CERT_DIGEST,		/**< Debug command to retrieve device certificate digest */
 	CERBERUS_PROTOCOL_DEBUG_GET_DEVICE_MANAGER_CHALLENGE,		/**< Debug command to retrieve device challenge */
-	CERBORUS_PROTOCOL_DEBUG_RESERVED = 0xFF,					/**< Not available to use as a debug command. */
+	CERBERUS_PROTOCOL_DEBUG_RESERVED = 0xFF,					/**< Not available to use as a debug command. */
 };
 
 /**

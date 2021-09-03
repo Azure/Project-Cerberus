@@ -66,7 +66,10 @@ enum {
  */
 enum {
 	CERBERUS_PROTOCOL_REVERT_BYPASS = 0,					/**< Reset device to the unprotected state */
-	CERBERUS_PROTOCOL_FACTORY_RESET							/**< Restore factory default configuration */
+	CERBERUS_PROTOCOL_FACTORY_RESET,						/**< Restore factory default configuration */
+	CERBERUS_PROTOCOL_CLEAR_PCD,							/**< Remove any PCD used by the device. */
+	CERBERUS_PROTOCOL_CLEAR_CFM,							/**< Remove any CFM used for component attestation. */
+	CERBERUS_PROTOCOL_RESET_INTRUSION,						/**< Clear the device intrusion state. */
 };
 
 /**
@@ -994,4 +997,4 @@ int cerberus_protocol_session_sync (struct session_manager *session,
 	struct cmd_interface_request *request, uint8_t encrypted);
 
 
-#endif // CERBERUS_PROTOCOL_OPTIONAL_COMMANDS_H_
+#endif /* CERBERUS_PROTOCOL_OPTIONAL_COMMANDS_H_ */

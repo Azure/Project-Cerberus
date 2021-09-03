@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <string.h>
-#include "tpm/tpm.h"
 #include "host_processor_observer_mock.h"
 
 

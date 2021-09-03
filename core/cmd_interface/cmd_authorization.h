@@ -60,14 +60,31 @@ struct cmd_authorization {
 	int (*authorize_clear_platform_config) (struct cmd_authorization *auth, uint8_t **token,
 		size_t *length);
 
+	/**
+	 * Check for authorization to reset the intrusion state for the device.
+	 *
+	 * @param auth Authorization handler to query.
+	 * @param token Input or output authorization token, depending on the initial value.  See
+	 * {@link struct authorization.authorize}.
+	 * @param length Input or output length of the authorization token, depending on the initial
+	 * value of the authorization token.  See {@link struct authorization.authorize}.
+	 *
+	 * @return 0 if the operation is authorized or an error code.  If a token was generated,
+	 * CMD_AUTHORIZATION_CHALLENGE will be returned.
+	 */
+	int (*authorize_reset_intrusion) (struct cmd_authorization *auth, uint8_t **token,
+		size_t *length);
+
 	struct authorization *bypass;		/**< Authorization context for reverting to bypass. */
 	struct authorization *defaults;		/**< Authorization context for resetting to defaults. */
 	struct authorization *platform;		/**< Authorization context for clearing platform config. */
+	struct authorization *intrusion;	/**< Authorization context for resetting intrusion. */
 };
 
 
 int cmd_authorization_init (struct cmd_authorization *auth, struct authorization *bypass,
-	struct authorization *defaults, struct authorization *platform);
+	struct authorization *defaults, struct authorization *platform, 
+	struct authorization *intrusion);
 void cmd_authorization_release (struct cmd_authorization *auth);
 
 

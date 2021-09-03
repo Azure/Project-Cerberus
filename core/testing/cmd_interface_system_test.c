@@ -431,8 +431,8 @@ static void setup_cmd_interface_system_mock_test (CuTest *test,
 		&cmd->store, &cmd->hash.base, &cmd->background.base, host_0_ptr, host_1_ptr,
 		&cmd->fw_version, &cmd->riot, &cmd->auth.base, host_ctrl_0_ptr, host_ctrl_1_ptr,
 		recovery_0_ptr, recovery_1_ptr, recovery_manager_0_ptr, recovery_manager_1_ptr,
-		&cmd->cmd_device.base, CERBERUS_PROTOCOL_MSFT_PCI_VID, 2, CERBERUS_PROTOCOL_MSFT_PCI_VID,
-		4, session_mgr_ptr);
+		&cmd->cmd_device.base, CERBERUS_PROTOCOL_MSFT_PCI_VID, 2, CERBERUS_PROTOCOL_MSFT_PCI_VID, 4,
+		session_mgr_ptr);
 	CuAssertIntEquals (test, 0, status);
 }
 
@@ -699,8 +699,8 @@ static void cmd_interface_system_test_init (CuTest *test)
 		&cfm.base, &pcd.base, &pfm_mgr_0.base, &pfm_mgr_1.base, &cfm_mgr.base, &pcd_mgr.base,
 		&master_attestation.base, &slave_attestation.base, &device_manager, &store, &hash.base,
 		&background.base, &host_0.base, &host_1.base, &fw_version, &riot, &auth.base,
-		&host_ctrl_0.base, &host_ctrl_1.base, NULL, NULL, NULL, NULL, &cmd_device.base,
-		0, 0, 0, 0, &session.base);
+		&host_ctrl_0.base, &host_ctrl_1.base, NULL, NULL, NULL, NULL, &cmd_device.base, 0, 0, 0, 0,
+		&session.base);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrNotNull (test, interface.base.process_request);
@@ -918,30 +918,32 @@ static void cmd_interface_system_test_init_null (CuTest *test)
 		&cfm.base, &pcd.base, &pfm_mgr_0.base, &pfm_mgr_1.base, &cfm_mgr.base, &pcd_mgr.base,
 		&master_attestation.base, &slave_attestation.base, &device_manager, &store, &hash.base,
 		&background.base, &host_0.base, &host_1.base, &fw_version, &riot, &auth.base,
-		&host_ctrl_0.base, &host_ctrl_1.base, NULL, NULL, NULL, NULL, &cmd_device.base,
-		0, 0, 0, 0, &session.base);
+		&host_ctrl_0.base, &host_ctrl_1.base, NULL, NULL, NULL, NULL, &cmd_device.base, 0, 0, 0, 0,
+		&session.base);
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
 	status = cmd_interface_system_init (&interface, NULL, &pfm_0.base, &pfm_1.base,
 		&cfm.base, &pcd.base, &pfm_mgr_0.base, &pfm_mgr_1.base, &cfm_mgr.base, &pcd_mgr.base,
 		&master_attestation.base, &slave_attestation.base, &device_manager, &store, &hash.base,
 		&background.base, &host_0.base, &host_1.base, &fw_version, &riot, &auth.base,
-		&host_ctrl_0.base, &host_ctrl_1.base, NULL, NULL, NULL, NULL, &cmd_device.base,
-		0, 0, 0, 0, &session.base);
+		&host_ctrl_0.base, &host_ctrl_1.base, NULL, NULL, NULL, NULL, &cmd_device.base, 0, 0, 0, 0,
+		&session.base);
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
 	status = cmd_interface_system_init (&interface, &update.base, &pfm_0.base, &pfm_1.base,
 		&cfm.base, &pcd.base, &pfm_mgr_0.base, &pfm_mgr_1.base, &cfm_mgr.base, &pcd_mgr.base, NULL,
 		&slave_attestation.base, &device_manager, &store, &hash.base, &background.base,
 		&host_0.base, &host_1.base, &fw_version, &riot, &auth.base, &host_ctrl_0.base,
-		&host_ctrl_1.base, NULL, NULL, NULL, NULL, &cmd_device.base, 0, 0, 0, 0, &session.base);
+		&host_ctrl_1.base, NULL, NULL, NULL, NULL, &cmd_device.base, 0, 0, 0, 0,
+		&session.base);
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
 	status = cmd_interface_system_init (&interface, &update.base, &pfm_0.base, &pfm_1.base,
 		&cfm.base, &pcd.base, &pfm_mgr_0.base, &pfm_mgr_1.base, &cfm_mgr.base, &pcd_mgr.base,
 		&master_attestation.base, NULL, &device_manager, &store, &hash.base, &background.base,
 		&host_0.base, &host_1.base, &fw_version, &riot, &auth.base, &host_ctrl_0.base,
-		&host_ctrl_1.base, NULL, NULL, NULL, NULL, &cmd_device.base, 0, 0, 0, 0, &session.base);
+		&host_ctrl_1.base, NULL, NULL, NULL, NULL, &cmd_device.base, 0, 0, 0, 0,
+		&session.base);
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
 	status = cmd_interface_system_init (&interface, &update.base, &pfm_0.base, &pfm_1.base,
@@ -972,14 +974,16 @@ static void cmd_interface_system_test_init_null (CuTest *test)
 		&cfm.base, &pcd.base, &pfm_mgr_0.base, &pfm_mgr_1.base, &cfm_mgr.base, &pcd_mgr.base,
 		&master_attestation.base, &slave_attestation.base, &device_manager, &store, &hash.base,
 		NULL, &host_0.base, &host_1.base, &fw_version, &riot, &auth.base, &host_ctrl_0.base,
-		&host_ctrl_1.base, NULL, NULL, NULL, NULL, &cmd_device.base, 0, 0, 0, 0, &session.base);
+		&host_ctrl_1.base, NULL, NULL, NULL, NULL, &cmd_device.base, 0, 0, 0, 0,
+		&session.base);
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
 	status = cmd_interface_system_init (&interface, &update.base, &pfm_0.base, &pfm_1.base,
 		&cfm.base, &pcd.base, &pfm_mgr_0.base, &pfm_mgr_1.base, &cfm_mgr.base, &pcd_mgr.base,
 		&master_attestation.base, &slave_attestation.base, &device_manager, &store, &hash.base,
 		&background.base, &host_0.base, &host_1.base, NULL, &riot, &auth.base, &host_ctrl_0.base,
-		&host_ctrl_1.base, NULL, NULL, NULL, NULL, &cmd_device.base, 0, 0, 0, 0, &session.base);
+		&host_ctrl_1.base, NULL, NULL, NULL, NULL, &cmd_device.base, 0, 0, 0, 0,
+		&session.base);
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
 	status = cmd_interface_system_init (&interface, &update.base, &pfm_0.base, &pfm_1.base,
@@ -994,7 +998,8 @@ static void cmd_interface_system_test_init_null (CuTest *test)
 		&cfm.base, &pcd.base, &pfm_mgr_0.base, &pfm_mgr_1.base, &cfm_mgr.base, &pcd_mgr.base,
 		&master_attestation.base, &slave_attestation.base, &device_manager, &store, &hash.base,
 		&background.base, &host_0.base, &host_1.base, &fw_version, &riot, NULL, &host_ctrl_0.base,
-		&host_ctrl_1.base, NULL, NULL, NULL, NULL, &cmd_device.base, 0, 0, 0, 0, &session.base);
+		&host_ctrl_1.base, NULL, NULL, NULL, NULL, &cmd_device.base, 0, 0, 0, 0,
+		&session.base);
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
 	status = cmd_interface_system_init (&interface, &update.base, &pfm_0.base, &pfm_1.base,
@@ -1079,8 +1084,6 @@ static void cmd_interface_system_test_init_null (CuTest *test)
 	debug_log = NULL;
 
 	pcr_store_release (&store);
-
-	cmd_interface_system_deinit (&interface);
 }
 
 static void cmd_interface_system_test_deinit_null (CuTest *test)
@@ -6167,6 +6170,127 @@ static void cmd_interface_system_test_process_clear_platform_config_error (CuTes
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
+static void cmd_interface_system_test_process_reset_intrusion_no_nonce_authorized (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM, true);
+	cerberus_protocol_optional_commands_testing_process_reset_intrusion_no_nonce_authorized (test,
+		&cmd.handler.base, &cmd.auth, &cmd.background);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_reset_intrusion_no_nonce_challenge (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM, true);
+	cerberus_protocol_optional_commands_testing_process_reset_intrusion_no_nonce_challenge (test,
+		&cmd.handler.base, &cmd.auth);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_reset_intrusion_no_nonce_max_challenge (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM, true);
+	cerberus_protocol_optional_commands_testing_process_reset_intrusion_no_nonce_max_challenge (
+		test, &cmd.handler.base, &cmd.auth);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_reset_intrusion_no_nonce_not_authorized (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM, true);
+	cerberus_protocol_optional_commands_testing_process_reset_intrusion_no_nonce_not_authorized (
+		test, &cmd.handler.base, &cmd.auth);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_reset_intrusion_with_nonce_authorized (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM, true);
+	cerberus_protocol_optional_commands_testing_process_reset_intrusion_with_nonce_authorized (test,
+		&cmd.handler.base, &cmd.auth, &cmd.background);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_reset_intrusion_with_nonce_not_authorized (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM, true);
+	cerberus_protocol_optional_commands_testing_process_reset_intrusion_with_nonce_not_authorized (
+		test, &cmd.handler.base, &cmd.auth);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_reset_intrusion_no_nonce_invalid_challenge (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM, true);
+	cerberus_protocol_optional_commands_testing_process_reset_intrusion_no_nonce_invalid_challenge (
+		test, &cmd.handler.base, &cmd.auth);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_reset_intrusion_no_nonce_invalid_challenge_limited_response (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM, true);
+	cerberus_protocol_optional_commands_testing_process_reset_intrusion_no_nonce_invalid_challenge_limited_response (
+		test, &cmd.handler.base, &cmd.auth);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_reset_intrusion_error (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM, true);
+	cerberus_protocol_optional_commands_testing_process_reset_intrusion_error (test,
+		&cmd.handler.base, &cmd.auth, &cmd.background);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+
 static void cmd_interface_system_test_process_reset_config_invalid_len (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
@@ -7859,6 +7983,18 @@ CuSuite* get_cmd_interface_system_suite ()
 	SUITE_ADD_TEST (suite,
 		cmd_interface_system_test_process_clear_platform_config_no_nonce_invalid_challenge_limited_response);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_clear_platform_config_error);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_reset_intrusion_no_nonce_authorized);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_reset_intrusion_no_nonce_challenge);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_reset_intrusion_no_nonce_max_challenge);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_reset_intrusion_no_nonce_not_authorized);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_reset_intrusion_with_nonce_authorized);
+	SUITE_ADD_TEST (suite,
+		cmd_interface_system_test_process_reset_intrusion_with_nonce_not_authorized);
+	SUITE_ADD_TEST (suite,
+		cmd_interface_system_test_process_reset_intrusion_no_nonce_invalid_challenge);
+	SUITE_ADD_TEST (suite,
+		cmd_interface_system_test_process_reset_intrusion_no_nonce_invalid_challenge_limited_response);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_reset_intrusion_error);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_reset_config_invalid_len);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_reset_config_invalid_request_subtype);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_device_certificate);

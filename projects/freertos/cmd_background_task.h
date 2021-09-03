@@ -56,7 +56,7 @@ struct cmd_background_task {
 #ifdef CMD_ENABLE_UNSEAL
 	struct cmd_background_attestation attestation;	/**< Attestation command context. */
 #endif
-#ifdef CMD_ENABLE_RESET_CONFIG
+#if defined CMD_ENABLE_RESET_CONFIG || defined CMD_ENABLE_INTRUSION
 	struct cmd_background_config config;			/**< Configuration reset context. */
 #endif
 

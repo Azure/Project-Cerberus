@@ -37,6 +37,8 @@ enum {
 	CMD_LOGGING_GENERATE_AUX_KEY,			/**< Generating auxiliary attestation key. */
 	CMD_LOGGING_CLEAR_PLATFORM_CONFIG,		/**< Device platform configuration has been cleared. */
 	CMD_LOGGING_CLEAR_PLATFORM_FAIL,		/**< Failed to clear platform configuration. */
+	CMD_LOGGING_RESET_INTRUSION,			/**< Intrusion state has been reset. */
+	CMD_LOGGING_RESET_INTRUSION_FAIL,		/**< Failed to reset intrusion state. */
 };
 
 

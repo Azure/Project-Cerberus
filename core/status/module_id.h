@@ -99,6 +99,8 @@ enum {
 	ROT_MODULE_SYSTEM_OBSERVER = 0x0057,				/**< Observers for system events. */
 	ROT_MODULE_PLATFORM_SEMAPHORE = 0x0058,				/**< Platform abstraction for semaphores. */
 	ROT_MODULE_INTRUSION_STATE = 0x0059,				/**< Chassis intrusion state detection. */
+	ROT_MODULE_INTRUSION_STATE_OBSERVER = 0x0060,		/**< Observers for intrunion state changes. */
+	ROT_MODULE_INTRUSION_MANAGER = 0x0061,				/**< Manager for intrusion detection. */
 };
 
 

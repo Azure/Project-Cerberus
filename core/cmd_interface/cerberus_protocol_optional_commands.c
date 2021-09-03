@@ -807,7 +807,7 @@ int cerberus_protocol_unseal_message_result (struct cmd_background *background,
 int cerberus_protocol_reset_config (struct cmd_authorization *cmd_auth,
 	struct cmd_background *background, struct cmd_interface_request *request)
 {
-#ifdef CMD_ENABLE_RESET_CONFIG
+#if defined CMD_ENABLE_RESET_CONFIG || defined CMD_ENABLE_INTRUSION
 	struct cerberus_protocol_reset_config *rq =
 		(struct cerberus_protocol_reset_config*) request->data;
 	struct cerberus_protocol_reset_config_response *rsp =
@@ -825,20 +825,29 @@ int cerberus_protocol_reset_config (struct cmd_authorization *cmd_auth,
 	}
 
 	switch (rq->type) {
-		case 0:
+#ifdef CMD_ENABLE_RESET_CONFIG
+		case CERBERUS_PROTOCOL_REVERT_BYPASS:
 			auth = cmd_auth->authorize_revert_bypass;
 			action = background->reset_bypass;
 			break;
 
-		case 1:
+		case CERBERUS_PROTOCOL_FACTORY_RESET:
 			auth = cmd_auth->authorize_reset_defaults;
 			action = background->restore_defaults;
 			break;
 
-		case 2:
+		case CERBERUS_PROTOCOL_CLEAR_PCD:
 			auth = cmd_auth->authorize_clear_platform_config;
 			action = background->clear_platform_config;
 			break;
+#endif
+
+#ifdef CMD_ENABLE_INTRUSION
+		case CERBERUS_PROTOCOL_RESET_INTRUSION:
+			auth = cmd_auth->authorize_reset_intrusion;
+			action = background->reset_intrusion;
+			break;
+#endif
 
 		default:
 			return CMD_HANDLER_UNSUPPORTED_INDEX;

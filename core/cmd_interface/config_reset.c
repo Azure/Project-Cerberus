@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <string.h>
-#include "keystore/keystore.h"
 #include "config_reset.h"
 
 
@@ -24,6 +23,7 @@
  * @param recovery Manager for recovery images to be cleared.
  * @param keystores Array of keystores to clear keys of.
  * @param keystore_count Number of keystores in the keystores array.
+ * @param intrusion The intrusion manager to reset intrusion.
  *
  * @return 0 if the manager was initialized successfully or an error code.
  */
@@ -31,7 +31,7 @@ int config_reset_init (struct config_reset *reset, struct manifest_manager **byp
 	size_t bypass_count, struct manifest_manager **platform_config, size_t platform_count,
 	struct state_manager **state, size_t state_count, struct riot_key_manager *riot,
 	struct aux_attestation *aux, struct recovery_image_manager *recovery,
-	struct keystore **keystores, size_t keystore_count)
+	struct keystore **keystores, size_t keystore_count, struct intrusion_manager *intrusion)
 {
 	if ((reset == NULL) || (bypass_count && (bypass_config == NULL)) ||
 		(platform_count && (platform_config == NULL)) || (state_count && (state == NULL)) ||
@@ -56,6 +56,7 @@ int config_reset_init (struct config_reset *reset, struct manifest_manager **byp
 	reset->recovery = recovery;
 	reset->keystores = keystores;
 	reset->keystore_count = keystore_count;
+	reset->intrusion = intrusion;
 
 	return 0;
 }
@@ -166,6 +167,11 @@ int config_reset_restore_defaults (struct config_reset *reset)
 		}
 	}
 
+	if (reset->intrusion) {
+		/* The default state for intrusion detection is "intruded". */
+		status = reset->intrusion->handle_intrusion (reset->intrusion);
+	}
+
 	return status;
 }
 
@@ -197,4 +203,25 @@ int config_reset_restore_platform_config (struct config_reset *reset)
 	}
 
 	return 0;
+}
+
+/**
+ * Reset the system intrusion detection to report that no intrusion has taken place.
+ *
+ * @param reset The configuration that should be reset.
+ *
+ * @return 0 if intrusion was reset or an error code.
+ */
+int config_reset_reset_intrusion (struct config_reset *reset)
+{
+	if (reset == NULL) {
+		return CONFIG_RESET_INVALID_ARGUMENT;
+	}
+
+	if (reset->intrusion) {
+		return reset->intrusion->reset_intrusion (reset->intrusion);
+	}
+	else {
+		return 0;
+	}
 }

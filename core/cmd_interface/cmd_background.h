@@ -89,7 +89,20 @@ struct cmd_background {
 	 * @return 0 if the operation was successfully scheduled or an error code.
 	 */
 	int (*clear_platform_config) (struct cmd_background *cmd);
+#endif
 
+#ifdef CMD_ENABLE_INTRUSION
+	/**
+	 * Reset the intrusion state.
+	 *
+	 * @param cmd The background context for executing the operation.
+	 *
+	 * @return 0 if the operation was successfuly scheduled or an error code.
+	 */
+	int (*reset_intrusion) (struct cmd_background *cmd);
+#endif
+
+#if defined CMD_ENABLE_RESET_CONFIG || defined CMD_ENABLE_INTRUSION
 	/**
 	 * Get the status of the last configuration reset operation.
 	 *
@@ -165,6 +178,7 @@ enum {
 	CMD_BACKGROUND_TASK_BUSY = CMD_BACKGROUND_ERROR (0x0A),				/**< The command task is busy performing an operation. */
 	CMD_BACKGROUND_UNSUPPORTED_OP = CMD_BACKGROUND_ERROR (0x0B),		/**< The scheduled operation is not understood by the task. */
 	CMD_BACKGROUND_PLATFORM_CFG_FAILED = CMD_BACKGROUND_ERROR (0x0C),	/**< Failed to clear platform configuration. */
+	CMD_BACKGROUND_INTRUSION_FAILED = CMD_BACKGROUND_ERROR (0x0D),		/**< Failed to reset the intrusion state. */
 };
 
 

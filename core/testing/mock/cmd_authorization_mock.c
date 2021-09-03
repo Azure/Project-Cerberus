@@ -46,11 +46,25 @@ static int cmd_authorization_mock_authorize_clear_platform_config (struct cmd_au
 		MOCK_ARG_CALL (token), MOCK_ARG_CALL (length));
 }
 
+static int cmd_authorization_mock_authorize_reset_intrusion (struct cmd_authorization *auth,
+	uint8_t **token, size_t *length)
+{
+	struct cmd_authorization_mock *mock = (struct cmd_authorization_mock*) auth;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, cmd_authorization_mock_authorize_reset_intrusion, auth,
+		MOCK_ARG_CALL (token), MOCK_ARG_CALL (length));
+}
+
 static int cmd_authorization_mock_func_arg_count (void *func)
 {
 	if ((func == cmd_authorization_mock_authorize_revert_bypass) ||
 		(func == cmd_authorization_mock_authorize_reset_defaults) ||
-		(func == cmd_authorization_mock_authorize_clear_platform_config)) {
+		(func == cmd_authorization_mock_authorize_clear_platform_config) ||
+		(func == cmd_authorization_mock_authorize_reset_intrusion)) {
 		return 2;
 	}
 	else {
@@ -68,6 +82,9 @@ static const char* cmd_authorization_mock_func_name_map (void *func)
 	}
 	else if (func == cmd_authorization_mock_authorize_clear_platform_config) {
 		return "authorize_clear_platform_config";
+	}
+	else if (func == cmd_authorization_mock_authorize_reset_intrusion) {
+		return "authorize_reset_intrusion";
 	}
 	else {
 		return "unknown";
@@ -97,6 +114,16 @@ static const char* cmd_authorization_mock_arg_name_map (void *func, int arg)
 		}
 	}
 	else if (func == cmd_authorization_mock_authorize_clear_platform_config) {
+		switch (arg) {
+			case 0:
+				return "token";
+
+			case 1:
+				return "length";
+
+		}
+	}
+	else if (func == cmd_authorization_mock_authorize_reset_intrusion) {
 		switch (arg) {
 			case 0:
 				return "token";
@@ -138,6 +165,7 @@ int cmd_authorization_mock_init (struct cmd_authorization_mock *mock)
 	mock->base.authorize_reset_defaults = cmd_authorization_mock_authorize_reset_defaults;
 	mock->base.authorize_clear_platform_config =
 		cmd_authorization_mock_authorize_clear_platform_config;
+	mock->base.authorize_reset_intrusion = cmd_authorization_mock_authorize_reset_intrusion;
 
 	mock->mock.func_arg_count = cmd_authorization_mock_func_arg_count;
 	mock->mock.func_name_map = cmd_authorization_mock_func_name_map;

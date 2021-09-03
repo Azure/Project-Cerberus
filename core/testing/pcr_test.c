@@ -2127,6 +2127,35 @@ static void pcr_test_set_measurement_data (CuTest *test)
 	complete_pcr_mock_test (test, &pcr, &hash);
 }
 
+static void pcr_test_set_measurement_data_remove (CuTest *test)
+{
+	struct pcr_bank pcr;
+	struct hash_engine_mock hash;
+	struct pcr_measured_data measurement_data;
+	uint8_t data = 0x11;
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_1BYTE;
+	measurement_data.data.value_1byte = data;
+
+	setup_pcr_mock_test (test, &pcr, &hash, 5);
+
+	status = pcr_set_measurement_data (&pcr, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (
+		&data, (uint8_t*) &pcr.measurement_list[2].measured_data->data.value_1byte, 1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_set_measurement_data (&pcr, 2, NULL);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrEquals (test, NULL, pcr.measurement_list[2].measured_data);
+
+	complete_pcr_mock_test (test, &pcr, &hash);
+}
+
 static void pcr_test_set_measurement_data_null (CuTest *test)
 {
 	struct pcr_bank pcr;
@@ -2143,9 +2172,6 @@ static void pcr_test_set_measurement_data_null (CuTest *test)
 	setup_pcr_mock_test (test, &pcr, &hash, 5);
 
 	status = pcr_set_measurement_data (NULL, 2, &measurement_data);
-	CuAssertIntEquals (test, PCR_INVALID_ARGUMENT, status);
-
-	status = pcr_set_measurement_data (&pcr, 2, NULL);
 	CuAssertIntEquals (test, PCR_INVALID_ARGUMENT, status);
 
 	memset (&measurement_data, 0, sizeof (measurement_data));
@@ -16434,6 +16460,7 @@ CuSuite* get_pcr_suite ()
 	SUITE_ADD_TEST (suite, pcr_test_invalidate_measurement_index_bad_index);
 
 	SUITE_ADD_TEST (suite, pcr_test_set_measurement_data);
+	SUITE_ADD_TEST (suite, pcr_test_set_measurement_data_remove);
 	SUITE_ADD_TEST (suite, pcr_test_set_measurement_data_null);
 	SUITE_ADD_TEST (suite, pcr_test_set_measurement_data_bad_measurement_index);
 	SUITE_ADD_TEST (suite, pcr_test_set_measurement_data_bad_measurement_data_type);
