@@ -143,7 +143,7 @@ int manifest_flash_read_header (struct manifest_flash *manifest, struct manifest
 		return MANIFEST_BAD_MAGIC_NUMBER;
 	}
 
-	if (header->sig_length > (header->length - sizeof (struct manifest_header))) {
+	if ((int)header->sig_length > (int)(header->length - sizeof (struct manifest_header))) {
 		return MANIFEST_BAD_LENGTH;
 	}
 
