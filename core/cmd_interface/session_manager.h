@@ -79,7 +79,7 @@ struct session_manager {
 	 * @return Completion status, 0 if success or an error code.
 	 */
 	int (*establish_session) (struct session_manager *session,
-		struct cmd_interface_request *request);
+		struct cmd_interface_msg *request);
 
 	/**
 	 * Check if device EID is on an established session.
@@ -109,7 +109,7 @@ struct session_manager {
 	 *
 	 * @return Completion status, 0 if success or an error code.
 	 */
-	int (*decrypt_message) (struct session_manager *session, struct cmd_interface_request *request);
+	int (*decrypt_message) (struct session_manager *session, struct cmd_interface_msg *request);
 
 	/**
 	 * Encrypt message using AES session key generated for session with device with requested EID.
@@ -121,7 +121,7 @@ struct session_manager {
 	 *
 	 * @return Completion status, 0 if success or an error code.
 	 */
-	int (*encrypt_message) (struct session_manager *session, struct cmd_interface_request *request);
+	int (*encrypt_message) (struct session_manager *session, struct cmd_interface_msg *request);
 
 	/**
 	 * Terminate and reset session.
@@ -186,9 +186,9 @@ void session_manager_release (struct session_manager *session);
 int session_manager_add_session (struct session_manager *session, uint8_t eid,
 	const uint8_t *device_nonce, const uint8_t *cerberus_nonce);
 int session_manager_decrypt_message (struct session_manager *session,
-	struct cmd_interface_request *request);
+	struct cmd_interface_msg *request);
 int session_manager_encrypt_message (struct session_manager *session,
-	struct cmd_interface_request *request);
+	struct cmd_interface_msg *request);
 int session_manager_is_session_established (struct session_manager *session, uint8_t eid);
 int session_manager_get_pairing_state (struct session_manager *session, uint8_t eid);
 int session_manager_reset_session (struct session_manager *session, uint8_t eid, uint8_t *hmac,

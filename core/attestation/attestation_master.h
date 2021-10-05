@@ -24,13 +24,12 @@ struct attestation_master {
 	 * @param attestation The master attestation manager interface to utilize.
 	 * @param eid EID of device to challenge.
 	 * @param slot_num The slot number of the chain to use.
-	 * @param buf Buffer to be filled with challenge generated.
-	 * @param buf_len Maximum length of buffer.
+	 * @param challenge Buffer to be filled with challenge generated.
 	 *
 	 * @return Output length if the challenge was successfully created or an error code.
 	 */
-	int (*issue_challenge) (struct attestation_master *attestation, uint8_t eid, uint8_t slot_num,
-		uint8_t *buf, size_t buf_len);
+	int (*generate_challenge_request) (struct attestation_master *attestation, uint8_t eid,
+		uint8_t slot_num, struct attestation_challenge *challenge);
 
 	/**
 	 * Process received certificate digests, and compare with stored digests.

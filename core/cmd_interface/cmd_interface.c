@@ -13,15 +13,15 @@
 
 
 /**
- * Determine if received request is encrypted from Cerberus protocol header.
+ * Determine if received request is encrypted from header.
  *
  * @param intf The command interface that will process the request.
  * @param request The request being processed.
  *
  * @return 0 if the request is not encrypted, 1 if request is encrypted or an error code.
  */
-int cmd_interface_is_request_encrypted (struct cmd_interface *intf,
-	struct cmd_interface_request *request)
+static int cmd_interface_is_request_encrypted (struct cmd_interface *intf,
+	struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_header *header;
 
@@ -41,39 +41,38 @@ int cmd_interface_is_request_encrypted (struct cmd_interface *intf,
 }
 
 /**
- * Pre-process received request.
+ * Pre-process received Cerberus protocol message.
  *
- * @param intf The command interface that will process the request.
- * @param request The request being processed.
- * @param command_id Pointer to hold command ID of incoming request.
- * @param command_set Pointer to hold command set of incoming request.
- * @param decrypt Flag indicating whether to decrypt incoming request if encrypted.
+ * @param intf The command interface that will process the message.
+ * @param message The message being processed.
+ * @param command_id Pointer to hold command ID of incoming message.
+ * @param command_set Pointer to hold command set of incoming message.
+ * @param decrypt Flag indicating whether to decrypt incoming message if encrypted.
  * @param rsvd_zero Flag indicating if the reserved bits must be set to zero.
  *
- * @return 0 if the request was successfully processed or an error code.
+ * @return 0 if the message was successfully processed or an error code.
  */
-int cmd_interface_process_request (struct cmd_interface *intf,
-	struct cmd_interface_request *request, uint8_t *command_id, uint8_t *command_set, bool decrypt,
+int cmd_interface_process_cerberus_protocol_message (struct cmd_interface *intf,
+	struct cmd_interface_msg *message, uint8_t *command_id, uint8_t *command_set, bool decrypt,
 	bool rsvd_zero)
 {
 	struct cerberus_protocol_header *header;
 
-	if (request == NULL) {
+	if (message == NULL) {
 		return CMD_HANDLER_INVALID_ARGUMENT;
 	}
 
-	request->new_request = false;
-	request->crypto_timeout = false;
+	message->crypto_timeout = false;
 
-	if (intf == NULL) {
+	if ((intf == NULL) || (command_id == NULL) || (command_set == NULL)) {
 		return CMD_HANDLER_INVALID_ARGUMENT;
 	}
 
 	intf->curr_txn_encrypted = false;
 
-	header = (struct cerberus_protocol_header*) request->data;
+	header = (struct cerberus_protocol_header*) message->data;
 
-	if (request->length < CERBERUS_PROTOCOL_MIN_MSG_LEN) {
+	if (message->length < CERBERUS_PROTOCOL_MIN_MSG_LEN) {
 		return CMD_HANDLER_PAYLOAD_TOO_SHORT;
 	}
 
@@ -94,12 +93,12 @@ int cmd_interface_process_request (struct cmd_interface *intf,
 	if (header->crypt && decrypt) {
 #ifdef CMD_SUPPORT_ENCRYPTED_SESSIONS
 		if (intf->session) {
-			int status = intf->session->decrypt_message (intf->session, request);
+			int status = intf->session->decrypt_message (intf->session, message);
 			if (status != 0) {
 				return status;
 			}
 
-			request->max_response -= SESSION_MANAGER_TRAILER_LEN;
+			message->max_response -= SESSION_MANAGER_TRAILER_LEN;
 			intf->curr_txn_encrypted = true;
 		}
 		else
@@ -107,10 +106,6 @@ int cmd_interface_process_request (struct cmd_interface *intf,
 		{
 			return CMD_HANDLER_ENCRYPTION_UNSUPPORTED;
 		}
-	}
-
-	if (header->command == CERBERUS_PROTOCOL_ERROR) {
-		return CMD_HANDLER_ERROR_MESSAGE;
 	}
 
 	return 0;
@@ -124,12 +119,11 @@ int cmd_interface_process_request (struct cmd_interface *intf,
  *
  * @return 0 if the response was successfully processed or an error code.
  */
-int cmd_interface_process_response (struct cmd_interface *intf,
-	struct cmd_interface_request *response)
+int cmd_interface_prepare_response (struct cmd_interface *intf, struct cmd_interface_msg *response)
 {
 	int status = 0;
 
-	if (response == NULL) {
+	if ((response == NULL) || (intf == NULL)) {
 		return CMD_HANDLER_INVALID_ARGUMENT;
 	}
 
@@ -172,7 +166,7 @@ int cmd_interface_process_response (struct cmd_interface *intf,
  * @return 0 if the error was successfully generated or an error code.
  */
 int cmd_interface_generate_error_packet (struct cmd_interface *intf,
-	struct cmd_interface_request *request, uint8_t error_code, uint32_t error_data, uint8_t cmd_set)
+	struct cmd_interface_msg *request, uint8_t error_code, uint32_t error_data, uint8_t cmd_set)
 {
 	struct cerberus_protocol_error *error_msg;
 

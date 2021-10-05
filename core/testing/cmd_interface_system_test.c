@@ -48,6 +48,7 @@
 #include "mock/cmd_device_mock.h"
 #include "mock/session_manager_mock.h"
 #include "mock/cmd_interface_mock.h"
+#include "mock/cerberus_protocol_observer_mock.h"
 #include "engines/x509_testing_engine.h"
 #include "riot_core_testing.h"
 #include "recovery_image_header_testing.h"
@@ -131,6 +132,7 @@ struct cmd_interface_system_testing {
 	struct cmd_interface_fw_version fw_version;					/**< The firmware version data. */
 	struct cmd_device_mock cmd_device;							/**< The device command handler mock instance. */
 	struct session_manager_mock session;						/**< Session manager mock. */
+	struct cerberus_protocol_observer_mock observer;			/**< Cerberus protocol observer. */
 };
 
 
@@ -316,6 +318,9 @@ static void setup_cmd_interface_system_mock_test_init (CuTest *test,
 
 	status = session_manager_mock_init (&cmd->session);
 	CuAssertIntEquals (test, 0, status);
+
+	status = cerberus_protocol_observer_mock_init (&cmd->observer);
+	CuAssertIntEquals (test, 0, status);
 }
 
 /**
@@ -351,11 +356,14 @@ static void setup_cmd_interface_system_mock_test_init_fw_version (
  * @param host_ctrl_1_enabled Initialize port 1 host control or not.
  * @param direction The device direction to set for the device manager table entry.
  * @param session_mgr_enabled Initialize session manager or not.
+ * @param register_response_observer Flag indicating whether to register observer to response
+ * 	notifications.
  */
 static void setup_cmd_interface_system_mock_test (CuTest *test,
 	struct cmd_interface_system_testing *cmd, bool pfm_0_enabled, bool pfm_1_enabled,
 	bool cfm_enabled, bool pcd_enabled, bool recovery_0_enabled, bool recovery_1_enabled,
-	bool host_ctrl_0_enabled, bool host_ctrl_1_enabled, uint8_t direction, bool session_mgr_enabled)
+	bool host_ctrl_0_enabled, bool host_ctrl_1_enabled, uint8_t direction, bool session_mgr_enabled,
+	bool register_response_observer)
 {
 	struct manifest_cmd_interface *pfm_0_ptr = NULL;
 	struct manifest_cmd_interface *pfm_1_ptr = NULL;
@@ -434,6 +442,12 @@ static void setup_cmd_interface_system_mock_test (CuTest *test,
 		&cmd->cmd_device.base, CERBERUS_PROTOCOL_MSFT_PCI_VID, 2, CERBERUS_PROTOCOL_MSFT_PCI_VID, 4,
 		session_mgr_ptr);
 	CuAssertIntEquals (test, 0, status);
+
+	if (register_response_observer) {
+		status = cmd_interface_system_add_cerberus_protocol_observer (&cmd->handler,
+			&cmd->observer.base);
+		CuAssertIntEquals (test, 0, status);
+	}
 }
 
 /**
@@ -534,6 +548,9 @@ static void setup_cmd_interface_system_mock_test (CuTest *test,
 	CuAssertIntEquals (test, 0, status);
 
 	status = session_manager_mock_validate_and_release (&cmd->session);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cerberus_protocol_observer_mock_validate_and_release (&cmd->observer);
 	CuAssertIntEquals (test, 0, status);
 
 	device_manager_release (&cmd->device_manager);
@@ -704,7 +721,7 @@ static void cmd_interface_system_test_init (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrNotNull (test, interface.base.process_request);
-	CuAssertPtrNotNull (test, interface.base.issue_request);
+	CuAssertPtrNotNull (test, interface.base.process_response);
 	CuAssertPtrNotNull (test, interface.base.generate_error_packet);
 
 	status = firmware_update_control_mock_validate_and_release (&update);
@@ -1096,13 +1113,13 @@ static void cmd_interface_system_test_deinit_null (CuTest *test)
 static void cmd_interface_system_test_process_null (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
-	struct cmd_interface_request request;
+	struct cmd_interface_msg request;
 	int status;
 
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 
 	request.crypto_timeout = true;
 	status = cmd.handler.base.process_request (NULL, &request);
@@ -1118,18 +1135,18 @@ static void cmd_interface_system_test_process_null (CuTest *test)
 static void cmd_interface_system_test_process_payload_too_short (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
-	struct cmd_interface_request request;
+	struct cmd_interface_msg request;
 	int status;
 
 	TEST_START;
 
-	memset (&request, 0, sizeof (request));
+	memset (&request, 0, sizeof (struct cmd_interface_msg));
 	request.length = CERBERUS_PROTOCOL_MIN_MSG_LEN - 1;
 	request.source_eid = MCTP_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 
 	request.crypto_timeout = true;
 	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
@@ -1143,13 +1160,13 @@ static void cmd_interface_system_test_process_unsupported_message (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request request;
+	struct cmd_interface_msg request;
 	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) data;
 	int status;
 
 	TEST_START;
 
-	memset (&request, 0, sizeof (request));
+	memset (&request, 0, sizeof (struct cmd_interface_msg));
 	memset (data, 0, sizeof (data));
 	request.data = data;
 
@@ -1161,7 +1178,7 @@ static void cmd_interface_system_test_process_unsupported_message (CuTest *test)
 	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 
 	request.crypto_timeout = true;
 	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
@@ -1183,13 +1200,13 @@ static void cmd_interface_system_test_process_unknown_command (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request request;
+	struct cmd_interface_msg request;
 	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) data;
 	int status;
 
 	TEST_START;
 
-	memset (&request, 0, sizeof (request));
+	memset (&request, 0, sizeof (struct cmd_interface_msg));
 	memset (data, 0, sizeof (data));
 	request.data = data;
 	header->msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
@@ -1201,75 +1218,11 @@ static void cmd_interface_system_test_process_unknown_command (CuTest *test)
 	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 
 	request.crypto_timeout = true;
 	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
-	CuAssertIntEquals (test, CMD_HANDLER_UNKNOWN_COMMAND, status);
-	CuAssertIntEquals (test, false, request.crypto_timeout);
-
-	complete_cmd_interface_system_mock_test (test, &cmd);
-}
-
-static void cmd_interface_system_test_process_unknown_device (CuTest *test)
-{
-	struct cmd_interface_system_testing cmd;
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request request;
-	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) data;
-	int status;
-
-	TEST_START;
-
-	memset (&request, 0, sizeof (request));
-	memset (data, 0, sizeof (data));
-	request.data = data;
-	header->msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
-	header->pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
-	header->command = CERBERUS_PROTOCOL_GET_DIGEST;
-
-	request.length = CERBERUS_PROTOCOL_MIN_MSG_LEN;
-	request.source_eid = 0xEE;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
-
-	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
-
-	request.crypto_timeout = true;
-	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
-	CuAssertIntEquals (test, DEVICE_MGR_UNKNOWN_DEVICE, status);
-	CuAssertIntEquals (test, false, request.crypto_timeout);
-
-	complete_cmd_interface_system_mock_test (test, &cmd);
-}
-
-static void cmd_interface_system_test_process_error_packet (CuTest *test)
-{
-	struct cmd_interface_system_testing cmd;
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request request;
-	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) data;
-	int status;
-
-	TEST_START;
-
-	memset (&request, 0, sizeof (request));
-	memset (data, 0, sizeof (data));
-	request.data = data;
-	header->msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
-	header->pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
-	header->command = CERBERUS_PROTOCOL_ERROR;
-
-	request.length = CERBERUS_PROTOCOL_MIN_MSG_LEN;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
-
-	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
-
-	request.crypto_timeout = true;
-	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
-	CuAssertIntEquals (test, CMD_HANDLER_ERROR_MESSAGE, status);
+	CuAssertIntEquals (test, CMD_HANDLER_UNKNOWN_REQUEST, status);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -1279,13 +1232,13 @@ static void cmd_interface_system_test_process_reserved_fields_not_zero (CuTest *
 {
 	struct cmd_interface_system_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request request;
+	struct cmd_interface_msg request;
 	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) data;
 	int status;
 
 	TEST_START;
 
-	memset (&request, 0, sizeof (request));
+	memset (&request, 0, sizeof (struct cmd_interface_msg));
 	memset (data, 0, sizeof (data));
 	request.data = data;
 	header->msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
@@ -1298,7 +1251,7 @@ static void cmd_interface_system_test_process_reserved_fields_not_zero (CuTest *
 	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 
 	request.crypto_timeout = true;
 	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
@@ -1320,13 +1273,13 @@ static void cmd_interface_system_test_process_encrypted_message (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request request;
+	struct cmd_interface_msg request;
 	uint8_t decrypted_data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request decrypted_request;
+	struct cmd_interface_msg decrypted_request;
 	uint8_t response_data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request response;
+	struct cmd_interface_msg response;
 	uint8_t encrypted_data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request encrypted_response;
+	struct cmd_interface_msg encrypted_response;
 	struct cerberus_protocol_update_status *req = (struct cerberus_protocol_update_status*) data;
 	struct cerberus_protocol_update_status_response *resp =
 		(struct cerberus_protocol_update_status_response*) data;
@@ -1343,21 +1296,21 @@ static void cmd_interface_system_test_process_encrypted_message (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 
-	memset (&request, 0, sizeof (request));
+	memset (&request, 0, sizeof (struct cmd_interface_msg));
 	memset (data, 0, sizeof (data));
 	request.data = data;
 
-	memset (&decrypted_request, 0, sizeof (decrypted_request));
+	memset (&decrypted_request, 0, sizeof (struct cmd_interface_msg));
 	memset (decrypted_data, 0, sizeof (decrypted_data));
 	decrypted_request.data = decrypted_data;
 
-	memset (&response, 0, sizeof (response));
+	memset (&response, 0, sizeof (struct cmd_interface_msg));
 	memset (response_data, 0, sizeof (response_data));
 	response.data = response_data;
 
-	memset (&encrypted_response, 0, sizeof (encrypted_response));
+	memset (&encrypted_response, 0, sizeof (struct cmd_interface_msg));
 	memset (encrypted_data, 0, sizeof (encrypted_data));
 	encrypted_response.data = encrypted_data;
 
@@ -1428,7 +1381,6 @@ static void cmd_interface_system_test_process_encrypted_message (CuTest *test)
 		sizeof (encrypted_response), cmd_interface_mock_copy_request);
 	CuAssertIntEquals (test, 0, status);
 
-	request.new_request = true;
 	request.crypto_timeout = true;
 	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
 	CuAssertIntEquals (test, 0, status);
@@ -1443,7 +1395,6 @@ static void cmd_interface_system_test_process_encrypted_message (CuTest *test)
 	CuAssertIntEquals (test, 0, resp->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_UPDATE_STATUS, resp->header.command);
 	CuAssertIntEquals (test, encrypted_update_status, resp->update_status);
-	CuAssertIntEquals (test, false, request.new_request);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -1453,16 +1404,16 @@ static void cmd_interface_system_test_process_encrypted_message_decrypt_fail (Cu
 {
 	struct cmd_interface_system_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request request;
+	struct cmd_interface_msg request;
 	struct cerberus_protocol_update_status *req = (struct cerberus_protocol_update_status*) data;
 	int status;
 
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 
-	memset (&request, 0, sizeof (request));
+	memset (&request, 0, sizeof (struct cmd_interface_msg));
 	memset (data, 0, sizeof (data));
 	request.data = data;
 	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
@@ -1495,11 +1446,11 @@ static void cmd_interface_system_test_process_encrypted_message_encrypt_fail (Cu
 {
 	struct cmd_interface_system_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request request;
+	struct cmd_interface_msg request;
 	uint8_t decrypted_data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request decrypted_request;
+	struct cmd_interface_msg decrypted_request;
 	uint8_t response_data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request response;
+	struct cmd_interface_msg response;
 	struct cerberus_protocol_update_status *req = (struct cerberus_protocol_update_status*) data;
 	struct cerberus_protocol_update_status *plaintext_rq =
 		(struct cerberus_protocol_update_status*) decrypted_data;
@@ -1511,17 +1462,17 @@ static void cmd_interface_system_test_process_encrypted_message_encrypt_fail (Cu
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 
-	memset (&request, 0, sizeof (request));
+	memset (&request, 0, sizeof (struct cmd_interface_msg));
 	memset (data, 0, sizeof (data));
 	request.data = data;
 
-	memset (&decrypted_request, 0, sizeof (decrypted_request));
+	memset (&decrypted_request, 0, sizeof (struct cmd_interface_msg));
 	memset (decrypted_data, 0, sizeof (decrypted_data));
 	decrypted_request.data = decrypted_data;
 
-	memset (&response, 0, sizeof (response));
+	memset (&response, 0, sizeof (struct cmd_interface_msg));
 	memset (response_data, 0, sizeof (response_data));
 	response.data = response_data;
 
@@ -1591,16 +1542,16 @@ static void cmd_interface_system_test_process_encrypted_message_no_session_manag
 {
 	struct cmd_interface_system_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request request;
+	struct cmd_interface_msg request;
 	struct cerberus_protocol_update_status *req = (struct cerberus_protocol_update_status*) data;
 	int status;
 
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, false);
+		true, DEVICE_MANAGER_UPSTREAM, false, true);
 
-	memset (&request, 0, sizeof (request));
+	memset (&request, 0, sizeof (struct cmd_interface_msg));
 	memset (data, 0, sizeof (data));
 	request.data = data;
 	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
@@ -1627,9 +1578,9 @@ static void cmd_interface_system_test_process_encrypted_message_no_response (CuT
 {
 	struct cmd_interface_system_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request request;
+	struct cmd_interface_msg request;
 	uint8_t decrypted_data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request decrypted_request;
+	struct cmd_interface_msg decrypted_request;
 	struct cerberus_protocol_clear_log *req = (struct cerberus_protocol_clear_log*) data;
 	struct cerberus_protocol_clear_log *plaintext_rq =
 		(struct cerberus_protocol_clear_log*) decrypted_data;
@@ -1638,13 +1589,13 @@ static void cmd_interface_system_test_process_encrypted_message_no_response (CuT
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 
-	memset (&request, 0, sizeof (request));
+	memset (&request, 0, sizeof (struct cmd_interface_msg));
 	memset (data, 0, sizeof (data));
 	request.data = data;
 
-	memset (&decrypted_request, 0, sizeof (decrypted_request));
+	memset (&decrypted_request, 0, sizeof (struct cmd_interface_msg));
 	memset (decrypted_data, 0, sizeof (decrypted_data));
 	decrypted_request.data = decrypted_data;
 
@@ -1694,11 +1645,11 @@ static void cmd_interface_system_test_process_encrypted_message_only_header (CuT
 {
 	struct cmd_interface_system_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request request;
+	struct cmd_interface_msg request;
 	uint8_t decrypted_data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request decrypted_request;
+	struct cmd_interface_msg decrypted_request;
 	uint8_t response_data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request response;
+	struct cmd_interface_msg response;
 	struct cerberus_protocol_get_attestation_data *req =
 		(struct cerberus_protocol_get_attestation_data*) data;
 	struct cerberus_protocol_get_attestation_data *plaintext_rq =
@@ -1710,13 +1661,13 @@ static void cmd_interface_system_test_process_encrypted_message_only_header (CuT
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 
-	memset (&request, 0, sizeof (request));
+	memset (&request, 0, sizeof (struct cmd_interface_msg));
 	memset (data, 0, sizeof (data));
 	request.data = data;
 
-	memset (&decrypted_request, 0, sizeof (decrypted_request));
+	memset (&decrypted_request, 0, sizeof (struct cmd_interface_msg));
 	memset (decrypted_data, 0, sizeof (decrypted_data));
 	decrypted_request.data = decrypted_data;
 
@@ -1782,7 +1733,6 @@ static void cmd_interface_system_test_process_encrypted_message_only_header (CuT
 	CuAssertIntEquals (test, 0, resp->header.reserved1);
 	CuAssertIntEquals (test, 0, resp->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_ATTESTATION_DATA, resp->header.command);
-	CuAssertIntEquals (test, false, request.new_request);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -1795,7 +1745,7 @@ static void cmd_interface_system_test_process_fw_update_init (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_fw_update_init (test, &cmd.handler.base,
 		&cmd.update);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -1808,7 +1758,7 @@ static void cmd_interface_system_test_process_fw_update_init_invalid_len (CuTest
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_fw_update_init_invalid_len (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -1821,7 +1771,7 @@ static void cmd_interface_system_test_process_fw_update_init_fail (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_fw_update_init_fail (test,
 		&cmd.handler.base, &cmd.update);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -1834,7 +1784,7 @@ static void cmd_interface_system_test_process_fw_update (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_fw_update (test, &cmd.handler.base,
 		&cmd.update);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -1847,7 +1797,7 @@ static void cmd_interface_system_test_process_fw_update_no_data (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_fw_update_no_data (test, &cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
@@ -1859,7 +1809,7 @@ static void cmd_interface_system_test_process_fw_update_fail (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_fw_update_fail (test, &cmd.handler.base,
 		&cmd.update);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -1872,7 +1822,7 @@ static void cmd_interface_system_test_process_complete_fw_update (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_complete_fw_update (test, &cmd.handler.base,
 		&cmd.update);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -1885,7 +1835,7 @@ static void cmd_interface_system_test_process_complete_fw_update_invalid_len (Cu
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_complete_fw_update_invalid_len (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -1898,7 +1848,7 @@ static void cmd_interface_system_test_process_complete_fw_update_fail (CuTest *t
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_complete_fw_update_fail (test,
 		&cmd.handler.base, &cmd.update);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -1911,7 +1861,7 @@ static void cmd_interface_system_test_process_get_fw_update_status (CuTest *test
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_fw_update_status (test,
 		&cmd.handler.base, &cmd.update);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -1924,7 +1874,7 @@ static void cmd_interface_system_test_process_get_pfm_update_status_port0 (CuTes
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_pfm_update_status_port0 (test,
 		&cmd.handler.base, &cmd.pfm_0);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -1937,7 +1887,7 @@ static void cmd_interface_system_test_process_get_pfm_update_status_port1 (CuTes
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_pfm_update_status_port1 (test,
 		&cmd.handler.base, &cmd.pfm_1);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -1950,7 +1900,7 @@ static void cmd_interface_system_test_process_get_pfm_update_status_port0_null (
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, false, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_pfm_update_status_port0_null (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -1963,7 +1913,7 @@ static void cmd_interface_system_test_process_get_pfm_update_status_port1_null (
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, false, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_pfm_update_status_port1_null (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -1976,7 +1926,7 @@ static void cmd_interface_system_test_process_get_pfm_update_status_invalid_port
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_pfm_update_status_invalid_port (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -1989,7 +1939,7 @@ static void cmd_interface_system_test_process_get_cfm_update_status (CuTest *tes
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_cfm_update_status (test,
 		&cmd.handler.base, &cmd.cfm);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2002,7 +1952,7 @@ static void cmd_interface_system_test_process_get_cfm_update_status_no_cfm_manag
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, false, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_cfm_update_status_no_cfm_manager (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2015,7 +1965,7 @@ static void cmd_interface_system_test_process_get_pcd_update_status (CuTest *tes
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_pcd_update_status (test,
 		&cmd.handler.base, &cmd.pcd);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2028,7 +1978,7 @@ static void cmd_interface_system_test_process_get_pcd_update_status_no_pcd_manag
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, false, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_pcd_update_status_no_pcd_manager (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2042,7 +1992,7 @@ static void cmd_interface_system_test_process_get_host_fw_reset_verification_sta
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_host_fw_reset_verification_status_port0 (
 		test, &cmd.handler.base, &cmd.host_0);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2056,7 +2006,7 @@ static void cmd_interface_system_test_process_get_host_fw_reset_verification_sta
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_host_fw_reset_verification_status_port1 (
 		test, &cmd.handler.base, &cmd.host_1);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2070,7 +2020,7 @@ static void cmd_interface_system_test_process_get_host_fw_reset_verification_sta
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, false, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_host_fw_reset_verification_status_port0_null (
 		test, &cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2084,7 +2034,7 @@ static void cmd_interface_system_test_process_get_host_fw_reset_verification_sta
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, false, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_host_fw_reset_verification_status_port1_null (
 		test, &cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2098,7 +2048,7 @@ static void cmd_interface_system_test_process_get_host_fw_reset_verification_sta
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_host_fw_reset_verification_status_invalid_port (
 		test, &cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2112,7 +2062,7 @@ static void cmd_interface_system_test_process_get_host_fw_reset_verification_sta
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_host_fw_reset_verification_status_fail (
 		test, &cmd.handler.base, &cmd.host_0);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2126,7 +2076,7 @@ static void cmd_interface_system_test_process_get_recovery_image_update_status_p
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, true, true, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_recovery_image_update_status_port0 (
 		test, &cmd.handler.base, &cmd.recovery_0);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2140,7 +2090,7 @@ static void cmd_interface_system_test_process_get_recovery_image_update_status_p
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, true, true, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_recovery_image_update_status_port1 (
 		test, &cmd.handler.base, &cmd.recovery_1);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2154,7 +2104,7 @@ static void cmd_interface_system_test_process_get_recovery_image_update_status_p
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, true, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_recovery_image_update_status_port0_null (
 		test, &cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2168,7 +2118,7 @@ static void cmd_interface_system_test_process_get_recovery_image_update_status_p
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, true, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_recovery_image_update_status_port1_null (
 		test, &cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2182,7 +2132,7 @@ static void cmd_interface_system_test_process_get_recovery_image_update_status_b
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, true, true, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_recovery_image_update_status_bad_port_index (
 		test, &cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2195,7 +2145,7 @@ static void cmd_interface_system_test_process_get_reset_config_status (CuTest *t
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_reset_config_status (test,
 		&cmd.handler.base, &cmd.background);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2208,7 +2158,7 @@ static void cmd_interface_system_test_process_get_update_status_invalid_len (CuT
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_update_status_invalid_len (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2221,7 +2171,7 @@ static void cmd_interface_system_test_process_get_update_status_invalid_type (Cu
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_update_status_invalid_type (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2234,7 +2184,7 @@ static void cmd_interface_system_test_process_get_fw_ext_update_status (CuTest *
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_fw_ext_update_status (test,
 		&cmd.handler.base, &cmd.update);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2247,7 +2197,7 @@ static void cmd_interface_system_test_process_get_pfm_ext_update_status_port0 (C
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_pfm_ext_update_status_port0 (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2260,7 +2210,7 @@ static void cmd_interface_system_test_process_get_pfm_ext_update_status_port1 (C
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_pfm_ext_update_status_port1 (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2273,7 +2223,7 @@ static void cmd_interface_system_test_process_get_cfm_ext_update_status (CuTest 
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_cfm_ext_update_status (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2286,7 +2236,7 @@ static void cmd_interface_system_test_process_get_pcd_ext_update_status (CuTest 
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_pcd_ext_update_status (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2300,7 +2250,7 @@ static void cmd_interface_system_test_process_get_host_fw_reset_verification_ext
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_host_fw_reset_verification_ext_status_port0 (
 		test, &cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2314,7 +2264,7 @@ static void cmd_interface_system_test_process_get_host_fw_reset_verification_ext
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_host_fw_reset_verification_ext_status_port1 (
 		test, &cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2328,7 +2278,7 @@ static void cmd_interface_system_test_process_get_recovery_image_ext_update_stat
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, true, true, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_recovery_image_ext_update_status_port0 (
 		test, &cmd.handler.base, &cmd.recovery_0, &cmd.recovery_manager_0, &cmd.flash);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2342,7 +2292,7 @@ static void cmd_interface_system_test_process_get_recovery_image_ext_update_stat
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, true, true, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_recovery_image_ext_update_status_port1 (
 		test, &cmd.handler.base, &cmd.recovery_1, &cmd.recovery_manager_1, &cmd.flash);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2356,7 +2306,7 @@ static void cmd_interface_system_test_process_get_recovery_image_ext_update_stat
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, true, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_recovery_image_ext_update_status_port0_null (
 		test, &cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2399,7 +2349,7 @@ static void cmd_interface_system_test_process_get_recovery_image_ext_update_stat
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, true, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_recovery_image_ext_update_status_port1_null (
 		test, &cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2442,7 +2392,7 @@ static void cmd_interface_system_test_process_get_recovery_image_ext_update_stat
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, true, true, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_recovery_image_ext_update_status_bad_port_index (
 		test, &cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2455,7 +2405,7 @@ static void cmd_interface_system_test_process_get_reset_config_ext_update_status
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_reset_config_ext_update_status (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2468,7 +2418,7 @@ static void cmd_interface_system_test_process_get_ext_update_status_invalid_len 
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_ext_update_status_invalid_len (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2481,7 +2431,7 @@ static void cmd_interface_system_test_process_get_ext_update_status_invalid_type
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_ext_update_status_invalid_type (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2494,7 +2444,7 @@ static void cmd_interface_system_test_process_get_fw_version (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_get_fw_version (test, &cmd.handler.base,
 		CERBERUS_FW_VERSION);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2534,7 +2484,7 @@ static void cmd_interface_system_test_process_get_fw_version_invalid_len (CuTest
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_get_fw_version_invalid_len (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2547,7 +2497,7 @@ static void cmd_interface_system_test_process_get_fw_version_unsupported_area (C
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_get_fw_version_unsupported_area (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2560,7 +2510,7 @@ static void cmd_interface_system_test_process_get_fw_version_riot (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_get_fw_version_riot (test,
 		&cmd.handler.base, RIOT_CORE_VERSION);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2599,7 +2549,7 @@ static void cmd_interface_system_test_process_pfm_update_init_port0 (CuTest *tes
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_pfm_update_init_port0 (test,
 		&cmd.handler.base, &cmd.pfm_0);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2612,7 +2562,7 @@ static void cmd_interface_system_test_process_pfm_update_init_port1 (CuTest *tes
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_pfm_update_init_port1 (test,
 		&cmd.handler.base, &cmd.pfm_1);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2625,7 +2575,7 @@ static void cmd_interface_system_test_process_pfm_update_init_port0_null (CuTest
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, false, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_pfm_update_init_port0_null (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2638,7 +2588,7 @@ static void cmd_interface_system_test_process_pfm_update_init_port1_null (CuTest
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, false, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_pfm_update_init_port1_null (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2651,7 +2601,7 @@ static void cmd_interface_system_test_process_pfm_update_init_invalid_port (CuTe
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, false, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_pfm_update_init_invalid_port (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2664,7 +2614,7 @@ static void cmd_interface_system_test_process_pfm_update_init_invalid_len (CuTes
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_pfm_update_init_invalid_len (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2677,7 +2627,7 @@ static void cmd_interface_system_test_process_pfm_update_init_fail (CuTest *test
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_pfm_update_init_fail (test,
 		&cmd.handler.base, &cmd.pfm_0);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2690,7 +2640,7 @@ static void cmd_interface_system_test_process_pfm_update_port0 (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_pfm_update_port0 (test,
 		&cmd.handler.base, &cmd.pfm_0);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2703,7 +2653,7 @@ static void cmd_interface_system_test_process_pfm_update_port1 (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_pfm_update_port1 (test,
 		&cmd.handler.base, &cmd.pfm_1);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2716,7 +2666,7 @@ static void cmd_interface_system_test_process_pfm_update_port0_null (CuTest *tes
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, false, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_pfm_update_port0_null (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2729,7 +2679,7 @@ static void cmd_interface_system_test_process_pfm_update_port1_null (CuTest *tes
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, false, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_pfm_update_port1_null (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2742,7 +2692,7 @@ static void cmd_interface_system_test_process_pfm_update_no_data (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_pfm_update_no_data (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2755,7 +2705,7 @@ static void cmd_interface_system_test_process_pfm_update_invalid_port (CuTest *t
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_pfm_update_invalid_port (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2768,7 +2718,7 @@ static void cmd_interface_system_test_process_pfm_update_fail (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_pfm_update_fail (test,
 		&cmd.handler.base, &cmd.pfm_0);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2781,7 +2731,7 @@ static void cmd_interface_system_test_process_pfm_update_complete_port0 (CuTest 
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_pfm_update_complete_port0 (test,
 		&cmd.handler.base, &cmd.pfm_0);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2794,7 +2744,7 @@ static void cmd_interface_system_test_process_pfm_update_complete_port1 (CuTest 
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_pfm_update_complete_port1 (test,
 		&cmd.handler.base, &cmd.pfm_1);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2807,7 +2757,7 @@ static void cmd_interface_system_test_process_pfm_update_complete_port0_immediat
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_pfm_update_complete_port0_immediate (test,
 		&cmd.handler.base, &cmd.pfm_0);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2820,7 +2770,7 @@ static void cmd_interface_system_test_process_pfm_update_complete_port1_immediat
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_pfm_update_complete_port1_immediate (test,
 		&cmd.handler.base, &cmd.pfm_1);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2833,7 +2783,7 @@ static void cmd_interface_system_test_process_pfm_update_complete_port0_null (Cu
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, false, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_pfm_update_complete_port0_null (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2846,7 +2796,7 @@ static void cmd_interface_system_test_process_pfm_update_complete_port1_null (Cu
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, false, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_pfm_update_complete_port1_null (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2859,7 +2809,7 @@ static void cmd_interface_system_test_process_pfm_update_complete_invalid_len (C
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_pfm_update_complete_invalid_len (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2872,7 +2822,7 @@ static void cmd_interface_system_test_process_pfm_update_complete_invalid_port (
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_pfm_update_complete_invalid_port (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2885,7 +2835,7 @@ static void cmd_interface_system_test_process_pfm_update_complete_fail (CuTest *
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_pfm_update_complete_fail (test,
 		&cmd.handler.base, &cmd.pfm_0);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2898,7 +2848,7 @@ static void cmd_interface_system_test_process_get_pfm_id_port0_region0 (CuTest *
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_pfm_id_port0_region0 (test,
 		&cmd.handler.base, &cmd.pfm_manager_0);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2911,7 +2861,7 @@ static void cmd_interface_system_test_process_get_pfm_id_port0_region1 (CuTest *
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_pfm_id_port0_region1 (test,
 		&cmd.handler.base, &cmd.pfm_manager_0);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2924,7 +2874,7 @@ static void cmd_interface_system_test_process_get_pfm_id_port1_region0 (CuTest *
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_pfm_id_port1_region0 (test,
 		&cmd.handler.base, &cmd.pfm_manager_1);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2937,7 +2887,7 @@ static void cmd_interface_system_test_process_get_pfm_id_port1_region1 (CuTest *
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_pfm_id_port1_region1 (test,
 		&cmd.handler.base, &cmd.pfm_manager_1);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2950,7 +2900,7 @@ static void cmd_interface_system_test_process_get_pfm_id_no_id_type (CuTest *tes
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_pfm_id_no_id_type (test,
 		&cmd.handler.base, &cmd.pfm_manager_0);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2963,7 +2913,7 @@ static void cmd_interface_system_test_process_get_pfm_id_port0_region0_null (CuT
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, false, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_pfm_id_port0_region0_null (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2976,7 +2926,7 @@ static void cmd_interface_system_test_process_get_pfm_id_port0_region1_null (CuT
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, false, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_pfm_id_port0_region1_null (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -2989,7 +2939,7 @@ static void cmd_interface_system_test_process_get_pfm_id_port1_region0_null (CuT
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, false, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_pfm_id_port1_region0_null (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3002,7 +2952,7 @@ static void cmd_interface_system_test_process_get_pfm_id_port1_region1_null (CuT
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, false, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_pfm_id_port1_region1_null (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3015,7 +2965,7 @@ static void cmd_interface_system_test_process_get_pfm_id_no_active_pfm (CuTest *
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_pfm_id_no_active_pfm (test,
 		&cmd.handler.base, &cmd.pfm_manager_0);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3028,7 +2978,7 @@ static void cmd_interface_system_test_process_get_pfm_id_no_pending_pfm (CuTest 
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_pfm_id_no_pending_pfm (test,
 		&cmd.handler.base, &cmd.pfm_manager_0);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3041,7 +2991,7 @@ static void cmd_interface_system_test_process_get_pfm_id_fail (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_pfm_id_fail (test, &cmd.handler.base,
 		&cmd.pfm_manager_0);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3054,7 +3004,7 @@ static void cmd_interface_system_test_process_get_pfm_id_invalid_len (CuTest *te
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_pfm_id_invalid_len (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3067,7 +3017,7 @@ static void cmd_interface_system_test_process_get_pfm_id_invalid_port (CuTest *t
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_pfm_id_invalid_port (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3080,7 +3030,7 @@ static void cmd_interface_system_test_process_get_pfm_id_invalid_region (CuTest 
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_pfm_id_invalid_region (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3093,7 +3043,7 @@ static void cmd_interface_system_test_process_get_pfm_id_invalid_id (CuTest *tes
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_pfm_id_invalid_id (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3106,7 +3056,7 @@ static void cmd_interface_system_test_process_get_pfm_platform_id_port0_region0 
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_port0_region0 (test,
 		&cmd.handler.base, &cmd.pfm_manager_0);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3119,7 +3069,7 @@ static void cmd_interface_system_test_process_get_pfm_platform_id_port0_region1 
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_port0_region1 (test,
 		&cmd.handler.base, &cmd.pfm_manager_0);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3132,7 +3082,7 @@ static void cmd_interface_system_test_process_get_pfm_platform_id_port1_region0 
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_port1_region0 (test,
 		&cmd.handler.base, &cmd.pfm_manager_1);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3145,7 +3095,7 @@ static void cmd_interface_system_test_process_get_pfm_platform_id_port1_region1 
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_port1_region1 (test,
 		&cmd.handler.base, &cmd.pfm_manager_1);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3158,7 +3108,7 @@ static void cmd_interface_system_test_process_get_pfm_platform_id_port0_region0_
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, false, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_port0_region0_null (
 		test, &cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3171,7 +3121,7 @@ static void cmd_interface_system_test_process_get_pfm_platform_id_port0_region1_
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, false, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_port0_region1_null (
 		test, &cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3184,7 +3134,7 @@ static void cmd_interface_system_test_process_get_pfm_platform_id_port1_region0_
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, false, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_port1_region0_null (
 		test, &cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3197,7 +3147,7 @@ static void cmd_interface_system_test_process_get_pfm_platform_id_port1_region1_
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, false, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_port1_region1_null (
 		test, &cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3210,7 +3160,7 @@ static void cmd_interface_system_test_process_get_pfm_platform_id_no_active_pfm 
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_no_active_pfm (test,
 		&cmd.handler.base, &cmd.pfm_manager_0);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3223,7 +3173,7 @@ static void cmd_interface_system_test_process_get_pfm_platform_id_no_pending_pfm
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_no_pending_pfm (test,
 		&cmd.handler.base, &cmd.pfm_manager_0);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3236,7 +3186,7 @@ static void cmd_interface_system_test_process_get_pfm_platform_id_fail (CuTest *
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_fail (test,
 		&cmd.handler.base, &cmd.pfm_manager_0);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3249,7 +3199,7 @@ static void cmd_interface_system_test_process_get_pfm_supported_fw_port0_region0
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_port0_region0 (test,
 		&cmd.handler.base, &cmd.pfm_manager_0);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3262,7 +3212,7 @@ static void cmd_interface_system_test_process_get_pfm_supported_fw_port0_region1
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_port0_region1 (test,
 		&cmd.handler.base, &cmd.pfm_manager_0);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3275,7 +3225,7 @@ static void cmd_interface_system_test_process_get_pfm_supported_fw_port1_region0
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_port1_region0 (test,
 		&cmd.handler.base, &cmd.pfm_manager_1);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3288,7 +3238,7 @@ static void cmd_interface_system_test_process_get_pfm_supported_fw_port1_region1
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_port1_region1 (test,
 		&cmd.handler.base, &cmd.pfm_manager_1);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3301,7 +3251,7 @@ static void cmd_interface_system_test_process_get_pfm_supported_fw_with_firmware
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_with_firmware_id (test,
 		&cmd.handler.base, &cmd.pfm_manager_0);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3315,7 +3265,7 @@ static void cmd_interface_system_test_process_get_pfm_supported_fw_zero_length_f
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_zero_length_firmware_id (
 		test, &cmd.handler.base, &cmd.pfm_manager_0);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3328,7 +3278,7 @@ static void cmd_interface_system_test_process_get_pfm_supported_fw_nonzero_offse
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_nonzero_offset (test,
 		&cmd.handler.base, &cmd.pfm_manager_0);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3341,7 +3291,7 @@ static void cmd_interface_system_test_process_get_pfm_supported_fw_limited_respo
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_limited_response (test,
 		&cmd.handler.base, &cmd.pfm_manager_0);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3354,7 +3304,7 @@ static void cmd_interface_system_test_process_get_pfm_supported_fw_empty_list (C
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_empty_list (test,
 		&cmd.handler.base, &cmd.pfm_manager_0);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3368,7 +3318,7 @@ static void cmd_interface_system_test_process_get_pfm_supported_fw_empty_list_no
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_empty_list_nonzero_offset (
 		test, &cmd.handler.base, &cmd.pfm_manager_0);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3381,7 +3331,7 @@ static void cmd_interface_system_test_process_get_pfm_supported_fw_port0_region0
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, false, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_port0_region0_null (
 		test, &cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3394,7 +3344,7 @@ static void cmd_interface_system_test_process_get_pfm_supported_fw_port0_region1
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, false, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_port0_region1_null (
 		test, &cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3407,7 +3357,7 @@ static void cmd_interface_system_test_process_get_pfm_supported_fw_port1_region0
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, false, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_port1_region0_null (
 		test, &cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3420,7 +3370,7 @@ static void cmd_interface_system_test_process_get_pfm_supported_fw_port1_region1
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, false, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_port1_region1_null (
 		test, &cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3433,7 +3383,7 @@ static void cmd_interface_system_test_process_get_pfm_supported_fw_no_active_pfm
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_no_active_pfm (test,
 		&cmd.handler.base, &cmd.pfm_manager_0);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3446,7 +3396,7 @@ static void cmd_interface_system_test_process_get_pfm_supported_fw_no_pending_pf
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_no_pending_pfm (test,
 		&cmd.handler.base, &cmd.pfm_manager_0);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3459,7 +3409,7 @@ static void cmd_interface_system_test_process_get_pfm_supported_fw_fail_id (CuTe
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_fail_id (test,
 		&cmd.handler.base, &cmd.pfm_manager_0);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3472,7 +3422,7 @@ static void cmd_interface_system_test_process_get_pfm_supported_fw_fail (CuTest 
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_fail (test,
 		&cmd.handler.base, &cmd.pfm_manager_0);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3485,7 +3435,7 @@ static void cmd_interface_system_test_process_get_pfm_supported_fw_invalid_len (
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_invalid_len (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3498,7 +3448,7 @@ static void cmd_interface_system_test_process_get_pfm_supported_fw_invalid_regio
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_invalid_region (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3511,7 +3461,7 @@ static void cmd_interface_system_test_process_get_pfm_supported_fw_invalid_port 
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_invalid_port (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3524,7 +3474,7 @@ static void cmd_interface_system_test_process_cfm_update_init (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_cfm_update_init (test, &cmd.handler.base,
 		&cmd.cfm);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3537,7 +3487,7 @@ static void cmd_interface_system_test_process_cfm_update_init_invalid_len (CuTes
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_cfm_update_init_invalid_len (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3550,7 +3500,7 @@ static void cmd_interface_system_test_process_cfm_update_init_no_cfm_manager (Cu
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, false, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_cfm_update_init_no_cfm_manager (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3563,7 +3513,7 @@ static void cmd_interface_system_test_process_cfm_update_init_fail (CuTest *test
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_cfm_update_init_fail (test, &cmd.handler.base,
 		&cmd.cfm);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3576,7 +3526,7 @@ static void cmd_interface_system_test_process_cfm_update (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_cfm_update (test, &cmd.handler.base,
 		&cmd.cfm);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3589,7 +3539,7 @@ static void cmd_interface_system_test_process_cfm_update_no_data (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_cfm_update_no_data (test, &cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
@@ -3601,7 +3551,7 @@ static void cmd_interface_system_test_process_cfm_update_no_cfm_manager (CuTest 
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, false, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_cfm_update_no_cfm_manager (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3614,7 +3564,7 @@ static void cmd_interface_system_test_process_cfm_update_fail (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_cfm_update_fail (test, &cmd.handler.base,
 		&cmd.cfm);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3627,7 +3577,7 @@ static void cmd_interface_system_test_process_cfm_update_complete (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_cfm_update_complete (test, &cmd.handler.base,
 		&cmd.cfm);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3640,7 +3590,7 @@ static void cmd_interface_system_test_process_cfm_update_complete_immediate (CuT
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_cfm_update_complete_immediate (test,
 		&cmd.handler.base, &cmd.cfm);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3653,7 +3603,7 @@ static void cmd_interface_system_test_process_cfm_update_complete_invalid_len (C
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_cfm_update_complete_invalid_len (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3666,7 +3616,7 @@ static void cmd_interface_system_test_process_cfm_update_complete_no_cfm_manager
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, false, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_cfm_update_complete_no_cfm_manager (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3679,7 +3629,7 @@ static void cmd_interface_system_test_process_cfm_update_complete_fail (CuTest *
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_cfm_update_complete_fail (test,
 		&cmd.handler.base, &cmd.cfm);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3692,7 +3642,7 @@ static void cmd_interface_system_test_process_get_cfm_id_region0 (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_cfm_id_region0 (test, &cmd.handler.base,
 		&cmd.cfm_manager);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3705,7 +3655,7 @@ static void cmd_interface_system_test_process_get_cfm_id_region1 (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_cfm_id_region1 (test, &cmd.handler.base,
 		&cmd.cfm_manager);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3718,7 +3668,7 @@ static void cmd_interface_system_test_process_get_cfm_id_no_id_type (CuTest *tes
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_cfm_id_no_id_type (test,
 		&cmd.handler.base, &cmd.cfm_manager);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3731,7 +3681,7 @@ static void cmd_interface_system_test_process_get_cfm_id_invalid_len (CuTest *te
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_cfm_id_invalid_len (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3744,7 +3694,7 @@ static void cmd_interface_system_test_process_get_cfm_id_invalid_region (CuTest 
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_cfm_id_invalid_region (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3757,7 +3707,7 @@ static void cmd_interface_system_test_process_get_cfm_id_fail (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_cfm_id_fail (test, &cmd.handler.base,
 		&cmd.cfm_manager);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3770,7 +3720,7 @@ static void cmd_interface_system_test_process_get_cfm_id_no_cfm (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_cfm_id_no_cfm (test, &cmd.handler.base,
 		&cmd.cfm_manager);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3783,7 +3733,7 @@ static void cmd_interface_system_test_process_get_cfm_id_no_cfm_manager (CuTest 
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, false, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_cfm_id_no_cfm_manager (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3796,7 +3746,7 @@ static void cmd_interface_system_test_process_get_cfm_id_invalid_id (CuTest *tes
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, false, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_cfm_id_invalid_id (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3809,7 +3759,7 @@ static void cmd_interface_system_test_process_get_cfm_platform_id_region0 (CuTes
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_cfm_id_platform_region0 (test,
 		&cmd.handler.base, &cmd.cfm_manager);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3822,7 +3772,7 @@ static void cmd_interface_system_test_process_get_cfm_platform_id_region1 (CuTes
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_cfm_id_platform_region1 (test,
 		&cmd.handler.base, &cmd.cfm_manager);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3835,7 +3785,7 @@ static void cmd_interface_system_test_process_get_cfm_platform_id_no_cfm (CuTest
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_cfm_id_platform_no_cfm (test,
 		&cmd.handler.base, &cmd.cfm_manager);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3848,7 +3798,7 @@ static void cmd_interface_system_test_process_get_cfm_platform_id_no_cfm_manager
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, false, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_cfm_id_platform_no_cfm_manager (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3861,7 +3811,7 @@ static void cmd_interface_system_test_process_get_cfm_platform_id_fail (CuTest *
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_cfm_id_platform_fail (test,
 		&cmd.handler.base, &cmd.cfm_manager);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3874,7 +3824,7 @@ static void cmd_interface_system_test_process_get_cfm_component_ids_region0 (CuT
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_region0 (test,
 		&cmd.handler.base, &cmd.cfm_manager);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3887,7 +3837,7 @@ static void cmd_interface_system_test_process_get_cfm_component_ids_region1 (CuT
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_region1 (test,
 		&cmd.handler.base, &cmd.cfm_manager);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3900,7 +3850,7 @@ static void cmd_interface_system_test_process_get_cfm_component_ids_nonzero_offs
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_nonzero_offset (test,
 		&cmd.handler.base, &cmd.cfm_manager);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3913,7 +3863,7 @@ static void cmd_interface_system_test_process_get_cfm_component_ids_limited_resp
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_limited_response (test,
 		&cmd.handler.base, &cmd.cfm_manager);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3926,7 +3876,7 @@ static void cmd_interface_system_test_process_get_cfm_component_ids_no_cfm_manag
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, false, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_no_cfm_manager (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3939,7 +3889,7 @@ static void cmd_interface_system_test_process_get_cfm_component_ids_no_active_cf
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_no_active_cfm (test,
 		&cmd.handler.base, &cmd.cfm_manager);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3952,7 +3902,7 @@ static void cmd_interface_system_test_process_get_cfm_component_ids_no_pending_c
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_no_pending_cfm (test,
 		&cmd.handler.base, &cmd.cfm_manager);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3965,7 +3915,7 @@ static void cmd_interface_system_test_process_get_cfm_component_ids_fail_id (CuT
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_fail_id (test,
 		&cmd.handler.base, &cmd.cfm_manager);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3978,7 +3928,7 @@ static void cmd_interface_system_test_process_get_cfm_component_ids_fail (CuTest
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_fail (test,
 		&cmd.handler.base, &cmd.cfm_manager);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -3991,7 +3941,7 @@ static void cmd_interface_system_test_process_get_cfm_component_ids_invalid_len 
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_invalid_len (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4004,7 +3954,7 @@ static void cmd_interface_system_test_process_get_cfm_component_ids_invalid_regi
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_invalid_region (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4017,7 +3967,7 @@ static void cmd_interface_system_test_process_get_cfm_component_ids_invalid_offs
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_invalid_offset (test,
 		&cmd.handler.base, &cmd.cfm_manager);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4030,7 +3980,7 @@ static void cmd_interface_system_test_process_log_clear_debug (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_log_clear_debug (test, &cmd.handler.base,
 		&cmd.background);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4043,7 +3993,7 @@ static void cmd_interface_system_test_process_log_clear_attestation (CuTest *tes
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_log_clear_attestation (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4056,7 +4006,7 @@ static void cmd_interface_system_test_process_log_clear_invalid_len (CuTest *tes
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_log_clear_invalid_len (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4069,7 +4019,7 @@ static void cmd_interface_system_test_process_log_clear_invalid_type (CuTest *te
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_log_clear_invalid_type (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4082,7 +4032,7 @@ static void cmd_interface_system_test_process_log_clear_debug_fail (CuTest *test
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_log_clear_debug_fail (test,
 		&cmd.handler.base, &cmd.background);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4095,7 +4045,7 @@ static void cmd_interface_system_test_process_debug_fill_log (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_debug_commands_testing_process_debug_fill_log (test, &cmd.handler.base,
 		&cmd.background);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4108,7 +4058,7 @@ static void cmd_interface_system_test_process_get_log_info (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_log_info (test, &cmd.handler.base,
 		&cmd.debug, 6);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4121,7 +4071,7 @@ static void cmd_interface_system_test_process_get_log_info_invalid_len (CuTest *
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_log_info_invalid_len (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4134,7 +4084,7 @@ static void cmd_interface_system_test_process_get_log_info_fail_debug (CuTest *t
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_log_info_fail_debug (test,
 		&cmd.handler.base, &cmd.debug, 6);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4147,7 +4097,7 @@ static void cmd_interface_system_test_process_log_read_debug (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_log_read_debug (test, &cmd.handler.base,
 		&cmd.debug);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4160,7 +4110,7 @@ static void cmd_interface_system_test_process_log_read_debug_limited_response (C
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_log_read_debug_limited_response (test,
 		&cmd.handler.base, &cmd.debug);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4173,7 +4123,7 @@ static void cmd_interface_system_test_process_log_read_attestation (CuTest *test
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_log_read_attestation (test,
 		&cmd.handler.base, &cmd.hash, &cmd.store);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4186,7 +4136,7 @@ static void cmd_interface_system_test_process_log_read_tcg (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_log_read_tcg (test, &cmd.handler.base,
 		&cmd.store);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4199,7 +4149,7 @@ static void cmd_interface_system_test_process_log_read_tcg_fail (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_log_read_tcg_fail (test, &cmd.handler.base,
 		&cmd.store);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4212,7 +4162,7 @@ static void cmd_interface_system_test_process_log_read_attestation_limited_respo
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_log_read_attestation_limited_response (test,
 		&cmd.handler.base, &cmd.hash, &cmd.store);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4225,7 +4175,7 @@ static void cmd_interface_system_test_process_log_read_debug_fail (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_log_read_debug_fail (test,
 		&cmd.handler.base, &cmd.debug);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4238,7 +4188,7 @@ static void cmd_interface_system_test_process_log_read_attestation_fail (CuTest 
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_log_read_attestation_fail (test,
 		&cmd.handler.base, &cmd.hash, &cmd.store);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4251,7 +4201,7 @@ static void cmd_interface_system_test_process_log_read_invalid_offset (CuTest *t
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_log_read_invalid_offset (test,
 		&cmd.handler.base, &cmd.debug);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4264,7 +4214,7 @@ static void cmd_interface_system_test_process_log_read_invalid_type (CuTest *tes
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_log_read_invalid_type (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4277,7 +4227,7 @@ static void cmd_interface_system_test_process_log_read_invalid_len (CuTest *test
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_log_read_invalid_len (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4290,7 +4240,7 @@ static void cmd_interface_system_test_process_get_certificate_digest (CuTest *te
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_get_certificate_digest (test,
 		&cmd.handler.base, &cmd.slave_attestation, &cmd.session);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4303,7 +4253,7 @@ static void cmd_interface_system_test_process_get_certificate_digest_aux_slot (C
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_get_certificate_digest_aux_slot (test,
 		&cmd.handler.base, &cmd.slave_attestation);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4316,7 +4266,7 @@ static void cmd_interface_system_test_process_get_certificate_digest_limited_res
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_get_certificate_digest_limited_response (
 		test, &cmd.handler.base, &cmd.slave_attestation);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4329,7 +4279,7 @@ static void cmd_interface_system_test_process_get_certificate_digest_unsupported
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_get_certificate_digest_unsupported_slot (
 		test, &cmd.handler.base, &cmd.slave_attestation);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4342,7 +4292,7 @@ static void cmd_interface_system_test_process_get_certificate_digest_unavailable
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_get_certificate_digest_unavailable_cert (
 		test, &cmd.handler.base, &cmd.slave_attestation);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4356,7 +4306,7 @@ static void cmd_interface_system_test_process_get_certificate_digest_encryption_
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, false);
+		true, DEVICE_MANAGER_UPSTREAM, false, true);
 	cerberus_protocol_required_commands_testing_process_get_certificate_digest_encryption_unsupported (
 		test, &cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4369,7 +4319,7 @@ static void cmd_interface_system_test_process_get_certificate_digest_invalid_len
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_get_certificate_digest_invalid_len (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4382,7 +4332,7 @@ static void cmd_interface_system_test_process_get_certificate_digest_unsupported
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_get_certificate_digest_unsupported_algo (
 		test, &cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4395,7 +4345,7 @@ static void cmd_interface_system_test_process_get_certificate_digest_invalid_slo
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_get_certificate_digest_invalid_slot (
 		test, &cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4408,77 +4358,9 @@ static void cmd_interface_system_test_process_get_certificate_digest_fail (CuTes
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_get_certificate_digest_fail (test,
 		&cmd.handler.base, &cmd.slave_attestation);
-	complete_cmd_interface_system_mock_test (test, &cmd);
-}
-
-static void cmd_interface_system_test_process_process_certificate_digest (CuTest *test)
-{
-	struct cmd_interface_system_testing cmd;
-
-	TEST_START;
-
-	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_DOWNSTREAM, true);
-	cerberus_protocol_master_commands_testing_process_process_certificate_digest (test,
-		&cmd.handler.base, &cmd.master_attestation);
-	complete_cmd_interface_system_mock_test (test, &cmd);
-}
-
-static void cmd_interface_system_test_process_process_certificate_digest_cert_mismatch (CuTest *test)
-{
-	struct cmd_interface_system_testing cmd;
-
-	TEST_START;
-
-	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_DOWNSTREAM, true);
-	cerberus_protocol_master_commands_testing_process_process_certificate_digest_cert_mismatch (
-		test, &cmd.handler.base, &cmd.master_attestation);
-	complete_cmd_interface_system_mock_test (test, &cmd);
-}
-
-static void cmd_interface_system_test_process_process_certificate_digest_compare_digests_fail (
-	CuTest *test)
-{
-	struct cmd_interface_system_testing cmd;
-
-	TEST_START;
-
-	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_DOWNSTREAM, true);
-	cerberus_protocol_master_commands_testing_process_process_certificate_digest_digests_fail (test,
-		&cmd.handler.base, &cmd.master_attestation);
-	complete_cmd_interface_system_mock_test (test, &cmd);
-}
-
-static void cmd_interface_system_test_process_process_certificate_digest_issue_challenge_fail (
-	CuTest *test)
-{
-	struct cmd_interface_system_testing cmd;
-
-	TEST_START;
-
-	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_DOWNSTREAM, true);
-	cerberus_protocol_master_commands_testing_process_process_certificate_digest_challenge_fail (
-		test, &cmd.handler.base, &cmd.master_attestation);
-	complete_cmd_interface_system_mock_test (test, &cmd);
-}
-
-static void cmd_interface_system_test_process_process_certificate_digest_invalid_buf_len (
-	CuTest *test)
-{
-	struct cmd_interface_system_testing cmd;
-
-	TEST_START;
-
-	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_DOWNSTREAM, true);
-	cerberus_protocol_master_commands_testing_process_process_certificate_digest_invalid_buf_len (
-		test, &cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -4489,7 +4371,7 @@ static void cmd_interface_system_test_process_get_certificate (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_get_certificate (test, &cmd.handler.base,
 		&cmd.slave_attestation);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4502,7 +4384,7 @@ static void cmd_interface_system_test_process_get_certificate_length_0 (CuTest *
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_get_certificate_length_0 (test,
 		&cmd.handler.base, &cmd.slave_attestation);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4515,7 +4397,7 @@ static void cmd_interface_system_test_process_get_certificate_aux_slot (CuTest *
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_get_certificate_aux_slot (test,
 		&cmd.handler.base, &cmd.slave_attestation);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4528,7 +4410,7 @@ static void cmd_interface_system_test_process_get_certificate_limited_response (
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_get_certificate_limited_response (test,
 		&cmd.handler.base, &cmd.slave_attestation);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4541,7 +4423,7 @@ static void cmd_interface_system_test_process_get_certificate_invalid_offset (Cu
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_get_certificate_invalid_offset (test,
 		&cmd.handler.base, &cmd.slave_attestation);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4555,7 +4437,7 @@ static void cmd_interface_system_test_process_get_certificate_valid_offset_and_l
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_get_certificate_valid_offset_and_length_beyond_cert_len (
 		test, &cmd.handler.base, &cmd.slave_attestation);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4568,7 +4450,7 @@ static void cmd_interface_system_test_process_get_certificate_length_too_big (Cu
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_get_certificate_length_too_big (test,
 		&cmd.handler.base, &cmd.slave_attestation);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4581,7 +4463,7 @@ static void cmd_interface_system_test_process_get_certificate_unsupported_slot (
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_get_certificate_unsupported_slot (test,
 		&cmd.handler.base, &cmd.slave_attestation);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4594,7 +4476,7 @@ static void cmd_interface_system_test_process_get_certificate_unsupported_cert (
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_get_certificate_unsupported_cert (test,
 		&cmd.handler.base, &cmd.slave_attestation);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4607,7 +4489,7 @@ static void cmd_interface_system_test_process_get_certificate_unavailable_cert (
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_get_certificate_unavailable_cert (test,
 		&cmd.handler.base, &cmd.slave_attestation);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4620,7 +4502,7 @@ static void cmd_interface_system_test_process_get_certificate_invalid_len (CuTes
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_get_certificate_invalid_len (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4633,7 +4515,7 @@ static void cmd_interface_system_test_process_get_certificate_invalid_slot_num (
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_get_certificate_invalid_slot_num (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4646,48 +4528,9 @@ static void cmd_interface_system_test_process_get_certificate_fail (CuTest *test
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_get_certificate_fail (test,
 		&cmd.handler.base, &cmd.slave_attestation);
-	complete_cmd_interface_system_mock_test (test, &cmd);
-}
-
-static void cmd_interface_system_test_process_process_certificate (CuTest *test)
-{
-	struct cmd_interface_system_testing cmd;
-
-	TEST_START;
-
-	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_DOWNSTREAM, true);
-	cerberus_protocol_master_commands_testing_process_process_certificate (test, &cmd.handler.base,
-		&cmd.master_attestation);
-	complete_cmd_interface_system_mock_test (test, &cmd);
-}
-
-static void cmd_interface_system_test_process_process_certificate_invalid_len (CuTest *test)
-{
-	struct cmd_interface_system_testing cmd;
-
-	TEST_START;
-
-	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_DOWNSTREAM, true);
-	cerberus_protocol_master_commands_testing_process_process_certificate_invalid_len (test,
-		&cmd.handler.base);
-	complete_cmd_interface_system_mock_test (test, &cmd);
-}
-
-static void cmd_interface_system_test_process_process_certificate_store_fail (CuTest *test)
-{
-	struct cmd_interface_system_testing cmd;
-
-	TEST_START;
-
-	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_DOWNSTREAM, true);
-	cerberus_protocol_master_commands_testing_process_process_certificate_store_fail (test,
-		&cmd.handler.base, &cmd.master_attestation);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -4698,7 +4541,7 @@ static void cmd_interface_system_test_process_get_challenge_response (CuTest *te
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_get_challenge_response (test,
 		&cmd.handler.base, &cmd.slave_attestation, &cmd.session);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4711,7 +4554,7 @@ static void cmd_interface_system_test_process_get_challenge_response_no_session_
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, false);
+		true, DEVICE_MANAGER_UPSTREAM, false, true);
 	cerberus_protocol_required_commands_testing_process_get_challenge_response_no_session_mgr (test,
 		&cmd.handler.base, &cmd.slave_attestation);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4725,7 +4568,7 @@ static void cmd_interface_system_test_process_get_challenge_response_key_exchang
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, false);
+		true, DEVICE_MANAGER_UPSTREAM, false, true);
 	cerberus_protocol_required_commands_testing_process_get_challenge_response_key_exchange_not_requested (
 		test, &cmd.handler.base, &cmd.slave_attestation);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4738,7 +4581,7 @@ static void cmd_interface_system_test_process_get_challenge_response_limited_res
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_get_challenge_response_limited_response (
 		test, &cmd.handler.base, &cmd.slave_attestation, &cmd.session);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4752,7 +4595,7 @@ static void cmd_interface_system_test_process_get_challenge_response_limited_res
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, false);
+		true, DEVICE_MANAGER_UPSTREAM, false, true);
 	cerberus_protocol_required_commands_testing_process_get_challenge_response_limited_response_no_session_mgr (
 		test, &cmd.handler.base, &cmd.slave_attestation);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4766,7 +4609,7 @@ static void cmd_interface_system_test_process_get_challenge_response_limited_res
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, false);
+		true, DEVICE_MANAGER_UPSTREAM, false, true);
 	cerberus_protocol_required_commands_testing_process_get_challenge_response_limited_response_key_exchange_not_requested (
 		test, &cmd.handler.base, &cmd.slave_attestation);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4779,7 +4622,7 @@ static void cmd_interface_system_test_process_get_challenge_response_fail (CuTes
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_get_challenge_response_fail (test,
 		&cmd.handler.base, &cmd.slave_attestation);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4792,35 +4635,9 @@ static void cmd_interface_system_test_process_get_challenge_response_invalid_len
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_get_challenge_response_invalid_len (test,
 		&cmd.handler.base);
-	complete_cmd_interface_system_mock_test (test, &cmd);
-}
-
-static void cmd_interface_system_test_process_process_challenge_response (CuTest *test)
-{
-	struct cmd_interface_system_testing cmd;
-
-	TEST_START;
-
-	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_DOWNSTREAM, true);
-	cerberus_protocol_master_commands_testing_process_process_challenge_response (test,
-		&cmd.handler.base, &cmd.master_attestation);
-	complete_cmd_interface_system_mock_test (test, &cmd);
-}
-
-static void cmd_interface_system_test_process_process_challenge_response_fail (CuTest *test)
-{
-	struct cmd_interface_system_testing cmd;
-
-	TEST_START;
-
-	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_DOWNSTREAM, true);
-	cerberus_protocol_master_commands_testing_process_process_challenge_response_fail (test,
-		&cmd.handler.base, &cmd.master_attestation);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -4831,7 +4648,7 @@ static void cmd_interface_system_test_process_get_capabilities (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_get_capabilities (test, &cmd.handler.base,
 		&cmd.device_manager);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4844,7 +4661,7 @@ static void cmd_interface_system_test_process_get_capabilities_invalid_device (C
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_get_capabilities_invalid_device (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4857,7 +4674,7 @@ static void cmd_interface_system_test_process_get_capabilities_invalid_len (CuTe
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_get_capabilities_invalid_len (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4870,7 +4687,7 @@ static void cmd_interface_system_test_process_request_unseal_rsa (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_request_unseal_rsa (test, &cmd.handler.base,
 		&cmd.background);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4883,7 +4700,7 @@ static void cmd_interface_system_test_process_request_unseal_ecc (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_request_unseal_rsa (test, &cmd.handler.base,
 		&cmd.background);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4896,7 +4713,7 @@ static void cmd_interface_system_test_process_request_unseal_fail (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_request_unseal_fail (test,
 		&cmd.handler.base, &cmd.background);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4909,7 +4726,7 @@ static void cmd_interface_system_test_process_request_unseal_invalid_hmac (CuTes
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_request_unseal_invalid_hmac (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4922,7 +4739,7 @@ static void cmd_interface_system_test_process_request_unseal_invalid_seed (CuTes
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_request_unseal_invalid_seed (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4935,7 +4752,7 @@ static void cmd_interface_system_test_process_request_unseal_rsa_invalid_padding
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_request_unseal_rsa_invalid_padding (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4948,7 +4765,7 @@ static void cmd_interface_system_test_process_request_unseal_no_seed (CuTest *te
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_request_unseal_no_seed (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4961,7 +4778,7 @@ static void cmd_interface_system_test_process_request_unseal_incomplete_seed (Cu
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_request_unseal_incomplete_seed (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4974,7 +4791,7 @@ static void cmd_interface_system_test_process_request_unseal_no_ciphertext (CuTe
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_request_unseal_no_ciphertext (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -4987,7 +4804,7 @@ static void cmd_interface_system_test_process_request_unseal_incomplete_cipherte
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_request_unseal_incomplete_ciphertext (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5000,7 +4817,7 @@ static void cmd_interface_system_test_process_request_unseal_no_hmac (CuTest *te
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_request_unseal_no_hmac (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5013,7 +4830,7 @@ static void cmd_interface_system_test_process_request_unseal_bad_hmac_length (Cu
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_request_unseal_bad_hmac_length (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5026,7 +4843,7 @@ static void cmd_interface_system_test_process_request_unseal_incomplete_hmac (Cu
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_request_unseal_incomplete_hmac (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5039,7 +4856,7 @@ static void cmd_interface_system_test_process_request_unseal_invalid_len (CuTest
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_request_unseal_invalid_len (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5052,7 +4869,7 @@ static void cmd_interface_system_test_process_request_unseal_result (CuTest *tes
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_request_unseal_result (test,
 		&cmd.handler.base, &cmd.background);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5065,7 +4882,7 @@ static void cmd_interface_system_test_process_request_unseal_result_limited_resp
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_request_unseal_result_limited_response (
 		test, &cmd.handler.base, &cmd.background);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5078,7 +4895,7 @@ static void cmd_interface_system_test_process_request_unseal_result_busy (CuTest
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_request_unseal_result_busy (test,
 		&cmd.handler.base, &cmd.background);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5091,7 +4908,7 @@ static void cmd_interface_system_test_process_request_unseal_result_fail (CuTest
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_request_unseal_result_fail (test,
 		&cmd.handler.base, &cmd.background);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5104,7 +4921,7 @@ static void cmd_interface_system_test_process_request_unseal_result_invalid_len 
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_request_unseal_result_invalid_len (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5118,7 +4935,7 @@ static void cmd_interface_system_test_process_get_host_reset_status_port0_out_of
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_host_reset_status_port0_out_of_reset (
 		test, &cmd.handler.base, &cmd.host_ctrl_0);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5132,7 +4949,7 @@ static void cmd_interface_system_test_process_get_host_reset_status_port0_held_i
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_host_reset_status_port0_held_in_reset (
 		test, &cmd.handler.base, &cmd.host_ctrl_0);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5146,7 +4963,7 @@ static void cmd_interface_system_test_process_get_host_reset_status_port0_not_he
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_host_reset_status_port0_not_held_in_reset (
 		test, &cmd.handler.base, &cmd.host_ctrl_0);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5159,7 +4976,7 @@ static void cmd_interface_system_test_process_get_host_reset_status_port0_null (
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, false,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_host_reset_status_port0_null (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5173,7 +4990,7 @@ static void cmd_interface_system_test_process_get_host_reset_status_port1_out_of
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_host_reset_status_port1_out_of_reset (
 		test, &cmd.handler.base, &cmd.host_ctrl_1);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5187,7 +5004,7 @@ static void cmd_interface_system_test_process_get_host_reset_status_port1_held_i
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_host_reset_status_port1_held_in_reset (
 		test, &cmd.handler.base, &cmd.host_ctrl_1);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5201,7 +5018,7 @@ static void cmd_interface_system_test_process_get_host_reset_status_port1_not_he
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_host_reset_status_port1_not_held_in_reset (
 		test, &cmd.handler.base, &cmd.host_ctrl_1);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5214,7 +5031,7 @@ static void cmd_interface_system_test_process_get_host_reset_status_port1_null (
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		false, DEVICE_MANAGER_UPSTREAM, true);
+		false, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_host_reset_status_port1_null (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5227,7 +5044,7 @@ static void cmd_interface_system_test_process_get_host_reset_status_invalid_len 
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_host_reset_status_invalid_len (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5240,7 +5057,7 @@ static void cmd_interface_system_test_process_get_host_reset_status_invalid_port
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_host_reset_status_invalid_port (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5253,7 +5070,7 @@ static void cmd_interface_system_test_process_get_host_reset_status_reset_check_
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_host_reset_status_check_error (test,
 		&cmd.handler.base, &cmd.host_ctrl_1);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5267,7 +5084,7 @@ static void cmd_interface_system_test_process_get_host_reset_status_hold_check_e
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_host_reset_status_hold_check_error (
 		test, &cmd.handler.base, &cmd.host_ctrl_0);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5280,7 +5097,7 @@ static void cmd_interface_system_test_process_get_pcd_id (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_pcd_id (test, &cmd.handler.base,
 		&cmd.pcd_manager);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5293,7 +5110,7 @@ static void cmd_interface_system_test_process_get_pcd_id_no_id_type (CuTest *tes
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_pcd_id_no_id_type (test,
 		&cmd.handler.base, &cmd.pcd_manager);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5306,7 +5123,7 @@ static void cmd_interface_system_test_process_get_pcd_id_no_pcd (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_pcd_id_no_pcd (test, &cmd.handler.base,
 		&cmd.pcd_manager);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5319,7 +5136,7 @@ static void cmd_interface_system_test_process_get_pcd_id_no_pcd_manager (CuTest 
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, false, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_pcd_id_no_pcd_manager (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5332,7 +5149,7 @@ static void cmd_interface_system_test_process_get_pcd_id_invalid_len (CuTest *te
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_pcd_id_invalid_len (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5345,7 +5162,7 @@ static void cmd_interface_system_test_process_get_pcd_id_fail (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_pcd_id_fail (test, &cmd.handler.base,
 		&cmd.pcd_manager);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5358,7 +5175,7 @@ static void cmd_interface_system_test_process_get_pcd_id_invalid_id (CuTest *tes
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_pcd_id_invalid_id (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5371,7 +5188,7 @@ static void cmd_interface_system_test_process_get_pcd_platform_id (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_pcd_id_platform (test, &cmd.handler.base,
 		&cmd.pcd_manager);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5384,7 +5201,7 @@ static void cmd_interface_system_test_process_get_pcd_platform_id_no_pcd (CuTest
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_pcd_id_platform_no_pcd (test,
 		&cmd.handler.base, &cmd.pcd_manager);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5397,7 +5214,7 @@ static void cmd_interface_system_test_process_get_pcd_platform_id_no_pcd_manager
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, false, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_pcd_id_platform_no_pcd_manager (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5410,7 +5227,7 @@ static void cmd_interface_system_test_process_get_pcd_platform_id_fail (CuTest *
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_get_pcd_id_platform_fail (test,
 		&cmd.handler.base, &cmd.pcd_manager);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5423,7 +5240,7 @@ static void cmd_interface_system_test_process_pcd_update_init (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_pcd_update_init (test, &cmd.handler.base,
 		&cmd.pcd);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5436,7 +5253,7 @@ static void cmd_interface_system_test_process_pcd_update_init_no_pcd_manager (Cu
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, false, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_pcd_update_init_no_pcd_manager (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5449,7 +5266,7 @@ static void cmd_interface_system_test_process_pcd_update_init_invalid_len (CuTes
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_pcd_update_init_invalid_len (test, \
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5462,7 +5279,7 @@ static void cmd_interface_system_test_process_pcd_update_init_fail (CuTest *test
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_pcd_update_init_fail (test, &cmd.handler.base,
 		&cmd.pcd);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5475,7 +5292,7 @@ static void cmd_interface_system_test_process_pcd_update (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_pcd_update (test, &cmd.handler.base,
 		&cmd.pcd);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5488,7 +5305,7 @@ static void cmd_interface_system_test_process_pcd_update_no_data (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_pcd_update_no_data (test, &cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
@@ -5500,7 +5317,7 @@ static void cmd_interface_system_test_process_pcd_update_no_pcd_manager (CuTest 
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, false, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_pcd_update_no_pcd_manager (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5513,7 +5330,7 @@ static void cmd_interface_system_test_process_pcd_update_fail (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_pcd_update_fail (test, &cmd.handler.base,
 		&cmd.pcd);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5526,7 +5343,7 @@ static void cmd_interface_system_test_process_pcd_update_complete (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_pcd_update_complete (test, &cmd.handler.base,
 		&cmd.pcd);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5539,7 +5356,7 @@ static void cmd_interface_system_test_process_pcd_update_complete_no_pcd_manager
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, false, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_pcd_update_complete_no_pcd_manager (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5552,7 +5369,7 @@ static void cmd_interface_system_test_process_pcd_update_complete_invalid_len (C
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_pcd_update_complete_invalid_len (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5565,7 +5382,7 @@ static void cmd_interface_system_test_process_pcd_update_complete_fail (CuTest *
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_master_commands_testing_process_pcd_update_complete_fail (test,
 		&cmd.handler.base, &cmd.pcd);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5578,7 +5395,7 @@ static void cmd_interface_system_test_process_get_devid_csr (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_get_devid_csr (test, &cmd.handler.base,
 		RIOT_CORE_DEVID_CSR, RIOT_CORE_DEVID_CSR_LEN);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5591,7 +5408,7 @@ static void cmd_interface_system_test_process_get_devid_csr_invalid_buf_len (CuT
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_get_devid_csr_invalid_len (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5604,7 +5421,7 @@ static void cmd_interface_system_test_process_get_devid_csr_unsupported_index (C
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_get_devid_csr_unsupported_index (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5617,7 +5434,7 @@ static void cmd_interface_system_test_process_get_devid_csr_too_big (CuTest *tes
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_get_devid_csr_too_big (test,
 		&cmd.handler.base, &cmd.riot);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5630,7 +5447,7 @@ static void cmd_interface_system_test_process_get_devid_csr_too_big_limited_resp
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_get_devid_csr_too_big_limited_response (
 		test, &cmd.handler.base, RIOT_CORE_DEVID_CSR, RIOT_CORE_DEVID_CSR_LEN);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5643,7 +5460,7 @@ static void cmd_interface_system_test_process_import_signed_dev_id_cert (CuTest 
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_import_signed_dev_id_cert (test,
 		&cmd.handler.base, &cmd.keystore, &cmd.background);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5656,7 +5473,7 @@ static void cmd_interface_system_test_process_import_root_ca_cert (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_import_root_ca_cert (test,
 		&cmd.handler.base, &cmd.keystore, &cmd.background);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5669,7 +5486,7 @@ static void cmd_interface_system_test_process_import_intermediate_cert (CuTest *
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_import_intermediate_cert (test,
 		&cmd.handler.base, &cmd.keystore, &cmd.background);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5682,7 +5499,7 @@ static void cmd_interface_system_test_process_import_signed_ca_cert_invalid_len 
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_import_signed_ca_cert_invalid_len (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5695,7 +5512,7 @@ static void cmd_interface_system_test_process_import_signed_ca_cert_no_cert (CuT
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_import_signed_ca_cert_no_cert (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5708,7 +5525,7 @@ static void cmd_interface_system_test_process_import_signed_ca_cert_bad_cert_len
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_import_signed_ca_cert_bad_cert_length (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5721,7 +5538,7 @@ static void cmd_interface_system_test_process_import_signed_ca_cert_unsupported_
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_import_signed_ca_cert_unsupported_index (
 		test, &cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5734,7 +5551,7 @@ static void cmd_interface_system_test_process_import_signed_dev_id_cert_save_err
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_import_signed_dev_id_cert_save_error (test,
 		&cmd.handler.base, &cmd.keystore);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5747,7 +5564,7 @@ static void cmd_interface_system_test_process_import_root_ca_cert_save_error (Cu
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_import_root_ca_cert_save_error (test,
 		&cmd.handler.base, &cmd.keystore);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5760,7 +5577,7 @@ static void cmd_interface_system_test_process_import_intermediate_cert_save_erro
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_import_intermediate_cert_save_error (test,
 		&cmd.handler.base, &cmd.keystore);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5774,7 +5591,7 @@ static void cmd_interface_system_test_process_import_signed_ca_cert_authenticate
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_import_signed_ca_cert_authenticate_error (
 		test, &cmd.handler.base, &cmd.keystore, &cmd.background);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5787,7 +5604,7 @@ static void cmd_interface_system_test_process_get_signed_cert_state (CuTest *tes
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_get_signed_cert_state (test,
 		&cmd.handler.base, &cmd.background);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5800,7 +5617,7 @@ static void cmd_interface_system_test_process_get_signed_cert_state_invalid_len 
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_get_signed_cert_state_invalid_len (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5813,7 +5630,7 @@ static void cmd_interface_system_test_process_reset_bypass_no_nonce_authorized (
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_reset_bypass_no_nonce_authorized (test,
 		&cmd.handler.base, &cmd.auth, &cmd.background);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5826,7 +5643,7 @@ static void cmd_interface_system_test_process_reset_bypass_no_nonce_challenge (C
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_reset_bypass_no_nonce_challenge (test,
 		&cmd.handler.base, &cmd.auth);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5839,7 +5656,7 @@ static void cmd_interface_system_test_process_reset_bypass_no_nonce_max_challeng
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_reset_bypass_no_nonce_max_challenge (test,
 		&cmd.handler.base, &cmd.auth);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5852,7 +5669,7 @@ static void cmd_interface_system_test_process_reset_bypass_no_nonce_not_authoriz
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_reset_bypass_no_nonce_not_authorized (test,
 		&cmd.handler.base, &cmd.auth);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5865,7 +5682,7 @@ static void cmd_interface_system_test_process_reset_bypass_with_nonce_authorized
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_reset_bypass_with_nonce_authorized (test,
 		&cmd.handler.base, &cmd.auth, &cmd.background);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5878,7 +5695,7 @@ static void cmd_interface_system_test_process_reset_bypass_with_nonce_not_author
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_reset_bypass_with_nonce_not_authorized (
 		test, &cmd.handler.base, &cmd.auth);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5891,7 +5708,7 @@ static void cmd_interface_system_test_process_reset_bypass_no_nonce_invalid_chal
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_reset_bypass_no_nonce_invalid_challenge (
 		test, &cmd.handler.base, &cmd.auth);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5905,7 +5722,7 @@ static void cmd_interface_system_test_process_reset_bypass_no_nonce_invalid_chal
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_reset_bypass_no_nonce_invalid_challenge_limited_response (
 		test, &cmd.handler.base, &cmd.auth);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5918,7 +5735,7 @@ static void cmd_interface_system_test_process_reset_bypass_error (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_reset_bypass_error (test, &cmd.handler.base,
 		&cmd.auth, &cmd.background);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5931,7 +5748,7 @@ static void cmd_interface_system_test_process_restore_defaults_no_nonce_authoriz
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_restore_defaults_no_nonce_authorized (test,
 		&cmd.handler.base, &cmd.auth, &cmd.background);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5944,7 +5761,7 @@ static void cmd_interface_system_test_process_restore_defaults_no_nonce_challeng
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_restore_defaults_no_nonce_challenge (test,
 		&cmd.handler.base, &cmd.auth);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5957,7 +5774,7 @@ static void cmd_interface_system_test_process_restore_defaults_no_nonce_max_chal
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_restore_defaults_no_nonce_max_challenge (
 		test, &cmd.handler.base, &cmd.auth);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5971,7 +5788,7 @@ static void cmd_interface_system_test_process_restore_defaults_no_nonce_not_auth
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_restore_defaults_no_nonce_not_authorized (
 		test, &cmd.handler.base, &cmd.auth);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5984,7 +5801,7 @@ static void cmd_interface_system_test_process_restore_defaults_with_nonce_author
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_restore_defaults_with_nonce_authorized (
 		test, &cmd.handler.base, &cmd.auth, &cmd.background);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -5998,7 +5815,7 @@ static void cmd_interface_system_test_process_restore_defaults_with_nonce_not_au
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_restore_defaults_with_nonce_not_authorized (
 		test, &cmd.handler.base, &cmd.auth);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6012,7 +5829,7 @@ static void cmd_interface_system_test_process_restore_defaults_no_nonce_invalid_
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_restore_defaults_no_nonce_invalid_challenge (
 		test, &cmd.handler.base, &cmd.auth);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6026,7 +5843,7 @@ static void cmd_interface_system_test_process_restore_defaults_no_nonce_invalid_
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_restore_defaults_no_nonce_invalid_challenge_limited_response (
 		test, &cmd.handler.base, &cmd.auth);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6039,7 +5856,7 @@ static void cmd_interface_system_test_process_restore_defaults_error (CuTest *te
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_restore_defaults_error (test,
 		&cmd.handler.base, &cmd.auth, &cmd.background);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6053,7 +5870,7 @@ static void cmd_interface_system_test_process_clear_platform_config_no_nonce_aut
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_clear_platform_config_no_nonce_authorized (
 		test, &cmd.handler.base, &cmd.auth, &cmd.background);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6067,7 +5884,7 @@ static void cmd_interface_system_test_process_clear_platform_config_no_nonce_cha
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_clear_platform_config_no_nonce_challenge (
 		test, &cmd.handler.base, &cmd.auth);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6081,7 +5898,7 @@ static void cmd_interface_system_test_process_clear_platform_config_no_nonce_max
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_clear_platform_config_no_nonce_max_challenge (
 		test, &cmd.handler.base, &cmd.auth);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6095,7 +5912,7 @@ static void cmd_interface_system_test_process_clear_platform_config_no_nonce_not
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_clear_platform_config_no_nonce_not_authorized (
 		test, &cmd.handler.base, &cmd.auth);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6109,7 +5926,7 @@ static void cmd_interface_system_test_process_clear_platform_config_with_nonce_a
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_clear_platform_config_with_nonce_authorized (
 		test, &cmd.handler.base, &cmd.auth, &cmd.background);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6123,7 +5940,7 @@ static void cmd_interface_system_test_process_clear_platform_config_with_nonce_n
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_clear_platform_config_with_nonce_not_authorized (
 		test, &cmd.handler.base, &cmd.auth);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6137,7 +5954,7 @@ static void cmd_interface_system_test_process_clear_platform_config_no_nonce_inv
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_clear_platform_config_no_nonce_invalid_challenge (
 		test, &cmd.handler.base, &cmd.auth);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6151,7 +5968,7 @@ static void cmd_interface_system_test_process_clear_platform_config_no_nonce_inv
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_clear_platform_config_no_nonce_invalid_challenge_limited_response (
 		test, &cmd.handler.base, &cmd.auth);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6164,7 +5981,7 @@ static void cmd_interface_system_test_process_clear_platform_config_error (CuTes
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_clear_platform_config_error (test,
 		&cmd.handler.base, &cmd.auth, &cmd.background);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6177,7 +5994,7 @@ static void cmd_interface_system_test_process_reset_intrusion_no_nonce_authorize
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_reset_intrusion_no_nonce_authorized (test,
 		&cmd.handler.base, &cmd.auth, &cmd.background);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6190,7 +6007,7 @@ static void cmd_interface_system_test_process_reset_intrusion_no_nonce_challenge
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_reset_intrusion_no_nonce_challenge (test,
 		&cmd.handler.base, &cmd.auth);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6203,7 +6020,7 @@ static void cmd_interface_system_test_process_reset_intrusion_no_nonce_max_chall
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_reset_intrusion_no_nonce_max_challenge (
 		test, &cmd.handler.base, &cmd.auth);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6216,7 +6033,7 @@ static void cmd_interface_system_test_process_reset_intrusion_no_nonce_not_autho
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_reset_intrusion_no_nonce_not_authorized (
 		test, &cmd.handler.base, &cmd.auth);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6229,7 +6046,7 @@ static void cmd_interface_system_test_process_reset_intrusion_with_nonce_authori
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_reset_intrusion_with_nonce_authorized (test,
 		&cmd.handler.base, &cmd.auth, &cmd.background);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6243,7 +6060,7 @@ static void cmd_interface_system_test_process_reset_intrusion_with_nonce_not_aut
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_reset_intrusion_with_nonce_not_authorized (
 		test, &cmd.handler.base, &cmd.auth);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6257,7 +6074,7 @@ static void cmd_interface_system_test_process_reset_intrusion_no_nonce_invalid_c
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_reset_intrusion_no_nonce_invalid_challenge (
 		test, &cmd.handler.base, &cmd.auth);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6271,7 +6088,7 @@ static void cmd_interface_system_test_process_reset_intrusion_no_nonce_invalid_c
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_reset_intrusion_no_nonce_invalid_challenge_limited_response (
 		test, &cmd.handler.base, &cmd.auth);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6284,7 +6101,7 @@ static void cmd_interface_system_test_process_reset_intrusion_error (CuTest *tes
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_reset_intrusion_error (test,
 		&cmd.handler.base, &cmd.auth, &cmd.background);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6298,7 +6115,7 @@ static void cmd_interface_system_test_process_reset_config_invalid_len (CuTest *
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_reset_config_invalid_len (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6311,7 +6128,7 @@ static void cmd_interface_system_test_process_reset_config_invalid_request_subty
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_reset_config_invalid_request_subtype (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6324,7 +6141,7 @@ static void cmd_interface_system_test_process_get_device_certificate (CuTest *te
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_debug_commands_testing_process_get_device_certificate (test,
 		 &cmd.handler.base, &cmd.device_manager);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6337,7 +6154,7 @@ static void cmd_interface_system_test_process_get_device_certificate_invalid_len
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_debug_commands_testing_process_get_device_certificate_invalid_len (test,
 		 &cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6350,7 +6167,7 @@ static void cmd_interface_system_test_process_get_device_certificate_invalid_cer
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_debug_commands_testing_process_get_device_certificate_invalid_cert_num (test,
 		 &cmd.handler.base, &cmd.device_manager);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6363,7 +6180,7 @@ static void cmd_interface_system_test_process_get_device_certificate_get_chain_f
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_debug_commands_testing_process_get_device_certificate_get_chain_fail (test,
 		 &cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6376,7 +6193,7 @@ static void cmd_interface_system_test_process_get_device_cert_digest (CuTest *te
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_debug_commands_testing_process_get_device_cert_digest (test,
 		 &cmd.handler.base, &cmd.hash, &cmd.device_manager);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6389,7 +6206,7 @@ static void cmd_interface_system_test_process_get_device_cert_digest_invalid_len
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_debug_commands_testing_process_get_device_cert_digest_invalid_len (test,
 		 &cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6402,7 +6219,7 @@ static void cmd_interface_system_test_process_get_device_cert_digest_invalid_cer
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_debug_commands_testing_process_get_device_cert_digest_invalid_cert_num (test,
 		 &cmd.handler.base, &cmd.device_manager);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6415,7 +6232,7 @@ static void cmd_interface_system_test_process_get_device_cert_digest_get_chain_f
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_debug_commands_testing_process_get_device_cert_digest_get_chain_fail (test,
 		 &cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6428,7 +6245,7 @@ static void cmd_interface_system_test_process_get_device_cert_digest_hash_fail (
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_debug_commands_testing_process_get_device_cert_digest_hash_fail (test,
 		 &cmd.handler.base, &cmd.hash, &cmd.device_manager);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6441,7 +6258,7 @@ static void cmd_interface_system_test_process_get_device_challenge (CuTest *test
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_debug_commands_testing_process_get_device_challenge (test, &cmd.handler.base,
 		&cmd.riot, &cmd.hash, &cmd.master_attestation, &cmd.device_manager);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6454,7 +6271,7 @@ static void cmd_interface_system_test_process_get_device_challenge_invalid_len (
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_debug_commands_testing_process_get_device_challenge_invalid_len (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6467,7 +6284,7 @@ static void cmd_interface_system_test_process_prepare_recovery_image_port0 (CuTe
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, true, true, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_prepare_recovery_image_port0 (test,
 		&cmd.handler.base, &cmd.recovery_0);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6480,7 +6297,7 @@ static void cmd_interface_system_test_process_prepare_recovery_image_port1 (CuTe
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, true, true, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_prepare_recovery_image_port1 (test,
 		&cmd.handler.base, &cmd.recovery_1);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6494,7 +6311,7 @@ static void cmd_interface_system_test_process_prepare_recovery_image_port0_null 
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, true, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_prepare_recovery_image_port0_null (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6508,7 +6325,7 @@ static void cmd_interface_system_test_process_prepare_recovery_image_port1_null 
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, true, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_prepare_recovery_image_port1_null (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6521,7 +6338,7 @@ static void cmd_interface_system_test_process_prepare_recovery_image_invalid_len
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, true, true, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_prepare_recovery_image_invalid_len (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6534,7 +6351,7 @@ static void cmd_interface_system_test_process_prepare_recovery_image_fail (CuTes
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, true, true, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_prepare_recovery_image_fail (test,
 		&cmd.handler.base, &cmd.recovery_0);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6548,7 +6365,7 @@ static void cmd_interface_system_test_process_prepare_recovery_image_bad_port_in
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, true, true, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_prepare_recovery_image_bad_port_index (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6561,7 +6378,7 @@ static void cmd_interface_system_test_process_update_recovery_image_port0 (CuTes
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, true, true, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_update_recovery_image_port0 (test,
 		&cmd.handler.base, &cmd.recovery_0);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6574,7 +6391,7 @@ static void cmd_interface_system_test_process_update_recovery_image_port1 (CuTes
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, true, true, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_update_recovery_image_port1 (test,
 		&cmd.handler.base, &cmd.recovery_1);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6588,7 +6405,7 @@ static void cmd_interface_system_test_process_update_recovery_image_port0_null (
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, true, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_update_recovery_image_port0_null (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6601,7 +6418,7 @@ static void cmd_interface_system_test_process_update_recovery_image_port1_null (
 
 	TEST_START;
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, true, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_update_recovery_image_port1_null (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6614,7 +6431,7 @@ static void cmd_interface_system_test_process_update_recovery_image_no_data (CuT
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, true, true, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_update_recovery_image_no_data (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6628,7 +6445,7 @@ static void cmd_interface_system_test_process_update_recovery_image_bad_port_ind
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, true, true, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_update_recovery_image_bad_port_index (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6641,7 +6458,7 @@ static void cmd_interface_system_test_process_update_recovery_image_fail (CuTest
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, true, true, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_update_recovery_image_fail (test,
 		&cmd.handler.base, &cmd.recovery_0);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6654,7 +6471,7 @@ static void cmd_interface_system_test_process_activate_recovery_image_port0 (CuT
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, true, true, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_activate_recovery_image_port0 (test,
 		&cmd.handler.base, &cmd.recovery_0);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6667,7 +6484,7 @@ static void cmd_interface_system_test_process_activate_recovery_image_port1 (CuT
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, true, true, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_activate_recovery_image_port1 (test,
 		&cmd.handler.base, &cmd.recovery_1);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6681,7 +6498,7 @@ static void cmd_interface_system_test_process_activate_recovery_image_port0_null
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, true, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_activate_recovery_image_port0_null (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6695,7 +6512,7 @@ static void cmd_interface_system_test_process_activate_recovery_image_port1_null
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, true, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_activate_recovery_image_port1_null (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6709,7 +6526,7 @@ static void cmd_interface_system_test_process_activate_recovery_image_invalid_le
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, true, true, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_activate_recovery_image_invalid_len (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6722,7 +6539,7 @@ static void cmd_interface_system_test_process_activate_recovery_image_bad_port_i
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, true, true, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_activate_recovery_image_bad_port_index (
 		test, &cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6735,7 +6552,7 @@ static void cmd_interface_system_test_process_activate_recovery_image_fail (CuTe
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, true, true, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_activate_recovery_image_fail (test,
 		&cmd.handler.base, &cmd.recovery_0);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6748,7 +6565,7 @@ static void cmd_interface_system_test_process_get_recovery_image_version_port0 (
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, true, true, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_recovery_image_version_port0 (test,
 		&cmd.handler.base, &cmd.recovery_manager_0);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6762,7 +6579,7 @@ static void cmd_interface_system_test_process_get_recovery_image_version_port1 (
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, true, true, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_recovery_image_version_port1 (test,
 		&cmd.handler.base, &cmd.recovery_manager_1);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6775,7 +6592,7 @@ static void cmd_interface_system_test_process_get_recovery_image_version_no_id_t
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, true, true, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_recovery_image_version_no_id_type (test,
 		&cmd.handler.base, &cmd.recovery_manager_0);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6789,7 +6606,7 @@ static void cmd_interface_system_test_process_get_recovery_image_version_port0_n
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, true, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_recovery_image_version_port0_null (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6803,7 +6620,7 @@ static void cmd_interface_system_test_process_get_recovery_image_version_port1_n
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, true, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_recovery_image_version_port1_null (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6817,7 +6634,7 @@ static void cmd_interface_system_test_process_get_recovery_image_version_no_imag
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, true, true, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_recovery_image_version_no_image (test,
 		&cmd.handler.base, &cmd.recovery_manager_0);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6830,7 +6647,7 @@ static void cmd_interface_system_test_process_get_recovery_image_version_fail (C
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, true, true, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_recovery_image_version_fail (test,
 		&cmd.handler.base, &cmd.recovery_manager_0);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6844,7 +6661,7 @@ static void cmd_interface_system_test_process_get_recovery_image_version_invalid
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, true, true, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_recovery_image_version_invalid_len (
 		test, &cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6858,7 +6675,7 @@ static void cmd_interface_system_test_process_get_recovery_image_version_bad_por
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, true, true, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_recovery_image_version_bad_port_index (
 		test,&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6871,7 +6688,7 @@ static void cmd_interface_system_test_process_get_attestation_data (CuTest *test
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_attestation_data (test,
 		&cmd.handler.base, &cmd.store);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6886,7 +6703,7 @@ static void cmd_interface_system_test_process_get_attestation_data_with_offset (
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 
 	pcr_store_release (&cmd.store);
 
@@ -6905,7 +6722,7 @@ static void cmd_interface_system_test_process_get_attestation_data_invalid_len (
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_attestation_data_invalid_len (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6918,7 +6735,7 @@ static void cmd_interface_system_test_process_get_attestation_data_fail (CuTest 
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_attestation_data_fail (test,
 		&cmd.handler.base, &cmd.store, &cmd.flash);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6931,7 +6748,7 @@ static void cmd_interface_system_test_process_get_attestation_data_no_data (CuTe
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_optional_commands_testing_process_get_attestation_data_no_data (test,
 		&cmd.handler.base, &cmd.store);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6944,7 +6761,7 @@ static void cmd_interface_system_test_process_get_device_info (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_get_device_info (test, &cmd.handler.base,
 		&cmd.cmd_device);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6957,7 +6774,7 @@ static void cmd_interface_system_test_process_get_device_info_limited_response (
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_get_device_info_limited_response (test,
 		&cmd.handler.base, &cmd.cmd_device);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6970,7 +6787,7 @@ static void cmd_interface_system_test_process_get_device_info_invalid_len (CuTes
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_get_device_info_invalid_len (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6983,7 +6800,7 @@ static void cmd_interface_system_test_process_get_device_info_bad_info_index (Cu
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_get_device_info_bad_info_index (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -6996,7 +6813,7 @@ static void cmd_interface_system_test_process_get_device_info_fail (CuTest *test
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_get_device_info_fail (test,
 		&cmd.handler.base, &cmd.cmd_device);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -7009,7 +6826,7 @@ static void cmd_interface_system_test_process_get_device_id (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_get_device_id (test, &cmd.handler.base,
 		CERBERUS_PROTOCOL_MSFT_PCI_VID, 2, CERBERUS_PROTOCOL_MSFT_PCI_VID, 4);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -7022,7 +6839,7 @@ static void cmd_interface_system_test_process_get_device_id_invalid_len (CuTest 
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_get_device_id_invalid_len (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -7035,7 +6852,7 @@ static void cmd_interface_system_test_process_reset_counter (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_reset_counter (test, &cmd.handler.base,
 		&cmd.cmd_device);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -7048,7 +6865,7 @@ static void cmd_interface_system_test_process_reset_counter_port0 (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_reset_counter_port0 (test,
 		&cmd.handler.base, &cmd.cmd_device);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -7061,7 +6878,7 @@ static void cmd_interface_system_test_process_reset_counter_port1 (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_reset_counter_port1 (test,
 		&cmd.handler.base, &cmd.cmd_device);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -7074,7 +6891,7 @@ static void cmd_interface_system_test_process_reset_counter_invalid_len (CuTest 
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_reset_counter_invalid_len (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -7087,7 +6904,7 @@ static void cmd_interface_system_test_process_reset_counter_invalid_counter (CuT
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_process_reset_counter_invalid_counter (test,
 		&cmd.handler.base, &cmd.cmd_device);
 	complete_cmd_interface_system_mock_test (test, &cmd);
@@ -7100,7 +6917,7 @@ static void cmd_interface_system_test_process_key_exchange_type_0 (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 
 	cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_0 (test,
 		&cmd.handler.base, &cmd.session);
@@ -7114,7 +6931,7 @@ static void cmd_interface_system_test_process_key_exchange_type_0_fail (CuTest *
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 
 	cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_0_fail (test,
 		&cmd.handler.base, &cmd.session);
@@ -7128,7 +6945,7 @@ static void cmd_interface_system_test_process_key_exchange_type_1 (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 
 	cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_1 (test,
 		&cmd.handler.base, &cmd.session);
@@ -7142,7 +6959,7 @@ static void cmd_interface_system_test_process_key_exchange_type_1_unencrypted (C
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 
 	cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_1_unencrypted (test,
 		&cmd.handler.base);
@@ -7156,7 +6973,7 @@ static void cmd_interface_system_test_process_key_exchange_type_1_fail (CuTest *
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 
 	cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_1_fail (test,
 		&cmd.handler.base, &cmd.session);
@@ -7170,7 +6987,7 @@ static void cmd_interface_system_test_process_key_exchange_type_2 (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 
 	cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_2 (test,
 		&cmd.handler.base, &cmd.session);
@@ -7184,7 +7001,7 @@ static void cmd_interface_system_test_process_key_exchange_type_2_unencrypted (C
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 
 	cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_2_unencrypted (test,
 		&cmd.handler.base);
@@ -7198,7 +7015,7 @@ static void cmd_interface_system_test_process_key_exchange_type_2_fail (CuTest *
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 
 	cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_2_fail (test,
 		&cmd.handler.base, &cmd.session);
@@ -7212,7 +7029,7 @@ static void cmd_interface_system_test_process_key_exchange_unsupported (CuTest *
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, false);
+		true, DEVICE_MANAGER_UPSTREAM, false, true);
 
 	cerberus_protocol_optional_commands_testing_process_get_key_exchange_unsupported (test,
 		&cmd.handler.base);
@@ -7226,7 +7043,7 @@ static void cmd_interface_system_test_process_key_exchange_unsupported_index (Cu
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 
 	cerberus_protocol_optional_commands_testing_process_get_key_exchange_unsupported_index (test,
 		&cmd.handler.base);
@@ -7240,7 +7057,7 @@ static void cmd_interface_system_test_process_key_exchange_invalid_len (CuTest *
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 
 	cerberus_protocol_optional_commands_testing_process_get_key_exchange_invalid_len (test,
 		&cmd.handler.base);
@@ -7254,7 +7071,7 @@ static void cmd_interface_system_test_process_session_sync (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 
 	cerberus_protocol_optional_commands_testing_process_session_sync (test,	&cmd.handler.base,
 		&cmd.session);
@@ -7268,7 +7085,7 @@ static void cmd_interface_system_test_process_session_sync_no_session_mgr (CuTes
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, false);
+		true, DEVICE_MANAGER_UPSTREAM, false, true);
 
 	cerberus_protocol_optional_commands_testing_process_session_sync_no_session_mgr (test,
 		&cmd.handler.base);
@@ -7282,7 +7099,7 @@ static void cmd_interface_system_test_process_session_sync_fail (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 
 	cerberus_protocol_optional_commands_testing_process_session_sync_fail (test, &cmd.handler.base,
 		&cmd.session);
@@ -7296,7 +7113,7 @@ static void cmd_interface_system_test_process_session_sync_unencrypted (CuTest *
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 
 	cerberus_protocol_optional_commands_testing_process_session_sync_unencrypted (test,
 		&cmd.handler.base);
@@ -7310,7 +7127,7 @@ static void cmd_interface_system_test_process_session_sync_invalid_len (CuTest *
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 
 	cerberus_protocol_optional_commands_testing_process_session_sync_invalid_len (test,
 		&cmd.handler.base, &cmd.session);
@@ -7324,7 +7141,7 @@ static void cmd_interface_system_test_supports_all_required_commands (CuTest *te
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 	cerberus_protocol_required_commands_testing_supports_all_required_commands (test,
 		&cmd.handler.base, CERBERUS_FW_VERSION, &cmd.slave_attestation, &cmd.device_manager,
 		&cmd.background, &cmd.keystore, &cmd.cmd_device, RIOT_CORE_DEVID_CSR,
@@ -7333,173 +7150,587 @@ static void cmd_interface_system_test_supports_all_required_commands (CuTest *te
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
-static void cmd_interface_system_test_issue_request_null (CuTest *test)
+static void cmd_interface_system_test_process_response_null (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
-	uint8_t buf[CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG];
+	struct cmd_interface_msg response;
 	int status;
 
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 
-	status = cmd.handler.base.issue_request (NULL,
-		CERBERUS_PROTOCOL_GET_DEVICE_CAPABILITIES, NULL, buf, sizeof (buf));
+	response.crypto_timeout = true;
+	status = cmd.handler.base.process_response (NULL, &response);
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
+	CuAssertIntEquals (test, false, response.crypto_timeout);
 
-	status = cmd.handler.base.issue_request (&cmd.handler.base,
-		CERBERUS_PROTOCOL_GET_DEVICE_CAPABILITIES, NULL, NULL, sizeof (buf));
-	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
-
-	status = cmd.handler.base.issue_request (&cmd.handler.base,
-		CERBERUS_PROTOCOL_GET_DEVICE_CAPABILITIES, NULL, buf, CERBERUS_PROTOCOL_MIN_MSG_LEN - 1);
+	status = cmd.handler.base.process_response (&cmd.handler.base, NULL);
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
-static void cmd_interface_system_test_issue_request_invalid_request (CuTest *test)
+static void cmd_interface_system_test_process_response_payload_too_short (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
-	uint8_t buf[CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG];
+	struct cmd_interface_msg response;
+	int status;
+
+	TEST_START;
+
+	memset (&response, 0, sizeof (struct cmd_interface_msg));
+	response.length = CERBERUS_PROTOCOL_MIN_MSG_LEN - 1;
+	response.source_eid = MCTP_PROTOCOL_BMC_EID;
+	response.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
+
+	response.crypto_timeout = true;
+	status = cmd.handler.base.process_response (&cmd.handler.base, &response);
+	CuAssertIntEquals (test, CMD_HANDLER_PAYLOAD_TOO_SHORT, status);
+	CuAssertIntEquals (test, false, response.crypto_timeout);
+
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_response_unsupported_message (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg response;
+	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) data;
+	int status;
+
+	TEST_START;
+
+	memset (&response, 0, sizeof (struct cmd_interface_msg));
+	memset (data, 0, sizeof (data));
+	response.data = data;
+
+	header->msg_type = 0x11;
+	header->pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+
+	response.length = CERBERUS_PROTOCOL_MIN_MSG_LEN;
+	response.source_eid = MCTP_PROTOCOL_BMC_EID;
+	response.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
+
+	response.crypto_timeout = true;
+	status = cmd.handler.base.process_response (&cmd.handler.base, &response);
+	CuAssertIntEquals (test, CMD_HANDLER_UNSUPPORTED_MSG, status);
+	CuAssertIntEquals (test, false, response.crypto_timeout);
+
+	header->msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	header->pci_vendor_id = 0xAA;
+
+	response.crypto_timeout = true;
+	status = cmd.handler.base.process_response (&cmd.handler.base, &response);
+	CuAssertIntEquals (test, CMD_HANDLER_UNSUPPORTED_MSG, status);
+	CuAssertIntEquals (test, false, response.crypto_timeout);
+
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_response_unknown_command (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg response;
+	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) data;
+	int status;
+
+	TEST_START;
+
+	memset (&response, 0, sizeof (struct cmd_interface_msg));
+	memset (data, 0, sizeof (data));
+	response.data = data;
+	header->msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	header->pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	header->command = 0xFF;
+
+	response.length = CERBERUS_PROTOCOL_MIN_MSG_LEN;
+	response.source_eid = MCTP_PROTOCOL_BMC_EID;
+	response.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
+
+	response.crypto_timeout = true;
+	status = cmd.handler.base.process_response (&cmd.handler.base, &response);
+	CuAssertIntEquals (test, CMD_HANDLER_UNKNOWN_RESPONSE, status);
+	CuAssertIntEquals (test, false, response.crypto_timeout);
+
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_error_response (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg response;
+
+	response.data = data;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
+
+	cerberus_protocol_master_commands_testing_process_error_response (test, &cmd.handler.base,
+		&response);
+
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_error_response_bad_len (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg response;
+
+	response.data = data;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
+
+	cerberus_protocol_master_commands_testing_process_error_response_invalid_len (test,
+		&cmd.handler.base, &response);
+
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_response_reserved_fields_not_zero (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg response;
+	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) data;
+	int status;
+
+	TEST_START;
+
+	memset (&response, 0, sizeof (struct cmd_interface_msg));
+	memset (data, 0, sizeof (data));
+	response.data = data;
+	header->msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	header->pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	header->reserved1 = 1;
+	header->reserved2 = 0;
+
+	response.length = CERBERUS_PROTOCOL_MIN_MSG_LEN;
+	response.source_eid = MCTP_PROTOCOL_BMC_EID;
+	response.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
+
+	response.crypto_timeout = true;
+	status = cmd.handler.base.process_response (&cmd.handler.base, &response);
+	CuAssertIntEquals (test, CMD_HANDLER_RSVD_NOT_ZERO, status);
+	CuAssertIntEquals (test, false, response.crypto_timeout);
+
+	header->reserved1 = 0;
+	header->reserved2 = 1;
+
+	response.crypto_timeout = true;
+	status = cmd.handler.base.process_response (&cmd.handler.base, &response);
+	CuAssertIntEquals (test, CMD_HANDLER_RSVD_NOT_ZERO, status);
+	CuAssertIntEquals (test, false, response.crypto_timeout);
+
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_response_encrypted_message (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg response;
+	uint8_t decrypted_data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg decrypted_response;
+	struct cmd_interface_msg decrypted_response2;
+	struct cerberus_protocol_get_certificate_digest_response *rsp =
+		(struct cerberus_protocol_get_certificate_digest_response*) data;
+	struct cerberus_protocol_get_certificate_digest_response *plaintext_rsp =
+		(struct cerberus_protocol_get_certificate_digest_response*) decrypted_data;
+	size_t offset = sizeof (struct cerberus_protocol_get_certificate_digest_response);
 	int status;
 
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 
-	status = cmd.handler.base.issue_request (&cmd.handler.base, 0xFF, NULL, buf, sizeof (buf));
-	CuAssertIntEquals (test, CMD_HANDLER_UNKNOWN_COMMAND, status);
+	memset (&response, 0, sizeof (struct cmd_interface_msg));
+	memset (data, 0, sizeof (data));
+	response.data = data;
+
+	memset (&decrypted_response, 0, sizeof (struct cmd_interface_msg));
+	memset (decrypted_data, 0, sizeof (decrypted_data));
+	decrypted_response.data = decrypted_data;
+
+	rsp->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	rsp->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	rsp->header.command = CERBERUS_PROTOCOL_GET_DIGEST;
+	rsp->header.crypt = 1;
+	rsp->num_digests = 0xAA;
+
+	data[offset] = 0xBB;
+	data[offset + SHA256_HASH_LENGTH - 1] = 0xCC;
+
+	response.length =
+		cerberus_protocol_get_certificate_digest_response_length (SHA256_HASH_LENGTH) +
+		CERBERUS_PROTOCOL_AES_GCM_TAG_LEN + CERBERUS_PROTOCOL_AES_IV_LEN;
+	response.source_eid = MCTP_PROTOCOL_BMC_EID;
+	response.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	response.max_response = SESSION_MANAGER_TRAILER_LEN;
+
+	plaintext_rsp->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	plaintext_rsp->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	plaintext_rsp->header.command = CERBERUS_PROTOCOL_GET_DIGEST;
+	plaintext_rsp->num_digests = 1;
+
+	decrypted_data[offset] = 0xDD;
+	decrypted_data[offset + SHA256_HASH_LENGTH - 1] = 0xEE;
+
+	decrypted_response.length =
+		cerberus_protocol_get_certificate_digest_response_length (SHA256_HASH_LENGTH);
+	decrypted_response.source_eid = MCTP_PROTOCOL_BMC_EID;
+	decrypted_response.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	decrypted_response.max_response = SESSION_MANAGER_TRAILER_LEN;
+
+	memcpy (&decrypted_response2, &decrypted_response, sizeof (struct cmd_interface_msg));
+
+	status = mock_expect (&cmd.session.mock, cmd.session.base.decrypt_message, &cmd.session, 0,
+		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &response,
+			sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+			cmd_interface_mock_duplicate_request));
+	status |= mock_expect_output_deep_copy (&cmd.session.mock, 0, &decrypted_response,
+		sizeof (decrypted_response), cmd_interface_mock_copy_request);
+	CuAssertIntEquals (test, 0, status);
+
+	decrypted_response2.max_response = 0;
+
+	status = mock_expect (&cmd.observer.mock, cmd.observer.base.on_get_digest_response,
+		&cmd.observer, 0, MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request,
+			&decrypted_response2, sizeof (decrypted_response2), cmd_interface_mock_save_request,
+			cmd_interface_mock_free_request, cmd_interface_mock_duplicate_request));
+	CuAssertIntEquals (test, 0, status);
+
+	response.crypto_timeout = true;
+	status = cmd.handler.base.process_response (&cmd.handler.base, &response);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, false, response.crypto_timeout);
 
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
-static void cmd_interface_system_test_issue_get_device_capabilities (CuTest *test)
+static void cmd_interface_system_test_process_response_encrypted_message_decrypt_fail (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg response;
+	struct cerberus_protocol_get_certificate_digest_response *rsp =
+		(struct cerberus_protocol_get_certificate_digest_response*) data;
+	int status;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
+
+	memset (&response, 0, sizeof (struct cmd_interface_msg));
+	memset (data, 0, sizeof (data));
+	response.data = data;
+	rsp->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	rsp->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	rsp->header.command = CERBERUS_PROTOCOL_GET_DIGEST;
+	rsp->header.crypt = 1;
+	rsp->num_digests = 0xAA;
+
+	response.length =
+		cerberus_protocol_get_certificate_digest_response_length (SHA256_HASH_LENGTH) +
+		CERBERUS_PROTOCOL_AES_GCM_TAG_LEN + CERBERUS_PROTOCOL_AES_IV_LEN;
+	response.source_eid = MCTP_PROTOCOL_BMC_EID;
+	response.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+
+	status = mock_expect (&cmd.session.mock, cmd.session.base.decrypt_message,
+		&cmd.session, SESSION_MANAGER_NO_MEMORY,
+		MOCK_ARG_PTR_CONTAINS_TMP (&response, sizeof (response)));
+	CuAssertIntEquals (test, 0, status);
+
+	response.crypto_timeout = true;
+	status = cmd.handler.base.process_response (&cmd.handler.base, &response);
+	CuAssertIntEquals (test, SESSION_MANAGER_NO_MEMORY, status);
+	CuAssertIntEquals (test, false, response.crypto_timeout);
+
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_response_encrypted_message_no_session_manager (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg response;
+	struct cerberus_protocol_get_certificate_digest_response *rsp =
+		(struct cerberus_protocol_get_certificate_digest_response*) data;
+	int status;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM, false, true);
+
+	memset (&response, 0, sizeof (struct cmd_interface_msg));
+	memset (data, 0, sizeof (data));
+	response.data = data;
+	rsp->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	rsp->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	rsp->header.command = CERBERUS_PROTOCOL_GET_DIGEST;
+	rsp->header.crypt = 1;
+	rsp->num_digests = 0xAA;
+
+	response.length =
+		cerberus_protocol_get_certificate_digest_response_length (SHA256_HASH_LENGTH) +
+		CERBERUS_PROTOCOL_AES_GCM_TAG_LEN + CERBERUS_PROTOCOL_AES_IV_LEN;
+	response.source_eid = MCTP_PROTOCOL_BMC_EID;
+	response.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+
+	response.crypto_timeout = true;
+	status = cmd.handler.base.process_response (&cmd.handler.base, &response);
+	CuAssertIntEquals (test, CMD_HANDLER_ENCRYPTION_UNSUPPORTED, status);
+	CuAssertIntEquals (test, false, response.crypto_timeout);
+
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_response_get_certificate_digest (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+	struct cmd_interface_msg response;
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	int status;
+
+	memset (&response, 0, sizeof (struct cmd_interface_msg));
+	response.data = data;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_DOWNSTREAM, true, true);
+
+	status = mock_expect (&cmd.observer.mock, cmd.observer.base.on_get_digest_response,
+		&cmd.observer, 0, MOCK_ARG_VALIDATOR (cmd_interface_mock_validate_request, &response,
+		sizeof (response)));
+	CuAssertIntEquals (test, 0, status);
+
+	cerberus_protocol_master_commands_testing_process_response_get_certificate_digest (test,
+		&cmd.handler.base, &response);
+
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_response_get_certificate_digest_no_observer (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+	struct cmd_interface_msg response;
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+
+	memset (&response, 0, sizeof (struct cmd_interface_msg));
+	response.data = data;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_DOWNSTREAM, true, false);
+
+	cerberus_protocol_master_commands_testing_process_response_get_certificate_digest (test,
+		&cmd.handler.base, &response);
+
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_response_get_certificate_digest_invalid_buf_len (
+	CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
 
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
-	cerberus_protocol_master_commands_testing_issue_get_device_capabilities (test,
+		true, DEVICE_MANAGER_DOWNSTREAM, true, true);
+	cerberus_protocol_master_commands_testing_process_response_get_certificate_digest_invalid_buf_len (
+		test, &cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_response_get_certificate (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+	struct cmd_interface_msg response;
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	int status;
+
+	memset (&response, 0, sizeof (struct cmd_interface_msg));
+	response.data = data;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_DOWNSTREAM, true, true);
+
+	status = mock_expect (&cmd.observer.mock, cmd.observer.base.on_get_certificate_response,
+		&cmd.observer, 0, MOCK_ARG_VALIDATOR (cmd_interface_mock_validate_request, &response,
+		sizeof (response)));
+	CuAssertIntEquals (test, 0, status);
+
+	cerberus_protocol_master_commands_testing_process_response_get_certificate (test,
+		&cmd.handler.base, &response);
+
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_response_get_certificate_no_observer (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+	struct cmd_interface_msg response;
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+
+	memset (&response, 0, sizeof (struct cmd_interface_msg));
+	response.data = data;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_DOWNSTREAM, true, false);
+
+	cerberus_protocol_master_commands_testing_process_response_get_certificate (test,
+		&cmd.handler.base, &response);
+
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_response_get_certificate_invalid_buf_len (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_DOWNSTREAM, true, true);
+	cerberus_protocol_master_commands_testing_process_response_get_certificate_invalid_buf_len (
+		test, &cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_response_get_certificate_unsupported_slot (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_DOWNSTREAM, true, true);
+	cerberus_protocol_master_commands_testing_process_response_get_certificate_unsupported_slot (
+		test, &cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_response_challenge_response (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+	struct cmd_interface_msg response;
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	int status;
+
+	memset (&response, 0, sizeof (struct cmd_interface_msg));
+	response.data = data;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_DOWNSTREAM, true, true);
+
+	status = mock_expect (&cmd.observer.mock, cmd.observer.base.on_challenge_response,
+		&cmd.observer, 0, MOCK_ARG_VALIDATOR (cmd_interface_mock_validate_request, &response,
+		sizeof (response)));
+	CuAssertIntEquals (test, 0, status);
+
+	cerberus_protocol_master_commands_testing_process_response_challenge_response (test,
+		&cmd.handler.base, &response);
+
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_response_challenge_response_no_observer (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+	struct cmd_interface_msg response;
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+
+	memset (&response, 0, sizeof (struct cmd_interface_msg));
+	response.data = data;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_DOWNSTREAM, true, false);
+
+	cerberus_protocol_master_commands_testing_process_response_challenge_response (test,
+		&cmd.handler.base, &response);
+
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_response_challenge_response_invalid_buf_len (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_DOWNSTREAM, true, true);
+	cerberus_protocol_master_commands_testing_process_response_challenge_invalid_buf_len (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
-static void cmd_interface_system_test_issue_get_device_capabilities_buf_too_small (CuTest *test)
+static void cmd_interface_system_test_process_response_challenge_response_unsupported_slot (
+	CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
 
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
-	cerberus_protocol_master_commands_testing_issue_get_device_capabilities_buf_too_small (test,
+		true, DEVICE_MANAGER_DOWNSTREAM, true, true);
+	cerberus_protocol_master_commands_testing_process_response_challenge_unsupported_slot (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
-static void cmd_interface_system_test_issue_get_certificate_digest (CuTest *test)
+static void cmd_interface_system_test_process_response_challenge_response_rsvd_not_fail (
+	CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
 
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
-	cerberus_protocol_master_commands_testing_issue_get_certificate_digest (test,
-		&cmd.handler.base, &cmd.master_attestation);
-	complete_cmd_interface_system_mock_test (test, &cmd);
-}
-
-static void cmd_interface_system_test_issue_get_certificate_digest_buf_too_small (CuTest *test)
-{
-	struct cmd_interface_system_testing cmd;
-
-	TEST_START;
-
-	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
-	cerberus_protocol_master_commands_testing_issue_get_certificate_digest_buf_too_small (test,
+		true, DEVICE_MANAGER_DOWNSTREAM, true, true);
+	cerberus_protocol_master_commands_testing_process_response_challenge_rsvd_not_zero (test,
 		&cmd.handler.base);
-	complete_cmd_interface_system_mock_test (test, &cmd);
-}
-
-static void cmd_interface_system_test_issue_get_certificate (CuTest *test)
-{
-	struct cmd_interface_system_testing cmd;
-
-	TEST_START;
-
-	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
-	cerberus_protocol_master_commands_testing_issue_get_certificate (test, &cmd.handler.base);
-	complete_cmd_interface_system_mock_test (test, &cmd);
-}
-
-static void cmd_interface_system_test_issue_get_certificate_buf_too_small (CuTest *test)
-{
-	struct cmd_interface_system_testing cmd;
-
-	TEST_START;
-
-	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
-	cerberus_protocol_master_commands_testing_issue_get_certificate_buf_too_small (test,
-		&cmd.handler.base);
-	complete_cmd_interface_system_mock_test (test, &cmd);
-}
-
-static void cmd_interface_system_test_issue_get_certificate_null (CuTest *test)
-{
-	struct cmd_interface_system_testing cmd;
-
-	TEST_START;
-
-	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
-	cerberus_protocol_master_commands_testing_issue_get_certificate_null (test, &cmd.handler.base);
-	complete_cmd_interface_system_mock_test (test, &cmd);
-}
-
-static void cmd_interface_system_test_issue_challenge (CuTest *test)
-{
-	struct cmd_interface_system_testing cmd;
-
-	TEST_START;
-
-	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
-	cerberus_protocol_master_commands_testing_issue_challenge (test, &cmd.handler.base,
-		&cmd.master_attestation);
-	complete_cmd_interface_system_mock_test (test, &cmd);
-}
-
-static void cmd_interface_system_test_issue_challenge_fail (CuTest *test)
-{
-	struct cmd_interface_system_testing cmd;
-
-	TEST_START;
-
-	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
-	cerberus_protocol_master_commands_testing_issue_challenge_fail (test, &cmd.handler.base,
-		&cmd.master_attestation);
-	complete_cmd_interface_system_mock_test (test, &cmd);
-}
-
-static void cmd_interface_system_test_issue_challenge_null (CuTest *test)
-{
-	struct cmd_interface_system_testing cmd;
-
-	TEST_START;
-
-	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
-	cerberus_protocol_master_commands_testing_issue_challenge_null (test, &cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -7510,7 +7741,7 @@ static void cmd_interface_system_test_generate_error_packet (CuTest *test)
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 
 	cerberus_protocol_required_commands_testing_generate_error_packet (test, &cmd.handler.base);
 
@@ -7524,7 +7755,7 @@ static void cmd_interface_system_test_generate_error_packet_encrypted (CuTest *t
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 
 	cerberus_protocol_required_commands_testing_generate_error_packet_encrypted (test,
 		&cmd.handler.base, &cmd.session);
@@ -7539,7 +7770,7 @@ static void cmd_interface_system_test_generate_error_packet_encrypted_fail (CuTe
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 
 	cerberus_protocol_required_commands_testing_generate_error_packet_encrypted_fail (test,
 		&cmd.handler.base, &cmd.session);
@@ -7554,10 +7785,73 @@ static void cmd_interface_system_test_generate_error_packet_invalid_arg (CuTest 
 	TEST_START;
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true);
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
 
 	cerberus_protocol_required_commands_testing_generate_error_packet_invalid_arg (test,
 		&cmd.handler.base);
+
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_add_cerberus_protocol_observer_invalid_arg (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+	int status;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
+
+	status = cmd_interface_system_add_cerberus_protocol_observer (NULL, &cmd.observer.base);
+	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
+
+	status = cmd_interface_system_add_cerberus_protocol_observer (&cmd.handler, NULL);
+	CuAssertIntEquals (test, OBSERVABLE_INVALID_ARGUMENT, status);
+
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_remove_cerberus_protocol_observer (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+	struct cmd_interface_msg response;
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	int status;
+
+	memset (&response, 0, sizeof (struct cmd_interface_msg));
+	response.data = data;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_DOWNSTREAM, true, true);
+
+	status = cmd_interface_system_remove_cerberus_protocol_observer (&cmd.handler,
+		&cmd.observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	cerberus_protocol_master_commands_testing_process_response_challenge_response (test,
+		&cmd.handler.base, &response);
+
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_remove_cerberus_protocol_observer_invalid_arg (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+	int status;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, DEVICE_MANAGER_UPSTREAM, true, true);
+
+	status = cmd_interface_system_remove_cerberus_protocol_observer (NULL, &cmd.observer.base);
+	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
+
+	status = cmd_interface_system_remove_cerberus_protocol_observer (&cmd.handler, NULL);
+	CuAssertIntEquals (test, OBSERVABLE_INVALID_ARGUMENT, status);
 
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
@@ -7574,8 +7868,6 @@ CuSuite* get_cmd_interface_system_suite ()
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_payload_too_short);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_unsupported_message);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_unknown_command);
-	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_unknown_device);
-	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_error_packet);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_reserved_fields_not_zero);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_encrypted_message);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_encrypted_message_decrypt_fail);
@@ -7812,15 +8104,6 @@ CuSuite* get_cmd_interface_system_suite ()
 	SUITE_ADD_TEST (suite,
 		cmd_interface_system_test_process_get_certificate_digest_invalid_slot);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_certificate_digest_fail);
-	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_process_certificate_digest);
-	SUITE_ADD_TEST (suite,
-		cmd_interface_system_test_process_process_certificate_digest_cert_mismatch);
-	SUITE_ADD_TEST (suite,
-		cmd_interface_system_test_process_process_certificate_digest_compare_digests_fail);
-	SUITE_ADD_TEST (suite,
-		cmd_interface_system_test_process_process_certificate_digest_issue_challenge_fail);
-	SUITE_ADD_TEST (suite,
-		cmd_interface_system_test_process_process_certificate_digest_invalid_buf_len);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_certificate);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_certificate_length_0);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_certificate_aux_slot);
@@ -7835,9 +8118,6 @@ CuSuite* get_cmd_interface_system_suite ()
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_certificate_invalid_len);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_certificate_invalid_slot_num);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_certificate_fail);
-	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_process_certificate);
-	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_process_certificate_invalid_len);
-	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_process_certificate_store_fail);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_challenge_response);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_challenge_response_no_session_mgr);
 	SUITE_ADD_TEST (suite,
@@ -7850,8 +8130,6 @@ CuSuite* get_cmd_interface_system_suite ()
 		cmd_interface_system_test_process_get_challenge_response_limited_response_key_exchange_not_requested);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_challenge_response_fail);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_challenge_response_invalid_len);
-	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_process_challenge_response);
-	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_process_challenge_response_fail);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_capabilities);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_capabilities_invalid_device);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_capabilities_invalid_len);
@@ -8077,22 +8355,45 @@ CuSuite* get_cmd_interface_system_suite ()
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_session_sync_unencrypted);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_session_sync_invalid_len);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_supports_all_required_commands);
-	SUITE_ADD_TEST (suite, cmd_interface_system_test_issue_request_null);
-	SUITE_ADD_TEST (suite, cmd_interface_system_test_issue_request_invalid_request);
-	SUITE_ADD_TEST (suite, cmd_interface_system_test_issue_get_device_capabilities);
-	SUITE_ADD_TEST (suite, cmd_interface_system_test_issue_get_device_capabilities_buf_too_small);
-	SUITE_ADD_TEST (suite, cmd_interface_system_test_issue_get_certificate_digest);
-	SUITE_ADD_TEST (suite, cmd_interface_system_test_issue_get_certificate_digest_buf_too_small);
-	SUITE_ADD_TEST (suite, cmd_interface_system_test_issue_get_certificate);
-	SUITE_ADD_TEST (suite, cmd_interface_system_test_issue_get_certificate_buf_too_small);
-	SUITE_ADD_TEST (suite, cmd_interface_system_test_issue_get_certificate_null);
-	SUITE_ADD_TEST (suite, cmd_interface_system_test_issue_challenge);
-	SUITE_ADD_TEST (suite, cmd_interface_system_test_issue_challenge_fail);
-	SUITE_ADD_TEST (suite, cmd_interface_system_test_issue_challenge_null);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_response_null);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_response_payload_too_short);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_response_unsupported_message);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_response_unknown_command);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_error_response);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_error_response_bad_len);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_response_reserved_fields_not_zero);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_response_encrypted_message);
+	SUITE_ADD_TEST (suite,
+		cmd_interface_system_test_process_response_encrypted_message_decrypt_fail);
+	SUITE_ADD_TEST (suite,
+		cmd_interface_system_test_process_response_encrypted_message_no_session_manager);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_response_get_certificate_digest);
+	SUITE_ADD_TEST (suite,
+		cmd_interface_system_test_process_response_get_certificate_digest_no_observer);
+	SUITE_ADD_TEST (suite,
+		cmd_interface_system_test_process_response_get_certificate_digest_invalid_buf_len);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_response_get_certificate);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_response_get_certificate_no_observer);
+	SUITE_ADD_TEST (suite,
+		cmd_interface_system_test_process_response_get_certificate_invalid_buf_len);
+	SUITE_ADD_TEST (suite,
+		cmd_interface_system_test_process_response_get_certificate_unsupported_slot);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_response_challenge_response);
+	SUITE_ADD_TEST (suite,
+		cmd_interface_system_test_process_response_challenge_response_no_observer);
+	SUITE_ADD_TEST (suite,
+		cmd_interface_system_test_process_response_challenge_response_invalid_buf_len);
+	SUITE_ADD_TEST (suite,
+		cmd_interface_system_test_process_response_challenge_response_unsupported_slot);
+	SUITE_ADD_TEST (suite,
+		cmd_interface_system_test_process_response_challenge_response_rsvd_not_fail);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_generate_error_packet);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_generate_error_packet_encrypted);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_generate_error_packet_encrypted_fail);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_generate_error_packet_invalid_arg);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_add_cerberus_protocol_observer_invalid_arg);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_remove_cerberus_protocol_observer);
+	SUITE_ADD_TEST (suite, cmd_interface_system_test_remove_cerberus_protocol_observer_invalid_arg);
 
 	/* Tear down after the tests in this suite have run. */
 	SUITE_ADD_TEST (suite, cmd_interface_system_testing_suite_tear_down);

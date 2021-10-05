@@ -25,6 +25,8 @@
 #include "recovery/recovery_image_manager.h"
 #include "recovery/recovery_image_cmd_interface.h"
 #include "cmd_device.h"
+#include "common/observable.h"
+#include "cmd_interface/cerberus_protocol_observer.h"
 
 
 /**
@@ -60,6 +62,7 @@ struct cmd_interface_system {
 	struct recovery_image_cmd_interface *recovery_cmd_1;	/**< Recovery image update command interface instance for port 1 */
 	struct cmd_device *cmd_device;							/**< Device command handler instance */
 	struct cmd_interface_device_id device_id;				/**< Device ID information */
+	struct observable observable;							/**< Observer manager for the interface. */
 };
 
 
@@ -82,11 +85,16 @@ int cmd_interface_system_init (struct cmd_interface_system *intf,
 	struct session_manager *session);
 void cmd_interface_system_deinit (struct cmd_interface_system *intf);
 
+int cmd_interface_system_add_cerberus_protocol_observer (struct cmd_interface_system *intf, 
+	struct cerberus_protocol_observer *observer);
+int cmd_interface_system_remove_cerberus_protocol_observer (struct cmd_interface_system *intf, 
+	struct cerberus_protocol_observer *observer);
+
 /* Internal functions for use by derived types. */
 int cmd_interface_system_process_request (struct cmd_interface *intf,
-	struct cmd_interface_request *request);
-int cmd_interface_system_issue_request (struct cmd_interface *intf, uint8_t command_id,
-	void *request_params, uint8_t *buf, size_t buf_len);
+	struct cmd_interface_msg *request);
+int cmd_interface_system_process_response (struct cmd_interface *intf,
+	struct cmd_interface_msg *response);
 
 
 #endif /* CMD_INTERFACE_SYSTEM_H_ */

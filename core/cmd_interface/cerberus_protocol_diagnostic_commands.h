@@ -27,7 +27,7 @@ struct cerberus_protocol_heap_stats_response {
 #pragma pack(pop)
 
 
-int cerberus_protocol_heap_stats (struct cmd_device *device, struct cmd_interface_request *request);
+int cerberus_protocol_heap_stats (struct cmd_device *device, struct cmd_interface_msg *request);
 
 
 #endif /* CERBERUS_PROTOCOL_DIAGNOSTIC_COMMANDS_H_ */

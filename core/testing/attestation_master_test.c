@@ -283,7 +283,7 @@ static void attestation_master_test_init (CuTest *test)
 	status = attestation_master_init (&attestation, &riot, &hash.base, &ecc.base, &rsa.base,
 		&x509.base, &rng.base, &manager, 1);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertPtrNotNull (test, attestation.issue_challenge);
+	CuAssertPtrNotNull (test, attestation.generate_challenge_request);
 	CuAssertPtrNotNull (test, attestation.compare_digests);
 	CuAssertPtrNotNull (test, attestation.store_certificate);
 	CuAssertPtrNotNull (test, attestation.process_challenge_response);
@@ -402,7 +402,7 @@ static void attestation_master_test_release_null (CuTest *test)
 	attestation_master_release (NULL);
 }
 
-static void attestation_master_test_issue_challenge (CuTest *test)
+static void attestation_master_test_generate_challenge_request (CuTest *test)
 {
 	int status;
 	struct attestation_master attestation;
@@ -430,8 +430,7 @@ static void attestation_master_test_issue_challenge (CuTest *test)
 	status |= mock_expect_output (&rng.mock, 1, &nonce, sizeof (nonce), -1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.issue_challenge (&attestation, 0xAA, 0, (uint8_t*)&challenge,
-		sizeof (struct attestation_challenge));
+	status = attestation.generate_challenge_request (&attestation, 0xAA, 0, &challenge);
 	CuAssertIntEquals (test, sizeof (struct attestation_challenge), status);
 	CuAssertIntEquals (test, 0, challenge.slot_num);
 	CuAssertPtrNotNull (test, challenge.nonce);
@@ -443,7 +442,7 @@ static void attestation_master_test_issue_challenge (CuTest *test)
 		&keystore, &manager, &riot);
 }
 
-static void attestation_master_test_issue_challenge_buf_too_small (CuTest *test)
+static void attestation_master_test_generate_challenge_request_invalid_slot_num (CuTest *test)
 {
 	int status;
 	struct attestation_master attestation;
@@ -462,41 +461,14 @@ static void attestation_master_test_issue_challenge_buf_too_small (CuTest *test)
 	setup_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
 		&riot, &keystore, &manager);
 
-	status = attestation.issue_challenge (&attestation, 0xAA, 0, (uint8_t*)&challenge, 1);
-	CuAssertIntEquals (test, ATTESTATION_BUF_TOO_SMALL, status);
-
-	complete_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
-		&keystore, &manager, &riot);
-}
-
-static void attestation_master_test_issue_challenge_invalid_slot_num (CuTest *test)
-{
-	int status;
-	struct attestation_master attestation;
-	struct hash_engine_mock hash;
-	struct ecc_engine_mock ecc;
-	struct rsa_engine_mock rsa;
-	struct x509_engine_mock x509;
-	struct rng_engine_mock rng;
-	struct attestation_challenge challenge = {0};
-	struct riot_key_manager riot;
-	struct keystore_mock keystore;
-	struct device_manager manager;
-
-	TEST_START;
-
-	setup_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
-		&riot, &keystore, &manager);
-
-	status = attestation.issue_challenge (&attestation, 0xAA, 1, (uint8_t*)&challenge,
-		sizeof (struct attestation_challenge));
+	status = attestation.generate_challenge_request (&attestation, 0xAA, 1, &challenge);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_SLOT_NUM, status);
 
 	complete_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
 		&keystore, &manager, &riot);
 }
 
-static void attestation_master_test_issue_challenge_invalid_device (CuTest *test)
+static void attestation_master_test_generate_challenge_request_invalid_device (CuTest *test)
 {
 	int status;
 	struct attestation_master attestation;
@@ -515,15 +487,14 @@ static void attestation_master_test_issue_challenge_invalid_device (CuTest *test
 	setup_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
 		&riot, &keystore, &manager);
 
-	status = attestation.issue_challenge (&attestation, 0xCC, 0, (uint8_t*)&challenge,
-		sizeof (struct attestation_challenge));
+	status = attestation.generate_challenge_request (&attestation, 0xCC, 0, &challenge);
 	CuAssertIntEquals (test, DEVICE_MGR_UNKNOWN_DEVICE, status);
 
 	complete_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
 		&keystore, &manager, &riot);
 }
 
-static void attestation_master_test_issue_challenge_rng_fail (CuTest *test)
+static void attestation_master_test_generate_challenge_request_rng_fail (CuTest *test)
 {
 	int status;
 	struct attestation_master attestation;
@@ -546,15 +517,14 @@ static void attestation_master_test_issue_challenge_rng_fail (CuTest *test)
 		MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.issue_challenge (&attestation, 0xAA, 0, (uint8_t*)&challenge,
-		sizeof (struct attestation_challenge));
+	status = attestation.generate_challenge_request (&attestation, 0xAA, 0, &challenge);
 	CuAssertIntEquals (test, -1, status);
 
 	complete_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
 		&keystore, &manager, &riot);
 }
 
-static void attestation_master_test_issue_challenge_null (CuTest *test)
+static void attestation_master_test_generate_challenge_request_null (CuTest *test)
 {
 	int status;
 	struct attestation_master attestation;
@@ -567,17 +537,16 @@ static void attestation_master_test_issue_challenge_null (CuTest *test)
 	struct riot_key_manager riot;
 	struct keystore_mock keystore;
 	struct device_manager manager;
-	uint16_t buf_len = sizeof (struct attestation_challenge);
 
 	TEST_START;
 
 	setup_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
 		&riot, &keystore, &manager);
 
-	status = attestation.issue_challenge (NULL, 0xAA, 0, (uint8_t*)&challenge, buf_len);
+	status = attestation.generate_challenge_request (NULL, 0xAA, 0, &challenge);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
-	status = attestation.issue_challenge (&attestation, 0xAA, 0, NULL, buf_len);
+	status = attestation.generate_challenge_request (&attestation, 0xAA, 0, NULL);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
 	complete_attestation_master_mock_test (test, &attestation, &hash, &ecc, &rsa, &x509, &rng,
@@ -1220,8 +1189,7 @@ static void attestation_master_test_process_challenge_response_3_device_cert_ecc
 		RIOT_CORE_DEVID_INTR_SIGNED_CERT, RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.issue_challenge (&attestation, 0xAA, 0, (uint8_t*)&challenge,
-		sizeof (struct attestation_challenge));
+	status = attestation.generate_challenge_request (&attestation, 0xAA, 0, &challenge);
 	CuAssertIntEquals (test, sizeof (struct attestation_challenge), status);
 
 	status = attestation.process_challenge_response (&attestation, buf, buf_len, 0xAA);
@@ -1355,8 +1323,7 @@ static void attestation_master_test_process_challenge_response_3_device_cert_no_
 		RIOT_CORE_DEVID_INTR_SIGNED_CERT, RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.issue_challenge (&attestation, 0xAA, 0, (uint8_t*)&challenge,
-		sizeof (struct attestation_challenge));
+	status = attestation.generate_challenge_request (&attestation, 0xAA, 0, &challenge);
 	CuAssertIntEquals (test, sizeof (struct attestation_challenge), status);
 
 	status = attestation.process_challenge_response (&attestation, buf, buf_len, 0xAA);
@@ -1512,8 +1479,7 @@ static void attestation_master_test_process_challenge_response_2_device_cert_ecc
 		RIOT_CORE_DEVID_SIGNED_CERT, RIOT_CORE_DEVID_SIGNED_CERT_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.issue_challenge (&attestation, 0xAA, 0, (uint8_t*)&challenge,
-		sizeof (struct attestation_challenge));
+	status = attestation.generate_challenge_request (&attestation, 0xAA, 0, &challenge);
 	CuAssertIntEquals (test, sizeof (struct attestation_challenge), status);
 
 	status = attestation.process_challenge_response (&attestation, buf, buf_len, 0xAA);
@@ -1643,8 +1609,7 @@ static void attestation_master_test_process_challenge_response_2_device_cert_no_
 		RIOT_CORE_DEVID_SIGNED_CERT, RIOT_CORE_DEVID_SIGNED_CERT_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.issue_challenge (&attestation, 0xAA, 0, (uint8_t*)&challenge,
-		sizeof (struct attestation_challenge));
+	status = attestation.generate_challenge_request (&attestation, 0xAA, 0, &challenge);
 	CuAssertIntEquals (test, sizeof (struct attestation_challenge), status);
 
 	status = attestation.process_challenge_response (&attestation, buf, buf_len, 0xAA);
@@ -1774,8 +1739,7 @@ static void attestation_master_test_process_challenge_response_full_chain_rsa (C
 		RIOT_CORE_DEVID_CERT_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.issue_challenge (&attestation, 0xAA, 0, (uint8_t*)&challenge,
-		sizeof (struct attestation_challenge));
+	status = attestation.generate_challenge_request (&attestation, 0xAA, 0, &challenge);
 	CuAssertIntEquals (test, sizeof (struct attestation_challenge), status);
 
 	status = attestation.process_challenge_response (&attestation, buf, buf_len, 0xAA);
@@ -1968,8 +1932,7 @@ static void attestation_master_test_process_challenge_response_init_cert_failure
 		RIOT_CORE_DEVID_CERT_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.issue_challenge (&attestation, 0xAA, 0, (uint8_t*)&challenge,
-		sizeof (struct attestation_challenge));
+	status = attestation.generate_challenge_request (&attestation, 0xAA, 0, &challenge);
 	CuAssertIntEquals (test, sizeof (struct attestation_challenge), status);
 
 	status = attestation.process_challenge_response (&attestation, buf, buf_len, 0xAA);
@@ -2029,8 +1992,7 @@ static void attestation_master_test_process_challenge_response_get_pub_key_type_
 		RIOT_CORE_DEVID_CERT_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.issue_challenge (&attestation, 0xAA, 0, (uint8_t*)&challenge,
-		sizeof (struct attestation_challenge));
+	status = attestation.generate_challenge_request (&attestation, 0xAA, 0, &challenge);
 	CuAssertIntEquals (test, sizeof (struct attestation_challenge), status);
 
 	status = attestation.process_challenge_response (&attestation, buf, buf_len, 0xAA);
@@ -2092,8 +2054,7 @@ static void attestation_master_test_process_challenge_response_start_hash_failur
 		RIOT_CORE_DEVID_CERT_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.issue_challenge (&attestation, 0xAA, 0, (uint8_t*)&challenge,
-		sizeof (struct attestation_challenge));
+	status = attestation.generate_challenge_request (&attestation, 0xAA, 0, &challenge);
 	CuAssertIntEquals (test, sizeof (struct attestation_challenge), status);
 
 	status = attestation.process_challenge_response (&attestation, buf, buf_len, 0xAA);
@@ -2158,8 +2119,7 @@ static void attestation_master_test_process_challenge_response_hash_challenge_fa
 		RIOT_CORE_DEVID_CERT_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.issue_challenge (&attestation, 0xAA, 0, (uint8_t*)&challenge,
-		sizeof (struct attestation_challenge));
+	status = attestation.generate_challenge_request (&attestation, 0xAA, 0, &challenge);
 	CuAssertIntEquals (test, sizeof (struct attestation_challenge), status);
 
 	status = attestation.process_challenge_response (&attestation, buf, buf_len, 0xAA);
@@ -2226,8 +2186,7 @@ static void attestation_master_test_process_challenge_response_hash_response_fai
 		RIOT_CORE_DEVID_CERT_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.issue_challenge (&attestation, 0xAA, 0, (uint8_t*)&challenge,
-		sizeof (struct attestation_challenge));
+	status = attestation.generate_challenge_request (&attestation, 0xAA, 0, &challenge);
 	CuAssertIntEquals (test, sizeof (struct attestation_challenge), status);
 
 	status = attestation.process_challenge_response (&attestation, buf, buf_len, 0xAA);
@@ -2296,8 +2255,7 @@ static void attestation_master_test_process_challenge_response_finish_hash_failu
 		RIOT_CORE_DEVID_CERT_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.issue_challenge (&attestation, 0xAA, 0, (uint8_t*) &challenge,
-		sizeof (struct attestation_challenge));
+	status = attestation.generate_challenge_request (&attestation, 0xAA, 0, &challenge);
 	CuAssertIntEquals (test, sizeof (struct attestation_challenge), status);
 
 	status = attestation.process_challenge_response (&attestation, buf, buf_len, 0xAA);
@@ -2365,8 +2323,7 @@ static void attestation_master_test_process_challenge_response_unsupported_algor
 		RIOT_CORE_DEVID_CERT_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.issue_challenge (&attestation, 0xAA, 0, (uint8_t*)&challenge,
-		sizeof (struct attestation_challenge));
+	status = attestation.generate_challenge_request (&attestation, 0xAA, 0, &challenge);
 	CuAssertIntEquals (test, sizeof (struct attestation_challenge), status);
 
 	status = attestation.process_challenge_response (&attestation, buf, buf_len, 0xAA);
@@ -2473,8 +2430,7 @@ static void attestation_master_test_process_challenge_response_rsa_not_enabled (
 		RIOT_CORE_DEVID_CERT_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.issue_challenge (&attestation, 0xAA, 0, (uint8_t*)&challenge,
-		sizeof (struct attestation_challenge));
+	status = attestation.generate_challenge_request (&attestation, 0xAA, 0, &challenge);
 	CuAssertIntEquals (test, sizeof (struct attestation_challenge), status);
 
 	status = attestation.process_challenge_response (&attestation, buf, buf_len, 0xAA);
@@ -2542,8 +2498,7 @@ static void attestation_master_test_process_challenge_response_only_leaf (CuTest
 		RIOT_CORE_DEVID_CERT_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.issue_challenge (&attestation, 0xAA, 0, (uint8_t*)&challenge,
-		sizeof (struct attestation_challenge));
+	status = attestation.generate_challenge_request (&attestation, 0xAA, 0, &challenge);
 	CuAssertIntEquals (test, sizeof (struct attestation_challenge), status);
 
 	status = attestation.process_challenge_response (&attestation, buf, buf_len, 0xAA);
@@ -2622,8 +2577,7 @@ static void attestation_master_test_process_challenge_response_init_cert_store_f
 		RIOT_CORE_DEVID_CERT_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.issue_challenge (&attestation, 0xAA, 0, (uint8_t*)&challenge,
-		sizeof (struct attestation_challenge));
+	status = attestation.generate_challenge_request (&attestation, 0xAA, 0, &challenge);
 	CuAssertIntEquals (test, sizeof (struct attestation_challenge), status);
 
 	status = attestation.process_challenge_response (&attestation, buf, buf_len, 0xAA);
@@ -2707,8 +2661,7 @@ static void attestation_master_test_process_challenge_response_add_root_ca_failu
 		RIOT_CORE_DEVID_CERT_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.issue_challenge (&attestation, 0xAA, 0, (uint8_t*)&challenge,
-		sizeof (struct attestation_challenge));
+	status = attestation.generate_challenge_request (&attestation, 0xAA, 0, &challenge);
 	CuAssertIntEquals (test, sizeof (struct attestation_challenge), status);
 
 	status = attestation.process_challenge_response (&attestation, buf, buf_len, 0xAA);
@@ -2793,8 +2746,7 @@ static void attestation_master_test_process_challenge_response_add_cert_as_root_
 		RIOT_CORE_DEVID_CERT_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.issue_challenge (&attestation, 0xAA, 0, (uint8_t*)&challenge,
-		sizeof (struct attestation_challenge));
+	status = attestation.generate_challenge_request (&attestation, 0xAA, 0, &challenge);
 	CuAssertIntEquals (test, sizeof (struct attestation_challenge), status);
 
 	status = attestation.process_challenge_response (&attestation, buf, buf_len, 0xAA);
@@ -2881,8 +2833,7 @@ static void attestation_master_test_process_challenge_response_add_int_cert_fail
 		RIOT_CORE_DEVID_CERT_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.issue_challenge (&attestation, 0xAA, 0, (uint8_t*)&challenge,
-		sizeof (struct attestation_challenge));
+	status = attestation.generate_challenge_request (&attestation, 0xAA, 0, &challenge);
 	CuAssertIntEquals (test, sizeof (struct attestation_challenge), status);
 
 	status = attestation.process_challenge_response (&attestation, buf, buf_len, 0xAA);
@@ -2972,8 +2923,7 @@ static void attestation_master_test_process_challenge_response_load_cert_failure
 		RIOT_CORE_DEVID_CERT_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.issue_challenge (&attestation, 0xAA, 0, (uint8_t*)&challenge,
-		sizeof (struct attestation_challenge));
+	status = attestation.generate_challenge_request (&attestation, 0xAA, 0, &challenge);
 	CuAssertIntEquals (test, sizeof (struct attestation_challenge), status);
 
 	status = attestation.process_challenge_response (&attestation, buf, buf_len, 0xAA);
@@ -3068,8 +3018,7 @@ static void attestation_master_test_process_challenge_response_authenticate_fail
 		RIOT_CORE_DEVID_CERT_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.issue_challenge (&attestation, 0xAA, 0, (uint8_t*)&challenge,
-		sizeof (struct attestation_challenge));
+	status = attestation.generate_challenge_request (&attestation, 0xAA, 0, &challenge);
 	CuAssertIntEquals (test, sizeof (struct attestation_challenge), status);
 
 	status = attestation.process_challenge_response (&attestation, buf, buf_len, 0xAA);
@@ -3166,8 +3115,7 @@ static void attestation_master_test_process_challenge_response_get_public_key_fa
 		RIOT_CORE_DEVID_CERT_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.issue_challenge (&attestation, 0xAA, 0, (uint8_t*)&challenge,
-		sizeof (struct attestation_challenge));
+	status = attestation.generate_challenge_request (&attestation, 0xAA, 0, &challenge);
 	CuAssertIntEquals (test, sizeof (struct attestation_challenge), status);
 
 	status = attestation.process_challenge_response (&attestation, buf, buf_len, 0xAA);
@@ -3261,8 +3209,7 @@ static void attestation_master_test_process_challenge_response_ecc_public_key_fa
 		RIOT_CORE_DEVID_CERT_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.issue_challenge (&attestation, 0xAA, 0, (uint8_t*)&challenge,
-		sizeof (struct attestation_challenge));
+	status = attestation.generate_challenge_request (&attestation, 0xAA, 0, &challenge);
 	CuAssertIntEquals (test, sizeof (struct attestation_challenge), status);
 
 	status = attestation.process_challenge_response (&attestation, buf, buf_len, 0xAA);
@@ -3356,8 +3303,7 @@ static void attestation_master_test_process_challenge_response_rsa_public_key_fa
 		RIOT_CORE_DEVID_CERT_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.issue_challenge (&attestation, 0xAA, 0, (uint8_t*)&challenge,
-		sizeof (struct attestation_challenge));
+	status = attestation.generate_challenge_request (&attestation, 0xAA, 0, &challenge);
 	CuAssertIntEquals (test, sizeof (struct attestation_challenge), status);
 
 	status = attestation.process_challenge_response (&attestation, buf, buf_len, 0xAA);
@@ -3457,8 +3403,7 @@ static void attestation_master_test_process_challenge_response_ecc_verify_failur
 		RIOT_CORE_DEVID_CERT_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.issue_challenge (&attestation, 0xAA, 0, (uint8_t*)&challenge,
-		sizeof (struct attestation_challenge));
+	status = attestation.generate_challenge_request (&attestation, 0xAA, 0, &challenge);
 	CuAssertIntEquals (test, sizeof (struct attestation_challenge), status);
 
 	status = attestation.process_challenge_response (&attestation, buf, buf_len, 0xAA);
@@ -3556,8 +3501,7 @@ static void attestation_master_test_process_challenge_response_rsa_verify_failur
 		RIOT_CORE_DEVID_CERT_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.issue_challenge (&attestation, 0xAA, 0, (uint8_t*)&challenge,
-		sizeof (struct attestation_challenge));
+	status = attestation.generate_challenge_request (&attestation, 0xAA, 0, &challenge);
 	CuAssertIntEquals (test, sizeof (struct attestation_challenge), status);
 
 	status = attestation.process_challenge_response (&attestation, buf, buf_len, 0xAA);
@@ -3604,12 +3548,11 @@ CuSuite* get_attestation_master_suite ()
 	SUITE_ADD_TEST (suite, attestation_master_test_init);
 	SUITE_ADD_TEST (suite, attestation_master_test_init_null);
 	SUITE_ADD_TEST (suite, attestation_master_test_release_null);
-	SUITE_ADD_TEST (suite, attestation_master_test_issue_challenge);
-	SUITE_ADD_TEST (suite, attestation_master_test_issue_challenge_buf_too_small);
-	SUITE_ADD_TEST (suite, attestation_master_test_issue_challenge_invalid_slot_num);
-	SUITE_ADD_TEST (suite, attestation_master_test_issue_challenge_invalid_device);
-	SUITE_ADD_TEST (suite, attestation_master_test_issue_challenge_rng_fail);
-	SUITE_ADD_TEST (suite, attestation_master_test_issue_challenge_null);
+	SUITE_ADD_TEST (suite, attestation_master_test_generate_challenge_request);
+	SUITE_ADD_TEST (suite, attestation_master_test_generate_challenge_request_invalid_slot_num);
+	SUITE_ADD_TEST (suite, attestation_master_test_generate_challenge_request_invalid_device);
+	SUITE_ADD_TEST (suite, attestation_master_test_generate_challenge_request_rng_fail);
+	SUITE_ADD_TEST (suite, attestation_master_test_generate_challenge_request_null);
 	SUITE_ADD_TEST (suite, attestation_master_test_compare_digests_first);
 	SUITE_ADD_TEST (suite, attestation_master_test_compare_digests_incomplete_chain_stored);
 	SUITE_ADD_TEST (suite, attestation_master_test_compare_digests_new_chain);

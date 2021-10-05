@@ -23,7 +23,7 @@ void cerberus_protocol_debug_commands_testing_process_debug_fill_log (CuTest *te
 	struct cmd_interface *cmd, struct cmd_background_mock *background)
 {
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request request;
+	struct cmd_interface_msg request;
 	struct cerberus_protocol_header header = {0};
 	int status;
 
@@ -53,7 +53,7 @@ void cerberus_protocol_debug_commands_testing_process_get_device_certificate (Cu
 	struct cmd_interface *cmd, struct device_manager *device_manager)
 {
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request request;
+	struct cmd_interface_msg request;
 	struct cerberus_protocol_header header = {0};
 	int status;
 
@@ -76,7 +76,6 @@ void cerberus_protocol_debug_commands_testing_process_get_device_certificate (Cu
 		X509_CERTCA_ECC_CA_NOPL_DER_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	request.new_request = true;
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
 	CuAssertIntEquals (test, 0, status);
@@ -90,7 +89,6 @@ void cerberus_protocol_debug_commands_testing_process_get_device_certificate (Cu
 	CuAssertIntEquals (test, 1, request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN]);
 	CuAssertIntEquals (test, 0, request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN + 1]);
 	CuAssertIntEquals (test, 2, request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN + 2]);
-	CuAssertIntEquals (test, false, request.new_request);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 
 	status = testing_validate_array (X509_CERTCA_ECC_CA_NOPL_DER,
@@ -102,7 +100,7 @@ void cerberus_protocol_debug_commands_testing_process_get_device_certificate_inv
 	CuTest *test, struct cmd_interface *cmd)
 {
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request request;
+	struct cmd_interface_msg request;
 	struct cerberus_protocol_header header = {0};
 	int status;
 
@@ -134,7 +132,7 @@ void cerberus_protocol_debug_commands_testing_process_get_device_certificate_inv
 	CuTest *test, struct cmd_interface *cmd, struct device_manager *device_manager)
 {
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request request;
+	struct cmd_interface_msg request;
 	struct cerberus_protocol_header header = {0};
 	int status;
 
@@ -165,7 +163,7 @@ void cerberus_protocol_debug_commands_testing_process_get_device_certificate_get
 	CuTest *test, struct cmd_interface *cmd)
 {
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request request;
+	struct cmd_interface_msg request;
 	struct cerberus_protocol_header header = {0};
 	int status;
 
@@ -193,7 +191,7 @@ void cerberus_protocol_debug_commands_testing_process_get_device_cert_digest (Cu
 	struct cmd_interface *cmd, struct hash_engine_mock *hash, struct device_manager *device_manager)
 {
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request request;
+	struct cmd_interface_msg request;
 	struct cerberus_protocol_header header = {0};
 	int status;
 
@@ -223,7 +221,6 @@ void cerberus_protocol_debug_commands_testing_process_get_device_cert_digest (Cu
 		X509_CERTCA_ECC_CA_NOPL_DER_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	request.new_request = true;
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
 	CuAssertIntEquals (test, 0, status);
@@ -237,7 +234,6 @@ void cerberus_protocol_debug_commands_testing_process_get_device_cert_digest (Cu
 	CuAssertIntEquals (test, 1, request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN]);
 	CuAssertIntEquals (test, 0, request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN + 1]);
 	CuAssertIntEquals (test, 2, request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN + 2]);
-	CuAssertIntEquals (test, false, request.new_request);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 
 	status = testing_validate_array (X509_CERTCA_ECC_CA2_NOPL_DER,
@@ -249,7 +245,7 @@ void cerberus_protocol_debug_commands_testing_process_get_device_cert_digest_inv
 	CuTest *test, struct cmd_interface *cmd)
 {
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request request;
+	struct cmd_interface_msg request;
 	struct cerberus_protocol_header header = {0};
 	int status;
 
@@ -281,7 +277,7 @@ void cerberus_protocol_debug_commands_testing_process_get_device_cert_digest_inv
 	CuTest *test, struct cmd_interface *cmd, struct device_manager *device_manager)
 {
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request request;
+	struct cmd_interface_msg request;
 	struct cerberus_protocol_header header = {0};
 	int status;
 
@@ -312,7 +308,7 @@ void cerberus_protocol_debug_commands_testing_process_get_device_cert_digest_get
 	CuTest *test, struct cmd_interface *cmd)
 {
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request request;
+	struct cmd_interface_msg request;
 	struct cerberus_protocol_header header = {0};
 	int status;
 
@@ -341,7 +337,7 @@ void cerberus_protocol_debug_commands_testing_process_get_device_cert_digest_has
 	struct device_manager *device_manager)
 {
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request request;
+	struct cmd_interface_msg request;
 	struct cerberus_protocol_header header = {0};
 	int status;
 
@@ -386,7 +382,7 @@ void cerberus_protocol_debug_commands_testing_process_get_device_challenge (CuTe
 	struct rng_engine_mock rng;
 	struct x509_engine_mock x509;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request request;
+	struct cmd_interface_msg request;
 	struct cerberus_protocol_header header = {0};
 	int status;
 
@@ -422,7 +418,6 @@ void cerberus_protocol_debug_commands_testing_process_get_device_challenge (CuTe
 	memcpy (master_attestation->base.challenge[1].nonce, X509_CERTCA_ECC_CA_NOPL_DER,
 		ATTESTATION_NONCE_LEN);
 
-	request.new_request = true;
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
 	CuAssertIntEquals (test, 0, status);
@@ -434,7 +429,6 @@ void cerberus_protocol_debug_commands_testing_process_get_device_challenge (CuTe
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_DEBUG_GET_DEVICE_MANAGER_CHALLENGE,
 		request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN - 1]);
 	CuAssertIntEquals (test, 1, request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN]);
-	CuAssertIntEquals (test, false, request.new_request);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 
 	status = testing_validate_array (X509_CERTCA_ECC_CA_NOPL_DER,
@@ -460,7 +454,7 @@ void cerberus_protocol_debug_commands_testing_process_get_device_challenge_inval
 	CuTest *test, struct cmd_interface *cmd)
 {
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request request;
+	struct cmd_interface_msg request;
 	struct cerberus_protocol_header header = {0};
 	int status;
 

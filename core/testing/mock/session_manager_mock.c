@@ -21,7 +21,7 @@ static int session_manager_mock_add_session (struct session_manager *session, ui
 }
 
 static int session_manager_mock_establish_session (struct session_manager *session, 
-	struct cmd_interface_request *request)
+	struct cmd_interface_msg *request)
 {
 	struct session_manager_mock *mock = (struct session_manager_mock*) session;
 
@@ -34,7 +34,7 @@ static int session_manager_mock_establish_session (struct session_manager *sessi
 }
 
 static int session_manager_mock_decrypt_message (struct session_manager *session, 
-	struct cmd_interface_request *request)
+	struct cmd_interface_msg *request)
 {
 	struct session_manager_mock *mock = (struct session_manager_mock*) session;
 
@@ -47,7 +47,7 @@ static int session_manager_mock_decrypt_message (struct session_manager *session
 }
 
 static int session_manager_mock_encrypt_message (struct session_manager *session, 
-	struct cmd_interface_request *request)
+	struct cmd_interface_msg *request)
 {
 	struct session_manager_mock *mock = (struct session_manager_mock*) session;
 

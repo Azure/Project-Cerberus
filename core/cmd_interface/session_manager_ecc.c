@@ -16,7 +16,7 @@
 
 
 static int session_manager_ecc_establish_session (struct session_manager *session,
-	struct cmd_interface_request *request)
+	struct cmd_interface_msg *request)
 {
 	struct session_manager_ecc *session_mgr = (struct session_manager_ecc*) session;
 	struct cerberus_protocol_key_exchange_type_0 *rq;

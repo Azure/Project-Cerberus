@@ -298,7 +298,7 @@ static void cmd_interface_slave_test_init (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrNotNull (test, interface.base.process_request);
-	CuAssertPtrNotNull (test, interface.base.issue_request);
+	CuAssertPtrNotNull (test, interface.base.process_response);
 	CuAssertPtrNotNull (test, interface.base.generate_error_packet);
 
 	status = cmd_background_mock_validate_and_release (&background);
@@ -429,7 +429,7 @@ static void cmd_interface_slave_test_deinit_null (CuTest *test)
 static void cmd_interface_slave_test_process_null (CuTest *test)
 {
 	struct cmd_interface_slave_testing cmd;
-	struct cmd_interface_request request;
+	struct cmd_interface_msg request;
 	int status;
 
 	TEST_START;
@@ -451,7 +451,7 @@ static void cmd_interface_slave_test_process_payload_too_short (CuTest *test)
 {
 	struct cmd_interface_slave_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request request;
+	struct cmd_interface_msg request;
 	int status;
 
 	TEST_START;
@@ -477,7 +477,7 @@ static void cmd_interface_slave_test_process_unsupported_message (CuTest *test)
 {
 	struct cmd_interface_slave_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request request;
+	struct cmd_interface_msg request;
 	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) data;
 	int status;
 
@@ -516,7 +516,7 @@ static void cmd_interface_slave_test_process_unknown_command (CuTest *test)
 {
 	struct cmd_interface_slave_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request request;
+	struct cmd_interface_msg request;
 	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) data;
 	int status;
 
@@ -537,69 +537,7 @@ static void cmd_interface_slave_test_process_unknown_command (CuTest *test)
 
 	request.crypto_timeout = true;
 	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
-	CuAssertIntEquals (test, CMD_HANDLER_UNKNOWN_COMMAND, status);
-	CuAssertIntEquals (test, false, request.crypto_timeout);
-
-	complete_cmd_interface_slave_mock_test (test, &cmd);
-}
-
-static void cmd_interface_slave_test_process_unknown_device (CuTest *test)
-{
-	struct cmd_interface_slave_testing cmd;
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request request;
-	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) data;
-	int status;
-
-	TEST_START;
-
-	memset (&request, 0, sizeof (request));
-	memset (data, 0, sizeof (data));
-	request.data = data;
-	header->msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
-	header->pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
-	header->command = CERBERUS_PROTOCOL_GET_DIGEST;
-
-	request.length = CERBERUS_PROTOCOL_MIN_MSG_LEN;
-	request.source_eid = 0xEE;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
-
-	setup_cmd_interface_slave_mock_test (test, &cmd);
-
-	request.crypto_timeout = true;
-	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
-	CuAssertIntEquals (test, DEVICE_MGR_UNKNOWN_DEVICE, status);
-	CuAssertIntEquals (test, false, request.crypto_timeout);
-
-	complete_cmd_interface_slave_mock_test (test, &cmd);
-}
-
-static void cmd_interface_slave_test_process_error_packet (CuTest *test)
-{
-	struct cmd_interface_slave_testing cmd;
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request request;
-	struct cerberus_protocol_error *error = (struct cerberus_protocol_error*) data;
-	int status;
-
-	TEST_START;
-
-	memset (&request, 0, sizeof (request));
-	memset (data, 0, sizeof (data));
-	request.data = data;
-	error->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
-	error->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
-	error->header.command = CERBERUS_PROTOCOL_ERROR;
-
-	request.length = sizeof (struct cerberus_protocol_error);
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
-
-	setup_cmd_interface_slave_mock_test (test, &cmd);
-
-	request.crypto_timeout = true;
-	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
-	CuAssertIntEquals (test, CMD_HANDLER_UNKNOWN_COMMAND, status);
+	CuAssertIntEquals (test, CMD_HANDLER_UNKNOWN_REQUEST, status);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 
 	complete_cmd_interface_slave_mock_test (test, &cmd);
@@ -609,7 +547,7 @@ static void cmd_interface_slave_test_process_reserved_fields_not_zero (CuTest *t
 {
 	struct cmd_interface_slave_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request request;
+	struct cmd_interface_msg request;
 	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) data;
 	int status;
 
@@ -649,13 +587,13 @@ static void cmd_interface_slave_test_process_encrypted_message (CuTest *test)
 {
 	struct cmd_interface_slave_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request request;
+	struct cmd_interface_msg request;
 	uint8_t decrypted_data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request decrypted_request;
+	struct cmd_interface_msg decrypted_request;
 	uint8_t response_data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request response;
+	struct cmd_interface_msg response;
 	uint8_t encrypted_data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request encrypted_response;
+	struct cmd_interface_msg encrypted_response;
 	struct cerberus_protocol_reset_counter *req = (struct cerberus_protocol_reset_counter*) data;
 	struct cerberus_protocol_reset_counter_response *resp =
 		(struct cerberus_protocol_reset_counter_response*) data;
@@ -761,7 +699,6 @@ static void cmd_interface_slave_test_process_encrypted_message (CuTest *test)
 		sizeof (encrypted_response), cmd_interface_mock_copy_request);
 	CuAssertIntEquals (test, 0, status);
 
-	request.new_request = true;
 	request.crypto_timeout = true;
 	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
 	CuAssertIntEquals (test, 0, status);
@@ -776,7 +713,6 @@ static void cmd_interface_slave_test_process_encrypted_message (CuTest *test)
 	CuAssertIntEquals (test, 0, resp->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_RESET_COUNTER, resp->header.command);
 	CuAssertIntEquals (test, encrypted_counter, resp->counter);
-	CuAssertIntEquals (test, false, request.new_request);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 
 	complete_cmd_interface_slave_mock_test (test, &cmd);
@@ -786,7 +722,7 @@ static void cmd_interface_slave_test_process_encrypted_message_decrypt_fail (CuT
 {
 	struct cmd_interface_slave_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request request;
+	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_counter *req = (struct cerberus_protocol_reset_counter*) data;
 	uint8_t encrypted_port = 0x33;
 	uint8_t encrypted_type = 0xBB;
@@ -831,11 +767,11 @@ static void cmd_interface_slave_test_process_encrypted_message_encrypt_fail (CuT
 {
 	struct cmd_interface_slave_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request request;
+	struct cmd_interface_msg request;
 	uint8_t decrypted_data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request decrypted_request;
+	struct cmd_interface_msg decrypted_request;
 	uint8_t response_data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request response;
+	struct cmd_interface_msg response;
 	struct cerberus_protocol_reset_counter *req = (struct cerberus_protocol_reset_counter*) data;
 	struct cerberus_protocol_reset_counter *plaintext_rq =
 		(struct cerberus_protocol_reset_counter*) decrypted_data;
@@ -931,7 +867,7 @@ static void cmd_interface_slave_test_process_encrypted_message_no_session_manage
 {
 	struct cmd_interface_slave_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request request;
+	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_counter *req = (struct cerberus_protocol_reset_counter*) data;
 	uint8_t encrypted_port = 0x33;
 	uint8_t encrypted_type = 0xBB;
@@ -968,9 +904,9 @@ static void cmd_interface_slave_test_process_encrypted_message_no_response (CuTe
 {
 	struct cmd_interface_slave_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request request;
+	struct cmd_interface_msg request;
 	uint8_t decrypted_data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request decrypted_request;
+	struct cmd_interface_msg decrypted_request;
 	struct cerberus_protocol_import_certificate *req =
 		(struct cerberus_protocol_import_certificate*) data;
 	struct cerberus_protocol_import_certificate *plaintext_rq =
@@ -2143,18 +2079,17 @@ static void cmd_interface_slave_test_supports_all_required_commands (CuTest *tes
 	complete_cmd_interface_slave_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_issue_request_unsupported (CuTest *test)
+static void cmd_interface_slave_test_process_response (CuTest *test)
 {
 	struct cmd_interface_slave_testing cmd;
-	uint8_t buf[CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG];
+	struct cmd_interface_msg response;
 	int status;
 
 	TEST_START;
 
 	setup_cmd_interface_slave_mock_test (test, &cmd);
 
-	status = cmd.handler.base.issue_request (&cmd.handler.base,
-		CERBERUS_PROTOCOL_GET_DEVICE_CAPABILITIES, NULL, buf, sizeof (buf));
+	status = cmd.handler.base.process_response (&cmd.handler.base, &response);
 	CuAssertIntEquals (test, CMD_HANDLER_UNSUPPORTED_OPERATION, status);
 
 	complete_cmd_interface_slave_mock_test (test, &cmd);
@@ -2227,8 +2162,6 @@ CuSuite* get_cmd_interface_slave_suite ()
 	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_payload_too_short);
 	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_unsupported_message);
 	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_unknown_command);
-	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_unknown_device);
-	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_error_packet);
 	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_reserved_fields_not_zero);
 	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_encrypted_message);
 	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_encrypted_message_decrypt_fail);
@@ -2335,7 +2268,7 @@ CuSuite* get_cmd_interface_slave_suite ()
 	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_session_sync_unencrypted);
 	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_session_sync_invalid_len);
 	SUITE_ADD_TEST (suite, cmd_interface_slave_test_supports_all_required_commands);
-	SUITE_ADD_TEST (suite, cmd_interface_slave_test_issue_request_unsupported);
+	SUITE_ADD_TEST (suite, cmd_interface_slave_test_process_response);
 	SUITE_ADD_TEST (suite, cmd_interface_slave_test_generate_error_packet);
 	SUITE_ADD_TEST (suite, cmd_interface_slave_test_generate_error_packet_encrypted);
 	SUITE_ADD_TEST (suite, cmd_interface_slave_test_generate_error_packet_encrypted_fail);

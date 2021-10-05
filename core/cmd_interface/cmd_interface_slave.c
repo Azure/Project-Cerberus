@@ -13,26 +13,17 @@
 
 
 static int cmd_interface_slave_process_request (struct cmd_interface *intf,
-	struct cmd_interface_request *request)
+	struct cmd_interface_msg *request)
 {
 	struct cmd_interface_slave *slave = (struct cmd_interface_slave*) intf;
 	uint8_t command_id;
 	uint8_t command_set;
-	int device_num;
 	int status;
 
-	status = cmd_interface_process_request (&slave->base, request, &command_id, &command_set,
-		true, true);
-	if (status == CMD_HANDLER_ERROR_MESSAGE) {
-		return CMD_HANDLER_UNKNOWN_COMMAND;
-	}
+	status = cmd_interface_process_cerberus_protocol_message (&slave->base, request, &command_id,
+		&command_set, true, true);
 	if (status != 0) {
 		return status;
-	}
-
-	device_num = device_manager_get_device_num (slave->device_manager, request->source_eid);
-	if (ROT_IS_ERROR (device_num)) {
-		return device_num;
 	}
 
 	switch (command_id) {
@@ -56,7 +47,7 @@ static int cmd_interface_slave_process_request (struct cmd_interface *intf,
 
 		case CERBERUS_PROTOCOL_GET_DEVICE_CAPABILITIES:
 			status = cerberus_protocol_get_device_capabilities (slave->device_manager,
-				request, device_num);
+				request);
 			break;
 
 		case CERBERUS_PROTOCOL_EXPORT_CSR:
@@ -97,18 +88,18 @@ static int cmd_interface_slave_process_request (struct cmd_interface *intf,
 #endif
 
 		default:
-			return CMD_HANDLER_UNKNOWN_COMMAND;
+			return CMD_HANDLER_UNKNOWN_REQUEST;
 	}
 
 	if (status == 0) {
-		status = cmd_interface_process_response (&slave->base, request);
+		status = cmd_interface_prepare_response (&slave->base, request);
 	}
 
 	return status;
 }
 
-int cmd_interface_slave_issue_request (struct cmd_interface *intf, uint8_t command_id,
-	void *request_params, uint8_t *buf, size_t buf_len)
+static int cmd_interface_slave_process_response (struct cmd_interface *intf,
+	struct cmd_interface_msg *response)
 {
 	return CMD_HANDLER_UNSUPPORTED_OPERATION;
 }
@@ -158,7 +149,7 @@ int cmd_interface_slave_init (struct cmd_interface_slave *intf,
 	intf->device_id.subsystem_id = subsystem_id;
 
 	intf->base.process_request = cmd_interface_slave_process_request;
-	intf->base.issue_request = cmd_interface_slave_issue_request;
+	intf->base.process_response = cmd_interface_slave_process_response;
 	intf->base.generate_error_packet = cmd_interface_generate_error_packet;
 
 #ifdef CMD_SUPPORT_ENCRYPTED_SESSIONS

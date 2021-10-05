@@ -41,22 +41,6 @@ enum {
 	CERBERUS_PROTOCOL_ID_PLATFORM					/**< Request a manifest platform ID */
 };
 
-/**
- * Parameters needed to construct a get certificate request.
- */
-struct cerberus_protocol_cert_req_params {
-	uint8_t slot_num;								/**< Certificate chain slot num */
-	uint8_t cert_num;								/**< Certificate index in chain */
-};
-
-/**
- * Parameters needed to construct a challenge request.
- */
-struct cerberus_protocol_challenge_req_params {
-	uint8_t slot_num;								/**< Certificate chain slot num */
-	uint8_t eid;									/**< Certificate index in chain */
-};
-
 #pragma pack(push, 1)
 /**
  * Cerberus protocol get component firmware manifest ID request format
@@ -307,48 +291,51 @@ struct cerberus_protocol_get_configuration_ids_response {
 #pragma pack(pop)
 
 
-int cerberus_protocol_issue_get_certificate_digest (struct attestation_master *attestation,
+int cerberus_protocol_generate_get_certificate_digest_request (uint8_t slot_num, uint8_t key_alg,
 	uint8_t *buf, size_t buf_len);
-int cerberus_protocol_issue_get_certificate (struct cerberus_protocol_cert_req_params *params,
+int cerberus_protocol_generate_get_certificate_request (uint8_t slot_num, uint8_t cert_num,
+	uint8_t *buf, size_t buf_len, uint16_t offset, uint16_t length);
+int cerberus_protocol_generate_challenge_request (struct attestation_master *attestation,
+	uint8_t eid, uint8_t slot_num, uint8_t *buf, size_t buf_len);
+
+int cerberus_protocol_generate_get_device_capabilities_request (struct device_manager *device_mgr,
 	uint8_t *buf, size_t buf_len);
-int cerberus_protocol_issue_challenge (struct attestation_master *attestation,
-	struct cerberus_protocol_challenge_req_params *params, uint8_t *buf, size_t buf_len);
 
 int cerberus_protocol_cfm_update_init (struct manifest_cmd_interface *cfm_interface,
-	struct cmd_interface_request *request);
+	struct cmd_interface_msg *request);
 int cerberus_protocol_cfm_update (struct manifest_cmd_interface *cfm_interface,
-	struct cmd_interface_request *request);
+	struct cmd_interface_msg *request);
 int cerberus_protocol_cfm_update_complete (struct manifest_cmd_interface *cfm_interface,
-	struct cmd_interface_request *request);
+	struct cmd_interface_msg *request);
 
 int cerberus_protocol_get_cfm_id (struct cfm_manager *cfm_mgr,
-	struct cmd_interface_request *request);
+	struct cmd_interface_msg *request);
 int cerberus_protocol_get_cfm_component_ids (struct cfm_manager *cfm_mgr,
-	struct cmd_interface_request *request);
+	struct cmd_interface_msg *request);
 
 int cerberus_protocol_pcd_update_init (struct manifest_cmd_interface *pcd_interface,
-	struct cmd_interface_request *request);
+	struct cmd_interface_msg *request);
 int cerberus_protocol_pcd_update (struct manifest_cmd_interface *pcd_interface,
-	struct cmd_interface_request *request);
+	struct cmd_interface_msg *request);
 int cerberus_protocol_pcd_update_complete (struct manifest_cmd_interface *pcd_interface,
-	struct cmd_interface_request *request);
+	struct cmd_interface_msg *request);
 
 int cerberus_protocol_get_pcd_id (struct pcd_manager *pcd_mgr,
-	struct cmd_interface_request *request);
+	struct cmd_interface_msg *request);
 
 int cerberus_protocol_get_fw_update_status (struct firmware_update_control *control,
 	struct cerberus_protocol_update_status_response *rsp);
 int cerberus_protocol_get_pfm_update_status (struct manifest_cmd_interface *pfm_0,
-	struct manifest_cmd_interface *pfm_1, struct cmd_interface_request *request);
+	struct manifest_cmd_interface *pfm_1, struct cmd_interface_msg *request);
 int cerberus_protocol_get_cfm_update_status (struct manifest_cmd_interface *cfm_interface,
-	struct cmd_interface_request *request);
+	struct cmd_interface_msg *request);
 int cerberus_protocol_get_pcd_update_status (struct manifest_cmd_interface *pcd_interface,
-	struct cmd_interface_request *request);
+	struct cmd_interface_msg *request);
 int cerberus_protocol_get_host_next_verification_status (struct host_processor *host_0,
-	struct host_processor *host_1, struct cmd_interface_request *request);
+	struct host_processor *host_1, struct cmd_interface_msg *request);
 int cerberus_protocol_get_recovery_image_update_status (
 	struct recovery_image_cmd_interface *recovery_0,
-	struct recovery_image_cmd_interface *recovery_1, struct cmd_interface_request *request);
+	struct recovery_image_cmd_interface *recovery_1, struct cmd_interface_msg *request);
 int cerberus_protocol_get_reset_config_status (struct cmd_background *background,
 	struct cerberus_protocol_update_status_response *rsp);
 int cerberus_protocol_get_update_status (struct firmware_update_control *control,
@@ -357,7 +344,7 @@ int cerberus_protocol_get_update_status (struct firmware_update_control *control
 	struct host_processor *host_0, struct host_processor *host_1,
 	struct recovery_image_cmd_interface *recovery_0,
 	struct recovery_image_cmd_interface *recovery_1, struct cmd_background *background,
-	struct cmd_interface_request *request);
+	struct cmd_interface_msg *request);
 
 int cerberus_protocol_get_extended_fw_update_status (struct firmware_update_control *control,
 	struct cerberus_protocol_extended_update_status_response *rsp);
@@ -369,20 +356,17 @@ int cerberus_protocol_get_extended_update_status (struct firmware_update_control
 	struct recovery_image_manager *recovery_manager_0,
 	struct recovery_image_manager *recovery_manager_1,
 	struct recovery_image_cmd_interface *recovery_cmd_0,
-	struct recovery_image_cmd_interface *recovery_cmd_1, struct cmd_interface_request *request);
+	struct recovery_image_cmd_interface *recovery_cmd_1, struct cmd_interface_msg *request);
 
-int cerberus_protocol_process_certificate_digest (struct attestation_master *attestation,
-	struct cmd_interface_request *request);
-int cerberus_protocol_process_certificate (struct attestation_master *attestation,
-	struct cmd_interface_request *request);
-int cerberus_protocol_process_challenge_response (struct attestation_master *attestation,
-	struct cmd_interface_request *request);
+int cerberus_protocol_process_certificate_digest_response (struct cmd_interface_msg *response);
+int cerberus_protocol_process_certificate_response (struct cmd_interface_msg *response);
+int cerberus_protocol_process_challenge_response (struct cmd_interface_msg *response);
 
 /* Private functions for internal use */
 int cerberus_protocol_get_manifest_id_version (struct manifest *manifest,
-	struct cmd_interface_request *request);
+	struct cmd_interface_msg *request);
 int cerberus_protocol_get_manifest_id_platform (struct manifest *manifest,
-	struct cmd_interface_request *request);
+	struct cmd_interface_msg *request);
 
 
 

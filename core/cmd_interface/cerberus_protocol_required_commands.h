@@ -41,19 +41,12 @@ struct cerberus_protocol_device_capabilities_response {
 };
 
 /**
- * Certificate digest request descriptor
- */
-struct cerberus_protocol_digest_info {
-	uint8_t slot_num;										/**< Slot number of target chain */
-	uint8_t key_alg;										/**< Key exchange algorithm */
-};
-
-/**
  * Cerberus protocol get certificate digest request format
  */
 struct cerberus_protocol_get_certificate_digest {
 	struct cerberus_protocol_header header;					/**< Message header */
-	struct cerberus_protocol_digest_info digest;			/**< Information for the digests to retrieve */
+	uint8_t slot_num;										/**< Slot number of target chain */
+	uint8_t key_alg;										/**< Key exchange algorithm */
 };
 
 /**
@@ -87,21 +80,14 @@ struct cerberus_protocol_get_certificate_digest_response {
 	(req->max_response - sizeof (struct cerberus_protocol_get_certificate_digest_response))
 
 /**
- * Certificate request descriptor
- */
-struct cerberus_protocol_cert_info {
-	uint8_t slot_num;										/**< Slot number of target chain */
-	uint8_t cert_num;										/**< Certificate number in chain */
-	uint16_t offset;										/**< Offset in bytes from start of certificate */
-	uint16_t length;										/**< Number of bytes to read back, 0 for max payload length */
-};
-
-/**
  * Cerberus protocol get certificate request format
  */
 struct cerberus_protocol_get_certificate {
 	struct cerberus_protocol_header header;					/**< Message header */
-	struct cerberus_protocol_cert_info certificate;			/**< The certificate to retrieve */
+	uint8_t slot_num;										/**< Slot number of target chain */
+	uint8_t cert_num;										/**< Certificate number in chain */
+	uint16_t offset;										/**< Offset in bytes from start of certificate */
+	uint16_t length;										/**< Number of bytes to read back, 0 for max payload length */
 };
 
 /**
@@ -158,6 +144,14 @@ struct cerberus_protocol_challenge_response {
  */
 #define	cerberus_protocol_challenge_get_signature(resp)	\
 	((&((resp)->digest)) + (resp)->challenge.digests_size)
+
+/**
+ * Get the total message length for a challenge response message.
+ *
+ * @param resp Pointer to a challenge response message.
+ */
+#define	cerberus_protocol_challenge_response_length(resp)	\
+	(sizeof (struct cerberus_protocol_challenge_response) - 1 + (resp)->challenge.digests_size)
 
 /**
  * Cerberus protocol import signed certificate request format
@@ -308,34 +302,33 @@ struct cerberus_protocol_reset_counter_response {
 
 
 int cerberus_protocol_get_fw_version (struct cmd_interface_fw_version *fw_version,
-	struct cmd_interface_request *request);
+	struct cmd_interface_msg *request);
 
 int cerberus_protocol_get_certificate_digest (struct attestation_slave *attestation,
-	struct session_manager *session, struct cmd_interface_request *request);
+	struct session_manager *session, struct cmd_interface_msg *request);
 int cerberus_protocol_get_certificate (struct attestation_slave *attestation,
-	struct cmd_interface_request *request);
+	struct cmd_interface_msg *request);
 int cerberus_protocol_get_challenge_response (struct attestation_slave *attestation,
-	struct session_manager *session, struct cmd_interface_request *request);
+	struct session_manager *session, struct cmd_interface_msg *request);
 
 int cerberus_protocol_export_csr (struct riot_key_manager *riot,
-	struct cmd_interface_request *request);
+	struct cmd_interface_msg *request);
 int cerberus_protocol_import_ca_signed_cert (struct riot_key_manager *riot,
-	struct cmd_background *background, struct cmd_interface_request *request);
+	struct cmd_background *background, struct cmd_interface_msg *request);
 int cerberus_protocol_get_signed_cert_state (struct cmd_background *background,
-	struct cmd_interface_request *request);
+	struct cmd_interface_msg *request);
 
-int cerberus_protocol_issue_get_device_capabilities (struct device_manager *device_mgr,
-	uint8_t *buf, size_t buf_len);
 int cerberus_protocol_get_device_capabilities (struct device_manager *device_mgr,
-	struct cmd_interface_request *request, uint8_t device_num);
+	struct cmd_interface_msg *request);
 
 int cerberus_protocol_get_device_info (struct cmd_device *device,
-	struct cmd_interface_request *request);
+	struct cmd_interface_msg *request);
 int cerberus_protocol_get_device_id (struct cmd_interface_device_id *id,
-	struct cmd_interface_request *request);
+	struct cmd_interface_msg *request);
 
 int cerberus_protocol_reset_counter (struct cmd_device *device,
-	struct cmd_interface_request *request);
+	struct cmd_interface_msg *request);
 
+int cerberus_protocol_process_error_response (struct cmd_interface_msg *response);
 
 #endif // CERBERUS_PROTOCOL_REQUIRED_COMMANDS_H_

@@ -37,21 +37,81 @@
 #error "Improperly configured MCTP message/packet lengths."
 #endif
 
+
+/**
+ * Find the maximum number of packets for specified message length.
+ *
+ * @param msg Total message length
+ * @param pkt Length of each packet
+ */
 #define	MCTP_PROTOCOL_PACKETS_IN_MESSAGE(msg, pkt)	((msg + pkt - 1) / pkt)
 
+/**
+ * Find the packetized MCTP message length for a specified payload length.
+ *
+ * @param num_packets Number of packets in message
+ * @param payload_len Payload length transmitted in message
+ */
+#define MCTP_PROTOCOL_MESSAGE_LEN(num_packets, payload_len) \
+	(num_packets * MCTP_PROTOCOL_PACKET_OVERHEAD + payload_len)
+
+/**
+ * Code at beginning of MCTP packet indicating SMBus binding.
+ */
 #define SMBUS_CMD_CODE_MCTP							0x0F
 
-#define MCTP_PROTOCOL_PACKET_OVERHEAD				(sizeof (struct mctp_protocol_transport_header) + 1)
+/**
+ * The number of bytes used for packet error checking.
+ */
+#define MCTP_PROTOCOL_PEC_SIZE						1
+
+/**
+ * The number of overhead bytes in an MCTP packet, including both SMBus and MCTP overhead.
+ */
+#define MCTP_PROTOCOL_PACKET_OVERHEAD				(sizeof (struct mctp_protocol_transport_header) + MCTP_PROTOCOL_PEC_SIZE)
+
+/**
+ * The smallest encapsulated MCTP packet length, assuming the smallest payload size required by MCTP spec.
+ */
 #define	MCTP_PROTOCOL_MIN_PACKET_LEN				(MCTP_PROTOCOL_MIN_TRANSMISSION_UNIT + MCTP_PROTOCOL_PACKET_OVERHEAD)
+
+/**
+ * The maximum MCTP packet length assuming SMBus binding.
+ */
 #define MCTP_PROTOCOL_MAX_PACKET_LEN				(MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT + MCTP_PROTOCOL_PACKET_OVERHEAD)
+
+/**
+ * The minimum length of a packetized and encapsulated MCTP message.
+ */
 #define	MCTP_PROTOCOL_MIN_MESSAGE_LEN				MCTP_PROTOCOL_MIN_PACKET_LEN
+
+/**
+ * The maximum buffer length needed to hold a packetized message using SMBus binding of maximum length.
+ */
 #define	MCTP_PROTOCOL_MAX_MESSAGE_LEN				\
 	(MCTP_PROTOCOL_PACKETS_IN_MESSAGE (MCTP_PROTOCOL_MAX_MESSAGE_BODY, MCTP_PROTOCOL_MIN_TRANSMISSION_UNIT) * MCTP_PROTOCOL_MIN_PACKET_LEN)
-#define	MCTP_PROTOCOL_MAX_PACKET_PER_MESSAGE		\
-	((MCTP_PROTOCOL_MAX_MESSAGE_BODY + MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT - 1) / MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT)
 
+/**
+ * The number of packets needed to packetize maximum sized message using the maximum transmission unit size.
+ */
+#define	MCTP_PROTOCOL_MAX_PACKET_PER_MAX_SIZED_MESSAGE		\
+	(MCTP_PROTOCOL_PACKETS_IN_MESSAGE (MCTP_PROTOCOL_MAX_MESSAGE_BODY, MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT))
+
+/**
+ * The minimum size of an MCTP control message.
+ */
 #define MCTP_PROTOCOL_MIN_CONTROL_MSG_LEN			(sizeof (struct mctp_protocol_control_header))
 
+/**
+ * The minimum size of an MCTP control response message.
+ */
+#define MCTP_PROTOCOL_MIN_CONTROL_MSG_RSP_LEN		(sizeof (struct mctp_protocol_control_header) + MCTP_PROTOCOL_PEC_SIZE)
+
+/********************
+ * MCTP header fields
+ ********************/
+
+/* Explained in section 8.1 of the MCTP Base Specification DSP0236 */
 #define MCTP_PROTOCOL_MSG_TYPE_SHIFT				0
 #define MCTP_PROTOCOL_MSG_TYPE_SET_MASK				(0x7F << MCTP_PROTOCOL_MSG_TYPE_SHIFT)
 
@@ -67,9 +127,14 @@
 #define	MCTP_PROTOCOL_IS_CONTROL_MSG(x)				(((x) & MCTP_PROTOCOL_MSG_TYPE_SET_MASK) == MCTP_PROTOCOL_MSG_TYPE_CONTROL_MSG)
 #define	MCTP_PROTOCOL_IS_VENDOR_MSG(x)				(((x) & MCTP_PROTOCOL_MSG_TYPE_SET_MASK) == MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF)
 
+/**
+ * Number of SMBus overhead bytes.
+ */
+#define MCTP_PROTOCOL_SMBUS_OVERHEAD				(2 + MCTP_PROTOCOL_PEC_SIZE)
+
 
 /**
- * MCTP EIDs
+ * MCTP default EIDs per the Cerberus Protocol
  */
 enum
 {
@@ -77,11 +142,11 @@ enum
 	MCTP_PROTOCOL_OOB_EXT_MGMT = 0x09,				/**< Out-of-band external management EID */
 	MCTP_PROTOCOL_BMC_EID = 0x0A,					/**< BMC EID */
 	MCTP_PROTOCOL_PA_ROT_CTRL_EID = 0x0B,			/**< Cerberus PA RoT control EID */
-	MCTP_PROTOCOL_TEST_DEVICE = 0x0C,				/**< Test device EID */
 };
 
 /**
  * MCTP control commands
+ * Listed in section 10.1 of the MCTP Base Specification DSP0236
  */
 enum {
 	MCTP_PROTOCOL_SET_EID = 0x01,					/**< Set Endpoint ID */
@@ -138,13 +203,28 @@ struct mctp_protocol_control_header
 };
 #pragma pack(pop)
 
+/**
+ * Get the total packet length of an MCTP packet.
+ *
+ * @param payload_len The MCTP packet payload length
+ */
+#define	mctp_protocol_packet_len(payload_len)		(MCTP_PROTOCOL_PACKET_OVERHEAD + payload_len)
+
+/**
+ * Get the payload length of an MCTP packet from the packet length.
+ *
+ * @param packen_len The MCTP packet length
+ */
+#define	mctp_protocol_payload_len(packet_len) 		(packet_len - MCTP_PROTOCOL_PACKET_OVERHEAD)
+
 
 int mctp_protocol_interpret (uint8_t *buf, size_t buf_len, uint8_t smbus_addr, uint8_t *source_addr,
 	bool *som, bool *eom, uint8_t *src_eid, uint8_t *dest_eid, uint8_t** payload,
-	size_t* payload_len, uint8_t *msg_tag, uint8_t *packet_seq, uint8_t *crc, uint8_t* msg_type);
+	size_t* payload_len, uint8_t *msg_tag, uint8_t *packet_seq, uint8_t *crc, uint8_t* msg_type,
+	uint8_t *tag_owner);
 int mctp_protocol_construct (uint8_t *buf, size_t buf_len, uint8_t *out_buf, size_t out_buf_len,
 	uint8_t source_addr, uint8_t dest_eid, uint8_t source_eid, bool som, bool eom,
-	uint8_t packet_seq, uint8_t msg_tag, uint8_t tag_owner, uint8_t dest_addr, uint8_t* msg_type);
+	uint8_t packet_seq, uint8_t msg_tag, uint8_t tag_owner, uint8_t dest_addr);
 
 
 #define	MCTP_PROTOCOL_ERROR(code)		ROT_ERROR (ROT_MODULE_MCTP_PROTOCOL, code)
@@ -167,6 +247,7 @@ enum {
 	MCTP_PROTOCOL_UNSUPPORTED_MSG = MCTP_PROTOCOL_ERROR (0x0b),		/**< Received packet format not supported. */
 	MCTP_PROTOCOL_INVALID_EID = MCTP_PROTOCOL_ERROR (0x0c),			/**< Received packet from device using incorrect EID. */
 	MCTP_PROTOCOL_BUILD_UNSUPPORTED = MCTP_PROTOCOL_ERROR (0x0d),	/**< Failed to construct a packet for an unsupported message type. */
+	MCTP_PROTOCOL_RESPONSE_TIMEOUT = MCTP_PROTOCOL_ERROR (0x0e),	/**< Timeout elapsed before receiving a response. */
 };
 
 

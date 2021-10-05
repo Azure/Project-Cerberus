@@ -90,7 +90,7 @@ static void cmd_interface_dual_cmd_set_test_init (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrNotNull (test, cmd.interface.base.process_request);
-	CuAssertPtrNotNull (test, cmd.interface.base.issue_request);
+	CuAssertPtrNotNull (test, cmd.interface.base.process_response);
 	CuAssertPtrNotNull (test, cmd.interface.base.generate_error_packet);
 
 	complete_cmd_interface_dual_cmd_set_test (test, &cmd);
@@ -127,10 +127,10 @@ static void cmd_interface_dual_cmd_set_test_deinit_null (CuTest *test)
 	cmd_interface_dual_cmd_set_deinit (NULL);
 }
 
-static void cmd_interface_dual_cmd_set_test_process_payload_too_short (CuTest *test)
+static void cmd_interface_dual_cmd_set_test_process_request_payload_too_short (CuTest *test)
 {
 	struct cmd_interface_dual_cmd_set_testing cmd;
-	struct cmd_interface_request request;
+	struct cmd_interface_msg request;
 	int status;
 
 	TEST_START;
@@ -150,11 +150,11 @@ static void cmd_interface_dual_cmd_set_test_process_payload_too_short (CuTest *t
 	complete_cmd_interface_dual_cmd_set_test (test, &cmd);
 }
 
-static void cmd_interface_dual_cmd_set_test_process_unsupported_message (CuTest *test)
+static void cmd_interface_dual_cmd_set_test_process_request_unsupported_message (CuTest *test)
 {
 	struct cmd_interface_dual_cmd_set_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request request;
+	struct cmd_interface_msg request;
 	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) data;
 	int status;
 
@@ -194,48 +194,11 @@ static void cmd_interface_dual_cmd_set_test_process_unsupported_message (CuTest 
 	complete_cmd_interface_dual_cmd_set_test (test, &cmd);
 }
 
-static void cmd_interface_dual_cmd_set_test_process_error_packet (CuTest *test)
+static void cmd_interface_dual_cmd_set_test_process_request_null (CuTest *test)
 {
 	struct cmd_interface_dual_cmd_set_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request request;
-	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) data;
-	int status;
-
-	TEST_START;
-
-	memset (&request, 0, sizeof (request));
-	memset (data, 0, sizeof (data));
-	request.data = data;
-
-	header->msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
-	header->pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
-	header->crypt = 0;
-	header->reserved2 = 0;
-	header->integrity_check = 0;
-	header->reserved1 = 0;
-	header->rq = 0;
-	header->command = CERBERUS_PROTOCOL_ERROR;
-
-	request.length = CERBERUS_PROTOCOL_MIN_MSG_LEN;
-	request.source_eid = 0xAA;
-	request.target_eid = 0xBB;
-
-	setup_cmd_interface_dual_cmd_set_test (test, &cmd);
-
-	request.crypto_timeout = true;
-	status = cmd.interface.base.process_request (&cmd.interface.base, &request);
-	CuAssertIntEquals (test, CMD_HANDLER_ERROR_MESSAGE, status);
-	CuAssertIntEquals (test, false, request.crypto_timeout);
-
-	complete_cmd_interface_dual_cmd_set_test (test, &cmd);
-}
-
-static void cmd_interface_dual_cmd_set_test_process_null (CuTest *test)
-{
-	struct cmd_interface_dual_cmd_set_testing cmd;
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request request;
+	struct cmd_interface_msg request;
 	int status;
 
 	TEST_START;
@@ -262,13 +225,13 @@ static void cmd_interface_dual_cmd_set_test_process_null (CuTest *test)
 }
 
 
-static void cmd_interface_dual_cmd_set_test_process_cmd_set_0 (CuTest *test)
+static void cmd_interface_dual_cmd_set_test_process_request_cmd_set_0 (CuTest *test)
 {
 	struct cmd_interface_dual_cmd_set_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request request;
+	struct cmd_interface_msg request;
 	uint8_t response_data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request response;
+	struct cmd_interface_msg response;
 	struct cerberus_protocol_header* header = (struct cerberus_protocol_header*) data;
 	int status;
 
@@ -326,7 +289,6 @@ static void cmd_interface_dual_cmd_set_test_process_cmd_set_0 (CuTest *test)
 
 	header = (struct cerberus_protocol_header*) request.data;
 
-	request.new_request = true;
 	request.crypto_timeout = true;
 	status = cmd.interface.base.process_request (&cmd.interface.base, &request);
 	CuAssertIntEquals (test, 0, status);
@@ -340,18 +302,17 @@ static void cmd_interface_dual_cmd_set_test_process_cmd_set_0 (CuTest *test)
 	CuAssertIntEquals (test, 0, header->rq);
 	CuAssertIntEquals (test, 0x04, header->command);
 	CuAssertIntEquals (test, 0xBB, request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN]);
-	CuAssertIntEquals (test, false, request.new_request);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 
 	complete_cmd_interface_dual_cmd_set_test (test, &cmd);
 }
 
-static void cmd_interface_dual_cmd_set_test_process_cmd_set_0_encrypted (CuTest *test)
+static void cmd_interface_dual_cmd_set_test_process_request_cmd_set_0_encrypted (CuTest *test)
 {
 	struct cmd_interface_dual_cmd_set_testing cmd;
-	struct cmd_interface_request request;
+	struct cmd_interface_msg request;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request response;
+	struct cmd_interface_msg response;
 	uint8_t response_data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cerberus_protocol_header* header = (struct cerberus_protocol_header*) data;
 	int status;
@@ -410,7 +371,6 @@ static void cmd_interface_dual_cmd_set_test_process_cmd_set_0_encrypted (CuTest 
 
 	header = (struct cerberus_protocol_header*) request.data;
 
-	request.new_request = true;
 	request.crypto_timeout = true;
 	status = cmd.interface.base.process_request (&cmd.interface.base, &request);
 	CuAssertIntEquals (test, 0, status);
@@ -424,19 +384,18 @@ static void cmd_interface_dual_cmd_set_test_process_cmd_set_0_encrypted (CuTest 
 	CuAssertIntEquals (test, 0, header->rq);
 	CuAssertIntEquals (test, 0x04, header->command);
 	CuAssertIntEquals (test, 0xBB, request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN]);
-	CuAssertIntEquals (test, false, request.new_request);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 
 	complete_cmd_interface_dual_cmd_set_test (test, &cmd);
 }
 
-static void cmd_interface_dual_cmd_set_test_process_cmd_set_1 (CuTest *test)
+static void cmd_interface_dual_cmd_set_test_process_request_cmd_set_1 (CuTest *test)
 {
 	struct cmd_interface_dual_cmd_set_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request request;
+	struct cmd_interface_msg request;
 	uint8_t response_data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request response;
+	struct cmd_interface_msg response;
 	struct cerberus_protocol_header* header = (struct cerberus_protocol_header*) data;
 	int status;
 
@@ -494,7 +453,6 @@ static void cmd_interface_dual_cmd_set_test_process_cmd_set_1 (CuTest *test)
 
 	header = (struct cerberus_protocol_header*) request.data;
 
-	request.new_request = true;
 	request.crypto_timeout = true;
 	status = cmd.interface.base.process_request (&cmd.interface.base, &request);
 	CuAssertIntEquals (test, 0, status);
@@ -508,19 +466,18 @@ static void cmd_interface_dual_cmd_set_test_process_cmd_set_1 (CuTest *test)
 	CuAssertIntEquals (test, 1, header->rq);
 	CuAssertIntEquals (test, 0x04, header->command);
 	CuAssertIntEquals (test, 0xBB, request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN]);
-	CuAssertIntEquals (test, false, request.new_request);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 
 	complete_cmd_interface_dual_cmd_set_test (test, &cmd);
 }
 
-static void cmd_interface_dual_cmd_set_test_process_cmd_set_1_encrypted (CuTest *test)
+static void cmd_interface_dual_cmd_set_test_process_request_cmd_set_1_encrypted (CuTest *test)
 {
 	struct cmd_interface_dual_cmd_set_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request request;
+	struct cmd_interface_msg request;
 	uint8_t response_data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request response;
+	struct cmd_interface_msg response;
 	struct cerberus_protocol_header* header = (struct cerberus_protocol_header*) data;
 	int status;
 
@@ -578,7 +535,6 @@ static void cmd_interface_dual_cmd_set_test_process_cmd_set_1_encrypted (CuTest 
 
 	header = (struct cerberus_protocol_header*) request.data;
 
-	request.new_request = true;
 	request.crypto_timeout = true;
 	status = cmd.interface.base.process_request (&cmd.interface.base, &request);
 	CuAssertIntEquals (test, 0, status);
@@ -592,20 +548,19 @@ static void cmd_interface_dual_cmd_set_test_process_cmd_set_1_encrypted (CuTest 
 	CuAssertIntEquals (test, 1, header->rq);
 	CuAssertIntEquals (test, 0x04, header->command);
 	CuAssertIntEquals (test, 0xBB, request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN]);
-	CuAssertIntEquals (test, false, request.new_request);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 
 	complete_cmd_interface_dual_cmd_set_test (test, &cmd);
 }
 
-static void cmd_interface_dual_cmd_set_test_process_cmd_set_0_reserved_fields_not_zero (
+static void cmd_interface_dual_cmd_set_test_process_request_cmd_set_0_reserved_fields_not_zero (
 	CuTest *test)
 {
 	struct cmd_interface_dual_cmd_set_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request request;
+	struct cmd_interface_msg request;
 	uint8_t response_data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request response;
+	struct cmd_interface_msg response;
 	struct cerberus_protocol_header* header = (struct cerberus_protocol_header*) data;
 	int status;
 
@@ -663,7 +618,6 @@ static void cmd_interface_dual_cmd_set_test_process_cmd_set_0_reserved_fields_no
 
 	header = (struct cerberus_protocol_header*) request.data;
 
-	request.new_request = true;
 	request.crypto_timeout = true;
 	status = cmd.interface.base.process_request (&cmd.interface.base, &request);
 	CuAssertIntEquals (test, 0, status);
@@ -677,20 +631,19 @@ static void cmd_interface_dual_cmd_set_test_process_cmd_set_0_reserved_fields_no
 	CuAssertIntEquals (test, 0, header->rq);
 	CuAssertIntEquals (test, 0x04, header->command);
 	CuAssertIntEquals (test, 0xBB, request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN]);
-	CuAssertIntEquals (test, false, request.new_request);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 
 	complete_cmd_interface_dual_cmd_set_test (test, &cmd);
 }
 
-static void cmd_interface_dual_cmd_set_test_process_cmd_set_1_reserved_fields_not_zero (
+static void cmd_interface_dual_cmd_set_test_process_request_cmd_set_1_reserved_fields_not_zero (
 	CuTest *test)
 {
 	struct cmd_interface_dual_cmd_set_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request request;
+	struct cmd_interface_msg request;
 	uint8_t response_data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request response;
+	struct cmd_interface_msg response;
 	struct cerberus_protocol_header* header = (struct cerberus_protocol_header*) data;
 	int status;
 
@@ -748,7 +701,6 @@ static void cmd_interface_dual_cmd_set_test_process_cmd_set_1_reserved_fields_no
 
 	header = (struct cerberus_protocol_header*) request.data;
 
-	request.new_request = true;
 	request.crypto_timeout = true;
 	status = cmd.interface.base.process_request (&cmd.interface.base, &request);
 	CuAssertIntEquals (test, 0, status);
@@ -762,17 +714,16 @@ static void cmd_interface_dual_cmd_set_test_process_cmd_set_1_reserved_fields_no
 	CuAssertIntEquals (test, 1, header->rq);
 	CuAssertIntEquals (test, 0x04, header->command);
 	CuAssertIntEquals (test, 0xBB, request.data[CERBERUS_PROTOCOL_MIN_MSG_LEN]);
-	CuAssertIntEquals (test, false, request.new_request);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 
 	complete_cmd_interface_dual_cmd_set_test (test, &cmd);
 }
 
-static void cmd_interface_dual_cmd_set_test_process_cmd_set_0_fail (CuTest *test)
+static void cmd_interface_dual_cmd_set_test_process_request_cmd_set_0_fail (CuTest *test)
 {
 	struct cmd_interface_dual_cmd_set_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request request;
+	struct cmd_interface_msg request;
 	struct cerberus_protocol_header* header = (struct cerberus_protocol_header*) data;
 	int status;
 
@@ -814,11 +765,11 @@ static void cmd_interface_dual_cmd_set_test_process_cmd_set_0_fail (CuTest *test
 	complete_cmd_interface_dual_cmd_set_test (test, &cmd);
 }
 
-static void cmd_interface_dual_cmd_set_test_process_cmd_set_1_fail (CuTest *test)
+static void cmd_interface_dual_cmd_set_test_process_request_cmd_set_1_fail (CuTest *test)
 {
 	struct cmd_interface_dual_cmd_set_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request request;
+	struct cmd_interface_msg request;
 	struct cerberus_protocol_header* header = (struct cerberus_protocol_header*) data;
 	int status;
 
@@ -860,72 +811,525 @@ static void cmd_interface_dual_cmd_set_test_process_cmd_set_1_fail (CuTest *test
 	complete_cmd_interface_dual_cmd_set_test (test, &cmd);
 }
 
-static void cmd_interface_dual_cmd_set_test_issue_request_null (CuTest *test)
+static void cmd_interface_dual_cmd_set_test_process_response_payload_too_short (CuTest *test)
 {
 	struct cmd_interface_dual_cmd_set_testing cmd;
-	uint8_t buf[CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG];
+	struct cmd_interface_msg response;
 	int status;
 
 	TEST_START;
 
+	memset (&response, 0, sizeof (struct cmd_interface_msg));
+	response.length = CERBERUS_PROTOCOL_MIN_MSG_LEN - 1;
+	response.source_eid = 0xAA;
+	response.target_eid = 0xBB;
+
 	setup_cmd_interface_dual_cmd_set_test (test, &cmd);
 
-	status = cmd.interface.base.issue_request (NULL,
-		CERBERUS_PROTOCOL_GET_DEVICE_CAPABILITIES, NULL, buf, sizeof (buf));
+	response.crypto_timeout = true;
+	status = cmd.interface.base.process_response (&cmd.interface.base, &response);
+	CuAssertIntEquals (test, CMD_HANDLER_PAYLOAD_TOO_SHORT, status);
+	CuAssertIntEquals (test, false, response.crypto_timeout);
+
+	complete_cmd_interface_dual_cmd_set_test (test, &cmd);
+}
+
+static void cmd_interface_dual_cmd_set_test_process_response_unsupported_message (CuTest *test)
+{
+	struct cmd_interface_dual_cmd_set_testing cmd;
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg response;
+	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) data;
+	int status;
+
+	TEST_START;
+
+	memset (&response, 0, sizeof (struct cmd_interface_msg));
+	memset (data, 0, sizeof (data));
+	response.data = data;
+
+	header->msg_type = 0x11;
+	header->pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	header->crypt = 0;
+	header->reserved2 = 0;
+	header->integrity_check = 0;
+	header->reserved1 = 0;
+	header->rq = 0;
+
+	response.length = CERBERUS_PROTOCOL_MIN_MSG_LEN;
+	response.source_eid = 0xAA;
+	response.target_eid = 0xBB;
+
+	setup_cmd_interface_dual_cmd_set_test (test, &cmd);
+
+	response.crypto_timeout = true;
+	status = cmd.interface.base.process_response (&cmd.interface.base, &response);
+	CuAssertIntEquals (test, CMD_HANDLER_UNSUPPORTED_MSG, status);
+	CuAssertIntEquals (test, false, response.crypto_timeout);
+
+	header->msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	header->pci_vendor_id = 0xAA;
+
+	response.crypto_timeout = true;
+	status = cmd.interface.base.process_response (&cmd.interface.base, &response);
+	CuAssertIntEquals (test, CMD_HANDLER_UNSUPPORTED_MSG, status);
+	CuAssertIntEquals (test, false, response.crypto_timeout);
+
+	complete_cmd_interface_dual_cmd_set_test (test, &cmd);
+}
+
+static void cmd_interface_dual_cmd_set_test_process_response_error_packet (CuTest *test)
+{
+	struct cmd_interface_dual_cmd_set_testing cmd;
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg response;
+	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) data;
+	int status;
+
+	TEST_START;
+
+	memset (&response, 0, sizeof (struct cmd_interface_msg));
+	memset (data, 0, sizeof (data));
+	response.data = data;
+
+	header->msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	header->pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	header->crypt = 0;
+	header->reserved2 = 0;
+	header->integrity_check = 0;
+	header->reserved1 = 0;
+	header->rq = 0;
+	header->command = CERBERUS_PROTOCOL_ERROR;
+
+	response.length = CERBERUS_PROTOCOL_MIN_MSG_LEN;
+	response.source_eid = 0xAA;
+	response.target_eid = 0xBB;
+
+	setup_cmd_interface_dual_cmd_set_test (test, &cmd);
+
+	status = mock_expect (&cmd.primary_handler.mock, cmd.primary_handler.base.process_response,
+		&cmd.primary_handler, 0,
+		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &response,
+			sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+			cmd_interface_mock_duplicate_request));
+
+	response.crypto_timeout = true;
+	status = cmd.interface.base.process_response (&cmd.interface.base, &response);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, false, response.crypto_timeout);
+
+	complete_cmd_interface_dual_cmd_set_test (test, &cmd);
+}
+
+static void cmd_interface_dual_cmd_set_test_process_response_null (CuTest *test)
+{
+	struct cmd_interface_dual_cmd_set_testing cmd;
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg response;
+	int status;
+
+	TEST_START;
+
+	memset (&response, 0, sizeof (struct cmd_interface_msg));
+	memset (data, 0, sizeof (data));
+	response.data = data;
+	response.data[0] = 0;
+	response.length = 1;
+	response.source_eid = 0xAA;
+	response.target_eid = 0xBB;
+
+	setup_cmd_interface_dual_cmd_set_test (test, &cmd);
+
+	response.crypto_timeout = true;
+	status = cmd.interface.base.process_response (NULL, &response);
+	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
+	CuAssertIntEquals (test, false, response.crypto_timeout);
+
+	status = cmd.interface.base.process_response (&cmd.interface.base, NULL);
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
 	complete_cmd_interface_dual_cmd_set_test (test, &cmd);
 }
 
-static void cmd_interface_dual_cmd_set_test_issue_request (CuTest *test)
+
+static void cmd_interface_dual_cmd_set_test_process_response_cmd_set_0 (CuTest *test)
 {
 	struct cmd_interface_dual_cmd_set_testing cmd;
-	uint8_t buf[3] = {0};
-	uint8_t ex_buf[3];
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg response;
+	struct cerberus_protocol_header* header = (struct cerberus_protocol_header*) data;
 	int status;
 
 	TEST_START;
 
-	ex_buf[0] = 1;
-	ex_buf[1] = 2;
-	ex_buf[2] = 3;
+	memset (&response, 0, sizeof (struct cmd_interface_msg));
+	memset (data, 0, sizeof (data));
+	response.data = data;
+	response.length = CERBERUS_PROTOCOL_MIN_MSG_LEN + 1;
+	response.source_eid = 0xCC;
+	response.target_eid = 0xDD;
+	response.channel_id = 0;
+
+	header->msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	header->pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	header->crypt = 0;
+	header->reserved2 = 0;
+	header->integrity_check = 0;
+	header->reserved1 = 0;
+	header->rq = 0;
+	header->command = 0x04;
+	response.data[CERBERUS_PROTOCOL_MIN_MSG_LEN] = 0xAA;
 
 	setup_cmd_interface_dual_cmd_set_test (test, &cmd);
 
-	status = mock_expect (&cmd.primary_handler.mock, cmd.primary_handler.base.issue_request,
-		&cmd.primary_handler, 3, MOCK_ARG (1), MOCK_ARG (NULL), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (sizeof (buf)));
-	status |= mock_expect_output (&cmd.primary_handler.mock, 2, ex_buf, sizeof (ex_buf), -1);
+	status = mock_expect (&cmd.primary_handler.mock, cmd.primary_handler.base.process_response,
+		&cmd.primary_handler, 0,
+		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &response,
+			sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+			cmd_interface_mock_duplicate_request));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = cmd.interface.base.issue_request (&cmd.interface.base, 1, NULL, buf, sizeof (buf));
-	CuAssertIntEquals (test, 3, status);
+	header = (struct cerberus_protocol_header*) response.data;
 
-	status = testing_validate_array (ex_buf, buf, sizeof (ex_buf));
+	response.crypto_timeout = true;
+	status = cmd.interface.base.process_response (&cmd.interface.base, &response);
 	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, false, response.crypto_timeout);
 
 	complete_cmd_interface_dual_cmd_set_test (test, &cmd);
 }
 
-static void cmd_interface_dual_cmd_set_test_issue_request_fail (CuTest *test)
+static void cmd_interface_dual_cmd_set_test_process_response_cmd_set_0_encrypted (CuTest *test)
 {
 	struct cmd_interface_dual_cmd_set_testing cmd;
-	uint8_t buf[3] = {0};
+	struct cmd_interface_msg response;
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cerberus_protocol_header* header = (struct cerberus_protocol_header*) data;
 	int status;
 
 	TEST_START;
 
+	memset (&response, 0, sizeof (struct cmd_interface_msg));
+	memset (data, 0, sizeof (data));
+	response.data = data;
+	response.length = CERBERUS_PROTOCOL_MIN_MSG_LEN + 1;
+	response.source_eid = 0xCC;
+	response.target_eid = 0xDD;
+	response.channel_id = 0;
+
+	header->msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	header->pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	header->crypt = 1;
+	header->reserved2 = 0;
+	header->integrity_check = 0;
+	header->reserved1 = 0;
+	header->rq = 0;
+	header->command = 0x04;
+	response.data[CERBERUS_PROTOCOL_MIN_MSG_LEN] = 0xAA;
+
 	setup_cmd_interface_dual_cmd_set_test (test, &cmd);
 
-	status = mock_expect (&cmd.primary_handler.mock, cmd.primary_handler.base.issue_request,
-		&cmd.primary_handler, CMD_HANDLER_NO_MEMORY, MOCK_ARG (1), MOCK_ARG (NULL),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (buf)));
+	status = mock_expect (&cmd.primary_handler.mock, cmd.primary_handler.base.process_response,
+		&cmd.primary_handler, 0,
+		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &response,
+			sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+			cmd_interface_mock_duplicate_request));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = cmd.interface.base.issue_request (&cmd.interface.base, 1, NULL, buf, sizeof (buf));
+	header = (struct cerberus_protocol_header*) response.data;
+
+	response.crypto_timeout = true;
+	status = cmd.interface.base.process_response (&cmd.interface.base, &response);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, false, response.crypto_timeout);
+
+	complete_cmd_interface_dual_cmd_set_test (test, &cmd);
+}
+
+static void cmd_interface_dual_cmd_set_test_process_response_cmd_set_1 (CuTest *test)
+{
+	struct cmd_interface_dual_cmd_set_testing cmd;
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg response;
+	struct cerberus_protocol_header* header = (struct cerberus_protocol_header*) data;
+	int status;
+
+	TEST_START;
+
+	memset (&response, 0, sizeof (struct cmd_interface_msg));
+	memset (data, 0, sizeof (data));
+	response.data = data;
+	response.length = CERBERUS_PROTOCOL_MIN_MSG_LEN + 1;
+	response.source_eid = 0xCC;
+	response.target_eid = 0xDD;
+	response.channel_id = 0;
+
+	header->msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	header->pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	header->crypt = 0;
+	header->reserved2 = 0;
+	header->integrity_check = 0;
+	header->reserved1 = 0;
+	header->rq = 1;
+	header->command = 0x04;
+	response.data[CERBERUS_PROTOCOL_MIN_MSG_LEN] = 0xAA;
+
+	setup_cmd_interface_dual_cmd_set_test (test, &cmd);
+
+	status = mock_expect (&cmd.secondary_handler.mock, cmd.secondary_handler.base.process_response,
+		&cmd.secondary_handler, 0,
+		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &response,
+			sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+			cmd_interface_mock_duplicate_request));
+
+	CuAssertIntEquals (test, 0, status);
+
+	header = (struct cerberus_protocol_header*) response.data;
+
+	response.crypto_timeout = true;
+	status = cmd.interface.base.process_response (&cmd.interface.base, &response);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, false, response.crypto_timeout);
+
+	complete_cmd_interface_dual_cmd_set_test (test, &cmd);
+}
+
+static void cmd_interface_dual_cmd_set_test_process_response_cmd_set_1_encrypted (CuTest *test)
+{
+	struct cmd_interface_dual_cmd_set_testing cmd;
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg response;
+	struct cerberus_protocol_header* header = (struct cerberus_protocol_header*) data;
+	int status;
+
+	TEST_START;
+
+	memset (&response, 0, sizeof (struct cmd_interface_msg));
+	memset (data, 0, sizeof (data));
+	response.data = data;
+	response.length = CERBERUS_PROTOCOL_MIN_MSG_LEN + 1;
+	response.source_eid = 0xCC;
+	response.target_eid = 0xDD;
+	response.channel_id = 0;
+
+	header->msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	header->pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	header->crypt = 1;
+	header->reserved2 = 0;
+	header->integrity_check = 0;
+	header->reserved1 = 0;
+	header->rq = 1;
+	header->command = 0x04;
+	response.data[CERBERUS_PROTOCOL_MIN_MSG_LEN] = 0xAA;
+
+	setup_cmd_interface_dual_cmd_set_test (test, &cmd);
+
+	status = mock_expect (&cmd.secondary_handler.mock, cmd.secondary_handler.base.process_response,
+		&cmd.secondary_handler, 0,
+		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &response,
+			sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+			cmd_interface_mock_duplicate_request));
+
+	CuAssertIntEquals (test, 0, status);
+
+	header = (struct cerberus_protocol_header*) response.data;
+
+	response.crypto_timeout = true;
+	status = cmd.interface.base.process_response (&cmd.interface.base, &response);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, false, response.crypto_timeout);
+
+	complete_cmd_interface_dual_cmd_set_test (test, &cmd);
+}
+
+static void cmd_interface_dual_cmd_set_test_process_response_cmd_set_0_reserved_fields_not_zero (
+	CuTest *test)
+{
+	struct cmd_interface_dual_cmd_set_testing cmd;
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg response;
+	struct cerberus_protocol_header* header = (struct cerberus_protocol_header*) data;
+	int status;
+
+	TEST_START;
+
+	memset (&response, 0, sizeof (struct cmd_interface_msg));
+	memset (data, 0, sizeof (data));
+	response.data = data;
+	response.length = CERBERUS_PROTOCOL_MIN_MSG_LEN + 1;
+	response.source_eid = 0xCC;
+	response.target_eid = 0xDD;
+	response.channel_id = 0;
+
+	header->msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	header->pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	header->crypt = 0;
+	header->reserved2 = 1;
+	header->integrity_check = 0;
+	header->reserved1 = 1;
+	header->rq = 0;
+	header->command = 0x04;
+	response.data[CERBERUS_PROTOCOL_MIN_MSG_LEN] = 0xAA;
+
+	setup_cmd_interface_dual_cmd_set_test (test, &cmd);
+
+	status = mock_expect (&cmd.primary_handler.mock, cmd.primary_handler.base.process_response,
+		&cmd.primary_handler, 0,
+		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &response,
+			sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+			cmd_interface_mock_duplicate_request));
+
+	CuAssertIntEquals (test, 0, status);
+
+	header = (struct cerberus_protocol_header*) response.data;
+
+	response.crypto_timeout = true;
+	status = cmd.interface.base.process_response (&cmd.interface.base, &response);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, false, response.crypto_timeout);
+
+	complete_cmd_interface_dual_cmd_set_test (test, &cmd);
+}
+
+static void cmd_interface_dual_cmd_set_test_process_response_cmd_set_1_reserved_fields_not_zero (
+	CuTest *test)
+{
+	struct cmd_interface_dual_cmd_set_testing cmd;
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg response;
+	struct cerberus_protocol_header* header = (struct cerberus_protocol_header*) data;
+	int status;
+
+	TEST_START;
+
+	memset (&response, 0, sizeof (struct cmd_interface_msg));
+	memset (data, 0, sizeof (data));
+	response.data = data;
+	response.length = CERBERUS_PROTOCOL_MIN_MSG_LEN + 1;
+	response.source_eid = 0xCC;
+	response.target_eid = 0xDD;
+	response.channel_id = 0;
+
+	header->msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	header->pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	header->crypt = 0;
+	header->reserved2 = 1;
+	header->integrity_check = 0;
+	header->reserved1 = 1;
+	header->rq = 1;
+	header->command = 0x04;
+	response.data[CERBERUS_PROTOCOL_MIN_MSG_LEN] = 0xAA;
+
+	setup_cmd_interface_dual_cmd_set_test (test, &cmd);
+
+	status = mock_expect (&cmd.secondary_handler.mock, cmd.secondary_handler.base.process_response,
+		&cmd.secondary_handler, 0,
+		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &response,
+			sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+			cmd_interface_mock_duplicate_request));
+
+	CuAssertIntEquals (test, 0, status);
+
+	header = (struct cerberus_protocol_header*) response.data;
+
+	response.crypto_timeout = true;
+	status = cmd.interface.base.process_response (&cmd.interface.base, &response);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, false, response.crypto_timeout);
+
+	complete_cmd_interface_dual_cmd_set_test (test, &cmd);
+}
+
+static void cmd_interface_dual_cmd_set_test_process_response_cmd_set_0_fail (CuTest *test)
+{
+	struct cmd_interface_dual_cmd_set_testing cmd;
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg response;
+	struct cerberus_protocol_header* header = (struct cerberus_protocol_header*) data;
+	int status;
+
+	TEST_START;
+
+	memset (&response, 0, sizeof (struct cmd_interface_msg));
+	memset (data, 0, sizeof (data));
+	response.data = data;
+	response.length = CERBERUS_PROTOCOL_MIN_MSG_LEN + 1;
+	response.source_eid = 0xCC;
+	response.target_eid = 0xDD;
+	response.channel_id = 0;
+
+	header->msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	header->pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	header->crypt = 0;
+	header->reserved2 = 0;
+	header->integrity_check = 0;
+	header->reserved1 = 0;
+	header->rq = 0;
+	header->command = 0x04;
+	response.data[CERBERUS_PROTOCOL_MIN_MSG_LEN] = 0xAA;
+
+	setup_cmd_interface_dual_cmd_set_test (test, &cmd);
+
+	status = mock_expect (&cmd.primary_handler.mock, cmd.primary_handler.base.process_response,
+		&cmd.primary_handler, CMD_HANDLER_NO_MEMORY,
+		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &response,
+			sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+			cmd_interface_mock_duplicate_request));
+
+	CuAssertIntEquals (test, 0, status);
+
+	response.crypto_timeout = true;
+	status = cmd.interface.base.process_response (&cmd.interface.base, &response);
 	CuAssertIntEquals (test, CMD_HANDLER_NO_MEMORY, status);
+	CuAssertIntEquals (test, false, response.crypto_timeout);
+
+	complete_cmd_interface_dual_cmd_set_test (test, &cmd);
+}
+
+static void cmd_interface_dual_cmd_set_test_process_response_cmd_set_1_fail (CuTest *test)
+{
+	struct cmd_interface_dual_cmd_set_testing cmd;
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg response;
+	struct cerberus_protocol_header* header = (struct cerberus_protocol_header*) data;
+	int status;
+
+	TEST_START;
+
+	memset (&response, 0, sizeof (struct cmd_interface_msg));
+	memset (data, 0, sizeof (data));
+	response.data = data;
+	response.length = CERBERUS_PROTOCOL_MIN_MSG_LEN + 1;
+	response.source_eid = 0xCC;
+	response.target_eid = 0xDD;
+	response.channel_id = 0;
+
+	header->msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	header->pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	header->crypt = 0;
+	header->reserved2 = 0;
+	header->integrity_check = 0;
+	header->reserved1 = 0;
+	header->rq = 1;
+	header->command = 0x04;
+	response.data[CERBERUS_PROTOCOL_MIN_MSG_LEN] = 0xAA;
+
+	setup_cmd_interface_dual_cmd_set_test (test, &cmd);
+
+	status = mock_expect (&cmd.secondary_handler.mock, cmd.secondary_handler.base.process_response,
+		&cmd.secondary_handler, CMD_HANDLER_NO_MEMORY,
+		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &response,
+			sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+			cmd_interface_mock_duplicate_request));
+
+	CuAssertIntEquals (test, 0, status);
+
+	response.crypto_timeout = true;
+	status = cmd.interface.base.process_response (&cmd.interface.base, &response);
+	CuAssertIntEquals (test, CMD_HANDLER_NO_MEMORY, status);
+	CuAssertIntEquals (test, false, response.crypto_timeout);
 
 	complete_cmd_interface_dual_cmd_set_test (test, &cmd);
 }
@@ -934,7 +1338,7 @@ static void cmd_interface_dual_cmd_set_test_generate_error_packet_set_0 (CuTest 
 {
 	struct cmd_interface_dual_cmd_set_testing cmd;
 	uint8_t error_data[sizeof (struct cerberus_protocol_error)];
-	struct cmd_interface_request error_packet;
+	struct cmd_interface_msg error_packet;
 	struct cerberus_protocol_error *error = (struct cerberus_protocol_error*) error_data;
 	int status;
 
@@ -990,7 +1394,7 @@ static void cmd_interface_dual_cmd_set_test_generate_error_packet_set_1 (CuTest 
 {
 	struct cmd_interface_dual_cmd_set_testing cmd;
 	uint8_t error_data[sizeof (struct cerberus_protocol_error)];
-	struct cmd_interface_request error_packet;
+	struct cmd_interface_msg error_packet;
 	struct cerberus_protocol_error *error = (struct cerberus_protocol_error*) error_data;
 	int status;
 
@@ -1046,7 +1450,7 @@ static void cmd_interface_dual_cmd_set_test_generate_error_packet_set_1 (CuTest 
 static void cmd_interface_dual_cmd_set_test_generate_error_packet_null (CuTest *test)
 {
 	struct cmd_interface_dual_cmd_set_testing cmd;
-	struct cmd_interface_request error_packet;
+	struct cmd_interface_msg error_packet;
 	int status;
 
 	TEST_START;
@@ -1063,7 +1467,7 @@ static void cmd_interface_dual_cmd_set_test_generate_error_packet_null (CuTest *
 static void cmd_interface_dual_cmd_set_test_generate_error_packet_set_0_fail (CuTest *test)
 {
 	struct cmd_interface_dual_cmd_set_testing cmd;
-	struct cmd_interface_request error_packet;
+	struct cmd_interface_msg error_packet;
 	int status;
 
 	TEST_START;
@@ -1086,7 +1490,7 @@ static void cmd_interface_dual_cmd_set_test_generate_error_packet_set_0_fail (Cu
 static void cmd_interface_dual_cmd_set_test_generate_error_packet_set_1_fail (CuTest *test)
 {
 	struct cmd_interface_dual_cmd_set_testing cmd;
-	struct cmd_interface_request error_packet;
+	struct cmd_interface_msg error_packet;
 	int status;
 
 	TEST_START;
@@ -1115,23 +1519,33 @@ CuSuite* get_cmd_interface_dual_cmd_set_suite ()
 	SUITE_ADD_TEST (suite, cmd_interface_dual_cmd_set_test_init);
 	SUITE_ADD_TEST (suite, cmd_interface_dual_cmd_set_test_init_null);
 	SUITE_ADD_TEST (suite, cmd_interface_dual_cmd_set_test_deinit_null);
-	SUITE_ADD_TEST (suite, cmd_interface_dual_cmd_set_test_process_payload_too_short);
-	SUITE_ADD_TEST (suite, cmd_interface_dual_cmd_set_test_process_unsupported_message);
-	SUITE_ADD_TEST (suite, cmd_interface_dual_cmd_set_test_process_error_packet);
-	SUITE_ADD_TEST (suite, cmd_interface_dual_cmd_set_test_process_null);
-	SUITE_ADD_TEST (suite, cmd_interface_dual_cmd_set_test_process_cmd_set_0);
-	SUITE_ADD_TEST (suite, cmd_interface_dual_cmd_set_test_process_cmd_set_0_encrypted);
-	SUITE_ADD_TEST (suite, cmd_interface_dual_cmd_set_test_process_cmd_set_1);
-	SUITE_ADD_TEST (suite, cmd_interface_dual_cmd_set_test_process_cmd_set_1_encrypted);
+	SUITE_ADD_TEST (suite, cmd_interface_dual_cmd_set_test_process_request_payload_too_short);
+	SUITE_ADD_TEST (suite, cmd_interface_dual_cmd_set_test_process_request_unsupported_message);
+	SUITE_ADD_TEST (suite, cmd_interface_dual_cmd_set_test_process_request_null);
+	SUITE_ADD_TEST (suite, cmd_interface_dual_cmd_set_test_process_request_cmd_set_0);
+	SUITE_ADD_TEST (suite, cmd_interface_dual_cmd_set_test_process_request_cmd_set_0_encrypted);
+	SUITE_ADD_TEST (suite, cmd_interface_dual_cmd_set_test_process_request_cmd_set_1);
+	SUITE_ADD_TEST (suite, cmd_interface_dual_cmd_set_test_process_request_cmd_set_1_encrypted);
 	SUITE_ADD_TEST (suite,
-		cmd_interface_dual_cmd_set_test_process_cmd_set_0_reserved_fields_not_zero);
+		cmd_interface_dual_cmd_set_test_process_request_cmd_set_0_reserved_fields_not_zero);
 	SUITE_ADD_TEST (suite,
-		cmd_interface_dual_cmd_set_test_process_cmd_set_1_reserved_fields_not_zero);
-	SUITE_ADD_TEST (suite, cmd_interface_dual_cmd_set_test_process_cmd_set_0_fail);
-	SUITE_ADD_TEST (suite, cmd_interface_dual_cmd_set_test_process_cmd_set_1_fail);
-	SUITE_ADD_TEST (suite, cmd_interface_dual_cmd_set_test_issue_request_null);
-	SUITE_ADD_TEST (suite, cmd_interface_dual_cmd_set_test_issue_request);
-	SUITE_ADD_TEST (suite, cmd_interface_dual_cmd_set_test_issue_request_fail);
+		cmd_interface_dual_cmd_set_test_process_request_cmd_set_1_reserved_fields_not_zero);
+	SUITE_ADD_TEST (suite, cmd_interface_dual_cmd_set_test_process_request_cmd_set_0_fail);
+	SUITE_ADD_TEST (suite, cmd_interface_dual_cmd_set_test_process_request_cmd_set_1_fail);
+	SUITE_ADD_TEST (suite, cmd_interface_dual_cmd_set_test_process_response_payload_too_short);
+	SUITE_ADD_TEST (suite, cmd_interface_dual_cmd_set_test_process_response_unsupported_message);
+	SUITE_ADD_TEST (suite, cmd_interface_dual_cmd_set_test_process_response_error_packet);
+	SUITE_ADD_TEST (suite, cmd_interface_dual_cmd_set_test_process_response_null);
+	SUITE_ADD_TEST (suite, cmd_interface_dual_cmd_set_test_process_response_cmd_set_0);
+	SUITE_ADD_TEST (suite, cmd_interface_dual_cmd_set_test_process_response_cmd_set_0_encrypted);
+	SUITE_ADD_TEST (suite, cmd_interface_dual_cmd_set_test_process_response_cmd_set_1);
+	SUITE_ADD_TEST (suite, cmd_interface_dual_cmd_set_test_process_response_cmd_set_1_encrypted);
+	SUITE_ADD_TEST (suite,
+		cmd_interface_dual_cmd_set_test_process_response_cmd_set_0_reserved_fields_not_zero);
+	SUITE_ADD_TEST (suite,
+		cmd_interface_dual_cmd_set_test_process_response_cmd_set_1_reserved_fields_not_zero);
+	SUITE_ADD_TEST (suite, cmd_interface_dual_cmd_set_test_process_response_cmd_set_0_fail);
+	SUITE_ADD_TEST (suite, cmd_interface_dual_cmd_set_test_process_response_cmd_set_1_fail);
 	SUITE_ADD_TEST (suite, cmd_interface_dual_cmd_set_test_generate_error_packet_set_0);
 	SUITE_ADD_TEST (suite, cmd_interface_dual_cmd_set_test_generate_error_packet_set_1);
 	SUITE_ADD_TEST (suite, cmd_interface_dual_cmd_set_test_generate_error_packet_null);

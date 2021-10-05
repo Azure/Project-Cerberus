@@ -5,6 +5,8 @@
 #define MCTP_INTERFACE_H_
 
 #include <stdint.h>
+#include <stdbool.h>
+#include "platform.h"
 #include "cmd_interface/cmd_channel.h"
 #include "cmd_interface/device_manager.h"
 #include "cmd_interface/cmd_interface.h"
@@ -19,7 +21,7 @@ struct mctp_interface {
 	struct device_manager *device_manager;					/**< Device manager linked to command interface */
 	uint8_t msg_buffer[MCTP_PROTOCOL_MAX_MESSAGE_LEN];		/**< Buffer for MCTP messages */
 	struct cmd_message resp_buffer;							/**< Buffer for transmitting responses */
-	struct cmd_interface_request req_buffer;				/**< Buffer for request processing */
+	struct cmd_interface_msg req_buffer;					/**< Buffer for request processing */
 	int start_packet_len;									/**< Length of MCTP start packet */
 	uint16_t pci_vendor_id;									/**< Protocol PCI vendor ID */
 	uint16_t protocol_version;								/**< Protocol version */
@@ -27,7 +29,12 @@ struct mctp_interface {
 	uint8_t msg_tag;										/**< Current MCTP exchange message tag */
 	uint8_t msg_type;										/**< Current MCTP exchange message type */
 	uint8_t eid;											/**< MCTP EID to listen to */
+	uint8_t response_eid;									/**< MCTP EID for device we expect a response from */
+	uint8_t response_msg_tag;								/**< MCTP message tag for transaction we expect response for */
+	bool response_expected;									/**< A boolean indicating whether a response is expected or not */
 	int channel_id;											/**< Channel ID associated with the interface. */
+	platform_semaphore wait_for_response;					/**< Semaphore used by requester to wait for response. */
+	platform_mutex lock;									/**< Synchronization for shared interfaces */
 };
 
 
@@ -41,12 +48,9 @@ int mctp_interface_process_packet (struct mctp_interface *mctp, struct cmd_packe
 	struct cmd_message **tx_message);
 void mctp_interface_reset_message_processing (struct mctp_interface *mctp);
 
-// int mctp_interface_issue_request (struct mctp_interface *mctp, struct cmd_channel *channel,
-// 	uint8_t dest_addr, uint8_t dest_eid, uint8_t *request, size_t length, uint8_t *msg_buffer,
-// 	size_t max_buffer);
-int mctp_interface_issue_request (struct mctp_interface *mctp, uint8_t dest_addr,
-	uint8_t dest_eid, uint8_t src_addr, uint8_t src_eid, uint8_t command_id, void *request_params,
-	uint8_t *buf, size_t buf_len, uint8_t msg_type);
+int mctp_interface_issue_request (struct mctp_interface *mctp, struct cmd_channel *channel,
+	uint8_t dest_addr, uint8_t dest_eid, uint8_t *request, size_t length, uint8_t *msg_buffer,
+	size_t max_buffer, uint32_t timeout_ms);
 
 
 #endif /* MCTP_INTERFACE_H_ */

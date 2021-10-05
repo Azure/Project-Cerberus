@@ -166,7 +166,7 @@ static void session_manager_ecc_establish_session (CuTest *test,
 	struct session_manager_ecc_testing *cmd, uint8_t eid)
 {
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request rq;
+	struct cmd_interface_msg rq;
 	struct cerberus_protocol_key_exchange_type_0 *rq_ptr =
 		(struct cerberus_protocol_key_exchange_type_0*) data;
 	uint8_t nonce1[] = {
@@ -632,7 +632,7 @@ static void session_manager_ecc_test_establish_session (CuTest *test)
 {
 	struct session_manager_ecc_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request rq;
+	struct cmd_interface_msg rq;
 	struct cerberus_protocol_key_exchange_type_0 *rq_ptr =
 		(struct cerberus_protocol_key_exchange_type_0*) data;
 	struct cerberus_protocol_key_exchange_response_type_0 *rsp_ptr =
@@ -826,7 +826,7 @@ static void session_manager_ecc_test_establish_session_invalid_request (CuTest *
 {
 	struct session_manager_ecc_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request rq;
+	struct cmd_interface_msg rq;
 	struct cerberus_protocol_key_exchange_type_0 *rq_ptr =
 		(struct cerberus_protocol_key_exchange_type_0*) data;
 	uint8_t nonce1[] = {
@@ -867,7 +867,7 @@ static void session_manager_ecc_test_establish_session_buf_smaller_than_response
 {
 	struct session_manager_ecc_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request rq;
+	struct cmd_interface_msg rq;
 	struct cerberus_protocol_key_exchange_type_0 *rq_ptr =
 		(struct cerberus_protocol_key_exchange_type_0*) data;
 	uint8_t nonce1[] = {
@@ -908,7 +908,7 @@ static void session_manager_ecc_test_establish_session_invalid_order (CuTest *te
 {
 	struct session_manager_ecc_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request rq;
+	struct cmd_interface_msg rq;
 	struct cerberus_protocol_key_exchange_type_0 *rq_ptr =
 		(struct cerberus_protocol_key_exchange_type_0*) data;
 	int status;
@@ -940,7 +940,7 @@ static void session_manager_ecc_test_establish_session_unexpected_eid (CuTest *t
 {
 	struct session_manager_ecc_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request rq;
+	struct cmd_interface_msg rq;
 	struct cerberus_protocol_key_exchange_type_0 *rq_ptr =
 		(struct cerberus_protocol_key_exchange_type_0*) data;
 	uint8_t nonce1[] = {
@@ -981,7 +981,7 @@ static void session_manager_ecc_test_establish_session_unsupported_hash_type (Cu
 {
 	struct session_manager_ecc_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request rq;
+	struct cmd_interface_msg rq;
 	struct cerberus_protocol_key_exchange_type_0 *rq_ptr =
 		(struct cerberus_protocol_key_exchange_type_0*) data;
 	uint8_t nonce1[] = {
@@ -1022,7 +1022,7 @@ static void session_manager_ecc_test_establish_session_init_device_pub_key_fail 
 {
 	struct session_manager_ecc_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request rq;
+	struct cmd_interface_msg rq;
 	struct cerberus_protocol_key_exchange_type_0 *rq_ptr =
 		(struct cerberus_protocol_key_exchange_type_0*) data;
 	uint8_t nonce1[] = {
@@ -1068,7 +1068,7 @@ static void session_manager_ecc_test_establish_session_generate_response_key_fai
 {
 	struct session_manager_ecc_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request rq;
+	struct cmd_interface_msg rq;
 	struct cerberus_protocol_key_exchange_type_0 *rq_ptr =
 		(struct cerberus_protocol_key_exchange_type_0*) data;
 	uint8_t nonce1[] = {
@@ -1123,7 +1123,7 @@ static void session_manager_ecc_test_establish_session_get_session_key_der_fail 
 {
 	struct session_manager_ecc_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request rq;
+	struct cmd_interface_msg rq;
 	struct cerberus_protocol_key_exchange_type_0 *rq_ptr =
 		(struct cerberus_protocol_key_exchange_type_0*) data;
 	uint8_t nonce1[] = {
@@ -1188,7 +1188,7 @@ static void session_manager_ecc_test_establish_session_start_keys_digest_fail (C
 {
 	struct session_manager_ecc_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request rq;
+	struct cmd_interface_msg rq;
 	struct cerberus_protocol_key_exchange_type_0 *rq_ptr =
 		(struct cerberus_protocol_key_exchange_type_0*) data;
 	uint8_t nonce1[] = {
@@ -1268,7 +1268,7 @@ static void session_manager_ecc_test_establish_session_update_keys_digest_device
 {
 	struct session_manager_ecc_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request rq;
+	struct cmd_interface_msg rq;
 	struct cerberus_protocol_key_exchange_type_0 *rq_ptr =
 		(struct cerberus_protocol_key_exchange_type_0*) data;
 	uint8_t nonce1[] = {
@@ -1352,7 +1352,7 @@ static void session_manager_ecc_test_establish_session_update_keys_digest_sessio
 {
 	struct session_manager_ecc_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request rq;
+	struct cmd_interface_msg rq;
 	struct cerberus_protocol_key_exchange_type_0 *rq_ptr =
 		(struct cerberus_protocol_key_exchange_type_0*) data;
 	uint8_t nonce1[] = {
@@ -1438,7 +1438,7 @@ static void session_manager_ecc_test_establish_session_finish_keys_digest_fail (
 {
 	struct session_manager_ecc_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request rq;
+	struct cmd_interface_msg rq;
 	struct cerberus_protocol_key_exchange_type_0 *rq_ptr =
 		(struct cerberus_protocol_key_exchange_type_0*) data;
 	uint8_t nonce1[] = {
@@ -1526,7 +1526,7 @@ static void session_manager_ecc_test_establish_session_buf_smaller_than_session_
 {
 	struct session_manager_ecc_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request rq;
+	struct cmd_interface_msg rq;
 	struct cerberus_protocol_key_exchange_type_0 *rq_ptr =
 		(struct cerberus_protocol_key_exchange_type_0*) data;
 	uint8_t nonce1[] = {
@@ -1617,7 +1617,7 @@ static void session_manager_ecc_test_establish_session_init_alias_priv_key_fail 
 {
 	struct session_manager_ecc_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request rq;
+	struct cmd_interface_msg rq;
 	struct cerberus_protocol_key_exchange_type_0 *rq_ptr =
 		(struct cerberus_protocol_key_exchange_type_0*) data;
 	uint8_t nonce1[] = {
@@ -1712,7 +1712,7 @@ static void session_manager_ecc_test_establish_session_get_max_sig_len_fail (CuT
 {
 	struct session_manager_ecc_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request rq;
+	struct cmd_interface_msg rq;
 	struct cerberus_protocol_key_exchange_type_0 *rq_ptr =
 		(struct cerberus_protocol_key_exchange_type_0*) data;
 	uint8_t nonce1[] = {
@@ -1816,7 +1816,7 @@ static void session_manager_ecc_test_establish_session_sign_fail (CuTest *test)
 {
 	struct session_manager_ecc_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request rq;
+	struct cmd_interface_msg rq;
 	struct cerberus_protocol_key_exchange_type_0 *rq_ptr =
 		(struct cerberus_protocol_key_exchange_type_0*) data;
 	uint8_t nonce1[] = {
@@ -1927,7 +1927,7 @@ static void session_manager_ecc_test_establish_session_size_shared_secret_fail (
 {
 	struct session_manager_ecc_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request rq;
+	struct cmd_interface_msg rq;
 	struct cerberus_protocol_key_exchange_type_0 *rq_ptr =
 		(struct cerberus_protocol_key_exchange_type_0*) data;
 	uint8_t nonce1[] = {
@@ -2043,7 +2043,7 @@ static void session_manager_ecc_test_establish_session_compute_shared_secret_fai
 {
 	struct session_manager_ecc_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request rq;
+	struct cmd_interface_msg rq;
 	struct cerberus_protocol_key_exchange_type_0 *rq_ptr =
 		(struct cerberus_protocol_key_exchange_type_0*) data;
 	uint8_t nonce1[] = {
@@ -2164,7 +2164,7 @@ static void session_manager_ecc_test_establish_session_generate_session_key_fail
 {
 	struct session_manager_ecc_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request rq;
+	struct cmd_interface_msg rq;
 	struct cerberus_protocol_key_exchange_type_0 *rq_ptr =
 		(struct cerberus_protocol_key_exchange_type_0*) data;
 	uint8_t nonce1[] = {
@@ -2289,7 +2289,7 @@ static void session_manager_ecc_test_establish_session_generate_hmac_key_fail (C
 {
 	struct session_manager_ecc_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request rq;
+	struct cmd_interface_msg rq;
 	struct cerberus_protocol_key_exchange_type_0 *rq_ptr =
 		(struct cerberus_protocol_key_exchange_type_0*) data;
 	uint8_t nonce1[] = {
@@ -2436,7 +2436,7 @@ static void session_manager_ecc_test_establish_session_generate_hmac_fail (CuTes
 {
 	struct session_manager_ecc_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request rq;
+	struct cmd_interface_msg rq;
 	struct cerberus_protocol_key_exchange_type_0 *rq_ptr =
 		(struct cerberus_protocol_key_exchange_type_0*) data;
 	uint8_t nonce1[] = {
@@ -2601,7 +2601,7 @@ static void session_manager_ecc_test_establish_session_generate_hmac_fail (CuTes
 static void session_manager_ecc_test_establish_session_invalid_arg (CuTest *test)
 {
 	struct session_manager_ecc_testing cmd;
-	struct cmd_interface_request rq;
+	struct cmd_interface_msg rq;
 	int status;
 
 	TEST_START;
@@ -2621,7 +2621,7 @@ static void session_manager_ecc_test_decrypt_message (CuTest *test)
 {
 	struct session_manager_ecc_testing cmd;
 	uint8_t rq_data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request rq;
+	struct cmd_interface_msg rq;
 	uint8_t data[] = {
 		0xA,0xB,0xC,0xD,0xE,0xF,0xAA,0xBB,0xCC,0xDD,0xEE,0xFF
 	};
@@ -2684,7 +2684,7 @@ static void session_manager_ecc_test_decrypt_message_unexpected_eid (CuTest *tes
 {
 	struct session_manager_ecc_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request rq;
+	struct cmd_interface_msg rq;
 	int status;
 
 	TEST_START;
@@ -2706,7 +2706,7 @@ static void session_manager_ecc_test_decrypt_message_session_not_established (Cu
 {
 	struct session_manager_ecc_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request rq;
+	struct cmd_interface_msg rq;
 	uint8_t nonce1[] = {
 		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,
 		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
@@ -2739,7 +2739,7 @@ static void session_manager_ecc_test_decrypt_message_set_key_fail (CuTest *test)
 {
 	struct session_manager_ecc_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request rq;
+	struct cmd_interface_msg rq;
 	uint8_t aes_key[] = {
 		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
 		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
@@ -2771,7 +2771,7 @@ static void session_manager_ecc_test_decrypt_message_fail (CuTest *test)
 {
 	struct session_manager_ecc_testing cmd;
 	uint8_t rq_data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request rq;
+	struct cmd_interface_msg rq;
 	uint8_t data[] = {
 		0xA,0xB,0xC,0xD,0xE,0xF,0xAA,0xBB,0xCC,0xDD,0xEE,0xFF
 	};
@@ -2821,7 +2821,7 @@ static void session_manager_ecc_test_decrypt_message_invalid_message (CuTest *te
 {
 	struct session_manager_ecc_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request rq;
+	struct cmd_interface_msg rq;
 	int status;
 
 	TEST_START;
@@ -2843,7 +2843,7 @@ static void session_manager_ecc_test_decrypt_message_buf_too_small (CuTest *test
 {
 	struct session_manager_ecc_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request rq;
+	struct cmd_interface_msg rq;
 	int status;
 
 	TEST_START;
@@ -2871,7 +2871,7 @@ static void session_manager_ecc_test_decrypt_message_buf_too_small (CuTest *test
 static void session_manager_ecc_test_decrypt_message_invalid_arg (CuTest *test)
 {
 	struct session_manager_ecc_testing cmd;
-	struct cmd_interface_request rq;
+	struct cmd_interface_msg rq;
 	int status;
 
 	TEST_START;
@@ -2891,7 +2891,7 @@ static void session_manager_ecc_test_encrypt_message (CuTest *test)
 {
 	struct session_manager_ecc_testing cmd;
 	uint8_t rq_data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request rq;
+	struct cmd_interface_msg rq;
 	uint8_t data[] = {
 		0xA,0xB,0xC,0xD,0xE,0xF,0xAA,0xBB,0xCC,0xDD,0xEE,0xFF
 	};
@@ -2969,7 +2969,7 @@ static void session_manager_ecc_test_encrypt_message (CuTest *test)
 static void session_manager_ecc_test_encrypt_message_unexpected_eid (CuTest *test)
 {
 	struct session_manager_ecc_testing cmd;
-	struct cmd_interface_request rq;
+	struct cmd_interface_msg rq;
 	uint8_t data[] = {
 		0xA,0xB,0xC,0xD,0xE,0xF,0xAA,0xBB,0xCC,0xDD,0xEE,0xFF
 	};
@@ -2993,7 +2993,7 @@ static void session_manager_ecc_test_encrypt_message_unexpected_eid (CuTest *tes
 static void session_manager_ecc_test_encrypt_message_session_not_established (CuTest *test)
 {
 	struct session_manager_ecc_testing cmd;
-	struct cmd_interface_request rq;
+	struct cmd_interface_msg rq;
 	uint8_t nonce1[] = {
 		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04,
 		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6
@@ -3028,7 +3028,7 @@ static void session_manager_ecc_test_encrypt_message_session_not_established (Cu
 static void session_manager_ecc_test_encrypt_message_set_key_fail (CuTest *test)
 {
 	struct session_manager_ecc_testing cmd;
-	struct cmd_interface_request rq;
+	struct cmd_interface_msg rq;
 	uint8_t data[] = {
 		0xA,0xB,0xC,0xD,0xE,0xF,0xAA,0xBB,0xCC,0xDD,0xEE,0xFF
 	};
@@ -3062,7 +3062,7 @@ static void session_manager_ecc_test_encrypt_message_set_key_fail (CuTest *test)
 static void session_manager_ecc_test_encrypt_message_generate_iv_fail (CuTest *test)
 {
 	struct session_manager_ecc_testing cmd;
-	struct cmd_interface_request rq;
+	struct cmd_interface_msg rq;
 	uint8_t data[] = {
 		0xA,0xB,0xC,0xD,0xE,0xF,0xAA,0xBB,0xCC,0xDD,0xEE,0xFF
 	};
@@ -3101,7 +3101,7 @@ static void session_manager_ecc_test_encrypt_message_generate_iv_fail (CuTest *t
 static void session_manager_ecc_test_encrypt_message_fail (CuTest *test)
 {
 	struct session_manager_ecc_testing cmd;
-	struct cmd_interface_request rq;
+	struct cmd_interface_msg rq;
 	uint8_t data[] = {
 		0xA,0xB,0xC,0xD,0xE,0xF,0xAA,0xBB,0xCC,0xDD,0xEE,0xFF
 	};
@@ -3151,7 +3151,7 @@ static void session_manager_ecc_test_encrypt_message_no_payload (CuTest *test)
 {
 	struct session_manager_ecc_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request rq;
+	struct cmd_interface_msg rq;
 	int status;
 
 	TEST_START;
@@ -3173,7 +3173,7 @@ static void session_manager_ecc_test_encrypt_message_buf_too_small (CuTest *test
 {
 	struct session_manager_ecc_testing cmd;
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request rq;
+	struct cmd_interface_msg rq;
 	int status;
 
 	TEST_START;
@@ -3194,7 +3194,7 @@ static void session_manager_ecc_test_encrypt_message_buf_too_small (CuTest *test
 static void session_manager_ecc_test_encrypt_message_invalid_arg (CuTest *test)
 {
 	struct session_manager_ecc_testing cmd;
-	struct cmd_interface_request rq;
+	struct cmd_interface_msg rq;
 	int status;
 
 	TEST_START;

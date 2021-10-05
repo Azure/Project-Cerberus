@@ -13,7 +13,25 @@
 
 
 /**
- * Construct get certificate digest request.
+ * Populate the protocol header segment of a MCTP control request
+ *
+ * @param header Buffer to fill with MCTP control header
+ * @param command Command ID to utilize in header
+ */
+static void mctp_interface_control_populate_header (struct mctp_protocol_control_header *header,
+	uint8_t command)
+{
+	header->msg_type = MCTP_PROTOCOL_MSG_TYPE_CONTROL_MSG;
+	header->integrity_check = 0;
+	header->instance_id = 0;
+	header->rsvd = 0;
+	header->d_bit = 0;
+	header->rq = 1;
+	header->command_code = command;
+}
+
+/**
+ * Construct set EID request.
  *
  * @param intf The interface that will construct the request.
  * @param eid EID to set
@@ -23,12 +41,20 @@
  * @return Length of the generated request data if the request was successfully constructed or
  * an error code.
  */
-static int mctp_interface_control_issue_set_eid (struct mctp_interface *intf, uint8_t *eid,
+int mctp_interface_control_generate_set_eid_request (struct mctp_interface *intf, uint8_t eid,
 	uint8_t *buf, size_t buf_len)
 {
-	struct mctp_control_set_eid *request = (struct mctp_control_set_eid*) buf;
+	struct mctp_control_set_eid *rq = (struct mctp_control_set_eid*) buf;
 	struct device_manager_full_capabilities capabilities;
 	int status;
+
+	if ((intf == NULL) || (rq == NULL)) {
+		return MCTP_INTERFACE_CTRL_INVALID_ARGUMENT;
+	}
+
+	if (buf_len < sizeof (struct mctp_control_set_eid)) {
+		return MCTP_INTERFACE_CTRL_BUF_TOO_SMALL;
+	}
 
 	status = device_manager_get_device_capabilities (intf->device_manager, 0, &capabilities);
 	if (status != 0) {
@@ -36,22 +62,20 @@ static int mctp_interface_control_issue_set_eid (struct mctp_interface *intf, ui
 	}
 
 	if (capabilities.request.hierarchy_role != DEVICE_MANAGER_PA_ROT_MODE) {
-		return CMD_HANDLER_INVALID_DEVICE_MODE;
+		return MCTP_INTERFACE_CTRL_UNSUPPORTED_REQ;
 	}
 
-	if (buf_len < sizeof (struct mctp_control_set_eid)) {
-		return CMD_HANDLER_BUF_TOO_SMALL;
+	if ((eid == 0) || (eid == 0xFF)) {
+		return MCTP_INTERFACE_CTRL_OUT_OF_RANGE;
 	}
 
-	if ((*eid == 0) || (*eid == 0xFF)) {
-		return CMD_HANDLER_OUT_OF_RANGE;
-	}
+	mctp_interface_control_populate_header (&rq->header, MCTP_PROTOCOL_SET_EID);
 
-	request->reserved = 0;
-	request->operation = MCTP_CONTROL_SET_EID_OPERATION_SET_ID;
-	request->eid = *eid;
+	rq->reserved = 0;
+	rq->operation = MCTP_CONTROL_SET_EID_OPERATION_SET_ID;
+	rq->eid = eid;
 
-	return 2;
+	return sizeof (struct mctp_control_set_eid);
 }
 
 /**
@@ -63,7 +87,7 @@ static int mctp_interface_control_issue_set_eid (struct mctp_interface *intf, ui
  * @return 0 if request processing completed successfully or an error code.
  */
 static int mctp_interface_control_set_eid (struct mctp_interface *intf,
-	struct cmd_interface_request *request)
+	struct cmd_interface_msg *request)
 {
 	struct mctp_control_set_eid *rq = (struct mctp_control_set_eid*) request->data;
 	struct mctp_control_set_eid_response *response =
@@ -131,7 +155,7 @@ static int mctp_interface_control_set_eid (struct mctp_interface *intf,
  * @return 0 if request processing completed successfully or an error code.
  */
 static int mctp_interface_control_process_set_eid_response (struct mctp_interface *intf,
-	struct cmd_interface_request *request, uint8_t source_addr)
+	struct cmd_interface_msg *request, uint8_t source_addr)
 {
 	struct mctp_control_set_eid_response *response =
 		(struct mctp_control_set_eid_response*) request->data;
@@ -168,7 +192,7 @@ static int mctp_interface_control_process_set_eid_response (struct mctp_interfac
 			}
 
 			if (device_addr != source_addr) {
-				return MCTP_PROTOCOL_INVALID_EID;
+				return MCTP_INTERFACE_CTRL_INVALID_EID;
 			}
 
 			status = device_manager_update_device_state (intf->device_manager, device_num,
@@ -194,7 +218,7 @@ static int mctp_interface_control_process_set_eid_response (struct mctp_interfac
  * @return 0 if request processing completed successfully or an error code.
  */
 static int mctp_interface_control_get_vendor_def_msg_support (struct mctp_interface *intf,
-	struct cmd_interface_request *request)
+	struct cmd_interface_msg *request)
 {
 	struct mctp_control_get_vendor_def_msg_support *rq =
 		(struct mctp_control_get_vendor_def_msg_support*) request->data;
@@ -231,26 +255,25 @@ static int mctp_interface_control_get_vendor_def_msg_support (struct mctp_interf
  * @return 0 if the request was successfully processed or an error code.
  */
 int mctp_interface_control_process_request (struct mctp_interface *intf,
-	struct cmd_interface_request *request, uint8_t source_addr)
+	struct cmd_interface_msg *request, uint8_t source_addr)
 {
 	struct mctp_protocol_control_header *header;
 
 	if ((intf == NULL ) || (request == NULL)) {
-		return CMD_HANDLER_INVALID_ARGUMENT;
+		return MCTP_INTERFACE_CTRL_INVALID_ARGUMENT;
 	}
 
-	request->new_request = false;
 	request->crypto_timeout = false;
 
 	header = (struct mctp_protocol_control_header*) &request->data[0];
 
 	if (request->length < MCTP_PROTOCOL_MIN_CONTROL_MSG_LEN) {
-		return CMD_HANDLER_PAYLOAD_TOO_SHORT;
+		return MCTP_INTERFACE_CTRL_PAYLOAD_TOO_SHORT;
 	}
 
 	if ((header->msg_type != (MCTP_PROTOCOL_MSG_TYPE_CONTROL_MSG)) ||
 		(header->integrity_check != 0) || (header->d_bit != 0) || (header->rsvd != 0)) {
-		return CMD_HANDLER_UNSUPPORTED_MSG;
+		return MCTP_INTERFACE_CTRL_INVALID_DATA;
 	}
 
 	if (header->rq) {
@@ -264,7 +287,7 @@ int mctp_interface_control_process_request (struct mctp_interface *intf,
 				return mctp_interface_control_set_eid (intf, request);
 
 			default:
-				return CMD_HANDLER_UNKNOWN_COMMAND;
+				return MCTP_INTERFACE_CTRL_UNKNOWN_COMMAND;
 		}
 	}
 	else {
@@ -273,52 +296,7 @@ int mctp_interface_control_process_request (struct mctp_interface *intf,
 				return mctp_interface_control_process_set_eid_response (intf, request, source_addr);
 
 			default:
-				return CMD_HANDLER_UNKNOWN_COMMAND;
+				return MCTP_INTERFACE_CTRL_UNKNOWN_COMMAND;
 		}
 	}
-}
-
-/**
- * Construct MCTP control request.
- *
- * @param intf MCTP interface to utilize.
- * @param command_id Command ID of request to generate.
- * @param request_params Parameters to use when generating request.
- * @param buf The buffer containing the generated request.
- * @param buf_len Maximum size of buffer.
- *
- * @return Length of the generated packet if the request was successfully constructed or an
- * error code.
- */
-int mctp_interface_control_issue_request (struct mctp_interface *intf, uint8_t command_id,
-	void *request_params, uint8_t *buf, size_t buf_len)
-{
-	struct mctp_protocol_control_header *header = (struct mctp_protocol_control_header*) buf;
-	int status;
-
-	if ((intf == NULL) || (request_params == NULL) || (buf == NULL) ||
-		(buf_len < MCTP_PROTOCOL_MIN_CONTROL_MSG_LEN)) {
-		return CMD_HANDLER_INVALID_ARGUMENT;
-	}
-
-	memset (header, 0, sizeof (struct mctp_protocol_control_header));
-
-	header->command_code = command_id;
-	header->msg_type = MCTP_PROTOCOL_MSG_TYPE_CONTROL_MSG;
-	header->rq = 1;
-
-	switch (command_id) {
-		case MCTP_PROTOCOL_SET_EID:
-			status = mctp_interface_control_issue_set_eid (intf, request_params, buf, buf_len);
-			break;
-
-		default:
-			return CMD_HANDLER_UNKNOWN_COMMAND;
-	}
-
-	if ROT_IS_ERROR (status) {
-		return status;
-	}
-
-	return (MCTP_PROTOCOL_MIN_CONTROL_MSG_LEN + status);
 }

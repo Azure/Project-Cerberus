@@ -20,52 +20,26 @@
 #include "mock/flash_mock.h"
 
 
-void cerberus_protocol_master_commands_testing_process_process_certificate_digest (CuTest *test,
-	struct cmd_interface *cmd, struct attestation_master_mock *master_attestation);
-void cerberus_protocol_master_commands_testing_process_process_certificate_digest_cert_mismatch (
-	CuTest *test, struct cmd_interface *cmd, struct attestation_master_mock *master_attestation);
-void cerberus_protocol_master_commands_testing_process_process_certificate_digest_digests_fail (
-	CuTest *test, struct cmd_interface *cmd, struct attestation_master_mock *master_attestation);
-void cerberus_protocol_master_commands_testing_process_process_certificate_digest_challenge_fail (
-	CuTest *test, struct cmd_interface *cmd, struct attestation_master_mock *master_attestation);
-void cerberus_protocol_master_commands_testing_process_process_certificate_digest_invalid_buf_len (
+void cerberus_protocol_master_commands_testing_process_response_get_certificate_digest (
+	CuTest *test, struct cmd_interface *cmd, struct cmd_interface_msg *response);
+void cerberus_protocol_master_commands_testing_process_response_get_certificate_digest_invalid_buf_len (
 	CuTest *test, struct cmd_interface *cmd);
 
-void cerberus_protocol_master_commands_testing_process_process_certificate (CuTest *test,
-	struct cmd_interface *cmd, struct attestation_master_mock *master_attestation);
-void cerberus_protocol_master_commands_testing_process_process_certificate_invalid_len (
+void cerberus_protocol_master_commands_testing_process_response_get_certificate (CuTest *test,
+	struct cmd_interface *cmd, struct cmd_interface_msg *response);
+void cerberus_protocol_master_commands_testing_process_response_get_certificate_invalid_buf_len (
 	CuTest *test, struct cmd_interface *cmd);
-void cerberus_protocol_master_commands_testing_process_process_certificate_store_fail (
-	CuTest *test, struct cmd_interface *cmd, struct attestation_master_mock *master_attestation);
-
-void cerberus_protocol_master_commands_testing_process_process_challenge_response (CuTest *test,
-	struct cmd_interface *cmd, struct attestation_master_mock *master_attestation);
-void cerberus_protocol_master_commands_testing_process_process_challenge_response_fail (
-	CuTest *test, struct cmd_interface *cmd, struct attestation_master_mock *master_attestation);
-
-void cerberus_protocol_master_commands_testing_issue_get_device_capabilities (CuTest *test,
-	struct cmd_interface *cmd);
-void cerberus_protocol_master_commands_testing_issue_get_device_capabilities_buf_too_small (
+void cerberus_protocol_master_commands_testing_process_response_get_certificate_unsupported_slot (
 	CuTest *test, struct cmd_interface *cmd);
 
-void cerberus_protocol_master_commands_testing_issue_get_certificate_digest (CuTest *test,
-	struct cmd_interface *cmd, struct attestation_master_mock *master_attestation);
-void cerberus_protocol_master_commands_testing_issue_get_certificate_digest_buf_too_small (
+void cerberus_protocol_master_commands_testing_process_response_challenge_response (CuTest *test,
+	struct cmd_interface *cmd, struct cmd_interface_msg *response);
+void cerberus_protocol_master_commands_testing_process_response_challenge_invalid_buf_len (
 	CuTest *test, struct cmd_interface *cmd);
-
-void cerberus_protocol_master_commands_testing_issue_get_certificate (CuTest *test,
-	struct cmd_interface *cmd);
-void cerberus_protocol_master_commands_testing_issue_get_certificate_buf_too_small (CuTest *test,
-	struct cmd_interface *cmd);
-void cerberus_protocol_master_commands_testing_issue_get_certificate_null (CuTest *test,
-	struct cmd_interface *cmd);
-
-void cerberus_protocol_master_commands_testing_issue_challenge (CuTest *test,
-	struct cmd_interface *cmd, struct attestation_master_mock *master_attestation);
-void cerberus_protocol_master_commands_testing_issue_challenge_fail (CuTest *test,
-	struct cmd_interface *cmd, struct attestation_master_mock *master_attestation);
-void cerberus_protocol_master_commands_testing_issue_challenge_null (CuTest *test,
-	struct cmd_interface *cmd);
+void cerberus_protocol_master_commands_testing_process_response_challenge_unsupported_slot (
+	CuTest *test, struct cmd_interface *cmd);
+void cerberus_protocol_master_commands_testing_process_response_challenge_rsvd_not_zero (
+	CuTest *test, struct cmd_interface *cmd);
 
 void cerberus_protocol_master_commands_testing_process_cfm_update_init (CuTest *test,
 	struct cmd_interface *cmd, struct manifest_cmd_interface_mock *cfm);

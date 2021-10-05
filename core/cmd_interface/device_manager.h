@@ -10,6 +10,12 @@
 
 
 /**
+ * Number in device table reserved for self
+ */
+#define DEVICE_MANAGER_SELF_DEVICE_NUM					0
+
+
+/**
  * Device states
  */
 enum {

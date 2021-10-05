@@ -6,6 +6,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include <math.h>
+#include "cmd_logging.h"
 #include "cmd_interface.h"
 #include "cerberus_protocol.h"
 #include "cerberus_protocol_required_commands.h"
@@ -16,29 +17,17 @@
 
 
 int cmd_interface_system_process_request (struct cmd_interface *intf,
-	struct cmd_interface_request *request)
+	struct cmd_interface_msg *request)
 {
 	struct cmd_interface_system *interface = (struct cmd_interface_system*) intf;
 	uint8_t command_id;
 	uint8_t command_set;
-	int device_num;
-	int direction;
 	int status;
 
-	status = cmd_interface_process_request (&interface->base, request, &command_id, &command_set,
-		true, true);
+	status = cmd_interface_process_cerberus_protocol_message (&interface->base, request,
+		&command_id, &command_set, true, true);
 	if (status != 0) {
 		return status;
-	}
-
-	device_num = device_manager_get_device_num (interface->device_manager, request->source_eid);
-	if (ROT_IS_ERROR (device_num)) {
-		return device_num;
-	}
-
-	direction = device_manager_get_device_direction (interface->device_manager, device_num);
-	if (ROT_IS_ERROR (direction)) {
-		return direction;
 	}
 
 	switch (command_id) {
@@ -47,45 +36,18 @@ int cmd_interface_system_process_request (struct cmd_interface *intf,
 			break;
 
 		case CERBERUS_PROTOCOL_GET_DIGEST:
-			if (direction == DEVICE_MANAGER_UPSTREAM) {
-				status = cerberus_protocol_get_certificate_digest (interface->slave_attestation,
-					interface->base.session, request);
-				break;
-			}
-			else if (direction == DEVICE_MANAGER_DOWNSTREAM) {
-				status = cerberus_protocol_process_certificate_digest (
-					interface->master_attestation, request);
-				break;
-			}
-
-			return CMD_HANDLER_INVALID_DEVICE_MODE;
+			status = cerberus_protocol_get_certificate_digest (interface->slave_attestation,
+				interface->base.session, request);
+			break;
 
 		case CERBERUS_PROTOCOL_GET_CERTIFICATE:
-			if (direction == DEVICE_MANAGER_UPSTREAM) {
-				status = cerberus_protocol_get_certificate (interface->slave_attestation, request);
-				break;
-			}
-			if (direction == DEVICE_MANAGER_DOWNSTREAM) {
-				status = cerberus_protocol_process_certificate (interface->master_attestation,
-					request);
-				break;
-			}
-
-			return CMD_HANDLER_INVALID_DEVICE_MODE;
+			status = cerberus_protocol_get_certificate (interface->slave_attestation, request);
+			break;
 
 		case CERBERUS_PROTOCOL_ATTESTATION_CHALLENGE:
-			if (direction == DEVICE_MANAGER_UPSTREAM) {
-				status = cerberus_protocol_get_challenge_response (interface->slave_attestation,
-					interface->base.session, request);
+			status = cerberus_protocol_get_challenge_response (interface->slave_attestation,
+				interface->base.session, request);
 			break;
-			}
-			if (direction == DEVICE_MANAGER_DOWNSTREAM) {
-				status = cerberus_protocol_process_challenge_response (
-					interface->master_attestation, request);
-			break;
-			}
-
-			return CMD_HANDLER_INVALID_DEVICE_MODE;
 
 		case CERBERUS_PROTOCOL_GET_LOG_INFO:
 			status = cerberus_protocol_get_log_info (interface->pcr_store, request);
@@ -186,7 +148,7 @@ int cmd_interface_system_process_request (struct cmd_interface *intf,
 
 		case CERBERUS_PROTOCOL_GET_DEVICE_CAPABILITIES:
 			status = cerberus_protocol_get_device_capabilities (interface->device_manager,
-				request, device_num);
+				request);
 			break;
 
 		case CERBERUS_PROTOCOL_RESET_COUNTER:
@@ -269,10 +231,6 @@ int cmd_interface_system_process_request (struct cmd_interface *intf,
 #endif
 
 #ifdef CMD_SUPPORT_DEBUG_COMMANDS
-		case CERBERUS_PROTOCOL_DEBUG_START_ATTESTATION:
-			status = cerberus_protocol_start_attestation (request);
-			break;
-
 		case CERBERUS_PROTOCOL_DEBUG_GET_ATTESTATION_STATE:
 			status = cerberus_protocol_get_attestation_state (interface->device_manager, request);
 			break;
@@ -297,65 +255,70 @@ int cmd_interface_system_process_request (struct cmd_interface *intf,
 #endif
 
 		default:
-			return CMD_HANDLER_UNKNOWN_COMMAND;
+			return CMD_HANDLER_UNKNOWN_REQUEST;
 	}
 
 	if (status == 0) {
-		status = cmd_interface_process_response (&interface->base, request);
+		status = cmd_interface_prepare_response (&interface->base, request);
 	}
 
 	return status;
 }
 
-int cmd_interface_system_issue_request (struct cmd_interface *intf, uint8_t command_id,
-	void *request_params, uint8_t *buf, size_t buf_len)
+int cmd_interface_system_process_response (struct cmd_interface *intf,
+	struct cmd_interface_msg *response)
 {
-	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) buf;
 	struct cmd_interface_system *interface = (struct cmd_interface_system*) intf;
+	uint8_t command_id;
+	uint8_t command_set;
 	int status;
 
-	if ((interface == NULL) || (buf == NULL) || (buf_len < CERBERUS_PROTOCOL_MIN_MSG_LEN)) {
-		return CMD_HANDLER_INVALID_ARGUMENT;
-	}
-
-	memset (header, 0, sizeof (struct cerberus_protocol_header));
-
-	header->command = command_id;
-	header->msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
-	header->pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
-
-	switch (command_id) {
-		case CERBERUS_PROTOCOL_GET_DIGEST:
-			status = cerberus_protocol_issue_get_certificate_digest (interface->master_attestation,
-				&buf[CERBERUS_PROTOCOL_MIN_MSG_LEN], buf_len - CERBERUS_PROTOCOL_MIN_MSG_LEN);
-			break;
-
-		case CERBERUS_PROTOCOL_GET_CERTIFICATE:
-			status = cerberus_protocol_issue_get_certificate (request_params,
-				&buf[CERBERUS_PROTOCOL_MIN_MSG_LEN], buf_len - CERBERUS_PROTOCOL_MIN_MSG_LEN);
-			break;
-
-		case CERBERUS_PROTOCOL_ATTESTATION_CHALLENGE:
-			status = cerberus_protocol_issue_challenge (interface->master_attestation,
-				request_params, &buf[CERBERUS_PROTOCOL_MIN_MSG_LEN],
-				buf_len - CERBERUS_PROTOCOL_MIN_MSG_LEN);
-			break;
-
-		case CERBERUS_PROTOCOL_GET_DEVICE_CAPABILITIES:
-			status = cerberus_protocol_issue_get_device_capabilities (
-				interface->device_manager, &buf[CERBERUS_PROTOCOL_MIN_MSG_LEN],
-				buf_len - CERBERUS_PROTOCOL_MIN_MSG_LEN);
-			break;
-
-		default:
-			return CMD_HANDLER_UNKNOWN_COMMAND;
-	}
-
-	if ROT_IS_ERROR (status) {
+	status = cmd_interface_process_cerberus_protocol_message (&interface->base, response,
+		&command_id, &command_set, true, true);
+	if (status != 0) {
 		return status;
 	}
 
-	return (CERBERUS_PROTOCOL_MIN_MSG_LEN + status);
+	switch (command_id) {
+		case CERBERUS_PROTOCOL_GET_DIGEST:
+			status = cerberus_protocol_process_certificate_digest_response (response);
+			if (status != 0) {
+				return status;
+			}
+			else {
+				return observable_notify_observers_with_ptr (&interface->observable,
+					offsetof (struct cerberus_protocol_observer, on_get_digest_response),
+					response);
+			}
+
+		case CERBERUS_PROTOCOL_GET_CERTIFICATE:
+			status = cerberus_protocol_process_certificate_response (response);
+			if (status != 0) {
+				return status;
+			}
+			else {
+				return observable_notify_observers_with_ptr (&interface->observable,
+					offsetof (struct cerberus_protocol_observer, on_get_certificate_response),
+					response);
+			}
+
+		case CERBERUS_PROTOCOL_ATTESTATION_CHALLENGE:
+			status = cerberus_protocol_process_challenge_response (response);
+			if (status != 0) {
+				return status;
+			}
+			else {
+				return observable_notify_observers_with_ptr (&interface->observable,
+					offsetof (struct cerberus_protocol_observer, on_challenge_response),
+					response);
+			}
+
+		case CERBERUS_PROTOCOL_ERROR:
+			return cerberus_protocol_process_error_response (response);
+
+		default:
+			return CMD_HANDLER_UNKNOWN_RESPONSE;
+	}
 }
 
 /**
@@ -415,6 +378,8 @@ int cmd_interface_system_init (struct cmd_interface_system *intf,
 	uint16_t vendor_id, uint16_t device_id, uint16_t subsystem_vid, uint16_t subsystem_id,
 	struct session_manager *session)
 {
+	int status;
+
 	if ((intf == NULL) || (control == NULL) || (store == NULL) || (background == NULL) ||
 		(riot == NULL) || (auth == NULL) || (master_attestation == NULL) ||
 		(slave_attestation == NULL) || (hash == NULL) || (device_manager == NULL) ||
@@ -423,6 +388,11 @@ int cmd_interface_system_init (struct cmd_interface_system *intf,
 	}
 
 	memset (intf, 0, sizeof (struct cmd_interface_system));
+
+	status = observable_init (&intf->observable);
+	if (status != 0) {
+		return status;
+	}
 
 	intf->control = control;
 	intf->pfm_0 = pfm_0;
@@ -458,7 +428,7 @@ int cmd_interface_system_init (struct cmd_interface_system *intf,
 	intf->device_id.subsystem_id = subsystem_id;
 
 	intf->base.process_request = cmd_interface_system_process_request;
-	intf->base.issue_request = cmd_interface_system_issue_request;
+	intf->base.process_response = cmd_interface_system_process_response;
 	intf->base.generate_error_packet = cmd_interface_generate_error_packet;
 
 #if CMD_SUPPORT_ENCRYPTED_SESSIONS
@@ -476,6 +446,43 @@ int cmd_interface_system_init (struct cmd_interface_system *intf,
 void cmd_interface_system_deinit (struct cmd_interface_system *intf)
 {
 	if (intf != NULL) {
+		observable_release (&intf->observable);
 		memset (intf, 0, sizeof (struct cmd_interface_system));
 	}
+}
+
+/**
+ * Add an observer for system notifications.
+ *
+ * @param system The system instance to register with.
+ * @param observer The observer to add.
+ *
+ * @return 0 if the observer was successfully added or an error code.
+ */
+int cmd_interface_system_add_cerberus_protocol_observer (struct cmd_interface_system *intf,
+	struct cerberus_protocol_observer *observer)
+{
+	if (intf == NULL) {
+		return CMD_HANDLER_INVALID_ARGUMENT;
+	}
+
+	return observable_add_observer (&intf->observable, observer);
+}
+
+/**
+ * Remove an observer from system notifications.
+ *
+ * @param system The system instance to deregister from.
+ * @param observer The observer to remove.
+ *
+ * @return 0 if the observer was successfully removed or an error code.
+ */
+int cmd_interface_system_remove_cerberus_protocol_observer (struct cmd_interface_system *intf,
+	struct cerberus_protocol_observer *observer)
+{
+	if (intf == NULL) {
+		return CMD_HANDLER_INVALID_ARGUMENT;
+	}
+
+	return observable_remove_observer (&intf->observable, observer);
 }

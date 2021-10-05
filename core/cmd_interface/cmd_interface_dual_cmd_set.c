@@ -8,14 +8,15 @@
 
 
 static int cmd_interface_dual_cmd_set_process_request (struct cmd_interface *intf,
-	struct cmd_interface_request *request)
+	struct cmd_interface_msg *request)
 {
 	struct cmd_interface_dual_cmd_set *interface = (struct cmd_interface_dual_cmd_set*) intf;
 	uint8_t command_id;
 	uint8_t command_set;
 	int status;
 
-	status = cmd_interface_process_request (intf, request, &command_id, &command_set, false, false);
+	status = cmd_interface_process_cerberus_protocol_message (intf, request, &command_id, 
+		&command_set, false, false);
 	if (status != 0) {
 		return status;
 	}
@@ -28,23 +29,30 @@ static int cmd_interface_dual_cmd_set_process_request (struct cmd_interface *int
 	}
 }
 
-static int cmd_interface_dual_cmd_set_issue_request (struct cmd_interface *intf, uint8_t command_id,
-	void *request_params, uint8_t *buf, size_t buf_len)
+static int cmd_interface_dual_cmd_set_process_response (struct cmd_interface *intf,
+	struct cmd_interface_msg *response)
 {
 	struct cmd_interface_dual_cmd_set *interface = (struct cmd_interface_dual_cmd_set*) intf;
+	uint8_t command_id;
+	uint8_t command_set;
+	int status;
 
-	if (interface == NULL) {
-		return CMD_HANDLER_INVALID_ARGUMENT;
+	status = cmd_interface_process_cerberus_protocol_message (intf, response, &command_id, 
+		&command_set, false, false);
+	if (status != 0) {
+		return status;
 	}
 
-	/* TODO: Handle multiple interfaces when creating requests.  This function should probably take
-	 * a cmd_set argument like the error packet handler. */
-	return interface->intf_0->issue_request (interface->intf_0, command_id, request_params, buf,
-		buf_len);
+	if (command_set == 0) {
+		return interface->intf_0->process_response (interface->intf_0, response);
+	}
+	else {
+		return interface->intf_1->process_response (interface->intf_1, response);
+	}
 }
 
 static int cmd_interface_dual_cmd_set_generate_error_packet (struct cmd_interface *intf,
-	struct cmd_interface_request *request, uint8_t error_code, uint32_t error_data, uint8_t cmd_set)
+	struct cmd_interface_msg *request, uint8_t error_code, uint32_t error_data, uint8_t cmd_set)
 {
 	struct cmd_interface_dual_cmd_set *interface = (struct cmd_interface_dual_cmd_set*) intf;
 
@@ -86,7 +94,7 @@ int cmd_interface_dual_cmd_set_init (struct cmd_interface_dual_cmd_set *intf,
 	intf->intf_1 = intf_1;
 
 	intf->base.process_request = cmd_interface_dual_cmd_set_process_request;
-	intf->base.issue_request = cmd_interface_dual_cmd_set_issue_request;
+	intf->base.process_response = cmd_interface_dual_cmd_set_process_response;
 	intf->base.generate_error_packet = cmd_interface_dual_cmd_set_generate_error_packet;
 
 	return 0;

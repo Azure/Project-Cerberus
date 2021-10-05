@@ -61,7 +61,7 @@ int system_add_observer (struct system *system, struct system_observer *observer
 /**
  * Remove an observer from system notifications.
  *
- * @param updater The system instance to deregister from.
+ * @param system The system instance to deregister from.
  * @param observer The observer to remove.
  *
  * @return 0 if the observer was successfully removed or an error code.

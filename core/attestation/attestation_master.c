@@ -227,19 +227,14 @@ static int attestation_get_cert_algorithm (struct x509_engine *x509, struct der_
 	return status;
 }
 
-static int attestation_issue_challenge (struct attestation_master *attestation, uint8_t eid,
-	uint8_t slot_num, uint8_t *buf, size_t buf_len)
+static int attestation_generate_challenge_request (struct attestation_master *attestation, 
+	uint8_t eid, uint8_t slot_num, struct attestation_challenge *challenge)
 {
-	struct attestation_challenge *challenge = (struct attestation_challenge*)buf;
 	int device_num;
 	int status;
 
-	if ((attestation == NULL) || (buf == NULL)) {
+	if ((attestation == NULL) || (challenge == NULL)) {
 		return ATTESTATION_INVALID_ARGUMENT;
-	}
-
-	if (buf_len < sizeof (struct attestation_challenge)) {
-		return ATTESTATION_BUF_TOO_SMALL;
 	}
 
 	if (slot_num != ATTESTATION_RIOT_SLOT_NUM) {
@@ -493,7 +488,7 @@ int attestation_master_init (struct attestation_master *attestation,
 	attestation->device_manager = device_manager;
 	attestation->protocol_version = protocol_version;
 
-	attestation->issue_challenge = attestation_issue_challenge;
+	attestation->generate_challenge_request = attestation_generate_challenge_request;
 	attestation->compare_digests = attestation_compare_digests;
 	attestation->store_certificate = attestation_store_certificate;
 	attestation->process_challenge_response = attestation_process_challenge_response;

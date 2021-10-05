@@ -6,8 +6,9 @@
 #include "attestation_master_mock.h"
 
 
-static int attestation_master_mock_issue_challenge (struct attestation_master *attestation,
-	uint8_t eid, uint8_t slot_num, uint8_t *buf, size_t buf_len)
+static int attestation_master_mock_generate_challenge_request (
+	struct attestation_master *attestation, uint8_t eid, uint8_t slot_num, 
+	struct attestation_challenge *challenge)
 {
 	struct attestation_master_mock *mock = (struct attestation_master_mock*) attestation;
 
@@ -15,9 +16,8 @@ static int attestation_master_mock_issue_challenge (struct attestation_master *a
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, attestation_master_mock_issue_challenge, attestation,
-		MOCK_ARG_CALL (eid), MOCK_ARG_CALL (slot_num), MOCK_ARG_CALL (buf),
-		MOCK_ARG_CALL (buf_len));
+	MOCK_RETURN (&mock->mock, attestation_master_mock_generate_challenge_request, attestation,
+		MOCK_ARG_CALL (eid), MOCK_ARG_CALL (slot_num), MOCK_ARG_CALL (challenge));
 }
 
 static int attestation_master_mock_compare_digests (struct attestation_master *attestation,
@@ -65,11 +65,9 @@ static int attestation_master_mock_func_arg_count (void *func)
 	if (func == attestation_master_mock_compare_digests) {
 		return 2;
 	}
-	else if (func == attestation_master_mock_process_challenge_response) {
+	else if ((func == attestation_master_mock_process_challenge_response) || 
+		(func == attestation_master_mock_generate_challenge_request)) {
 		return 3;
-	}
-	else if (func == attestation_master_mock_issue_challenge) {
-		return 4;
 	}
 	else if (func == attestation_master_mock_store_certificate) {
 		return 5;
@@ -81,8 +79,8 @@ static int attestation_master_mock_func_arg_count (void *func)
 
 static const char* attestation_master_mock_func_name_map (void *func)
 {
-	if (func == attestation_master_mock_issue_challenge) {
-		return "issue_challenge";
+	if (func == attestation_master_mock_generate_challenge_request) {
+		return "generate_challenge_request";
 	}
 	else if (func == attestation_master_mock_compare_digests) {
 		return "compare_digests";
@@ -100,7 +98,7 @@ static const char* attestation_master_mock_func_name_map (void *func)
 
 static const char* attestation_master_mock_arg_name_map (void *func, int arg)
 {
-	if (func == attestation_master_mock_issue_challenge) {
+	if (func == attestation_master_mock_generate_challenge_request) {
 		switch (arg) {
 			case 0:
 				return "eid";
@@ -109,10 +107,7 @@ static const char* attestation_master_mock_arg_name_map (void *func, int arg)
 				return "slot_num";
 
 			case 2:
-				return "buf";
-
-			case 3:
-				return "buf_len";
+				return "challenge";
 
 			default:
 				return "unknown";
@@ -196,7 +191,7 @@ int attestation_master_mock_init (struct attestation_master_mock *mock)
 
 	mock_set_name (&mock->mock, "attestation");
 
-	mock->base.issue_challenge = attestation_master_mock_issue_challenge;
+	mock->base.generate_challenge_request = attestation_master_mock_generate_challenge_request;
 	mock->base.compare_digests = attestation_master_mock_compare_digests;
 	mock->base.store_certificate = attestation_master_mock_store_certificate;
 	mock->base.process_challenge_response = attestation_master_mock_process_challenge_response;

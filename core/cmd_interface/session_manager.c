@@ -183,7 +183,7 @@ int session_manager_get_pairing_state (struct session_manager *session, uint8_t 
  * @return Completion status, 0 if success or an error code.
  */
 int session_manager_decrypt_message (struct session_manager *session,
-	struct cmd_interface_request *request)
+	struct cmd_interface_msg *request)
 {
 	uint8_t *payload;
 	size_t payload_len;
@@ -231,7 +231,7 @@ int session_manager_decrypt_message (struct session_manager *session,
  * @return Completion status, 0 if success or an error code.
  */
 int session_manager_encrypt_message (struct session_manager *session,
-	struct cmd_interface_request *request)
+	struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_header *header;
 	uint8_t *aes_iv;

@@ -12,23 +12,21 @@
 
 
 /**
- * Container for request data.
+ * Container for message data.
  */
-struct cmd_interface_request {
-	uint8_t *data;					/**< The raw request data buffer.  This contains the request to
-										process and will be updated with any response data. */
-	size_t length;					/**< Length of the request/response data. */
+struct cmd_interface_msg {
+	uint8_t *data;					/**< The raw message data buffer.  This contains the message to
+										process. If message is a request, this buffer can be updated
+										with any response data. */
+	size_t length;					/**< Length of the data buffer contents. */
 	size_t max_response;			/**< Maximum length allowed for a response. */
-	uint8_t source_eid;				/**< Endpoint ID that generated the request. */
-	uint8_t target_eid;				/**< Endpoint ID that should process the request. */
-	bool new_request;				/**< Flag indicating if the data buffer contains a new request
-										or a response.  This is set upon request processing and is
-										only valid if processing is successful and length is not
-										zero. */
-	bool crypto_timeout;			/**< Flag indicating if the request required cryptographic
-										operations and should be granted a longer timeout.  This is
-										set for every request, even when there is an error. */
-	int channel_id;					/**< Channel on which the request is received. */
+	uint8_t source_eid;				/**< Endpoint ID that generated the message. */
+	uint8_t target_eid;				/**< Endpoint ID that should process the message. */
+	bool crypto_timeout;			/**< Flag indicating if the message is a request and required
+										cryptographic operations and should be granted a longer
+										timeout.  This is set for every message, even when there is
+										an error. */
+	int channel_id;					/**< Channel on which the message is received. */
 };
 
 /**
@@ -64,25 +62,20 @@ struct cmd_interface {
 	 *
 	 * @return 0 if the request was successfully processed or an error code.
 	 */
-	int (*process_request) (struct cmd_interface *intf, struct cmd_interface_request *request);
+	int (*process_request) (struct cmd_interface *intf, struct cmd_interface_msg *request);
 
 	/**
-	 * Construct a request message.
+	 * Process a received response.
 	 *
-	 * @param intf The command interface that will construct the request.
-	 * @param command_id Command ID of request to generate.
-	 * @param request_params Parameters to use when generating request.
-	 * @param buf The buffer containing the generated request.
-	 * @param buf_len Maximum size of buffer.
+	 * @param intf The command interface that will process the response.
+	 * @param response The response data to process.
 	 *
-	 * @return Length of the generated message if the request was successfully constructed or an
-	 * error code.
+	 * @return 0 if the response was successfully processed or an error code.
 	 */
-	int (*issue_request) (struct cmd_interface *intf, uint8_t command_id, void *request_params,
-		uint8_t *buf, size_t buf_len);
+	int (*process_response) (struct cmd_interface *intf, struct cmd_interface_msg *response);
 
 	/**
-	 * Generate a request containing an error message.
+	 * Generate a message to indicate an error condition.
 	 *
 	 * @param intf The command interface to utilize.
  	 * @param request The request container to utilize.
@@ -92,7 +85,7 @@ struct cmd_interface {
 	 *
 	 * @return 0 if the packet was generated successfully or an error code.
 	 */
-	int (*generate_error_packet) (struct cmd_interface *intf, struct cmd_interface_request *request,
+	int (*generate_error_packet) (struct cmd_interface *intf, struct cmd_interface_msg *request,
 		uint8_t error_code, uint32_t error_data, uint8_t cmd_set);
 
 	struct session_manager *session;				/**< Session manager for channel encryption */
@@ -101,16 +94,12 @@ struct cmd_interface {
 
 
 /* Internal functions for use by derived types. */
-int cmd_interface_process_request (struct cmd_interface *intf,
-	struct cmd_interface_request *request, uint8_t *command_id, uint8_t *command_set, bool decrypt,
+int cmd_interface_process_cerberus_protocol_message (struct cmd_interface *intf,
+	struct cmd_interface_msg *message, uint8_t *command_id, uint8_t *command_set, bool decrypt,
 	bool rsvd_zero);
-int cmd_interface_process_response (struct cmd_interface *intf,
-	struct cmd_interface_request *response);
-int cmd_interface_is_request_encrypted (struct cmd_interface *intf,
-	struct cmd_interface_request *request);
+int cmd_interface_prepare_response (struct cmd_interface *intf, struct cmd_interface_msg *response);
 int cmd_interface_generate_error_packet (struct cmd_interface *intf,
-	struct cmd_interface_request *request, uint8_t error_code, uint32_t error_data,
-	uint8_t cmd_set);
+	struct cmd_interface_msg *request, uint8_t error_code, uint32_t error_data, uint8_t cmd_set);
 
 
 #define	CMD_HANDLER_ERROR(code)		ROT_ERROR (ROT_MODULE_CMD_HANDLER, code)
@@ -127,7 +116,7 @@ enum {
 	CMD_HANDLER_PAYLOAD_TOO_SHORT = CMD_HANDLER_ERROR (0x03),		/**< The request does not contain the minimum amount of data. */
 	CMD_HANDLER_BAD_LENGTH = CMD_HANDLER_ERROR (0x04),				/**< The payload length is wrong for the request. */
 	CMD_HANDLER_OUT_OF_RANGE = CMD_HANDLER_ERROR (0x05),			/**< A request argument is not within the valid range. */
-	CMD_HANDLER_UNKNOWN_COMMAND = CMD_HANDLER_ERROR (0x06),			/**< A command does not represent a known request. */
+	CMD_HANDLER_UNKNOWN_REQUEST = CMD_HANDLER_ERROR (0x06),			/**< A command does not represent a known request. */
 	//CMD_HANDLER_UNSUPPORTED_EID = CMD_HANDLER_ERROR (0x07),		/**< The request was sent to an unsupported endpoint. */
 	CMD_HANDLER_UNSUPPORTED_INDEX = CMD_HANDLER_ERROR (0x08),		/**< Request for information with an unsupported index was received. */
 	CMD_HANDLER_UNSUPPORTED_LEN = CMD_HANDLER_ERROR (0x09),			/**< Request for information with an unsupported length was received. */
@@ -141,9 +130,11 @@ enum {
 	CMD_HANDLER_ENCRYPTION_UNSUPPORTED = CMD_HANDLER_ERROR (0x11),	/**< Channel encryption not supported on this interface. */
 	CMD_HANDLER_CMD_SHOULD_BE_ENCRYPTED = CMD_HANDLER_ERROR (0x12),	/**< Secure command received unencrypted after establishing an encrypted channel. */
 	CMD_HANDLER_RSVD_NOT_ZERO = CMD_HANDLER_ERROR (0x13),			/**< Reserved field is non-zero. */
-	CMD_HANDLER_ERROR_MESSAGE = CMD_HANDLER_ERROR (0x14),			/**< The handler received an error message for processing. */
+	// CMD_HANDLER_ERROR_MESSAGE = CMD_HANDLER_ERROR (0x14),			/**< The handler received an error message for processing. */
 	CMD_HANDLER_ISSUE_FAILED = CMD_HANDLER_ERROR (0x15),			/**< Failed to generate the request message. */
 	CMD_HANDLER_ERROR_MSG_FAILED = CMD_HANDLER_ERROR (0x16),		/**< Failed to generate an error message. */
+	CMD_HANDLER_UNKNOWN_RESPONSE = CMD_HANDLER_ERROR (0x17),		/**< A command does not represent a known response. */
+	CMD_HANDLER_INVALID_ERROR_MSG = CMD_HANDLER_ERROR (0x18),		/**< The handler received an invalid error message. */
 };
 
 

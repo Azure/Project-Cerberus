@@ -15,7 +15,7 @@
  *
  * @return 0 if request completed successfully or an error code.
  */
-int cerberus_protocol_heap_stats (struct cmd_device *device, struct cmd_interface_request *request)
+int cerberus_protocol_heap_stats (struct cmd_device *device, struct cmd_interface_msg *request)
 {
 #ifdef CMD_ENABLE_HEAP_STATS
 	struct cerberus_protocol_heap_stats_response *rsp =

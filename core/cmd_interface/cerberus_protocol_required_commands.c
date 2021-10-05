@@ -7,6 +7,7 @@
 #include "common/certificate.h"
 #include "common/common_math.h"
 #include "attestation/attestation_slave.h"
+#include "mctp/mctp_logging.h"
 #include "cerberus_protocol.h"
 #include "cmd_interface.h"
 #include "cmd_background.h"
@@ -17,15 +18,15 @@
 
 
 /**
- * Process FW version packet
+ * Process FW version request
  *
  * @param fw_version The firmware version data
  * @param request FW version request to process
  *
- * @return 0 if packet processed successfully or an error code.
+ * @return 0 if request processed successfully or an error code.
  */
 int cerberus_protocol_get_fw_version (struct cmd_interface_fw_version *fw_version,
-	struct cmd_interface_request *request)
+	struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_get_fw_version *rq =
 		(struct cerberus_protocol_get_fw_version*) request->data;
@@ -53,7 +54,7 @@ int cerberus_protocol_get_fw_version (struct cmd_interface_fw_version *fw_versio
 }
 
 /**
- * Process get certificate digest packet
+ * Process get certificate digest request
  *
  * @param attestation Attestation manager instance to utilize
  * @param session Session manager instance to utilize
@@ -62,7 +63,7 @@ int cerberus_protocol_get_fw_version (struct cmd_interface_fw_version *fw_versio
  * @return 0 if input processed successfully or an error code.
  */
 int cerberus_protocol_get_certificate_digest (struct attestation_slave *attestation,
-	struct session_manager *session, struct cmd_interface_request *request)
+	struct session_manager *session, struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_get_certificate_digest *rq =
 		(struct cerberus_protocol_get_certificate_digest*) request->data;
@@ -77,15 +78,15 @@ int cerberus_protocol_get_certificate_digest (struct attestation_slave *attestat
 		return CMD_HANDLER_BAD_LENGTH;
 	}
 
-	if (rq->digest.slot_num > ATTESTATION_MAX_SLOT_NUM) {
+	if (rq->slot_num > ATTESTATION_MAX_SLOT_NUM) {
 		return CMD_HANDLER_OUT_OF_RANGE;
 	}
 
-	if (rq->digest.key_alg >= NUM_ATTESTATION_KEY_EXCHANGE_ALGORITHMS) {
+	if (rq->key_alg >= NUM_ATTESTATION_KEY_EXCHANGE_ALGORITHMS) {
 		return CMD_HANDLER_UNSUPPORTED_INDEX;
 	}
 
-	if (rq->digest.key_alg != ATTESTATION_KEY_EXCHANGE_NONE) {
+	if (rq->key_alg != ATTESTATION_KEY_EXCHANGE_NONE) {
 		if (session == NULL) {
 			return CMD_HANDLER_UNSUPPORTED_OPERATION;
 		}
@@ -95,9 +96,9 @@ int cerberus_protocol_get_certificate_digest (struct attestation_slave *attestat
 		}
 	}
 
-	attestation->key_exchange_algorithm = rq->digest.key_alg;
+	attestation->key_exchange_algorithm = rq->key_alg;
 
-	status = attestation->get_digests (attestation, rq->digest.slot_num,
+	status = attestation->get_digests (attestation, rq->slot_num,
 		cerberus_protocol_certificate_digests (rsp), CERBERUS_PROTOCOL_MAX_CERT_DIGESTS (request),
 		&num_cert);
 	if (!ROT_IS_ERROR (status)) {
@@ -118,7 +119,7 @@ int cerberus_protocol_get_certificate_digest (struct attestation_slave *attestat
 }
 
 /**
- * Process get certificate packet
+ * Process get certificate request
  *
  * @param attestation Attestation manager instance to utilize
  * @param request Get certificate request to process
@@ -126,7 +127,7 @@ int cerberus_protocol_get_certificate_digest (struct attestation_slave *attestat
  * @return 0 if request processed successfully or an error code.
  */
 int cerberus_protocol_get_certificate (struct attestation_slave *attestation,
-	struct cmd_interface_request *request)
+	struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_get_certificate *rq =
 		(struct cerberus_protocol_get_certificate*) request->data;
@@ -143,10 +144,10 @@ int cerberus_protocol_get_certificate (struct attestation_slave *attestation,
 		return CMD_HANDLER_BAD_LENGTH;
 	}
 
-	slot_num = rq->certificate.slot_num;
-	cert_num = rq->certificate.cert_num;
-	length = rq->certificate.length;
-	offset = rq->certificate.offset;
+	slot_num = rq->slot_num;
+	cert_num = rq->cert_num;
+	length = rq->length;
+	offset = rq->offset;
 
 	if (slot_num > ATTESTATION_MAX_SLOT_NUM) {
 		return CMD_HANDLER_OUT_OF_RANGE;
@@ -186,7 +187,7 @@ int cerberus_protocol_get_certificate (struct attestation_slave *attestation,
 }
 
 /**
- * Process challenge packet
+ * Process challenge request
  *
  * @param attestation Attestation manager instance to utilize
  * @param session Session manager instance to utilize if initialized
@@ -195,7 +196,7 @@ int cerberus_protocol_get_certificate (struct attestation_slave *attestation,
  * @return 0 if request completed successfully or an error code.
  */
 int cerberus_protocol_get_challenge_response (struct attestation_slave *attestation,
-	struct session_manager *session, struct cmd_interface_request *request)
+	struct session_manager *session, struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_challenge *rq = (struct cerberus_protocol_challenge*) request->data;
 	struct cerberus_protocol_challenge_response *rsp =
@@ -235,7 +236,7 @@ int cerberus_protocol_get_challenge_response (struct attestation_slave *attestat
  * @return 0 if processing completed successfully or an error code.
  */
 int cerberus_protocol_export_csr (struct riot_key_manager *riot,
-	struct cmd_interface_request *request)
+	struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_export_csr *rq = (struct cerberus_protocol_export_csr*) request->data;
 	struct cerberus_protocol_export_csr_response *rsp =
@@ -283,7 +284,7 @@ exit:
  * @return 0 if processing completed successfully or an error code.
  */
 int cerberus_protocol_import_ca_signed_cert (struct riot_key_manager *riot,
-	struct cmd_background *background, struct cmd_interface_request *request)
+	struct cmd_background *background, struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_import_certificate *rq =
 		(struct cerberus_protocol_import_certificate*) request->data;
@@ -342,7 +343,7 @@ int cerberus_protocol_import_ca_signed_cert (struct riot_key_manager *riot,
  * @return 0 if processing completed successfully or an error code.
  */
 int cerberus_protocol_get_signed_cert_state (struct cmd_background *background,
-	struct cmd_interface_request *request)
+	struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_get_certificate_state_response *rsp =
 		(struct cerberus_protocol_get_certificate_state_response*) request->data;
@@ -358,53 +359,30 @@ int cerberus_protocol_get_signed_cert_state (struct cmd_background *background,
 }
 
 /**
- * Construct get device capabilities packet.
- *
- * @param device_mgr Device manager instance to utilize.
- * @param buf The buffer containing the generated packet.
- * @param buf_len Maximum size of buffer.
- *
- * @return Length of the generated packet if the request was successfully constructed or an
- * error code.
- */
-int cerberus_protocol_issue_get_device_capabilities (struct device_manager *device_mgr,
-	uint8_t *buf, size_t buf_len)
-{
-	int status;
-
-	if (buf_len < (sizeof (struct device_manager_capabilities))) {
-		return CMD_HANDLER_BUF_TOO_SMALL;
-	}
-
-	status = device_manager_get_device_capabilities_request (device_mgr,
-		(struct device_manager_capabilities*) buf);
-	if (status != 0) {
-		return status;
-	}
-
-	return sizeof (struct device_manager_capabilities);
-}
-
-/**
- * Process get device capabilities packet
+ * Process get device capabilities request
  *
  * @param device_mgr Device manager instance to utilize
  * @param request Capabilities request to process
- * @param device_num Index of source device
  *
  * @return 0 if request processing completed successfully or an error code.
  */
 int cerberus_protocol_get_device_capabilities (struct device_manager *device_mgr,
-	struct cmd_interface_request *request, uint8_t device_num)
+	struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_device_capabilities *rq =
 		(struct cerberus_protocol_device_capabilities*) request->data;
 	struct cerberus_protocol_device_capabilities_response *rsp =
 		(struct cerberus_protocol_device_capabilities_response*) request->data;
+	int device_num;
 	int status;
 
 	if (request->length != sizeof (struct cerberus_protocol_device_capabilities)) {
 		return CMD_HANDLER_BAD_LENGTH;
+	}
+
+	device_num = device_manager_get_device_num (device_mgr, request->source_eid);
+	if (ROT_IS_ERROR (device_num)) {
+		return device_num;
 	}
 
 	status = device_manager_update_device_capabilities_request (device_mgr, device_num,
@@ -413,7 +391,8 @@ int cerberus_protocol_get_device_capabilities (struct device_manager *device_mgr
 		return status;
 	}
 
-	status = device_manager_get_device_capabilities (device_mgr, 0, &rsp->capabilities);
+	status = device_manager_get_device_capabilities (device_mgr, DEVICE_MANAGER_SELF_DEVICE_NUM,
+		&rsp->capabilities);
 	if (status != 0) {
 		return status;
 	}
@@ -423,15 +402,15 @@ int cerberus_protocol_get_device_capabilities (struct device_manager *device_mgr
 }
 
 /**
- * Process device info packet
+ * Process device info request
  *
  * @param device The device command handler to query the device information
  * @param request Device info request to process
  *
- * @return 0 if packet processed successfully or an error code.
+ * @return 0 if request processed successfully or an error code.
  */
 int cerberus_protocol_get_device_info (struct cmd_device *device,
-	struct cmd_interface_request *request)
+	struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_get_device_info *rq =
 		(struct cerberus_protocol_get_device_info*) request->data;
@@ -457,7 +436,7 @@ int cerberus_protocol_get_device_info (struct cmd_device *device,
 }
 
 /**
- * Process device ID packet
+ * Process device ID request
  *
  * @param id Device ID data
  * @param request Device ID request to process
@@ -465,7 +444,7 @@ int cerberus_protocol_get_device_info (struct cmd_device *device,
  * @return 0 if request completed successfully or an error code.
  */
 int cerberus_protocol_get_device_id (struct cmd_interface_device_id *id,
-	struct cmd_interface_request *request)
+	struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_get_device_id_response *rsp =
 		(struct cerberus_protocol_get_device_id_response*) request->data;
@@ -484,7 +463,7 @@ int cerberus_protocol_get_device_id (struct cmd_interface_device_id *id,
 }
 
 /**
- * Process reset counter packet
+ * Process reset counter request
  *
  * @param device The device command handler to query the counter data
  * @param request Reset counter request to process
@@ -492,7 +471,7 @@ int cerberus_protocol_get_device_id (struct cmd_interface_device_id *id,
  * @return 0 if request completed successfully or an error code.
  */
 int cerberus_protocol_reset_counter (struct cmd_device *device,
-	struct cmd_interface_request *request)
+	struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_reset_counter *rq =
 		(struct cerberus_protocol_reset_counter*) request->data;
@@ -510,5 +489,30 @@ int cerberus_protocol_reset_counter (struct cmd_device *device,
 	}
 
 	request->length = sizeof (struct cerberus_protocol_reset_counter_response);
+	return 0;
+}
+
+/**
+ * Process an error response
+ *
+ * @param response Error response to process
+ *
+ * @return 0 if response processed successfully or an error code.
+ */
+int cerberus_protocol_process_error_response (struct cmd_interface_msg *response)
+{
+	struct cerberus_protocol_error *error_msg = (struct cerberus_protocol_error*) response->data;
+
+	if (response->length >= sizeof (struct cerberus_protocol_error)) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CMD_INTERFACE,
+			CMD_LOGGING_CHANNEL, response->channel_id, 0);
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_CMD_INTERFACE,
+			CMD_LOGGING_ERROR_MESSAGE, (error_msg->error_code << 24 | response->source_eid << 16 |
+			response->target_eid << 8),	error_msg->error_data);
+	}
+	else {
+		return CMD_HANDLER_INVALID_ERROR_MSG;
+	}
+
 	return 0;
 }

@@ -19,7 +19,7 @@ void cerberus_protocol_diagnostic_commands_testing_process_heap_stats (CuTest *t
 	struct cmd_interface *cmd, struct cmd_device_mock *device)
 {
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request request;
+	struct cmd_interface_msg request;
 	struct cerberus_protocol_heap_stats *req = (struct cerberus_protocol_heap_stats*) data;
 	struct cerberus_protocol_heap_stats_response *resp =
 		(struct cerberus_protocol_heap_stats_response*) data;
@@ -50,7 +50,6 @@ void cerberus_protocol_diagnostic_commands_testing_process_heap_stats (CuTest *t
 
 	CuAssertIntEquals (test, 0, status);
 
-	request.new_request = true;
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
 	CuAssertIntEquals (test, 0, status);
@@ -63,7 +62,6 @@ void cerberus_protocol_diagnostic_commands_testing_process_heap_stats (CuTest *t
 	CuAssertIntEquals (test, 0, resp->header.reserved1);
 	CuAssertIntEquals (test, 0, resp->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_DIAG_HEAP_USAGE, resp->header.command);
-	CuAssertIntEquals (test, false, request.new_request);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 
 	CuAssertIntEquals (test, heap.total, resp->heap.total);
@@ -81,7 +79,7 @@ void cerberus_protocol_diagnostic_commands_testing_process_heap_stats_invalid_le
 	struct cmd_interface *cmd)
 {
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request request;
+	struct cmd_interface_msg request;
 	struct cerberus_protocol_heap_stats *req = (struct cerberus_protocol_heap_stats*) data;
 	int status;
 
@@ -109,7 +107,7 @@ void cerberus_protocol_diagnostic_commands_testing_process_heap_stats_fail (CuTe
 	struct cmd_interface *cmd, struct cmd_device_mock *device)
 {
 	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_request request;
+	struct cmd_interface_msg request;
 	struct cerberus_protocol_heap_stats *req = (struct cerberus_protocol_heap_stats*) data;
 	int status;
 

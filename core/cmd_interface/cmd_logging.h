@@ -20,8 +20,8 @@ enum {
 	CMD_LOGGING_RECEIVE_PACKET_FAIL,		/**< Error receiving a packet over a command channel. */
 	CMD_LOGGING_SOC_RESET_TRIGGERED,		/**< SoC reset has been triggered. */
 	CMD_LOGGING_SOC_NMI_TRIGGERED,			/**< SoC NMI has been triggered. */
-//	CMD_LOGGING_MCTP_ERR_MSG,				/**< MCTP error message received. */
-	CMD_LOGGING_UNSEAL_FAIL = 8,			/**< An unseal operation failed. */
+	CMD_LOGGING_ERROR_MESSAGE,				/**< Error message received. */
+	CMD_LOGGING_UNSEAL_FAIL,				/**< An unseal operation failed. */
 	CMD_LOGGING_RESTORE_BYPASS_FAIL,		/**< Failed to revert device to bypass mode. */
 	CMD_LOGGING_BYPASS_RESTORED,			/**< Device has been reverted to bypass mode. */
 	CMD_LOGGING_RESTORE_DEFAULTS_FAIL,		/**< Failed to revert device to the default state. */
@@ -39,6 +39,7 @@ enum {
 	CMD_LOGGING_CLEAR_PLATFORM_FAIL,		/**< Failed to clear platform configuration. */
 	CMD_LOGGING_RESET_INTRUSION,			/**< Intrusion state has been reset. */
 	CMD_LOGGING_RESET_INTRUSION_FAIL,		/**< Failed to reset intrusion state. */
+	CMD_LOGGING_CHANNEL,					/**< Command channel identifier. */
 };
 
 
