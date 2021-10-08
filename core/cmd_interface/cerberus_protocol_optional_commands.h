@@ -945,21 +945,20 @@ int cerberus_protocol_log_read (struct pcr_store *pcr_store, struct hash_engine 
 int cerberus_protocol_log_clear (struct cmd_background *background,
 	struct cmd_interface_msg *request);
 
-int cerberus_protocol_get_pfm_id (struct pfm_manager *pfm_mgr_0, struct pfm_manager *pfm_mgr_1,
+int cerberus_protocol_get_pfm_id (struct pfm_manager* pfm_mgr[], uint8_t num_ports,
 	struct cmd_interface_msg *request);
-int cerberus_protocol_get_pfm_fw (struct manifest_cmd_interface *pfm_0,
-	struct manifest_cmd_interface *pfm_1, struct pfm_manager *pfm_mgr_0,
-	struct pfm_manager *pfm_mgr_1, struct cmd_interface_msg *request);
+int cerberus_protocol_get_pfm_fw (struct pfm_manager* pfm_mgr[], uint8_t num_ports,
+	struct cmd_interface_msg *request);
 
 struct manifest_cmd_interface* cerberus_protocol_get_pfm_cmd_interface (
 	struct manifest_cmd_interface *pfm_0, struct manifest_cmd_interface *pfm_1, uint8_t port);
 
-int cerberus_protocol_pfm_update_init (struct manifest_cmd_interface *pfm_0,
-	struct manifest_cmd_interface *pfm_1, struct cmd_interface_msg *request);
-int cerberus_protocol_pfm_update (struct manifest_cmd_interface *pfm_0,
-	struct manifest_cmd_interface *pfm_1, struct cmd_interface_msg *request);
-int cerberus_protocol_pfm_update_complete (struct manifest_cmd_interface *pfm_0,
-	struct manifest_cmd_interface *pfm_1, struct cmd_interface_msg *request);
+int cerberus_protocol_pfm_update_init (struct manifest_cmd_interface* pfm_cmd[], uint8_t num_ports,
+	struct cmd_interface_msg *request);
+int cerberus_protocol_pfm_update (struct manifest_cmd_interface *pfm_cmd[], uint8_t num_ports,
+	struct cmd_interface_msg *request);
+int cerberus_protocol_pfm_update_complete (struct manifest_cmd_interface *pfm_cmd[],
+	uint8_t num_ports, struct cmd_interface_msg *request);
 
 int cerberus_protocol_get_host_reset_status (struct host_control *host_0_ctrl,
 	struct host_control *host_1_ctrl, struct cmd_interface_msg *request);

@@ -61,29 +61,35 @@ int cmd_interface_system_process_request (struct cmd_interface *intf,
 			status = cerberus_protocol_log_clear (interface->background, request);
 			break;
 
-		case CERBERUS_PROTOCOL_GET_PFM_ID:
-			status = cerberus_protocol_get_pfm_id (interface->pfm_manager_0,
-				interface->pfm_manager_1, request);
+		case CERBERUS_PROTOCOL_GET_PFM_ID:{
+			struct pfm_manager* pfm_mgr[2] = {interface->pfm_manager_0, interface->pfm_manager_1};
+			status = cerberus_protocol_get_pfm_id (pfm_mgr, 2, request);
 			break;
+		}
 
-		case CERBERUS_PROTOCOL_GET_PFM_SUPPORTED_FW:
-			status = cerberus_protocol_get_pfm_fw (interface->pfm_0, interface->pfm_1,
-				interface->pfm_manager_0, interface->pfm_manager_1, request);
+		case CERBERUS_PROTOCOL_GET_PFM_SUPPORTED_FW: {
+			struct pfm_manager* pfm_mgr[2] = {interface->pfm_manager_0, interface->pfm_manager_1};
+			status = cerberus_protocol_get_pfm_fw (pfm_mgr, 2, request);
 			break;
+		}
 
-		case CERBERUS_PROTOCOL_INIT_PFM_UPDATE:
-			status = cerberus_protocol_pfm_update_init (interface->pfm_0, interface->pfm_1,
-				request);
+		case CERBERUS_PROTOCOL_INIT_PFM_UPDATE: {
+			struct manifest_cmd_interface* pfm_cmd[2] = {interface->pfm_0, interface->pfm_1};
+			status = cerberus_protocol_pfm_update_init (pfm_cmd, 2, request);
 			break;
+		}
 
-		case CERBERUS_PROTOCOL_PFM_UPDATE:
-			status = cerberus_protocol_pfm_update (interface->pfm_0, interface->pfm_1, request);
+		case CERBERUS_PROTOCOL_PFM_UPDATE: {
+			struct manifest_cmd_interface* pfm_cmd[2] = {interface->pfm_0, interface->pfm_1};
+			status = cerberus_protocol_pfm_update (pfm_cmd, 2, request);
 			break;
+		}
 
-		case CERBERUS_PROTOCOL_COMPLETE_PFM_UPDATE:
-			status = cerberus_protocol_pfm_update_complete (interface->pfm_0, interface->pfm_1,
-				request);
+		case CERBERUS_PROTOCOL_COMPLETE_PFM_UPDATE: {
+			struct manifest_cmd_interface* pfm_cmd[2] = {interface->pfm_0, interface->pfm_1};
+			status = cerberus_protocol_pfm_update_complete (pfm_cmd, 2,	request);
 			break;
+		}
 
 		case CERBERUS_PROTOCOL_GET_CFM_ID:
 			status = cerberus_protocol_get_cfm_id (interface->cfm_manager, request);
@@ -133,12 +139,14 @@ int cmd_interface_system_process_request (struct cmd_interface *intf,
 			status = cerberus_protocol_fw_update_start (interface->control, request);
 			break;
 
-		case CERBERUS_PROTOCOL_GET_UPDATE_STATUS:
-			status = cerberus_protocol_get_update_status (interface->control, interface->pfm_0,
-				interface->pfm_1, interface->cfm, interface->pcd, interface->host_0,
-				interface->host_1, interface->recovery_cmd_0, interface->recovery_cmd_1,
-				interface->background, request);
+		case CERBERUS_PROTOCOL_GET_UPDATE_STATUS: {
+			struct manifest_cmd_interface* pfm_cmd[2] = {interface->pfm_0, interface->pfm_1};
+			struct host_processor* host[2] = {interface->host_0, interface->host_1};
+			status = cerberus_protocol_get_update_status (interface->control, 2, pfm_cmd,
+				interface->cfm, interface->pcd, host, interface->recovery_cmd_0,
+				interface->recovery_cmd_1, interface->background, request);
 			break;
+		}
 
 		case CERBERUS_PROTOCOL_GET_EXT_UPDATE_STATUS:
 			status = cerberus_protocol_get_extended_update_status (interface->control,

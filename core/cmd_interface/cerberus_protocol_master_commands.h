@@ -325,26 +325,24 @@ int cerberus_protocol_get_pcd_id (struct pcd_manager *pcd_mgr,
 
 int cerberus_protocol_get_fw_update_status (struct firmware_update_control *control,
 	struct cerberus_protocol_update_status_response *rsp);
-int cerberus_protocol_get_pfm_update_status (struct manifest_cmd_interface *pfm_0,
-	struct manifest_cmd_interface *pfm_1, struct cmd_interface_msg *request);
+int cerberus_protocol_get_pfm_update_status (struct manifest_cmd_interface *pfm_cmd[],
+	uint8_t num_ports, struct cmd_interface_msg *request);
 int cerberus_protocol_get_cfm_update_status (struct manifest_cmd_interface *cfm_interface,
 	struct cmd_interface_msg *request);
 int cerberus_protocol_get_pcd_update_status (struct manifest_cmd_interface *pcd_interface,
 	struct cmd_interface_msg *request);
-int cerberus_protocol_get_host_next_verification_status (struct host_processor *host_0,
-	struct host_processor *host_1, struct cmd_interface_msg *request);
+int cerberus_protocol_get_host_next_verification_status (struct host_processor *host[],
+	uint8_t num_ports, struct cmd_interface_msg *request);
 int cerberus_protocol_get_recovery_image_update_status (
 	struct recovery_image_cmd_interface *recovery_0,
 	struct recovery_image_cmd_interface *recovery_1, struct cmd_interface_msg *request);
 int cerberus_protocol_get_reset_config_status (struct cmd_background *background,
 	struct cerberus_protocol_update_status_response *rsp);
-int cerberus_protocol_get_update_status (struct firmware_update_control *control,
-	struct manifest_cmd_interface *pfm_0, struct manifest_cmd_interface *pfm_1,
-	struct manifest_cmd_interface *cfm, struct manifest_cmd_interface *pcd,
-	struct host_processor *host_0, struct host_processor *host_1,
-	struct recovery_image_cmd_interface *recovery_0,
-	struct recovery_image_cmd_interface *recovery_1, struct cmd_background *background,
-	struct cmd_interface_msg *request);
+int cerberus_protocol_get_update_status (struct firmware_update_control *control, uint8_t num_ports,
+	struct manifest_cmd_interface *pfm_cmd[], struct manifest_cmd_interface *cfm,
+	struct manifest_cmd_interface *pcd, struct host_processor *host[],
+	struct recovery_image_cmd_interface *recovery_0, struct recovery_image_cmd_interface *recovery_1,
+	struct cmd_background *background, struct cmd_interface_msg *request);
 
 int cerberus_protocol_get_extended_fw_update_status (struct firmware_update_control *control,
 	struct cerberus_protocol_extended_update_status_response *rsp);

@@ -29,102 +29,32 @@
 
 
 /**
- * Get PFM cmd interface for a specified PFM.
- *
- * @param pfm_0 PFM command interface for port 0.
- * @param pfm_1 PFM command interface for port 1.
- * @param port The port to query.
- *
- * @return The PFM cmd interface if a valid PFM was found or null.
- */
-struct manifest_cmd_interface* cerberus_protocol_get_pfm_cmd_interface (
-	struct manifest_cmd_interface *pfm_0, struct manifest_cmd_interface *pfm_1, uint8_t port)
-{
-	if (port == 0) {
-		return pfm_0;
-	}
-	else if (port == 1) {
-		return pfm_1;
-	}
-
-	return NULL;
-}
-
-/**
- * Get PFM manager interface for a specified PFM.
- *
- * @param pfm_mgr_0 Port 0 PFM manager.
- * @param pfm_mgr_1 Port 1 PFM manager.
- * @param port The PFM port to query.
- *
- * @return The PFM manager interface if a valid PFM was found or null.
- */
-static struct pfm_manager* cerberus_protocol_get_pfm_manager (struct pfm_manager *pfm_mgr_0,
-	struct pfm_manager *pfm_mgr_1, uint8_t port)
-{
-	if (port == 0) {
-		return pfm_mgr_0;
-	}
-	else if (port == 1) {
-		return pfm_mgr_1;
-	}
-
-	return NULL;
-}
-
-/**
  * Get PFM interface for a specified PFM location.
  *
- * @param pfm_mgr_0 Port 0 PFM manager.
- * @param pfm_mgr_1 Port 1 PFM manager.
- * @param port The PFM port to query.
+ * @param pfm_mgr PFM manager for the requested port.
  * @param region The PFM region to query. 0 for active, 1 for pending.
  * @param pfm Output for the PFM.
  *
  * @return 0 if the operation was successful or an error code.
  */
-static int cerberus_protocol_get_curr_pfm (struct pfm_manager *pfm_mgr_0,
-	struct pfm_manager *pfm_mgr_1, uint8_t port, uint8_t region, struct pfm **pfm)
+static int cerberus_protocol_get_curr_pfm (struct pfm_manager *pfm_mgr, uint8_t region,
+	struct pfm **pfm)
 {
-	struct pfm_manager *curr_pfm_mgr = cerberus_protocol_get_pfm_manager (pfm_mgr_0, pfm_mgr_1,
-		port);
-
-	if (curr_pfm_mgr == NULL) {
+	if (pfm_mgr == NULL) {
 		return CMD_HANDLER_UNSUPPORTED_INDEX;
 	}
 
 	if (region == 0) {
-		*pfm = curr_pfm_mgr->get_active_pfm (curr_pfm_mgr);
+		*pfm = pfm_mgr->get_active_pfm (pfm_mgr);
 	}
 	else if (region == 1) {
-		*pfm = curr_pfm_mgr->get_pending_pfm (curr_pfm_mgr);
+		*pfm = pfm_mgr->get_pending_pfm (pfm_mgr);
 	}
 	else {
 		return CMD_HANDLER_OUT_OF_RANGE;
 	}
 
 	return 0;
-}
-
-/**
- * Release a pfm instance.
- *
- * @param manager PFM manager for port 0.
- * @param manager PFM manager for port 1.
- * @param port The PFM port to query.
- * @param pfm The PFM to release.
- */
-static void cerberus_protocol_free_pfm (struct pfm_manager* pfm_mgr_0,
-	struct pfm_manager* pfm_mgr_1, uint8_t port, struct pfm *pfm)
-{
-	struct pfm_manager *curr_pfm_mgr = NULL;
-
-	curr_pfm_mgr = cerberus_protocol_get_pfm_manager (pfm_mgr_0, pfm_mgr_1, port);
-	if (curr_pfm_mgr == NULL) {
-		return;
-	}
-
-	curr_pfm_mgr->free_pfm (curr_pfm_mgr, pfm);
 }
 
 /**
@@ -384,13 +314,13 @@ static int cerberus_protocol_get_pfm_id_platform (struct pfm *pfm,
 /**
  * Process PFM ID request
  *
- * @param pfm_mgr_0 PFM manager for port 0
- * @param pfm_mgr_1 PFM manager for port 1
+ * @param pfm_mgr List of PFM managers for all available ports
+ * @param num_ports Numbers of available ports
  * @param request PFM ID request to process
  *
  * @return 0 if request processing completed successfully or an error code.
  */
-int cerberus_protocol_get_pfm_id (struct pfm_manager *pfm_mgr_0, struct pfm_manager *pfm_mgr_1,
+int cerberus_protocol_get_pfm_id (struct pfm_manager *pfm_mgr[], uint8_t num_ports,
 	struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_get_pfm_id *rq = (struct cerberus_protocol_get_pfm_id*) request->data;
@@ -408,11 +338,11 @@ int cerberus_protocol_get_pfm_id (struct pfm_manager *pfm_mgr_0, struct pfm_mana
 
 	port = rq->port_id;
 	id = rq->id;
-	if ((port > 1) || (id > 1)) {
+	if ((port >= num_ports) || (id > 1)) {
 		return CMD_HANDLER_OUT_OF_RANGE;
 	}
 
-	status = cerberus_protocol_get_curr_pfm (pfm_mgr_0, pfm_mgr_1, port, rq->region, &curr_pfm);
+	status = cerberus_protocol_get_curr_pfm (pfm_mgr[port], rq->region, &curr_pfm);
 	/* When there's no valid PFM manager, return a success
 	 * with response indicating no valid manifest */
 	if ((status != 0) && (status != CMD_HANDLER_UNSUPPORTED_INDEX)) {
@@ -426,24 +356,24 @@ int cerberus_protocol_get_pfm_id (struct pfm_manager *pfm_mgr_0, struct pfm_mana
 		status = cerberus_protocol_get_pfm_id_platform (curr_pfm, request);
 	}
 
-	cerberus_protocol_free_pfm (pfm_mgr_0, pfm_mgr_1, port, curr_pfm);
+	if (pfm_mgr[port] != NULL) {
+		pfm_mgr[port]->free_pfm (pfm_mgr[port], curr_pfm);
+	}
+
 	return status;
 }
 
 /**
  * Process PFM fw request
  *
- * @param pfm_0 PFM command interface for port 0.
- * @param pfm_1 PFM command interface for port 1.
- * @param pfm_mgr_0 PFM manager for port 0.
- * @param pfm_mgr_1 PFM manager for port 1.
+ * @param pfm_mgr List of PFM managers for all available ports
+ * @param num_ports Numbers of available ports
  * @param request PFM supported FW request to process
  *
  * @return 0 if request processing completed successfully or an error code.
  */
-int cerberus_protocol_get_pfm_fw (struct manifest_cmd_interface *pfm_0,
-	struct manifest_cmd_interface *pfm_1, struct pfm_manager *pfm_mgr_0,
-	struct pfm_manager *pfm_mgr_1, struct cmd_interface_msg *request)
+int cerberus_protocol_get_pfm_fw (struct pfm_manager *pfm_mgr[], uint8_t num_ports,
+	struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_get_pfm_supported_fw *rq =
 		(struct cerberus_protocol_get_pfm_supported_fw*) request->data;
@@ -464,15 +394,14 @@ int cerberus_protocol_get_pfm_fw (struct manifest_cmd_interface *pfm_0,
 		return CMD_HANDLER_BAD_LENGTH;
 	}
 
-	if (rq->port_id > 1) {
+	if (rq->port_id >= num_ports) {
 		return CMD_HANDLER_OUT_OF_RANGE;
 	}
 
 	offset = rq->offset;
 	port = rq->port_id;
 
-	status = cerberus_protocol_get_curr_pfm (pfm_mgr_0, pfm_mgr_1, rq->port_id, rq->region,
-		&curr_pfm);
+	status = cerberus_protocol_get_curr_pfm (pfm_mgr[port], rq->region, &curr_pfm);
 	if (status != 0) {
 		if (status == CMD_HANDLER_UNSUPPORTED_INDEX) {
 			status = 0;
@@ -515,73 +444,71 @@ int cerberus_protocol_get_pfm_fw (struct manifest_cmd_interface *pfm_0,
 	}
 
 exit:
-	cerberus_protocol_free_pfm (pfm_mgr_0, pfm_mgr_1, port, curr_pfm);
+	if (pfm_mgr[port] != NULL) {
+		pfm_mgr[port]->free_pfm (pfm_mgr[port], curr_pfm);
+	}
 	return status;
 }
 
 /**
  * Process PFM update init request
  *
- * @param pfm_0 PFM command interface for port 0.
- * @param pfm_1 PFM command interface for port 1.
+ * @param pfm_cmd List of PFM command interfaces for all available ports
+ * @param num_ports Number of available ports
  * @param request PFM update init request to process
  *
  * @return 0 if request processing completed successfully or an error code.
  */
-int cerberus_protocol_pfm_update_init (struct manifest_cmd_interface *pfm_0,
-	struct manifest_cmd_interface *pfm_1, struct cmd_interface_msg *request)
+int cerberus_protocol_pfm_update_init (struct manifest_cmd_interface* pfm_cmd[], uint8_t num_ports,
+	struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_prepare_pfm_update *rq =
 		(struct cerberus_protocol_prepare_pfm_update*) request->data;
-	struct manifest_cmd_interface *curr_pfm_interface;
 
 	if (request->length != sizeof (struct cerberus_protocol_prepare_pfm_update)) {
 		return CMD_HANDLER_BAD_LENGTH;
 	}
 
-	if (rq->port_id > 1) {
+	if (rq->port_id >= num_ports) {
 		return CMD_HANDLER_OUT_OF_RANGE;
 	}
 
-	curr_pfm_interface = cerberus_protocol_get_pfm_cmd_interface (pfm_0, pfm_1, rq->port_id);
-	if (curr_pfm_interface == NULL) {
+	if (pfm_cmd[rq->port_id] == NULL) {
 		return CMD_HANDLER_UNSUPPORTED_INDEX;
 	}
 
 	request->length = 0;
-	return curr_pfm_interface->prepare_manifest (curr_pfm_interface, rq->size);
+	return pfm_cmd[rq->port_id]->prepare_manifest (pfm_cmd[rq->port_id], rq->size);
 }
 
 /**
  * Process PFM update request
  *
- * @param pfm_0 PFM command interface for port 0.
- * @param pfm_1 PFM command interface for port 1.
- * @param request PFM update request to process
+ * @param pfm_cmd List of PFM command interface for all available ports.
+ * @param num_ports Number of available ports.
+ * @param request PFM update request to process.
  *
  * @return 0 if request processing completed successfully or an error code.
  */
-int cerberus_protocol_pfm_update (struct manifest_cmd_interface *pfm_0,
-	struct manifest_cmd_interface *pfm_1, struct cmd_interface_msg *request)
+int cerberus_protocol_pfm_update (struct manifest_cmd_interface *pfm_cmd[], uint8_t num_ports,
+	struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_pfm_update *rq = (struct cerberus_protocol_pfm_update*) request->data;
-	struct manifest_cmd_interface *curr_pfm_interface;
 	int status;
 
 	if (request->length < sizeof (struct cerberus_protocol_pfm_update)) {
 		return CMD_HANDLER_BAD_LENGTH;
 	}
 
-	if (rq->port_id > 1) {
+	if (rq->port_id >= num_ports) {
 		return CMD_HANDLER_OUT_OF_RANGE;
 	}
 
-	curr_pfm_interface = cerberus_protocol_get_pfm_cmd_interface (pfm_0, pfm_1, rq->port_id);
-	if (curr_pfm_interface == NULL) {
+	if (pfm_cmd[rq->port_id] == NULL) {
 		return CMD_HANDLER_UNSUPPORTED_INDEX;
 	}
 
-	status = curr_pfm_interface->store_manifest (curr_pfm_interface, &rq->payload,
+	status = pfm_cmd[rq->port_id]->store_manifest (pfm_cmd[rq->port_id], &rq->payload,
 		cerberus_protocol_pfm_update_length (request));
 
 	request->length = 0;
@@ -591,34 +518,32 @@ int cerberus_protocol_pfm_update (struct manifest_cmd_interface *pfm_0,
 /**
  * Process PFM update complete request
  *
- * @param pfm_0 PFM command interface for port 0.
- * @param pfm_1 PFM command interface for port 1.
+ * @param pfm_cmd List of PFM command interface for all available ports.
+ * @param num_ports Numbers of available ports.
  * @param request PFM update complete request to process
  *
  * @return 0 if request processing completed successfully or an error code.
  */
-int cerberus_protocol_pfm_update_complete (struct manifest_cmd_interface *pfm_0,
-	struct manifest_cmd_interface *pfm_1, struct cmd_interface_msg *request)
+int cerberus_protocol_pfm_update_complete (struct manifest_cmd_interface *pfm_cmd[],
+	uint8_t num_ports, struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_complete_pfm_update *rq =
 		(struct cerberus_protocol_complete_pfm_update*) request->data;
-	struct manifest_cmd_interface *curr_pfm_interface;
 
 	if (request->length != sizeof (struct cerberus_protocol_complete_pfm_update)) {
 		return CMD_HANDLER_BAD_LENGTH;
 	}
 
-	if (rq->port_id > 1) {
+	if (rq->port_id >= num_ports) {
 		return CMD_HANDLER_OUT_OF_RANGE;
 	}
 
-	curr_pfm_interface = cerberus_protocol_get_pfm_cmd_interface (pfm_0, pfm_1, rq->port_id);
-	if (curr_pfm_interface == NULL) {
+	if (pfm_cmd[rq->port_id] == NULL) {
 		return CMD_HANDLER_UNSUPPORTED_INDEX;
 	}
 
 	request->length = 0;
-	return curr_pfm_interface->finish_manifest (curr_pfm_interface, rq->activation);
+	return pfm_cmd[rq->port_id]->finish_manifest (pfm_cmd[rq->port_id], rq->activation);
 
 }
 

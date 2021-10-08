@@ -741,31 +741,29 @@ int cerberus_protocol_get_fw_update_status (struct firmware_update_control *cont
 /**
  * Process PFM update status request
  *
- * @param pfm_0 PFM command interface for port 0.
- * @param pfm_1 PFM command interface for port 1.
+ * @param pfm_cmd List of PFM command interfaces for all available ports.
+ * @param num_ports Number of available ports.
  * @param request PFM update status request to process
  *
  * @return 0 if request processing completed successfully or an error code.
  */
-int cerberus_protocol_get_pfm_update_status (struct manifest_cmd_interface *pfm_0,
-	struct manifest_cmd_interface *pfm_1, struct cmd_interface_msg *request)
+int cerberus_protocol_get_pfm_update_status (struct manifest_cmd_interface *pfm_cmd[],
+	uint8_t num_ports, struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_update_status *rq =
 		(struct cerberus_protocol_update_status*) request->data;
 	struct cerberus_protocol_update_status_response *rsp =
 		(struct cerberus_protocol_update_status_response*) request->data;
-	struct manifest_cmd_interface *curr_pfm_interface;
 
-	if (rq->port_id > 1) {
+	if (rq->port_id >= num_ports) {
 		return CMD_HANDLER_OUT_OF_RANGE;
 	}
 
-	curr_pfm_interface = cerberus_protocol_get_pfm_cmd_interface (pfm_0, pfm_1, rq->port_id);
-	if (curr_pfm_interface == NULL) {
+	if (pfm_cmd[rq->port_id] == NULL) {
 		return CMD_HANDLER_UNSUPPORTED_INDEX;
 	}
 
-	rsp->update_status = curr_pfm_interface->get_status (curr_pfm_interface);
+	rsp->update_status = pfm_cmd[rq->port_id]->get_status (pfm_cmd[rq->port_id]);
 	return 0;
 }
 
@@ -822,40 +820,30 @@ int cerberus_protocol_get_pcd_update_status (struct manifest_cmd_interface *pcd_
 /**
  * Process a request for host verification actions on reset.
  *
- * @param host_0 Host processor for port 0
- * @param host_1 Host processor for port 1
+ * @param host List of host processors for all available ports
+ * @param num_ports Number of available ports
  * @param request Host verification actions request to process
  *
  * @return Response length if request processing completed successfully or an error code.
  */
-int cerberus_protocol_get_host_next_verification_status (struct host_processor *host_0,
-	struct host_processor *host_1, struct cmd_interface_msg *request)
+int cerberus_protocol_get_host_next_verification_status (struct host_processor *host[],
+	uint8_t num_ports, struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_update_status *rq =
 		(struct cerberus_protocol_update_status*) request->data;
 	struct cerberus_protocol_update_status_response *rsp =
 		(struct cerberus_protocol_update_status_response*) request->data;
-	struct host_processor *host;
 	int status;
 
-	switch (rq->port_id) {
-		case 0:
-			host = host_0;
-			break;
-
-		case 1:
-			host = host_1;
-			break;
-
-		default:
-			return CMD_HANDLER_OUT_OF_RANGE;
+	if (rq->port_id >= num_ports) {
+		return CMD_HANDLER_OUT_OF_RANGE;
 	}
 
-	if (host == NULL) {
+	if ((host == NULL) || host[rq->port_id] == NULL) {
 		return CMD_HANDLER_UNSUPPORTED_INDEX;
 	}
 
-	status = host->get_next_reset_verification_actions (host);
+	status = host[rq->port_id]->get_next_reset_verification_actions (host[rq->port_id]);
 	if (ROT_IS_ERROR (status)) {
 		return status;
 	}
@@ -924,12 +912,11 @@ int cerberus_protocol_get_reset_config_status (struct cmd_background *background
  * Process update status request
  *
  * @param control Firmware update control instance to query
- * @param pfm_0 Port 0 PFM command interface
- * @param pfm_1 Port 1 PFM command interface
+ * @param num_ports Number of available ports
+ * @param pfm_cmd List of PFM command interfaces for all available ports
  * @param cfm CFM command interface
  * @param pcd PCD command interface
- * @param host_0 Port 0 host processor
- * @param host_1 Port 1 host processor
+ * @param host List of host processors for all available ports
  * @param recovery_0 The recovery image command interface instance for port 0.
  * @param recovery_1 The recovery image command interface instance for port 1.
  * @param background Command background instance to query
@@ -937,10 +924,9 @@ int cerberus_protocol_get_reset_config_status (struct cmd_background *background
  *
  * @return 0 if request processing completed successfully or an error code.
  */
-int cerberus_protocol_get_update_status (struct firmware_update_control *control,
-	struct manifest_cmd_interface *pfm_0, struct manifest_cmd_interface *pfm_1,
-	struct manifest_cmd_interface *cfm, struct manifest_cmd_interface *pcd,
-	struct host_processor *host_0, struct host_processor *host_1,
+int cerberus_protocol_get_update_status (struct firmware_update_control *control, uint8_t num_ports,
+	struct manifest_cmd_interface *pfm_cmd[], struct manifest_cmd_interface *cfm,
+	struct manifest_cmd_interface *pcd, struct host_processor *host[],
 	struct recovery_image_cmd_interface *recovery_0,
 	struct recovery_image_cmd_interface *recovery_1, struct cmd_background *background,
 	struct cmd_interface_msg *request)
@@ -961,7 +947,7 @@ int cerberus_protocol_get_update_status (struct firmware_update_control *control
 			break;
 
 		case CERBERUS_PROTOCOL_PFM_UPDATE_STATUS:
-			status = cerberus_protocol_get_pfm_update_status (pfm_0, pfm_1, request);
+			status = cerberus_protocol_get_pfm_update_status (pfm_cmd, num_ports, request);
 			break;
 
 		case CERBERUS_PROTOCOL_CFM_UPDATE_STATUS:
@@ -973,7 +959,7 @@ int cerberus_protocol_get_update_status (struct firmware_update_control *control
 			break;
 
 		case CERBERUS_PROTOCOL_HOST_FW_NEXT_RESET:
-			status = cerberus_protocol_get_host_next_verification_status (host_0, host_1, request);
+			status = cerberus_protocol_get_host_next_verification_status (host, num_ports, request);
 			break;
 
 		case CERBERUS_PROTOCOL_RECOVERY_IMAGE_UPDATE_STATUS:

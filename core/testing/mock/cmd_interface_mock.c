@@ -48,7 +48,7 @@ static int cmd_interface_mock_generate_error_packet (struct cmd_interface *intf,
 
 static int cmd_interface_mock_func_arg_count (void *func)
 {
-	if ((func == cmd_interface_mock_generate_error_packet)) {
+	if (func == cmd_interface_mock_generate_error_packet) {
 		return 4;
 	}
 	else if ((func == cmd_interface_mock_process_request) || 
