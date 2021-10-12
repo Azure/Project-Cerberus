@@ -246,20 +246,6 @@ int cmd_interface_system_process_request (struct cmd_interface *intf,
 		case CERBERUS_PROTOCOL_DEBUG_FILL_LOG:
 			status = cerberus_protocol_debug_fill_log (interface->background, request);
 			break;
-
-		case CERBERUS_PROTOCOL_DEBUG_GET_DEVICE_MANAGER_CERT:
-			status = cerberus_protocol_get_device_certificate (interface->device_manager, request);
-			break;
-
-		case CERBERUS_PROTOCOL_DEBUG_GET_DEVICE_MANAGER_CERT_DIGEST:
-			status = cerberus_protocol_get_device_cert_digest (interface->device_manager,
-				interface->hash, request);
-			break;
-
-		case CERBERUS_PROTOCOL_DEBUG_GET_DEVICE_MANAGER_CHALLENGE:
-			status = cerberus_protocol_get_device_challenge (interface->device_manager,
-				interface->master_attestation, interface->hash, request);
-			break;
 #endif
 
 		default:
@@ -436,7 +422,9 @@ int cmd_interface_system_init (struct cmd_interface_system *intf,
 	intf->device_id.subsystem_id = subsystem_id;
 
 	intf->base.process_request = cmd_interface_system_process_request;
+#ifdef CMD_ENABLE_ISSUE_REQUEST
 	intf->base.process_response = cmd_interface_system_process_response;
+#endif 
 	intf->base.generate_error_packet = cmd_interface_generate_error_packet;
 
 #if CMD_SUPPORT_ENCRYPTED_SESSIONS

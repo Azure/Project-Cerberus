@@ -153,8 +153,8 @@ static void mctp_interface_testing_generate_and_issue_request (CuTest *test,
 	struct mctp_interface_testing *mctp, struct mctp_interface_test_callback_context *context,
 	int issue_request_status)
 {
- 	uint8_t buf[6];
- 	uint8_t msg_buf[MCTP_PROTOCOL_MAX_MESSAGE_LEN];
+ 	uint8_t buf[6] = {0};
+ 	uint8_t msg_buf[MCTP_PROTOCOL_MAX_MESSAGE_LEN] = {0};
 	struct cmd_packet tx_packet;
 	struct mctp_protocol_transport_header *header =
 		(struct mctp_protocol_transport_header*) tx_packet.data;
@@ -186,7 +186,7 @@ static void mctp_interface_testing_generate_and_issue_request (CuTest *test,
 	tx_packet.timeout_valid = false;
 
 	status = mock_expect (&mctp->channel.mock, mctp->channel.base.send_packet, &mctp->channel, 0,
-		MOCK_ARG_VALIDATOR (cmd_channel_mock_validate_packet, &tx_packet, sizeof (tx_packet)));
+		MOCK_ARG_VALIDATOR_TMP (cmd_channel_mock_validate_packet, &tx_packet, sizeof (tx_packet)));
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect_external_action (&mctp->channel.mock,
@@ -5077,8 +5077,8 @@ static void mctp_interface_test_issue_request_then_process_error_packet (CuTest 
 static void mctp_interface_test_issue_request_no_response (CuTest *test)
 {
 	struct mctp_interface_testing mctp;
- 	uint8_t buf[6];
- 	uint8_t msg_buf[MCTP_PROTOCOL_MAX_MESSAGE_LEN];
+ 	uint8_t buf[6] = {0};
+ 	uint8_t msg_buf[MCTP_PROTOCOL_MAX_MESSAGE_LEN] = {0};
 	struct cmd_packet tx_packet;
 	struct mctp_protocol_transport_header *header;
 	int status;
@@ -5130,8 +5130,8 @@ static void mctp_interface_test_issue_request_state_clean_after_completion_no_re
 	CuTest *test)
 {
 	struct mctp_interface_testing mctp;
- 	uint8_t buf[6];
- 	uint8_t msg_buf[MCTP_PROTOCOL_MAX_MESSAGE_LEN];
+ 	uint8_t buf[6] = {0};
+ 	uint8_t msg_buf[MCTP_PROTOCOL_MAX_MESSAGE_LEN] = {0};
 	struct cmd_packet tx_packet;
 	struct cmd_packet tx_packet2;
 	struct mctp_protocol_transport_header *header;
@@ -5218,7 +5218,7 @@ static void mctp_interface_test_issue_request_multiple_packets_no_response (CuTe
 {
 	struct mctp_interface_testing mctp;
 	uint8_t payload[300];
- 	uint8_t msg_buf[MCTP_PROTOCOL_MAX_MESSAGE_LEN];
+ 	uint8_t msg_buf[MCTP_PROTOCOL_MAX_MESSAGE_LEN] = {0};
 	struct cmd_packet tx_packet[2];
 	struct mctp_protocol_transport_header *header;
 	int status;
@@ -5305,8 +5305,8 @@ static void mctp_interface_test_issue_request_multiple_packets_no_response (CuTe
 static void mctp_interface_test_issue_request_maximum_packet_length_no_response (CuTest *test)
 {
 	struct mctp_interface_testing mctp;
- 	uint8_t buf[MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT];
- 	uint8_t msg_buf[MCTP_PROTOCOL_MAX_MESSAGE_LEN];
+ 	uint8_t buf[MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT] = {0};
+ 	uint8_t msg_buf[MCTP_PROTOCOL_MAX_MESSAGE_LEN] = {0};
 	struct cmd_packet tx_packet;
 	struct mctp_protocol_transport_header *header;
 	int status;
@@ -5359,7 +5359,7 @@ static void mctp_interface_test_issue_request_maximum_num_packets_no_response (C
 {
 	struct mctp_interface_testing mctp;
  	uint8_t buf[MCTP_PROTOCOL_MAX_MESSAGE_BODY] = {0};
- 	uint8_t msg_buf[MCTP_PROTOCOL_MAX_MESSAGE_LEN];
+ 	uint8_t msg_buf[MCTP_PROTOCOL_MAX_MESSAGE_LEN] = {0};
 	struct cmd_packet tx_packet[MCTP_PROTOCOL_PACKETS_IN_MESSAGE (MCTP_PROTOCOL_MAX_MESSAGE_BODY, MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT)];
 	struct mctp_protocol_transport_header *header;
 	size_t i_packet;
@@ -5454,7 +5454,7 @@ static void mctp_interface_test_issue_request_limited_packet_length_no_response 
 {
 	struct mctp_interface_testing mctp;
 	uint8_t payload[300];
- 	uint8_t msg_buf[MCTP_PROTOCOL_MAX_MESSAGE_LEN];
+ 	uint8_t msg_buf[MCTP_PROTOCOL_MAX_MESSAGE_LEN] = {0};
 	struct cmd_packet tx_packet[2];
 	struct mctp_protocol_transport_header *header;
 	struct device_manager_full_capabilities remote;
@@ -5554,7 +5554,7 @@ static void mctp_interface_test_issue_request_limited_message_length_no_response
 {
 	struct mctp_interface_testing mctp;
 	uint8_t payload[300];
- 	uint8_t msg_buf[MCTP_PROTOCOL_MAX_MESSAGE_LEN];
+ 	uint8_t msg_buf[MCTP_PROTOCOL_MAX_MESSAGE_LEN] = {0};
 	struct cmd_packet tx_packet[2];
 	struct mctp_protocol_transport_header *header;
 	struct device_manager_full_capabilities remote;
@@ -5654,8 +5654,8 @@ static void mctp_interface_test_issue_request_limited_message_length_no_response
 static void mctp_interface_test_issue_request_control_packet_no_response (CuTest *test)
 {
 	struct mctp_interface_testing mctp;
- 	uint8_t buf[6];
- 	uint8_t msg_buf[MCTP_PROTOCOL_MAX_MESSAGE_LEN];
+ 	uint8_t buf[6] = {0};
+ 	uint8_t msg_buf[MCTP_PROTOCOL_MAX_MESSAGE_LEN] = {0};
 	struct cmd_packet tx_packet;
 	struct mctp_protocol_transport_header *header;
 	int status;
@@ -5706,7 +5706,7 @@ static void mctp_interface_test_issue_request_control_packet_no_response (CuTest
 static void mctp_interface_test_issue_request_buffers_overlapping_end_no_response (CuTest *test)
 {
 	struct mctp_interface_testing mctp;
- 	uint8_t msg_buf[MCTP_PROTOCOL_MAX_MESSAGE_LEN];
+ 	uint8_t msg_buf[MCTP_PROTOCOL_MAX_MESSAGE_LEN] = {0};
 	struct cmd_packet tx_packet;
 	struct mctp_protocol_transport_header *header;
 	int status;
@@ -5759,7 +5759,7 @@ static void mctp_interface_test_issue_request_buffers_overlapping_same_pointer_n
 	CuTest *test)
 {
 	struct mctp_interface_testing mctp;
- 	uint8_t msg_buf[MCTP_PROTOCOL_MAX_MESSAGE_LEN];
+ 	uint8_t msg_buf[MCTP_PROTOCOL_MAX_MESSAGE_LEN] = {0};
 	struct cmd_packet tx_packet;
 	struct mctp_protocol_transport_header *header;
 	int status;
@@ -5810,7 +5810,7 @@ static void mctp_interface_test_issue_request_buffers_overlapping_same_pointer_n
 static void mctp_interface_test_issue_request_buffers_overlapping_before_no_response (CuTest *test)
 {
 	struct mctp_interface_testing mctp;
- 	uint8_t msg_buf[MCTP_PROTOCOL_MAX_MESSAGE_LEN];
+ 	uint8_t msg_buf[MCTP_PROTOCOL_MAX_MESSAGE_LEN] = {0};
 	struct cmd_packet tx_packet;
 	struct mctp_protocol_transport_header *header;
 	int status;
@@ -5861,7 +5861,7 @@ static void mctp_interface_test_issue_request_buffers_overlapping_before_no_resp
 static void mctp_interface_test_issue_request_buffers_overlapping_within_no_response (CuTest *test)
 {
 	struct mctp_interface_testing mctp;
- 	uint8_t msg_buf[MCTP_PROTOCOL_MAX_MESSAGE_LEN];
+ 	uint8_t msg_buf[MCTP_PROTOCOL_MAX_MESSAGE_LEN] = {0};
 	struct cmd_packet tx_packet;
 	struct mctp_protocol_transport_header *header;
 	int status;
@@ -5912,7 +5912,7 @@ static void mctp_interface_test_issue_request_buffers_overlapping_within_no_resp
 static void mctp_interface_test_issue_request_buffers_overlapping_after_no_response (CuTest *test)
 {
 	struct mctp_interface_testing mctp;
- 	uint8_t msg_buf[MCTP_PROTOCOL_MAX_MESSAGE_LEN];
+ 	uint8_t msg_buf[MCTP_PROTOCOL_MAX_MESSAGE_LEN] = {0};
 	struct cmd_packet tx_packet;
 	struct mctp_protocol_transport_header *header;
 	int status;
@@ -5964,8 +5964,8 @@ static void mctp_interface_test_issue_request_buffers_overlapping_after_no_respo
 static void mctp_interface_test_issue_request_cmd_channel_fail (CuTest *test)
 {
 	struct mctp_interface_testing mctp;
- 	uint8_t buf[6];
- 	uint8_t msg_buf[MCTP_PROTOCOL_MAX_MESSAGE_LEN];
+ 	uint8_t buf[6] = {0};
+ 	uint8_t msg_buf[MCTP_PROTOCOL_MAX_MESSAGE_LEN] = {0};
 	struct cmd_packet tx_packet;
 	struct mctp_protocol_transport_header *header;
 	int status;
@@ -6018,7 +6018,7 @@ static void mctp_interface_test_issue_request_invalid_arg (CuTest *test)
 {
 	struct mctp_interface_testing mctp;
  	uint8_t buf[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
- 	uint8_t msg_buf[MCTP_PROTOCOL_MAX_MESSAGE_LEN];
+ 	uint8_t msg_buf[MCTP_PROTOCOL_MAX_MESSAGE_LEN] = {0};
 	int status;
 
 	TEST_START;
@@ -6072,7 +6072,7 @@ static void mctp_interface_test_issue_request_request_payload_too_large (CuTest 
 {
 	struct mctp_interface_testing mctp;
  	uint8_t buf[MCTP_PROTOCOL_MAX_MESSAGE_BODY + 1];
- 	uint8_t msg_buf[MCTP_PROTOCOL_MAX_MESSAGE_LEN];
+ 	uint8_t msg_buf[MCTP_PROTOCOL_MAX_MESSAGE_LEN] = {0};
 	int status;
 
 	TEST_START;

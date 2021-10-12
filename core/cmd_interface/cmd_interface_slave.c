@@ -98,11 +98,13 @@ static int cmd_interface_slave_process_request (struct cmd_interface *intf,
 	return status;
 }
 
+#ifdef CMD_ENABLE_ISSUE_REQUEST
 static int cmd_interface_slave_process_response (struct cmd_interface *intf,
 	struct cmd_interface_msg *response)
 {
 	return CMD_HANDLER_UNSUPPORTED_OPERATION;
 }
+#endif
 
 /**
  * Initialize System command interface instance
@@ -149,7 +151,9 @@ int cmd_interface_slave_init (struct cmd_interface_slave *intf,
 	intf->device_id.subsystem_id = subsystem_id;
 
 	intf->base.process_request = cmd_interface_slave_process_request;
+#ifdef CMD_ENABLE_ISSUE_REQUEST
 	intf->base.process_response = cmd_interface_slave_process_response;
+#endif
 	intf->base.generate_error_packet = cmd_interface_generate_error_packet;
 
 #ifdef CMD_SUPPORT_ENCRYPTED_SESSIONS

@@ -30,7 +30,9 @@
 int mctp_interface_init (struct mctp_interface *mctp, struct cmd_interface *cmd_interface,
 	struct device_manager *device_mgr, uint8_t eid, uint16_t pci_vid, uint16_t protocol_version)
 {
+#ifdef CMD_ENABLE_ISSUE_REQUEST
 	int status;
+#endif
 
 	if ((mctp == NULL) || (cmd_interface == NULL) || (device_mgr == NULL)) {
 		return MCTP_PROTOCOL_INVALID_ARGUMENT;
@@ -38,6 +40,7 @@ int mctp_interface_init (struct mctp_interface *mctp, struct cmd_interface *cmd_
 
 	memset (mctp, 0, sizeof (struct mctp_interface));
 
+#ifdef CMD_ENABLE_ISSUE_REQUEST
 	status = platform_semaphore_init (&mctp->wait_for_response);
 	if (status != 0) {
 		return status;
@@ -48,6 +51,7 @@ int mctp_interface_init (struct mctp_interface *mctp, struct cmd_interface *cmd_
 		platform_semaphore_free (&mctp->wait_for_response);
 		return status;
 	}
+#endif
 
 	mctp->device_manager = device_mgr;
 	mctp->cmd_interface = cmd_interface;
@@ -70,8 +74,10 @@ int mctp_interface_init (struct mctp_interface *mctp, struct cmd_interface *cmd_
 void mctp_interface_deinit (struct mctp_interface *mctp)
 {
 	if (mctp != NULL) {
+#ifdef CMD_ENABLE_ISSUE_REQUEST
 		platform_semaphore_free (&mctp->wait_for_response);
 		platform_mutex_free (&mctp->lock);
+#endif
 	}
 }
 
@@ -373,6 +379,10 @@ int mctp_interface_process_packet (struct mctp_interface *mctp, struct cmd_packe
 				}
 			}
 		}
+#ifdef CMD_ENABLE_ISSUE_REQUEST
+		/* If flag is not defined, we will never issue requests, so response_expected will always be 
+		 * false and any response packets will be rejected in the earlier check. Therefore, we dont
+		 * need to do anything here in that case. */
 		else if (tag_owner == MCTP_PROTOCOL_TO_RESPONSE) {
 			status = mctp->cmd_interface->process_response (mctp->cmd_interface,
 				&mctp->req_buffer);
@@ -383,6 +393,7 @@ int mctp_interface_process_packet (struct mctp_interface *mctp, struct cmd_packe
 
 			return status;
 		}
+#endif
 		else if (MCTP_PROTOCOL_IS_VENDOR_MSG (mctp->msg_type)) {
 			header = (struct cerberus_protocol_header*) mctp->req_buffer.data;
 			cmd_set = header->rq;
@@ -463,6 +474,7 @@ void mctp_interface_reset_message_processing (struct mctp_interface *mctp)
 	mctp->start_packet_len = 0;
 }
 
+#ifdef CMD_ENABLE_ISSUE_REQUEST
 /**
  * Packetize a request message and send it over a command channel.  This call will block until the
  * full message has been transmitted and a response has been received or the operation times out.
@@ -567,3 +579,4 @@ exit:
 
 	return status;
 }
+#endif

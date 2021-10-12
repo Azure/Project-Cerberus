@@ -87,9 +87,6 @@ enum {
 	CERBERUS_PROTOCOL_DEBUG_START_ATTESTATION = 0xF0,			/**< Debug command to start attestation */
 	CERBERUS_PROTOCOL_DEBUG_GET_ATTESTATION_STATE,				/**< Debug command to get attestation status */
 	CERBERUS_PROTOCOL_DEBUG_FILL_LOG,							/**< Debug command to fill up debug log */
-	CERBERUS_PROTOCOL_DEBUG_GET_DEVICE_MANAGER_CERT,			/**< Debug command to retrieve device certificate */
-	CERBERUS_PROTOCOL_DEBUG_GET_DEVICE_MANAGER_CERT_DIGEST,		/**< Debug command to retrieve device certificate digest */
-	CERBERUS_PROTOCOL_DEBUG_GET_DEVICE_MANAGER_CHALLENGE,		/**< Debug command to retrieve device challenge */
 	CERBERUS_PROTOCOL_DEBUG_RESERVED = 0xFF,					/**< Not available to use as a debug command. */
 };
 

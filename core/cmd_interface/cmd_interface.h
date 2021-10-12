@@ -64,6 +64,7 @@ struct cmd_interface {
 	 */
 	int (*process_request) (struct cmd_interface *intf, struct cmd_interface_msg *request);
 
+#ifdef CMD_ENABLE_ISSUE_REQUEST
 	/**
 	 * Process a received response.
 	 *
@@ -73,6 +74,7 @@ struct cmd_interface {
 	 * @return 0 if the response was successfully processed or an error code.
 	 */
 	int (*process_response) (struct cmd_interface *intf, struct cmd_interface_msg *response);
+#endif
 
 	/**
 	 * Generate a message to indicate an error condition.

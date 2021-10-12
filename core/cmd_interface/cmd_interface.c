@@ -12,6 +12,7 @@
 #include "cmd_logging.h"
 
 
+#ifdef CMD_SUPPORT_ENCRYPTED_SESSIONS
 /**
  * Determine if received request is encrypted from header.
  *
@@ -39,6 +40,7 @@ static int cmd_interface_is_request_encrypted (struct cmd_interface *intf,
 
 	return header->crypt;
 }
+#endif
 
 /**
  * Pre-process received Cerberus protocol message.

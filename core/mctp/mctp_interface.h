@@ -29,12 +29,14 @@ struct mctp_interface {
 	uint8_t msg_tag;										/**< Current MCTP exchange message tag */
 	uint8_t msg_type;										/**< Current MCTP exchange message type */
 	uint8_t eid;											/**< MCTP EID to listen to */
+	int channel_id;											/**< Channel ID associated with the interface. */
 	uint8_t response_eid;									/**< MCTP EID for device we expect a response from */
 	uint8_t response_msg_tag;								/**< MCTP message tag for transaction we expect response for */
 	bool response_expected;									/**< A boolean indicating whether a response is expected or not */
-	int channel_id;											/**< Channel ID associated with the interface. */
+#ifdef CMD_ENABLE_ISSUE_REQUEST
 	platform_semaphore wait_for_response;					/**< Semaphore used by requester to wait for response. */
 	platform_mutex lock;									/**< Synchronization for shared interfaces */
+#endif
 };
 
 
@@ -48,9 +50,10 @@ int mctp_interface_process_packet (struct mctp_interface *mctp, struct cmd_packe
 	struct cmd_message **tx_message);
 void mctp_interface_reset_message_processing (struct mctp_interface *mctp);
 
+#ifdef CMD_ENABLE_ISSUE_REQUEST
 int mctp_interface_issue_request (struct mctp_interface *mctp, struct cmd_channel *channel,
 	uint8_t dest_addr, uint8_t dest_eid, uint8_t *request, size_t length, uint8_t *msg_buffer,
 	size_t max_buffer, uint32_t timeout_ms);
-
+#endif
 
 #endif /* MCTP_INTERFACE_H_ */

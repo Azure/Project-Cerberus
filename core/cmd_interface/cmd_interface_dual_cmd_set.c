@@ -29,6 +29,7 @@ static int cmd_interface_dual_cmd_set_process_request (struct cmd_interface *int
 	}
 }
 
+#ifdef CMD_ENABLE_ISSUE_REQUEST
 static int cmd_interface_dual_cmd_set_process_response (struct cmd_interface *intf,
 	struct cmd_interface_msg *response)
 {
@@ -50,6 +51,7 @@ static int cmd_interface_dual_cmd_set_process_response (struct cmd_interface *in
 		return interface->intf_1->process_response (interface->intf_1, response);
 	}
 }
+#endif
 
 static int cmd_interface_dual_cmd_set_generate_error_packet (struct cmd_interface *intf,
 	struct cmd_interface_msg *request, uint8_t error_code, uint32_t error_data, uint8_t cmd_set)
@@ -94,7 +96,9 @@ int cmd_interface_dual_cmd_set_init (struct cmd_interface_dual_cmd_set *intf,
 	intf->intf_1 = intf_1;
 
 	intf->base.process_request = cmd_interface_dual_cmd_set_process_request;
+#ifdef CMD_ENABLE_ISSUE_REQUEST
 	intf->base.process_response = cmd_interface_dual_cmd_set_process_response;
+#endif
 	intf->base.generate_error_packet = cmd_interface_dual_cmd_set_generate_error_packet;
 
 	return 0;

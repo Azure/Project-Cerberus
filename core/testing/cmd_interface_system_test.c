@@ -1159,7 +1159,7 @@ static void cmd_interface_system_test_process_payload_too_short (CuTest *test)
 static void cmd_interface_system_test_process_unsupported_message (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) data;
 	int status;
@@ -1199,7 +1199,7 @@ static void cmd_interface_system_test_process_unsupported_message (CuTest *test)
 static void cmd_interface_system_test_process_unknown_command (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) data;
 	int status;
@@ -1231,7 +1231,7 @@ static void cmd_interface_system_test_process_unknown_command (CuTest *test)
 static void cmd_interface_system_test_process_reserved_fields_not_zero (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) data;
 	int status;
@@ -1272,7 +1272,7 @@ static void cmd_interface_system_test_process_reserved_fields_not_zero (CuTest *
 static void cmd_interface_system_test_process_encrypted_message (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg request;
 	uint8_t decrypted_data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg decrypted_request;
@@ -1403,7 +1403,7 @@ static void cmd_interface_system_test_process_encrypted_message (CuTest *test)
 static void cmd_interface_system_test_process_encrypted_message_decrypt_fail (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_update_status *req = (struct cerberus_protocol_update_status*) data;
 	int status;
@@ -1445,7 +1445,7 @@ static void cmd_interface_system_test_process_encrypted_message_decrypt_fail (Cu
 static void cmd_interface_system_test_process_encrypted_message_encrypt_fail (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg request;
 	uint8_t decrypted_data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg decrypted_request;
@@ -1541,7 +1541,7 @@ static void cmd_interface_system_test_process_encrypted_message_encrypt_fail (Cu
 static void cmd_interface_system_test_process_encrypted_message_no_session_manager (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_update_status *req = (struct cerberus_protocol_update_status*) data;
 	int status;
@@ -1577,7 +1577,7 @@ static void cmd_interface_system_test_process_encrypted_message_no_session_manag
 static void cmd_interface_system_test_process_encrypted_message_no_response (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg request;
 	uint8_t decrypted_data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg decrypted_request;
@@ -1644,7 +1644,7 @@ static void cmd_interface_system_test_process_encrypted_message_no_response (CuT
 static void cmd_interface_system_test_process_encrypted_message_only_header (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg request;
 	uint8_t decrypted_data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg decrypted_request;
@@ -6134,149 +6134,6 @@ static void cmd_interface_system_test_process_reset_config_invalid_request_subty
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
-static void cmd_interface_system_test_process_get_device_certificate (CuTest *test)
-{
-	struct cmd_interface_system_testing cmd;
-
-	TEST_START;
-
-	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true, true);
-	cerberus_protocol_debug_commands_testing_process_get_device_certificate (test,
-		 &cmd.handler.base, &cmd.device_manager);
-	complete_cmd_interface_system_mock_test (test, &cmd);
-}
-
-static void cmd_interface_system_test_process_get_device_certificate_invalid_len (CuTest *test)
-{
-	struct cmd_interface_system_testing cmd;
-
-	TEST_START;
-
-	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true, true);
-	cerberus_protocol_debug_commands_testing_process_get_device_certificate_invalid_len (test,
-		 &cmd.handler.base);
-	complete_cmd_interface_system_mock_test (test, &cmd);
-}
-
-static void cmd_interface_system_test_process_get_device_certificate_invalid_cert_num (CuTest *test)
-{
-	struct cmd_interface_system_testing cmd;
-
-	TEST_START;
-
-	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true, true);
-	cerberus_protocol_debug_commands_testing_process_get_device_certificate_invalid_cert_num (test,
-		 &cmd.handler.base, &cmd.device_manager);
-	complete_cmd_interface_system_mock_test (test, &cmd);
-}
-
-static void cmd_interface_system_test_process_get_device_certificate_get_chain_fail (CuTest *test)
-{
-	struct cmd_interface_system_testing cmd;
-
-	TEST_START;
-
-	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true, true);
-	cerberus_protocol_debug_commands_testing_process_get_device_certificate_get_chain_fail (test,
-		 &cmd.handler.base);
-	complete_cmd_interface_system_mock_test (test, &cmd);
-}
-
-static void cmd_interface_system_test_process_get_device_cert_digest (CuTest *test)
-{
-	struct cmd_interface_system_testing cmd;
-
-	TEST_START;
-
-	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true, true);
-	cerberus_protocol_debug_commands_testing_process_get_device_cert_digest (test,
-		 &cmd.handler.base, &cmd.hash, &cmd.device_manager);
-	complete_cmd_interface_system_mock_test (test, &cmd);
-}
-
-static void cmd_interface_system_test_process_get_device_cert_digest_invalid_len (CuTest *test)
-{
-	struct cmd_interface_system_testing cmd;
-
-	TEST_START;
-
-	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true, true);
-	cerberus_protocol_debug_commands_testing_process_get_device_cert_digest_invalid_len (test,
-		 &cmd.handler.base);
-	complete_cmd_interface_system_mock_test (test, &cmd);
-}
-
-static void cmd_interface_system_test_process_get_device_cert_digest_invalid_cert_num (CuTest *test)
-{
-	struct cmd_interface_system_testing cmd;
-
-	TEST_START;
-
-	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true, true);
-	cerberus_protocol_debug_commands_testing_process_get_device_cert_digest_invalid_cert_num (test,
-		 &cmd.handler.base, &cmd.device_manager);
-	complete_cmd_interface_system_mock_test (test, &cmd);
-}
-
-static void cmd_interface_system_test_process_get_device_cert_digest_get_chain_fail (CuTest *test)
-{
-	struct cmd_interface_system_testing cmd;
-
-	TEST_START;
-
-	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true, true);
-	cerberus_protocol_debug_commands_testing_process_get_device_cert_digest_get_chain_fail (test,
-		 &cmd.handler.base);
-	complete_cmd_interface_system_mock_test (test, &cmd);
-}
-
-static void cmd_interface_system_test_process_get_device_cert_digest_hash_fail (CuTest *test)
-{
-	struct cmd_interface_system_testing cmd;
-
-	TEST_START;
-
-	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true, true);
-	cerberus_protocol_debug_commands_testing_process_get_device_cert_digest_hash_fail (test,
-		 &cmd.handler.base, &cmd.hash, &cmd.device_manager);
-	complete_cmd_interface_system_mock_test (test, &cmd);
-}
-
-static void cmd_interface_system_test_process_get_device_challenge (CuTest *test)
-{
-	struct cmd_interface_system_testing cmd;
-
-	TEST_START;
-
-	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true, true);
-	cerberus_protocol_debug_commands_testing_process_get_device_challenge (test, &cmd.handler.base,
-		&cmd.riot, &cmd.hash, &cmd.master_attestation, &cmd.device_manager);
-	complete_cmd_interface_system_mock_test (test, &cmd);
-}
-
-static void cmd_interface_system_test_process_get_device_challenge_invalid_len (CuTest *test)
-{
-	struct cmd_interface_system_testing cmd;
-
-	TEST_START;
-
-	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, DEVICE_MANAGER_UPSTREAM, true, true);
-	cerberus_protocol_debug_commands_testing_process_get_device_challenge_invalid_len (test,
-		&cmd.handler.base);
-	complete_cmd_interface_system_mock_test (test, &cmd);
-}
-
 static void cmd_interface_system_test_process_prepare_recovery_image_port0 (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
@@ -7199,7 +7056,7 @@ static void cmd_interface_system_test_process_response_payload_too_short (CuTest
 static void cmd_interface_system_test_process_response_unsupported_message (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg response;
 	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) data;
 	int status;
@@ -7239,7 +7096,7 @@ static void cmd_interface_system_test_process_response_unsupported_message (CuTe
 static void cmd_interface_system_test_process_response_unknown_command (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg response;
 	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) data;
 	int status;
@@ -7271,7 +7128,7 @@ static void cmd_interface_system_test_process_response_unknown_command (CuTest *
 static void cmd_interface_system_test_process_error_response (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg response;
 
 	response.data = data;
@@ -7290,7 +7147,7 @@ static void cmd_interface_system_test_process_error_response (CuTest *test)
 static void cmd_interface_system_test_process_error_response_bad_len (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg response;
 
 	response.data = data;
@@ -7309,7 +7166,7 @@ static void cmd_interface_system_test_process_error_response_bad_len (CuTest *te
 static void cmd_interface_system_test_process_response_reserved_fields_not_zero (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg response;
 	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) data;
 	int status;
@@ -7350,7 +7207,7 @@ static void cmd_interface_system_test_process_response_reserved_fields_not_zero 
 static void cmd_interface_system_test_process_response_encrypted_message (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg response;
 	uint8_t decrypted_data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg decrypted_response;
@@ -7434,7 +7291,7 @@ static void cmd_interface_system_test_process_response_encrypted_message (CuTest
 static void cmd_interface_system_test_process_response_encrypted_message_decrypt_fail (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg response;
 	struct cerberus_protocol_get_certificate_digest_response *rsp =
 		(struct cerberus_protocol_get_certificate_digest_response*) data;
@@ -7477,7 +7334,7 @@ static void cmd_interface_system_test_process_response_encrypted_message_no_sess
 	CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg response;
 	struct cerberus_protocol_get_certificate_digest_response *rsp =
 		(struct cerberus_protocol_get_certificate_digest_response*) data;
@@ -8275,19 +8132,6 @@ CuSuite* get_cmd_interface_system_suite ()
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_reset_intrusion_error);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_reset_config_invalid_len);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_reset_config_invalid_request_subtype);
-	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_device_certificate);
-	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_device_certificate_invalid_len);
-	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_device_certificate_get_chain_fail);
-	SUITE_ADD_TEST (suite,
-		cmd_interface_system_test_process_get_device_certificate_invalid_cert_num);
-	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_device_cert_digest);
-	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_device_cert_digest_invalid_len);
-	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_device_cert_digest_get_chain_fail);
-	SUITE_ADD_TEST (suite,
-		cmd_interface_system_test_process_get_device_cert_digest_invalid_cert_num);
-	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_device_cert_digest_hash_fail);
-	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_device_challenge);
-	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_get_device_challenge_invalid_len);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_prepare_recovery_image_port0);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_prepare_recovery_image_port1);
 	SUITE_ADD_TEST (suite, cmd_interface_system_test_process_prepare_recovery_image_port0_null);
