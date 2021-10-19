@@ -51,7 +51,11 @@ int mctp_protocol_interpret (uint8_t *buf, size_t buf_len, uint8_t dest_addr, ui
 		return MCTP_PROTOCOL_MSG_TOO_SHORT;
 	}
 
-	if (header->byte_count <= sizeof (struct mctp_protocol_transport_header)) {
+	/* At this point, we do not know if the current packet is a control or vendor defined message.
+	 * Control message might not contain a PEC byte. So, here we check if the message length is at least
+	 * the transport header size. */
+	if ((header->byte_count + MCTP_PROTOCOL_SMBUS_OVERHEAD_NO_PEC) <=
+			(uint8_t) sizeof (struct mctp_protocol_transport_header)) {
 		/* Prevent payload_len underflow caused by manipulated header->byte_count. */
 		return MCTP_PROTOCOL_MSG_TOO_SHORT;
 	}
@@ -75,11 +79,15 @@ int mctp_protocol_interpret (uint8_t *buf, size_t buf_len, uint8_t dest_addr, ui
 			CRC. */
 		/* TODO: Change default behaviour to always check for CRC with an ifdef to disable checking
 			in conrol messages. */
-		packet_len = header->byte_count + 2;
+		packet_len = header->byte_count + MCTP_PROTOCOL_SMBUS_OVERHEAD_NO_PEC;
 		*payload_len = packet_len - sizeof (struct mctp_protocol_transport_header);
 		add_crc = false;
 	}
 	else if (MCTP_PROTOCOL_IS_VENDOR_MSG (*msg_type)) {
+		if ((header->byte_count + MCTP_PROTOCOL_SMBUS_OVERHEAD) <=
+				(uint8_t) MCTP_PROTOCOL_PACKET_OVERHEAD) {
+			return MCTP_PROTOCOL_MSG_TOO_SHORT;
+		}
 		packet_len = header->byte_count + MCTP_PROTOCOL_SMBUS_OVERHEAD;
 		*payload_len = mctp_protocol_payload_len (packet_len);
 	}

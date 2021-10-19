@@ -264,6 +264,388 @@ static void mctp_protocol_test_interpret_vendor_defined_message (CuTest *test)
 	CuAssertIntEquals (test, 6, payload_len);
 }
 
+static void mctp_protocol_test_interpret_vendor_defined_message_multi_packets (CuTest *test)
+{
+	int status;
+	uint8_t buf[MCTP_PROTOCOL_MAX_PACKET_LEN] = {0};
+	struct mctp_protocol_transport_header *header = (struct mctp_protocol_transport_header*) buf;
+	uint8_t source_addr = 0;
+	bool som = false;
+	bool eom = false;
+	uint8_t src_eid = 0;
+	uint8_t dest_eid = 0;
+	uint8_t msg_tag = 0;
+	uint8_t packet_seq = 0;
+	uint8_t crc = 0;
+	uint8_t msg_type = 0;
+	uint8_t tag_owner;
+	uint8_t *payload;
+	size_t payload_len;
+
+	TEST_START;
+
+	header->cmd_code = SMBUS_CMD_CODE_MCTP;
+	header->byte_count = MCTP_PROTOCOL_MAX_PACKET_LEN - MCTP_PROTOCOL_SMBUS_OVERHEAD;
+	header->source_addr = 0xAA;
+	header->rsvd = 0;
+	header->header_version = 1;
+	header->destination_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	header->source_eid = MCTP_PROTOCOL_BMC_EID;
+	header->som = 1;
+	header->eom = 0;
+	header->tag_owner = MCTP_PROTOCOL_TO_REQUEST;
+	header->msg_tag = 0x05;
+	header->packet_seq = 2;
+
+	buf[7] = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	memset (&buf[8], 0xAA, MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT);
+	buf[MCTP_PROTOCOL_MAX_PACKET_LEN - 1] = checksum_crc8 (0xBA, buf,
+		MCTP_PROTOCOL_MAX_PACKET_LEN - 1);
+
+	status = mctp_protocol_interpret (buf, MCTP_PROTOCOL_MAX_PACKET_LEN, 0x5D, &source_addr, &som,
+		&eom, &src_eid, &dest_eid, &payload, &payload_len, &msg_tag, &packet_seq, &crc, &msg_type,
+		&tag_owner);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (&buf[8], &payload[1], MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, 0x55, source_addr);
+	CuAssertIntEquals (test, true, som);
+	CuAssertIntEquals (test, false, eom);
+	CuAssertIntEquals (test, 0x0A, src_eid);
+	CuAssertIntEquals (test, 0x0B, dest_eid);
+	CuAssertIntEquals (test, 0x05, msg_tag);
+	CuAssertIntEquals (test, 2, packet_seq);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_TO_REQUEST, tag_owner);
+	CuAssertIntEquals (test, buf[MCTP_PROTOCOL_MAX_PACKET_LEN - 1], crc);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, msg_type);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, payload[0]);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT, payload_len);
+
+	header->cmd_code = SMBUS_CMD_CODE_MCTP;
+	header->byte_count = 11;
+	header->source_addr = 0xAA;
+	header->rsvd = 0;
+	header->header_version = 1;
+	header->destination_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	header->source_eid = MCTP_PROTOCOL_BMC_EID;
+	header->som = 0;
+	header->eom = 1;
+	header->tag_owner = MCTP_PROTOCOL_TO_REQUEST;
+	header->msg_tag = 0x05;
+	header->packet_seq = 2;
+
+	buf[7] = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	buf[8] = 0xAA;
+	buf[9] = 0xBB;
+	buf[10] = 0xCC;
+	buf[11] = 0xDD;
+	buf[12] = 0xEE;
+	buf[13] = checksum_crc8 (0xBA, buf, 13);
+
+	status = mctp_protocol_interpret (buf, 14, 0x5D, &source_addr, &som, &eom, &src_eid, &dest_eid,
+		&payload, &payload_len, &msg_tag, &packet_seq, &crc, &msg_type, &tag_owner);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0x55, source_addr);
+	CuAssertIntEquals (test, false, som);
+	CuAssertIntEquals (test, true, eom);
+	CuAssertIntEquals (test, 0x0A, src_eid);
+	CuAssertIntEquals (test, 0x0B, dest_eid);
+	CuAssertIntEquals (test, 0x05, msg_tag);
+	CuAssertIntEquals (test, 2, packet_seq);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_TO_REQUEST, tag_owner);
+	CuAssertIntEquals (test, buf[13], crc);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, msg_type);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, payload[0]);
+	CuAssertIntEquals (test, 0xAA, payload[1]);
+	CuAssertIntEquals (test, 0xBB, payload[2]);
+	CuAssertIntEquals (test, 0xCC, payload[3]);
+	CuAssertIntEquals (test, 0xDD, payload[4]);
+	CuAssertIntEquals (test, 0xEE, payload[5]);
+	CuAssertIntEquals (test, 6, payload_len);
+}
+
+static void mctp_protocol_test_interpret_vendor_defined_message_multi_packets_last_packet_with_1byte_payload (
+	CuTest *test)
+{
+	int status;
+	uint8_t buf[MCTP_PROTOCOL_MAX_PACKET_LEN] = {0};
+	struct mctp_protocol_transport_header *header = (struct mctp_protocol_transport_header*) buf;
+	uint8_t source_addr = 0;
+	bool som = false;
+	bool eom = false;
+	uint8_t src_eid = 0;
+	uint8_t dest_eid = 0;
+	uint8_t msg_tag = 0;
+	uint8_t packet_seq = 0;
+	uint8_t crc = 0;
+	uint8_t msg_type = 0;
+	uint8_t tag_owner;
+	uint8_t *payload;
+	size_t payload_len;
+
+	TEST_START;
+
+	header->cmd_code = SMBUS_CMD_CODE_MCTP;
+	header->byte_count = MCTP_PROTOCOL_MAX_PACKET_LEN - MCTP_PROTOCOL_SMBUS_OVERHEAD;
+	header->source_addr = 0xAA;
+	header->rsvd = 0;
+	header->header_version = 1;
+	header->destination_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	header->source_eid = MCTP_PROTOCOL_BMC_EID;
+	header->som = 1;
+	header->eom = 0;
+	header->tag_owner = MCTP_PROTOCOL_TO_REQUEST;
+	header->msg_tag = 0x05;
+	header->packet_seq = 2;
+
+	buf[7] = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	memset (&buf[8], 0xAA, MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT);
+	buf[MCTP_PROTOCOL_MAX_PACKET_LEN - 1] = checksum_crc8 (0xBA, buf,
+		MCTP_PROTOCOL_MAX_PACKET_LEN - 1);
+
+	status = mctp_protocol_interpret (buf, MCTP_PROTOCOL_MAX_PACKET_LEN, 0x5D, &source_addr, &som,
+		&eom, &src_eid, &dest_eid, &payload, &payload_len, &msg_tag, &packet_seq, &crc, &msg_type,
+		&tag_owner);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (&buf[8], &payload[1], MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, 0x55, source_addr);
+	CuAssertIntEquals (test, true, som);
+	CuAssertIntEquals (test, false, eom);
+	CuAssertIntEquals (test, 0x0A, src_eid);
+	CuAssertIntEquals (test, 0x0B, dest_eid);
+	CuAssertIntEquals (test, 0x05, msg_tag);
+	CuAssertIntEquals (test, 2, packet_seq);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_TO_REQUEST, tag_owner);
+	CuAssertIntEquals (test, buf[MCTP_PROTOCOL_MAX_PACKET_LEN - 1], crc);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, msg_type);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, payload[0]);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT, payload_len);
+
+	memset (buf, 0, MCTP_PROTOCOL_MAX_PACKET_LEN);
+	header->cmd_code = SMBUS_CMD_CODE_MCTP;
+	header->byte_count = 11;
+	header->source_addr = 0xAA;
+	header->rsvd = 0;
+	header->header_version = 1;
+	header->destination_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	header->source_eid = MCTP_PROTOCOL_BMC_EID;
+	header->som = 0;
+	header->eom = 0;
+	header->tag_owner = MCTP_PROTOCOL_TO_REQUEST;
+	header->msg_tag = 0x05;
+	header->packet_seq = 2;
+
+	buf[7] = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	buf[8] = 0xAA;
+	buf[9] = 0xBB;
+	buf[10] = 0xCC;
+	buf[11] = 0xDD;
+	buf[12] = 0xEE;
+	buf[13] = checksum_crc8 (0xBA, buf, 13);
+
+	status = mctp_protocol_interpret (buf, 14, 0x5D, &source_addr, &som, &eom, &src_eid, &dest_eid,
+		&payload, &payload_len, &msg_tag, &packet_seq, &crc, &msg_type, &tag_owner);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0x55, source_addr);
+	CuAssertIntEquals (test, false, som);
+	CuAssertIntEquals (test, false, eom);
+	CuAssertIntEquals (test, 0x0A, src_eid);
+	CuAssertIntEquals (test, 0x0B, dest_eid);
+	CuAssertIntEquals (test, 0x05, msg_tag);
+	CuAssertIntEquals (test, 2, packet_seq);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_TO_REQUEST, tag_owner);
+	CuAssertIntEquals (test, buf[13], crc);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, msg_type);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, payload[0]);
+	CuAssertIntEquals (test, 0xAA, payload[1]);
+	CuAssertIntEquals (test, 0xBB, payload[2]);
+	CuAssertIntEquals (test, 0xCC, payload[3]);
+	CuAssertIntEquals (test, 0xDD, payload[4]);
+	CuAssertIntEquals (test, 0xEE, payload[5]);
+	CuAssertIntEquals (test, 6, payload_len);
+
+	memset (buf, 0, MCTP_PROTOCOL_MAX_PACKET_LEN);
+	header->cmd_code = SMBUS_CMD_CODE_MCTP;
+	header->byte_count = MCTP_PROTOCOL_PACKET_OVERHEAD - MCTP_PROTOCOL_SMBUS_OVERHEAD + 2;
+	header->source_addr = 0xAA;
+	header->rsvd = 0;
+	header->header_version = 1;
+	header->destination_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	header->source_eid = MCTP_PROTOCOL_BMC_EID;
+	header->som = 0;
+	header->eom = 1;
+	header->tag_owner = MCTP_PROTOCOL_TO_REQUEST;
+	header->msg_tag = 0x05;
+	header->packet_seq = 2;
+
+	buf[7] = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	buf[8] = 0xAA;
+	buf[9] = checksum_crc8 (0xBA, buf, 9);
+
+	status = mctp_protocol_interpret (buf, 10, 0x5D, &source_addr, &som, &eom, &src_eid, &dest_eid,
+		&payload, &payload_len, &msg_tag, &packet_seq, &crc, &msg_type, &tag_owner);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0x55, source_addr);
+	CuAssertIntEquals (test, false, som);
+	CuAssertIntEquals (test, true, eom);
+	CuAssertIntEquals (test, 0x0A, src_eid);
+	CuAssertIntEquals (test, 0x0B, dest_eid);
+	CuAssertIntEquals (test, 0x05, msg_tag);
+	CuAssertIntEquals (test, 2, packet_seq);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_TO_REQUEST, tag_owner);
+	CuAssertIntEquals (test, buf[9], crc);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, msg_type);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, payload[0]);
+	CuAssertIntEquals (test, 0xAA, payload[1]);
+	CuAssertIntEquals (test, 2, payload_len);
+}
+
+static void mctp_protocol_test_interpret_vendor_defined_message_multi_packets_last_packet_with_2bytes_payload (
+	CuTest *test)
+{
+	int status;
+	uint8_t buf[MCTP_PROTOCOL_MAX_PACKET_LEN] = {0};
+	struct mctp_protocol_transport_header *header = (struct mctp_protocol_transport_header*) buf;
+	uint8_t source_addr = 0;
+	bool som = false;
+	bool eom = false;
+	uint8_t src_eid = 0;
+	uint8_t dest_eid = 0;
+	uint8_t msg_tag = 0;
+	uint8_t packet_seq = 0;
+	uint8_t crc = 0;
+	uint8_t msg_type = 0;
+	uint8_t tag_owner;
+	uint8_t *payload;
+	size_t payload_len;
+
+	TEST_START;
+
+	header->cmd_code = SMBUS_CMD_CODE_MCTP;
+	header->byte_count = MCTP_PROTOCOL_MAX_PACKET_LEN - MCTP_PROTOCOL_SMBUS_OVERHEAD;
+	header->source_addr = 0xAA;
+	header->rsvd = 0;
+	header->header_version = 1;
+	header->destination_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	header->source_eid = MCTP_PROTOCOL_BMC_EID;
+	header->som = 1;
+	header->eom = 0;
+	header->tag_owner = MCTP_PROTOCOL_TO_REQUEST;
+	header->msg_tag = 0x05;
+	header->packet_seq = 2;
+
+	buf[7] = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	memset (&buf[8], 0xAA, MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT);
+	buf[MCTP_PROTOCOL_MAX_PACKET_LEN - 1] = checksum_crc8 (0xBA, buf,
+		MCTP_PROTOCOL_MAX_PACKET_LEN - 1);
+
+	status = mctp_protocol_interpret (buf, MCTP_PROTOCOL_MAX_PACKET_LEN, 0x5D, &source_addr, &som,
+		&eom, &src_eid, &dest_eid, &payload, &payload_len, &msg_tag, &packet_seq, &crc, &msg_type,
+		&tag_owner);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (&buf[8], &payload[1], MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, 0x55, source_addr);
+	CuAssertIntEquals (test, true, som);
+	CuAssertIntEquals (test, false, eom);
+	CuAssertIntEquals (test, 0x0A, src_eid);
+	CuAssertIntEquals (test, 0x0B, dest_eid);
+	CuAssertIntEquals (test, 0x05, msg_tag);
+	CuAssertIntEquals (test, 2, packet_seq);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_TO_REQUEST, tag_owner);
+	CuAssertIntEquals (test, buf[MCTP_PROTOCOL_MAX_PACKET_LEN - 1], crc);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, msg_type);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, payload[0]);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT, payload_len);
+
+	memset (buf, 0, MCTP_PROTOCOL_MAX_PACKET_LEN);
+	header->cmd_code = SMBUS_CMD_CODE_MCTP;
+	header->byte_count = 11;
+	header->source_addr = 0xAA;
+	header->rsvd = 0;
+	header->header_version = 1;
+	header->destination_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	header->source_eid = MCTP_PROTOCOL_BMC_EID;
+	header->som = 0;
+	header->eom = 0;
+	header->tag_owner = MCTP_PROTOCOL_TO_REQUEST;
+	header->msg_tag = 0x05;
+	header->packet_seq = 2;
+
+	buf[7] = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	buf[8] = 0xAA;
+	buf[9] = 0xBB;
+	buf[10] = 0xCC;
+	buf[11] = 0xDD;
+	buf[12] = 0xEE;
+	buf[13] = checksum_crc8 (0xBA, buf, 13);
+
+	status = mctp_protocol_interpret (buf, 14, 0x5D, &source_addr, &som, &eom, &src_eid, &dest_eid,
+		&payload, &payload_len, &msg_tag, &packet_seq, &crc, &msg_type, &tag_owner);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0x55, source_addr);
+	CuAssertIntEquals (test, false, som);
+	CuAssertIntEquals (test, false, eom);
+	CuAssertIntEquals (test, 0x0A, src_eid);
+	CuAssertIntEquals (test, 0x0B, dest_eid);
+	CuAssertIntEquals (test, 0x05, msg_tag);
+	CuAssertIntEquals (test, 2, packet_seq);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_TO_REQUEST, tag_owner);
+	CuAssertIntEquals (test, buf[13], crc);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, msg_type);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, payload[0]);
+	CuAssertIntEquals (test, 0xAA, payload[1]);
+	CuAssertIntEquals (test, 0xBB, payload[2]);
+	CuAssertIntEquals (test, 0xCC, payload[3]);
+	CuAssertIntEquals (test, 0xDD, payload[4]);
+	CuAssertIntEquals (test, 0xEE, payload[5]);
+	CuAssertIntEquals (test, 6, payload_len);
+
+	memset (buf, 0, MCTP_PROTOCOL_MAX_PACKET_LEN);
+	header->cmd_code = SMBUS_CMD_CODE_MCTP;
+	header->byte_count = MCTP_PROTOCOL_PACKET_OVERHEAD - MCTP_PROTOCOL_SMBUS_OVERHEAD + 3;
+	header->source_addr = 0xAA;
+	header->rsvd = 0;
+	header->header_version = 1;
+	header->destination_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	header->source_eid = MCTP_PROTOCOL_BMC_EID;
+	header->som = 0;
+	header->eom = 1;
+	header->tag_owner = MCTP_PROTOCOL_TO_REQUEST;
+	header->msg_tag = 0x05;
+	header->packet_seq = 2;
+
+	buf[7] = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	buf[8] = 0xAA;
+	buf[9] = 0xBB;
+	buf[10] = checksum_crc8 (0xBA, buf, 10);
+
+	status = mctp_protocol_interpret (buf, 11, 0x5D, &source_addr, &som, &eom, &src_eid, &dest_eid,
+		&payload, &payload_len, &msg_tag, &packet_seq, &crc, &msg_type, &tag_owner);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0x55, source_addr);
+	CuAssertIntEquals (test, false, som);
+	CuAssertIntEquals (test, true, eom);
+	CuAssertIntEquals (test, 0x0A, src_eid);
+	CuAssertIntEquals (test, 0x0B, dest_eid);
+	CuAssertIntEquals (test, 0x05, msg_tag);
+	CuAssertIntEquals (test, 2, packet_seq);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_TO_REQUEST, tag_owner);
+	CuAssertIntEquals (test, buf[10], crc);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, msg_type);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, payload[0]);
+	CuAssertIntEquals (test, 0xAA, payload[1]);
+	CuAssertIntEquals (test, 0xBB, payload[2]);
+	CuAssertIntEquals (test, 3, payload_len);
+}
+
 static void mctp_protocol_test_interpret_vendor_defined_message_response (CuTest *test)
 {
 	int status;
@@ -708,7 +1090,7 @@ static void mctp_protocol_test_interpret_invalid_header_byte_count (CuTest *test
 	TEST_START;
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
-	header->byte_count = sizeof (struct mctp_protocol_transport_header);
+	header->byte_count = MCTP_PROTOCOL_PACKET_OVERHEAD - MCTP_PROTOCOL_SMBUS_OVERHEAD;
 	header->source_addr = 0xAA;
 	header->rsvd = 0;
 	header->header_version = 1;
@@ -721,6 +1103,44 @@ static void mctp_protocol_test_interpret_invalid_header_byte_count (CuTest *test
 
 	buf[7] = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	buf[13] = checksum_crc8 (0xBA, buf, 13);
+
+	status = mctp_protocol_interpret (buf, sizeof (buf), 0x5D, &source_addr, &som, &eom, &src_eid,
+		&dest_eid, &payload, &payload_len, &msg_tag, &packet_seq, &crc, &msg_type, &tag_owner);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TOO_SHORT, status);
+}
+
+static void mctp_protocol_test_interpret_invalid_header_byte_count_control_message (CuTest *test)
+{
+	int status;
+	uint8_t buf[MCTP_PROTOCOL_MAX_PACKET_LEN] = {0};
+	struct mctp_protocol_transport_header *header = (struct mctp_protocol_transport_header*) buf;
+	uint8_t source_addr;
+	bool som;
+	bool eom;
+	uint8_t src_eid;
+	uint8_t dest_eid;
+	uint8_t msg_tag;
+	uint8_t packet_seq;
+	uint8_t msg_type;
+	uint8_t crc = 0;
+	uint8_t tag_owner;
+	uint8_t *payload;
+	size_t payload_len;
+
+	TEST_START;
+
+	header->cmd_code = SMBUS_CMD_CODE_MCTP;
+	header->byte_count = MCTP_PROTOCOL_PACKET_OVERHEAD - MCTP_PROTOCOL_SMBUS_OVERHEAD -
+		MCTP_PROTOCOL_PEC_SIZE;
+	header->source_addr = 0xAA;
+	header->rsvd = 0;
+	header->header_version = 1;
+	header->destination_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	header->source_eid = MCTP_PROTOCOL_BMC_EID;
+	header->som = 1;
+	header->eom = 0;
+	header->msg_tag = 0x05;
+	header->packet_seq = 2;
 
 	status = mctp_protocol_interpret (buf, sizeof (buf), 0x5D, &source_addr, &som, &eom, &src_eid,
 		&dest_eid, &payload, &payload_len, &msg_tag, &packet_seq, &crc, &msg_type, &tag_owner);
@@ -758,12 +1178,12 @@ static void mctp_protocol_test_interpret_invalid_buffer_length (CuTest *test)
 	header->eom = 0;
 	header->msg_tag = 0x05;
 	header->packet_seq = 2;
-    
+
 	buf[7] = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	buf[13] = checksum_crc8 (0xBA, buf, 13);
 
-	status = mctp_protocol_interpret (buf, sizeof (struct mctp_protocol_transport_header), 
-    	0x5D, &source_addr, &som, &eom, &src_eid, &dest_eid, &payload, &payload_len, &msg_tag, 
+	status = mctp_protocol_interpret (buf, sizeof (struct mctp_protocol_transport_header),
+    	0x5D, &source_addr, &som, &eom, &src_eid, &dest_eid, &payload, &payload_len, &msg_tag,
 		&packet_seq, &crc, &msg_type, &tag_owner);
 	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TOO_SHORT, status);
 }
@@ -1220,6 +1640,11 @@ CuSuite* get_mctp_protocol_suite ()
 	SUITE_ADD_TEST (suite, mctp_protocol_test_interpret_control_message_response);
 	SUITE_ADD_TEST (suite, mctp_protocol_test_interpret_control_message_not_som);
 	SUITE_ADD_TEST (suite, mctp_protocol_test_interpret_vendor_defined_message);
+	SUITE_ADD_TEST (suite, mctp_protocol_test_interpret_vendor_defined_message_multi_packets);
+	SUITE_ADD_TEST (suite,
+		mctp_protocol_test_interpret_vendor_defined_message_multi_packets_last_packet_with_1byte_payload);
+	SUITE_ADD_TEST (suite,
+		mctp_protocol_test_interpret_vendor_defined_message_multi_packets_last_packet_with_2bytes_payload);
 	SUITE_ADD_TEST (suite, mctp_protocol_test_interpret_vendor_defined_message_response);
 	SUITE_ADD_TEST (suite, mctp_protocol_test_interpret_vendor_defined_message_not_som);
 	SUITE_ADD_TEST (suite, mctp_protocol_test_interpret_not_som_unsupported_message_type);
@@ -1229,6 +1654,7 @@ CuSuite* get_mctp_protocol_suite ()
 	SUITE_ADD_TEST (suite, mctp_protocol_test_interpret_invalid_header_version);
 	SUITE_ADD_TEST (suite, mctp_protocol_test_interpret_invalid_crc);
 	SUITE_ADD_TEST (suite, mctp_protocol_test_interpret_invalid_header_byte_count);
+	SUITE_ADD_TEST (suite, mctp_protocol_test_interpret_invalid_header_byte_count_control_message);
 	SUITE_ADD_TEST (suite, mctp_protocol_test_interpret_invalid_buffer_length);
 	SUITE_ADD_TEST (suite, mctp_protocol_test_interpret_dest_eid_matches_src_eid);
 	SUITE_ADD_TEST (suite, mctp_protocol_test_construct_control_message);

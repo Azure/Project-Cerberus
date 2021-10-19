@@ -132,6 +132,11 @@
  */
 #define MCTP_PROTOCOL_SMBUS_OVERHEAD				(2 + MCTP_PROTOCOL_PEC_SIZE)
 
+/**
+ * Number of SMBus overhead bytes without PEC byte.
+ */
+#define MCTP_PROTOCOL_SMBUS_OVERHEAD_NO_PEC			(MCTP_PROTOCOL_SMBUS_OVERHEAD - MCTP_PROTOCOL_PEC_SIZE)
+
 
 /**
  * MCTP default EIDs per the Cerberus Protocol
