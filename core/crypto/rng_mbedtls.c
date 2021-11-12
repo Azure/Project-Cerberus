@@ -2,9 +2,6 @@
 // Licensed under the MIT license.
 
 #include <stdint.h>
-#include "mbedtls/ctr_drbg.h"
-#include "mbedtls/entropy.h"
-#include "crypto/rng.h"
 #include "rng_mbedtls.h"
 
 
@@ -21,9 +18,9 @@ static int rng_mbedtls_generate_random_buffer (struct rng_engine *engine, size_t
 }
 
 /**
- * Initialize an mbed TLS engine for generating random numbers.
+ * Initialize an mbedTLS engine for generating random numbers.
  *
- * @param engine The mbed TLS RNG engine to initialize.
+ * @param engine The mbedTLS RNG engine to initialize.
  *
  * @return 0 if the RNG engine was initialized successfully or an error code.
  */
@@ -40,7 +37,6 @@ int rng_mbedtls_init (struct rng_engine_mbedtls *engine)
 
     status = mbedtls_ctr_drbg_seed (&engine->ctr_drbg, mbedtls_entropy_func, &engine->entropy, NULL,
 		0);
-
 	if (status != 0) {
 		rng_mbedtls_release (engine);
 		return status;
@@ -52,9 +48,9 @@ int rng_mbedtls_init (struct rng_engine_mbedtls *engine)
 }
 
 /**
- * Release the resources used by an mbed TLS RNG engine.
+ * Release the resources used by an mbedTLS RNG engine.
  *
- * @param engine The mbed TLS RNG engine to release.
+ * @param engine The mbedTLS RNG engine to release.
  */
 void rng_mbedtls_release (struct rng_engine_mbedtls *engine)
 {

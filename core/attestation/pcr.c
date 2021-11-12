@@ -806,8 +806,8 @@ int pcr_get_tcg_log (struct pcr_bank *pcr, uint32_t pcr_num, uint8_t *buffer, si
 	size_t num_bytes = 0;
 	size_t i_measurement = 0;
 	uint8_t *entry_ptr = NULL;
-	size_t entry_len;
-	size_t entry_offset;
+	size_t entry_len = 0;
+	size_t entry_offset = 0;
 	int status = 0;
 
 	if ((pcr == NULL) || (buffer == NULL) || (total_len == NULL)) {

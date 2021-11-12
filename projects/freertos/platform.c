@@ -9,6 +9,7 @@
 #include "status/rot_status.h"
 
 
+/* Error codes to use for platform API failures. */
 #define	INVALID_ARGUMENT	0
 #define	NO_MEMORY			1
 #define	FAILURE				2
@@ -463,32 +464,6 @@ void platform_timer_delete (platform_timer *timer)
 		xTimerDelete (timer->timer, portMAX_DELAY);
 		vSemaphoreDelete (timer->disarm_lock);
 	}
-}
-
-
-#define	SWAP_BYTES_UINT32(x)	(((x >> 24) & 0xff) | ((x >> 8) & 0xff00) | ((x << 8) & 0xff0000) | ((x << 24) & 0xff000000))
-#define	SWAP_BYTES_UINT16(x)	(((x >> 8) & 0xff) | ((x << 8) & 0xff00))
-
-/**
- * Convert the unsigned 32-bit integer host_long from host byte order to network byte order.
- * Assumes host byte order is different from network byte order.
- *
- * @param host_long The unsigned 32-bit integer to convert.
- */
-uint32_t platform_htonl (uint32_t host_long)
-{
-	return SWAP_BYTES_UINT32 (host_long);
-}
-
-/**
- * Convert the unsigned 16-bit integer host_short from host byte order to network byte order.
- * Assumes host byte order is different from network byte order.
- *
- * @param host_short The unsigned 16-bit integer to convert.
- */
-uint16_t platform_htons (uint16_t host_short)
-{
-	return SWAP_BYTES_UINT16 (host_short);
 }
 
 

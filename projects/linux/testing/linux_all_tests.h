@@ -6,6 +6,7 @@
 
 #include <openssl/evp.h>
 #include "CuTest/CuTest.h"
+#include "common/unused.h"
 #include "testing.h"
 
 
@@ -38,6 +39,9 @@ void linux_teardown (CuTest *test)
 
 void add_all_linux_tests (CuSuite *suite)
 {
+	/* This is unused when no tests will be executed. */
+	UNUSED (suite);
+
 	OpenSSL_add_all_algorithms ();
 
 #ifdef TESTING_RUN_HASH_OPENSSL_SUITE

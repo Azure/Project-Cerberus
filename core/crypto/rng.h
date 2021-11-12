@@ -5,6 +5,7 @@
 #define RNG_H_
 
 #include <stdint.h>
+#include <stddef.h>
 #include "status/rot_status.h"
 
 

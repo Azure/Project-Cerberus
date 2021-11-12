@@ -71,7 +71,7 @@ int pcr_store_get_measurement (struct pcr_store *store, uint16_t measurement_typ
 	struct pcr_measurement *measurement);
 int pcr_store_invalidate_measurement (struct pcr_store *store, uint16_t measurement_type);
 
-int pcr_store_get_attestation_log (struct pcr_store *store, struct hash_engine *hash, 
+int pcr_store_get_attestation_log (struct pcr_store *store, struct hash_engine *hash,
 	uint32_t offset, uint8_t *contents, size_t length);
 int pcr_store_get_attestation_log_size (struct pcr_store *store);
 

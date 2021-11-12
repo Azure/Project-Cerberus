@@ -142,28 +142,6 @@ int platform_has_timeout_expired (platform_clock *timeout)
 }
 
 /**
- * Get the elapsed time in milliseconds since last boot
- *
- * @return elapsed time in milliseconds since last boot.
- */
-uint64_t platform_get_time_since_boot (void)
-{
-	struct timespec now;
-	uint64_t time;
-	int status;
-
-	status = clock_gettime (CLOCK_MONOTONIC, &now);
-	if (status != 0) {
-		time = 0;
-	}
-	else {
-		time = (now.tv_sec * 1000) + (now.tv_nsec / 1000000ULL);
-	}
-
-	return time;
-}
-
-/**
  * Get the duration between two clock instances.  These are expected to be initialized with
  * {@link platform_init_current_tick}.
  *
@@ -200,6 +178,28 @@ uint32_t platform_get_duration (const platform_clock *start, const platform_cloc
 
 		return duration;
 	}
+}
+
+/**
+ * Get the elapsed time in milliseconds since last boot
+ *
+ * @return elapsed time in milliseconds since last boot.
+ */
+uint64_t platform_get_time_since_boot (void)
+{
+	struct timespec now;
+	uint64_t time;
+	int status;
+
+	status = clock_gettime (CLOCK_MONOTONIC, &now);
+	if (status != 0) {
+		time = 0;
+	}
+	else {
+		time = (now.tv_sec * 1000) + (now.tv_nsec / 1000000ULL);
+	}
+
+	return time;
 }
 
 

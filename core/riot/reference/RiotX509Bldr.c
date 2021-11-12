@@ -366,8 +366,8 @@ X509GetDeviceCertTBS(
 	const struct x509_dice_tcbinfo *dice
 )
 {
-	int *sha_oid;
-	size_t fw_id_len;
+	int *sha_oid = NULL;
+	size_t fw_id_len = 0;
 	int status;
 
 	if (dice) {
@@ -469,8 +469,8 @@ X509GetCASignedCertTBS(
 )
 {
 	RIOT_X509_PUBLIC_KEY subject_key;
-	int *sha_oid;
-	size_t fw_id_len;
+	int *sha_oid = NULL;
+	size_t fw_id_len = 0;
 	uint8_t authKeyIdentifier[SHA1_DIGEST_LENGTH];
 	int status;
 
@@ -712,8 +712,8 @@ X509GetDERCsrTbs(
 	const struct x509_dice_tcbinfo *dice
 )
 {
-	int *sha_oid;
-	size_t fw_id_len;
+	int *sha_oid = NULL;
+	size_t fw_id_len = 0;
 	int status;
 
 	if (dice) {

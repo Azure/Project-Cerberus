@@ -5,11 +5,11 @@
 #
 # Module Name:
 #
-#	ClangRiscV.cmake
+#	ClangRiscV32.cmake
 #
 # Abstract:
 #
-#	Clang RISC-V Toolchain file
+#	Clang RISC-V 32-bit Toolchain file
 #
 # --
 
@@ -29,11 +29,6 @@ add_compile_definitions(PLATFORM_RISCV)
 add_compile_definitions(LITTLEENDIAN_CPU)
 
 include(${CMAKE_CURRENT_LIST_DIR}/Clang.cmake)
-
-#
-# Enable assembly when we are cross-compiling
-#
-enable_language(ASM)
 
 #
 # Add target system root to cmake find path.

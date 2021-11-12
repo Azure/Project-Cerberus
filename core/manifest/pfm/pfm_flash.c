@@ -12,7 +12,6 @@
 #include "common/buffer_util.h"
 
 
-
 /**
  * Static array indicating the manifest contains no firmware identifiers.
  */
@@ -364,7 +363,7 @@ static int pfm_flash_get_supported_versions_v1 (struct pfm_flash *pfm,
 	struct manifest_header header;
 	struct pfm_allowable_firmware_header fw_section;
 	struct pfm_firmware_header fw_header;
-	struct pfm_firmware_version *version_list;
+	struct pfm_firmware_version *version_list = NULL;
 	uint8_t version_str[MANIFEST_MAX_STRING];
 	int i;
 	uint32_t next_addr;
@@ -548,7 +547,7 @@ static int pfm_flash_get_supported_versions_v2 (struct pfm_flash *pfm, const cha
 		struct pfm_firmware_element fw_element;
 		struct pfm_firmware_version_element ver_element;
 	} buffer;
-	struct pfm_firmware_version *version_list;
+	struct pfm_firmware_version *version_list = NULL;
 	uint8_t entry;
 	int i;
 	int count;

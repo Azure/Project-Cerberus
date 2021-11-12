@@ -302,10 +302,9 @@ static int flash_store_read_header (struct flash_store *flash, int offset,
 
 	if (header->marker != FLASH_STORE_HEADER_MARKER) {
 		/* If the header marker does not match, we need to check the older format for backwards
-			* compatibility.  If the first two bytes represent a valid length, assume the data is
-			* stored in the old way.  This is not a perfect check since it could be corrupt in way
-			* that looks valid.  At that point, we would count on the hash to catch this
-			* corruption. */
+		 * compatibility.  If the first two bytes represent a valid length, assume the data is
+		 * stored in the old way.  This is not a perfect check since it could be corrupt in a way
+		 * that looks valid.  At that point, we would count on the hash to catch this corruption. */
 		old_length = *((uint16_t*) header);
 		if (old_length > flash->max_size) {
 			return FLASH_STORE_NO_DATA;

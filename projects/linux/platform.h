@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#ifndef LINUX_PLATFORM_H_
-#define LINUX_PLATFORM_H_
+#ifndef PLATFORM_H_
+#define PLATFORM_H_
 
 #include <stdlib.h>
 #include <stdint.h>
@@ -79,4 +79,4 @@ int platform_semaphore_try_wait (platform_semaphore *sem);
 int platform_semaphore_reset (platform_semaphore *sem);
 
 
-#endif /* LINUX_PLATFORM_H_ */
+#endif /* PLATFORM_H_ */

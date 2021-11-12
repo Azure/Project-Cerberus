@@ -5,6 +5,7 @@
 #define ALL_TESTS_H_
 
 #include "CuTest/CuTest.h"
+#include "common/unused.h"
 #include "platform_all_tests.h"
 
 
@@ -124,6 +125,7 @@
 //#define	TESTING_RUN_PLATFORM_SEMAPHORE_SUITE
 //#define	TESTING_RUN_INTRUSION_MANAGER_SUITE
 //#define	TESTING_RUN_INTRUSION_MANAGER_ASYNC_SUITE
+//#define	TESTING_RUN_RNG_DUMMY_SUITE
 
 
 CuSuite* get_flash_common_suite (void);
@@ -258,9 +260,13 @@ CuSuite* get_system_suite (void);
 CuSuite* get_platform_semaphore_suite (void);
 CuSuite* get_intrusion_manager_suite (void);
 CuSuite* get_intrusion_manager_async_suite (void);
+CuSuite* get_rng_dummy_suite (void);
 
 void add_all_tests (CuSuite *suite)
 {
+	/* This is unused when no tests will be executed. */
+	UNUSED (suite);
+
 #ifdef TESTING_RUN_FLASH_COMMON_SUITE
 	CuSuiteAddSuite (suite, get_flash_common_suite ());
 #endif
@@ -624,6 +630,9 @@ void add_all_tests (CuSuite *suite)
 #endif
 #ifdef TESTING_RUN_INTRUSION_MANAGER_ASYNC_SUITE
 	CuSuiteAddSuite (suite, get_intrusion_manager_async_suite ());
+#endif
+#ifdef TESTING_RUN_RNG_DUMMY_SUITE
+	CuSuiteAddSuite (suite, get_rng_dummy_suite ());
 #endif
 
 	add_all_platform_tests (suite);

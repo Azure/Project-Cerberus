@@ -215,6 +215,7 @@ static int x509_testing_increase_item_length (uint8_t *der, int increase, size_t
 	do {
 		switch (header) {
 			case 2:
+			default:
 				upper_len = 0x7f;
 				break;
 

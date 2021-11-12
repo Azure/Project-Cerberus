@@ -331,4 +331,4 @@ int cerberus_protocol_reset_counter (struct cmd_device *device,
 
 int cerberus_protocol_process_error_response (struct cmd_interface_msg *response);
 
-#endif // CERBERUS_PROTOCOL_REQUIRED_COMMANDS_H_
+#endif /* CERBERUS_PROTOCOL_REQUIRED_COMMANDS_H_ */

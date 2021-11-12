@@ -2,6 +2,7 @@
 external
 tools/testing/output
 projects/*
+!projects/bare_metal
 !projects/freertos
 !projects/gcc
 !projects/keil

@@ -10,6 +10,7 @@
 #include "task.h"
 #include "semphr.h"
 #include "timers.h"
+#include "common/common_math.h"
 
 
 /* FreeRTOS memory management. */
@@ -19,9 +20,9 @@ void* platform_calloc (size_t nmemb, size_t size);
 void* platform_realloc (void *ptr, size_t size);
 
 
-/* FreeRTOS internet operations. */
-uint32_t platform_htonl (uint32_t host_long);
-uint16_t platform_htons (uint16_t host_short);
+/* FreeRTOS internet operations.  Assumes a little endian CPU. */
+#define	platform_htonl	SWAP_BYTES_UINT32
+#define	platform_htons	SWAP_BYTES_UINT16
 
 
 /* FreeRTOS sleep and system time. */

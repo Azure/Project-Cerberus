@@ -54,9 +54,9 @@ CuString* CuStringNew(void)
 
 void CuStringDelete(CuString *str)
 {
-        if (!str) return;
-        platform_free(str->buffer);
-        platform_free(str);
+	if (!str) return;
+	platform_free(str->buffer);
+	platform_free(str);
 }
 
 void CuStringResize(CuString* str, int newSize)
@@ -116,10 +116,11 @@ void CuStringInsert(CuString* str, const char* text, int pos)
 
 void CuTestInit(CuTest* t, const char* name, TestFunction function)
 {
+	if (!t) return;
 	t->name = CuStrCopy(name);
 	t->failed = 0;
 	t->ran = 0;
-        t->message = NULL;
+	t->message = NULL;
 	t->function = function;
 	t->jumpBuf = NULL;
 }
@@ -133,10 +134,10 @@ CuTest* CuTestNew(const char* name, TestFunction function)
 
 void CuTestDelete(CuTest *t)
 {
-        if (!t) return;
-        CuStringDelete(t->message);
-        platform_free(t->name);
-        platform_free(t);
+	if (!t) return;
+	CuStringDelete(t->message);
+	platform_free(t->name);
+	platform_free(t);
 }
 
 void CuTestRun(CuTest* tc)
@@ -159,9 +160,9 @@ static void CuFailInternal(CuTest* tc, const char* file, int line, CuString* str
 	CuStringInsert(string, buf, 0);
 
 	tc->failed = 1;
-        platform_free(tc->message);
-        tc->message = CuStringNew();
-        CuStringAppend(tc->message, string->buffer);
+	platform_free(tc->message);
+	tc->message = CuStringNew();
+	CuStringAppend(tc->message, string->buffer);
 	if (tc->jumpBuf != 0) longjmp(*(tc->jumpBuf), 0);
 }
 
@@ -245,9 +246,10 @@ void CuAssertPtrEquals_LineMsg(CuTest* tc, const char* file, int line, const cha
 
 void CuSuiteInit(CuSuite* testSuite)
 {
+	if (!testSuite) return;
 	testSuite->count = 0;
 	testSuite->failCount = 0;
-        memset(testSuite->list, 0, sizeof(testSuite->list));
+	memset(testSuite->list, 0, sizeof(testSuite->list));
 }
 
 CuSuite* CuSuiteNew(void)
@@ -259,15 +261,16 @@ CuSuite* CuSuiteNew(void)
 
 void CuSuiteDelete(CuSuite *testSuite)
 {
-        unsigned int n;
-        for (n=0; n < MAX_TEST_CASES; n++)
-        {
-                if (testSuite->list[n])
-                {
-                        CuTestDelete(testSuite->list[n]);
-                }
-        }
-        platform_free(testSuite);
+	unsigned int n;
+	if (!testSuite) return;
+	for (n=0; n < MAX_TEST_CASES; n++)
+	{
+		if (testSuite->list[n])
+		{
+			CuTestDelete(testSuite->list[n]);
+		}
+	}
+	platform_free(testSuite);
 
 }
 
