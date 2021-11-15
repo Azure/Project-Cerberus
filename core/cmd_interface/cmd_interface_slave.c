@@ -25,7 +25,7 @@ static int cmd_interface_slave_process_request (struct cmd_interface *intf,
 	if (status != 0) {
 		return status;
 	}
-
+  
 	switch (command_id) {
 		case CERBERUS_PROTOCOL_GET_FW_VERSION:
 			status = cerberus_protocol_get_fw_version (slave->fw_version, request);

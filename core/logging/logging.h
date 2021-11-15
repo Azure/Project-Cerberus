@@ -68,6 +68,7 @@ struct logging {
 	 */
 	int (*create_entry) (struct logging *logging, uint8_t *entry, size_t length);
 
+#ifndef LOGGING_DISABLE_FLUSH
 	/**
 	 * For logs with buffered entries, flush the internal buffers.  This may cause older entries to
 	 * be lost.  The newest entries that are being flushed will always be kept.
@@ -77,6 +78,7 @@ struct logging {
 	 * @return 0 if the log was successfully flushed or an error code.
 	 */
 	int (*flush) (struct logging *logging);
+#endif
 
 	/**
 	 * Remove all data from the log.

@@ -83,7 +83,9 @@ struct debug_log_entry {
 
 int debug_log_create_entry (uint8_t severity, uint8_t component, uint8_t msg_index, uint32_t arg1,
 	uint32_t arg2);
+#ifndef LOGGING_DISABLE_FLUSH
 int debug_log_flush (void);
+#endif
 int debug_log_clear (void);
 int debug_log_get_size (void);
 int debug_log_read_contents (uint32_t offset, uint8_t *contents, size_t length);
