@@ -3,7 +3,7 @@
 #include <stdio.h>
 
 #include "CuTest.h"
-#include "testing/all_tests.h"
+#include "all_tests.h"
 
 
 int RunAllTests (void)

@@ -9,7 +9,7 @@
 #include "status/rot_status.h"
 
 
-static const char *SUITE = "platform_semaphore";
+TEST_SUITE_LABEL ("platform_semaphore");
 
 
 /*******************
@@ -274,24 +274,21 @@ static void platform_semaphore_test_reset_null (CuTest *test)
 }
 
 
-CuSuite* get_platform_semaphore_suite ()
-{
-	CuSuite *suite = CuSuiteNew ();
+TEST_SUITE_START (platform_semaphore);
 
-	SUITE_ADD_TEST (suite, platform_semaphore_test_init);
-	SUITE_ADD_TEST (suite, platform_semaphore_test_init_null);
-	SUITE_ADD_TEST (suite, platform_semaphore_test_free_null);
-	SUITE_ADD_TEST (suite, platform_semaphore_test_post);
-	SUITE_ADD_TEST (suite, platform_semaphore_test_post_null);
-	SUITE_ADD_TEST (suite, platform_semaphore_test_wait);
-	SUITE_ADD_TEST (suite, platform_semaphore_test_wait_with_timeout);
-	SUITE_ADD_TEST (suite, platform_semaphore_test_wait_with_timeout_no_post);
-	SUITE_ADD_TEST (suite, platform_semaphore_test_wait_null);
-	SUITE_ADD_TEST (suite, platform_semaphore_test_try_wait);
-	SUITE_ADD_TEST (suite, platform_semaphore_test_try_wait_null);
-	SUITE_ADD_TEST (suite, platform_semaphore_test_reset);
-	SUITE_ADD_TEST (suite, platform_semaphore_test_reset_multiple_post);
-	SUITE_ADD_TEST (suite, platform_semaphore_test_reset_null);
+TEST (platform_semaphore_test_init);
+TEST (platform_semaphore_test_init_null);
+TEST (platform_semaphore_test_free_null);
+TEST (platform_semaphore_test_post);
+TEST (platform_semaphore_test_post_null);
+TEST (platform_semaphore_test_wait);
+TEST (platform_semaphore_test_wait_with_timeout);
+TEST (platform_semaphore_test_wait_with_timeout_no_post);
+TEST (platform_semaphore_test_wait_null);
+TEST (platform_semaphore_test_try_wait);
+TEST (platform_semaphore_test_try_wait_null);
+TEST (platform_semaphore_test_reset);
+TEST (platform_semaphore_test_reset_multiple_post);
+TEST (platform_semaphore_test_reset_null);
 
-	return suite;
-}
+TEST_SUITE_END;

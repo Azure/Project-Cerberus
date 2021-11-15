@@ -9,7 +9,7 @@
 #include "status/rot_status.h"
 
 
-static const char *SUITE = "platform_timer";
+TEST_SUITE_LABEL ("platform_timer");
 
 
 /**
@@ -402,26 +402,23 @@ static void platform_timer_test_delete_callback_active (CuTest *test)
 }
 
 
-CuSuite* get_platform_timer_suite ()
-{
-	CuSuite *suite = CuSuiteNew ();
+TEST_SUITE_START (platform_timer);
 
-	SUITE_ADD_TEST (suite, platform_timer_test_create);
-	SUITE_ADD_TEST (suite, platform_timer_test_create_null);
-	SUITE_ADD_TEST (suite, platform_timer_test_delete_null);
-	SUITE_ADD_TEST (suite, platform_timer_test_arm_one_shot);
-	SUITE_ADD_TEST (suite, platform_timer_test_arm_one_shot_reset_timeout);
-	SUITE_ADD_TEST (suite, platform_timer_test_arm_one_shot_change_timeout);
-	SUITE_ADD_TEST (suite, platform_timer_test_arm_one_shot_null);
-	SUITE_ADD_TEST (suite, platform_timer_test_disarm);
-	SUITE_ADD_TEST (suite, platform_timer_test_disarm_not_active);
-	SUITE_ADD_TEST (suite, platform_timer_test_disarm_after_expiration);
-	SUITE_ADD_TEST (suite, platform_timer_test_disarm_twice);
-	SUITE_ADD_TEST (suite, platform_timer_test_disarm_callback_active);
-	SUITE_ADD_TEST (suite, platform_timer_test_disarm_from_callback);
-	SUITE_ADD_TEST (suite, platform_timer_test_disarm_null);
-	SUITE_ADD_TEST (suite, platform_timer_test_delete_active_timer);
-	SUITE_ADD_TEST (suite, platform_timer_test_delete_callback_active);
+TEST (platform_timer_test_create);
+TEST (platform_timer_test_create_null);
+TEST (platform_timer_test_delete_null);
+TEST (platform_timer_test_arm_one_shot);
+TEST (platform_timer_test_arm_one_shot_reset_timeout);
+TEST (platform_timer_test_arm_one_shot_change_timeout);
+TEST (platform_timer_test_arm_one_shot_null);
+TEST (platform_timer_test_disarm);
+TEST (platform_timer_test_disarm_not_active);
+TEST (platform_timer_test_disarm_after_expiration);
+TEST (platform_timer_test_disarm_twice);
+TEST (platform_timer_test_disarm_callback_active);
+TEST (platform_timer_test_disarm_from_callback);
+TEST (platform_timer_test_disarm_null);
+TEST (platform_timer_test_delete_active_timer);
+TEST (platform_timer_test_delete_callback_active);
 
-	return suite;
-}
+TEST_SUITE_END;

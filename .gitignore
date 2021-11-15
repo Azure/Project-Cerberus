@@ -7,9 +7,10 @@ projects/*
 !projects/gcc
 !projects/keil
 !projects/linux
-build
+build*
 .vscode
 *~
 *.bin
 *.pyc
 tools/manifest_visualizer/manifest_visualizor
+user_all_tests.h

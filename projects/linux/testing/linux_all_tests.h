@@ -5,30 +5,13 @@
 #define LINUX_ALL_TESTS_H_
 
 #include <openssl/evp.h>
-#include "CuTest/CuTest.h"
-#include "common/unused.h"
 #include "testing.h"
+#include "platform_all_tests.h"
+#include "common/unused.h"
 
 
-const char *SUITE = "linux";
+TEST_SUITE_LABEL ("linux");
 
-
-//#define	TESTING_RUN_HASH_OPENSSL_SUITE
-//#define	TESTING_RUN_RSA_OPENSSL_SUITE
-//#define	TESTING_RUN_ECC_OPENSSL_SUITE
-//#define	TESTING_RUN_X509_OPENSSL_SUITE
-//#define	TESTING_RUN_AES_OPENSSL_SUITE
-//#define	TESTING_RUN_BASE64_OPENSSL_SUITE
-//#define	TESTING_RUN_RNG_OPENSSL_SUITE
-
-
-CuSuite* get_hash_openssl_suite (void);
-CuSuite* get_rsa_openssl_suite (void);
-CuSuite* get_ecc_openssl_suite (void);
-CuSuite* get_x509_openssl_suite (void);
-CuSuite* get_aes_openssl_suite (void);
-CuSuite* get_base64_openssl_suite (void);
-CuSuite* get_rng_openssl_suite (void);
 
 void linux_teardown (CuTest *test)
 {
@@ -37,6 +20,13 @@ void linux_teardown (CuTest *test)
 	EVP_cleanup ();
 }
 
+/**
+ * Add all tests for Linux platform components.
+ *
+ * Be sure to keep the test suites in alphabetical order for easier management.
+ *
+ * @param suite Suite to add the tests to.
+ */
 void add_all_linux_tests (CuSuite *suite)
 {
 	/* This is unused when no tests will be executed. */
@@ -44,26 +34,47 @@ void add_all_linux_tests (CuSuite *suite)
 
 	OpenSSL_add_all_algorithms ();
 
-#ifdef TESTING_RUN_HASH_OPENSSL_SUITE
-	CuSuiteAddSuite (suite, get_hash_openssl_suite ());
+#if (defined TESTING_RUN_AES_OPENSSL_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_LINUX_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_LINUX_TESTS)) && \
+	!defined TESTING_SKIP_AES_OPENSSL_SUITE
+	TESTING_RUN_SUITE (aes_openssl);
 #endif
-#ifdef TESTING_RUN_RSA_OPENSSL_SUITE
-	CuSuiteAddSuite (suite, get_rsa_openssl_suite ());
+#if (defined TESTING_RUN_BASE64_OPENSSL_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_LINUX_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_LINUX_TESTS)) && \
+	!defined TESTING_SKIP_BASE64_OPENSSL_SUITE
+	TESTING_RUN_SUITE (base64_openssl);
 #endif
-#ifdef TESTING_RUN_ECC_OPENSSL_SUITE
-	CuSuiteAddSuite (suite, get_ecc_openssl_suite ());
+#if (defined TESTING_RUN_HASH_OPENSSL_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_LINUX_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_LINUX_TESTS)) && \
+	!defined TESTING_SKIP_HASH_OPENSSL_SUITE
+	TESTING_RUN_SUITE (hash_openssl);
 #endif
-#ifdef TESTING_RUN_X509_OPENSSL_SUITE
-	CuSuiteAddSuite (suite, get_x509_openssl_suite ());
+#if (defined TESTING_RUN_ECC_OPENSSL_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_LINUX_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_LINUX_TESTS)) && \
+	!defined TESTING_SKIP_ECC_OPENSSL_SUITE
+	TESTING_RUN_SUITE (ecc_openssl);
 #endif
-#ifdef TESTING_RUN_AES_OPENSSL_SUITE
-	CuSuiteAddSuite (suite, get_aes_openssl_suite ());
+#if (defined TESTING_RUN_RNG_OPENSSL_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_LINUX_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_LINUX_TESTS)) && \
+	!defined TESTING_SKIP_RNG_OPENSSL_SUITE
+	TESTING_RUN_SUITE (rng_openssl);
 #endif
-#ifdef TESTING_RUN_BASE64_OPENSSL_SUITE
-	CuSuiteAddSuite (suite, get_base64_openssl_suite ());
+#if (defined TESTING_RUN_RSA_OPENSSL_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_LINUX_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_LINUX_TESTS)) && \
+	!defined TESTING_SKIP_RSA_OPENSSL_SUITE
+	TESTING_RUN_SUITE (rsa_openssl);
 #endif
-#ifdef TESTING_RUN_RNG_OPENSSL_SUITE
-	CuSuiteAddSuite (suite, get_rng_openssl_suite ());
+#if (defined TESTING_RUN_X509_OPENSSL_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_LINUX_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_LINUX_TESTS)) && \
+	!defined TESTING_SKIP_X509_OPENSSL_SUITE
+	TESTING_RUN_SUITE (x509_openssl);
 #endif
 
 	SUITE_ADD_TEST (suite, linux_teardown);
