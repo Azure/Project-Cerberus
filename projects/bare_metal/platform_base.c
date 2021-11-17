@@ -1,7 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include <stddef.h>
 #include "platform_base.h"
+#include "platform.h"
 #include "status/rot_status.h"
 
 

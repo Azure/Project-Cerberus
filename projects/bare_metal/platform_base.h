@@ -4,6 +4,7 @@
 #ifndef PLATFORM_BASE_H_
 #define PLATFORM_BASE_H_
 
+#include <stdint.h>
 #include "common/common_math.h"
 #include "common/unused.h"
 
@@ -19,8 +20,8 @@
 
 
 /* Internet operations.  Assumes a little endian CPU. */
-#define	platform_htonl	SWAP_BYTES_UINT32
-#define platform_htons	SWAP_BYTES_UINT16
+#define	platform_htonl		SWAP_BYTES_UINT32
+#define platform_htons		SWAP_BYTES_UINT16
 
 
 /* platform_clock and system time functions depend on hardware features. */
