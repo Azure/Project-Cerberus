@@ -337,7 +337,7 @@ static int cfm_flash_get_component (struct cfm *cfm, uint32_t component_id,
 				return CFM_NO_MEMORY;
 			}
 
-			addr += sizeof (sizeof (struct cfm_component_header));
+			addr += sizeof (struct cfm_component_header);
 
 			for (i_fw = 0; i_fw < component_header.fw_count; ++i_fw) {
 				status = cfm_flash_process_fw (&cfm_flash->base_flash, &addr, &fw[i_fw]);
