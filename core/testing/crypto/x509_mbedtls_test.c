@@ -4033,7 +4033,7 @@ static void x509_mbedtls_test_authenticate_end_entity_one_intermediate_cert (CuT
 	status = ECC_TESTING_ENGINE_INIT (&ecc);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc.base.generate_key_pair (&ecc.base, &key, NULL);
+	status = ecc.base.generate_key_pair (&ecc.base, ECC256_KEY_LENGTH, &key, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = x509_mbedtls_init (&engine);
@@ -4103,7 +4103,7 @@ static void x509_mbedtls_test_authenticate_ca_one_intermediate_cert (CuTest *tes
 	status = ECC_TESTING_ENGINE_INIT (&ecc);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc.base.generate_key_pair (&ecc.base, &key, NULL);
+	status = ecc.base.generate_key_pair (&ecc.base, ECC256_KEY_LENGTH, &key, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = x509_mbedtls_init (&engine);
@@ -4170,7 +4170,7 @@ static void x509_mbedtls_test_authenticate_end_entity_root_pathlen_constraint (C
 	status = ECC_TESTING_ENGINE_INIT (&ecc);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc.base.generate_key_pair (&ecc.base, &key, NULL);
+	status = ecc.base.generate_key_pair (&ecc.base, ECC256_KEY_LENGTH, &key, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = x509_mbedtls_init (&engine);
@@ -4229,7 +4229,7 @@ static void x509_mbedtls_test_authenticate_ca_root_pathlen_constraint (CuTest *t
 	status = ECC_TESTING_ENGINE_INIT (&ecc);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc.base.generate_key_pair (&ecc.base, &key, NULL);
+	status = ecc.base.generate_key_pair (&ecc.base, ECC256_KEY_LENGTH, &key, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = x509_mbedtls_init (&engine);
@@ -4303,13 +4303,13 @@ static void x509_mbedtls_test_authenticate_end_entity_multiple_intermediate_cert
 	status = ECC_TESTING_ENGINE_INIT (&ecc);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc.base.generate_key_pair (&ecc.base, &key2, NULL);
+	status = ecc.base.generate_key_pair (&ecc.base, ECC256_KEY_LENGTH, &key2, NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc.base.generate_key_pair (&ecc.base, &key3, NULL);
+	status = ecc.base.generate_key_pair (&ecc.base, ECC256_KEY_LENGTH, &key3, NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc.base.generate_key_pair (&ecc.base, &key, NULL);
+	status = ecc.base.generate_key_pair (&ecc.base, ECC256_KEY_LENGTH, &key, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = x509_mbedtls_init (&engine);
@@ -4426,13 +4426,13 @@ static void x509_mbedtls_test_authenticate_ca_multiple_intermediate_certs (CuTes
 	status = ECC_TESTING_ENGINE_INIT (&ecc);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc.base.generate_key_pair (&ecc.base, &key2, NULL);
+	status = ecc.base.generate_key_pair (&ecc.base, ECC256_KEY_LENGTH, &key2, NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc.base.generate_key_pair (&ecc.base, &key3, NULL);
+	status = ecc.base.generate_key_pair (&ecc.base, ECC256_KEY_LENGTH, &key3, NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc.base.generate_key_pair (&ecc.base, &key, NULL);
+	status = ecc.base.generate_key_pair (&ecc.base, ECC256_KEY_LENGTH, &key, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = x509_mbedtls_init (&engine);
@@ -4606,7 +4606,7 @@ static void x509_mbedtls_test_authenticate_no_path_to_root (CuTest *test)
 	status = ECC_TESTING_ENGINE_INIT (&ecc);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc.base.generate_key_pair (&ecc.base, &key, NULL);
+	status = ecc.base.generate_key_pair (&ecc.base, ECC256_KEY_LENGTH, &key, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = x509_mbedtls_init (&engine);
@@ -4684,13 +4684,13 @@ static void x509_mbedtls_test_authenticate_partial_path_to_root (CuTest *test)
 	status = ECC_TESTING_ENGINE_INIT (&ecc);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc.base.generate_key_pair (&ecc.base, &key2, NULL);
+	status = ecc.base.generate_key_pair (&ecc.base, ECC256_KEY_LENGTH, &key2, NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc.base.generate_key_pair (&ecc.base, &key3, NULL);
+	status = ecc.base.generate_key_pair (&ecc.base, ECC256_KEY_LENGTH, &key3, NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc.base.generate_key_pair (&ecc.base, &key, NULL);
+	status = ecc.base.generate_key_pair (&ecc.base, ECC256_KEY_LENGTH, &key, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = x509_mbedtls_init (&engine);
@@ -4797,10 +4797,10 @@ static void x509_mbedtls_test_authenticate_violate_path_length_constraint (CuTes
 	status = ECC_TESTING_ENGINE_INIT (&ecc);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc.base.generate_key_pair (&ecc.base, &key2, NULL);
+	status = ecc.base.generate_key_pair (&ecc.base, ECC256_KEY_LENGTH, &key2, NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc.base.generate_key_pair (&ecc.base, &key, NULL);
+	status = ecc.base.generate_key_pair (&ecc.base, ECC256_KEY_LENGTH, &key, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = x509_mbedtls_init (&engine);
@@ -4893,7 +4893,7 @@ static void x509_mbedtls_test_authenticate_intermediate_bad_signature (CuTest *t
 	status = ECC_TESTING_ENGINE_INIT (&ecc);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc.base.generate_key_pair (&ecc.base, &key, NULL);
+	status = ecc.base.generate_key_pair (&ecc.base, ECC256_KEY_LENGTH, &key, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = x509_mbedtls_init (&engine);
@@ -4967,7 +4967,7 @@ static void x509_mbedtls_test_authenticate_intermediate_corrupt_signature (CuTes
 	status = ECC_TESTING_ENGINE_INIT (&ecc);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc.base.generate_key_pair (&ecc.base, &key, NULL);
+	status = ecc.base.generate_key_pair (&ecc.base, ECC256_KEY_LENGTH, &key, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = x509_mbedtls_init (&engine);
@@ -5105,7 +5105,7 @@ static void x509_mbedtls_test_authenticate_no_root_ca (CuTest *test)
 	status = ECC_TESTING_ENGINE_INIT (&ecc);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc.base.generate_key_pair (&ecc.base, &key, NULL);
+	status = ecc.base.generate_key_pair (&ecc.base, ECC256_KEY_LENGTH, &key, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = x509_mbedtls_init (&engine);

@@ -60,3 +60,49 @@ size_t buffer_copy (const uint8_t *src, size_t src_length, size_t *offset, size_
 
 	return bytes;
 }
+
+/**
+ * Reverse the contents of a buffer, i.e. make the last byte first and first byte last.
+ *
+ * @param buffer The buffer to reverse.  The reversed data will be stored in the same buffer.
+ * @param length The number of bytes contained in the buffer.
+ */
+void buffer_reverse (uint8_t *buffer, size_t length)
+{
+	if (buffer != NULL) {
+		size_t i;
+		size_t j;
+		uint8_t temp;
+
+		for (i = 0, j = (length - 1); i < (length / 2); i++, j--) {
+			temp = buffer[i];
+			buffer[i] = buffer[j];
+			buffer[j] = temp;
+		}
+	}
+}
+
+/**
+ * Make a copy of a buffer, reversing the buffer contents.  If either buffer is null, no operation
+ * is performed.
+ *
+ * These buffers must not be overlapping.
+ *
+ * The arguments on this function are reverse the normal semantics of input args first and output
+ * args last, but this signature more closely maps to memcpy, making it more intuitive.
+ *
+ * @param dest Destination buffer for the reversed data.
+ * @param src The buffer data to copy.
+ * @param length The number of bytes to copy.
+ */
+void buffer_reverse_copy (uint8_t *dest, const uint8_t *src, size_t length)
+{
+	if ((src != NULL) && (dest != NULL)) {
+		size_t i;
+		size_t j;
+
+		for (i = 0, j = (length - 1); i < length; i++, j--) {
+			dest[i] = src[j];
+		}
+	}
+}

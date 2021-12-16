@@ -30,7 +30,20 @@ extern const uint8_t SHA256_EMPTY_BUFFER_HASH[];
 extern const uint8_t SHA384_EMPTY_BUFFER_HASH[];
 extern const uint8_t SHA512_EMPTY_BUFFER_HASH[];
 
+extern const uint8_t SHA1_ZERO_BUFFER_HASH[];
 extern const uint8_t SHA256_ZERO_BUFFER_HASH[];
+extern const uint8_t SHA384_ZERO_BUFFER_HASH[];
+extern const uint8_t SHA512_ZERO_BUFFER_HASH[];
+
+extern const uint8_t SHA1_HMAC_KEY[];
+extern const uint8_t SHA256_HMAC_KEY[];
+extern const uint8_t SHA384_HMAC_KEY[];
+extern const uint8_t SHA512_HMAC_KEY[];
+
+extern const uint8_t SHA1_TEST_HMAC[];
+extern const uint8_t SHA256_TEST_HMAC[];
+extern const uint8_t SHA384_TEST_HMAC[];
+extern const uint8_t SHA512_TEST_HMAC[];
 
 
 #endif /* HASH_TESTING_H_ */

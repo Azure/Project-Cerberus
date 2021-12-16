@@ -1008,7 +1008,7 @@ static void riot_key_manager_test_init_intermediate_signed_device_id_not_trusted
 	status = ECC_TESTING_ENGINE_INIT (&ecc);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc.base.generate_key_pair (&ecc.base, &key, NULL);
+	status = ecc.base.generate_key_pair (&ecc.base, ECC256_KEY_LENGTH, &key, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = ecc.base.get_private_key_der (&ecc.base, &key, &key_der, &key_length);
@@ -3624,7 +3624,7 @@ static void riot_key_manager_test_verify_stored_certs_intermediate_signed_device
 	status = ECC_TESTING_ENGINE_INIT (&ecc);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecc.base.generate_key_pair (&ecc.base, &key, NULL);
+	status = ecc.base.generate_key_pair (&ecc.base, ECC256_KEY_LENGTH, &key, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = ecc.base.get_private_key_der (&ecc.base, &key, &key_der, &key_length);

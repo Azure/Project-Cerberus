@@ -59,8 +59,6 @@ static int ecc_riot_init_key_pair (struct ecc_engine *engine, const uint8_t *key
 	ecc_keypair *private_key;
 	uint8_t der_priv_key[RIOT_ECC_PRIVATE_BYTES];
 	size_t der_priv_key_len;
-	uint8_t der_pub_key[RIOT_X509_MAX_KEY_LEN];
-	size_t der_pub_key_len;
 	int status;
 
 	if ((engine == NULL) || (key == NULL) || (key_length == 0)) {
@@ -92,18 +90,13 @@ static int ecc_riot_init_key_pair (struct ecc_engine *engine, const uint8_t *key
 
 	status = DERDECGetPrivKey (der_priv_key, &der_priv_key_len, key, key_length);
 	if (status != RIOT_SUCCESS) {
-		status = ECC_ENGINE_NOT_PRIVATE_KEY;
+		status = (status == RIOT_INVALID_PARAMETER) ?
+			ECC_ENGINE_UNSUPPORTED_KEY_LENGTH : ECC_ENGINE_NOT_PRIVATE_KEY;
 		goto error;
 	}
 
-	status = DERDECGetPubKeyFromPrivKey (der_pub_key, &der_pub_key_len, key, key_length);
-	if (status != RIOT_SUCCESS) {
-		status = ECC_ENGINE_NOT_PRIVATE_KEY;
-		goto error;
-	}
-
-	status = RIOT_DSA_init_key_pair (private_key, public_key, der_priv_key, der_priv_key_len,
-		der_pub_key, der_pub_key_len);
+	status = RIOT_DeriveDsaKeyPair (&public_key->Q, &private_key->d, der_priv_key,
+		der_priv_key_len);
 	if (status != RIOT_SUCCESS) {
 		status = ECC_ENGINE_KEY_PAIR_FAILED;
 		goto error;
@@ -148,6 +141,10 @@ static int ecc_riot_generate_derived_key_pair (struct ecc_engine *engine, const 
 		return 0;
 	}
 
+	if (key_length != ECC256_KEY_LENGTH) {
+		return ECC_ENGINE_UNSUPPORTED_KEY_LENGTH;
+	}
+
 	if (priv_key) {
 		memset (priv_key, 0, sizeof (struct ecc_private_key));
 	}
@@ -157,20 +154,17 @@ static int ecc_riot_generate_derived_key_pair (struct ecc_engine *engine, const 
 	}
 
 	public_key = ecc_riot_alloc_key_context ();
-
 	if (public_key == NULL) {
 		return ECC_ENGINE_NO_MEMORY;
 	}
 
 	private_key = ecc_riot_alloc_key_context ();
-
 	if (private_key == NULL) {
 		ecc_riot_free_key_context (public_key);
 		return ECC_ENGINE_NO_MEMORY;
 	}
 
 	status = RIOT_DeriveDsaKeyPair (&public_key->Q, &private_key->d, priv, key_length);
-
 	if (status != RIOT_SUCCESS) {
 		goto error;
 	}
@@ -332,13 +326,18 @@ static int ecc_riot_sign (struct ecc_engine *engine, struct ecc_private_key *key
 		return ECC_ENGINE_SIG_BUFFER_TOO_SMALL;
 	}
 
+	if (length != SHA256_HASH_LENGTH) {
+		return ECC_ENGINE_UNSUPPORTED_HASH_TYPE;
+	}
+
 	ec = ecc_riot_get_ec_key_pair (key);
 
 	if (RIOT_DSA_check_privkey (&ec->d) != RIOT_SUCCESS) {
 		return ECC_ENGINE_NOT_PRIVATE_KEY;
 	}
 
-	status = RIOT_DSASignDigest (digest, length, &ec->d, signature, sig_length, riot->rng, &out_len);
+	status = RIOT_DSASignDigest (digest, length, &ec->d, signature, sig_length, riot->rng,
+		&out_len);
 
 	return (status == RIOT_SUCCESS) ? out_len : ECC_ENGINE_SIGN_FAILED;
 }

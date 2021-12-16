@@ -380,7 +380,7 @@ int mctp_interface_process_packet (struct mctp_interface *mctp, struct cmd_packe
 			}
 		}
 #ifdef CMD_ENABLE_ISSUE_REQUEST
-		/* If flag is not defined, we will never issue requests, so response_expected will always be 
+		/* If flag is not defined, we will never issue requests, so response_expected will always be
 		 * false and any response packets will be rejected in the earlier check. Therefore, we dont
 		 * need to do anything here in that case. */
 		else if (tag_owner == MCTP_PROTOCOL_TO_RESPONSE) {
@@ -534,7 +534,7 @@ int mctp_interface_issue_request (struct mctp_interface *mctp, struct cmd_channe
 		return src_addr;
 	}
 
-	if (buffer_util_check_if_buffers_overlap (request, length, msg_buffer, max_length)) {
+	if (buffer_are_overlapping (request, length, msg_buffer, max_length)) {
 		if ((request + length) != (msg_buffer + max_length)) {
 			memmove (msg_buffer + max_length - length, request, length);
 			request = msg_buffer + max_length - length;

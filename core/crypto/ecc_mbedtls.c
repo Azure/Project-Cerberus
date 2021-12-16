@@ -14,6 +14,7 @@
 #include "mbedtls/bignum.h"
 #include "logging/debug_log.h"
 #include "crypto/crypto_logging.h"
+#include "crypto/hash.h"
 #include "common/unused.h"
 
 /**
@@ -224,6 +225,7 @@ static int ecc_mbedtls_generate_derived_key_pair (struct ecc_engine *engine, con
 	struct ecc_engine_mbedtls *mbedtls = (struct ecc_engine_mbedtls*) engine;
 	mbedtls_pk_context *key_ctx;
 	mbedtls_ecp_keypair *ec;
+	mbedtls_ecp_group_id curve;
 	uint8_t msg_code;
 	int status;
 
@@ -233,6 +235,27 @@ static int ecc_mbedtls_generate_derived_key_pair (struct ecc_engine *engine, con
 
 	if (!priv_key && !pub_key) {
 		return 0;
+	}
+
+	switch (key_length) {
+		case ECC256_KEY_LENGTH:
+			curve = MBEDTLS_ECP_DP_SECP256R1;
+			break;
+
+#if ECC_MAX_KEY_LENGTH >= 384
+		case ECC384_KEY_LENGTH:
+			curve = MBEDTLS_ECP_DP_SECP384R1;
+			break;
+
+#if ECC_MAX_KEY_LENGTH >= 521
+		case ECC521_KEY_LENGTH:
+			curve = MBEDTLS_ECP_DP_SECP521R1;
+			break;
+#endif
+#endif
+
+		default:
+			return ECC_ENGINE_UNSUPPORTED_KEY_LENGTH;
 	}
 
 	if (priv_key) {
@@ -255,7 +278,7 @@ static int ecc_mbedtls_generate_derived_key_pair (struct ecc_engine *engine, con
 
 	ec = mbedtls_pk_ec (*key_ctx);
 
-	status = mbedtls_ecp_group_load (&ec->grp, MBEDTLS_ECP_DP_SECP256R1);
+	status = mbedtls_ecp_group_load (&ec->grp, curve);
 	if (status != 0) {
 		msg_code = CRYPTO_LOG_MSG_MBEDTLS_ECP_GROUP_LOAD_EC;
 		goto error_log;
@@ -294,20 +317,21 @@ static int ecc_mbedtls_generate_derived_key_pair (struct ecc_engine *engine, con
 	return 0;
 
 error_log:
-	debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
-		msg_code, status, 0);
+	debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO, msg_code, status,
+		0);
 
 error:
 	ecc_mbedtls_free_key_context (key_ctx);
 	return status;
 }
 
-static int ecc_mbedtls_generate_key_pair (struct ecc_engine *engine,
+static int ecc_mbedtls_generate_key_pair (struct ecc_engine *engine, size_t key_length,
 	struct ecc_private_key *priv_key, struct ecc_public_key *pub_key)
 {
 	struct ecc_engine_mbedtls *mbedtls = (struct ecc_engine_mbedtls*) engine;
 	mbedtls_pk_context *key_ctx;
 	mbedtls_ecp_keypair *ec;
+	mbedtls_ecp_group_id curve;
 	uint8_t msg_code;
 	int status;
 
@@ -317,6 +341,27 @@ static int ecc_mbedtls_generate_key_pair (struct ecc_engine *engine,
 
 	if (!priv_key && !pub_key) {
 		return 0;
+	}
+
+	switch (key_length) {
+		case ECC256_KEY_LENGTH:
+			curve = MBEDTLS_ECP_DP_SECP256R1;
+			break;
+
+#if ECC_MAX_KEY_LENGTH >= 384
+		case ECC384_KEY_LENGTH:
+			curve = MBEDTLS_ECP_DP_SECP384R1;
+			break;
+
+#if ECC_MAX_KEY_LENGTH >= 521
+		case ECC521_KEY_LENGTH:
+			curve = MBEDTLS_ECP_DP_SECP521R1;
+			break;
+#endif
+#endif
+
+		default:
+			return ECC_ENGINE_UNSUPPORTED_KEY_LENGTH;
 	}
 
 	if (priv_key) {
@@ -338,7 +383,7 @@ static int ecc_mbedtls_generate_key_pair (struct ecc_engine *engine,
 	}
 
 	ec = mbedtls_pk_ec (*key_ctx);
-	status = mbedtls_ecp_gen_key (MBEDTLS_ECP_DP_SECP256R1, ec, mbedtls_ctr_drbg_random,
+	status = mbedtls_ecp_gen_key (curve, ec, mbedtls_ctr_drbg_random,
 		&mbedtls->ctr_drbg);
 	if (status != 0) {
 		msg_code = CRYPTO_LOG_MSG_MBEDTLS_ECP_GEN_KEY_EC;
@@ -359,8 +404,8 @@ static int ecc_mbedtls_generate_key_pair (struct ecc_engine *engine,
 	return 0;
 
 error_log:
-	debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
-		msg_code, status, 0);
+	debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO, msg_code, status,
+		0);
 
 error:
 	ecc_mbedtls_free_key_context (key_ctx);
@@ -387,11 +432,14 @@ static void ecc_mbedtls_release_key_pair (struct ecc_engine *engine,
 static int ecc_mbedtls_get_signature_max_length (struct ecc_engine *engine,
 	struct ecc_private_key *key)
 {
+	size_t key_len;
+
 	if ((engine == NULL) || (key == NULL)) {
 		return ECC_ENGINE_INVALID_ARGUMENT;
 	}
 
-	return ((mbedtls_pk_get_len ((mbedtls_pk_context*) key->context) + 3) * 2 + 3);
+	key_len = mbedtls_pk_get_len ((mbedtls_pk_context*) key->context);
+	return (((key_len + 3) * 2) + ((key_len > 61) ? 3 : 2));
 }
 
 #ifdef ECC_ENABLE_GENERATE_KEY_PAIR
@@ -479,6 +527,7 @@ static int ecc_mbedtls_sign (struct ecc_engine *engine, struct ecc_private_key *
 {
 	struct ecc_engine_mbedtls *mbedtls = (struct ecc_engine_mbedtls*) engine;
 	mbedtls_ecp_keypair *ec;
+	mbedtls_md_type_t hash_alg;
 	int status;
 
 	if ((mbedtls == NULL) || (key == NULL) || (digest == NULL) || (signature == NULL) ||
@@ -490,6 +539,23 @@ static int ecc_mbedtls_sign (struct ecc_engine *engine, struct ecc_private_key *
 		return ECC_ENGINE_SIG_BUFFER_TOO_SMALL;
 	}
 
+	switch (length) {
+		case SHA256_HASH_LENGTH:
+			hash_alg = MBEDTLS_MD_SHA256;
+			break;
+
+		case SHA384_HASH_LENGTH:
+			hash_alg = MBEDTLS_MD_SHA384;
+			break;
+
+		case SHA512_HASH_LENGTH:
+			hash_alg = MBEDTLS_MD_SHA512;
+			break;
+
+		default:
+			return ECC_ENGINE_UNSUPPORTED_HASH_TYPE;
+	}
+
 	ec = ecc_mbedtls_get_ec_key_pair (key);
 	status = mbedtls_ecp_check_privkey (&ec->grp, &ec->d);
 	if (status != 0) {
@@ -499,7 +565,7 @@ static int ecc_mbedtls_sign (struct ecc_engine *engine, struct ecc_private_key *
 		return status;
 	}
 
-	status = mbedtls_pk_sign ((mbedtls_pk_context*) key->context, MBEDTLS_MD_SHA256, digest, length,
+	status = mbedtls_pk_sign ((mbedtls_pk_context*) key->context, hash_alg, digest, length,
 		signature, &sig_length, mbedtls_ctr_drbg_random, &mbedtls->ctr_drbg);
 	if (status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
@@ -519,7 +585,7 @@ static int ecc_mbedtls_verify (struct ecc_engine *engine, struct ecc_public_key 
 		return ECC_ENGINE_INVALID_ARGUMENT;
 	}
 
-	status = mbedtls_pk_verify ((mbedtls_pk_context*) key->context, MBEDTLS_MD_SHA256, digest,
+	status = mbedtls_pk_verify ((mbedtls_pk_context*) key->context, MBEDTLS_MD_NONE, digest,
 		length, signature, sig_length);
 	if (status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,

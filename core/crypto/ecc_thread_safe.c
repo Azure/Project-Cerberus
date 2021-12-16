@@ -61,7 +61,7 @@ static int ecc_thread_safe_generate_derived_key_pair (struct ecc_engine *engine,
 	return status;
 }
 
-static int ecc_thread_safe_generate_key_pair (struct ecc_engine *engine,
+static int ecc_thread_safe_generate_key_pair (struct ecc_engine *engine, size_t key_length,
 	struct ecc_private_key *priv_key, struct ecc_public_key *pub_key)
 {
 	struct ecc_engine_thread_safe *ecc = (struct ecc_engine_thread_safe*) engine;
@@ -72,7 +72,7 @@ static int ecc_thread_safe_generate_key_pair (struct ecc_engine *engine,
 	}
 
 	platform_mutex_lock (&ecc->lock);
-	status = ecc->engine->generate_key_pair (ecc->engine, priv_key, pub_key);
+	status = ecc->engine->generate_key_pair (ecc->engine, key_length, priv_key, pub_key);
 	platform_mutex_unlock (&ecc->lock);
 
 	return status;

@@ -77,8 +77,8 @@ static int session_manager_ecc_establish_session (struct session_manager *sessio
 		return status;
 	}
 
-	status = session_mgr->ecc->generate_key_pair (session_mgr->ecc, &session_priv_key,
-		&session_pub_key);
+	status = session_mgr->ecc->generate_key_pair (session_mgr->ecc, ECC256_KEY_LENGTH,
+		&session_priv_key, &session_pub_key);
 	if (status != 0) {
 		goto free_device_key;
 	}

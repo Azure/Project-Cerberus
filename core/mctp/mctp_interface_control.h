@@ -75,9 +75,9 @@ struct mctp_control_get_vendor_def_msg_support_response {
 int mctp_interface_control_process_request (struct mctp_interface *intf,
 	struct cmd_interface_msg *request, uint8_t source_addr);
 
-int mctp_interface_control_generate_set_eid_request (struct mctp_interface *intf, uint8_t eid, 
+int mctp_interface_control_generate_set_eid_request (struct mctp_interface *intf, uint8_t eid,
 	uint8_t *buf, size_t buf_len);
-	
+
 
 #define	MCTP_INTERFACE_CTRL_ERROR(code)		ROT_ERROR (ROT_MODULE_MCTP_INTERFACE_CTRL, code)
 

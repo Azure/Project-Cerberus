@@ -154,7 +154,26 @@ static int ecc_openssl_generate_derived_key_pair (struct ecc_engine *engine, con
 
 	ERR_clear_error ();
 
-	ec = EC_KEY_new_by_curve_name (NID_X9_62_prime256v1);
+	switch (key_length) {
+		case ECC256_KEY_LENGTH:
+			ec = EC_KEY_new_by_curve_name (NID_X9_62_prime256v1);
+			break;
+
+#if ECC_MAX_KEY_LENGTH >= 384
+		case ECC384_KEY_LENGTH:
+			ec = EC_KEY_new_by_curve_name (NID_secp384r1);
+			break;
+
+#if ECC_MAX_KEY_LENGTH >= 521
+		case ECC521_KEY_LENGTH:
+			ec = EC_KEY_new_by_curve_name (NID_secp521r1);
+			break;
+#endif
+#endif
+
+		default:
+			return ECC_ENGINE_UNSUPPORTED_KEY_LENGTH;
+	}
 	if (ec == NULL) {
 		return -ERR_get_error ();
 	}
@@ -230,7 +249,7 @@ err_priv:
 	return (!status) ? ECC_ENGINE_NO_MEMORY : -status;
 }
 
-static int ecc_openssl_generate_key_pair (struct ecc_engine *engine,
+static int ecc_openssl_generate_key_pair (struct ecc_engine *engine, size_t key_length,
 	struct ecc_private_key *priv_key, struct ecc_public_key *pub_key)
 {
 	EC_KEY *ec;
@@ -253,7 +272,26 @@ static int ecc_openssl_generate_key_pair (struct ecc_engine *engine,
 
 	ERR_clear_error ();
 
-	ec = EC_KEY_new_by_curve_name (NID_X9_62_prime256v1);
+	switch (key_length) {
+		case ECC256_KEY_LENGTH:
+			ec = EC_KEY_new_by_curve_name (NID_X9_62_prime256v1);
+			break;
+
+#if ECC_MAX_KEY_LENGTH >= 384
+		case ECC384_KEY_LENGTH:
+			ec = EC_KEY_new_by_curve_name (NID_secp384r1);
+			break;
+
+#if ECC_MAX_KEY_LENGTH >= 521
+		case ECC521_KEY_LENGTH:
+			ec = EC_KEY_new_by_curve_name (NID_secp521r1);
+			break;
+#endif
+#endif
+
+		default:
+			return ECC_ENGINE_UNSUPPORTED_KEY_LENGTH;
+	}
 	if (ec == NULL) {
 		return -ERR_get_error ();
 	}
@@ -391,7 +429,7 @@ static int ecc_openssl_sign (struct ecc_engine *engine, struct ecc_private_key *
 
 	ERR_clear_error ();
 
-	status = ECDSA_sign (NID_sha256, digest, length, signature, &out_len, (EC_KEY*) key->context);
+	status = ECDSA_sign (-1, digest, length, signature, &out_len, (EC_KEY*) key->context);
 
 	return (status == 1) ? out_len : -ERR_get_error ();
 }
@@ -406,8 +444,7 @@ static int ecc_openssl_verify (struct ecc_engine *engine, struct ecc_public_key 
 		return ECC_ENGINE_INVALID_ARGUMENT;
 	}
 
-	status = ECDSA_verify (NID_sha256, digest, length, signature, sig_length,
-		(EC_KEY*) key->context);
+	status = ECDSA_verify (-1, digest, length, signature, sig_length, (EC_KEY*) key->context);
 
 	return (status == 1) ? 0 : ECC_ENGINE_BAD_SIGNATURE;
 }

@@ -46,8 +46,8 @@ static int ecc_mock_generate_derived_key_pair (struct ecc_engine *engine, const 
 		MOCK_ARG_CALL (key_length), MOCK_ARG_CALL (priv_key), MOCK_ARG_CALL (pub_key));
 }
 
-static int ecc_mock_generate_key_pair (struct ecc_engine *engine, struct ecc_private_key *priv_key,
-	struct ecc_public_key *pub_key)
+static int ecc_mock_generate_key_pair (struct ecc_engine *engine, size_t key_length,
+	struct ecc_private_key *priv_key, struct ecc_public_key *pub_key)
 {
 	struct ecc_engine_mock *mock = (struct ecc_engine_mock*) engine;
 
@@ -55,8 +55,8 @@ static int ecc_mock_generate_key_pair (struct ecc_engine *engine, struct ecc_pri
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, ecc_mock_generate_key_pair, engine, MOCK_ARG_CALL (priv_key),
-		MOCK_ARG_CALL (pub_key));
+	MOCK_RETURN (&mock->mock, ecc_mock_generate_key_pair, engine, MOCK_ARG_CALL (key_length),
+		MOCK_ARG_CALL (priv_key), MOCK_ARG_CALL (pub_key));
 }
 
 static void ecc_mock_release_key_pair (struct ecc_engine *engine, struct ecc_private_key *priv_key,
@@ -171,11 +171,11 @@ static int ecc_mock_func_arg_count (void *func)
 		(func == ecc_mock_compute_shared_secret)) {
 		return 4;
 	}
-	else if ((func == ecc_mock_init_public_key) || (func == ecc_mock_get_private_key_der) ||
-		(func == ecc_mock_get_public_key_der)) {
+	else if ((func == ecc_mock_init_public_key) || (func == ecc_mock_generate_key_pair) ||
+		(func == ecc_mock_get_private_key_der) || (func == ecc_mock_get_public_key_der)) {
 		return 3;
 	}
-	else if ((func == ecc_mock_generate_key_pair) || (func == ecc_mock_release_key_pair)) {
+	else if (func == ecc_mock_release_key_pair) {
 		return 2;
 	}
 	else if ((func == ecc_mock_get_signature_max_length) ||
@@ -277,9 +277,12 @@ static const char* ecc_mock_arg_name_map (void *func, int arg)
 	else if (func == ecc_mock_generate_key_pair) {
 		switch (arg) {
 			case 0:
-				return "priv_key";
+				return "key_length";
 
 			case 1:
+				return "priv_key";
+
+			case 2:
 				return "pub_key";
 		}
 	}

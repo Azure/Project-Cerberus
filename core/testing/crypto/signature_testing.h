@@ -5,12 +5,13 @@
 #define SIGNATURE_TESTING_H_
 
 #include "crypto/hash.h"
+#include "testing/crypto/hash_testing.h"
 
 
-extern const uint8_t SIG_HASH_TEST[];
-extern const uint8_t SIG_HASH_TEST2[];
-extern const uint8_t SIG_HASH_NOPE[];
-extern const uint8_t SIG_HASH_BAD[];
+#define	SIG_HASH_TEST	SHA256_TEST_HASH
+#define	SIG_HASH_TEST2	SHA256_TEST2_HASH
+#define	SIG_HASH_NOPE	SHA256_NOPE_HASH
+#define	SIG_HASH_BAD	SHA256_BAD_HASH
 
 #define	SIG_HASH_LEN	SHA256_HASH_LENGTH
 

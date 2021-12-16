@@ -83,7 +83,7 @@ static int read_length(size_t *len, const uint8_t *der, size_t der_len, size_t *
 		*len = length;
 	}
 
-    (*position) +=  (uint32_t) header;
+    (*position) += (uint32_t) header;
 
 	return 0;
 }
@@ -212,8 +212,12 @@ static int decode_octet_string(uint8_t *oct_str, size_t *out_len, size_t max_buf
 	int status;
 
 	status = process_asn1_type(&len, position, der_buf, der_len, 0x04);
-	if ((status != 0) || (len > max_buf_len) || ((*position + len) > der_len)) {
+	if ((status != 0) || ((*position + len) > der_len)) {
 		return -1;
+	}
+
+	if (len > max_buf_len) {
+		return -2;
 	}
 
 	memcpy(oct_str, &der_buf[*position], len);
@@ -288,6 +292,7 @@ RIOT_STATUS DERDECGetPrivKey(uint8_t *private_key, size_t *key_len,
 	const uint8_t *private_key_der, const size_t key_der_len)
 {
 	size_t position = 0;
+	int status;
 
 	if ((private_key == NULL) ||  (private_key_der == NULL)) {
 		goto Error;
@@ -297,7 +302,13 @@ RIOT_STATUS DERDECGetPrivKey(uint8_t *private_key, size_t *key_len,
 
 	CHK(read_sequence(NULL, private_key_der, key_der_len, &position));
 	CHK(read_integer(private_key_der, key_der_len, &position));
-	CHK(decode_octet_string(private_key, key_len, RIOT_ECC_PRIVATE_BYTES, private_key_der, key_der_len, &position));
+	status = decode_octet_string(private_key, key_len, RIOT_ECC_PRIVATE_BYTES, private_key_der, key_der_len, &position);
+	if (status == -2) {
+		return RIOT_INVALID_PARAMETER;
+	}
+	else if (status < 0) {
+		goto Error;
+	}
 
 	if (key_len) {
 		ASRT(*key_len <= RIOT_ECC_PRIVATE_BYTES);

@@ -15,13 +15,18 @@
  * @param buf1_len Length of first buffer.
  * @param buf2 Pointer start address of second buffer.
  * @param buf2_len Length of second buffer.
+ *
+ * @return 0 if the buffers do not overlap, 1 if they do.
  */
-#define buffer_util_check_if_buffers_overlap(buf1, buf1_len, buf2, buf2_len) \
-	(((buf1 >= buf2) && (buf1 < (buf2 + buf2_len))) || ((buf2 >= buf1) && (buf2 < (buf1 + buf1_len))))
+#define buffer_are_overlapping(buf1, buf1_len, buf2, buf2_len) \
+	(((buf1 >= buf2) && (buf1 < (buf2 + buf2_len))) || \
+		((buf2 >= buf1) && (buf2 < (buf1 + buf1_len))))
 
 
 size_t buffer_copy (const uint8_t *src, size_t src_length, size_t *offset, size_t *dest_length,
 	uint8_t *dest);
+void buffer_reverse (uint8_t *buffer, size_t length);
+void buffer_reverse_copy (uint8_t *dest, const uint8_t *src, size_t length);
 
 
 #endif /* BUFFER_UTIL_H_ */

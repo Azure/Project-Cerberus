@@ -220,9 +220,9 @@ static void session_manager_ecc_establish_session (CuTest *test,
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd->ecc.mock, cmd->ecc.base.generate_key_pair, &cmd->ecc, 0,
-		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_save_arg (&cmd->ecc.mock, 0, 1);
-	status |= mock_expect_save_arg (&cmd->ecc.mock, 1, 2);
+		MOCK_ARG (ECC256_KEY_LENGTH), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&cmd->ecc.mock, 1, 1);
+	status |= mock_expect_save_arg (&cmd->ecc.mock, 2, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd->ecc.mock, cmd->ecc.base.get_public_key_der, &cmd->ecc, 0,
@@ -696,9 +696,9 @@ static void session_manager_ecc_test_establish_session (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.generate_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 0, 1);
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 1, 2);
+		MOCK_ARG (ECC256_KEY_LENGTH), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 1, 1);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_public_key_der, &cmd.ecc, 0,
@@ -1105,7 +1105,7 @@ static void session_manager_ecc_test_establish_session_generate_response_key_fai
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.generate_key_pair, &cmd.ecc,
-		ECC_ENGINE_NO_MEMORY, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+		ECC_ENGINE_NO_MEMORY, MOCK_ARG (ECC256_KEY_LENGTH), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
@@ -1160,9 +1160,9 @@ static void session_manager_ecc_test_establish_session_get_session_key_der_fail 
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.generate_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 0, 1);
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 1, 2);
+		MOCK_ARG (ECC256_KEY_LENGTH), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 1, 1);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_public_key_der, &cmd.ecc,
@@ -1231,9 +1231,9 @@ static void session_manager_ecc_test_establish_session_start_keys_digest_fail (C
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.generate_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 0, 1);
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 1, 2);
+		MOCK_ARG (ECC256_KEY_LENGTH), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 1, 1);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_public_key_der, &cmd.ecc, 0,
@@ -1311,9 +1311,9 @@ static void session_manager_ecc_test_establish_session_update_keys_digest_device
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.generate_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 0, 1);
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 1, 2);
+		MOCK_ARG (ECC256_KEY_LENGTH), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 1, 1);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_public_key_der, &cmd.ecc, 0,
@@ -1395,9 +1395,9 @@ static void session_manager_ecc_test_establish_session_update_keys_digest_sessio
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.generate_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 0, 1);
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 1, 2);
+		MOCK_ARG (ECC256_KEY_LENGTH), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 1, 1);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_public_key_der, &cmd.ecc, 0,
@@ -1481,9 +1481,9 @@ static void session_manager_ecc_test_establish_session_finish_keys_digest_fail (
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.generate_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 0, 1);
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 1, 2);
+		MOCK_ARG (ECC256_KEY_LENGTH), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 1, 1);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_public_key_der, &cmd.ecc, 0,
@@ -1574,9 +1574,9 @@ static void session_manager_ecc_test_establish_session_buf_smaller_than_session_
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.generate_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 0, 1);
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 1, 2);
+		MOCK_ARG (ECC256_KEY_LENGTH), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 1, 1);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_public_key_der, &cmd.ecc, 0,
@@ -1664,9 +1664,9 @@ static void session_manager_ecc_test_establish_session_init_alias_priv_key_fail 
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.generate_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 0, 1);
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 1, 2);
+		MOCK_ARG (ECC256_KEY_LENGTH), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 1, 1);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_public_key_der, &cmd.ecc, 0,
@@ -1759,9 +1759,9 @@ static void session_manager_ecc_test_establish_session_get_max_sig_len_fail (CuT
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.generate_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 0, 1);
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 1, 2);
+		MOCK_ARG (ECC256_KEY_LENGTH), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 1, 1);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_public_key_der, &cmd.ecc, 0,
@@ -1863,9 +1863,9 @@ static void session_manager_ecc_test_establish_session_sign_fail (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.generate_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 0, 1);
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 1, 2);
+		MOCK_ARG (ECC256_KEY_LENGTH), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 1, 1);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_public_key_der, &cmd.ecc, 0,
@@ -1974,9 +1974,9 @@ static void session_manager_ecc_test_establish_session_size_shared_secret_fail (
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.generate_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 0, 1);
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 1, 2);
+		MOCK_ARG (ECC256_KEY_LENGTH), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 1, 1);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_public_key_der, &cmd.ecc, 0,
@@ -2090,9 +2090,9 @@ static void session_manager_ecc_test_establish_session_compute_shared_secret_fai
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.generate_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 0, 1);
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 1, 2);
+		MOCK_ARG (ECC256_KEY_LENGTH), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 1, 1);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_public_key_der, &cmd.ecc, 0,
@@ -2211,9 +2211,9 @@ static void session_manager_ecc_test_establish_session_generate_session_key_fail
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.generate_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 0, 1);
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 1, 2);
+		MOCK_ARG (ECC256_KEY_LENGTH), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 1, 1);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_public_key_der, &cmd.ecc, 0,
@@ -2343,9 +2343,9 @@ static void session_manager_ecc_test_establish_session_generate_hmac_key_fail (C
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.generate_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 0, 1);
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 1, 2);
+		MOCK_ARG (ECC256_KEY_LENGTH), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 1, 1);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_public_key_der, &cmd.ecc, 0,
@@ -2494,9 +2494,9 @@ static void session_manager_ecc_test_establish_session_generate_hmac_fail (CuTes
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.generate_key_pair, &cmd.ecc, 0,
-		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 0, 1);
-	status |= mock_expect_save_arg (&cmd.ecc.mock, 1, 2);
+		MOCK_ARG (ECC256_KEY_LENGTH), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 1, 1);
+	status |= mock_expect_save_arg (&cmd.ecc.mock, 2, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.get_public_key_der, &cmd.ecc, 0,
