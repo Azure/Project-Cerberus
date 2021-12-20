@@ -566,8 +566,7 @@ static void mctp_interface_control_test_process_get_vendor_def_msg_support_inval
 	request.crypto_timeout = true;
 	status = mctp_interface_control_process_request (&interface, &request, 0x20);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, sizeof (struct mctp_control_get_vendor_def_msg_support_response),
-		request.length);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_CONTROL_FAILURE_REPONSE_LEN, request.length);
 	CuAssertIntEquals (test, 0, response->header.msg_type);
 	CuAssertIntEquals (test, 0, response->header.integrity_check);
 	CuAssertIntEquals (test, 2, response->header.instance_id);
@@ -585,8 +584,7 @@ static void mctp_interface_control_test_process_get_vendor_def_msg_support_inval
 
 	status = mctp_interface_control_process_request (&interface, &request, 0x20);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, sizeof (struct mctp_control_get_vendor_def_msg_support_response),
-		request.length);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_CONTROL_FAILURE_REPONSE_LEN,	request.length);
 	CuAssertIntEquals (test, 0, response->header.msg_type);
 	CuAssertIntEquals (test, 0, response->header.integrity_check);
 	CuAssertIntEquals (test, 2, response->header.instance_id);
@@ -635,8 +633,7 @@ static void mctp_interface_control_test_process_get_vendor_def_msg_support_inval
 	request.crypto_timeout = true;
 	status = mctp_interface_control_process_request (&interface, &request, 0x20);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, sizeof (struct mctp_control_get_vendor_def_msg_support_response),
-		request.length);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_CONTROL_FAILURE_REPONSE_LEN,	request.length);
 	CuAssertIntEquals (test, 0, response->header.msg_type);
 	CuAssertIntEquals (test, 0, response->header.integrity_check);
 	CuAssertIntEquals (test, 2, response->header.instance_id);
@@ -742,7 +739,7 @@ static void mctp_interface_control_test_process_set_eid_request_invalid_len (CuT
 	request.crypto_timeout = true;
 	status = mctp_interface_control_process_request (&interface, &request, 0x20);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, sizeof (struct mctp_control_set_eid_response), request.length);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MIN_CONTROL_MSG_RSP_LEN, request.length);
 	CuAssertIntEquals (test, 0, response->header.msg_type);
 	CuAssertIntEquals (test, 0, response->header.integrity_check);
 	CuAssertIntEquals (test, 2, response->header.instance_id);
@@ -759,7 +756,7 @@ static void mctp_interface_control_test_process_set_eid_request_invalid_len (CuT
 	request.crypto_timeout = true;
 	status = mctp_interface_control_process_request (&interface, &request, 0x20);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, sizeof (struct mctp_control_set_eid_response), request.length);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MIN_CONTROL_MSG_RSP_LEN, request.length);
 	CuAssertIntEquals (test, 0, response->header.msg_type);
 	CuAssertIntEquals (test, 0, response->header.integrity_check);
 	CuAssertIntEquals (test, 2, response->header.instance_id);
@@ -807,7 +804,7 @@ static void mctp_interface_control_test_process_set_eid_request_invalid_data (Cu
 	request.crypto_timeout = true;
 	status = mctp_interface_control_process_request (&interface, &request, 0x20);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, sizeof (struct mctp_control_set_eid_response), request.length);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MIN_CONTROL_MSG_RSP_LEN, request.length);
 	CuAssertIntEquals (test, 0, response->header.msg_type);
 	CuAssertIntEquals (test, 0, response->header.integrity_check);
 	CuAssertIntEquals (test, 2, response->header.instance_id);
@@ -827,7 +824,7 @@ static void mctp_interface_control_test_process_set_eid_request_invalid_data (Cu
 	request.crypto_timeout = true;
 	status = mctp_interface_control_process_request (&interface, &request, 0x20);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, sizeof (struct mctp_control_set_eid_response), request.length);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MIN_CONTROL_MSG_RSP_LEN, request.length);
 	CuAssertIntEquals (test, 0, response->header.msg_type);
 	CuAssertIntEquals (test, 0, response->header.integrity_check);
 	CuAssertIntEquals (test, 2, response->header.instance_id);
@@ -847,7 +844,7 @@ static void mctp_interface_control_test_process_set_eid_request_invalid_data (Cu
 	request.crypto_timeout = true;
 	status = mctp_interface_control_process_request (&interface, &request, 0x20);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, sizeof (struct mctp_control_set_eid_response), request.length);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MIN_CONTROL_MSG_RSP_LEN, request.length);
 	CuAssertIntEquals (test, 0, response->header.msg_type);
 	CuAssertIntEquals (test, 0, response->header.integrity_check);
 	CuAssertIntEquals (test, 2, response->header.instance_id);
@@ -867,7 +864,7 @@ static void mctp_interface_control_test_process_set_eid_request_invalid_data (Cu
 	request.crypto_timeout = true;
 	status = mctp_interface_control_process_request (&interface, &request, 0x20);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, sizeof (struct mctp_control_set_eid_response), request.length);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MIN_CONTROL_MSG_RSP_LEN, request.length);
 	CuAssertIntEquals (test, 0, response->header.msg_type);
 	CuAssertIntEquals (test, 0, response->header.integrity_check);
 	CuAssertIntEquals (test, 2, response->header.instance_id);
@@ -881,7 +878,7 @@ static void mctp_interface_control_test_process_set_eid_request_invalid_data (Cu
 	complete_mctp_interface_control_mock_test (test, &interface, &device_manager, &cmd_interface);
 }
 
-static void mctp_interface_control_test_process_set_eid_request_invalid_role (CuTest *test)
+static void mctp_interface_control_test_process_set_eid_request_pa_rot (CuTest *test)
 {
 	struct mctp_interface interface;
 	struct cmd_interface_mock cmd_interface;
@@ -925,13 +922,107 @@ static void mctp_interface_control_test_process_set_eid_request_invalid_role (Cu
 	CuAssertIntEquals (test, 1, response->header.command_code);
 	CuAssertIntEquals (test, 0, response->completion_code);
 	CuAssertIntEquals (test, 0, response->reserved1);
-	CuAssertIntEquals (test, 1, response->eid_assignment_status);
+	CuAssertIntEquals (test, 0, response->eid_assignment_status);
 	CuAssertIntEquals (test, 0, response->reserved2);
 	CuAssertIntEquals (test, 0, response->eid_allocation_status);
-	CuAssertIntEquals (test, 0x0B, response->eid_setting);
+	CuAssertIntEquals (test, 0xBB, response->eid_setting);
 	CuAssertIntEquals (test, 0, response->eid_pool_size);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
-	CuAssertIntEquals (test, 0x0B, device_manager_get_device_eid (&device_manager, 0));
+	CuAssertIntEquals (test, 0xBB, device_manager_get_device_eid (&device_manager, 0));
+
+	complete_mctp_interface_control_mock_test (test, &interface, &device_manager, &cmd_interface);
+}
+
+static void mctp_interface_control_test_process_get_eid_request (CuTest *test)
+{
+	struct mctp_interface interface;
+	struct cmd_interface_mock cmd_interface;
+	struct device_manager device_manager;
+	uint8_t data[MCTP_PROTOCOL_MIN_TRANSMISSION_UNIT];
+	struct cmd_interface_msg request;
+	struct mctp_control_get_eid *rq = (struct mctp_control_get_eid*) data;
+	struct mctp_control_get_eid_response *response = (struct mctp_control_get_eid_response*) data;
+	int status;
+
+	TEST_START;
+
+	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
+
+	rq->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_CONTROL_MSG;
+	rq->header.command_code = MCTP_PROTOCOL_GET_EID;
+	rq->header.rq = 1;
+	rq->header.instance_id = 2;
+
+	request.length = sizeof (struct mctp_control_get_eid);
+	request.source_eid = MCTP_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+
+	setup_mctp_interface_control_mock_test (test, &interface, &device_manager, &cmd_interface);
+
+	request.crypto_timeout = true;
+	status = mctp_interface_control_process_request (&interface, &request, 0x20);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct mctp_control_get_eid_response), request.length);
+	CuAssertIntEquals (test, 0, response->header.msg_type);
+	CuAssertIntEquals (test, 0, response->header.integrity_check);
+	CuAssertIntEquals (test, 2, response->header.instance_id);
+	CuAssertIntEquals (test, 0, response->header.rsvd);
+	CuAssertIntEquals (test, 0, response->header.d_bit);
+	CuAssertIntEquals (test, 0, response->header.rq);
+	CuAssertIntEquals (test, 2, response->header.command_code);
+	CuAssertIntEquals (test, 0, response->completion_code);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_PA_ROT_CTRL_EID, response->eid);
+	CuAssertIntEquals (test, 1, response->eid_type);
+	CuAssertIntEquals (test, 0, response->reserved);
+	CuAssertIntEquals (test, 0, response->endpoint_type);
+	CuAssertIntEquals (test, 0, response->reserved2);
+	CuAssertIntEquals (test, 0, response->medium_specific_info);
+
+	complete_mctp_interface_control_mock_test (test, &interface, &device_manager, &cmd_interface);
+}
+
+static void mctp_interface_control_test_process_get_eid_request_invalid_len (CuTest *test)
+{
+	struct mctp_interface interface;
+	struct cmd_interface_mock cmd_interface;
+	struct device_manager device_manager;
+	uint8_t data[MCTP_PROTOCOL_MIN_TRANSMISSION_UNIT];
+	struct cmd_interface_msg request;
+	struct mctp_control_get_eid *rq = (struct mctp_control_get_eid*) data;
+	struct mctp_control_get_eid_response *response = (struct mctp_control_get_eid_response*) data;
+	int status;
+
+	TEST_START;
+
+	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
+
+	rq->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_CONTROL_MSG;
+	rq->header.command_code = MCTP_PROTOCOL_GET_EID;
+	rq->header.rq = 1;
+	rq->header.instance_id = 2;
+
+	request.length = sizeof (struct mctp_control_get_eid) + 1;
+	request.source_eid = MCTP_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+
+	setup_mctp_interface_control_mock_test (test, &interface, &device_manager, &cmd_interface);
+
+	request.crypto_timeout = true;
+	status = mctp_interface_control_process_request (&interface, &request, 0x20);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, MCTP_PROTOCOL_MIN_CONTROL_MSG_RSP_LEN, request.length);
+	CuAssertIntEquals (test, 0, response->header.msg_type);
+	CuAssertIntEquals (test, 0, response->header.integrity_check);
+	CuAssertIntEquals (test, 2, response->header.instance_id);
+	CuAssertIntEquals (test, 0, response->header.rsvd);
+	CuAssertIntEquals (test, 0, response->header.d_bit);
+	CuAssertIntEquals (test, 0, response->header.rq);
+	CuAssertIntEquals (test, 2, response->header.command_code);
+	CuAssertIntEquals (test, 4, response->completion_code);
 
 	complete_mctp_interface_control_mock_test (test, &interface, &device_manager, &cmd_interface);
 }
@@ -1385,7 +1476,9 @@ TEST (mctp_interface_control_test_process_get_vendor_def_msg_support_invalid_vid
 TEST (mctp_interface_control_test_process_set_eid_request);
 TEST (mctp_interface_control_test_process_set_eid_request_invalid_len);
 TEST (mctp_interface_control_test_process_set_eid_request_invalid_data);
-TEST (mctp_interface_control_test_process_set_eid_request_invalid_role);
+TEST (mctp_interface_control_test_process_set_eid_request_pa_rot);
+TEST (mctp_interface_control_test_process_get_eid_request);
+TEST (mctp_interface_control_test_process_get_eid_request_invalid_len);
 TEST (mctp_interface_control_test_process_set_eid_response);
 TEST (mctp_interface_control_test_process_set_eid_response_invalid_len);
 TEST (mctp_interface_control_test_process_set_eid_response_invalid_response);

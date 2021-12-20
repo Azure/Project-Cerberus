@@ -2375,7 +2375,7 @@ static void mctp_interface_test_process_packet_mctp_control_msg (CuTest *test)
 	CuAssertIntEquals (test, 1, response->header.command_code);
 	CuAssertIntEquals (test, 0, response->header.rq);
 	CuAssertIntEquals (test, 0, response->completion_code);
-	CuAssertIntEquals (test, 1, response->eid_assignment_status);
+	CuAssertIntEquals (test, 0, response->eid_assignment_status);
 
 	complete_mctp_interface_with_interface_mock_test (test, &mctp);
 }

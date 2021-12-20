@@ -24,6 +24,12 @@
 
 #define MCTP_CONTROL_SET_EID_ALLOCATION_STATUS_NO_EID_POOL	0
 
+#define MCTP_CONTROL_GET_EID_EID_TYPE_DYNAMIC_EID			0
+#define MCTP_CONTROL_GET_EID_EID_TYPE_STATIC_EID_SUPPORTED  1
+
+#define MCTP_CONTROL_GET_EID_ENDPOINT_TYPE_SIMPLE_ENDPOINT  0
+#define MCTP_CONTROL_GET_EID_ENDPOINT_TYPE_BUS_OWNER_BRIDGE 1
+
 
 #pragma pack(push, 1)
 /**
@@ -48,6 +54,27 @@ struct mctp_control_set_eid_response {
 	uint8_t reserved2:2;							/**< Reserved */
 	uint8_t eid_setting;							/**< EID setting */
 	uint8_t eid_pool_size;							/**< EID pool size */
+};
+
+/**
+ * MCTP control get EID request
+ */
+struct mctp_control_get_eid {
+	struct mctp_protocol_control_header header;		/**< Message header */
+};
+
+/**
+ * MCTP control get EID response format
+ */
+struct mctp_control_get_eid_response {
+	struct mctp_protocol_control_header header;		/**< Message header */
+	uint8_t completion_code;						/**< Operation completion code */
+	uint8_t eid;									/**< Endpoint ID */
+	uint8_t eid_type:2;								/**< Endpoint ID type */
+	uint8_t reserved:2;								/**< Reserved */
+	uint8_t endpoint_type:2;						/**< Endpoint type */
+	uint8_t reserved2:2;							/**< Reserved */
+	uint8_t medium_specific_info;					/**< Medium-specific info */
 };
 
 /**

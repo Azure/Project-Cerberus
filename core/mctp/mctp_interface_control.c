@@ -79,10 +79,10 @@ int mctp_interface_control_generate_set_eid_request (struct mctp_interface *intf
 }
 
 /**
- * Process vendor defined message support request packet
+ * Process Set EID request packet
  *
  * @param intf MCTP interface to utilize
- * @param request Vendor defined message support request to process
+ * @param request Set EID request to process
  *
  * @return 0 if request processing completed successfully or an error code.
  */
@@ -92,47 +92,36 @@ static int mctp_interface_control_set_eid (struct mctp_interface *intf,
 	struct mctp_control_set_eid *rq = (struct mctp_control_set_eid*) request->data;
 	struct mctp_control_set_eid_response *response =
 		(struct mctp_control_set_eid_response*) request->data;
-	struct device_manager_full_capabilities capabilities;
 	int status;
 
-	status = device_manager_get_device_capabilities (intf->device_manager, 0, &capabilities);
-	if (status != 0) {
-		request->length = sizeof (struct mctp_control_set_eid_response);
-		response->completion_code = MCTP_PROTOCOL_ERROR;
+	if (request->length != sizeof (struct mctp_control_set_eid)) {
+		request->length = MCTP_PROTOCOL_CONTROL_FAILURE_REPONSE_LEN;
+		response->completion_code = MCTP_PROTOCOL_ERROR_INVALID_LEN;
 
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MCTP,
-			MCTP_LOGGING_CONTROL_FAIL, status, request->channel_id);
-
-		return 0;
-	}
-
-	if (request->length != sizeof (struct mctp_control_set_eid)) {
-		response->completion_code = MCTP_PROTOCOL_ERROR_INVALID_LEN;
+			MCTP_LOGGING_INVALID_LEN, request->length, 
+			(request->source_eid << 8) | MCTP_PROTOCOL_SET_EID);
 	}
 	else if ((rq->reserved != 0) || (rq->operation > MCTP_CONTROL_SET_EID_OPERATION_FORCE_ID) ||
 		(rq->eid == 0) || (rq->eid == 0xFF)) {
+		request->length = MCTP_PROTOCOL_CONTROL_FAILURE_REPONSE_LEN;
 		response->completion_code = MCTP_PROTOCOL_ERROR_INVALID_DATA;
 	}
 	else {
-		if (capabilities.request.hierarchy_role == DEVICE_MANAGER_PA_ROT_MODE) {
-			response->eid_assignment_status = MCTP_CONTROL_SET_EID_ASSIGNMENT_STATUS_REJECTED;
-		}
-		else {
-			status = device_manager_update_device_eid (intf->device_manager, 0, rq->eid);
-			if (status == 0) {
-				intf->eid = rq->eid;
-				response->eid_assignment_status = MCTP_CONTROL_SET_EID_ASSIGNMENT_STATUS_ACCEPTED;
-			}
-		}
-
+		status = device_manager_update_device_eid (intf->device_manager, 0, rq->eid);
 		if (status != 0) {
+			request->length = MCTP_PROTOCOL_CONTROL_FAILURE_REPONSE_LEN;
 			response->completion_code = MCTP_PROTOCOL_ERROR;
 
 			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MCTP,
 				MCTP_LOGGING_CONTROL_FAIL, status, request->channel_id);
 		}
 		else {
+			intf->eid = rq->eid;
 			response->completion_code = MCTP_PROTOCOL_SUCCESS;
+			request->length = sizeof (struct mctp_control_set_eid_response);
+
+			response->eid_assignment_status = MCTP_CONTROL_SET_EID_ASSIGNMENT_STATUS_ACCEPTED;
 			response->reserved1 = 0;
 			response->reserved2 = 0;
 			response->eid_allocation_status = MCTP_CONTROL_SET_EID_ALLOCATION_STATUS_NO_EID_POOL;
@@ -141,7 +130,54 @@ static int mctp_interface_control_set_eid (struct mctp_interface *intf,
 		}
 	}
 
-	request->length = sizeof (struct mctp_control_set_eid_response);
+	return 0;
+}
+
+/**
+ * Process Get EID request packet
+ *
+ * @param intf MCTP interface to utilize
+ * @param request Get EID request to process
+ *
+ * @return 0 if request processing completed successfully or an error code.
+ */
+static int mctp_interface_control_get_eid (struct mctp_interface *intf,
+	struct cmd_interface_msg *request)
+{
+	struct mctp_control_get_eid_response *response =
+		(struct mctp_control_get_eid_response*) request->data;
+	int status;
+
+	if (request->length != sizeof (struct mctp_control_get_eid)) {
+		request->length = MCTP_PROTOCOL_CONTROL_FAILURE_REPONSE_LEN;
+		response->completion_code = MCTP_PROTOCOL_ERROR_INVALID_LEN;
+
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MCTP,
+			MCTP_LOGGING_INVALID_LEN, request->length, 
+			(request->source_eid << 8) | MCTP_PROTOCOL_SET_EID);
+	}
+	else {
+		status = device_manager_get_device_eid (intf->device_manager, 0);
+		if (ROT_IS_ERROR (status)) {
+			request->length = MCTP_PROTOCOL_CONTROL_FAILURE_REPONSE_LEN;
+			response->completion_code = MCTP_PROTOCOL_ERROR;
+
+			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MCTP,
+				MCTP_LOGGING_CONTROL_FAIL, status, request->channel_id);
+
+			return 0;
+		}
+		
+		request->length = sizeof (struct mctp_control_get_eid_response);
+		response->completion_code = MCTP_PROTOCOL_SUCCESS;
+		response->eid = status;
+		response->eid_type = MCTP_CONTROL_GET_EID_EID_TYPE_STATIC_EID_SUPPORTED;
+		response->reserved = 0;
+		response->endpoint_type = MCTP_CONTROL_GET_EID_ENDPOINT_TYPE_SIMPLE_ENDPOINT;
+		response->reserved2 = 0;
+		response->medium_specific_info = 0;
+	}
+
 	return 0;
 }
 
@@ -226,20 +262,21 @@ static int mctp_interface_control_get_vendor_def_msg_support (struct mctp_interf
 		(struct mctp_control_get_vendor_def_msg_support_response*) request->data;
 
 	if (request->length != sizeof (struct mctp_control_get_vendor_def_msg_support)) {
+		request->length = MCTP_PROTOCOL_CONTROL_FAILURE_REPONSE_LEN;
 		response->completion_code = MCTP_PROTOCOL_ERROR_INVALID_LEN;
 	}
 	else if (rq->vid_set_selector != CERBERUS_VID_SET) {
+		request->length = MCTP_PROTOCOL_CONTROL_FAILURE_REPONSE_LEN;
 		response->completion_code = MCTP_PROTOCOL_ERROR_INVALID_DATA;
 	}
 	else {
+		request->length = sizeof (struct mctp_control_get_vendor_def_msg_support_response);
 		response->completion_code = MCTP_PROTOCOL_SUCCESS;
 		response->vid_set_selector = CERBERUS_VID_SET_RESPONSE;
 		response->vid_format = MCTP_PROTOCOL_VID_FORMAT_PCI;
 		response->vid = platform_htons (intf->pci_vendor_id);
 		response->protocol_version = platform_htons (intf->protocol_version);
 	}
-
-	request->length = sizeof (struct mctp_control_get_vendor_def_msg_support_response);
 
 	return 0;
 }
@@ -285,6 +322,9 @@ int mctp_interface_control_process_request (struct mctp_interface *intf,
 
 			case MCTP_PROTOCOL_SET_EID:
 				return mctp_interface_control_set_eid (intf, request);
+
+			case MCTP_PROTOCOL_GET_EID:
+				return mctp_interface_control_get_eid (intf, request);
 
 			default:
 				return MCTP_INTERFACE_CTRL_UNKNOWN_COMMAND;

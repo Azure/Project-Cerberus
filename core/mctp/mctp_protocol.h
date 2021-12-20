@@ -107,6 +107,11 @@
  */
 #define MCTP_PROTOCOL_MIN_CONTROL_MSG_RSP_LEN		(sizeof (struct mctp_protocol_control_header) + MCTP_PROTOCOL_PEC_SIZE)
 
+/**
+ * The size of a MCTP control response message with a failed completion code.
+ */
+#define MCTP_PROTOCOL_CONTROL_FAILURE_REPONSE_LEN	MCTP_PROTOCOL_MIN_CONTROL_MSG_RSP_LEN
+
 /********************
  * MCTP header fields
  ********************/
@@ -155,6 +160,7 @@ enum
  */
 enum {
 	MCTP_PROTOCOL_SET_EID = 0x01,					/**< Set Endpoint ID */
+	MCTP_PROTOCOL_GET_EID = 0x02,					/**< Get Endpoint ID */
 	MCTP_PROTOCOL_GET_VEN_DEF_MSG_SUPPORT = 0x06,	/**< Get vendor defined message support */
 };
 
