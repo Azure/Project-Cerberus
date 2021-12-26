@@ -11,8 +11,14 @@
 static int hash_openssl_calculate_sha1 (struct hash_engine *engine, const uint8_t *data,
 	size_t length, uint8_t *hash, size_t hash_length)
 {
-	if ((engine == NULL) || ((data == NULL) && (length != 0)) || (hash == NULL)) {
+	struct hash_engine_openssl *openssl = (struct hash_engine_openssl*) engine;
+
+	if ((openssl == NULL) || ((data == NULL) && (length != 0)) || (hash == NULL)) {
 		return HASH_ENGINE_INVALID_ARGUMENT;
+	}
+
+	if (openssl->active != HASH_ACTIVE_NONE) {
+		return HASH_ENGINE_HASH_IN_PROGRESS;
 	}
 
 	if (hash_length < SHA1_HASH_LENGTH) {
@@ -20,6 +26,7 @@ static int hash_openssl_calculate_sha1 (struct hash_engine *engine, const uint8_
 	}
 
 	SHA1 (data, length, hash);
+
 	return 0;
 }
 
@@ -29,6 +36,10 @@ static int hash_openssl_start_sha1 (struct hash_engine *engine)
 
 	if (openssl == NULL) {
 		return HASH_ENGINE_INVALID_ARGUMENT;
+	}
+
+	if (openssl->active != HASH_ACTIVE_NONE) {
+		return HASH_ENGINE_HASH_IN_PROGRESS;
 	}
 
 	if (SHA1_Init (&openssl->sha1) == 1) {
@@ -44,8 +55,14 @@ static int hash_openssl_start_sha1 (struct hash_engine *engine)
 static int hash_openssl_calculate_sha256 (struct hash_engine *engine, const uint8_t *data,
 	size_t length, uint8_t *hash, size_t hash_length)
 {
-	if ((engine == NULL) || ((data == NULL)  && (length != 0)) || (hash == NULL)) {
+	struct hash_engine_openssl *openssl = (struct hash_engine_openssl*) engine;
+
+	if ((openssl == NULL) || ((data == NULL)  && (length != 0)) || (hash == NULL)) {
 		return HASH_ENGINE_INVALID_ARGUMENT;
+	}
+
+	if (openssl->active != HASH_ACTIVE_NONE) {
+		return HASH_ENGINE_HASH_IN_PROGRESS;
 	}
 
 	if (hash_length < SHA256_HASH_LENGTH) {
@@ -53,6 +70,7 @@ static int hash_openssl_calculate_sha256 (struct hash_engine *engine, const uint
 	}
 
 	SHA256 (data, length, hash);
+
 	return 0;
 }
 
@@ -62,6 +80,10 @@ static int hash_openssl_start_sha256 (struct hash_engine *engine)
 
 	if (openssl == NULL) {
 		return HASH_ENGINE_INVALID_ARGUMENT;
+	}
+
+	if (openssl->active != HASH_ACTIVE_NONE) {
+		return HASH_ENGINE_HASH_IN_PROGRESS;
 	}
 
 	if (SHA256_Init (&openssl->sha256) == 1) {
@@ -77,8 +99,14 @@ static int hash_openssl_start_sha256 (struct hash_engine *engine)
 static int hash_openssl_calculate_sha384 (struct hash_engine *engine, const uint8_t *data,
 	size_t length, uint8_t *hash, size_t hash_length)
 {
-	if ((engine == NULL) || ((data == NULL)  && (length != 0)) || (hash == NULL)) {
+	struct hash_engine_openssl *openssl = (struct hash_engine_openssl*) engine;
+
+	if ((openssl == NULL) || ((data == NULL)  && (length != 0)) || (hash == NULL)) {
 		return HASH_ENGINE_INVALID_ARGUMENT;
+	}
+
+	if (openssl->active != HASH_ACTIVE_NONE) {
+		return HASH_ENGINE_HASH_IN_PROGRESS;
 	}
 
 	if (hash_length < SHA384_HASH_LENGTH) {
@@ -86,6 +114,7 @@ static int hash_openssl_calculate_sha384 (struct hash_engine *engine, const uint
 	}
 
 	SHA384 (data, length, hash);
+
 	return 0;
 }
 
@@ -95,6 +124,10 @@ static int hash_openssl_start_sha384 (struct hash_engine *engine)
 
 	if (openssl == NULL) {
 		return HASH_ENGINE_INVALID_ARGUMENT;
+	}
+
+	if (openssl->active != HASH_ACTIVE_NONE) {
+		return HASH_ENGINE_HASH_IN_PROGRESS;
 	}
 
 	if (SHA384_Init (&openssl->sha512) == 1) {
@@ -111,8 +144,14 @@ static int hash_openssl_start_sha384 (struct hash_engine *engine)
 static int hash_openssl_calculate_sha512 (struct hash_engine *engine, const uint8_t *data,
 	size_t length, uint8_t *hash, size_t hash_length)
 {
-	if ((engine == NULL) || ((data == NULL)  && (length != 0)) || (hash == NULL)) {
+	struct hash_engine_openssl *openssl = (struct hash_engine_openssl*) engine;
+
+	if ((openssl == NULL) || ((data == NULL)  && (length != 0)) || (hash == NULL)) {
 		return HASH_ENGINE_INVALID_ARGUMENT;
+	}
+
+	if (openssl->active != HASH_ACTIVE_NONE) {
+		return HASH_ENGINE_HASH_IN_PROGRESS;
 	}
 
 	if (hash_length < SHA512_HASH_LENGTH) {
@@ -120,6 +159,7 @@ static int hash_openssl_calculate_sha512 (struct hash_engine *engine, const uint
 	}
 
 	SHA512 (data, length, hash);
+
 	return 0;
 }
 
@@ -129,6 +169,10 @@ static int hash_openssl_start_sha512 (struct hash_engine *engine)
 
 	if (openssl == NULL) {
 		return HASH_ENGINE_INVALID_ARGUMENT;
+	}
+
+	if (openssl->active != HASH_ACTIVE_NONE) {
+		return HASH_ENGINE_HASH_IN_PROGRESS;
 	}
 
 	if (SHA512_Init (&openssl->sha512) == 1) {
@@ -294,6 +338,8 @@ int hash_openssl_init (struct hash_engine_openssl *engine)
 	engine->base.update = hash_openssl_update;
 	engine->base.finish = hash_openssl_finish;
 	engine->base.cancel = hash_openssl_cancel;
+
+	engine->active = HASH_ACTIVE_NONE;
 
 	return 0;
 }

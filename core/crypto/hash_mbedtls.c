@@ -45,6 +45,10 @@ static int hash_mbedtls_calculate_sha1 (struct hash_engine *engine, const uint8_
 		return HASH_ENGINE_INVALID_ARGUMENT;
 	}
 
+	if (mbedtls->active != HASH_ACTIVE_NONE) {
+		return HASH_ENGINE_HASH_IN_PROGRESS;
+	}
+
 	if (hash_length < SHA1_HASH_LENGTH) {
 		return HASH_ENGINE_HASH_BUFFER_TOO_SMALL;
 	}
@@ -59,6 +63,10 @@ static int hash_mbedtls_start_sha1 (struct hash_engine *engine)
 
 	if (mbedtls == NULL) {
 		return HASH_ENGINE_INVALID_ARGUMENT;
+	}
+
+	if (mbedtls->active != HASH_ACTIVE_NONE) {
+		return HASH_ENGINE_HASH_IN_PROGRESS;
 	}
 
 	mbedtls_sha1_init (&mbedtls->context.sha1);
@@ -81,6 +89,10 @@ static int hash_mbedtls_calculate_sha256 (struct hash_engine *engine, const uint
 		return HASH_ENGINE_INVALID_ARGUMENT;
 	}
 
+	if (mbedtls->active != HASH_ACTIVE_NONE) {
+		return HASH_ENGINE_HASH_IN_PROGRESS;
+	}
+
 	if (hash_length < SHA256_HASH_LENGTH) {
 		return HASH_ENGINE_HASH_BUFFER_TOO_SMALL;
 	}
@@ -95,6 +107,10 @@ static int hash_mbedtls_start_sha256 (struct hash_engine *engine)
 
 	if (mbedtls == NULL) {
 		return HASH_ENGINE_INVALID_ARGUMENT;
+	}
+
+	if (mbedtls->active != HASH_ACTIVE_NONE) {
+		return HASH_ENGINE_HASH_IN_PROGRESS;
 	}
 
 	mbedtls_sha256_init (&mbedtls->context.sha256);
@@ -117,6 +133,10 @@ static int hash_mbedtls_calculate_sha384 (struct hash_engine *engine, const uint
 		return HASH_ENGINE_INVALID_ARGUMENT;
 	}
 
+	if (mbedtls->active != HASH_ACTIVE_NONE) {
+		return HASH_ENGINE_HASH_IN_PROGRESS;
+	}
+
 	if (hash_length < SHA384_HASH_LENGTH) {
 		return HASH_ENGINE_HASH_BUFFER_TOO_SMALL;
 	}
@@ -131,6 +151,10 @@ static int hash_mbedtls_start_sha384 (struct hash_engine *engine)
 
 	if (mbedtls == NULL) {
 		return HASH_ENGINE_INVALID_ARGUMENT;
+	}
+
+	if (mbedtls->active != HASH_ACTIVE_NONE) {
+		return HASH_ENGINE_HASH_IN_PROGRESS;
 	}
 
 	mbedtls_sha512_init (&mbedtls->context.sha512);
@@ -154,6 +178,10 @@ static int hash_mbedtls_calculate_sha512 (struct hash_engine *engine, const uint
 		return HASH_ENGINE_INVALID_ARGUMENT;
 	}
 
+	if (mbedtls->active != HASH_ACTIVE_NONE) {
+		return HASH_ENGINE_HASH_IN_PROGRESS;
+	}
+
 	if (hash_length < SHA512_HASH_LENGTH) {
 		return HASH_ENGINE_HASH_BUFFER_TOO_SMALL;
 	}
@@ -168,6 +196,10 @@ static int hash_mbedtls_start_sha512 (struct hash_engine *engine)
 
 	if (mbedtls == NULL) {
 		return HASH_ENGINE_INVALID_ARGUMENT;
+	}
+
+	if (mbedtls->active != HASH_ACTIVE_NONE) {
+		return HASH_ENGINE_HASH_IN_PROGRESS;
 	}
 
 	mbedtls_sha512_init (&mbedtls->context.sha512);
@@ -283,7 +315,7 @@ static void hash_mbedtls_cancel (struct hash_engine *engine)
 }
 
 /**
- * Initialize an mbed TLS hash engine.
+ * Initialize an mbedTLS hash engine.
  *
  * @param engine The hash engine to initialize.
  *
@@ -315,11 +347,13 @@ int hash_mbedtls_init (struct hash_engine_mbedtls *engine)
 	engine->base.finish = hash_mbedtls_finish;
 	engine->base.cancel = hash_mbedtls_cancel;
 
+	engine->active = HASH_ACTIVE_NONE;
+
 	return 0;
 }
 
 /**
- * Release the resources used by an mbed TLS hash engine.
+ * Release the resources used by an mbedTLS hash engine.
  *
  * @param engine The hash engine to release.
  */

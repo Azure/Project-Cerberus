@@ -16,6 +16,10 @@ static int hash_riot_calculate_sha1 (struct hash_engine *engine, const uint8_t *
 		return HASH_ENGINE_INVALID_ARGUMENT;
 	}
 
+	if (riot->active != HASH_ACTIVE_NONE) {
+		return HASH_ENGINE_HASH_IN_PROGRESS;
+	}
+
 	if (hash_length < SHA1_HASH_LENGTH) {
 		return HASH_ENGINE_HASH_BUFFER_TOO_SMALL;
 	}
@@ -31,6 +35,10 @@ static int hash_riot_start_sha1 (struct hash_engine *engine)
 
 	if (riot == NULL) {
 		return HASH_ENGINE_INVALID_ARGUMENT;
+	}
+
+	if (riot->active != HASH_ACTIVE_NONE) {
+		return HASH_ENGINE_HASH_IN_PROGRESS;
 	}
 
 	RIOT_SHA1_Init (&riot->context.sha1);
@@ -49,6 +57,10 @@ static int hash_riot_calculate_sha256 (struct hash_engine *engine, const uint8_t
 		return HASH_ENGINE_INVALID_ARGUMENT;
 	}
 
+	if (riot->active != HASH_ACTIVE_NONE) {
+		return HASH_ENGINE_HASH_IN_PROGRESS;
+	}
+
 	if (hash_length < SHA256_HASH_LENGTH) {
 		return HASH_ENGINE_HASH_BUFFER_TOO_SMALL;
 	}
@@ -64,6 +76,10 @@ static int hash_riot_start_sha256 (struct hash_engine *engine)
 
 	if (riot == NULL) {
 		return HASH_ENGINE_INVALID_ARGUMENT;
+	}
+
+	if (riot->active != HASH_ACTIVE_NONE) {
+		return HASH_ENGINE_HASH_IN_PROGRESS;
 	}
 
 	RIOT_SHA256_Init (&riot->context.sha256);
@@ -200,6 +216,8 @@ int hash_riot_init (struct hash_engine_riot *engine)
 	engine->base.update = hash_riot_update;
 	engine->base.finish = hash_riot_finish;
 	engine->base.cancel = hash_riot_cancel;
+
+	engine->active = HASH_ACTIVE_NONE;
 
 	return 0;
 }

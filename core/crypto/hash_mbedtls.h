@@ -11,7 +11,7 @@
 
 
 /**
- * An mbed TLS context for calculating hashes.
+ * An mbedTLS context for calculating hashes.
  */
 struct hash_engine_mbedtls {
 	struct hash_engine base;			/**< The base hash engine. */

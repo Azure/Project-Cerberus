@@ -1229,8 +1229,10 @@ static void ecc_mbedtls_test_generate_key_pair_and_sign_and_verify_p384 (CuTest 
 	struct ecc_private_key priv_key;
 	struct ecc_public_key pub_key;
 	int status;
+#if ECC_MAX_KEY_LENGTH >= 384
 	int out_len;
 	uint8_t out[ECC256_DSA_MAX_LENGTH * 2];
+#endif
 
 	TEST_START;
 
@@ -1265,8 +1267,10 @@ static void ecc_mbedtls_test_generate_key_pair_and_sign_and_verify_p521 (CuTest 
 	struct ecc_private_key priv_key;
 	struct ecc_public_key pub_key;
 	int status;
+#if ECC_MAX_KEY_LENGTH >= 521
 	int out_len;
 	uint8_t out[ECC256_DSA_MAX_LENGTH * 2];
+#endif
 
 	TEST_START;
 

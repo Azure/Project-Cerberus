@@ -21,23 +21,24 @@
 #define	SHA512_BLOCK_SIZE	(1024 / 8)
 
 
-/* Definitions of hash engine state for internal implementation use, as necessary. */
-enum {
-	HASH_ACTIVE_NONE = 0,	/**< No hash context is active. */
-	HASH_ACTIVE_SHA1,		/**< SHA-1 context is active. */
-	HASH_ACTIVE_SHA256,		/**< SHA-256 context is active. */
-	HASH_ACTIVE_SHA384,		/**< SHA-384 context is active. */
-	HASH_ACTIVE_SHA512,		/**< SHA-512 context is active. */
-};
-
 /**
  * The types of hashes supported by the hashing API.
  */
 enum hash_type {
-	HASH_TYPE_SHA1,			/**< SHA-1 hash */
-	HASH_TYPE_SHA256,		/**< SHA-256 hash */
-	HASH_TYPE_SHA384,		/**< SHA-384 hash */
-	HASH_TYPE_SHA512,		/**< SHA-512 hash */
+	HASH_TYPE_SHA1,						/**< SHA-1 hash */
+	HASH_TYPE_SHA256,					/**< SHA2-256 hash */
+	HASH_TYPE_SHA384,					/**< SHA2-384 hash */
+	HASH_TYPE_SHA512,					/**< SHA2-512 hash */
+};
+
+/* Definitions of hash engine state for internal implementation use, as necessary.  These map to
+ * enum hash_type, except there is the added value indicating there is no active context. */
+enum {
+	HASH_ACTIVE_SHA1 = HASH_TYPE_SHA1,	/**< SHA-1 context is active. */
+	HASH_ACTIVE_SHA256,					/**< SHA2-256 context is active. */
+	HASH_ACTIVE_SHA384,					/**< SHA2-384 context is active. */
+	HASH_ACTIVE_SHA512,					/**< SHA2-512 context is active. */
+	HASH_ACTIVE_NONE = 0xff,			/**< No hash context is active. */
 };
 
 /**
@@ -47,7 +48,7 @@ enum hash_type {
 struct hash_engine {
 #ifdef HASH_ENABLE_SHA1
 	/**
-	 * Calculate a SHA-1 hash on a complete set of data.
+	 * Calculate the SHA-1 hash on a complete set of data.
 	 *
 	 * @param engine The hash engine to use to calculate the hash.
 	 * @param data The data to hash.
@@ -62,10 +63,8 @@ struct hash_engine {
 		uint8_t *hash, size_t hash_length);
 
 	/**
-	 * Configure the hash engine to process independent blocks of data to calculate a SHA-1 hash on
-	 * the aggregated data.
-	 *
-	 * Calling this function will reset any active hashing operation.
+	 * Configure the hash engine to process independent blocks of data to calculate the SHA-1 hash
+	 * of the aggregated data.
 	 *
 	 * Every call to start MUST be followed by either a call to finish or cancel.
 	 *
@@ -77,7 +76,7 @@ struct hash_engine {
 #endif
 
 	/**
-	 * Calculate a SHA-256 hash on a complete set of data.
+	 * Calculate the SHA2-256 hash on a complete set of data.
 	 *
 	 * @param engine The hash engine to use to calculate the hash.
 	 * @param data The data to hash.
@@ -92,10 +91,8 @@ struct hash_engine {
 		uint8_t *hash, size_t hash_length);
 
 	/**
-	 * Configure the hash engine to process independent blocks of data to calculate a SHA-256 hash
-	 * the aggregated data.
-	 *
-	 * Calling this function will reset any active hashing operation.
+	 * Configure the hash engine to process independent blocks of data to calculate the SHA2-256
+	 * hash of the aggregated data.
 	 *
 	 * Every call to start MUST be followed by either a call to finish or cancel.
 	 *
@@ -107,7 +104,7 @@ struct hash_engine {
 
 #ifdef HASH_ENABLE_SHA384
 	/**
-	 * Calculate a SHA-384 hash on a complete set of data.
+	 * Calculate the SHA2-384 hash on a complete set of data.
 	 *
 	 * @param engine The hash engine to use to calculate the hash.
 	 * @param data The data to hash.
@@ -122,10 +119,8 @@ struct hash_engine {
 		uint8_t *hash, size_t hash_length);
 
 	/**
-	 * Configure the hash engine to process independent blocks of data to calculate a SHA-384 hash
-	 * the aggregated data.
-	 *
-	 * Calling this function will reset any active hashing operation.
+	 * Configure the hash engine to process independent blocks of data to calculate the SHA2-384
+	 * hash of the aggregated data.
 	 *
 	 * Every call to start MUST be followed by either a call to finish or cancel.
 	 *
@@ -138,7 +133,7 @@ struct hash_engine {
 
 #ifdef HASH_ENABLE_SHA512
 	/**
-	 * Calculate a SHA-512 hash on a complete set of data.
+	 * Calculate the SHA2-512 hash on a complete set of data.
 	 *
 	 * @param engine The hash engine to use to calculate the hash.
 	 * @param data The data to hash.
@@ -153,10 +148,8 @@ struct hash_engine {
 		uint8_t *hash, size_t hash_length);
 
 	/**
-	 * Configure the hash engine to process independent blocks of data to calculate a SHA-512 hash
-	 * the aggregated data.
-	 *
-	 * Calling this function will reset any active hashing operation.
+	 * Configure the hash engine to process independent blocks of data to calculate the SHA2-512
+	 * hash of the aggregated data.
 	 *
 	 * Every call to start MUST be followed by either a call to finish or cancel.
 	 *
@@ -193,8 +186,8 @@ struct hash_engine {
 	int (*finish) (struct hash_engine *engine, uint8_t *hash, size_t hash_length);
 
 	/**
-	 * Cancel an in-progress hash operation without getting the hash values.  After canceling, a new
-	 * hash operation needs to be started.
+	 * Cancel an in-progress hash operation without getting the hash values.  After canceling, any
+	 * intermediate hash calculations will be lost and a new hash operation can be started.
 	 *
 	 * @param engine The hash engine to cancel.
 	 */
@@ -264,6 +257,7 @@ enum {
 	HASH_ENGINE_START_SHA384_FAILED = HASH_ENGINE_ERROR (0x0e),		/**< The engine has not been initialized for SHA-384. */
 	HASH_ENGINE_START_SHA512_FAILED = HASH_ENGINE_ERROR (0x0f),		/**< The engine has not been initialized for SHA-512. */
 	HASH_ENGINE_UNKNOWN_HASH = HASH_ENGINE_ERROR (0x10),			/**< An unknown hash type was requested. */
+	HASH_ENGINE_HASH_IN_PROGRESS = HASH_ENGINE_ERROR (0x11),		/**< Attempt to start a new hash before finishing the previous one. */
 };
 
 

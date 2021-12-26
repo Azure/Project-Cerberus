@@ -362,8 +362,8 @@ static void buffer_copy_test_null_destination (CuTest *test)
 static void buffer_reverse_test_empty_buffer (CuTest *test)
 {
 	const size_t length = 0;
-	uint8_t buffer[length];
-	uint8_t reverse[length];
+	uint8_t buffer[1];
+	uint8_t reverse[1];
 	size_t i;
 	size_t j;
 	int status;
@@ -604,10 +604,10 @@ static void buffer_are_overlapping_test_same_buffer (CuTest *test)
 static void buffer_reverse_copy_test_empty_buffer (CuTest *test)
 {
 	const size_t length = 0;
-	uint8_t buffer[length];
-	uint8_t out[length];
-	uint8_t forward[length];
-	uint8_t reverse[length];
+	uint8_t buffer[1];
+	uint8_t out[1];
+	uint8_t forward[1];
+	uint8_t reverse[1];
 	size_t i;
 	size_t j;
 	int status;

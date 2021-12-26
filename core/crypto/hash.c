@@ -23,27 +23,33 @@ int hash_start_new_hash (struct hash_engine *engine, enum hash_type type)
 	}
 
 	switch (type) {
-#ifdef HASH_ENABLE_SHA1
 		case HASH_TYPE_SHA1:
+#ifdef HASH_ENABLE_SHA1
 			status = engine->start_sha1 (engine);
-			break;
+#else
+			status = HASH_ENGINE_UNSUPPORTED_HASH;
 #endif
+			break;
 
 		case HASH_TYPE_SHA256:
 			status = engine->start_sha256 (engine);
 			break;
 
-#ifdef HASH_ENABLE_SHA384
 		case HASH_TYPE_SHA384:
+#ifdef HASH_ENABLE_SHA384
 			status = engine->start_sha384 (engine);
-			break;
+#else
+			status = HASH_ENGINE_UNSUPPORTED_HASH;
 #endif
+			break;
 
-#ifdef HASH_ENABLE_SHA512
 		case HASH_TYPE_SHA512:
+#ifdef HASH_ENABLE_SHA512
 			status = engine->start_sha512 (engine);
-			break;
+#else
+			status = HASH_ENGINE_UNSUPPORTED_HASH;
 #endif
+			break;
 
 		default:
 			status = HASH_ENGINE_UNKNOWN_HASH;
@@ -76,14 +82,16 @@ int hash_calculate (struct hash_engine *engine, enum hash_type type, const uint8
 	}
 
 	switch (type) {
-#ifdef HASH_ENABLE_SHA1
 		case HASH_TYPE_SHA1:
+#ifdef HASH_ENABLE_SHA1
 			status = engine->calculate_sha1 (engine, data, length, hash, hash_length);
 			if (status == 0) {
 				status = SHA1_HASH_LENGTH;
 			}
-			break;
+#else
+			status = HASH_ENGINE_UNSUPPORTED_HASH;
 #endif
+			break;
 
 		case HASH_TYPE_SHA256:
 			status = engine->calculate_sha256 (engine, data, length, hash, hash_length);
@@ -92,23 +100,27 @@ int hash_calculate (struct hash_engine *engine, enum hash_type type, const uint8
 			}
 			break;
 
-#ifdef HASH_ENABLE_SHA384
 		case HASH_TYPE_SHA384:
+#ifdef HASH_ENABLE_SHA384
 			status = engine->calculate_sha384 (engine, data, length, hash, hash_length);
 			if (status == 0) {
 				status = SHA384_HASH_LENGTH;
 			}
-			break;
+#else
+			status = HASH_ENGINE_UNSUPPORTED_HASH;
 #endif
+			break;
 
-#ifdef HASH_ENABLE_SHA512
 		case HASH_TYPE_SHA512:
+#ifdef HASH_ENABLE_SHA512
 			status = engine->calculate_sha512 (engine, data, length, hash, hash_length);
 			if (status == 0) {
 				status = SHA512_HASH_LENGTH;
 			}
-			break;
+#else
+			status = HASH_ENGINE_UNSUPPORTED_HASH;
 #endif
+			break;
 
 		default:
 			status = HASH_ENGINE_UNKNOWN_HASH;
@@ -184,8 +196,8 @@ int hash_hmac_init (struct hmac_engine *engine, struct hash_engine *hash, enum h
 	}
 
 	switch (hash_type) {
-#ifdef HASH_ENABLE_SHA1
 		case HMAC_SHA1:
+#ifdef HASH_ENABLE_SHA1
 			if (key_length > SHA1_BLOCK_SIZE) {
 				status = hash->calculate_sha1 (hash, key, key_length, engine->key,
 					sizeof (engine->key));
@@ -202,6 +214,8 @@ int hash_hmac_init (struct hmac_engine *engine, struct hash_engine *hash, enum h
 			engine->block_size = SHA1_BLOCK_SIZE;
 			engine->hash_length = SHA1_HASH_LENGTH;
 			break;
+#else
+			return HASH_ENGINE_UNSUPPORTED_HASH;
 #endif
 
 		case HMAC_SHA256:
@@ -222,8 +236,8 @@ int hash_hmac_init (struct hmac_engine *engine, struct hash_engine *hash, enum h
 			engine->hash_length = SHA256_HASH_LENGTH;
 			break;
 
-#ifdef HASH_ENABLE_SHA384
 		case HMAC_SHA384:
+#ifdef HASH_ENABLE_SHA384
 			if (key_length > SHA384_BLOCK_SIZE) {
 				status = hash->calculate_sha384 (hash, key, key_length, engine->key,
 					sizeof (engine->key));
@@ -240,10 +254,12 @@ int hash_hmac_init (struct hmac_engine *engine, struct hash_engine *hash, enum h
 			engine->block_size = SHA384_BLOCK_SIZE;
 			engine->hash_length = SHA384_HASH_LENGTH;
 			break;
+#else
+			return HASH_ENGINE_UNSUPPORTED_HASH;
 #endif
 
-#ifdef HASH_ENABLE_SHA512
 		case HMAC_SHA512:
+#ifdef HASH_ENABLE_SHA512
 			if (key_length > SHA512_BLOCK_SIZE) {
 				status = hash->calculate_sha512 (hash, key, key_length, engine->key,
 					sizeof (engine->key));
@@ -260,6 +276,8 @@ int hash_hmac_init (struct hmac_engine *engine, struct hash_engine *hash, enum h
 			engine->block_size = SHA512_BLOCK_SIZE;
 			engine->hash_length = SHA512_HASH_LENGTH;
 			break;
+#else
+			return HASH_ENGINE_UNSUPPORTED_HASH;
 #endif
 
 		default:
