@@ -6,7 +6,7 @@
 
 
 /**
- * Convert flash command address bytes to an integer address.
+ * Convert flash command address bytes (big endian) to an integer address.
  *
  * @param buf The buffer containing the address bytes.
  * @param addr_bytes The number of address bytes in the command.
@@ -33,7 +33,8 @@ uint32_t flash_address_to_int (const uint8_t *buf, uint8_t addr_bytes)
 }
 
 /**
- * Convert an integer address to flash command bytes.
+ * Convert an integer address to flash command bytes.  The converted address will be stored big
+ * endian.
  *
  * @param address The flash address to convert.
  * @param addr_bytes The number of address bytes to populate.

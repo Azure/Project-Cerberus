@@ -858,53 +858,70 @@ int spi_flash_clear_block_protect (struct spi_flash *flash)
 	uint8_t reg[2];
 	uint8_t cmd_len = 1;
 	uint8_t mask = 0x83;
+	uint8_t vendor;
 	int status;
 
 	if (flash == NULL) {
 		return SPI_FLASH_INVALID_ARGUMENT;
 	}
 
+	status = spi_flash_get_device_id (flash, &vendor, NULL);
+	if (status != 0) {
+		return status;
+	}
+
 	platform_mutex_lock (&flash->lock);
 
-	/* Depending on the quad enable bit, the block clear needs to be handled differently:
-	 *   - If the quad bit is in SR1, then we need to be sure not to clear it.
-	 *   - On some devices, writing only 1 byte to SR1 will automatically clear SR2.  On these
-	 *     devices we need to write both SR1 and SR2 to ensure the quad bit doesn't get cleared. */
-	switch (flash->quad_enable) {
-		case SPI_FLASH_SFDP_QUAD_QE_BIT6_SR1:
-			mask = 0xc3;
-			break;
+	if (vendor != FLASH_ID_MICROCHIP) {
+		/* Depending on the quad enable bit, the block clear needs to be handled differently:
+		 *   - If the quad bit is in SR1, then we need to be sure not to clear it.
+		 *   - On some devices, writing only 1 byte to SR1 will automatically clear SR2.  On these
+		 *     devices we need to write both SR1 and SR2 to ensure the quad bit doesn't get
+		 *     cleared. */
+		switch (flash->quad_enable) {
+			case SPI_FLASH_SFDP_QUAD_QE_BIT6_SR1:
+				mask = 0xc3;
+				break;
 
-		case SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2:
-			cmd_len = 2;
-			break;
+			case SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2:
+				cmd_len = 2;
+				break;
 
-		case SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_35:
-			FLASH_XFER_INIT_READ_REG (xfer, FLASH_CMD_RDSR2, &reg[1], 1, 0);
-			status = flash->spi->xfer (flash->spi, &xfer);
-			if (status != 0) {
-				goto exit;
-			}
-			break;
+			case SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_35:
+				FLASH_XFER_INIT_READ_REG (xfer, FLASH_CMD_RDSR2, &reg[1], 1, 0);
+				status = flash->spi->xfer (flash->spi, &xfer);
+				if (status != 0) {
+					goto exit;
+				}
+				break;
 
-		default:
-			break;
-	}
-
-	FLASH_XFER_INIT_READ_REG (xfer, FLASH_CMD_RDSR, reg, cmd_len, 0);
-	status = flash->spi->xfer (flash->spi, &xfer);
-	if (status != 0) {
-		goto exit;
-	}
-
-	if (reg[0] & ~mask) {
-		if (flash->quad_enable == SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_35) {
-			cmd_len = 2;
+			default:
+				break;
 		}
 
-		reg[0] &= mask;
-		status = spi_flash_write_register (flash, FLASH_CMD_WRSR, reg, cmd_len,
-			flash->sr1_volatile);
+		FLASH_XFER_INIT_READ_REG (xfer, FLASH_CMD_RDSR, reg, cmd_len, 0);
+		status = flash->spi->xfer (flash->spi, &xfer);
+		if (status != 0) {
+			goto exit;
+		}
+
+		if (reg[0] & ~mask) {
+			if (flash->quad_enable == SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_35) {
+				cmd_len = 2;
+			}
+
+			reg[0] &= mask;
+			status = spi_flash_write_register (flash, FLASH_CMD_WRSR, reg, cmd_len,
+				flash->sr1_volatile);
+		}
+	}
+	else {
+		/* Microchip flash does not have block protect bits in the status register.  Instead, there
+		 * is a single command that unlocks all protection.  This needs to be sent after every power
+		 * cycle before any erase or program operations can be performed. */
+
+		FLASH_XFER_INIT_CMD_ONLY (xfer, FLASH_CMD_GBULK, 0);
+		status = flash->spi->xfer (flash->spi, &xfer);
 	}
 
 exit:

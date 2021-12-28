@@ -30,8 +30,7 @@ struct flash_store_testing {
  * Helper to initialize all dependencies for testing.
  *
  * @param test The test framework.
- * @param store Testing dependencies to initailize.
- *
+ * @param store Testing dependencies to initialize.
  */
 static void flash_store_testing_init_dependencies (CuTest *test, struct flash_store_testing *store)
 {
@@ -92,7 +91,6 @@ static void flash_store_testing_prepare_init (CuTest *test, struct flash_store_t
  *
  * @param test The test framework.
  * @param store Testing dependencies to release.
- *
  */
 static void flash_store_testing_release_dependencies (CuTest *test,
 	struct flash_store_testing *store)

@@ -32,12 +32,13 @@ enum {
 	FLASH_CMD_4BYTE_DUAL_READ = 0x3c,	/**< Dual output read with 4 byte address */
 	FLASH_CMD_ALT_WRSR2 = 0x3e,			/**< Alternate Write status register 2 */
 	FLASH_CMD_ALT_RDSR2 = 0x3f,			/**< Alternate Read status register 2 */
-	FLASH_CMD_VOLATILE_WREN = 0x50,		/**< Volatile write enabl efor status register 1 */
+	FLASH_CMD_VOLATILE_WREN = 0x50,		/**< Volatile write enable for status register 1 */
 	FLASH_CMD_SFDP = 0x5a,				/**< Read SFDP registers */
 	FLASH_CMD_RSTEN = 0x66,				/**< Reset enable */
 	FLASH_CMD_QUAD_READ = 0x6b,			/**< Quad output read */
 	FLASH_CMD_4BYTE_QUAD_READ = 0x6c,	/**< Quad output read with 4 byte address */
 	FLASH_CMD_RDSR_FLAG = 0x70,			/**< Read flag status register */
+	FLASH_CMD_GBULK = 0x98,				/**< Global block protection unlock */
 	FLASH_CMD_RST = 0x99,				/**< Reset device */
 	FLASH_CMD_RDID = 0x9f,				/**< Read identification */
 	FLASH_CMD_RDP = 0xab,				/**< Release from deep power down */
@@ -62,6 +63,7 @@ enum {
 enum {
 	FLASH_ID_SPANSION = 0x01,		/**< Spansion manufacturer ID. */
 	FLASH_ID_MICRON = 0x20,			/**< Micron manufacturer ID. */
+	FLASH_ID_MICROCHIP = 0xbf,		/**< Microchip manufacturer ID. */
 	FLASH_ID_MACRONIX = 0xc2,		/**< Macronix manufacturer ID. */
 	FLASH_ID_WINBOND = 0xef			/**< Winbond manufacturer ID. */
 };
@@ -71,9 +73,10 @@ enum {
  */
 enum {
 	FLASH_ID_MX25L = 0x2000,		/**< Macronix MX25L flash device IDs. */
+	FLASH_ID_SST26VF = 0x2600,		/**< Microchip SST26VF flash device IDs. */
 	FLASH_ID_W25Q = 0x4000,			/**< Winbond W25Q flash device IDs. */
 	FLASH_ID_W25Q_DTR = 0x7000,		/**< Winbond W25Q-DTR flash device IDs. */
-	FLASH_ID_MT25Q = 0xba00,		/**< Micros MT25Q flash device IDs. */
+	FLASH_ID_MT25Q = 0xba00,		/**< Micron MT25Q flash device IDs. */
 };
 
 /**

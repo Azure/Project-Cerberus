@@ -85,4 +85,18 @@ extern const uint32_t SFDP_PARAMS_MT25Q256ABA[];
 extern const size_t SFDP_PARAMS_MT25Q256ABA_LEN;
 
 
+/* Microchip flash */
+
+/* SST26VF064B */
+extern const uint8_t FLASH_ID_SST26VF064B[];
+
+extern const uint32_t SFDP_HEADER_SST26VF064B[];
+extern const size_t SFDP_HEADER_SST26VF064B_LEN;
+
+extern const uint32_t SFDP_PARAMS_ADDR_SST26VF064B;
+
+extern const uint32_t SFDP_PARAMS_SST26VF064B[];
+extern const size_t SFDP_PARAMS_SST26VF064B_LEN;
+
+
 #endif /* SPI_FLASH_SFDP_TESTING_H_ */

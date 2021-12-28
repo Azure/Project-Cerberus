@@ -54,11 +54,16 @@ void spi_flash_sfdp_dump_header (struct spi_flash_sfdp *sfdp);
 
 
 /**
+ * The number of dwords that make up version 1.5 of the SFDP Basic Parameters Table.
+ */
+#define	SPI_FLASH_SFDP_BASIC_TABLE_V1_5_DWORDS		16
+
+/**
  * JEDEC SFDP basic parameter table.
  */
 struct spi_flash_sfdp_basic_table {
-	struct spi_flash_sfdp *sfdp;				/**< The SFDP instance for the table. */
-	void *data;									/**< The SFDP basic parameter table data. */
+	struct spi_flash_sfdp *sfdp;							/**< The SFDP instance for the table. */
+	uint32_t data[SPI_FLASH_SFDP_BASIC_TABLE_V1_5_DWORDS];	/**< The SFDP basic parameter table data. */
 };
 
 /**
@@ -100,7 +105,7 @@ enum spi_flash_sfdp_quad_enable {
 	SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2,				/**< Quad enable is bit 1 in status register 2. */
 	SPI_FLASH_SFDP_QUAD_QE_BIT6_SR1,				/**< Quad enable is bit 6 in status register 1. */
 	SPI_FLASH_SFDP_QUAD_QE_BIT7_SR2,				/**< Quad enable is bit 7 in status register 2. */
-	SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_NO_CLR,			/**< Quad enable is bit 1 in status register 2, without inadvertant clearing. */
+	SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_NO_CLR,			/**< Quad enable is bit 1 in status register 2, without inadvertent clearing. */
 	SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_35,				/**< Quad enable is bit 1 in status register 2, using 35 to read. */
 	SPI_FLASH_SFDP_QUAD_NO_QE_HOLD_DISABLE = 8,		/**< No quad enable bit, but HOLD/RESET can be disabled. */
 };
@@ -150,7 +155,7 @@ enum {
 	SPI_FLASH_SFDP_4BYTE_INCOMPATIBLE = SPI_FLASH_SFDP_ERROR (0x05),	/**< Device is not compatible with supported 4-byte addressing. */
 	SPI_FLASH_SFDP_QUAD_ENABLE_UNKNOWN = SPI_FLASH_SFDP_ERROR (0x06),	/**< QSPI enabled method cannot be determined. */
 	SPI_FLASH_SFDP_RESET_NOT_SUPPORTED = SPI_FLASH_SFDP_ERROR (0x07),	/**< Soft reset is not supported by the device. */
-	SPI_FLASH_SFDP_PWRDOWN_NOT_SUPPORTED = SPI_FLASH_SFDP_ERROR (0x08),	/**< Deep powerdown is not supported by the device. */
+	SPI_FLASH_SFDP_PWRDOWN_NOT_SUPPORTED = SPI_FLASH_SFDP_ERROR (0x08),	/**< Deep power down is not supported by the device. */
 };
 
 

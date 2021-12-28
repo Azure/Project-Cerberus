@@ -4,10 +4,10 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <string.h>
-#include "platform.h"
 #include "platform_io.h"
 #include "spi_flash_sfdp.h"
 #include "flash_common.h"
+#include "common/common_math.h"
 
 
 /**
@@ -23,8 +23,10 @@
 /**
  * Get the starting address of a parameter table.
  */
-#define	SPI_FLASH_SFDP_PARAMETER_PTR(x)	((x.table_pointer[2] << 16) | (x.table_pointer[1] << 8) | x.table_pointer[0])
+#define	SPI_FLASH_SFDP_PARAMETER_PTR(x)	\
+	((x.table_pointer[2] << 16) | (x.table_pointer[1] << 8) | x.table_pointer[0])
 
+#pragma pack(push,1)
 /**
  * SFDP basic flash parameter table format version 1.0.
  */
@@ -75,7 +77,7 @@ struct spi_flash_sfdp_basic_parameter_table_1_0 {
 	uint8_t erase3;					/**< 9th DWORD: Erase 3 instruction. */
 	uint8_t erase4_size;			/**< 9th DWORD: Erase 4 block size. */
 	uint8_t erase4;					/**< 9th DWORD: Erase 4 instruction. */
-} __attribute__((__packed__));
+};
 
 /**
  * SFDP basic flash parameter table format version 1.5.
@@ -95,7 +97,7 @@ struct spi_flash_sfdp_basic_parameter_table_1_5 {
 	uint8_t status_reg;				/**< 14th DWORD: Status register polling device busy. */
 #define	SPI_FLASH_SFDP_BUSY_SR_WIP			(1U << 2)
 #define	SPI_FLASH_SFDP_BUSY_SR_FLAG			(1U << 3)
-	uint8_t deep_powerdown[3];		/**< 14th DWORD: Deep powerdown attributes. */
+	uint8_t deep_powerdown[3];		/**< 14th DWORD: Deep power down attributes. */
 #define	SPI_FLASH_SFDP_PWRDWN_NO_SUPPORT(x)	((x)[2] & (1U << 7))
 #define	SPI_FLASH_SFDP_PWRDWN_ENTER(x)		((((x)[2] & 0x7f) << 1) | (((x)[1] & 0x80) >> 7))
 #define	SPI_FLASH_SFDP_PWRDWN_EXIT(x)		((((x)[1] & 0x7f) << 1) | (((x)[0] & 0x80) >> 7))
@@ -138,7 +140,8 @@ struct spi_flash_sfdp_basic_parameter_table_1_5 {
 #define	SPI_FLASH_SFDP_4B_ENTER_NV_CFG		(1U << 4)
 #define	SPI_FLASH_SFDP_4B_OPCODES			(1U << 5)
 #define	SPI_FLASH_SFDP_ALWAYS_4B			(1U << 6)
-} __attribute__((__packed__));
+};
+#pragma pack(pop)
 
 
 /**
@@ -251,7 +254,6 @@ int spi_flash_sfdp_basic_table_init (struct spi_flash_sfdp_basic_table *table,
 	struct spi_flash_sfdp *sfdp)
 {
 	struct flash_xfer xfer;
-	uint8_t *data;
 	size_t length;
 	int status;
 
@@ -261,22 +263,16 @@ int spi_flash_sfdp_basic_table_init (struct spi_flash_sfdp_basic_table *table,
 
 	memset (table, 0, sizeof (struct spi_flash_sfdp_basic_table));
 
-	length = sfdp->sfdp_header.parameter0.length * 4;
-	data = platform_malloc (length);
-	if (data == NULL) {
-		return SPI_FLASH_SFDP_NO_MEMORY;
-	}
-
+	length = min (sfdp->sfdp_header.parameter0.length * 4, sizeof (table->data));
 	FLASH_XFER_INIT_READ (xfer, FLASH_CMD_SFDP,
-		SPI_FLASH_SFDP_PARAMETER_PTR (sfdp->sfdp_header.parameter0), 1, 0, data, length, 0);
+		SPI_FLASH_SFDP_PARAMETER_PTR (sfdp->sfdp_header.parameter0), 1, 0, (uint8_t*) table->data,
+		length, 0);
 	status = sfdp->flash->xfer (sfdp->flash, &xfer);
 	if (status != 0) {
-		platform_free (data);
 		return status;
 	}
 
 	table->sfdp = sfdp;
-	table->data = data;
 
 	return 0;
 }
@@ -288,9 +284,7 @@ int spi_flash_sfdp_basic_table_init (struct spi_flash_sfdp_basic_table *table,
  */
 void spi_flash_sfdp_basic_table_release (struct spi_flash_sfdp_basic_table *table)
 {
-	if (table) {
-		platform_free (table->data);
-	}
+
 }
 
 /**
@@ -311,7 +305,7 @@ int spi_flash_sfdp_get_device_capabilities (struct spi_flash_sfdp_basic_table *t
 		return SPI_FLASH_SFDP_INVALID_ARGUMENT;
 	}
 
-	params = table->data;
+	params = (struct spi_flash_sfdp_basic_parameter_table_1_0*) table->data;
 	*capabilities = 0;
 
 	if (params->dspi_qspi & SPI_FLASH_SFDP_SUPPORTS_1_1_2) {
@@ -372,7 +366,7 @@ int spi_flash_sfdp_get_device_size (struct spi_flash_sfdp_basic_table *table)
 		return SPI_FLASH_SFDP_INVALID_ARGUMENT;
 	}
 
-	params = table->data;
+	params = (struct spi_flash_sfdp_basic_parameter_table_1_0*) table->data;
 
 	if (!(params->memory_density & SPI_FLASH_SFDP_4GB_DENSITY)) {
 		return (params->memory_density + 1) / 8;
@@ -406,7 +400,7 @@ int spi_flash_sfdp_get_page_size (struct spi_flash_sfdp_basic_table *table)
 	}
 
 	if (table->sfdp->sfdp_header.parameter0.minor_revision >= 5) {
-		params = table->data;
+		params = (struct spi_flash_sfdp_basic_parameter_table_1_5*) table->data;
 		page = 1U << SPI_FLASH_SFDP_PAGE_SIZE (params->page_size);
 	}
 
@@ -457,7 +451,7 @@ int spi_flash_sfdp_get_read_commands (struct spi_flash_sfdp_basic_table *table,
 		return SPI_FLASH_SFDP_INVALID_ARGUMENT;
 	}
 
-	params = table->data;
+	params = (struct spi_flash_sfdp_basic_parameter_table_1_0*) table->data;
 	memset (read, 0, sizeof (struct spi_flash_sfdp_read_commands));
 
 	if (params->dspi_qspi & SPI_FLASH_SFDP_SUPPORTS_1_1_2) {
@@ -513,7 +507,7 @@ bool spi_flash_sfdp_use_busy_flag_status (struct spi_flash_sfdp_basic_table *tab
 	struct spi_flash_sfdp_basic_parameter_table_1_5 *params;
 
 	if ((table != NULL) && table->sfdp->sfdp_header.parameter0.minor_revision >= 5) {
-		params = table->data;
+		params = (struct spi_flash_sfdp_basic_parameter_table_1_5*) table->data;
 		if (params->status_reg & SPI_FLASH_SFDP_BUSY_SR_WIP) {
 			return false;
 		}
@@ -539,7 +533,7 @@ bool spi_flash_sfdp_use_volatile_write_enable (struct spi_flash_sfdp_basic_table
 	struct spi_flash_sfdp_basic_parameter_table_1_5 *params;
 
 	if ((table != NULL) && table->sfdp->sfdp_header.parameter0.minor_revision >= 5) {
-		params = table->data;
+		params = (struct spi_flash_sfdp_basic_parameter_table_1_5*) table->data;
 		if (params->sr_write_enable ==
 			(SPI_FLASH_SFDP_SR_WE_RESERVED | SPI_FLASH_SFDP_VOLATILE_SR_50)) {
 			return true;
@@ -577,7 +571,7 @@ bool spi_flash_sfdp_supports_4byte_commands (struct spi_flash_sfdp_basic_table *
 			}
 		}
 		else if (table->sfdp->sfdp_header.parameter0.minor_revision >= 5) {
-			params = table->data;
+			params = (struct spi_flash_sfdp_basic_parameter_table_1_5*) table->data;
 			if (params->enter_4b & SPI_FLASH_SFDP_4B_OPCODES) {
 				opcodes_4b = true;
 			}
@@ -604,7 +598,7 @@ int spi_flash_sfdp_get_4byte_mode_switch (struct spi_flash_sfdp_basic_table *tab
 		return SPI_FLASH_SFDP_INVALID_ARGUMENT;
 	}
 
-	params = table->data;
+	params = (struct spi_flash_sfdp_basic_parameter_table_1_5*) table->data;
 	if (table->sfdp->sfdp_header.parameter0.minor_revision >= 5) {
 		if ((params->enter_4b & 0x7f) == 0) {
 			*addr_4byte = SPI_FLASH_SFDP_4BYTE_MODE_UNSUPPORTED;
@@ -646,7 +640,7 @@ bool spi_flash_sfdp_exit_4byte_mode_on_reset (struct spi_flash_sfdp_basic_table 
 	bool revert = true;		// Assume a device will revert until SFDP explicit says otherwise.
 
 	if ((table != NULL) && table->sfdp->sfdp_header.parameter0.minor_revision >= 5) {
-		params = table->data;
+		params = (struct spi_flash_sfdp_basic_parameter_table_1_5*) table->data;
 		revert = !!(params->reset_exit_4b & SPI_FLASH_SFDP_4B_EXIT_SW_RESET);
 	}
 
@@ -673,7 +667,7 @@ int spi_flash_sfdp_get_quad_enable (struct spi_flash_sfdp_basic_table *table,
 	}
 
 	if (table->sfdp->sfdp_header.parameter0.minor_revision >= 5) {
-		params = table->data;
+		params = (struct spi_flash_sfdp_basic_parameter_table_1_5*) table->data;
 		quad = SPI_FLASH_SFDP_QER (params->quad_enable);
 
 		switch (quad) {
@@ -731,7 +725,7 @@ int spi_flash_sfdp_get_reset_command (struct spi_flash_sfdp_basic_table *table, 
 	}
 
 	if (table->sfdp->sfdp_header.parameter0.minor_revision >= 5) {
-		params = table->data;
+		params = (struct spi_flash_sfdp_basic_parameter_table_1_5*) table->data;
 
 		if (params->reset_exit_4b & SPI_FLASH_SFDP_RST_66_99) {
 			command = FLASH_CMD_RST;
@@ -750,15 +744,15 @@ int spi_flash_sfdp_get_reset_command (struct spi_flash_sfdp_basic_table *table, 
 }
 
 /**
- * Get the commands used to enter and exit deep powerdown mode of the device.
+ * Get the commands used to enter and exit deep power down mode of the device.
  *
  * @param table The basic parameters table that will be queried.
- * @param enter Output for the enter deep powerdown command.  This will be set to 0 if this mode is
+ * @param enter Output for the enter deep power down command.  This will be set to 0 if this mode is
  * not supported by the device.
- * @param exit Output for the exit deep powerdown command.  This will be set to 0 if this mode is
+ * @param exit Output for the exit deep power down command.  This will be set to 0 if this mode is
  * not supported by the device.
  *
- * @return 0 if the powerdown commands were retrieved successfully or an error code.
+ * @return 0 if the power down commands were retrieved successfully or an error code.
  */
 int spi_flash_sfdp_get_deep_powerdown_commands (struct spi_flash_sfdp_basic_table *table,
 	uint8_t *enter, uint8_t *exit)
@@ -773,7 +767,7 @@ int spi_flash_sfdp_get_deep_powerdown_commands (struct spi_flash_sfdp_basic_tabl
 	}
 
 	if (table->sfdp->sfdp_header.parameter0.minor_revision >= 5) {
-		params = table->data;
+		params = (struct spi_flash_sfdp_basic_parameter_table_1_5*) table->data;
 
 		if (!SPI_FLASH_SFDP_PWRDWN_NO_SUPPORT (params->deep_powerdown)) {
 			cmd_enter = SPI_FLASH_SFDP_PWRDWN_ENTER (params->deep_powerdown);

@@ -2318,7 +2318,7 @@ static void device_manager_test_get_crypto_timeout_remote_device (CuTest *test)
 	remote.request.security_mode = DEVICE_MANAGER_SECURITY_AUTHENTICATION;
 	remote.request.bus_role = DEVICE_MANAGER_SLAVE_BUS_ROLE;
 	remote.request.hierarchy_role = DEVICE_MANAGER_AC_ROT_MODE;
-	remote.max_timeout = MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS;
+	remote.max_timeout = MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
 	remote.max_sig = 20;
 
 	status = device_manager_init (&manager, 2, DEVICE_MANAGER_AC_ROT_MODE,
@@ -2441,7 +2441,7 @@ static void device_manager_test_get_crypto_timeout_by_eid_remote_device (CuTest 
 	remote.request.security_mode = DEVICE_MANAGER_SECURITY_AUTHENTICATION;
 	remote.request.bus_role = DEVICE_MANAGER_SLAVE_BUS_ROLE;
 	remote.request.hierarchy_role = DEVICE_MANAGER_AC_ROT_MODE;
-	remote.max_timeout = MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS;
+	remote.max_timeout = MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
 	remote.max_sig = 20;
 
 	status = device_manager_init (&manager, 2, DEVICE_MANAGER_AC_ROT_MODE,

@@ -37,10 +37,35 @@ static uint32_t flash_master_mock_capabilities (struct flash_master *spi)
 	MOCK_RETURN_NO_ARGS (&mock->mock, flash_master_mock_capabilities, spi);
 }
 
+static int flash_master_mock_get_spi_clock_frequency (struct flash_master *spi)
+{
+	struct flash_master_mock *mock = (struct flash_master_mock*) spi;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN_NO_ARGS (&mock->mock, flash_master_mock_get_spi_clock_frequency, spi);
+}
+
+static int flash_master_mock_set_spi_clock_frequency (struct flash_master *spi, uint32_t freq)
+{
+	struct flash_master_mock *mock = (struct flash_master_mock*) spi;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, flash_master_mock_set_spi_clock_frequency, spi, MOCK_ARG_CALL (freq));
+}
+
 static int flash_master_mock_func_arg_count (void *func)
 {
 	if (func == flash_master_mock_xfer) {
 		return 7;
+	}
+	else if (func == flash_master_mock_set_spi_clock_frequency) {
+		return 1;
 	}
 	else {
 		return 0;
@@ -57,6 +82,12 @@ static const char* flash_master_mock_func_name_map (void *func)
 	}
 	else if (func == flash_master_mock_capabilities) {
 		return "capabilities";
+	}
+	else if (func == flash_master_mock_get_spi_clock_frequency) {
+		return "get_spi_clock_frequency";
+	}
+	else if (func == flash_master_mock_set_spi_clock_frequency) {
+		return "set_spi_clock_frequency";
 	}
 	else {
 		return "unknown";
@@ -90,14 +121,16 @@ static const char* flash_master_mock_arg_name_map (void *func, int arg)
 
 			case 6:
 				return "xfer.flags";
-
-			default:
-				return "unknown";
 		}
 	}
-	else {
-		return "unknown";
+	else if (func == flash_master_mock_set_spi_clock_frequency) {
+		switch (arg) {
+			case 0:
+				return "freq";
+		}
 	}
+
+	return "unknown";
 }
 
 /**
@@ -128,6 +161,8 @@ int flash_master_mock_init (struct flash_master_mock *mock)
 
 	mock->base.xfer = flash_master_mock_xfer;
 	mock->base.capabilities = flash_master_mock_capabilities;
+	mock->base.get_spi_clock_frequency = flash_master_mock_get_spi_clock_frequency;
+	mock->base.set_spi_clock_frequency = flash_master_mock_set_spi_clock_frequency;
 
 	mock->mock.func_arg_count = flash_master_mock_func_arg_count;
 	mock->mock.func_name_map = flash_master_mock_func_name_map;
