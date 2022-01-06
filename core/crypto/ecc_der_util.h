@@ -11,14 +11,14 @@
 
 
 /* Length of ASN.1/DER encoded private keys. */
-#define	ECC_DER_P256_PRIVATE_LENGTH				((ECC256_KEY_LENGTH * 3) + (25))
-#define	ECC_DER_P384_PRIVATE_LENGTH				((ECC384_KEY_LENGTH * 3) + (23))
-#define	ECC_DER_P521_PRIVATE_LENGTH				((ECC521_KEY_LENGTH * 3) + (25))
+#define	ECC_DER_P256_PRIVATE_LENGTH				((ECC_KEY_LENGTH_256 * 3) + (25))
+#define	ECC_DER_P384_PRIVATE_LENGTH				((ECC_KEY_LENGTH_384 * 3) + (23))
+#define	ECC_DER_P521_PRIVATE_LENGTH				((ECC_KEY_LENGTH_521 * 3) + (25))
 
 /* Length of ASN.1/DER encoded private keys without the public key. */
-#define	ECC_DER_P256_PRIVATE_NO_PUB_LENGTH		(ECC256_KEY_LENGTH + (19))
-#define	ECC_DER_P384_PRIVATE_NO_PUB_LENGTH		(ECC384_KEY_LENGTH + (16))
-#define	ECC_DER_P521_PRIVATE_NO_PUB_LENGTH		(ECC521_KEY_LENGTH + (16))
+#define	ECC_DER_P256_PRIVATE_NO_PUB_LENGTH		(ECC_KEY_LENGTH_256 + (19))
+#define	ECC_DER_P384_PRIVATE_NO_PUB_LENGTH		(ECC_KEY_LENGTH_384 + (16))
+#define	ECC_DER_P521_PRIVATE_NO_PUB_LENGTH		(ECC_KEY_LENGTH_521 + (16))
 
 int ecc_der_decode_private_key (const uint8_t *der, size_t length, uint8_t *priv_key,
 	size_t key_length);
@@ -27,9 +27,9 @@ int ecc_der_encode_private_key (const uint8_t *priv_key, const uint8_t *pub_key_
 
 
 /* Length of ASN.1/DER encoded public keys. */
-#define	ECC_DER_P256_PUBLIC_LENGTH				((ECC256_KEY_LENGTH * 2) + (27))
-#define	ECC_DER_P384_PUBLIC_LENGTH				((ECC384_KEY_LENGTH * 2) + (24))
-#define	ECC_DER_P521_PUBLIC_LENGTH				((ECC521_KEY_LENGTH * 2) + (26))
+#define	ECC_DER_P256_PUBLIC_LENGTH				((ECC_KEY_LENGTH_256 * 2) + (27))
+#define	ECC_DER_P384_PUBLIC_LENGTH				((ECC_KEY_LENGTH_384 * 2) + (24))
+#define	ECC_DER_P521_PUBLIC_LENGTH				((ECC_KEY_LENGTH_521 * 2) + (26))
 
 int ecc_der_decode_public_key (const uint8_t *der, size_t length, uint8_t *pub_key_x,
 	uint8_t *pub_key_y, size_t key_length);
@@ -38,9 +38,9 @@ int ecc_der_encode_public_key (const uint8_t *pub_key_x, const uint8_t *pub_key_
 
 
 /* Max length of ASN.1/DER encoded ECDSA signatures. */
-#define	ECC_DER_P256_ECDSA_MAX_LENGTH			((ECC256_KEY_LENGTH * 2) + (8))
-#define	ECC_DER_P384_ECDSA_MAX_LENGTH			((ECC384_KEY_LENGTH * 2) + (8))
-#define	ECC_DER_P521_ECDSA_MAX_LENGTH			((ECC521_KEY_LENGTH * 2) + (9))
+#define	ECC_DER_P256_ECDSA_MAX_LENGTH			((ECC_KEY_LENGTH_256 * 2) + (8))
+#define	ECC_DER_P384_ECDSA_MAX_LENGTH			((ECC_KEY_LENGTH_384 * 2) + (8))
+#define	ECC_DER_P521_ECDSA_MAX_LENGTH			((ECC_KEY_LENGTH_521 * 2) + (9))
 
 int ecc_der_decode_ecdsa_signature (const uint8_t *der, size_t length, uint8_t *sig_r,
 	uint8_t *sig_s, size_t key_length);

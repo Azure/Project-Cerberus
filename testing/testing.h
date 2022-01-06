@@ -60,6 +60,8 @@
 int testing_validate_array (const uint8_t *expected, const uint8_t *actual, size_t length);
 int testing_validate_array_prefix (const uint8_t *expected, const uint8_t *actual, size_t length,
 	const char *prefix);
+int testing_validate_array_prefix_with_extra_info (const uint8_t *expected, const uint8_t *actual,
+	size_t length, const char *prefix, const char *extra);
 
 
 #endif /* TESTING_H_ */

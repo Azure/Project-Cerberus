@@ -43,7 +43,7 @@ struct cert_device_hw {
 	 *
 	 * @param hw THe device hardware to query for key length requirements.
 	 * @param key_length The buffer that will contains the minimum key length.  The key length will
-	 * be reported in bits (i.e. 2048 for RSA2k).
+	 * be reported in bits (e.g. 2048 for RSA2k).
 	 *
 	 * @return 0 if the minimum length was retrieved successfully or an error code.
 	 */

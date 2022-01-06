@@ -7,7 +7,6 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include "platform_config.h"
 #include "status/rot_status.h"
 #include "hash.h"
 
@@ -17,7 +16,8 @@
 #define	RSA_KEY_LENGTH_2K		(2048 / 8)
 
 
-/* Confiugrable RSA parameters.  Defaults can be overridden in platform_config.h. */
+/* Configurable RSA parameters.  Defaults can be overridden in platform_config.h. */
+#include "platform_config.h"
 #ifndef RSA_MAX_KEY_LENGTH
 #define	RSA_MAX_KEY_LENGTH		RSA_KEY_LENGTH_4K
 #endif

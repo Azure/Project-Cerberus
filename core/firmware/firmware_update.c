@@ -133,7 +133,7 @@ void firmware_update_set_recovery_revision (struct firmware_update *updater, int
  *
  * If there is an error while trying to determine the validity of the recovery image, the internal
  * state will be updated as if the recovery image is bad.  This will ensure that updates proceed
- * only if know a good recovery image exists.
+ * only if it knows a good recovery image exists.
  *
  * @param updater The updater to configure.
  *
@@ -181,6 +181,13 @@ int firmware_update_validate_recovery_image (struct firmware_update *updater)
 		DEBUG_LOG_COMPONENT_CERBERUS_FW, FIRMWARE_LOGGING_RECOVERY_IMAGE, updater->recovery_bad,
 		status);
 
+	/* TODO:  What about ECC signature errors or revocation checks fails?  This seems generally
+	 * fragile.  Maybe we should get rid of it, along with the list of validation codes documented
+	 * on firmware_image.load.  That seems like it could become incomplete.
+	 *
+	 * A better approach is probably to just swallow all errors (maybe change this to return void?).
+	 * We already log it and mark the recovery as bad in all error cases.  It's not clear what
+	 * benefit there is from the distinction of errors here. */
 	if ((status == FIRMWARE_IMAGE_INVALID_FORMAT) || (status == FIRMWARE_IMAGE_BAD_CHECKSUM) ||
 		(status == KEY_MANIFEST_INVALID_FORMAT) || (status == RSA_ENGINE_BAD_SIGNATURE) ||
 		(status == FIRMWARE_HEADER_BAD_FORMAT_LENGTH) ||

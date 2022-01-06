@@ -119,7 +119,7 @@ static void ecc_riot_test_public_key_init_key_pair_and_verify (CuTest *test)
 	ecc_riot_release (&engine);
 }
 
-#if ECC_MAX_KEY_LENGTH >= 384
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
 static void ecc_riot_test_public_key_init_key_pair_and_verify_p384 (CuTest *test)
 {
 	struct ecc_engine_riot engine;
@@ -140,7 +140,7 @@ static void ecc_riot_test_public_key_init_key_pair_and_verify_p384 (CuTest *test
 }
 #endif
 
-#if ECC_MAX_KEY_LENGTH >= 521
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
 static void ecc_riot_test_public_key_init_key_pair_and_verify_p521 (CuTest *test)
 {
 	struct ecc_engine_riot engine;
@@ -332,7 +332,7 @@ static void ecc_riot_test_init_key_pair_and_sign_and_verify_no_pubkey (CuTest *t
 	ecc_riot_release (&engine);
 }
 
-#if ECC_MAX_KEY_LENGTH >= 384
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
 static void ecc_riot_test_init_key_pair_and_sign_and_verify_p384 (CuTest *test)
 {
 	struct ecc_engine_riot engine;
@@ -354,7 +354,7 @@ static void ecc_riot_test_init_key_pair_and_sign_and_verify_p384 (CuTest *test)
 }
 #endif
 
-#if ECC_MAX_KEY_LENGTH >= 521
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
 static void ecc_riot_test_init_key_pair_and_sign_and_verify_p521 (CuTest *test)
 {
 	struct ecc_engine_riot engine;
@@ -1370,10 +1370,10 @@ TEST (ecc_riot_test_init);
 TEST (ecc_riot_test_init_null);
 TEST (ecc_riot_test_release_null);
 TEST (ecc_riot_test_public_key_init_key_pair_and_verify);
-#if ECC_MAX_KEY_LENGTH >= 384
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
 TEST (ecc_riot_test_public_key_init_key_pair_and_verify_p384);
 #endif
-#if ECC_MAX_KEY_LENGTH >= 521
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
 TEST (ecc_riot_test_public_key_init_key_pair_and_verify_p521);
 #endif
 TEST (ecc_riot_test_public_key_init_key_pair_and_verify_bad_sig);
@@ -1381,10 +1381,10 @@ TEST (ecc_riot_test_private_key_init_key_pair_and_sign);
 TEST (ecc_riot_test_public_key_init_key_pair_and_sign);
 TEST (ecc_riot_test_init_key_pair_and_sign_and_verify);
 TEST (ecc_riot_test_init_key_pair_and_sign_and_verify_no_pubkey);
-#if ECC_MAX_KEY_LENGTH >= 384
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
 TEST (ecc_riot_test_init_key_pair_and_sign_and_verify_p384);
 #endif
-#if ECC_MAX_KEY_LENGTH >= 521
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
 TEST (ecc_riot_test_init_key_pair_and_sign_and_verify_p521);
 #endif
 TEST (ecc_riot_test_init_key_pair_and_sign_with_public_key);

@@ -6,24 +6,23 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include "platform_config.h"
 #include "status/rot_status.h"
 
 
+/* Private key lengths */
+#define	ECC_KEY_LENGTH_256		(256 / 8)
+#define	ECC_KEY_LENGTH_384		(384 / 8)
+#define	ECC_KEY_LENGTH_521		(528 / 8)
+
 /* Configurable ECC parameters.  Defaults can be overridden in platform_config.h. */
+#include "platform_config.h"
 #ifndef ECC_MAX_KEY_LENGTH
-#define	ECC_MAX_KEY_LENGTH		521
+#define	ECC_MAX_KEY_LENGTH		ECC_KEY_LENGTH_521
 #endif
 
-/* Private key lengths */
-#define	ECC256_KEY_LENGTH		(256 / 8)
-#define ECC384_KEY_LENGTH		(384 / 8)
-#define	ECC521_KEY_LENGTH		(528 / 8)
-
-/**
- * Length of the public key portion of a maximum length ECC DER key.
- */
-#define ECC_MAX_PUBKEY_DER_LEN	(((ECC_MAX_KEY_LENGTH / 8) + 1) * 2 + 32)
+#if ECC_MAX_KEY_LENGTH < ECC_KEY_LENGTH_256
+#error "ECC must at least have support for 256-bit keys."
+#endif
 
 
 /**
@@ -39,6 +38,29 @@ struct ecc_private_key {
 struct ecc_public_key {
 	void *context;		/**< The implementation context for the public key. */
 };
+
+#pragma pack(push,1)
+/**
+ * Defines a structure to hold the X and Y values for a point on a curve that represents an ECC
+ * public key.  No curve information is stored.  The curve is implied based on the key length.
+ */
+struct ecc_point_public_key {
+	uint8_t x[ECC_MAX_KEY_LENGTH];			/**< X coordinate for the ECC public key. */
+	uint8_t y[ECC_MAX_KEY_LENGTH];			/**< Y coordinate for the ECC public key. */
+	size_t key_length;						/**< Length of each coordinate in the public key. */
+};
+
+/**
+ * Defines a structure to hold the raw r and s values (i.e. not ASN.1/DER encoded) for an ECDSA
+ * signature.  These values are expected to match the private key length and have the MSBs padded
+ * with 0's when necessary.
+ */
+struct ecc_ecdsa_signature {
+	uint8_t r[ECC_MAX_KEY_LENGTH];			/**< r value for the ECDSA signature. */
+	uint8_t s[ECC_MAX_KEY_LENGTH];			/**< s value for the ECDSA signature. */
+	size_t length;							/**< Length of each integer in the ECDSA signature. */
+};
+#pragma pack(pop)
 
 /**
  * A platform-independent API for generating and using ECC key pairs.  ECC engine instances are not
@@ -80,9 +102,9 @@ struct ecc_engine {
 	/**
 	 * Generate an ECC key pair using a specified value for the private key.  The length of the
 	 * specified private key determines the ECC curve to use for key pair generation.
-	 *  - ECC256_KEY_LENGTH -> NIST P-256
-	 *  - ECC384_KEY_LENGTH -> NIST P-384
-	 *  - ECC521_KEY_LENGTH -> NIST P-521
+	 *  - ECC_KEY_LENGTH_256 -> NIST P-256
+	 *  - ECC_KEY_LENGTH_384 -> NIST P-384
+	 *  - ECC_KEY_LENGTH_521 -> NIST P-521
 	 *
 	 * @param engine The ECC engine to use to generate the key pair.
 	 * @param priv The private value to use for key generation.
@@ -100,9 +122,9 @@ struct ecc_engine {
 	/**
 	 * Generate a random ECC key pair.  The desired length of the key determines the ECC curve to
 	 * use for key pair generation.
-	 *  - ECC256_KEY_LENGTH -> NIST P-256
-	 *  - ECC384_KEY_LENGTH -> NIST P-384
-	 *  - ECC521_KEY_LENGTH -> NIST P-521
+	 *  - ECC_KEY_LENGTH_256 -> NIST P-256
+	 *  - ECC_KEY_LENGTH_384 -> NIST P-384
+	 *  - ECC_KEY_LENGTH_521 -> NIST P-521
 	 *
 	 * @param engine The ECC engine to use to generate the key pair.
 	 * @param key_length The length of the key that should be generated.

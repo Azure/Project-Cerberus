@@ -20,6 +20,9 @@ struct firmware_image {
 	/**
 	 * Update the image referenced by an instance.
 	 *
+	 * This does not copy the image into memory for execution.  This function just parses the image
+	 * metadata to determine structure and length for use by other API calls.
+	 *
 	 * @param fw The firmware image instance to update.
 	 * @param flash The flash device that contains the firmware image.
 	 * @param base_addr The starting address of the new firmware image.
@@ -29,7 +32,7 @@ struct firmware_image {
 	 * 		- FIRMWARE_IMAGE_INVALID_FORMAT
 	 * 		- FIRMWARE_IMAGE_BAD_CHECKSUM
 	 * 		- KEY_MANIFEST_INVALID_FORMAT
-	 * 		- FIRMWARE_HEADER validation errors
+	 * 		- FIRMWARE_HEADER or IMAGE_HEADER validation errors
 	 */
 	int (*load) (struct firmware_image *fw, struct flash *flash, uint32_t base_addr);
 
@@ -62,7 +65,7 @@ struct firmware_image {
 	 *
 	 * @return The image key manifest or null if there is an error.  The memory for the key
 	 * manifest is managed by the firmware image instance and is only guaranteed to be valid until
-	 * the next call to 'load'.
+	 * the next call to firmware_image.load.
 	 */
 	struct key_manifest* (*get_key_manifest) (struct firmware_image *fw);
 
@@ -73,7 +76,7 @@ struct firmware_image {
 	 *
 	 * @return The image firmware header or null if there is an error.  The memory for the header
 	 * is managed by the firmware image instance and is only guaranteed to be valid until the next
-	 * call to 'load'.
+	 * call to firmware_image.load.
 	 */
 	struct firmware_header* (*get_firmware_header) (struct firmware_image *fw);
 };

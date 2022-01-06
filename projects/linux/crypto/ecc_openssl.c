@@ -155,17 +155,17 @@ static int ecc_openssl_generate_derived_key_pair (struct ecc_engine *engine, con
 	ERR_clear_error ();
 
 	switch (key_length) {
-		case ECC256_KEY_LENGTH:
+		case ECC_KEY_LENGTH_256:
 			ec = EC_KEY_new_by_curve_name (NID_X9_62_prime256v1);
 			break;
 
-#if ECC_MAX_KEY_LENGTH >= 384
-		case ECC384_KEY_LENGTH:
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
+		case ECC_KEY_LENGTH_384:
 			ec = EC_KEY_new_by_curve_name (NID_secp384r1);
 			break;
 
-#if ECC_MAX_KEY_LENGTH >= 521
-		case ECC521_KEY_LENGTH:
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
+		case ECC_KEY_LENGTH_521:
 			ec = EC_KEY_new_by_curve_name (NID_secp521r1);
 			break;
 #endif
@@ -273,17 +273,17 @@ static int ecc_openssl_generate_key_pair (struct ecc_engine *engine, size_t key_
 	ERR_clear_error ();
 
 	switch (key_length) {
-		case ECC256_KEY_LENGTH:
+		case ECC_KEY_LENGTH_256:
 			ec = EC_KEY_new_by_curve_name (NID_X9_62_prime256v1);
 			break;
 
-#if ECC_MAX_KEY_LENGTH >= 384
-		case ECC384_KEY_LENGTH:
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
+		case ECC_KEY_LENGTH_384:
 			ec = EC_KEY_new_by_curve_name (NID_secp384r1);
 			break;
 
-#if ECC_MAX_KEY_LENGTH >= 521
-		case ECC521_KEY_LENGTH:
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
+		case ECC_KEY_LENGTH_521:
 			ec = EC_KEY_new_by_curve_name (NID_secp521r1);
 			break;
 #endif

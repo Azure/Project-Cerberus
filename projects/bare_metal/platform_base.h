@@ -4,6 +4,7 @@
 #ifndef PLATFORM_BASE_H_
 #define PLATFORM_BASE_H_
 
+#include <stdlib.h>
 #include <stdint.h>
 #include "common/common_math.h"
 #include "common/unused.h"
@@ -27,7 +28,7 @@
 /* platform_clock and system time functions depend on hardware features. */
 
 
-/* Mutex.  Single-threded environment without a need for synchronization. */
+/* Mutex.  Single-threaded environment without a need for synchronization. */
 typedef int platform_mutex;
 static inline int platform_mutex_init (platform_mutex *mutex)
 {

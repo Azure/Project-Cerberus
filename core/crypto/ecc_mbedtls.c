@@ -238,17 +238,17 @@ static int ecc_mbedtls_generate_derived_key_pair (struct ecc_engine *engine, con
 	}
 
 	switch (key_length) {
-		case ECC256_KEY_LENGTH:
+		case ECC_KEY_LENGTH_256:
 			curve = MBEDTLS_ECP_DP_SECP256R1;
 			break;
 
-#if ECC_MAX_KEY_LENGTH >= 384
-		case ECC384_KEY_LENGTH:
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
+		case ECC_KEY_LENGTH_384:
 			curve = MBEDTLS_ECP_DP_SECP384R1;
 			break;
 
-#if ECC_MAX_KEY_LENGTH >= 521
-		case ECC521_KEY_LENGTH:
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
+		case ECC_KEY_LENGTH_521:
 			curve = MBEDTLS_ECP_DP_SECP521R1;
 			break;
 #endif
@@ -344,17 +344,17 @@ static int ecc_mbedtls_generate_key_pair (struct ecc_engine *engine, size_t key_
 	}
 
 	switch (key_length) {
-		case ECC256_KEY_LENGTH:
+		case ECC_KEY_LENGTH_256:
 			curve = MBEDTLS_ECP_DP_SECP256R1;
 			break;
 
-#if ECC_MAX_KEY_LENGTH >= 384
-		case ECC384_KEY_LENGTH:
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
+		case ECC_KEY_LENGTH_384:
 			curve = MBEDTLS_ECP_DP_SECP384R1;
 			break;
 
-#if ECC_MAX_KEY_LENGTH >= 521
-		case ECC521_KEY_LENGTH:
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
+		case ECC_KEY_LENGTH_521:
 			curve = MBEDTLS_ECP_DP_SECP521R1;
 			break;
 #endif

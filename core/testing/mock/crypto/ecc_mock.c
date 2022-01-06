@@ -4,7 +4,9 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <string.h>
+#include "platform_io.h"
 #include "ecc_mock.h"
+#include "testing.h"
 
 
 static int ecc_mock_init_key_pair (struct ecc_engine *engine, const uint8_t *key, size_t key_length,
@@ -459,4 +461,64 @@ int ecc_mock_validate_and_release (struct ecc_engine_mock *mock)
 	}
 
 	return status;
+}
+
+/**
+ * Custom validation routine for validating ecc_point_public_key arguments.
+ *
+ * @param arg_info Argument information from the mock for error messages.
+ * @param expected The expected public key contents.
+ * @param actual The actual public key contents.
+ *
+ * @return 0 if the public key contained the expected information or 1 if not.
+ */
+int ecc_mock_validate_point_public_key (const char *arg_info, void *expected, void *actual)
+{
+	struct ecc_point_public_key *pk_expected = (struct ecc_point_public_key*) expected;
+	struct ecc_point_public_key *pk_actual = (struct ecc_point_public_key*) actual;
+	int fail = 0;
+
+	if (pk_expected->key_length != pk_actual->key_length) {
+		platform_printf ("%sUnexpected key length: expected=0x%x, actual=0x%x" NEWLINE,
+			arg_info, pk_expected->key_length, pk_actual->key_length);
+		fail |= 1;
+	}
+
+	fail |= testing_validate_array_prefix_with_extra_info (pk_expected->x, pk_actual->x,
+		pk_expected->key_length, arg_info, "(X) ");
+
+	fail |= testing_validate_array_prefix_with_extra_info (pk_expected->y, pk_actual->y,
+		pk_expected->key_length, arg_info, "(Y) ");
+
+	return fail;
+}
+
+/**
+ * Custom validation routine for validating ecc_ecdsa_signature arguments.
+ *
+ * @param arg_info Argument information from the mock for error messages.
+ * @param expected The expected signature contents.
+ * @param actual The actual signature contents.
+ *
+ * @return 0 if the signature contained the expected information or 1 if not.
+ */
+int ecc_mock_validate_ecdsa_signature (const char *arg_info, void *expected, void *actual)
+{
+	struct ecc_ecdsa_signature *sig_expected = (struct ecc_ecdsa_signature*) expected;
+	struct ecc_ecdsa_signature *sig_actual = (struct ecc_ecdsa_signature*) actual;
+	int fail = 0;
+
+	if (sig_expected->length != sig_actual->length) {
+		platform_printf ("%sUnexpected signature length: expected=0x%x, actual=0x%x" NEWLINE,
+			arg_info, sig_expected->length, sig_actual->length);
+		fail |= 1;
+	}
+
+	fail |= testing_validate_array_prefix_with_extra_info (sig_expected->r, sig_actual->r,
+		sig_expected->length, arg_info, "(r) ");
+
+	fail |= testing_validate_array_prefix_with_extra_info (sig_expected->s, sig_actual->s,
+		sig_expected->length, arg_info, "(s) ");
+
+	return fail;
 }

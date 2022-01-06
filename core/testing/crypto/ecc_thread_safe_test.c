@@ -401,10 +401,10 @@ static void ecc_thread_safe_test_generate_key_pair (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.generate_key_pair, &mock, 0,
-		MOCK_ARG (ECC256_KEY_LENGTH), MOCK_ARG (&priv_key), MOCK_ARG (&pub_key));
+		MOCK_ARG (ECC_KEY_LENGTH_256), MOCK_ARG (&priv_key), MOCK_ARG (&pub_key));
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.generate_key_pair (&engine.base, ECC256_KEY_LENGTH, &priv_key, &pub_key);
+	status = engine.base.generate_key_pair (&engine.base, ECC_KEY_LENGTH_256, &priv_key, &pub_key);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_validate (&mock.mock);
@@ -435,11 +435,11 @@ static void ecc_thread_safe_test_generate_key_pair_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.generate_key_pair, &mock,
-		ECC_ENGINE_GENERATE_KEY_FAILED, MOCK_ARG (ECC256_KEY_LENGTH), MOCK_ARG (&priv_key),
+		ECC_ENGINE_GENERATE_KEY_FAILED, MOCK_ARG (ECC_KEY_LENGTH_256), MOCK_ARG (&priv_key),
 		MOCK_ARG (&pub_key));
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.generate_key_pair (&engine.base, ECC256_KEY_LENGTH, &priv_key, &pub_key);
+	status = engine.base.generate_key_pair (&engine.base, ECC_KEY_LENGTH_256, &priv_key, &pub_key);
 	CuAssertIntEquals (test, ECC_ENGINE_GENERATE_KEY_FAILED, status);
 
 	status = mock_validate (&mock.mock);
@@ -469,7 +469,7 @@ static void ecc_thread_safe_test_generate_key_pair_null (CuTest *test)
 	status = ecc_thread_safe_init (&engine, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.generate_key_pair (NULL, ECC256_KEY_LENGTH, &priv_key, &pub_key);
+	status = engine.base.generate_key_pair (NULL, ECC_KEY_LENGTH_256, &priv_key, &pub_key);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
 	status = mock_validate (&mock.mock);
@@ -1071,11 +1071,11 @@ static void ecc_thread_safe_test_get_shared_secret_max_length (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.get_shared_secret_max_length, &mock,
-		ECC256_KEY_LENGTH, MOCK_ARG (&priv_key));
+		ECC_KEY_LENGTH_256, MOCK_ARG (&priv_key));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_shared_secret_max_length (&engine.base, &priv_key);
-	CuAssertIntEquals (test, ECC256_KEY_LENGTH, status);
+	CuAssertIntEquals (test, ECC_KEY_LENGTH_256, status);
 
 	status = mock_validate (&mock.mock);
 	CuAssertIntEquals (test, 0, status);

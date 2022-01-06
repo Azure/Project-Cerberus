@@ -12,7 +12,7 @@ static const uint8_t ECC_DER_P256_OID[] = {
 	0x2a,0x86,0x48,0xce,0x3d,0x03,0x01,0x07
 };
 
-#if ECC_MAX_KEY_LENGTH >= 384
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
 /**
  * The ASN.1 encoded OID for the P384 ECC curve.
  */
@@ -21,7 +21,7 @@ static const uint8_t ECC_DER_P384_OID[] = {
 };
 #endif
 
-#if ECC_MAX_KEY_LENGTH >= 521
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
 /**
  * The ASN.1 encoded OID for the P521 ECC curve.
  */
@@ -248,27 +248,27 @@ int ecc_der_decode_private_key (const uint8_t *der, size_t length, uint8_t *priv
 	/* Make sure the private key is a supported key length. */
 	key_len = type_len;
 	switch (key_len) {
-		case ECC256_KEY_LENGTH:
+		case ECC_KEY_LENGTH_256:
 			oid = ECC_DER_P256_OID;
 			oid_len = sizeof (ECC_DER_P256_OID);
 			break;
 
-#if ECC_MAX_KEY_LENGTH >= 384
-		case ECC384_KEY_LENGTH:
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
+		case ECC_KEY_LENGTH_384:
 			oid = ECC_DER_P384_OID;
 			oid_len = sizeof (ECC_DER_P384_OID);
 			break;
 #endif
 
-#if ECC_MAX_KEY_LENGTH >= 521
-		case ECC521_KEY_LENGTH - 1:
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
+		case ECC_KEY_LENGTH_521 - 1:
 			/* Some encoders drop the first byte of private key if it is 0, so accept one less byte
 			 * than normally expected. */
 			key_len++;
 
 			/* fall through */ /* no break */
 
-		case ECC521_KEY_LENGTH:
+		case ECC_KEY_LENGTH_521:
 			oid = ECC_DER_P521_OID;
 			oid_len = sizeof (ECC_DER_P521_OID);
 			break;
@@ -279,8 +279,8 @@ int ecc_der_decode_private_key (const uint8_t *der, size_t length, uint8_t *priv
 	}
 
 	if (key_length >= (size_t) key_len) {
-#if ECC_MAX_KEY_LENGTH >= 521
-		if (type_len == (ECC521_KEY_LENGTH - 1)) {
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
+		if (type_len == (ECC_KEY_LENGTH_521 - 1)) {
 			priv_key[0] = 0;
 			memcpy (&priv_key[1], pos, type_len);
 		}
@@ -354,21 +354,21 @@ int ecc_der_encode_private_key (const uint8_t *priv_key, const uint8_t *pub_key_
 
 	if (pub_key_x && pub_key_y) {
 		has_pub_key = 0x80;
-		if (key_length > ECC256_KEY_LENGTH) {
+		if (key_length > ECC_KEY_LENGTH_256) {
 			seq_hdr_len = 3;
 		}
 	}
 
 	switch (key_length) {
-		case ECC256_KEY_LENGTH:
+		case ECC_KEY_LENGTH_256:
 			oid_len = sizeof (ECC_DER_P256_OID);
 			oid = ECC_DER_P256_OID;
 
 			status = ecc_der_add_next_tag (0x30, 0, NULL, &pos, &length);
 			break;
 
-#if ECC_MAX_KEY_LENGTH >= 384
-		case ECC384_KEY_LENGTH:
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
+		case ECC_KEY_LENGTH_384:
 			oid_len = sizeof (ECC_DER_P384_OID);
 			oid = ECC_DER_P384_OID;
 
@@ -376,8 +376,8 @@ int ecc_der_encode_private_key (const uint8_t *priv_key, const uint8_t *pub_key_
 			break;
 #endif
 
-#if ECC_MAX_KEY_LENGTH >= 521
-		case ECC521_KEY_LENGTH:
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
+		case ECC_KEY_LENGTH_521:
 			oid_len = sizeof (ECC_DER_P521_OID);
 			oid = ECC_DER_P521_OID;
 
@@ -414,7 +414,7 @@ int ecc_der_encode_private_key (const uint8_t *priv_key, const uint8_t *pub_key_
 	}
 
 	if (pub_key_x && pub_key_y) {
-		if (key_length != ECC521_KEY_LENGTH) {
+		if (key_length != ECC_KEY_LENGTH_521) {
 			status = ecc_der_add_next_tag (0xa1, (key_length * 2) + 4, NULL, &pos, &length);
 		}
 		else {
@@ -524,15 +524,15 @@ int ecc_der_decode_public_key (const uint8_t *der, size_t length, uint8_t *pub_k
 	type_len = (type_len - 2) / 2;
 
 	switch (type_len) {
-		case ECC256_KEY_LENGTH:
+		case ECC_KEY_LENGTH_256:
 			if ((oid_len != sizeof (ECC_DER_P256_OID)) ||
 				(memcmp (oid, ECC_DER_P256_OID, oid_len) != 0)) {
 				return ECC_DER_UTIL_UNSUPPORTED_CURVE;
 			}
 			break;
 
-#if ECC_MAX_KEY_LENGTH >= 384
-		case ECC384_KEY_LENGTH:
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
+		case ECC_KEY_LENGTH_384:
 			if ((oid_len != sizeof (ECC_DER_P384_OID)) ||
 				(memcmp (oid, ECC_DER_P384_OID, oid_len) != 0)) {
 				return ECC_DER_UTIL_UNSUPPORTED_CURVE;
@@ -540,8 +540,8 @@ int ecc_der_decode_public_key (const uint8_t *der, size_t length, uint8_t *pub_k
 			break;
 #endif
 
-#if ECC_MAX_KEY_LENGTH >= 521
-		case ECC521_KEY_LENGTH:
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
+		case ECC_KEY_LENGTH_521:
 			if ((oid_len != sizeof (ECC_DER_P521_OID)) ||
 				(memcmp (oid, ECC_DER_P521_OID, oid_len) != 0)) {
 				return ECC_DER_UTIL_UNSUPPORTED_CURVE;
@@ -593,22 +593,22 @@ int ecc_der_encode_public_key (const uint8_t *pub_key_x, const uint8_t *pub_key_
 	}
 
 	switch (key_length) {
-		case ECC256_KEY_LENGTH:
+		case ECC_KEY_LENGTH_256:
 			algo_len = 0x13;
 			oid = ECC_DER_P256_OID;
 			oid_len = sizeof (ECC_DER_P256_OID);
 			break;
 
-#if ECC_MAX_KEY_LENGTH >= 384
-		case ECC384_KEY_LENGTH:
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
+		case ECC_KEY_LENGTH_384:
 			algo_len = 0x10;
 			oid = ECC_DER_P384_OID;
 			oid_len = sizeof (ECC_DER_P384_OID);
 			break;
 #endif
 
-#if ECC_MAX_KEY_LENGTH >= 521
-		case ECC521_KEY_LENGTH:
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
+		case ECC_KEY_LENGTH_521:
 			seq_hdr_len = 3;
 			algo_len = 0x10;
 			oid = ECC_DER_P521_OID;
@@ -836,7 +836,7 @@ int ecc_der_encode_ecdsa_signature (const uint8_t *sig_r, const uint8_t *sig_s, 
 
 	total_len = (pos - der) - 2;
 
-#if ECC_MAX_KEY_LENGTH >= 521
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
 	/* For P521 signatures, the resulting structure could require 3 header bytes.  Adjust here, if
 	 * necessary. */
 	der[1] = total_len;

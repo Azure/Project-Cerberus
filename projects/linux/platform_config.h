@@ -26,12 +26,12 @@
 /**
  * The maximum key length supported by the RSA API.
  */
-// #define	RSA_MAX_KEY_LENGTH		(4096 / 8)
+// #define	RSA_MAX_KEY_LENGTH		RSA_KEY_LENGTH_4K
 
 /**
  * The maximum elliptic curve size supported by the ECC API.
  */
-// #define	ECC_MAX_KEY_LENGTH		521
+// #define	ECC_MAX_KEY_LENGTH		ECC_KEY_LENGTH_521
 
 
 /********************

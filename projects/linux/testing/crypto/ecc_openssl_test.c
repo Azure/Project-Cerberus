@@ -97,7 +97,7 @@ static void ecc_openssl_test_public_key_init_key_pair_and_verify (CuTest *test)
 	ecc_openssl_release (&engine);
 }
 
-#if ECC_MAX_KEY_LENGTH >= 384
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
 static void ecc_openssl_test_public_key_init_key_pair_and_verify_p384 (CuTest *test)
 {
 	struct ecc_engine_openssl engine;
@@ -125,7 +125,7 @@ static void ecc_openssl_test_public_key_init_key_pair_and_verify_p384 (CuTest *t
 }
 #endif
 
-#if ECC_MAX_KEY_LENGTH >= 521
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
 static void ecc_openssl_test_public_key_init_key_pair_and_verify_p521 (CuTest *test)
 {
 	struct ecc_engine_openssl engine;
@@ -299,7 +299,7 @@ static void ecc_openssl_test_init_key_pair_and_sign_and_verify_no_pubkey (CuTest
 	ecc_openssl_release (&engine);
 }
 
-#if ECC_MAX_KEY_LENGTH >= 384
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
 static void ecc_openssl_test_init_key_pair_and_sign_and_verify_p384 (CuTest *test)
 {
 	struct ecc_engine_openssl engine;
@@ -371,7 +371,7 @@ static void ecc_openssl_test_init_key_pair_and_sign_and_verify_no_pubkey_p384 (C
 }
 #endif
 
-#if ECC_MAX_KEY_LENGTH >= 521
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
 static void ecc_openssl_test_init_key_pair_and_sign_and_verify_p521 (CuTest *test)
 {
 	struct ecc_engine_openssl engine;
@@ -615,7 +615,7 @@ static void ecc_openssl_test_init_public_key_and_verify (CuTest *test)
 	ecc_openssl_release (&engine);
 }
 
-#if ECC_MAX_KEY_LENGTH >= 384
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
 static void ecc_openssl_test_init_public_key_and_verify_p384 (CuTest *test)
 {
 	struct ecc_engine_openssl engine;
@@ -642,7 +642,7 @@ static void ecc_openssl_test_init_public_key_and_verify_p384 (CuTest *test)
 }
 #endif
 
-#if ECC_MAX_KEY_LENGTH >= 521
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
 static void ecc_openssl_test_init_public_key_and_verify_p521 (CuTest *test)
 {
 	struct ecc_engine_openssl engine;
@@ -799,7 +799,7 @@ static void ecc_openssl_test_public_key_generate_derived_key_pair_and_verify_p38
 
 	status = engine.base.generate_derived_key_pair (&engine.base, ECC384_PRIVKEY,
 		ECC384_PRIVKEY_LEN, NULL, &pub_key);
-#if ECC_MAX_KEY_LENGTH >= 384
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, pub_key.context);
 
@@ -828,7 +828,7 @@ static void ecc_openssl_test_public_key_generate_derived_key_pair_and_verify_p52
 
 	status = engine.base.generate_derived_key_pair (&engine.base, ECC521_PRIVKEY,
 		ECC521_PRIVKEY_LEN, NULL, &pub_key);
-#if ECC_MAX_KEY_LENGTH >= 521
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, pub_key.context);
 
@@ -958,7 +958,7 @@ static void ecc_openssl_test_generate_derived_key_pair_and_sign_and_verify_p384 
 	struct ecc_private_key priv_key;
 	struct ecc_public_key pub_key;
 	int status;
-#if ECC_MAX_KEY_LENGTH >= 384
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
 	int out_len;
 	uint8_t out[ECC256_DSA_MAX_LENGTH * 2];
 #endif
@@ -970,7 +970,7 @@ static void ecc_openssl_test_generate_derived_key_pair_and_sign_and_verify_p384 
 
 	status = engine.base.generate_derived_key_pair (&engine.base, ECC384_PRIVKEY,
 		ECC384_PRIVKEY_LEN, &priv_key, &pub_key);
-#if ECC_MAX_KEY_LENGTH >= 384
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, priv_key.context);
 	CuAssertPtrNotNull (test, pub_key.context);
@@ -997,7 +997,7 @@ static void ecc_openssl_test_generate_derived_key_pair_and_sign_and_verify_p521 
 	struct ecc_private_key priv_key;
 	struct ecc_public_key pub_key;
 	int status;
-#if ECC_MAX_KEY_LENGTH >= 521
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
 	int out_len;
 	uint8_t out[ECC256_DSA_MAX_LENGTH * 2];
 #endif
@@ -1009,7 +1009,7 @@ static void ecc_openssl_test_generate_derived_key_pair_and_sign_and_verify_p521 
 
 	status = engine.base.generate_derived_key_pair (&engine.base, ECC521_PRIVKEY,
 		ECC521_PRIVKEY_LEN, &priv_key, &pub_key);
-#if ECC_MAX_KEY_LENGTH >= 521
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, priv_key.context);
 	CuAssertPtrNotNull (test, pub_key.context);
@@ -1132,7 +1132,7 @@ static void ecc_openssl_test_public_key_generate_key_pair (CuTest *test)
 	status = ecc_openssl_init (&engine);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.generate_key_pair (&engine.base, ECC256_KEY_LENGTH, NULL, &pub_key);
+	status = engine.base.generate_key_pair (&engine.base, ECC_KEY_LENGTH_256, NULL, &pub_key);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, pub_key.context);
 
@@ -1153,7 +1153,7 @@ static void ecc_openssl_test_private_key_generate_key_pair_and_sign (CuTest *tes
 	status = ecc_openssl_init (&engine);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.generate_key_pair (&engine.base, ECC256_KEY_LENGTH, &priv_key, NULL);
+	status = engine.base.generate_key_pair (&engine.base, ECC_KEY_LENGTH_256, &priv_key, NULL);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, priv_key.context);
 
@@ -1178,7 +1178,7 @@ static void ecc_openssl_test_public_key_generate_key_pair_and_sign (CuTest *test
 	status = ecc_openssl_init (&engine);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.generate_key_pair (&engine.base, ECC256_KEY_LENGTH, NULL, &pub_key);
+	status = engine.base.generate_key_pair (&engine.base, ECC_KEY_LENGTH_256, NULL, &pub_key);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, pub_key.context);
 
@@ -1205,7 +1205,7 @@ static void ecc_openssl_test_generate_key_pair_and_sign_and_verify (CuTest *test
 	status = ecc_openssl_init (&engine);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.generate_key_pair (&engine.base, ECC256_KEY_LENGTH, &priv_key, &pub_key);
+	status = engine.base.generate_key_pair (&engine.base, ECC_KEY_LENGTH_256, &priv_key, &pub_key);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, priv_key.context);
 	CuAssertPtrNotNull (test, pub_key.context);
@@ -1228,7 +1228,7 @@ static void ecc_openssl_test_generate_key_pair_and_sign_and_verify_p384 (CuTest 
 	struct ecc_private_key priv_key;
 	struct ecc_public_key pub_key;
 	int status;
-#if ECC_MAX_KEY_LENGTH >= 384
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
 	int out_len;
 	uint8_t out[ECC256_DSA_MAX_LENGTH * 2];
 #endif
@@ -1238,8 +1238,8 @@ static void ecc_openssl_test_generate_key_pair_and_sign_and_verify_p384 (CuTest 
 	status = ecc_openssl_init (&engine);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.generate_key_pair (&engine.base, ECC384_KEY_LENGTH, &priv_key, &pub_key);
-#if ECC_MAX_KEY_LENGTH >= 384
+	status = engine.base.generate_key_pair (&engine.base, ECC_KEY_LENGTH_384, &priv_key, &pub_key);
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, priv_key.context);
 	CuAssertPtrNotNull (test, pub_key.context);
@@ -1266,7 +1266,7 @@ static void ecc_openssl_test_generate_key_pair_and_sign_and_verify_p521 (CuTest 
 	struct ecc_private_key priv_key;
 	struct ecc_public_key pub_key;
 	int status;
-#if ECC_MAX_KEY_LENGTH >= 384
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
 	int out_len;
 	uint8_t out[ECC256_DSA_MAX_LENGTH * 2];
 #endif
@@ -1276,8 +1276,8 @@ static void ecc_openssl_test_generate_key_pair_and_sign_and_verify_p521 (CuTest 
 	status = ecc_openssl_init (&engine);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.generate_key_pair (&engine.base, ECC256_KEY_LENGTH, &priv_key, &pub_key);
-#if ECC_MAX_KEY_LENGTH >= 521
+	status = engine.base.generate_key_pair (&engine.base, ECC_KEY_LENGTH_256, &priv_key, &pub_key);
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, priv_key.context);
 	CuAssertPtrNotNull (test, pub_key.context);
@@ -1311,7 +1311,7 @@ static void ecc_openssl_test_generate_key_pair_and_sign_with_public_key (CuTest 
 	status = ecc_openssl_init (&engine);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.generate_key_pair (&engine.base, ECC256_KEY_LENGTH, &priv_key, &pub_key);
+	status = engine.base.generate_key_pair (&engine.base, ECC_KEY_LENGTH_256, &priv_key, &pub_key);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, priv_key.context);
 	CuAssertPtrNotNull (test, pub_key.context);
@@ -1335,7 +1335,7 @@ static void ecc_openssl_test_generate_key_pair_no_keys (CuTest *test)
 	status = ecc_openssl_init (&engine);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.generate_key_pair (&engine.base, ECC256_KEY_LENGTH, NULL, NULL);
+	status = engine.base.generate_key_pair (&engine.base, ECC_KEY_LENGTH_256, NULL, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	ecc_openssl_release (&engine);
@@ -1353,7 +1353,7 @@ static void ecc_openssl_test_generate_key_pair_null (CuTest *test)
 	status = ecc_openssl_init (&engine);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.generate_key_pair (NULL, ECC256_KEY_LENGTH, &priv_key, &pub_key);
+	status = engine.base.generate_key_pair (NULL, ECC_KEY_LENGTH_256, &priv_key, &pub_key);
 	CuAssertIntEquals (test, ECC_ENGINE_INVALID_ARGUMENT, status);
 
 	ecc_openssl_release (&engine);
@@ -1543,7 +1543,7 @@ static void ecc_openssl_test_get_signature_max_length (CuTest *test)
 	ecc_openssl_release (&engine);
 }
 
-#if ECC_MAX_KEY_LENGTH >= 384
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
 static void ecc_openssl_test_get_signature_max_length_p384 (CuTest *test)
 {
 	struct ecc_engine_openssl engine;
@@ -1568,7 +1568,7 @@ static void ecc_openssl_test_get_signature_max_length_p384 (CuTest *test)
 }
 #endif
 
-#if ECC_MAX_KEY_LENGTH >= 521
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
 static void ecc_openssl_test_get_signature_max_length_p521 (CuTest *test)
 {
 	struct ecc_engine_openssl engine;
@@ -1627,7 +1627,7 @@ static void ecc_openssl_test_get_signature_max_length_random_key (CuTest *test)
 	status = ecc_openssl_init (&engine);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.generate_key_pair (&engine.base, ECC256_KEY_LENGTH, &priv_key, NULL);
+	status = engine.base.generate_key_pair (&engine.base, ECC_KEY_LENGTH_256, &priv_key, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_signature_max_length (&engine.base, &priv_key);
@@ -1680,14 +1680,14 @@ static void ecc_openssl_test_get_shared_secret_max_length (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_shared_secret_max_length (&engine.base, &priv_key);
-	CuAssertIntEquals (test, ECC256_KEY_LENGTH, status);
+	CuAssertIntEquals (test, ECC_KEY_LENGTH_256, status);
 
 	engine.base.release_key_pair (&engine.base, &priv_key, NULL);
 
 	ecc_openssl_release (&engine);
 }
 
-#if ECC_MAX_KEY_LENGTH >= 384
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
 static void ecc_openssl_test_get_shared_secret_max_length_p384 (CuTest *test)
 {
 	struct ecc_engine_openssl engine;
@@ -1704,7 +1704,7 @@ static void ecc_openssl_test_get_shared_secret_max_length_p384 (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_shared_secret_max_length (&engine.base, &priv_key);
-	CuAssertIntEquals (test, ECC384_KEY_LENGTH, status);
+	CuAssertIntEquals (test, ECC_KEY_LENGTH_384, status);
 
 	engine.base.release_key_pair (&engine.base, &priv_key, NULL);
 
@@ -1712,7 +1712,7 @@ static void ecc_openssl_test_get_shared_secret_max_length_p384 (CuTest *test)
 }
 #endif
 
-#if ECC_MAX_KEY_LENGTH >= 521
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
 static void ecc_openssl_test_get_shared_secret_max_length_p521 (CuTest *test)
 {
 	struct ecc_engine_openssl engine;
@@ -1729,7 +1729,7 @@ static void ecc_openssl_test_get_shared_secret_max_length_p521 (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_shared_secret_max_length (&engine.base, &priv_key);
-	CuAssertIntEquals (test, ECC521_KEY_LENGTH, status);
+	CuAssertIntEquals (test, ECC_KEY_LENGTH_521, status);
 
 	engine.base.release_key_pair (&engine.base, &priv_key, NULL);
 
@@ -1753,7 +1753,7 @@ static void ecc_openssl_test_get_shared_secret_max_length_derived_key (CuTest *t
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_shared_secret_max_length (&engine.base, &priv_key);
-	CuAssertIntEquals (test, ECC256_KEY_LENGTH, status);
+	CuAssertIntEquals (test, ECC_KEY_LENGTH_256, status);
 
 	engine.base.release_key_pair (&engine.base, &priv_key, NULL);
 
@@ -1771,11 +1771,11 @@ static void ecc_openssl_test_get_shared_secret_max_length_random_key (CuTest *te
 	status = ecc_openssl_init (&engine);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.generate_key_pair (&engine.base, ECC256_KEY_LENGTH, &priv_key, NULL);
+	status = engine.base.generate_key_pair (&engine.base, ECC_KEY_LENGTH_256, &priv_key, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_shared_secret_max_length (&engine.base, &priv_key);
-	CuAssertIntEquals (test, ECC256_KEY_LENGTH, status);
+	CuAssertIntEquals (test, ECC_KEY_LENGTH_256, status);
 
 	engine.base.release_key_pair (&engine.base, &priv_key, NULL);
 
@@ -1838,7 +1838,7 @@ static void ecc_openssl_test_compute_shared_secret (CuTest *test)
 	ecc_openssl_release (&engine);
 }
 
-#if ECC_MAX_KEY_LENGTH >= 384
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
 static void ecc_openssl_test_compute_shared_secret_p384 (CuTest *test)
 {
 	struct ecc_engine_openssl engine;
@@ -1870,7 +1870,7 @@ static void ecc_openssl_test_compute_shared_secret_p384 (CuTest *test)
 }
 #endif
 
-#if ECC_MAX_KEY_LENGTH >= 521
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
 static void ecc_openssl_test_compute_shared_secret_p521 (CuTest *test)
 {
 	struct ecc_engine_openssl engine;
@@ -1976,8 +1976,8 @@ static void ecc_openssl_test_compute_shared_secret_different_keys (CuTest *test)
 	int status;
 	int out_len1;
 	int out_len2;
-	uint8_t out1[ECC256_KEY_LENGTH * 2];
-	uint8_t out2[ECC256_KEY_LENGTH * 2];
+	uint8_t out1[ECC_KEY_LENGTH_256 * 2];
+	uint8_t out2[ECC_KEY_LENGTH_256 * 2];
 	uint8_t sign[ECC256_DSA_MAX_LENGTH * 2];
 
 	TEST_START;
@@ -1985,10 +1985,12 @@ static void ecc_openssl_test_compute_shared_secret_different_keys (CuTest *test)
 	status = ecc_openssl_init (&engine);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.generate_key_pair (&engine.base, ECC256_KEY_LENGTH, &priv_key1, &pub_key1);
+	status = engine.base.generate_key_pair (&engine.base, ECC_KEY_LENGTH_256, &priv_key1,
+		&pub_key1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.generate_key_pair (&engine.base, ECC256_KEY_LENGTH, &priv_key2, &pub_key2);
+	status = engine.base.generate_key_pair (&engine.base, ECC_KEY_LENGTH_256, &priv_key2,
+		&pub_key2);
 	CuAssertIntEquals (test, 0, status);
 
 	/* Prove the two keys are different. */
@@ -2122,7 +2124,7 @@ static void ecc_openssl_test_get_private_key_der (CuTest *test)
 	ecc_openssl_release (&engine);
 }
 
-#if ECC_MAX_KEY_LENGTH >= 384
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
 static void ecc_openssl_test_get_private_key_der_p384 (CuTest *test)
 {
 	struct ecc_engine_openssl engine;
@@ -2155,7 +2157,7 @@ static void ecc_openssl_test_get_private_key_der_p384 (CuTest *test)
 }
 #endif
 
-#if ECC_MAX_KEY_LENGTH >= 521
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
 static void ecc_openssl_test_get_private_key_der_p521 (CuTest *test)
 {
 	struct ecc_engine_openssl engine;
@@ -2232,7 +2234,7 @@ static void ecc_openssl_test_get_private_key_der_generated_key_pair (CuTest *tes
 	status = ecc_openssl_init (&engine);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.generate_key_pair (&engine.base, ECC256_KEY_LENGTH, &priv_key, NULL);
+	status = engine.base.generate_key_pair (&engine.base, ECC_KEY_LENGTH_256, &priv_key, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_private_key_der (&engine.base, &priv_key, &der, &length);
@@ -2373,7 +2375,7 @@ static void ecc_openssl_test_get_public_key_der (CuTest *test)
 	ecc_openssl_release (&engine);
 }
 
-#if ECC_MAX_KEY_LENGTH >= 384
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
 static void ecc_openssl_test_get_public_key_der_p384 (CuTest *test)
 {
 	struct ecc_engine_openssl engine;
@@ -2406,7 +2408,7 @@ static void ecc_openssl_test_get_public_key_der_p384 (CuTest *test)
 }
 #endif
 
-#if ECC_MAX_KEY_LENGTH >= 521
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
 static void ecc_openssl_test_get_public_key_der_p521 (CuTest *test)
 {
 	struct ecc_engine_openssl engine;
@@ -2483,7 +2485,7 @@ static void ecc_openssl_test_get_public_key_der_generated_key_pair (CuTest *test
 	status = ecc_openssl_init (&engine);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.generate_key_pair (&engine.base, ECC256_KEY_LENGTH, NULL, &pub_key);
+	status = engine.base.generate_key_pair (&engine.base, ECC_KEY_LENGTH_256, NULL, &pub_key);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_public_key_der (&engine.base, &pub_key, &der, &length);
@@ -2571,10 +2573,10 @@ TEST (ecc_openssl_test_init);
 TEST (ecc_openssl_test_init_null);
 TEST (ecc_openssl_test_release_null);
 TEST (ecc_openssl_test_public_key_init_key_pair_and_verify);
-#if ECC_MAX_KEY_LENGTH >= 384
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
 TEST (ecc_openssl_test_public_key_init_key_pair_and_verify_p384);
 #endif
-#if ECC_MAX_KEY_LENGTH >= 521
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
 TEST (ecc_openssl_test_public_key_init_key_pair_and_verify_p521);
 #endif
 TEST (ecc_openssl_test_public_key_init_key_pair_and_verify_bad_sig);
@@ -2582,11 +2584,11 @@ TEST (ecc_openssl_test_private_key_init_key_pair_and_sign);
 TEST (ecc_openssl_test_public_key_init_key_pair_and_sign);
 TEST (ecc_openssl_test_init_key_pair_and_sign_and_verify);
 TEST (ecc_openssl_test_init_key_pair_and_sign_and_verify_no_pubkey);
-#if ECC_MAX_KEY_LENGTH >= 384
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
 TEST (ecc_openssl_test_init_key_pair_and_sign_and_verify_p384);
 TEST (ecc_openssl_test_init_key_pair_and_sign_and_verify_no_pubkey_p384);
 #endif
-#if ECC_MAX_KEY_LENGTH >= 521
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
 TEST (ecc_openssl_test_init_key_pair_and_sign_and_verify_p521);
 TEST (ecc_openssl_test_init_key_pair_and_sign_and_verify_no_pubkey_p521);
 TEST (ecc_openssl_test_init_key_pair_and_sign_and_verify_no_leading_zero_p521);
@@ -2597,10 +2599,10 @@ TEST (ecc_openssl_test_init_key_pair_null);
 TEST (ecc_openssl_test_init_key_pair_with_public_key);
 TEST (ecc_openssl_test_init_key_pair_with_rsa_key);
 TEST (ecc_openssl_test_init_public_key_and_verify);
-#if ECC_MAX_KEY_LENGTH >= 384
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
 TEST (ecc_openssl_test_init_public_key_and_verify_p384);
 #endif
-#if ECC_MAX_KEY_LENGTH >= 521
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
 TEST (ecc_openssl_test_init_public_key_and_verify_p521);
 #endif
 TEST (ecc_openssl_test_init_public_key_and_verify_bad_sig);
@@ -2635,30 +2637,30 @@ TEST (ecc_openssl_test_sign_small_buffer);
 TEST (ecc_openssl_test_verify_null);
 TEST (ecc_openssl_test_verify_corrupt_signature);
 TEST (ecc_openssl_test_get_signature_max_length);
-#if ECC_MAX_KEY_LENGTH >= 384
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
 TEST (ecc_openssl_test_get_signature_max_length_p384);
 #endif
-#if ECC_MAX_KEY_LENGTH >= 521
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
 TEST (ecc_openssl_test_get_signature_max_length_p521);
 #endif
 TEST (ecc_openssl_test_get_signature_max_length_derived_key);
 TEST (ecc_openssl_test_get_signature_max_length_random_key);
 TEST (ecc_openssl_test_get_signature_max_length_null);
 TEST (ecc_openssl_test_get_shared_secret_max_length);
-#if ECC_MAX_KEY_LENGTH >= 384
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
 TEST (ecc_openssl_test_get_shared_secret_max_length_p384);
 #endif
-#if ECC_MAX_KEY_LENGTH >= 521
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
 TEST (ecc_openssl_test_get_shared_secret_max_length_p521);
 #endif
 TEST (ecc_openssl_test_get_shared_secret_max_length_derived_key);
 TEST (ecc_openssl_test_get_shared_secret_max_length_random_key);
 TEST (ecc_openssl_test_get_shared_secret_max_length_null);
 TEST (ecc_openssl_test_compute_shared_secret);
-#if ECC_MAX_KEY_LENGTH >= 384
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
 TEST (ecc_openssl_test_compute_shared_secret_p384);
 #endif
-#if ECC_MAX_KEY_LENGTH >= 521
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
 TEST (ecc_openssl_test_compute_shared_secret_p521);
 #endif
 TEST (ecc_openssl_test_compute_shared_secret_leading_zero);
@@ -2667,10 +2669,10 @@ TEST (ecc_openssl_test_compute_shared_secret_different_keys);
 TEST (ecc_openssl_test_compute_shared_secret_null);
 TEST (ecc_openssl_test_compute_shared_secret_small_buffer);
 TEST (ecc_openssl_test_get_private_key_der);
-#if ECC_MAX_KEY_LENGTH >= 384
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
 TEST (ecc_openssl_test_get_private_key_der_p384);
 #endif
-#if ECC_MAX_KEY_LENGTH >= 521
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
 TEST (ecc_openssl_test_get_private_key_der_p521);
 #endif
 TEST (ecc_openssl_test_get_private_key_der_derived_key_pair);
@@ -2679,10 +2681,10 @@ TEST (ecc_openssl_test_get_private_key_der_null);
 TEST (ecc_openssl_test_get_private_key_der_public_key_from_private);
 TEST (ecc_openssl_test_get_private_key_der_public_key);
 TEST (ecc_openssl_test_get_public_key_der);
-#if ECC_MAX_KEY_LENGTH >= 384
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
 TEST (ecc_openssl_test_get_public_key_der_p384);
 #endif
-#if ECC_MAX_KEY_LENGTH >= 521
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
 TEST (ecc_openssl_test_get_public_key_der_p521);
 #endif
 TEST (ecc_openssl_test_get_public_key_der_derived_key_pair);

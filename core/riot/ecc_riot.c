@@ -141,7 +141,7 @@ static int ecc_riot_generate_derived_key_pair (struct ecc_engine *engine, const 
 		return 0;
 	}
 
-	if (key_length != ECC256_KEY_LENGTH) {
+	if (key_length != ECC_KEY_LENGTH_256) {
 		return ECC_ENGINE_UNSUPPORTED_KEY_LENGTH;
 	}
 
