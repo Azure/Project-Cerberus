@@ -84,7 +84,6 @@ static int tpm_read_header (struct tpm *tpm, bool init, bool write, bool log)
 	struct tpm_header *header;
 	int status;
 
-	/* TODO: Handle NO_DATA and CORRUPT_DATA */
 	status = tpm->flash->read (tpm->flash, 0, tpm->buffer, sizeof (tpm->buffer));
 	if ((status == FLASH_STORE_NO_DATA) || (status == FLASH_STORE_CORRUPT_DATA)) {
 		if (!init) {

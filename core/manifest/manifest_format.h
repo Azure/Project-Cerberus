@@ -23,7 +23,7 @@
 #define	PCD_V2_MAGIC_NUM			0x1029
 
 /**
- * Identifier for the hash algorithm used for signatures and other verificitaion hashes in
+ * Identifier for the hash algorithm used for signatures and other verification hashes in
  * manifests.
  */
 enum manifest_hash_type {
@@ -33,13 +33,13 @@ enum manifest_hash_type {
 };
 
 /**
- * Identifier for the asynmmetric key type used to generate a signature.
+ * Identifier for the asymmetric key type used to generate a signature.
  */
 enum manifest_key_type {
 	MANIFEST_KEY_RSA_2048 = 0,		/**< The signature is generated using RSA-2048. */
 	MANIFEST_KEY_RSA_3072 = 0x08,	/**< The signature is generated using RSA-3072. */
 	MANIFEST_KEY_RSA_4096 = 0x10,	/**< The signature is generated using RSA-4096. */
-	MANIFEST_KEY_ECC_256 = 0x40,	/**< The signature is genenated using ECDSA-256. */
+	MANIFEST_KEY_ECC_256 = 0x40,	/**< The signature is generated using ECDSA-256. */
 	MANIFEST_KEY_ECC_384 = 0x48,	/**< The signature is generated using ECDSA-384. */
 	MANIFEST_KEY_ECC_521 = 0x50,	/**< The signature is generated using ECDSA-521. */
 };
