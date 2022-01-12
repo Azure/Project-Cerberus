@@ -104,6 +104,7 @@ enum {
 	ROT_MODULE_MCTP_INTERFACE_CTRL = 0x005c,			/**< MCTP control interface. */
 	ROT_MODULE_CERBERUS_PROTOCOL_OBSERVER = 0x005d,		/**< System command interface observer. */
 	ROT_MODULE_ECC_DER_UTIL = 0x005e,					/**< Utilities for handling DER encoded ECC information. */
+	ROT_MODULE_BUFFER_UTIL = 0x005f,							/**< General buffer handling utilities. */
 };
 
 

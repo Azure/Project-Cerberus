@@ -106,3 +106,68 @@ void buffer_reverse_copy (uint8_t *dest, const uint8_t *src, size_t length)
 		}
 	}
 }
+
+/**
+ * A constant time replacement for memcmp for use in secure contexts.
+ *
+ * @param buf1 First input buffer for the comparison.
+ * @param buf2 Second input buffer for the comparison.
+ * @param length Length of buffers to compare.
+ *
+ * @return 0 if the buffers match exactly or BUFFER_UTIL_DATA_MISMATCH if they do not.
+ */
+int buffer_compare (const uint8_t *buf1, const uint8_t *buf2, size_t length)
+{
+	uint8_t match = 0xff;
+	uint8_t check;
+	size_t i;
+
+	if ((buf1 == NULL) || (buf2 == NULL)) {
+		if ((buf1 == NULL) && (buf2 == NULL) && (length == 0)) {
+			return 0;
+		}
+
+		return BUFFER_UTIL_DATA_MISMATCH;
+	}
+
+	for (i = 0; i < length; i++) {
+		check = buf1[i] ^ 0xff;
+		check ^= buf2[i];
+		match &= check;
+	}
+
+	return (match == 0xff) ? 0 : BUFFER_UTIL_DATA_MISMATCH;
+}
+
+/**
+ * A constant time replacement for memcmp for use in secure contexts.  This version operates only on
+ * buffers of 32-bit arrays, which is useful in scenarios where byte access is not possible.
+ *
+ * @param buf1 First input buffer for the comparison.
+ * @param buf2 Second input buffer for the comparison.
+ * @param length The number of 32-bit values to compare.
+ *
+ * @return 0 if the buffers match exactly or BUFFER_UTIL_DATA_MISMATCH if they do not.
+ */
+int buffer_compare_dwords (const uint32_t *buf1, const uint32_t *buf2, size_t dwords)
+{
+	uint32_t match = 0xffffffff;
+	uint32_t check;
+	size_t i;
+
+	if ((buf1 == NULL) || (buf2 == NULL)) {
+		if ((buf1 == NULL) && (buf2 == NULL) && (dwords == 0)) {
+			return 0;
+		}
+
+		return BUFFER_UTIL_DATA_MISMATCH;
+	}
+
+	for (i = 0; i < dwords; i++) {
+		check = buf1[i] ^ 0xffffffff;
+		check ^= buf2[i];
+		match &= check;
+	}
+
+	return (match == 0xffffffff) ? 0 : BUFFER_UTIL_DATA_MISMATCH;
+}

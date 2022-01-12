@@ -15,6 +15,11 @@ extern const size_t ECC_PRIVKEY_LEN;
 extern const uint8_t ECC_PUBKEY[];
 extern const size_t ECC_PUBKEY_LEN;
 
+extern const uint8_t ECC_PUBKEY_SHA1[];
+extern const uint8_t ECC_PUBKEY_SHA256[];
+extern const uint8_t ECC_PUBKEY_SHA384[];
+extern const uint8_t ECC_PUBKEY_SHA512[];
+
 extern const struct ecc_point_public_key ECC_PUBKEY_POINT;
 
 extern const char ECC_PUBKEY_PEM[];
@@ -81,6 +86,11 @@ extern const size_t ECC_PRIVKEY2_LEN;
 extern const uint8_t ECC_PUBKEY2[];
 extern const size_t ECC_PUBEY2_LEN;
 
+extern const uint8_t ECC_PUBKEY2_SHA1[];
+extern const uint8_t ECC_PUBKEY2_SHA256[];
+extern const uint8_t ECC_PUBKEY2_SHA384[];
+extern const uint8_t ECC_PUBKEY2_SHA512[];
+
 extern const struct ecc_point_public_key ECC_PUBKEY2_POINT;
 
 extern const char ECC_PUBKEY2_PEM[];
@@ -104,6 +114,11 @@ extern const size_t ECC384_PRIVKEY_LEN;
 
 extern const uint8_t ECC384_PUBKEY[];
 extern const size_t ECC384_PUBKEY_LEN;
+
+extern const uint8_t ECC384_PUBKEY_SHA1[];
+extern const uint8_t ECC384_PUBKEY_SHA256[];
+extern const uint8_t ECC384_PUBKEY_SHA384[];
+extern const uint8_t ECC384_PUBKEY_SHA512[];
 
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
 extern const struct ecc_point_public_key ECC384_PUBKEY_POINT;
@@ -152,6 +167,11 @@ extern const size_t ECC384_PRIVKEY2_LEN;
 extern const uint8_t ECC384_PUBKEY2[];
 extern const size_t ECC384_PUBKEY2_LEN;
 
+extern const uint8_t ECC384_PUBKEY2_SHA1[];
+extern const uint8_t ECC384_PUBKEY2_SHA256[];
+extern const uint8_t ECC384_PUBKEY2_SHA384[];
+extern const uint8_t ECC384_PUBKEY2_SHA512[];
+
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
 extern const struct ecc_point_public_key ECC384_PUBKEY2_POINT;
 #endif
@@ -176,6 +196,11 @@ extern const size_t ECC384_PRIVKEY3_LEN;
 
 extern const uint8_t ECC384_PUBKEY3[];
 extern const size_t ECC384_PUBKEY3_LEN;
+
+extern const uint8_t ECC384_PUBKEY3_SHA1[];
+extern const uint8_t ECC384_PUBKEY3_SHA256[];
+extern const uint8_t ECC384_PUBKEY3_SHA384[];
+extern const uint8_t ECC384_PUBKEY3_SHA512[];
 
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
 extern const struct ecc_point_public_key ECC384_PUBKEY3_POINT;
@@ -202,6 +227,11 @@ extern const size_t ECC521_PRIVKEY_LEN;
 
 extern const uint8_t ECC521_PUBKEY[];
 extern const size_t ECC521_PUBKEY_LEN;
+
+extern const uint8_t ECC521_PUBKEY_SHA1[];
+extern const uint8_t ECC521_PUBKEY_SHA256[];
+extern const uint8_t ECC521_PUBKEY_SHA384[];
+extern const uint8_t ECC521_PUBKEY_SHA512[];
 
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
 extern const struct ecc_point_public_key ECC521_PUBKEY_POINT;
