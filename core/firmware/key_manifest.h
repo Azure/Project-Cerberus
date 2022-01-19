@@ -101,6 +101,19 @@ struct key_manifest {
 	int (*update_revocation) (struct key_manifest *manifest);
 
 	/**
+	 * Get the public key used to verify the key manifest.
+	 *
+	 * A key returned by this function doesn't necessarily mean it is trusted.  This can only be
+	 * guaranteed after successful verification of the manifest, which is a separate operation.
+	 *
+	 * @param manifest The manifest to get the key from.
+	 *
+	 * @return The root public key or null if there is an error.  The memory for this key is
+	 * managed by the manifest instance.
+	 */
+	const struct key_manifest_public_key* (*get_root_key) (struct key_manifest *manifest);
+
+	/**
 	 * Get the public key used to verify application images.
 	 *
 	 * A key returned by this function doesn't necessarily mean it is trusted.  This can only be

@@ -51,6 +51,19 @@ static int key_manifest_mock_update_revocation (struct key_manifest *manifest)
 	MOCK_RETURN_NO_ARGS (&mock->mock, key_manifest_mock_update_revocation, manifest);
 }
 
+static const struct key_manifest_public_key* key_manifest_mock_get_root_key (
+	struct key_manifest *manifest)
+{
+	struct key_manifest_mock *mock = (struct key_manifest_mock*) manifest;
+
+	if (mock == NULL) {
+		return NULL;
+	}
+
+	MOCK_RETURN_NO_ARGS_CAST (&mock->mock, struct key_manifest_public_key*,
+		key_manifest_mock_get_root_key, manifest);
+}
+
 static const struct key_manifest_public_key* key_manifest_mock_get_app_key (
 	struct key_manifest *manifest)
 {
@@ -100,6 +113,9 @@ static const char* key_manifest_mock_func_name_map (void *func)
 	}
 	else if (func == key_manifest_mock_update_revocation) {
 		return "update_revocation";
+	}
+	else if (func == key_manifest_mock_get_root_key) {
+		return "get_root_key";
 	}
 	else if (func == key_manifest_mock_get_app_key) {
 		return "get_app_key";
@@ -152,6 +168,7 @@ int key_manifest_mock_init (struct key_manifest_mock *mock)
 	mock->base.is_allowed = key_manifest_mock_is_allowed;
 	mock->base.revokes_old_manifest = key_manifest_mock_revokes_old_manifest;
 	mock->base.update_revocation = key_manifest_mock_update_revocation;
+	mock->base.get_root_key = key_manifest_mock_get_root_key;
 	mock->base.get_app_key = key_manifest_mock_get_app_key;
 	mock->base.get_manifest_key = key_manifest_mock_get_manifest_key;
 
