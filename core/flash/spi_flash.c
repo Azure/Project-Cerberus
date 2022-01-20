@@ -837,7 +837,9 @@ int spi_flash_reset_device (struct spi_flash *flash)
 	if (status == 0) {
 		flash->addr_mode = rst_addr_mode;
 
-		platform_msleep (100);
+		/* We don't need to wait a long time, since we know the reset is not interrupting a write
+		 * operation. */
+		platform_msleep (1);
 	}
 
 exit:
