@@ -20,7 +20,7 @@
 enum {
 	INTRUSION_MANAGER_NO_INTRUSION = 0,		/**< No intrusion has been been detected. */
 	INTRUSION_MANAGER_INTRUSION = 1,		/**< Intrusion has been detected. */
-	INTRUSION_MANAGER_UNKNOWN = 2			/**< The instrusion state is not known. */
+	INTRUSION_MANAGER_UNKNOWN = 2			/**< The intrusion state is not known. */
 };
 
 /**
@@ -38,7 +38,7 @@ struct intrusion_manager {
 	 *
 	 * @param manager The intrusion manager to execute the intrusion handling.
 	 *
-	 * @return 0 if the intrusion was succesfully handled or an error code.
+	 * @return 0 if the intrusion was successfully handled or an error code.
 	 */
 	int (*handle_intrusion) (struct intrusion_manager *manager);
 

@@ -764,7 +764,7 @@ int manifest_flash_read_element_data (struct manifest_flash *manifest, struct ha
 			goto error;
 		}
 
-		/* Hash the remaning TOC data. */
+		/* Hash the remaining TOC data. */
 		hash_addr += manifest->toc_hash_length;
 		status = flash_hash_update_contents (manifest->flash, hash_addr, toc_end - hash_addr, hash);
 		if (status != 0) {

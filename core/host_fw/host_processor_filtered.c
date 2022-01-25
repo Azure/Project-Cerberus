@@ -769,7 +769,7 @@ exit_host:
 }
 
 /**
- * Comman handler for verification events that occur after the host has been initialized.
+ * Common handler for verification events that occur after the host has been initialized.
  *
  * @param host The host instance generating the event.
  * @param hash Hash engine for firmware validation.

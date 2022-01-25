@@ -29,8 +29,8 @@ struct spi_flash_commands {
 	uint8_t erase_block;				/**< The command to erase a 64kB block. */
 	uint16_t block_flags;				/**< Transfer flags for block erase requests. */
 	uint8_t reset;						/**< The command to soft reset the device. */
-	uint8_t enter_pwrdown;				/**< The command to enter deep powerdown. */
-	uint8_t release_pwrdown;			/**< The command to release deep powerdown. */
+	uint8_t enter_pwrdown;				/**< The command to enter deep power down. */
+	uint8_t release_pwrdown;			/**< The command to release deep power down. */
 };
 
 /**
@@ -73,8 +73,8 @@ struct spi_flash_device_info {
 	uint8_t read_mode;					/**< Number of mode bytes for SPI reads. */
 	uint16_t read_flags;				/**< Transfer flags for SPI reads. */
 	uint8_t reset_opcode;				/**< Opcode for soft resetting the device. */
-	uint8_t enter_pwrdown;				/**< Opcode for entering deep powerdown. */
-	uint8_t release_pwrdown;			/**< Opcode for releasing deep powerdown. */
+	uint8_t enter_pwrdown;				/**< Opcode for entering deep power down. */
+	uint8_t release_pwrdown;			/**< Opcode for releasing deep power down. */
 	uint8_t switch_4byte;				/**< Method for switching to 4-byte addressing. */
 	uint8_t quad_enable;				/**< Method to enable QSPI. */
 	uint8_t flags;						/**< Misc behavior flags. */
@@ -160,7 +160,7 @@ enum {
 	SPI_FLASH_CONFIG_FAILURE = SPI_FLASH_ERROR (0x0b),			/**< Configuration did not get set properly. */
 	SPI_FLASH_NO_4BYTE_CMDS = SPI_FLASH_ERROR (0x0c),			/**< The device does not support required 4-byte commands. */
 	SPI_FLASH_RESET_NOT_SUPPORTED = SPI_FLASH_ERROR (0x0d),		/**< Soft reset is not supported by the device. */
-	SPI_FLASH_PWRDOWN_NOT_SUPPORTED = SPI_FLASH_ERROR (0x0e),	/**< Deep powerdown is not supported by the device. */
+	SPI_FLASH_PWRDOWN_NOT_SUPPORTED = SPI_FLASH_ERROR (0x0e),	/**< Deep power down is not supported by the device. */
 };
 
 

@@ -365,7 +365,7 @@ int mctp_interface_process_packet (struct mctp_interface *mctp, struct cmd_packe
 
 	if (eom) {
 		/* We know the message is one of the two supported types by this point.  If it wasn't, it
-		 * would have failed eariler in packet processing. */
+		 * would have failed earlier in packet processing. */
 		if (MCTP_PROTOCOL_IS_CONTROL_MSG (mctp->msg_type)) {
 			/* TODO: Handle MCTP control protocol responses */
 			if (tag_owner == MCTP_PROTOCOL_TO_REQUEST) {
@@ -484,7 +484,7 @@ void mctp_interface_reset_message_processing (struct mctp_interface *mctp)
  * @param dest_addr The destination address for the request.
  * @param dest_eid The destination EID for the request.
  * @param request Buffer that contains the request body to send.
- * @param length Length of the request message before any packtization.
+ * @param length Length of the request message before any packetization.
  * @param msg_buffer Buffer that will be used to store the packetized message.  This can be
  * overlapping with the request buffer.  If the buffers overlap, the request data will be modified
  * upon return.

@@ -13,7 +13,7 @@
  * Parse an MCTP packet header and determine if the packet is valid.
  *
  * @param buf Packet to parse.
- * @param buf_len Total lengtnh of the packet.
+ * @param buf_len Total length of the packet.
  * @param dest_addr Destination SMBUS address.
  * @param source_addr Output for the source SMBUS address.
  * @param som Output boolean indicating if packet is a start of an MCTP message.
@@ -78,7 +78,7 @@ int mctp_protocol_interpret (uint8_t *buf, size_t buf_len, uint8_t dest_addr, ui
 		/* Control messages might not not contain a CRC on the packet, so dont always check for
 			CRC. */
 		/* TODO: Change default behaviour to always check for CRC with an ifdef to disable checking
-			in conrol messages. */
+			in control messages. */
 		packet_len = header->byte_count + MCTP_PROTOCOL_SMBUS_OVERHEAD_NO_PEC;
 		*payload_len = packet_len - sizeof (struct mctp_protocol_transport_header);
 		add_crc = false;

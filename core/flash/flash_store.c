@@ -826,7 +826,7 @@ int flash_store_init_variable_storage_decreasing (struct flash_store *store, str
 /**
  * Release the resources used for flash block storage.
  *
- * @param store The flash storage to relaese.
+ * @param store The flash storage to release.
  */
 void flash_store_release (struct flash_store *store)
 {

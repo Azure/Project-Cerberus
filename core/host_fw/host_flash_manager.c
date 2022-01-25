@@ -629,7 +629,7 @@ int host_flash_manager_configure_flash_for_rot_access (struct spi_flash *flash)
  * @param flash_init Initialization handler for the protected flash devices.  Null to skip
  * initialization.
  *
- * @return 0 if RoT flash accass has been enabled or an error code.
+ * @return 0 if RoT flash access has been enabled or an error code.
  */
 int host_flash_manager_set_flash_for_rot_access (struct host_control *control,
 	struct spi_filter_interface *filter, struct spi_flash *cs0, struct spi_flash *cs1,

@@ -65,7 +65,7 @@ static int intrusion_manager_reset_intrusion (struct intrusion_manager *manager)
 
 	status = manager->state->clear (manager->state);
 	if (status == 0) {
-		status = intrusion_manager_update_measurement (manager, INTRUSION_MANAGER_NO_INTRUSION, 
+		status = intrusion_manager_update_measurement (manager, INTRUSION_MANAGER_NO_INTRUSION,
 			false);
 	}
 
@@ -102,7 +102,7 @@ int intrusion_manager_update_intrusion_state (struct intrusion_manager *manager,
 		case 0:
 			value = INTRUSION_MANAGER_NO_INTRUSION;
 			/* Only in the case of no intrusion do we want to make event data updating contingent on
-			 * measurement success.  Otherwise, we could be falsely reporting a healty system. */
+			 * measurement success.  Otherwise, we could be falsely reporting a healthy system. */
 			force_data = false;
 			break;
 

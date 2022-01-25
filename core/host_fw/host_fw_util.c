@@ -767,7 +767,7 @@ int host_fw_migrate_read_write_data (struct spi_flash *dest,
  * checking and force the migration, if that behavior is necessary.
  *
  * The flash contains multiple firmware components with defined read/write regions.  Comparison for
- * migration compatibitily will be done for each individual firmware component.
+ * migration compatiblity will be done for each individual firmware component.
  *
  * The read/write regions of the destination flash are always erased, even if the migration can't
  * happen.  This ensures blank data on the destination read/write regions instead of allowing
@@ -1020,7 +1020,7 @@ int host_fw_config_spi_filter_read_write_regions (struct spi_filter_interface *f
 /**
  * Configure the SPI filter with the read/write region definitions from the PFM.  The read/write
  * regions from multiple different firmware components will be inspected to generate the fewest
- * number of continguous regions for the filter.
+ * number of contiguous regions for the filter.
  *
  * @param filter The SPI filter to configure.
  * @param writable An array of read/write regions defined for all firmware components.

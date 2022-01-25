@@ -450,7 +450,7 @@ error:
  * Find the firmware element for the specified ID.  The PFM must be in v2 format.
  *
  * @param pfm The PFM to query.
- * @param fw The firmware ID to find.  This can be null to return the first firmare element.
+ * @param fw The firmware ID to find.  This can be null to return the first firmware element.
  * @param fw_element Output for the firmware element data.
  * @param entry Output for the entry index following the matching firmware element.
  *

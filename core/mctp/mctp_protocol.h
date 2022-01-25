@@ -92,7 +92,7 @@
 	(MCTP_PROTOCOL_PACKETS_IN_MESSAGE (MCTP_PROTOCOL_MAX_MESSAGE_BODY, MCTP_PROTOCOL_MIN_TRANSMISSION_UNIT) * MCTP_PROTOCOL_MIN_PACKET_LEN)
 
 /**
- * The number of packets needed to packetize maximum sized message using the maximum transmission unit size.
+ * The number of packets needed to packetize a maximum sized message using the maximum transmission unit size.
  */
 #define	MCTP_PROTOCOL_MAX_PACKET_PER_MAX_SIZED_MESSAGE		\
 	(MCTP_PROTOCOL_PACKETS_IN_MESSAGE (MCTP_PROTOCOL_MAX_MESSAGE_BODY, MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT))
@@ -224,7 +224,7 @@ struct mctp_protocol_control_header
 /**
  * Get the payload length of an MCTP packet from the packet length.
  *
- * @param packen_len The MCTP packet length
+ * @param packet_len The MCTP packet length
  */
 #define	mctp_protocol_payload_len(packet_len) 		(packet_len - MCTP_PROTOCOL_PACKET_OVERHEAD)
 

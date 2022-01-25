@@ -64,7 +64,7 @@ int manifest_manager_get_port (struct manifest_manager *manager)
  * @param buffer The output buffer to be filled with measured data.
  * @param length Maximum length of the buffer.
  * @param total_len Output buffer with total length of manifest ID measurement. This should
- * 	contain total length of the measuement even if only partially returned.
+ * 	contain total length of the measurement even if only partially returned.
  *
  *@return length of the measured data if successfully retrieved or an error code.
  */
@@ -108,7 +108,7 @@ int manifest_manager_get_id_measured_data (struct manifest *active, size_t offse
  * @param buffer The output buffer to be filled with measured data
  * @param length Maximum length of the buffer
  * @param total_len Output buffer with total length of platform ID measurement. This should
- * 	contain total length of the measuement even if only partially returned.
+ * 	contain total length of the measurement even if only partially returned.
  *
  *@return length of the measured data if successfully retrieved or an error code.
  */
@@ -164,7 +164,7 @@ exit:
  * @param buffer The output buffer to be filled with measured data
  * @param length Maximum length of the buffer
  * @param total_len Output buffer with total length of measured data. This should contain total
- * 	length of the measuement even if only partially returned.
+ * 	length of the measurement even if only partially returned.
  *
  *@return length of the measured data if successfully retrieved or an error code.
  */

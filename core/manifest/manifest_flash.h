@@ -30,7 +30,7 @@ struct manifest_flash {
 	size_t max_signature;						/**< Maximum supported signature length. */
 	struct manifest_toc_header toc_header;		/**< The table of contents header data. */
 	uint8_t toc_hash[SHA512_HASH_LENGTH];		/**< Hash of the manifest table of contents. */
-	enum hash_type toc_hash_type;				/**< The type of hash used in the table of conents. */
+	enum hash_type toc_hash_type;				/**< The type of hash used in the table of contents. */
 	size_t toc_hash_length;						/**< Length of the table of contents hash. */
 	char *platform_id;							/**< Buffer to hold the platform ID. */
 	size_t max_platform_id;						/**< Maximum supported platform ID length. */

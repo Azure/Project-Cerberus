@@ -165,7 +165,7 @@ struct pcd_component_common {
 };
 
 /**
- * Element for a component with direct I2C connection to RoT. 
+ * Element for a component with direct I2C connection to RoT.
  */
 struct pcd_direct_i2c_component_element {
 	struct pcd_component_common component;						/**< Common component configuration. */
@@ -173,7 +173,7 @@ struct pcd_direct_i2c_component_element {
 };
 
 /**
- * Container for connection information for a component with connection to RoT through MCTP bridge. 
+ * Container for connection information for a component with connection to RoT through MCTP bridge.
  */
 struct pcd_mctp_bridge_component_connection {
 	uint16_t device_id;											/**< Device ID. */
@@ -182,11 +182,11 @@ struct pcd_mctp_bridge_component_connection {
 	uint16_t subsystem_vendor_id;								/**< Subsystem vendor ID. */
 	uint8_t components_count;									/**< Number of identical components this element describes. */
 	uint8_t eid;												/**< Default EID to use if cannot retrieve EID table from MCTP bridge. */
-	uint16_t reserved;											/**< Unused. */ 
+	uint16_t reserved;											/**< Unused. */
 };
 
 /**
- * Element for a component with connection to RoT through MCTP bridge. 
+ * Element for a component with connection to RoT through MCTP bridge.
  */
 struct pcd_mctp_bridge_component_element {
 	struct pcd_component_common component;						/**< Common component configuration. */

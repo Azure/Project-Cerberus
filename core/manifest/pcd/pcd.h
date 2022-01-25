@@ -18,7 +18,7 @@
 struct pcd_rot_info {
 	bool is_pa_rot;													/**< Flag indicating if RoT is a PA-RoT */
 	uint8_t port_count;												/**< Number of ports directly protected by RoT */
-	uint8_t components_count;										/**< Number of componenets attested by RoT */
+	uint8_t components_count;										/**< Number of components attested by RoT */
 	uint8_t i2c_slave_addr;											/**< I2C slave address */
 	uint8_t eid;													/**< MCTP EID */
 	uint8_t bridge_i2c_addr;										/**< MCTP bridge I2C address */
@@ -96,7 +96,7 @@ struct pcd_power_controller_info {
 };
 
 /**
- *	Containter for mux info. 
+ *	Container for mux info.
  */
 struct pcd_mux_info {
 	uint8_t address;												/**< Mux address */
