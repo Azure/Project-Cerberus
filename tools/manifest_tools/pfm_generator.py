@@ -28,7 +28,7 @@ def generate_rw_regions_buf (xml_rw):
     """
 
     if xml_rw is None or len (xml_rw) < 1:
-        return None, 0, 0
+        return None, 0, 0, []
 
     class pfm_rw_region (ctypes.LittleEndianStructure):
         _pack_ = 1
@@ -44,7 +44,6 @@ def generate_rw_regions_buf (xml_rw):
 
     reserved_buf = (ctypes.c_ubyte * 3) ()
     ctypes.memset (reserved_buf, 0, 3)
-
     for rw_region in xml_rw:
         rw_start_addr = int (manifest_common.get_key_from_dict (rw_region, "start", 
             "RW region start address"), 16)
@@ -287,7 +286,7 @@ def generate_fw_versions_list (xml_list, hash_engine, max_rw_sections):
 
         all_regions_list = []
 
-        if "rw_regions" in xml:
+        if "rw_regions" in xml and len(xml["rw_regions"]) != 0:
             rw_regions_buf, rw_regions_len, num_rw_regions, rw_regions = generate_rw_regions_buf (
                 xml["rw_regions"])
             all_regions_list.extend (rw_regions)

@@ -260,6 +260,7 @@ def load_xmls (config_filename, max_num_xmls, xml_type):
 
     processed_xml = {}
     xml_version = None
+    matching_xml_found = False
 
     for xml in config["xml_list"]:
         parsed_xml, curr_xml_version, empty = manifest_parser.load_and_process_xml (xml, xml_type)
@@ -273,6 +274,19 @@ def load_xmls (config_filename, max_num_xmls, xml_type):
             if xml_version != curr_xml_version:
                 raise RuntimeError (
                     "Failed to generate manifest: XML version is different - {0}".format (xml))
+
+        for previous_file, previous_xml in processed_xml.items():
+            if (previous_xml.get('version_id') == parsed_xml.get('version_id')):
+                if (previous_xml == parsed_xml):
+                    matching_xml_found = True
+                else:
+                    raise RuntimeError (
+                        "Failed to generate manifest: XML files {0} and {1} have same version " \
+                        "string, but different data".format (previous_file, xml))
+
+        if matching_xml_found:
+            matching_xml_found = False
+            continue
 
         processed_xml.update ({xml:parsed_xml})
 
