@@ -135,6 +135,7 @@ enum {
 	LOGGING_STORAGE_NOT_ALIGNED = LOGGING_ERROR (0x09),		/**< Memory for the log is not aligned correctly. */
 	LOGGING_BAD_ENTRY_LENGTH = LOGGING_ERROR (0x0a),		/**< The entry data is not the right size for the log. */
 	LOGGING_NO_LOG_AVAILABLE = LOGGING_ERROR (0x0b),		/**< There is no log available for the operation. */
+	LOGGING_INSUFFICIENT_STORAGE = LOGGING_ERROR (0x0c),	/**< Memory for the log does not meet minimum requirements. */
 };
 
 

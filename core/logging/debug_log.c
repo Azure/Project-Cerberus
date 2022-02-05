@@ -40,7 +40,7 @@ int debug_log_create_entry (uint8_t severity, uint8_t component, uint8_t msg_ind
 	entry.msg_index = msg_index;
 	entry.arg1 = arg1;
 	entry.arg2 = arg2;
-	entry.time = platform_get_time_since_boot ();
+	entry.time = platform_get_time ();
 
 	return debug_log->create_entry (debug_log, (uint8_t*) &entry, sizeof (entry));
 #else

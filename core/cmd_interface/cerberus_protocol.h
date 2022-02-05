@@ -41,7 +41,7 @@ enum {
 	CERBERUS_PROTOCOL_GET_LOG_INFO = 0x4F,						/**< Get log info */
 	CERBERUS_PROTOCOL_READ_LOG,									/**< Read back log */
 	CERBERUS_PROTOCOL_CLEAR_LOG,								/**< Clear log */
-	CERBERUS_PROTOCOL_GET_ATTESTATION_DATA,						/**< Retrive raw data for log measurements */
+	CERBERUS_PROTOCOL_GET_ATTESTATION_DATA,						/**< Retrieve raw data for log measurements */
 	CERBERUS_PROTOCOL_GET_PFM_ID = 0x59,						/**< Get PFM ID */
 	CERBERUS_PROTOCOL_GET_PFM_SUPPORTED_FW,						/**< Get PFM supported FW versions */
 	CERBERUS_PROTOCOL_INIT_PFM_UPDATE,							/**< Initialize PFM update process */
@@ -55,7 +55,7 @@ enum {
 	CERBERUS_PROTOCOL_INIT_PCD_UPDATE,							/**< Initialize PCD update process */
 	CERBERUS_PROTOCOL_PCD_UPDATE,								/**< Send PCD update data */
 	CERBERUS_PROTOCOL_COMPLETE_PCD_UPDATE,						/**< Trigger Cerberus to verify PCD update */
-	CERBERUS_PROTOCOL_INIT_FW_UPDATE,							/**< Intiailize FW update process */
+	CERBERUS_PROTOCOL_INIT_FW_UPDATE,							/**< Initialize FW update process */
 	CERBERUS_PROTOCOL_FW_UPDATE,								/**< Send FW update data */
 	CERBERUS_PROTOCOL_GET_UPDATE_STATUS,						/**< Get update status */
 	CERBERUS_PROTOCOL_COMPLETE_FW_UPDATE,						/**< Trigger Cerberus to start FW update */

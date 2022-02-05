@@ -181,17 +181,17 @@ uint32_t platform_get_duration (const platform_clock *start, const platform_cloc
 }
 
 /**
- * Get the elapsed time in milliseconds since last boot
+ * Get the current system time.
  *
- * @return elapsed time in milliseconds since last boot.
+ * @return The current time, in milliseconds.
  */
-uint64_t platform_get_time_since_boot (void)
+uint64_t platform_get_time (void)
 {
 	struct timespec now;
 	uint64_t time;
 	int status;
 
-	status = clock_gettime (CLOCK_MONOTONIC, &now);
+	status = clock_gettime (CLOCK_REALTIME, &now);
 	if (status != 0) {
 		time = 0;
 	}

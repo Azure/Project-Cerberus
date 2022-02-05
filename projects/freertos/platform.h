@@ -37,7 +37,7 @@ int platform_init_timeout (uint32_t msec, platform_clock *timeout);
 int platform_increase_timeout (uint32_t msec, platform_clock *timeout);
 int platform_init_current_tick (platform_clock *currtime);
 int platform_has_timeout_expired (platform_clock *timeout);
-uint64_t platform_get_time_since_boot (void);
+uint64_t platform_get_time (void);
 uint32_t platform_get_duration (const platform_clock *start, const platform_clock *end);
 
 

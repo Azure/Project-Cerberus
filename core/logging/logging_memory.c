@@ -5,6 +5,8 @@
 #include <stddef.h>
 #include <string.h>
 #include "logging_memory.h"
+#include "common/buffer_util.h"
+#include "common/unused.h"
 
 
 static int logging_memory_create_entry (struct logging *logging, uint8_t *entry, size_t length)
@@ -34,12 +36,10 @@ static int logging_memory_create_entry (struct logging *logging, uint8_t *entry,
 
 	if (mem_log->log_end == mem_log->log_size) {
 		mem_log->log_end = 0;
+		mem_log->is_full = true;
 	}
-	if (mem_log->log_end == mem_log->log_start) {
-		mem_log->log_start = mem_log->log_start + mem_log->entry_size;
-		if (mem_log->log_start == mem_log->log_size) {
-			mem_log->log_start = 0;
-		}
+	if (mem_log->is_full) {
+		mem_log->log_start = mem_log->log_end;
 	}
 
 	platform_mutex_unlock (&mem_log->lock);
@@ -47,10 +47,14 @@ static int logging_memory_create_entry (struct logging *logging, uint8_t *entry,
 	return 0;
 }
 
+#ifndef LOGGING_DISABLE_FLUSH
 static int logging_memory_flush (struct logging *logging)
 {
+	UNUSED (logging);
+
 	return 0;
 }
+#endif
 
 static int logging_memory_clear (struct logging *logging)
 {
@@ -64,6 +68,7 @@ static int logging_memory_clear (struct logging *logging)
 
 	mem_log->log_start = 0;
 	mem_log->log_end = 0;
+	mem_log->is_full = false;
 
 	platform_mutex_unlock (&mem_log->lock);
 
@@ -81,9 +86,9 @@ static int logging_memory_get_size (struct logging *logging)
 
 	platform_mutex_lock (&mem_log->lock);
 
-	if (mem_log->log_end != mem_log->log_start) {
-		if (mem_log->log_end < mem_log->log_start) {
-			log_size = mem_log->log_size - mem_log->entry_size;
+	if ((mem_log->log_end != mem_log->log_start) || mem_log->is_full) {
+		if (mem_log->log_end == mem_log->log_start) {
+			log_size = mem_log->log_size;
 		}
 		else {
 			log_size = mem_log->log_end;
@@ -102,28 +107,18 @@ static int logging_memory_read_contents (struct logging *logging, uint32_t offse
 	size_t first_copy = 0;
 	int bytes_read = 0;
 	size_t copy_len;
-	size_t copy_offset;
+	size_t copy_offset = offset;
 
 	platform_mutex_lock (&mem_log->lock);
 
-	if (mem_log->log_end != mem_log->log_start) {
-		if (mem_log->log_end < mem_log->log_start) {
-			first_copy = mem_log->log_size - mem_log->log_start;
-
-			copy_offset = (offset < first_copy) ? offset : first_copy;
-			first_copy = (length < (first_copy - copy_offset)) ?
-				length : (first_copy - copy_offset);
-
-			memcpy (contents, &mem_log->log_buffer[mem_log->log_start + copy_offset], first_copy);
-			length -= first_copy;
-			offset -= copy_offset;
+	if ((mem_log->log_end != mem_log->log_start) || mem_log->is_full) {
+		if (mem_log->log_end == mem_log->log_start) {
+			first_copy = buffer_copy (&mem_log->log_buffer[mem_log->log_start],
+				mem_log->log_size - mem_log->log_start, &copy_offset, &length, contents);
 		}
 
-		copy_offset = (offset < mem_log->log_end) ? offset : mem_log->log_end;
-		copy_len = (length < (mem_log->log_end - copy_offset)) ?
-			length : (mem_log->log_end - copy_offset);
-
-		memcpy (&contents[first_copy], mem_log->log_buffer + copy_offset, copy_len);
+		copy_len = buffer_copy (mem_log->log_buffer, mem_log->log_end, &copy_offset, &length,
+			&contents[first_copy]);
 		bytes_read = first_copy + copy_len;
 	}
 
@@ -133,7 +128,8 @@ static int logging_memory_read_contents (struct logging *logging, uint32_t offse
 }
 
 /**
- * Initialize a log that store contents in volatile memory.
+ * Initialize a log that stores contents in volatile memory.  The memory for the log will by
+ * dynamically allocated to the necessary size.
  *
  * @param logging The log to initialize.
  * @param entry_count The maximum number of entries the log should be able to hold.
@@ -145,34 +141,127 @@ static int logging_memory_read_contents (struct logging *logging, uint32_t offse
 int logging_memory_init (struct logging_memory *logging, size_t entry_count, size_t entry_length)
 {
 	size_t entry_size = entry_length + sizeof (struct logging_entry_header);
-	size_t log_size = entry_size * (entry_count + 1);
+	size_t log_size = entry_size * entry_count;
+	uint8_t *log_buffer;
 	int status;
 
 	if ((logging == NULL) || (entry_count == 0) || (entry_length == 0)) {
 		return LOGGING_INVALID_ARGUMENT;
 	}
 
-	memset (logging, 0, sizeof (struct logging_memory));
-
-	logging->log_buffer = platform_malloc (log_size);
-	if (logging->log_buffer == NULL) {
+	log_buffer = platform_malloc (log_size);
+	if (log_buffer == NULL) {
 		return LOGGING_NO_MEMORY;
 	}
 
-	status = platform_mutex_init (&logging->lock);
-	if (status != 0) {
-		platform_free (logging->log_buffer);
-		return status;
+	status = logging_memory_init_from_buffer (logging, log_buffer, log_size, entry_length);
+	if (status == 0) {
+		logging->alloc_buffer = true;
+	}
+	else {
+		platform_free (log_buffer);
 	}
 
+	return status;
+}
+
+/**
+ * Initialize a log that stores contents in volatile memory.  The memory for the log will be
+ * preallocated by the caller and not managed by the log instance.
+ *
+ * If the provided buffer is not aligned to the size of the entry, including the logging header,
+ * the usable buffer will be truncated to generate this alignment.
+ *
+ * @param logging The log to initialize.
+ * @param log_buffer The buffer to use for log entries.
+ * @param log_size Length of the provided log buffer.
+ * @param entry_length The length of a single log entry.  This does not include the length of
+ * standard logging overhead.
+ *
+ * @return 0 if the log was successfully initialized or an error code.
+ */
+int logging_memory_init_from_buffer (struct logging_memory *logging, uint8_t *log_buffer,
+	size_t log_size, size_t entry_length)
+{
+	size_t entry_size = entry_length + sizeof (struct logging_entry_header);
+
+	if ((logging == NULL) || (log_buffer == NULL) | (entry_length == 0)) {
+		return LOGGING_INVALID_ARGUMENT;
+	}
+
+	if (log_size < entry_size) {
+		return LOGGING_INSUFFICIENT_STORAGE;
+	}
+
+	memset (logging, 0, sizeof (struct logging_memory));
+
+	/* Make sure the buffer is entry aligned. */
+	logging->log_size = log_size - (log_size % entry_size);
+	logging->log_buffer = log_buffer;
 	logging->entry_size = entry_size;
-	logging->log_size = log_size;
 
 	logging->base.create_entry = logging_memory_create_entry;
+#ifndef LOGGING_DISABLE_FLUSH
 	logging->base.flush = logging_memory_flush;
+#endif
 	logging->base.clear = logging_memory_clear;
 	logging->base.get_size = logging_memory_get_size;
 	logging->base.read_contents = logging_memory_read_contents;
+
+	return platform_mutex_init (&logging->lock);
+}
+
+/**
+ * Initialize a log that stores contents in volatile memory.  The memory for the log will already
+ * exist and could contain entries.  New log entries will be appended to any existing entries.
+ *
+ * If the provided buffer is not aligned to the size of the entry, including the logging header,
+ * the usable buffer will be truncated to generate this alignment.
+ *
+ * The buffer is scanned for the first entry location that does not contain a valid entry or that
+ * has a discontinuity in entry IDs.  This will mark the current end of the log, and new entries
+ * will be added starting at this location.  If this location contains a valid entry, it is assumed
+ * that the log is full and the rest of the buffer also contains valid entries.  If this is not
+ * guaranteed by the caller, reading the log could result in corrupt log entries.
+ *
+ * @param logging The log to initialize.
+ * @param log_buffer The buffer to use for log entries.
+ * @param log_size Length of the provided log buffer.
+ * @param entry_length The length of a single log entry.  This does not include the length of
+ * standard logging overhead.
+ *
+ * @return 0 if the log was successfully initialized or an error code.
+ */
+int logging_memory_init_append_existing (struct logging_memory *logging, uint8_t *log_buffer,
+	size_t log_size, size_t entry_length)
+{
+	struct logging_entry_header *header = (struct logging_entry_header*) log_buffer;
+	struct logging_entry_header *prev = NULL;
+	int status;
+
+	status = logging_memory_init_from_buffer (logging, log_buffer, log_size, entry_length);
+	if (status != 0) {
+		return status;
+	}
+
+	while (!logging->is_full && (logging->log_end != logging->log_size) &&
+		LOGGING_IS_ENTRY_START (header->log_magic)) {
+		if (prev && (header->entry_id != logging->next_entry_id)) {
+			logging->is_full = true;
+			logging->log_start = logging->log_end;
+		}
+		else {
+			prev = header;
+			logging->next_entry_id = header->entry_id + 1;
+			logging->log_end += logging->entry_size;
+			header = (struct logging_entry_header*) &log_buffer[logging->log_end];
+		}
+	}
+
+	if (logging->log_end == logging->log_size) {
+		logging->is_full = true;
+		logging->log_end = 0;
+	}
 
 	return 0;
 }
@@ -186,6 +275,9 @@ void logging_memory_release (struct logging_memory *logging)
 {
 	if (logging) {
 		platform_mutex_free (&logging->lock);
-		platform_free (logging->log_buffer);
+
+		if (logging->alloc_buffer) {
+			platform_free (logging->log_buffer);
+		}
 	}
 }

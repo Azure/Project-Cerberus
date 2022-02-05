@@ -164,13 +164,24 @@ int platform_has_timeout_expired (platform_clock *timeout)
 }
 
 /**
- * Get the elapsed time in milliseconds since last boot
+ * Get the current system time.
  *
- * @return elapsed time in milliseconds since last boot.
+ * If there is no RTC available in the system, just get the elapsed time in milliseconds since last
+ * boot.  This doesn't manage wrap-around of the system tick, so that would look the same as a
+ * reboot event.
+ *
+ * If there is an RTC, it can be called by defining PLATFORM_RTC_GET_TIME to a function that will
+ * return the current RTC value, in milliseconds.
+ *
+ * @return The current time, in milliseconds.
  */
-uint64_t platform_get_time_since_boot (void)
+uint64_t platform_get_time (void)
 {
+#ifndef PLATFORM_RTC_GET_TIME
 	return (uint64_t) xTaskGetTickCount () * portTICK_PERIOD_MS;
+#else
+	return PLATFORM_RTC_GET_TIME ();
+#endif
 }
 
 /**
