@@ -21,6 +21,8 @@ static void checksum_test_crc8 (CuTest *test)
 	uint8_t crc;
 	uint8_t buf[16];
 
+	TEST_START;
+
 	buf[0] = 0x0F;
 	buf[1] = 15;
 	buf[2] = 0xAA;
@@ -38,8 +40,6 @@ static void checksum_test_crc8 (CuTest *test)
 	buf[14] = 0xDD;
 	buf[15] = 0xEE;
 
-	TEST_START;
-
 	crc = checksum_crc8 (0x2A, buf, 16);
 	CuAssertIntEquals (test, 0xF1, crc);
 }
@@ -54,10 +54,12 @@ static void checksum_test_crc8_null (CuTest *test)
 	CuAssertIntEquals (test, 0, crc);
 }
 
-static void checksum_test_crc8_zero (CuTest *test)
+static void checksum_test_crc8_zero_length (CuTest *test)
 {
 	uint8_t crc;
 	uint8_t buf[17];
+
+	TEST_START;
 
 	buf[0] = 0x0F;
 	buf[1] = 15;
@@ -77,10 +79,50 @@ static void checksum_test_crc8_zero (CuTest *test)
 	buf[15] = 0xEE;
 	buf[16] = 0xAA;
 
-	TEST_START;
-
 	crc = checksum_crc8 (0x2A, buf, 0);
 	CuAssertIntEquals (test, 0, crc);
+}
+
+static void checksum_test_init_smbus_crc8 (CuTest *test)
+{
+	uint8_t crc;
+
+	TEST_START;
+
+	crc = checksum_init_smbus_crc8 (0x2A);
+	CuAssertIntEquals (test, 0xd6, crc);
+}
+
+static void checksum_test_update_smbus_crc8 (CuTest *test)
+{
+	uint8_t crc;
+	uint8_t buf[3] = {0x01, 0x02, 0x03};
+
+	TEST_START;
+
+	crc = checksum_update_smbus_crc8 (0, buf, sizeof (buf));
+	CuAssertIntEquals (test, 0x48, crc);
+}
+
+static void checksum_test_update_smbus_crc8_null (CuTest *test)
+{
+	uint8_t crc;
+
+	TEST_START;
+
+	crc = checksum_update_smbus_crc8 (0x55, NULL, 16);
+	CuAssertIntEquals (test, 0x55, crc);
+}
+
+static void checksum_test_update_smbus_crc8_zero_length (CuTest *test)
+{
+	uint8_t crc;
+	uint8_t buf[3] = {0x01, 0x02, 0x03};
+
+	TEST_START;
+
+	crc = checksum_update_smbus_crc8 (0xaa, buf, 0);
+	CuAssertIntEquals (test, 0xaa, crc);
 }
 
 
@@ -88,6 +130,10 @@ TEST_SUITE_START (checksum);
 
 TEST (checksum_test_crc8);
 TEST (checksum_test_crc8_null);
-TEST (checksum_test_crc8_zero);
+TEST (checksum_test_crc8_zero_length);
+TEST (checksum_test_init_smbus_crc8);
+TEST (checksum_test_update_smbus_crc8);
+TEST (checksum_test_update_smbus_crc8_null);
+TEST (checksum_test_update_smbus_crc8_zero_length);
 
 TEST_SUITE_END;

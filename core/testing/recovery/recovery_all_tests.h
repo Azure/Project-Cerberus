@@ -21,6 +21,24 @@ static void add_all_recovery_tests (CuSuite *suite)
 	/* This is unused when no tests will be executed. */
 	UNUSED (suite);
 
+#if (defined TESTING_RUN_OCP_RECOVERY_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_OCP_RECOVERY_SUITE
+	TESTING_RUN_SUITE (ocp_recovery);
+#endif
+#if (defined TESTING_RUN_OCP_RECOVERY_DEVICE_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_OCP_RECOVERY_DEVICE_SUITE
+	TESTING_RUN_SUITE (ocp_recovery_device);
+#endif
+#if (defined TESTING_RUN_OCP_RECOVERY_SMBUS_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_OCP_RECOVERY_SMBUS_SUITE
+	TESTING_RUN_SUITE (ocp_recovery_smbus);
+#endif
 #if (defined TESTING_RUN_RECOVERY_IMAGE_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
