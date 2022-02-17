@@ -81,3 +81,12 @@ target_link_libraries(
 		OpenSSL::Crypto
 		m
 	)
+
+if (CMAKE_BUILD_TYPE STREQUAL "Coverage")
+	include(Coverage)
+	SETUP_TARGET_FOR_COVERAGE(
+		NAME coverage
+	 	EXECUTABLE ${PROJECT_NAME}
+	 	DEPENDENCIES ${PROJECT_NAME}
+	)
+endif() #CMAKE_BUILD_TYPE STREQUAL "Coverage"
