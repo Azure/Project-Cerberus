@@ -13,6 +13,11 @@
  * At this time, the Recovery specification is a work in progress, so some of this may not be
  * finalized yet.  Changes to several commands and/or workflows is likely. */
 
+/**
+ * The 7-bit SMBus address that a device should use for OCP Recovery commands if SMBus ARP is not
+ * supported.
+ */
+#define	OCP_RECOVERY_FIXED_SMBUS_ADDRESS		(0xd2 >> 1)
 
 /**
  * OCP Recovery command set.

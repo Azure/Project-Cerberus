@@ -63,7 +63,7 @@ int ocp_recovery_device_init (struct ocp_recovery_device *device,
  *
  * @return 0 if the handler state was successfully initialized or an error code.
  */
-int ocp_recovery_device_init_state (struct ocp_recovery_device *device)
+int ocp_recovery_device_init_state (const struct ocp_recovery_device *device)
 {
 	size_t i;
 
@@ -203,6 +203,7 @@ static int ocp_recovery_device_write_recovery_ctrl (struct ocp_recovery_device *
 	int status = 0;
 
 	if (!device->hw->activate_recovery) {
+		/* TODO: Can't return unsupported here.  This is a required command.  Just need to ignore it. */
 		return OCP_RECOVERY_DEVICE_UNSUPPORTED;
 	}
 

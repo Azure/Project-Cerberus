@@ -54,7 +54,7 @@ int ocp_recovery_smbus_init (struct ocp_recovery_smbus *smbus,
  *
  * @return 0 if the handler state was successfully initialized or an error code.
  */
-int ocp_recovery_smbus_init_state (struct ocp_recovery_smbus *smbus)
+int ocp_recovery_smbus_init_state (const struct ocp_recovery_smbus *smbus)
 {
 	if ((smbus == NULL) || (smbus->state == NULL)) {
 		return OCP_RECOVERY_SMBUS_INVALID_ARGUMENT;

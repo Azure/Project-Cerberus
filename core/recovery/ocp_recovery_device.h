@@ -176,6 +176,7 @@ struct ocp_recovery_device {
  *
  * @param state_ptr The recovery state to initialize.  This must not already be initialized.
  * @param hw_ptr The HW interface for executing device actions in response to recovery commands.
+ * This can be a constant instance.
  * @param cms_list A list of memory regions that are accessible through the recovery handler.  This
  * can be null if there are no supported regions.
  * @param count The number of memory regions in the list.
@@ -185,12 +186,12 @@ struct ocp_recovery_device {
 		.hw = hw_ptr, \
 		.cms = cms_list, \
 		.cms_count = count \
-	};
+	}
 
 int ocp_recovery_device_init (struct ocp_recovery_device *device,
 	struct ocp_recovery_device_state *state, struct ocp_recovery_device_hw *hw,
 	const struct ocp_recovery_device_cms *cms_list, size_t cms_count);
-int ocp_recovery_device_init_state (struct ocp_recovery_device *device);
+int ocp_recovery_device_init_state (const struct ocp_recovery_device *device);
 void ocp_recovery_device_release (struct ocp_recovery_device *device);
 
 int ocp_recovery_device_start_new_command (struct ocp_recovery_device *device,

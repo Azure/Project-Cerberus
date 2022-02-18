@@ -52,16 +52,16 @@ struct ocp_recovery_smbus {
  * There is no validation done on the arguments.
  *
  * @param state_ptr Variable context for the SMBus handler.
- * @param device_ptr The device handler for the recovery protocol.
+ * @param device_ptr The device handler for the recovery protocol.  This can be a constant instance.
  */
 #define	ocp_recovery_smbus_static_init(state_ptr, device_ptr)	{ \
 		.state = state_ptr, \
 		.device = device_ptr \
-	};
+	}
 
 int ocp_recovery_smbus_init (struct ocp_recovery_smbus *smbus,
 	struct ocp_recovery_smbus_state *state, struct ocp_recovery_device *device);
-int ocp_recovery_smbus_init_state (struct ocp_recovery_smbus *smbus);
+int ocp_recovery_smbus_init_state (const struct ocp_recovery_smbus *smbus);
 void ocp_recovery_smbus_release (struct ocp_recovery_smbus *smbus);
 
 void ocp_recovery_smbus_start (struct ocp_recovery_smbus *smbus, uint8_t smbus_addr);
