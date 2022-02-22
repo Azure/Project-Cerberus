@@ -114,7 +114,7 @@ the main development environment for adding core functionality and serves as an 
 
 1. Install pre-requisites
 	```bash
-	sudo apt install git build-essential libssl-dev ninja-build cmake
+	sudo apt install git build-essential libssl-dev ninja-build cmake lcov
 	```
 
 2. Install latest cmake
@@ -152,6 +152,18 @@ the main development environment for adding core functionality and serves as an 
 	./cerberus-linux-unit-tests
 	```
 	
+### Unit Tests With Coverage Report
+
+The unit test build includes a target which runs the unit tests and generates a code coverate 
+report. If necessary, this target also builds the unit tests. The report output can be found at
+build/coverage_report.
+
+1. Complete steps 1-4 from the previous section
+
+2. Build, run unit tests, and generate coverage report
+	```bash
+	ninja coverage
+	```
 ## Contributing
 
 Cerberus code is developed following Test-Driven Development (TDD) practices.  Any code submissions are expected to be

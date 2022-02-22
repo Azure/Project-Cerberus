@@ -21,23 +21,26 @@ find_program( LCOV_PATH lcov )
 find_program( GENHTML_PATH genhtml )
 
 set(COVERAGE_COMPILER_FLAGS "-g -O0 --coverage -fprofile-arcs -ftest-coverage"
-    CACHE INTERNAL "")
+	CACHE INTERNAL "")
 
 set(CMAKE_CXX_FLAGS_COVERAGE
-    ${COVERAGE_COMPILER_FLAGS}
-    CACHE STRING "Flags used by the C++ compiler during coverage builds."
-    FORCE )
+	${COVERAGE_COMPILER_FLAGS}
+	CACHE STRING "Flags used by the C++ compiler during coverage builds."
+	FORCE )
 set(CMAKE_C_FLAGS_COVERAGE
-    ${COVERAGE_COMPILER_FLAGS}
-    CACHE STRING "Flags used by the C compiler during coverage builds."
-    FORCE )
+	${COVERAGE_COMPILER_FLAGS}
+	CACHE STRING "Flags used by the C compiler during coverage builds."
+	FORCE )
 mark_as_advanced(CMAKE_CXX_FLAGS_COVERAGE CMAKE_C_FLAGS_COVERAGE)
 
 if (CMAKE_C_COMPILER_ID STREQUAL "GNU")
-    link_libraries(gcov)
+	link_libraries(gcov)
 else()
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --coverage")
+	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --coverage")
 endif()
+
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COVERAGE_COMPILER_FLAGS}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COVERAGE_COMPILER_FLAGS}")
 
 function(SETUP_TARGET_FOR_COVERAGE)
 
@@ -65,9 +68,3 @@ function(SETUP_TARGET_FOR_COVERAGE)
     )
 
 endfunction() # SETUP_TARGET_FOR_COVERAGE
-
-function(APPEND_COVERAGE_COMPILER_FLAGS)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COVERAGE_COMPILER_FLAGS}" PARENT_SCOPE)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COVERAGE_COMPILER_FLAGS}" PARENT_SCOPE)
-    message(STATUS "Appending code coverage compiler flags: ${COVERAGE_COMPILER_FLAGS}")
-endfunction() # APPEND_COVERAGE_COMPILER_FLAGS

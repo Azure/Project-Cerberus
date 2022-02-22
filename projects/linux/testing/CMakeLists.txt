@@ -17,9 +17,12 @@ cmake_minimum_required(VERSION 3.12 FATAL_ERROR)
 
 project(cerberus-linux-unit-tests LANGUAGES C ASM)
 
+set(TARGET_NAME ${PROJECT_NAME})
+
 include (${CMAKE_CURRENT_LIST_DIR}/../../../Cerberus.cmake)
 include(Mbedtls)
 include(AllFeatures)
+include(Coverage)
 
 set(CORE_DIR ${CERBERUS_ROOT}/core)
 set(TESTING_DIR ${CERBERUS_ROOT}/testing)
@@ -36,7 +39,6 @@ file(GLOB_RECURSE TESTING_SOURCES "${TESTING_DIR}/*.c")
 find_package(Threads REQUIRED)
 find_package(OpenSSL REQUIRED)
 
-set(TARGET_NAME ${PROJECT_NAME})
 
 add_executable(
 	${TARGET_NAME}
@@ -82,11 +84,8 @@ target_link_libraries(
 		m
 	)
 
-if (CMAKE_BUILD_TYPE STREQUAL "Coverage")
-	include(Coverage)
-	SETUP_TARGET_FOR_COVERAGE(
-		NAME coverage
-	 	EXECUTABLE ${PROJECT_NAME}
-	 	DEPENDENCIES ${PROJECT_NAME}
+SETUP_TARGET_FOR_COVERAGE(
+	NAME coverage
+ 	EXECUTABLE ${PROJECT_NAME}
+ 	DEPENDENCIES ${PROJECT_NAME}
 	)
-endif() #CMAKE_BUILD_TYPE STREQUAL "Coverage"
