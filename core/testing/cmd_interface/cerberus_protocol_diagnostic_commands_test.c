@@ -18,7 +18,7 @@ TEST_SUITE_LABEL ("cerberus_protocol_diagnostic_commands");
 void cerberus_protocol_diagnostic_commands_testing_process_heap_stats (CuTest *test,
 	struct cmd_interface *cmd, struct cmd_device_mock *device)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_heap_stats *req = (struct cerberus_protocol_heap_stats*) data;
 	struct cerberus_protocol_heap_stats_response *resp =
@@ -36,14 +36,14 @@ void cerberus_protocol_diagnostic_commands_testing_process_heap_stats (CuTest *t
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_DIAG_HEAP_USAGE;
 
 	request.length = sizeof (struct cerberus_protocol_heap_stats);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&device->mock, device->base.get_heap_stats, device, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&device->mock, 0, &heap, sizeof (heap), -1);
@@ -54,7 +54,7 @@ void cerberus_protocol_diagnostic_commands_testing_process_heap_stats (CuTest *t
 	status = cmd->process_request (cmd, &request);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_heap_stats_response), request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -78,7 +78,7 @@ void cerberus_protocol_diagnostic_commands_testing_process_heap_stats (CuTest *t
 void cerberus_protocol_diagnostic_commands_testing_process_heap_stats_invalid_len (CuTest *test,
 	struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_heap_stats *req = (struct cerberus_protocol_heap_stats*) data;
 	int status;
@@ -86,14 +86,14 @@ void cerberus_protocol_diagnostic_commands_testing_process_heap_stats_invalid_le
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_DIAG_HEAP_USAGE;
 
 	request.length = sizeof (struct cerberus_protocol_heap_stats) + 1;
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
-	request.target_eid = MCTP_PROTOCOL_BMC_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -106,7 +106,7 @@ void cerberus_protocol_diagnostic_commands_testing_process_heap_stats_invalid_le
 void cerberus_protocol_diagnostic_commands_testing_process_heap_stats_fail (CuTest *test,
 	struct cmd_interface *cmd, struct cmd_device_mock *device)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_heap_stats *req = (struct cerberus_protocol_heap_stats*) data;
 	int status;
@@ -114,14 +114,14 @@ void cerberus_protocol_diagnostic_commands_testing_process_heap_stats_fail (CuTe
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_DIAG_HEAP_USAGE;
 
 	request.length = sizeof (struct cerberus_protocol_heap_stats);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&device->mock, device->base.get_heap_stats, device,
 		CMD_DEVICE_HEAP_FAILED, MOCK_ARG_NOT_NULL);

@@ -7,7 +7,7 @@
 #include "platform.h"
 #include "device_manager.h"
 #include "common/common_math.h"
-#include "mctp/mctp_protocol.h"
+#include "mctp/mctp_base_protocol.h"
 
 
 /**
@@ -21,7 +21,7 @@
  * @param num_devices Number of devices to manage.  This must be at least 1 to support the local
  * device.
  * @param hierarchy Role of the local device in the Cerberus hierarchy (PA vs. AC RoT).
- * @param bus_roll Role the local device will take on the I2C bus.
+ * @param bus_role Role the local device will take on the I2C bus.
  *
  * @return Initialization status, 0 if success or an error code.
  */
@@ -39,14 +39,16 @@ int device_manager_init (struct device_manager *mgr, int num_devices, uint8_t hi
 	}
 
 	/* Initialize the local device capabilities. */
-	mgr->entries[0].info.capabilities.request.max_message_size = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	mgr->entries[0].info.capabilities.request.max_packet_size = MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT;
+	mgr->entries[0].info.capabilities.request.max_message_size = 
+		MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	mgr->entries[0].info.capabilities.request.max_packet_size = 
+		MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT;
 	mgr->entries[0].info.capabilities.request.security_mode =
 		DEVICE_MANAGER_SECURITY_AUTHENTICATION;
 	mgr->entries[0].info.capabilities.request.bus_role = bus_role;
 	mgr->entries[0].info.capabilities.request.hierarchy_role = hierarchy;
-	mgr->entries[0].info.capabilities.max_timeout = MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
-	mgr->entries[0].info.capabilities.max_sig = MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
+	mgr->entries[0].info.capabilities.max_timeout = MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
+	mgr->entries[0].info.capabilities.max_sig = MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
 
 	mgr->num_devices = num_devices;
 
@@ -174,27 +176,6 @@ int device_manager_get_device_num (struct device_manager *mgr, uint8_t eid)
 }
 
 /**
- * Find device direction for a device in device manager table.
- *
- * @param mgr The device manager to utilize.
- * @param device_num The device table entry to utilize.
- *
- * @return The device direction if found or an error code.
- */
-int device_manager_get_device_direction (struct device_manager *mgr, int device_num)
-{
-	if (mgr == NULL) {
-		return DEVICE_MGR_INVALID_ARGUMENT;
-	}
-
-	if (device_num >= mgr->num_devices) {
-		return DEVICE_MGR_UNKNOWN_DEVICE;
-	}
-
-	return mgr->entries[device_num].direction;
-}
-
-/**
  * Find device SMBUS address for a device in device manager table.
  *
  * @param mgr The device manager to utilize.
@@ -265,16 +246,15 @@ int device_manager_update_device_eid (struct device_manager *mgr, int device_num
  *
  * @param mgr Device manager instance to utilize.
  * @param device_num Device table entry to update.
- * @param direction Device direction relative to Cerberus.
  * @param eid Device EID.
  * @param smbus_addr Device SMBUS Address.
  *
  * @return Completion status, 0 if success or an error code.
  */
-int device_manager_update_device_entry (struct device_manager *mgr, int device_num,
-	uint8_t direction, uint8_t eid, uint8_t smbus_addr)
+int device_manager_update_device_entry (struct device_manager *mgr, int device_num, uint8_t eid, 
+	uint8_t smbus_addr)
 {
-	if ((mgr == NULL) || (direction >= NUM_DEVICE_DIRECTIONS)) {
+	if (mgr == NULL) {
 		return DEVICE_MGR_INVALID_ARGUMENT;
 	}
 
@@ -282,7 +262,6 @@ int device_manager_update_device_entry (struct device_manager *mgr, int device_n
 		return DEVICE_MGR_UNKNOWN_DEVICE;
 	}
 
-	mgr->entries[device_num].direction = direction;
 	mgr->entries[device_num].info.eid = eid;
 	mgr->entries[device_num].info.smbus_addr = smbus_addr;
 
@@ -405,14 +384,14 @@ size_t device_manager_get_max_message_len (struct device_manager *mgr, int devic
 	size_t remote_len = 0;
 
 	if (mgr == NULL) {
-		return MCTP_PROTOCOL_MAX_MESSAGE_BODY;
+		return MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
 	}
 
 	if (device_num < mgr->num_devices) {
 		remote_len = mgr->entries[device_num].info.capabilities.request.max_message_size;
 	}
 	if (remote_len == 0) {
-		remote_len = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
+		remote_len = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
 	}
 
 	return min (mgr->entries[0].info.capabilities.request.max_message_size, remote_len);
@@ -431,7 +410,7 @@ size_t device_manager_get_max_message_len (struct device_manager *mgr, int devic
 size_t device_manager_get_max_message_len_by_eid (struct device_manager *mgr, uint8_t eid)
 {
 	if (mgr == NULL) {
-		return MCTP_PROTOCOL_MAX_MESSAGE_BODY;
+		return MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
 	}
 
 	return device_manager_get_max_message_len (mgr, device_manager_get_device_num (mgr, eid));
@@ -452,14 +431,14 @@ size_t device_manager_get_max_transmission_unit (struct device_manager *mgr, int
 	size_t remote_len = 0;
 
 	if (mgr == NULL) {
-		return MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT;
+		return MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT;
 	}
 
 	if (device_num < mgr->num_devices) {
 		remote_len = mgr->entries[device_num].info.capabilities.request.max_packet_size;
 	}
 	if (remote_len == 0) {
-		remote_len = MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT;
+		remote_len = MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT;
 	}
 
 	return min (mgr->entries[0].info.capabilities.request.max_packet_size, remote_len);
@@ -478,7 +457,7 @@ size_t device_manager_get_max_transmission_unit (struct device_manager *mgr, int
 size_t device_manager_get_max_transmission_unit_by_eid (struct device_manager *mgr, uint8_t eid)
 {
 	if (mgr == NULL) {
-		return MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT;
+		return MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT;
 	}
 
 	return device_manager_get_max_transmission_unit (mgr, device_manager_get_device_num (mgr, eid));
@@ -496,7 +475,7 @@ size_t device_manager_get_max_transmission_unit_by_eid (struct device_manager *m
 uint32_t device_manager_get_reponse_timeout (struct device_manager *mgr, int device_num)
 {
 	if (mgr == NULL) {
-		return MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS;
+		return MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS;
 	}
 
 	if ((device_num >= mgr->num_devices) ||
@@ -519,7 +498,7 @@ uint32_t device_manager_get_reponse_timeout (struct device_manager *mgr, int dev
 uint32_t device_manager_get_reponse_timeout_by_eid (struct device_manager *mgr, uint8_t eid)
 {
 	if (mgr == NULL) {
-		return MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS;
+		return MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS;
 	}
 
 	return device_manager_get_reponse_timeout (mgr, device_manager_get_device_num (mgr, eid));
@@ -538,7 +517,7 @@ uint32_t device_manager_get_reponse_timeout_by_eid (struct device_manager *mgr, 
 uint32_t device_manager_get_crypto_timeout (struct device_manager *mgr, int device_num)
 {
 	if (mgr == NULL) {
-		return MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS;
+		return MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS;
 	}
 
 	if ((device_num >= mgr->num_devices) ||
@@ -562,7 +541,7 @@ uint32_t device_manager_get_crypto_timeout (struct device_manager *mgr, int devi
 uint32_t device_manager_get_crypto_timeout_by_eid (struct device_manager *mgr, uint8_t eid)
 {
 	if (mgr == NULL) {
-		return MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS;
+		return MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS;
 	}
 
 	return device_manager_get_crypto_timeout (mgr, device_manager_get_device_num (mgr, eid));

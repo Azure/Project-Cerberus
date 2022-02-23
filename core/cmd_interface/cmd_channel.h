@@ -9,13 +9,13 @@
 #include <stdbool.h>
 #include "status/rot_status.h"
 #include "platform.h"
-#include "mctp/mctp_protocol.h"
+#include "mctp/mctp_base_protocol.h"
 
 
 /**
  * The maximum size for a single packet sent or received through a command channel.
  */
-#define	CMD_MAX_PACKET_SIZE				MCTP_PROTOCOL_MAX_PACKET_LEN
+#define	CMD_MAX_PACKET_SIZE				MCTP_BASE_PROTOCOL_MAX_PACKET_LEN
 
 /**
  * Valid states for a packet.

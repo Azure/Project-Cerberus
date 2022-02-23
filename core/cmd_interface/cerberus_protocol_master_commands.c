@@ -78,7 +78,7 @@ static void cerberus_protocol_free_pcd (struct pcd_manager *manager, struct pcd 
 static void cerberus_protocol_populate_cerberus_protocol_header (
 	struct cerberus_protocol_header *header, uint8_t command)
 {
-	header->msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	header->msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	header->integrity_check = 0;
 	header->pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	header->reserved1 = 0;

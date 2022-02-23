@@ -64,7 +64,7 @@ static void setup_attestation_master_mock_test (CuTest *test,
 		DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (manager, 0, DEVICE_MANAGER_UPSTREAM, 0xAA, 0xBB);
+	status = device_manager_update_device_entry (manager, 0, 0xAA, 0xBB);
 	CuAssertIntEquals (test, 0, status);
 
 	status = hash_mock_init (hash);
@@ -248,7 +248,7 @@ static void attestation_master_test_init (CuTest *test)
 		DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, DEVICE_MANAGER_UPSTREAM, 0xAA, 0xBB);
+	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB);
 	CuAssertIntEquals (test, 0, status);
 
 	status = hash_mock_init (&hash);
@@ -313,7 +313,7 @@ static void attestation_master_test_init_null (CuTest *test)
 		DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, DEVICE_MANAGER_UPSTREAM, 0xAA, 0xBB);
+	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB);
 	CuAssertIntEquals (test, 0, status);
 
 	status = hash_mock_init (&hash);
@@ -1083,7 +1083,7 @@ static void attestation_master_test_process_challenge_response_3_device_cert_ecc
 		DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, DEVICE_MANAGER_UPSTREAM, 0xAA, 0xBB);
+	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB);
 	CuAssertIntEquals (test, 0, status);
 
 	status = hash_mock_init (&hash);
@@ -1250,7 +1250,7 @@ static void attestation_master_test_process_challenge_response_3_device_cert_no_
 		DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, DEVICE_MANAGER_UPSTREAM, 0xAA, 0xBB);
+	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB);
 	CuAssertIntEquals (test, 0, status);
 
 	status = hash_mock_init (&hash);
@@ -1384,7 +1384,7 @@ static void attestation_master_test_process_challenge_response_2_device_cert_ecc
 		DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, DEVICE_MANAGER_UPSTREAM, 0xAA, 0xBB);
+	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB);
 	CuAssertIntEquals (test, 0, status);
 
 	status = hash_mock_init (&hash);
@@ -1540,7 +1540,7 @@ static void attestation_master_test_process_challenge_response_2_device_cert_no_
 		DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, DEVICE_MANAGER_UPSTREAM, 0xAA, 0xBB);
+	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB);
 	CuAssertIntEquals (test, 0, status);
 
 	status = hash_mock_init (&hash);
@@ -2364,7 +2364,7 @@ static void attestation_master_test_process_challenge_response_rsa_not_enabled (
 		DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, DEVICE_MANAGER_UPSTREAM, 0xAA, 0xBB);
+	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB);
 	CuAssertIntEquals (test, 0, status);
 
 	status = hash_mock_init (&hash);

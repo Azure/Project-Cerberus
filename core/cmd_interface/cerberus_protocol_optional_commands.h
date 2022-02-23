@@ -19,7 +19,7 @@
 #include "firmware/firmware_update_control.h"
 #include "manifest/pfm/pfm_manager.h"
 #include "manifest/manifest_cmd_interface.h"
-#include "mctp/mctp_protocol.h"
+#include "mctp/mctp_base_protocol.h"
 #include "recovery/recovery_image_cmd_interface.h"
 #include "recovery/recovery_image_manager.h"
 

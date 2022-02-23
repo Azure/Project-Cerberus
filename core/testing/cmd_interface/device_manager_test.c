@@ -8,7 +8,7 @@
 #include "platform.h"
 #include "testing.h"
 #include "cmd_interface/device_manager.h"
-#include "mctp/mctp_protocol.h"
+#include "mctp/mctp_base_protocol.h"
 #include "testing/crypto/x509_testing.h"
 
 
@@ -72,13 +72,13 @@ static void device_manager_test_get_device_capabilities (CuTest *test)
 	TEST_START;
 
 	memset (&expected, 0, sizeof (expected));
-	expected.request.max_message_size = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	expected.request.max_packet_size = MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT;
+	expected.request.max_message_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	expected.request.max_packet_size = MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT;
 	expected.request.security_mode = DEVICE_MANAGER_SECURITY_AUTHENTICATION;
 	expected.request.bus_role = DEVICE_MANAGER_SLAVE_BUS_ROLE;
 	expected.request.hierarchy_role = DEVICE_MANAGER_AC_ROT_MODE;
-	expected.max_timeout = MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
-	expected.max_sig = MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
+	expected.max_timeout = MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
+	expected.max_sig = MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
 
 	status = device_manager_init (&manager, 2, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE);
@@ -104,13 +104,13 @@ static void device_manager_test_get_device_capabilities_master_pa_rot (CuTest *t
 	TEST_START;
 
 	memset (&expected, 0, sizeof (expected));
-	expected.request.max_message_size = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	expected.request.max_packet_size = MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT;
+	expected.request.max_message_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	expected.request.max_packet_size = MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT;
 	expected.request.security_mode = DEVICE_MANAGER_SECURITY_AUTHENTICATION;
 	expected.request.bus_role = DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE;
 	expected.request.hierarchy_role = DEVICE_MANAGER_PA_ROT_MODE;
-	expected.max_timeout = MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
-	expected.max_sig = MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
+	expected.max_timeout = MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
+	expected.max_sig = MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
 
 	status = device_manager_init (&manager, 2, DEVICE_MANAGER_PA_ROT_MODE,
 		DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE);
@@ -243,8 +243,8 @@ static void device_manager_test_get_device_capabilities_request (CuTest *test)
 	TEST_START;
 
 	memset (&expected, 0, sizeof (expected));
-	expected.max_message_size = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	expected.max_packet_size = MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT;
+	expected.max_message_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	expected.max_packet_size = MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT;
 	expected.security_mode = DEVICE_MANAGER_SECURITY_AUTHENTICATION;
 	expected.bus_role = DEVICE_MANAGER_SLAVE_BUS_ROLE;
 	expected.hierarchy_role = DEVICE_MANAGER_AC_ROT_MODE;
@@ -367,8 +367,7 @@ static void device_manager_test_update_device_entry (CuTest *test)
 		DEVICE_MANAGER_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, DEVICE_MANAGER_DOWNSTREAM, 0xBB,
-		0xAA);
+	status = device_manager_update_device_entry (&manager, 0, 0xBB,	0xAA);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_addr (&manager, 0);
@@ -376,9 +375,6 @@ static void device_manager_test_update_device_entry (CuTest *test)
 
 	status = device_manager_get_device_eid (&manager, 0);
 	CuAssertIntEquals (test, 0xBB, status);
-
-	status = device_manager_get_device_direction (&manager, 0);
-	CuAssertIntEquals (test, DEVICE_MANAGER_DOWNSTREAM, status);
 
 	device_manager_release (&manager);
 }
@@ -394,10 +390,7 @@ static void device_manager_test_update_device_entry_invalid_arg (CuTest *test)
 		DEVICE_MANAGER_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (NULL, 0, DEVICE_MANAGER_DOWNSTREAM, 0, 0);
-	CuAssertIntEquals (test, DEVICE_MGR_INVALID_ARGUMENT, status);
-
-	status = device_manager_update_device_entry (&manager, 0, NUM_DEVICE_DIRECTIONS, 0, 0);
+	status = device_manager_update_device_entry (NULL, 0, 0, 0);
 	CuAssertIntEquals (test, DEVICE_MGR_INVALID_ARGUMENT, status);
 
 	device_manager_release (&manager);
@@ -414,34 +407,7 @@ static void device_manager_test_update_device_entry_invalid_device (CuTest *test
 		DEVICE_MANAGER_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 2, DEVICE_MANAGER_DOWNSTREAM, 0, 0);
-	CuAssertIntEquals (test, DEVICE_MGR_UNKNOWN_DEVICE, status);
-
-	device_manager_release (&manager);
-}
-
-static void device_manager_test_get_device_direction_null (CuTest *test)
-{
-	int status;
-
-	TEST_START;
-
-	status = device_manager_get_device_direction (NULL, 0);
-	CuAssertIntEquals (test, DEVICE_MGR_INVALID_ARGUMENT, status);
-}
-
-static void device_manager_test_get_device_direction_invalid_device (CuTest *test)
-{
-	struct device_manager manager;
-	int status;
-
-	TEST_START;
-
-	status = device_manager_init (&manager, 2, DEVICE_MANAGER_AC_ROT_MODE,
-		DEVICE_MANAGER_SLAVE_BUS_ROLE);
-	CuAssertIntEquals (test, 0, status);
-
-	status = device_manager_get_device_direction (&manager, 2);
+	status = device_manager_update_device_entry (&manager, 2, 0, 0);
 	CuAssertIntEquals (test, DEVICE_MGR_UNKNOWN_DEVICE, status);
 
 	device_manager_release (&manager);
@@ -832,12 +798,10 @@ static void device_manager_test_get_device_num (CuTest *test)
 		DEVICE_MANAGER_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, DEVICE_MANAGER_DOWNSTREAM, 0xAA,
-		0xBB);
+	status = device_manager_update_device_entry (&manager, 0, 0xAA,	0xBB);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, DEVICE_MANAGER_DOWNSTREAM, 0xCC,
-		0xDD);
+	status = device_manager_update_device_entry (&manager, 1, 0xCC,	0xDD);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_num (&manager, 0xAA);
@@ -870,12 +834,10 @@ static void device_manager_test_get_device_num_invalid_eid (CuTest *test)
 		DEVICE_MANAGER_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, DEVICE_MANAGER_DOWNSTREAM, 0xAA,
-		0xBB);
+	status = device_manager_update_device_entry (&manager, 0, 0xAA,	0xBB);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, DEVICE_MANAGER_DOWNSTREAM, 0xCC,
-		0xDD);
+	status = device_manager_update_device_entry (&manager, 1, 0xCC, 0xDD);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_num (&manager, 0xEE);
@@ -895,20 +857,19 @@ static void device_manager_test_resize_entries_table_add_entries (CuTest *test)
 	TEST_START;
 
 	memset (&expected, 0, sizeof (expected));
-	expected.request.max_message_size = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	expected.request.max_packet_size = MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT;
+	expected.request.max_message_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	expected.request.max_packet_size = MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT;
 	expected.request.security_mode = DEVICE_MANAGER_SECURITY_AUTHENTICATION;
 	expected.request.bus_role = DEVICE_MANAGER_SLAVE_BUS_ROLE;
 	expected.request.hierarchy_role = DEVICE_MANAGER_AC_ROT_MODE;
-	expected.max_timeout = MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
-	expected.max_sig = MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
+	expected.max_timeout = MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
+	expected.max_sig = MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
 
 	status = device_manager_init (&manager, 1, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, DEVICE_MANAGER_DOWNSTREAM, 0xBB,
-		0xAA);
+	status = device_manager_update_device_entry (&manager, 0, 0xBB,	0xAA);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_state (&manager, 0, DEVICE_MANAGER_AUTHENTICATED);
@@ -932,9 +893,6 @@ static void device_manager_test_resize_entries_table_add_entries (CuTest *test)
 
 	status = device_manager_get_device_eid (&manager, 0);
 	CuAssertIntEquals (test, 0xBB, status);
-
-	status = device_manager_get_device_direction (&manager, 0);
-	CuAssertIntEquals (test, DEVICE_MANAGER_DOWNSTREAM, status);
 
 	status = device_manager_get_device_state (&manager, 0);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
@@ -972,20 +930,19 @@ static void device_manager_test_resize_entries_table_remove_entries (CuTest *tes
 	TEST_START;
 
 	memset (&expected, 0, sizeof (expected));
-	expected.request.max_message_size = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	expected.request.max_packet_size = MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT;
+	expected.request.max_message_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	expected.request.max_packet_size = MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT;
 	expected.request.security_mode = DEVICE_MANAGER_SECURITY_AUTHENTICATION;
 	expected.request.bus_role = DEVICE_MANAGER_SLAVE_BUS_ROLE;
 	expected.request.hierarchy_role = DEVICE_MANAGER_AC_ROT_MODE;
-	expected.max_timeout = MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
-	expected.max_sig = MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
+	expected.max_timeout = MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
+	expected.max_sig = MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
 
 	status = device_manager_init (&manager, 2, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, DEVICE_MANAGER_DOWNSTREAM, 0xBB,
-		0xAA);
+	status = device_manager_update_device_entry (&manager, 0, 0xBB, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_state (&manager, 0, DEVICE_MANAGER_AUTHENTICATED);
@@ -1009,9 +966,6 @@ static void device_manager_test_resize_entries_table_remove_entries (CuTest *tes
 
 	status = device_manager_get_device_eid (&manager, 0);
 	CuAssertIntEquals (test, 0xBB, status);
-
-	status = device_manager_get_device_direction (&manager, 0);
-	CuAssertIntEquals (test, DEVICE_MANAGER_DOWNSTREAM, status);
 
 	status = device_manager_get_device_state (&manager, 0);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
@@ -1064,13 +1018,13 @@ static void device_manager_test_resize_entries_table_same_size (CuTest *test)
 	TEST_START;
 
 	memset (&expected, 0, sizeof (expected));
-	expected.request.max_message_size = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	expected.request.max_packet_size = MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT;
+	expected.request.max_message_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	expected.request.max_packet_size = MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT;
 	expected.request.security_mode = DEVICE_MANAGER_SECURITY_AUTHENTICATION;
 	expected.request.bus_role = DEVICE_MANAGER_SLAVE_BUS_ROLE;
 	expected.request.hierarchy_role = DEVICE_MANAGER_AC_ROT_MODE;
-	expected.max_timeout = MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
-	expected.max_sig = MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
+	expected.max_timeout = MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
+	expected.max_sig = MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
 
 	memset (&expected2, 0, sizeof (expected2));
 	expected2.request.max_message_size = 50;
@@ -1085,12 +1039,10 @@ static void device_manager_test_resize_entries_table_same_size (CuTest *test)
 		DEVICE_MANAGER_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, DEVICE_MANAGER_DOWNSTREAM, 0xBB,
-		0xAA);
+	status = device_manager_update_device_entry (&manager, 0, 0xBB, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, DEVICE_MANAGER_UPSTREAM, 0xCC,
-		0xDD);
+	status = device_manager_update_device_entry (&manager, 1, 0xCC,	0xDD);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_state (&manager, 0, DEVICE_MANAGER_AUTHENTICATED);
@@ -1125,17 +1077,11 @@ static void device_manager_test_resize_entries_table_same_size (CuTest *test)
 	status = device_manager_get_device_eid (&manager, 0);
 	CuAssertIntEquals (test, 0xBB, status);
 
-	status = device_manager_get_device_direction (&manager, 0);
-	CuAssertIntEquals (test, DEVICE_MANAGER_DOWNSTREAM, status);
-
 	status = device_manager_get_device_addr (&manager, 1);
 	CuAssertIntEquals (test, 0xDD, status);
 
 	status = device_manager_get_device_eid (&manager, 1);
 	CuAssertIntEquals (test, 0xCC, status);
-
-	status = device_manager_get_device_direction (&manager, 1);
-	CuAssertIntEquals (test, DEVICE_MANAGER_UPSTREAM, status);
 
 	status = device_manager_get_device_state (&manager, 0);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
@@ -1245,7 +1191,7 @@ static void device_manager_test_get_max_message_len_local_device (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	length = device_manager_get_max_message_len (&manager, 0);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MAX_MESSAGE_BODY, length);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY, length);
 
 	device_manager_release (&manager);
 }
@@ -1260,13 +1206,13 @@ static void device_manager_test_get_max_message_len_remote_device (CuTest *test)
 	TEST_START;
 
 	memset (&remote, 0, sizeof (remote));
-	remote.request.max_message_size = MCTP_PROTOCOL_MAX_MESSAGE_BODY - 128;
-	remote.request.max_packet_size = MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT;
+	remote.request.max_message_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY - 128;
+	remote.request.max_packet_size = MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT;
 	remote.request.security_mode = DEVICE_MANAGER_SECURITY_AUTHENTICATION;
 	remote.request.bus_role = DEVICE_MANAGER_SLAVE_BUS_ROLE;
 	remote.request.hierarchy_role = DEVICE_MANAGER_AC_ROT_MODE;
-	remote.max_timeout = MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
-	remote.max_sig = MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
+	remote.max_timeout = MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
+	remote.max_sig = MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
 
 	status = device_manager_init (&manager, 2, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE);
@@ -1276,7 +1222,7 @@ static void device_manager_test_get_max_message_len_remote_device (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	length = device_manager_get_max_message_len (&manager, 1);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MAX_MESSAGE_BODY - 128, length);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY - 128, length);
 
 	device_manager_release (&manager);
 }
@@ -1292,22 +1238,22 @@ static void device_manager_test_get_max_message_len_remote_device_local_smaller 
 	TEST_START;
 
 	memset (&local, 0, sizeof (local));
-	local.request.max_message_size = MCTP_PROTOCOL_MAX_MESSAGE_BODY - 128;
-	local.request.max_packet_size = MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT;
+	local.request.max_message_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY - 128;
+	local.request.max_packet_size = MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT;
 	local.request.security_mode = DEVICE_MANAGER_SECURITY_AUTHENTICATION;
 	local.request.bus_role = DEVICE_MANAGER_SLAVE_BUS_ROLE;
 	local.request.hierarchy_role = DEVICE_MANAGER_AC_ROT_MODE;
-	local.max_timeout = MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
-	local.max_sig = MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
+	local.max_timeout = MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
+	local.max_sig = MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
 
 	memset (&remote, 0, sizeof (remote));
-	remote.request.max_message_size = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	remote.request.max_packet_size = MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT;
+	remote.request.max_message_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	remote.request.max_packet_size = MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT;
 	remote.request.security_mode = DEVICE_MANAGER_SECURITY_AUTHENTICATION;
 	remote.request.bus_role = DEVICE_MANAGER_SLAVE_BUS_ROLE;
 	remote.request.hierarchy_role = DEVICE_MANAGER_AC_ROT_MODE;
-	remote.max_timeout = MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
-	remote.max_sig = MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
+	remote.max_timeout = MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
+	remote.max_sig = MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
 
 	status = device_manager_init (&manager, 2, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE);
@@ -1320,7 +1266,7 @@ static void device_manager_test_get_max_message_len_remote_device_local_smaller 
 	CuAssertIntEquals (test, 0, status);
 
 	length = device_manager_get_max_message_len (&manager, 1);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MAX_MESSAGE_BODY - 128, length);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY - 128, length);
 
 	device_manager_release (&manager);
 }
@@ -1335,13 +1281,13 @@ static void device_manager_test_get_max_message_len_remote_device_no_capabilitie
 	TEST_START;
 
 	memset (&local, 0, sizeof (local));
-	local.request.max_message_size = MCTP_PROTOCOL_MAX_MESSAGE_BODY - 128;
-	local.request.max_packet_size = MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT;
+	local.request.max_message_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY - 128;
+	local.request.max_packet_size = MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT;
 	local.request.security_mode = DEVICE_MANAGER_SECURITY_AUTHENTICATION;
 	local.request.bus_role = DEVICE_MANAGER_SLAVE_BUS_ROLE;
 	local.request.hierarchy_role = DEVICE_MANAGER_AC_ROT_MODE;
-	local.max_timeout = MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
-	local.max_sig = MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
+	local.max_timeout = MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
+	local.max_sig = MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
 
 	status = device_manager_init (&manager, 2, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE);
@@ -1351,7 +1297,7 @@ static void device_manager_test_get_max_message_len_remote_device_no_capabilitie
 	CuAssertIntEquals (test, 0, status);
 
 	length = device_manager_get_max_message_len (&manager, 1);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MAX_MESSAGE_BODY - 128, length);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY - 128, length);
 
 	device_manager_release (&manager);
 }
@@ -1366,13 +1312,13 @@ static void device_manager_test_get_max_message_len_remote_device_unknown_device
 	TEST_START;
 
 	memset (&local, 0, sizeof (local));
-	local.request.max_message_size = MCTP_PROTOCOL_MAX_MESSAGE_BODY - 128;
-	local.request.max_packet_size = MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT;
+	local.request.max_message_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY - 128;
+	local.request.max_packet_size = MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT;
 	local.request.security_mode = DEVICE_MANAGER_SECURITY_AUTHENTICATION;
 	local.request.bus_role = DEVICE_MANAGER_SLAVE_BUS_ROLE;
 	local.request.hierarchy_role = DEVICE_MANAGER_AC_ROT_MODE;
-	local.max_timeout = MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
-	local.max_sig = MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
+	local.max_timeout = MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
+	local.max_sig = MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
 
 	status = device_manager_init (&manager, 2, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE);
@@ -1382,7 +1328,7 @@ static void device_manager_test_get_max_message_len_remote_device_unknown_device
 	CuAssertIntEquals (test, 0, status);
 
 	length = device_manager_get_max_message_len (&manager, 2);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MAX_MESSAGE_BODY - 128, length);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY - 128, length);
 
 	device_manager_release (&manager);
 }
@@ -1400,7 +1346,7 @@ static void device_manager_test_get_max_message_len_null (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	length = device_manager_get_max_message_len (NULL, 1);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MAX_MESSAGE_BODY, length);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY, length);
 
 	device_manager_release (&manager);
 }
@@ -1417,15 +1363,14 @@ static void device_manager_test_get_max_message_len_by_eid_local_device (CuTest 
 		DEVICE_MANAGER_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, DEVICE_MANAGER_SELF, 0xAA, 0xBB);
+	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, DEVICE_MANAGER_DOWNSTREAM, 0xCC,
-		0xDD);
+	status = device_manager_update_device_entry (&manager, 1, 0xCC, 0xDD);
 	CuAssertIntEquals (test, 0, status);
 
 	length = device_manager_get_max_message_len_by_eid (&manager, 0xAA);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MAX_MESSAGE_BODY, length);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY, length);
 
 	device_manager_release (&manager);
 }
@@ -1440,30 +1385,29 @@ static void device_manager_test_get_max_message_len_by_eid_remote_device (CuTest
 	TEST_START;
 
 	memset (&remote, 0, sizeof (remote));
-	remote.request.max_message_size = MCTP_PROTOCOL_MAX_MESSAGE_BODY - 128;
-	remote.request.max_packet_size = MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT;
+	remote.request.max_message_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY - 128;
+	remote.request.max_packet_size = MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT;
 	remote.request.security_mode = DEVICE_MANAGER_SECURITY_AUTHENTICATION;
 	remote.request.bus_role = DEVICE_MANAGER_SLAVE_BUS_ROLE;
 	remote.request.hierarchy_role = DEVICE_MANAGER_AC_ROT_MODE;
-	remote.max_timeout = MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
-	remote.max_sig = MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
+	remote.max_timeout = MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
+	remote.max_sig = MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
 
 	status = device_manager_init (&manager, 2, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, DEVICE_MANAGER_SELF, 0xAA, 0xBB);
+	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, DEVICE_MANAGER_DOWNSTREAM, 0xCC,
-		0xDD);
+	status = device_manager_update_device_entry (&manager, 1, 0xCC, 0xDD);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_capabilities (&manager, 1, &remote);
 	CuAssertIntEquals (test, 0, status);
 
 	length = device_manager_get_max_message_len_by_eid (&manager, 0xCC);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MAX_MESSAGE_BODY - 128, length);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY - 128, length);
 
 	device_manager_release (&manager);
 }
@@ -1480,32 +1424,31 @@ static void device_manager_test_get_max_message_len_by_eid_remote_device_local_s
 	TEST_START;
 
 	memset (&local, 0, sizeof (local));
-	local.request.max_message_size = MCTP_PROTOCOL_MAX_MESSAGE_BODY - 128;
-	local.request.max_packet_size = MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT;
+	local.request.max_message_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY - 128;
+	local.request.max_packet_size = MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT;
 	local.request.security_mode = DEVICE_MANAGER_SECURITY_AUTHENTICATION;
 	local.request.bus_role = DEVICE_MANAGER_SLAVE_BUS_ROLE;
 	local.request.hierarchy_role = DEVICE_MANAGER_AC_ROT_MODE;
-	local.max_timeout = MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
-	local.max_sig = MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
+	local.max_timeout = MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
+	local.max_sig = MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
 
 	memset (&remote, 0, sizeof (remote));
-	remote.request.max_message_size = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	remote.request.max_packet_size = MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT;
+	remote.request.max_message_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	remote.request.max_packet_size = MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT;
 	remote.request.security_mode = DEVICE_MANAGER_SECURITY_AUTHENTICATION;
 	remote.request.bus_role = DEVICE_MANAGER_SLAVE_BUS_ROLE;
 	remote.request.hierarchy_role = DEVICE_MANAGER_AC_ROT_MODE;
-	remote.max_timeout = MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
-	remote.max_sig = MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
+	remote.max_timeout = MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
+	remote.max_sig = MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
 
 	status = device_manager_init (&manager, 2, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, DEVICE_MANAGER_SELF, 0xAA, 0xBB);
+	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, DEVICE_MANAGER_DOWNSTREAM, 0xCC,
-		0xDD);
+	status = device_manager_update_device_entry (&manager, 1, 0xCC, 0xDD);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_capabilities (&manager, 0, &local);
@@ -1515,7 +1458,7 @@ static void device_manager_test_get_max_message_len_by_eid_remote_device_local_s
 	CuAssertIntEquals (test, 0, status);
 
 	length = device_manager_get_max_message_len_by_eid (&manager, 0xCC);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MAX_MESSAGE_BODY - 128, length);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY - 128, length);
 
 	device_manager_release (&manager);
 }
@@ -1531,30 +1474,29 @@ static void device_manager_test_get_max_message_len_by_eid_remote_device_no_capa
 	TEST_START;
 
 	memset (&local, 0, sizeof (local));
-	local.request.max_message_size = MCTP_PROTOCOL_MAX_MESSAGE_BODY - 128;
-	local.request.max_packet_size = MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT;
+	local.request.max_message_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY - 128;
+	local.request.max_packet_size = MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT;
 	local.request.security_mode = DEVICE_MANAGER_SECURITY_AUTHENTICATION;
 	local.request.bus_role = DEVICE_MANAGER_SLAVE_BUS_ROLE;
 	local.request.hierarchy_role = DEVICE_MANAGER_AC_ROT_MODE;
-	local.max_timeout = MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
-	local.max_sig = MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
+	local.max_timeout = MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
+	local.max_sig = MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
 
 	status = device_manager_init (&manager, 2, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, DEVICE_MANAGER_SELF, 0xAA, 0xBB);
+	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, DEVICE_MANAGER_DOWNSTREAM, 0xCC,
-		0xDD);
+	status = device_manager_update_device_entry (&manager, 1, 0xCC, 0xDD);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_capabilities (&manager, 0, &local);
 	CuAssertIntEquals (test, 0, status);
 
 	length = device_manager_get_max_message_len_by_eid (&manager, 0xCC);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MAX_MESSAGE_BODY - 128, length);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY - 128, length);
 
 	device_manager_release (&manager);
 }
@@ -1570,30 +1512,29 @@ static void device_manager_test_get_max_message_len_by_eid_remote_device_unknown
 	TEST_START;
 
 	memset (&local, 0, sizeof (local));
-	local.request.max_message_size = MCTP_PROTOCOL_MAX_MESSAGE_BODY - 128;
-	local.request.max_packet_size = MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT;
+	local.request.max_message_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY - 128;
+	local.request.max_packet_size = MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT;
 	local.request.security_mode = DEVICE_MANAGER_SECURITY_AUTHENTICATION;
 	local.request.bus_role = DEVICE_MANAGER_SLAVE_BUS_ROLE;
 	local.request.hierarchy_role = DEVICE_MANAGER_AC_ROT_MODE;
-	local.max_timeout = MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
-	local.max_sig = MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
+	local.max_timeout = MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
+	local.max_sig = MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
 
 	status = device_manager_init (&manager, 2, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, DEVICE_MANAGER_SELF, 0xAA, 0xBB);
+	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, DEVICE_MANAGER_DOWNSTREAM, 0xCC,
-		0xDD);
+	status = device_manager_update_device_entry (&manager, 1, 0xCC,	0xDD);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_capabilities (&manager, 0, &local);
 	CuAssertIntEquals (test, 0, status);
 
 	length = device_manager_get_max_message_len_by_eid (&manager, 0xEE);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MAX_MESSAGE_BODY - 128, length);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY - 128, length);
 
 	device_manager_release (&manager);
 }
@@ -1610,15 +1551,14 @@ static void device_manager_test_get_max_message_len_by_eid_null (CuTest *test)
 		DEVICE_MANAGER_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, DEVICE_MANAGER_SELF, 0xAA, 0xBB);
+	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, DEVICE_MANAGER_DOWNSTREAM, 0xCC,
-		0xDD);
+	status = device_manager_update_device_entry (&manager, 1, 0xCC, 0xDD);
 	CuAssertIntEquals (test, 0, status);
 
 	length = device_manager_get_max_message_len_by_eid (NULL, 0xAA);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MAX_MESSAGE_BODY, length);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY, length);
 
 	device_manager_release (&manager);
 }
@@ -1636,7 +1576,7 @@ static void device_manager_test_get_max_transmission_unit_local_device (CuTest *
 	CuAssertIntEquals (test, 0, status);
 
 	length = device_manager_get_max_transmission_unit (&manager, 0);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT, length);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT, length);
 
 	device_manager_release (&manager);
 }
@@ -1651,13 +1591,13 @@ static void device_manager_test_get_max_transmission_unit_remote_device (CuTest 
 	TEST_START;
 
 	memset (&remote, 0, sizeof (remote));
-	remote.request.max_message_size = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	remote.request.max_packet_size = MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT - 16;
+	remote.request.max_message_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	remote.request.max_packet_size = MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT - 16;
 	remote.request.security_mode = DEVICE_MANAGER_SECURITY_AUTHENTICATION;
 	remote.request.bus_role = DEVICE_MANAGER_SLAVE_BUS_ROLE;
 	remote.request.hierarchy_role = DEVICE_MANAGER_AC_ROT_MODE;
-	remote.max_timeout = MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
-	remote.max_sig = MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
+	remote.max_timeout = MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
+	remote.max_sig = MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
 
 	status = device_manager_init (&manager, 2, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE);
@@ -1667,7 +1607,7 @@ static void device_manager_test_get_max_transmission_unit_remote_device (CuTest 
 	CuAssertIntEquals (test, 0, status);
 
 	length = device_manager_get_max_transmission_unit (&manager, 1);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT - 16, length);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT - 16, length);
 
 	device_manager_release (&manager);
 }
@@ -1683,22 +1623,22 @@ static void device_manager_test_get_max_transmission_unit_remote_device_local_sm
 	TEST_START;
 
 	memset (&local, 0, sizeof (local));
-	local.request.max_message_size = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	local.request.max_packet_size = MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT - 16;
+	local.request.max_message_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	local.request.max_packet_size = MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT - 16;
 	local.request.security_mode = DEVICE_MANAGER_SECURITY_AUTHENTICATION;
 	local.request.bus_role = DEVICE_MANAGER_SLAVE_BUS_ROLE;
 	local.request.hierarchy_role = DEVICE_MANAGER_AC_ROT_MODE;
-	local.max_timeout = MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
-	local.max_sig = MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
+	local.max_timeout = MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
+	local.max_sig = MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
 
 	memset (&remote, 0, sizeof (remote));
-	remote.request.max_message_size = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	remote.request.max_packet_size = MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT;
+	remote.request.max_message_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	remote.request.max_packet_size = MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT;
 	remote.request.security_mode = DEVICE_MANAGER_SECURITY_AUTHENTICATION;
 	remote.request.bus_role = DEVICE_MANAGER_SLAVE_BUS_ROLE;
 	remote.request.hierarchy_role = DEVICE_MANAGER_AC_ROT_MODE;
-	remote.max_timeout = MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
-	remote.max_sig = MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
+	remote.max_timeout = MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
+	remote.max_sig = MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
 
 	status = device_manager_init (&manager, 2, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE);
@@ -1711,7 +1651,7 @@ static void device_manager_test_get_max_transmission_unit_remote_device_local_sm
 	CuAssertIntEquals (test, 0, status);
 
 	length = device_manager_get_max_transmission_unit (&manager, 1);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT - 16, length);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT - 16, length);
 
 	device_manager_release (&manager);
 }
@@ -1727,13 +1667,13 @@ static void device_manager_test_get_max_transmission_unit_remote_device_no_capab
 	TEST_START;
 
 	memset (&local, 0, sizeof (local));
-	local.request.max_message_size = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	local.request.max_packet_size = MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT - 16;
+	local.request.max_message_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	local.request.max_packet_size = MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT - 16;
 	local.request.security_mode = DEVICE_MANAGER_SECURITY_AUTHENTICATION;
 	local.request.bus_role = DEVICE_MANAGER_SLAVE_BUS_ROLE;
 	local.request.hierarchy_role = DEVICE_MANAGER_AC_ROT_MODE;
-	local.max_timeout = MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
-	local.max_sig = MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
+	local.max_timeout = MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
+	local.max_sig = MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
 
 	status = device_manager_init (&manager, 2, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE);
@@ -1743,7 +1683,7 @@ static void device_manager_test_get_max_transmission_unit_remote_device_no_capab
 	CuAssertIntEquals (test, 0, status);
 
 	length = device_manager_get_max_transmission_unit (&manager, 1);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT - 16, length);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT - 16, length);
 
 	device_manager_release (&manager);
 }
@@ -1759,13 +1699,13 @@ static void device_manager_test_get_max_transmission_unit_remote_device_unknown_
 	TEST_START;
 
 	memset (&local, 0, sizeof (local));
-	local.request.max_message_size = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	local.request.max_packet_size = MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT - 16;
+	local.request.max_message_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	local.request.max_packet_size = MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT - 16;
 	local.request.security_mode = DEVICE_MANAGER_SECURITY_AUTHENTICATION;
 	local.request.bus_role = DEVICE_MANAGER_SLAVE_BUS_ROLE;
 	local.request.hierarchy_role = DEVICE_MANAGER_AC_ROT_MODE;
-	local.max_timeout = MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
-	local.max_sig = MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
+	local.max_timeout = MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
+	local.max_sig = MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
 
 	status = device_manager_init (&manager, 2, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE);
@@ -1775,7 +1715,7 @@ static void device_manager_test_get_max_transmission_unit_remote_device_unknown_
 	CuAssertIntEquals (test, 0, status);
 
 	length = device_manager_get_max_transmission_unit (&manager, 2);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT - 16, length);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT - 16, length);
 
 	device_manager_release (&manager);
 }
@@ -1793,7 +1733,7 @@ static void device_manager_test_get_max_transmission_unit_null (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	length = device_manager_get_max_transmission_unit (NULL, 1);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT, length);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT, length);
 
 	device_manager_release (&manager);
 }
@@ -1810,15 +1750,14 @@ static void device_manager_test_get_max_transmission_unit_by_eid_local_device (C
 		DEVICE_MANAGER_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, DEVICE_MANAGER_SELF, 0xAA, 0xBB);
+	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, DEVICE_MANAGER_DOWNSTREAM, 0xCC,
-		0xDD);
+	status = device_manager_update_device_entry (&manager, 1, 0xCC, 0xDD);
 	CuAssertIntEquals (test, 0, status);
 
 	length = device_manager_get_max_transmission_unit_by_eid (&manager, 0xAA);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT, length);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT, length);
 
 	device_manager_release (&manager);
 }
@@ -1833,30 +1772,29 @@ static void device_manager_test_get_max_transmission_unit_by_eid_remote_device (
 	TEST_START;
 
 	memset (&remote, 0, sizeof (remote));
-	remote.request.max_message_size = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	remote.request.max_packet_size = MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT - 16;
+	remote.request.max_message_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	remote.request.max_packet_size = MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT - 16;
 	remote.request.security_mode = DEVICE_MANAGER_SECURITY_AUTHENTICATION;
 	remote.request.bus_role = DEVICE_MANAGER_SLAVE_BUS_ROLE;
 	remote.request.hierarchy_role = DEVICE_MANAGER_AC_ROT_MODE;
-	remote.max_timeout = MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
-	remote.max_sig = MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
+	remote.max_timeout = MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
+	remote.max_sig = MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
 
 	status = device_manager_init (&manager, 2, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, DEVICE_MANAGER_SELF, 0xAA, 0xBB);
+	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, DEVICE_MANAGER_DOWNSTREAM, 0xCC,
-		0xDD);
+	status = device_manager_update_device_entry (&manager, 1, 0xCC,	0xDD);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_capabilities (&manager, 1, &remote);
 	CuAssertIntEquals (test, 0, status);
 
 	length = device_manager_get_max_transmission_unit_by_eid (&manager, 0xCC);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT - 16, length);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT - 16, length);
 
 	device_manager_release (&manager);
 }
@@ -1873,32 +1811,31 @@ static void device_manager_test_get_max_transmission_unit_by_eid_remote_device_l
 	TEST_START;
 
 	memset (&local, 0, sizeof (local));
-	local.request.max_message_size = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	local.request.max_packet_size = MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT - 16;
+	local.request.max_message_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	local.request.max_packet_size = MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT - 16;
 	local.request.security_mode = DEVICE_MANAGER_SECURITY_AUTHENTICATION;
 	local.request.bus_role = DEVICE_MANAGER_SLAVE_BUS_ROLE;
 	local.request.hierarchy_role = DEVICE_MANAGER_AC_ROT_MODE;
-	local.max_timeout = MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
-	local.max_sig = MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
+	local.max_timeout = MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
+	local.max_sig = MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
 
 	memset (&remote, 0, sizeof (remote));
-	remote.request.max_message_size = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	remote.request.max_packet_size = MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT;
+	remote.request.max_message_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	remote.request.max_packet_size = MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT;
 	remote.request.security_mode = DEVICE_MANAGER_SECURITY_AUTHENTICATION;
 	remote.request.bus_role = DEVICE_MANAGER_SLAVE_BUS_ROLE;
 	remote.request.hierarchy_role = DEVICE_MANAGER_AC_ROT_MODE;
-	remote.max_timeout = MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
-	remote.max_sig = MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
+	remote.max_timeout = MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
+	remote.max_sig = MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
 
 	status = device_manager_init (&manager, 2, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, DEVICE_MANAGER_SELF, 0xAA, 0xBB);
+	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, DEVICE_MANAGER_DOWNSTREAM, 0xCC,
-		0xDD);
+	status = device_manager_update_device_entry (&manager, 1, 0xCC, 0xDD);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_capabilities (&manager, 0, &local);
@@ -1908,7 +1845,7 @@ static void device_manager_test_get_max_transmission_unit_by_eid_remote_device_l
 	CuAssertIntEquals (test, 0, status);
 
 	length = device_manager_get_max_transmission_unit_by_eid (&manager, 0xCC);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT - 16, length);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT - 16, length);
 
 	device_manager_release (&manager);
 }
@@ -1924,30 +1861,29 @@ static void device_manager_test_get_max_transmission_unit_by_eid_remote_device_n
 	TEST_START;
 
 	memset (&local, 0, sizeof (local));
-	local.request.max_message_size = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	local.request.max_packet_size = MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT - 16;
+	local.request.max_message_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	local.request.max_packet_size = MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT - 16;
 	local.request.security_mode = DEVICE_MANAGER_SECURITY_AUTHENTICATION;
 	local.request.bus_role = DEVICE_MANAGER_SLAVE_BUS_ROLE;
 	local.request.hierarchy_role = DEVICE_MANAGER_AC_ROT_MODE;
-	local.max_timeout = MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
-	local.max_sig = MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
+	local.max_timeout = MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
+	local.max_sig = MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
 
 	status = device_manager_init (&manager, 2, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, DEVICE_MANAGER_SELF, 0xAA, 0xBB);
+	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, DEVICE_MANAGER_DOWNSTREAM, 0xCC,
-		0xDD);
+	status = device_manager_update_device_entry (&manager, 1, 0xCC, 0xDD);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_capabilities (&manager, 0, &local);
 	CuAssertIntEquals (test, 0, status);
 
 	length = device_manager_get_max_transmission_unit_by_eid (&manager, 0xCC);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT - 16, length);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT - 16, length);
 
 	device_manager_release (&manager);
 }
@@ -1963,30 +1899,29 @@ static void device_manager_test_get_max_transmission_unit_by_eid_remote_device_u
 	TEST_START;
 
 	memset (&local, 0, sizeof (local));
-	local.request.max_message_size = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	local.request.max_packet_size = MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT - 16;
+	local.request.max_message_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	local.request.max_packet_size = MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT - 16;
 	local.request.security_mode = DEVICE_MANAGER_SECURITY_AUTHENTICATION;
 	local.request.bus_role = DEVICE_MANAGER_SLAVE_BUS_ROLE;
 	local.request.hierarchy_role = DEVICE_MANAGER_AC_ROT_MODE;
-	local.max_timeout = MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
-	local.max_sig = MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
+	local.max_timeout = MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
+	local.max_sig = MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
 
 	status = device_manager_init (&manager, 2, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, DEVICE_MANAGER_SELF, 0xAA, 0xBB);
+	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, DEVICE_MANAGER_DOWNSTREAM, 0xCC,
-		0xDD);
+	status = device_manager_update_device_entry (&manager, 1, 0xCC,	0xDD);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_capabilities (&manager, 0, &local);
 	CuAssertIntEquals (test, 0, status);
 
 	length = device_manager_get_max_transmission_unit_by_eid (&manager, 0xEE);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT - 16, length);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT - 16, length);
 
 	device_manager_release (&manager);
 }
@@ -2003,15 +1938,14 @@ static void device_manager_test_get_max_transmission_unit_by_eid_null (CuTest *t
 		DEVICE_MANAGER_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, DEVICE_MANAGER_SELF, 0xAA, 0xBB);
+	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, DEVICE_MANAGER_DOWNSTREAM, 0xCC,
-		0xDD);
+	status = device_manager_update_device_entry (&manager, 1, 0xCC, 0xDD);
 	CuAssertIntEquals (test, 0, status);
 
 	length = device_manager_get_max_transmission_unit_by_eid (NULL, 0xAA);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT, length);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT, length);
 
 	device_manager_release (&manager);
 }
@@ -2029,7 +1963,7 @@ static void device_manager_test_get_reponse_timeout_local_device (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	timeout = device_manager_get_reponse_timeout (&manager, 0);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS, timeout);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS, timeout);
 
 	device_manager_release (&manager);
 }
@@ -2044,13 +1978,13 @@ static void device_manager_test_get_reponse_timeout_remote_device (CuTest *test)
 	TEST_START;
 
 	memset (&remote, 0, sizeof (remote));
-	remote.request.max_message_size = MCTP_PROTOCOL_MAX_MESSAGE_BODY - 128;
-	remote.request.max_packet_size = MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT;
+	remote.request.max_message_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY - 128;
+	remote.request.max_packet_size = MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT;
 	remote.request.security_mode = DEVICE_MANAGER_SECURITY_AUTHENTICATION;
 	remote.request.bus_role = DEVICE_MANAGER_SLAVE_BUS_ROLE;
 	remote.request.hierarchy_role = DEVICE_MANAGER_AC_ROT_MODE;
 	remote.max_timeout = 20;
-	remote.max_sig = MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
+	remote.max_sig = MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
 
 	status = device_manager_init (&manager, 2, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE);
@@ -2078,7 +2012,7 @@ static void device_manager_test_get_reponse_timeout_remote_device_no_capabilitie
 	CuAssertIntEquals (test, 0, status);
 
 	timeout = device_manager_get_reponse_timeout (&manager, 1);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS, timeout);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS, timeout);
 
 	device_manager_release (&manager);
 }
@@ -2093,13 +2027,13 @@ static void device_manager_test_get_reponse_timeout_remote_device_unknown_device
 	TEST_START;
 
 	memset (&local, 0, sizeof (local));
-	local.request.max_message_size = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	local.request.max_packet_size = MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT;
+	local.request.max_message_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	local.request.max_packet_size = MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT;
 	local.request.security_mode = DEVICE_MANAGER_SECURITY_AUTHENTICATION;
 	local.request.bus_role = DEVICE_MANAGER_SLAVE_BUS_ROLE;
 	local.request.hierarchy_role = DEVICE_MANAGER_AC_ROT_MODE;
-	local.max_timeout = (MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS + 10) / 10;
-	local.max_sig = MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
+	local.max_timeout = (MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS + 10) / 10;
+	local.max_sig = MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
 
 	status = device_manager_init (&manager, 2, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE);
@@ -2109,7 +2043,7 @@ static void device_manager_test_get_reponse_timeout_remote_device_unknown_device
 	CuAssertIntEquals (test, 0, status);
 
 	timeout = device_manager_get_reponse_timeout (&manager, 2);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS + 10, timeout);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS + 10, timeout);
 
 	device_manager_release (&manager);
 }
@@ -2127,7 +2061,7 @@ static void device_manager_test_get_reponse_timeout_null (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	timeout = device_manager_get_reponse_timeout (NULL, 1);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS, timeout);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS, timeout);
 
 	device_manager_release (&manager);
 }
@@ -2144,15 +2078,14 @@ static void device_manager_test_get_reponse_timeout_by_eid_local_device (CuTest 
 		DEVICE_MANAGER_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, DEVICE_MANAGER_SELF, 0xAA, 0xBB);
+	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, DEVICE_MANAGER_DOWNSTREAM, 0xCC,
-		0xDD);
+	status = device_manager_update_device_entry (&manager, 1, 0xCC, 0xDD);
 	CuAssertIntEquals (test, 0, status);
 
 	timeout = device_manager_get_reponse_timeout_by_eid (&manager, 0xAA);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS, timeout);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS, timeout);
 
 	device_manager_release (&manager);
 }
@@ -2167,23 +2100,22 @@ static void device_manager_test_get_reponse_timeout_by_eid_remote_device (CuTest
 	TEST_START;
 
 	memset (&remote, 0, sizeof (remote));
-	remote.request.max_message_size = MCTP_PROTOCOL_MAX_MESSAGE_BODY - 128;
-	remote.request.max_packet_size = MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT;
+	remote.request.max_message_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY - 128;
+	remote.request.max_packet_size = MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT;
 	remote.request.security_mode = DEVICE_MANAGER_SECURITY_AUTHENTICATION;
 	remote.request.bus_role = DEVICE_MANAGER_SLAVE_BUS_ROLE;
 	remote.request.hierarchy_role = DEVICE_MANAGER_AC_ROT_MODE;
 	remote.max_timeout = 20;
-	remote.max_sig = MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
+	remote.max_sig = MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
 
 	status = device_manager_init (&manager, 2, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, DEVICE_MANAGER_SELF, 0xAA, 0xBB);
+	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, DEVICE_MANAGER_DOWNSTREAM, 0xCC,
-		0xDD);
+	status = device_manager_update_device_entry (&manager, 1, 0xCC,	0xDD);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_capabilities (&manager, 1, &remote);
@@ -2208,15 +2140,14 @@ static void device_manager_test_get_reponse_timeout_by_eid_remote_device_no_capa
 		DEVICE_MANAGER_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, DEVICE_MANAGER_SELF, 0xAA, 0xBB);
+	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, DEVICE_MANAGER_DOWNSTREAM, 0xCC,
-		0xDD);
+	status = device_manager_update_device_entry (&manager, 1, 0xCC,	0xDD);
 	CuAssertIntEquals (test, 0, status);
 
 	timeout = device_manager_get_reponse_timeout_by_eid (&manager, 0xCC);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS, timeout);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS, timeout);
 
 	device_manager_release (&manager);
 }
@@ -2232,30 +2163,29 @@ static void device_manager_test_get_reponse_timeout_by_eid_remote_device_unknown
 	TEST_START;
 
 	memset (&local, 0, sizeof (local));
-	local.request.max_message_size = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	local.request.max_packet_size = MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT;
+	local.request.max_message_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	local.request.max_packet_size = MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT;
 	local.request.security_mode = DEVICE_MANAGER_SECURITY_AUTHENTICATION;
 	local.request.bus_role = DEVICE_MANAGER_SLAVE_BUS_ROLE;
 	local.request.hierarchy_role = DEVICE_MANAGER_AC_ROT_MODE;
-	local.max_timeout = (MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS + 10) / 10;
-	local.max_sig = MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
+	local.max_timeout = (MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS + 10) / 10;
+	local.max_sig = MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
 
 	status = device_manager_init (&manager, 2, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, DEVICE_MANAGER_SELF, 0xAA, 0xBB);
+	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, DEVICE_MANAGER_DOWNSTREAM, 0xCC,
-		0xDD);
+	status = device_manager_update_device_entry (&manager, 1, 0xCC,	0xDD);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_capabilities (&manager, 0, &local);
 	CuAssertIntEquals (test, 0, status);
 
 	timeout = device_manager_get_reponse_timeout_by_eid (&manager, 0xEE);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS + 10, timeout);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS + 10, timeout);
 
 	device_manager_release (&manager);
 }
@@ -2272,15 +2202,14 @@ static void device_manager_test_get_reponse_timeout_by_eid_null (CuTest *test)
 		DEVICE_MANAGER_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, DEVICE_MANAGER_SELF, 0xAA, 0xBB);
+	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, DEVICE_MANAGER_DOWNSTREAM, 0xCC,
-		0xDD);
+	status = device_manager_update_device_entry (&manager, 1, 0xCC,	0xDD);
 	CuAssertIntEquals (test, 0, status);
 
 	timeout = device_manager_get_reponse_timeout_by_eid (NULL, 0xCC);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS, timeout);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS, timeout);
 
 	device_manager_release (&manager);
 }
@@ -2298,7 +2227,7 @@ static void device_manager_test_get_crypto_timeout_local_device (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	timeout = device_manager_get_crypto_timeout (&manager, 0);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS, timeout);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS, timeout);
 
 	device_manager_release (&manager);
 }
@@ -2313,12 +2242,12 @@ static void device_manager_test_get_crypto_timeout_remote_device (CuTest *test)
 	TEST_START;
 
 	memset (&remote, 0, sizeof (remote));
-	remote.request.max_message_size = MCTP_PROTOCOL_MAX_MESSAGE_BODY - 128;
-	remote.request.max_packet_size = MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT;
+	remote.request.max_message_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY - 128;
+	remote.request.max_packet_size = MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT;
 	remote.request.security_mode = DEVICE_MANAGER_SECURITY_AUTHENTICATION;
 	remote.request.bus_role = DEVICE_MANAGER_SLAVE_BUS_ROLE;
 	remote.request.hierarchy_role = DEVICE_MANAGER_AC_ROT_MODE;
-	remote.max_timeout = MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
+	remote.max_timeout = MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
 	remote.max_sig = 20;
 
 	status = device_manager_init (&manager, 2, DEVICE_MANAGER_AC_ROT_MODE,
@@ -2347,7 +2276,7 @@ static void device_manager_test_get_crypto_timeout_remote_device_no_capabilities
 	CuAssertIntEquals (test, 0, status);
 
 	timeout = device_manager_get_crypto_timeout (&manager, 1);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS, timeout);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS, timeout);
 
 	device_manager_release (&manager);
 }
@@ -2362,13 +2291,13 @@ static void device_manager_test_get_crypto_timeout_remote_device_unknown_device 
 	TEST_START;
 
 	memset (&local, 0, sizeof (local));
-	local.request.max_message_size = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	local.request.max_packet_size = MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT;
+	local.request.max_message_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	local.request.max_packet_size = MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT;
 	local.request.security_mode = DEVICE_MANAGER_SECURITY_AUTHENTICATION;
 	local.request.bus_role = DEVICE_MANAGER_SLAVE_BUS_ROLE;
 	local.request.hierarchy_role = DEVICE_MANAGER_AC_ROT_MODE;
-	local.max_timeout = MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
-	local.max_sig = (MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS + 100) / 100;
+	local.max_timeout = MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
+	local.max_sig = (MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS + 100) / 100;
 
 	status = device_manager_init (&manager, 2, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE);
@@ -2378,7 +2307,7 @@ static void device_manager_test_get_crypto_timeout_remote_device_unknown_device 
 	CuAssertIntEquals (test, 0, status);
 
 	timeout = device_manager_get_crypto_timeout (&manager, 2);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS + 100, timeout);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS + 100, timeout);
 
 	device_manager_release (&manager);
 }
@@ -2396,7 +2325,7 @@ static void device_manager_test_get_crypto_timeout_null (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	timeout = device_manager_get_crypto_timeout (NULL, 1);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS, timeout);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS, timeout);
 
 	device_manager_release (&manager);
 }
@@ -2413,15 +2342,14 @@ static void device_manager_test_get_crypto_timeout_by_eid_local_device (CuTest *
 		DEVICE_MANAGER_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, DEVICE_MANAGER_SELF, 0xAA, 0xBB);
+	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, DEVICE_MANAGER_DOWNSTREAM, 0xCC,
-		0xDD);
+	status = device_manager_update_device_entry (&manager, 1, 0xCC, 0xDD);
 	CuAssertIntEquals (test, 0, status);
 
 	timeout = device_manager_get_crypto_timeout_by_eid (&manager, 0xAA);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS, timeout);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS, timeout);
 
 	device_manager_release (&manager);
 }
@@ -2436,23 +2364,22 @@ static void device_manager_test_get_crypto_timeout_by_eid_remote_device (CuTest 
 	TEST_START;
 
 	memset (&remote, 0, sizeof (remote));
-	remote.request.max_message_size = MCTP_PROTOCOL_MAX_MESSAGE_BODY - 128;
-	remote.request.max_packet_size = MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT;
+	remote.request.max_message_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY - 128;
+	remote.request.max_packet_size = MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT;
 	remote.request.security_mode = DEVICE_MANAGER_SECURITY_AUTHENTICATION;
 	remote.request.bus_role = DEVICE_MANAGER_SLAVE_BUS_ROLE;
 	remote.request.hierarchy_role = DEVICE_MANAGER_AC_ROT_MODE;
-	remote.max_timeout = MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
+	remote.max_timeout = MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
 	remote.max_sig = 20;
 
 	status = device_manager_init (&manager, 2, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, DEVICE_MANAGER_SELF, 0xAA, 0xBB);
+	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, DEVICE_MANAGER_DOWNSTREAM, 0xCC,
-		0xDD);
+	status = device_manager_update_device_entry (&manager, 1, 0xCC,	0xDD);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_capabilities (&manager, 1, &remote);
@@ -2477,15 +2404,14 @@ static void device_manager_test_get_crypto_timeout_by_eid_remote_device_no_capab
 		DEVICE_MANAGER_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, DEVICE_MANAGER_SELF, 0xAA, 0xBB);
+	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, DEVICE_MANAGER_DOWNSTREAM, 0xCC,
-		0xDD);
+	status = device_manager_update_device_entry (&manager, 1, 0xCC,	0xDD);
 	CuAssertIntEquals (test, 0, status);
 
 	timeout = device_manager_get_crypto_timeout_by_eid (&manager, 0xCC);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS, timeout);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS, timeout);
 
 	device_manager_release (&manager);
 }
@@ -2501,30 +2427,29 @@ static void device_manager_test_get_crypto_timeout_by_eid_remote_device_unknown_
 	TEST_START;
 
 	memset (&local, 0, sizeof (local));
-	local.request.max_message_size = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	local.request.max_packet_size = MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT;
+	local.request.max_message_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	local.request.max_packet_size = MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT;
 	local.request.security_mode = DEVICE_MANAGER_SECURITY_AUTHENTICATION;
 	local.request.bus_role = DEVICE_MANAGER_SLAVE_BUS_ROLE;
 	local.request.hierarchy_role = DEVICE_MANAGER_AC_ROT_MODE;
-	local.max_timeout = MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
-	local.max_sig = (MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS + 100) / 100;
+	local.max_timeout = MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
+	local.max_sig = (MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS + 100) / 100;
 
 	status = device_manager_init (&manager, 2, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, DEVICE_MANAGER_SELF, 0xAA, 0xBB);
+	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, DEVICE_MANAGER_DOWNSTREAM, 0xCC,
-		0xDD);
+	status = device_manager_update_device_entry (&manager, 1, 0xCC, 0xDD);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_capabilities (&manager, 0, &local);
 	CuAssertIntEquals (test, 0, status);
 
 	timeout = device_manager_get_crypto_timeout_by_eid (&manager, 0xEE);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS + 100, timeout);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS + 100, timeout);
 
 	device_manager_release (&manager);
 }
@@ -2541,15 +2466,14 @@ static void device_manager_test_get_crypto_timeout_by_eid_null (CuTest *test)
 		DEVICE_MANAGER_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, DEVICE_MANAGER_SELF, 0xAA, 0xBB);
+	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, DEVICE_MANAGER_DOWNSTREAM, 0xCC,
-		0xDD);
+	status = device_manager_update_device_entry (&manager, 1, 0xCC,	0xDD);
 	CuAssertIntEquals (test, 0, status);
 
 	timeout = device_manager_get_crypto_timeout_by_eid (NULL, 0xCC);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS, timeout);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS, timeout);
 
 	device_manager_release (&manager);
 }
@@ -2575,8 +2499,6 @@ TEST (device_manager_test_update_device_capabilities_request_invalid_device);
 TEST (device_manager_test_update_device_entry);
 TEST (device_manager_test_update_device_entry_invalid_arg);
 TEST (device_manager_test_update_device_entry_invalid_device);
-TEST (device_manager_test_get_device_direction_null);
-TEST (device_manager_test_get_device_direction_invalid_device);
 TEST (device_manager_test_get_device_addr_null);
 TEST (device_manager_test_get_device_addr_invalid_device);
 TEST (device_manager_test_get_device_eid_null);

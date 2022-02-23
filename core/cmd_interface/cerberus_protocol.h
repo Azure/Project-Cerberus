@@ -5,11 +5,11 @@
 #define CERBERUS_PROTOCOL_H_
 
 #include <stdint.h>
-#include "mctp/mctp_protocol.h"
+#include "mctp/mctp_base_protocol.h"
 
 
 #define CERBERUS_PROTOCOL_MIN_MSG_LEN						(sizeof (struct cerberus_protocol_header))
-#define CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG				(MCTP_PROTOCOL_MAX_MESSAGE_BODY - CERBERUS_PROTOCOL_MIN_MSG_LEN)
+#define CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG				(MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY - CERBERUS_PROTOCOL_MIN_MSG_LEN)
 
 #define CERBERUS_PROTOCOL_MSFT_PCI_VID						0x1414
 #define CERBERUS_PROTOCOL_PROTOCOL_VERSION					4

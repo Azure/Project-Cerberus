@@ -9,7 +9,7 @@
 
 
 /**
- * A mock for system notifications.
+ * A mock for Cerberus protocol notifications.
  */
 struct cerberus_protocol_observer_mock {
 	struct cerberus_protocol_observer base;			/**< The base observer instance. */

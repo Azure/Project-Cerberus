@@ -49,7 +49,7 @@ static int cerberus_protocol_optional_commands_testing_measurement_callback_fail
 void cerberus_protocol_optional_commands_testing_process_fw_update_init (CuTest *test,
 	struct cmd_interface *cmd, struct firmware_update_control_mock *update)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_prepare_fw_update *req =
 		(struct cerberus_protocol_prepare_fw_update*) data;
@@ -59,15 +59,15 @@ void cerberus_protocol_optional_commands_testing_process_fw_update_init (CuTest 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_INIT_FW_UPDATE;
 
 	req->total_size = size;
 	request.length = sizeof (struct cerberus_protocol_prepare_fw_update);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&update->mock, update->base.prepare_staging, update, 0, MOCK_ARG (size));
 	CuAssertIntEquals (test, 0, status);
@@ -82,7 +82,7 @@ void cerberus_protocol_optional_commands_testing_process_fw_update_init (CuTest 
 void cerberus_protocol_optional_commands_testing_process_fw_update_init_invalid_len (CuTest *test,
 	struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_prepare_fw_update *req =
 		(struct cerberus_protocol_prepare_fw_update*) data;
@@ -92,15 +92,15 @@ void cerberus_protocol_optional_commands_testing_process_fw_update_init_invalid_
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_INIT_FW_UPDATE;
 
 	req->total_size = size;
 	request.length = sizeof (struct cerberus_protocol_prepare_fw_update) + 1;
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -117,7 +117,7 @@ void cerberus_protocol_optional_commands_testing_process_fw_update_init_invalid_
 void cerberus_protocol_optional_commands_testing_process_fw_update_init_fail (CuTest *test,
 	struct cmd_interface *cmd, struct firmware_update_control_mock *update)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_prepare_fw_update *req =
 		(struct cerberus_protocol_prepare_fw_update*) data;
@@ -127,15 +127,15 @@ void cerberus_protocol_optional_commands_testing_process_fw_update_init_fail (Cu
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_INIT_FW_UPDATE;
 
 	req->total_size = size;
 	request.length = sizeof (struct cerberus_protocol_prepare_fw_update);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&update->mock, update->base.prepare_staging, update,
 		FIRMWARE_UPDATE_NO_MEMORY, MOCK_ARG (size));
@@ -150,7 +150,7 @@ void cerberus_protocol_optional_commands_testing_process_fw_update_init_fail (Cu
 void cerberus_protocol_optional_commands_testing_process_fw_update (CuTest *test,
 	struct cmd_interface *cmd, struct firmware_update_control_mock *update)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_fw_update *req = (struct cerberus_protocol_fw_update*) data;
 	int status;
@@ -158,15 +158,15 @@ void cerberus_protocol_optional_commands_testing_process_fw_update (CuTest *test
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_FW_UPDATE;
 
 	req->payload = 0xAA;
 	request.length = sizeof (struct cerberus_protocol_fw_update);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&update->mock, update->base.write_staging, update, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (&req->payload, 1), MOCK_ARG (1));
@@ -182,7 +182,7 @@ void cerberus_protocol_optional_commands_testing_process_fw_update (CuTest *test
 void cerberus_protocol_optional_commands_testing_process_fw_update_no_data (CuTest *test,
 	struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_fw_update *req = (struct cerberus_protocol_fw_update*) data;
 	int status;
@@ -190,15 +190,15 @@ void cerberus_protocol_optional_commands_testing_process_fw_update_no_data (CuTe
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_FW_UPDATE;
 
 	req->payload = 0xAA;
 	request.length = sizeof (struct cerberus_protocol_fw_update) - 1;
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -209,7 +209,7 @@ void cerberus_protocol_optional_commands_testing_process_fw_update_no_data (CuTe
 void cerberus_protocol_optional_commands_testing_process_fw_update_fail (CuTest *test,
 	struct cmd_interface *cmd, struct firmware_update_control_mock *update)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_fw_update *req = (struct cerberus_protocol_fw_update*) data;
 	int status;
@@ -217,15 +217,15 @@ void cerberus_protocol_optional_commands_testing_process_fw_update_fail (CuTest 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_FW_UPDATE;
 
 	req->payload = 0xAA;
 	request.length = sizeof (struct cerberus_protocol_fw_update);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&update->mock, update->base.write_staging, update,
 		FIRMWARE_UPDATE_NO_MEMORY, MOCK_ARG_PTR_CONTAINS_TMP (&req->payload, 1), MOCK_ARG (1));
@@ -240,7 +240,7 @@ void cerberus_protocol_optional_commands_testing_process_fw_update_fail (CuTest 
 void cerberus_protocol_optional_commands_testing_process_complete_fw_update (CuTest *test,
 	struct cmd_interface *cmd, struct firmware_update_control_mock *update)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_complete_fw_update *req =
 		(struct cerberus_protocol_complete_fw_update*) data;
@@ -249,14 +249,14 @@ void cerberus_protocol_optional_commands_testing_process_complete_fw_update (CuT
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_COMPLETE_FW_UPDATE;
 
 	request.length = sizeof (struct cerberus_protocol_complete_fw_update);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&update->mock, update->base.start_update, update, 0);
 	CuAssertIntEquals (test, 0, status);
@@ -271,7 +271,7 @@ void cerberus_protocol_optional_commands_testing_process_complete_fw_update (CuT
 void cerberus_protocol_optional_commands_testing_process_complete_fw_update_invalid_len (
 	CuTest *test, struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_complete_fw_update *req =
 		(struct cerberus_protocol_complete_fw_update*) data;
@@ -280,14 +280,14 @@ void cerberus_protocol_optional_commands_testing_process_complete_fw_update_inva
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_COMPLETE_FW_UPDATE;
 
 	request.length = sizeof (struct cerberus_protocol_complete_fw_update) + 1;
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -298,7 +298,7 @@ void cerberus_protocol_optional_commands_testing_process_complete_fw_update_inva
 void cerberus_protocol_optional_commands_testing_process_complete_fw_update_fail (CuTest *test,
 	struct cmd_interface *cmd, struct firmware_update_control_mock *update)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_complete_fw_update *req =
 		(struct cerberus_protocol_complete_fw_update*) data;
@@ -307,14 +307,14 @@ void cerberus_protocol_optional_commands_testing_process_complete_fw_update_fail
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_COMPLETE_FW_UPDATE;
 
 	request.length = sizeof (struct cerberus_protocol_complete_fw_update);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&update->mock, update->base.start_update, update,
 		FIRMWARE_UPDATE_NO_MEMORY);
@@ -329,7 +329,7 @@ void cerberus_protocol_optional_commands_testing_process_complete_fw_update_fail
 void cerberus_protocol_optional_commands_testing_process_pfm_update_init_port0 (CuTest *test,
 	struct cmd_interface *cmd, struct manifest_cmd_interface_mock *pfm_0)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_prepare_pfm_update *req =
 		(struct cerberus_protocol_prepare_pfm_update*) data;
@@ -339,16 +339,16 @@ void cerberus_protocol_optional_commands_testing_process_pfm_update_init_port0 (
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_INIT_PFM_UPDATE;
 
 	req->port_id = 0;
 	req->size = length;
 	request.length = sizeof (struct cerberus_protocol_prepare_pfm_update);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&pfm_0->mock, pfm_0->base.prepare_manifest, pfm_0, 0, MOCK_ARG (length));
 	CuAssertIntEquals (test, 0, status);
@@ -363,7 +363,7 @@ void cerberus_protocol_optional_commands_testing_process_pfm_update_init_port0 (
 void cerberus_protocol_optional_commands_testing_process_pfm_update_init_port1 (CuTest *test,
 	struct cmd_interface *cmd, struct manifest_cmd_interface_mock *pfm_1)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_prepare_pfm_update *req =
 		(struct cerberus_protocol_prepare_pfm_update*) data;
@@ -373,16 +373,16 @@ void cerberus_protocol_optional_commands_testing_process_pfm_update_init_port1 (
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_INIT_PFM_UPDATE;
 
 	req->port_id = 1;
 	req->size = length;
 	request.length = sizeof (struct cerberus_protocol_prepare_pfm_update);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&pfm_1->mock, pfm_1->base.prepare_manifest, pfm_1, 0, MOCK_ARG (length));
 	CuAssertIntEquals (test, 0, status);
@@ -397,7 +397,7 @@ void cerberus_protocol_optional_commands_testing_process_pfm_update_init_port1 (
 void cerberus_protocol_optional_commands_testing_process_pfm_update_init_port0_null (CuTest *test,
 	struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_prepare_pfm_update *req =
 		(struct cerberus_protocol_prepare_pfm_update*) data;
@@ -407,16 +407,16 @@ void cerberus_protocol_optional_commands_testing_process_pfm_update_init_port0_n
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_INIT_PFM_UPDATE;
 
 	req->port_id = 0;
 	req->size = length;
 	request.length = sizeof (struct cerberus_protocol_prepare_pfm_update);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -427,7 +427,7 @@ void cerberus_protocol_optional_commands_testing_process_pfm_update_init_port0_n
 void cerberus_protocol_optional_commands_testing_process_pfm_update_init_port1_null (CuTest *test,
 	struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_prepare_pfm_update *req =
 		(struct cerberus_protocol_prepare_pfm_update*) data;
@@ -437,16 +437,16 @@ void cerberus_protocol_optional_commands_testing_process_pfm_update_init_port1_n
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_INIT_PFM_UPDATE;
 
 	req->port_id = 1;
 	req->size = length;
 	request.length = sizeof (struct cerberus_protocol_prepare_pfm_update);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -457,7 +457,7 @@ void cerberus_protocol_optional_commands_testing_process_pfm_update_init_port1_n
 void cerberus_protocol_optional_commands_testing_process_pfm_update_init_invalid_port (CuTest *test,
 	struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_prepare_pfm_update *req =
 		(struct cerberus_protocol_prepare_pfm_update*) data;
@@ -467,16 +467,16 @@ void cerberus_protocol_optional_commands_testing_process_pfm_update_init_invalid
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_INIT_PFM_UPDATE;
 
 	req->port_id = 2;
 	req->size = length;
 	request.length = sizeof (struct cerberus_protocol_prepare_pfm_update);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -487,7 +487,7 @@ void cerberus_protocol_optional_commands_testing_process_pfm_update_init_invalid
 void cerberus_protocol_optional_commands_testing_process_pfm_update_init_invalid_len (CuTest *test,
 	struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_prepare_pfm_update *req =
 		(struct cerberus_protocol_prepare_pfm_update*) data;
@@ -497,16 +497,16 @@ void cerberus_protocol_optional_commands_testing_process_pfm_update_init_invalid
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_INIT_PFM_UPDATE;
 
 	req->port_id = 0;
 	req->size = length;
 	request.length = sizeof (struct cerberus_protocol_prepare_pfm_update) + 1;
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -523,7 +523,7 @@ void cerberus_protocol_optional_commands_testing_process_pfm_update_init_invalid
 void cerberus_protocol_optional_commands_testing_process_pfm_update_init_fail_port0 (CuTest *test,
 	struct cmd_interface *cmd, struct manifest_cmd_interface_mock *pfm_0)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_prepare_pfm_update *req =
 		(struct cerberus_protocol_prepare_pfm_update*) data;
@@ -533,16 +533,16 @@ void cerberus_protocol_optional_commands_testing_process_pfm_update_init_fail_po
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_INIT_PFM_UPDATE;
 
 	req->port_id = 0;
 	req->size = length;
 	request.length = sizeof (struct cerberus_protocol_prepare_pfm_update);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&pfm_0->mock, pfm_0->base.prepare_manifest, pfm_0, PFM_INVALID_ARGUMENT,
 		MOCK_ARG (length));
@@ -557,7 +557,7 @@ void cerberus_protocol_optional_commands_testing_process_pfm_update_init_fail_po
 void cerberus_protocol_optional_commands_testing_process_pfm_update_init_fail_port1 (CuTest *test,
 	struct cmd_interface *cmd, struct manifest_cmd_interface_mock *pfm_1)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_prepare_pfm_update *req =
 		(struct cerberus_protocol_prepare_pfm_update*) data;
@@ -567,16 +567,16 @@ void cerberus_protocol_optional_commands_testing_process_pfm_update_init_fail_po
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_INIT_PFM_UPDATE;
 
 	req->port_id = 1;
 	req->size = length;
 	request.length = sizeof (struct cerberus_protocol_prepare_pfm_update);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&pfm_1->mock, pfm_1->base.prepare_manifest, pfm_1, PFM_INVALID_ARGUMENT,
 		MOCK_ARG (length));
@@ -591,7 +591,7 @@ void cerberus_protocol_optional_commands_testing_process_pfm_update_init_fail_po
 void cerberus_protocol_optional_commands_testing_process_pfm_update_port0 (CuTest *test,
 	struct cmd_interface *cmd, struct manifest_cmd_interface_mock *pfm_0)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_pfm_update *req = (struct cerberus_protocol_pfm_update*) data;
 	int status;
@@ -599,16 +599,16 @@ void cerberus_protocol_optional_commands_testing_process_pfm_update_port0 (CuTes
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_PFM_UPDATE;
 
 	req->port_id = 0;
 	req->payload = 1;
 	request.length = sizeof (struct cerberus_protocol_pfm_update);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&pfm_0->mock, pfm_0->base.store_manifest, pfm_0, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (&req->payload, 1), MOCK_ARG (1));
@@ -624,7 +624,7 @@ void cerberus_protocol_optional_commands_testing_process_pfm_update_port0 (CuTes
 void cerberus_protocol_optional_commands_testing_process_pfm_update_port1 (CuTest *test,
 	struct cmd_interface *cmd, struct manifest_cmd_interface_mock *pfm_1)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_pfm_update *req = (struct cerberus_protocol_pfm_update*) data;
 	int status;
@@ -632,16 +632,16 @@ void cerberus_protocol_optional_commands_testing_process_pfm_update_port1 (CuTes
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_PFM_UPDATE;
 
 	req->port_id = 1;
 	req->payload = 1;
 	request.length = sizeof (struct cerberus_protocol_pfm_update);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&pfm_1->mock, pfm_1->base.store_manifest, pfm_1, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (&req->payload, 1), MOCK_ARG (1));
@@ -657,7 +657,7 @@ void cerberus_protocol_optional_commands_testing_process_pfm_update_port1 (CuTes
 void cerberus_protocol_optional_commands_testing_process_pfm_update_port0_null (CuTest *test,
 	struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_pfm_update *req = (struct cerberus_protocol_pfm_update*) data;
 	int status;
@@ -665,16 +665,16 @@ void cerberus_protocol_optional_commands_testing_process_pfm_update_port0_null (
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_PFM_UPDATE;
 
 	req->port_id = 0;
 	req->payload = 1;
 	request.length = sizeof (struct cerberus_protocol_pfm_update);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -685,7 +685,7 @@ void cerberus_protocol_optional_commands_testing_process_pfm_update_port0_null (
 void cerberus_protocol_optional_commands_testing_process_pfm_update_port1_null (CuTest *test,
 	struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_pfm_update *req = (struct cerberus_protocol_pfm_update*) data;
 	int status;
@@ -693,16 +693,16 @@ void cerberus_protocol_optional_commands_testing_process_pfm_update_port1_null (
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_PFM_UPDATE;
 
 	req->port_id = 1;
 	req->payload = 1;
 	request.length = sizeof (struct cerberus_protocol_pfm_update);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -713,7 +713,7 @@ void cerberus_protocol_optional_commands_testing_process_pfm_update_port1_null (
 void cerberus_protocol_optional_commands_testing_process_pfm_update_no_data (CuTest *test,
 	struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_pfm_update *req = (struct cerberus_protocol_pfm_update*) data;
 	int status;
@@ -721,15 +721,15 @@ void cerberus_protocol_optional_commands_testing_process_pfm_update_no_data (CuT
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_PFM_UPDATE;
 
 	req->port_id = 0;
 	request.length = sizeof (struct cerberus_protocol_pfm_update) - 1;
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -740,7 +740,7 @@ void cerberus_protocol_optional_commands_testing_process_pfm_update_no_data (CuT
 void cerberus_protocol_optional_commands_testing_process_pfm_update_invalid_port (CuTest *test,
 	struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_pfm_update *req = (struct cerberus_protocol_pfm_update*) data;
 	int status;
@@ -748,16 +748,16 @@ void cerberus_protocol_optional_commands_testing_process_pfm_update_invalid_port
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_PFM_UPDATE;
 
 	req->port_id = 2;
 	req->payload = 1;
 	request.length = sizeof (struct cerberus_protocol_pfm_update);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -768,7 +768,7 @@ void cerberus_protocol_optional_commands_testing_process_pfm_update_invalid_port
 void cerberus_protocol_optional_commands_testing_process_pfm_update_fail_port0 (CuTest *test,
 	struct cmd_interface *cmd, struct manifest_cmd_interface_mock *pfm_0)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_pfm_update *req = (struct cerberus_protocol_pfm_update*) data;
 	int status;
@@ -776,16 +776,16 @@ void cerberus_protocol_optional_commands_testing_process_pfm_update_fail_port0 (
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_PFM_UPDATE;
 
 	req->port_id = 0;
 	req->payload = 1;
 	request.length = sizeof (struct cerberus_protocol_pfm_update);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&pfm_0->mock, pfm_0->base.store_manifest, pfm_0,
 		MANIFEST_MANAGER_NO_MEMORY, MOCK_ARG_PTR_CONTAINS_TMP (&req->payload, 1), MOCK_ARG (1));
@@ -800,7 +800,7 @@ void cerberus_protocol_optional_commands_testing_process_pfm_update_fail_port0 (
 void cerberus_protocol_optional_commands_testing_process_pfm_update_fail_port1 (CuTest *test,
 	struct cmd_interface *cmd, struct manifest_cmd_interface_mock *pfm_1)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_pfm_update *req = (struct cerberus_protocol_pfm_update*) data;
 	int status;
@@ -808,16 +808,16 @@ void cerberus_protocol_optional_commands_testing_process_pfm_update_fail_port1 (
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_PFM_UPDATE;
 
 	req->port_id = 1;
 	req->payload = 1;
 	request.length = sizeof (struct cerberus_protocol_pfm_update);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&pfm_1->mock, pfm_1->base.store_manifest, pfm_1,
 		MANIFEST_MANAGER_NO_MEMORY, MOCK_ARG_PTR_CONTAINS_TMP (&req->payload, 1), MOCK_ARG (1));
@@ -832,7 +832,7 @@ void cerberus_protocol_optional_commands_testing_process_pfm_update_fail_port1 (
 void cerberus_protocol_optional_commands_testing_process_pfm_update_complete_port0 (CuTest *test,
 	struct cmd_interface *cmd, struct manifest_cmd_interface_mock *pfm_0)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_complete_pfm_update *req =
 		(struct cerberus_protocol_complete_pfm_update*) data;
@@ -841,16 +841,16 @@ void cerberus_protocol_optional_commands_testing_process_pfm_update_complete_por
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_COMPLETE_PFM_UPDATE;
 
 	req->port_id = 0;
 	req->activation = 0;
 	request.length =  sizeof (struct cerberus_protocol_complete_pfm_update);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&pfm_0->mock, pfm_0->base.finish_manifest, pfm_0, 0, MOCK_ARG (false));
 	CuAssertIntEquals (test, 0, status);
@@ -865,7 +865,7 @@ void cerberus_protocol_optional_commands_testing_process_pfm_update_complete_por
 void cerberus_protocol_optional_commands_testing_process_pfm_update_complete_port1 (CuTest *test,
 	struct cmd_interface *cmd, struct manifest_cmd_interface_mock *pfm_1)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_complete_pfm_update *req =
 		(struct cerberus_protocol_complete_pfm_update*) data;
@@ -874,16 +874,16 @@ void cerberus_protocol_optional_commands_testing_process_pfm_update_complete_por
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_COMPLETE_PFM_UPDATE;
 
 	req->port_id = 1;
 	req->activation = 0;
 	request.length =  sizeof (struct cerberus_protocol_complete_pfm_update);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&pfm_1->mock, pfm_1->base.finish_manifest, pfm_1, 0, MOCK_ARG (false));
 	CuAssertIntEquals (test, 0, status);
@@ -898,7 +898,7 @@ void cerberus_protocol_optional_commands_testing_process_pfm_update_complete_por
 void cerberus_protocol_optional_commands_testing_process_pfm_update_complete_port0_immediate (
 	CuTest *test, struct cmd_interface *cmd, struct manifest_cmd_interface_mock *pfm_0)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_complete_pfm_update *req =
 		(struct cerberus_protocol_complete_pfm_update*) data;
@@ -907,16 +907,16 @@ void cerberus_protocol_optional_commands_testing_process_pfm_update_complete_por
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_COMPLETE_PFM_UPDATE;
 
 	req->port_id = 0;
 	req->activation = 1;
 	request.length =  sizeof (struct cerberus_protocol_complete_pfm_update);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&pfm_0->mock, pfm_0->base.finish_manifest, pfm_0, 0, MOCK_ARG (true));
 	CuAssertIntEquals (test, 0, status);
@@ -931,7 +931,7 @@ void cerberus_protocol_optional_commands_testing_process_pfm_update_complete_por
 void cerberus_protocol_optional_commands_testing_process_pfm_update_complete_port1_immediate (
 	CuTest *test, struct cmd_interface *cmd, struct manifest_cmd_interface_mock *pfm_1)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_complete_pfm_update *req =
 		(struct cerberus_protocol_complete_pfm_update*) data;
@@ -940,16 +940,16 @@ void cerberus_protocol_optional_commands_testing_process_pfm_update_complete_por
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_COMPLETE_PFM_UPDATE;
 
 	req->port_id = 1;
 	req->activation = 1;
 	request.length =  sizeof (struct cerberus_protocol_complete_pfm_update);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&pfm_1->mock, pfm_1->base.finish_manifest, pfm_1, 0, MOCK_ARG (true));
 	CuAssertIntEquals (test, 0, status);
@@ -964,7 +964,7 @@ void cerberus_protocol_optional_commands_testing_process_pfm_update_complete_por
 void cerberus_protocol_optional_commands_testing_process_pfm_update_complete_port0_null (
 	CuTest *test, struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_complete_pfm_update *req =
 		(struct cerberus_protocol_complete_pfm_update*) data;
@@ -973,16 +973,16 @@ void cerberus_protocol_optional_commands_testing_process_pfm_update_complete_por
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_COMPLETE_PFM_UPDATE;
 
 	req->port_id = 0;
 	req->activation = 0;
 	request.length =  sizeof (struct cerberus_protocol_complete_pfm_update);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -993,7 +993,7 @@ void cerberus_protocol_optional_commands_testing_process_pfm_update_complete_por
 void cerberus_protocol_optional_commands_testing_process_pfm_update_complete_port1_null (
 	CuTest *test, struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_complete_pfm_update *req =
 		(struct cerberus_protocol_complete_pfm_update*) data;
@@ -1002,16 +1002,16 @@ void cerberus_protocol_optional_commands_testing_process_pfm_update_complete_por
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_COMPLETE_PFM_UPDATE;
 
 	req->port_id = 1;
 	req->activation = 0;
 	request.length =  sizeof (struct cerberus_protocol_complete_pfm_update);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -1022,7 +1022,7 @@ void cerberus_protocol_optional_commands_testing_process_pfm_update_complete_por
 void cerberus_protocol_optional_commands_testing_process_pfm_update_complete_invalid_len (
 	CuTest *test, struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_complete_pfm_update *req =
 		(struct cerberus_protocol_complete_pfm_update*) data;
@@ -1031,16 +1031,16 @@ void cerberus_protocol_optional_commands_testing_process_pfm_update_complete_inv
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_COMPLETE_PFM_UPDATE;
 
 	req->port_id = 0;
 	req->activation = 0;
 	request.length =  sizeof (struct cerberus_protocol_complete_pfm_update) + 1;
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -1057,7 +1057,7 @@ void cerberus_protocol_optional_commands_testing_process_pfm_update_complete_inv
 void cerberus_protocol_optional_commands_testing_process_pfm_update_complete_invalid_port (
 	CuTest *test, struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_complete_pfm_update *req =
 		(struct cerberus_protocol_complete_pfm_update*) data;
@@ -1066,16 +1066,16 @@ void cerberus_protocol_optional_commands_testing_process_pfm_update_complete_inv
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_COMPLETE_PFM_UPDATE;
 
 	req->port_id = 2;
 	req->activation = 0;
 	request.length =  sizeof (struct cerberus_protocol_complete_pfm_update);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -1086,7 +1086,7 @@ void cerberus_protocol_optional_commands_testing_process_pfm_update_complete_inv
 void cerberus_protocol_optional_commands_testing_process_pfm_update_complete_fail_port0 (
 	CuTest *test, struct cmd_interface *cmd, struct manifest_cmd_interface_mock *pfm_0)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_complete_pfm_update *req =
 		(struct cerberus_protocol_complete_pfm_update*) data;
@@ -1095,16 +1095,16 @@ void cerberus_protocol_optional_commands_testing_process_pfm_update_complete_fai
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_COMPLETE_PFM_UPDATE;
 
 	req->port_id = 0;
 	req->activation = 0;
 	request.length =  sizeof (struct cerberus_protocol_complete_pfm_update);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&pfm_0->mock, pfm_0->base.finish_manifest, pfm_0,
 		MANIFEST_MANAGER_NO_MEMORY, MOCK_ARG (false));
@@ -1119,7 +1119,7 @@ void cerberus_protocol_optional_commands_testing_process_pfm_update_complete_fai
 void cerberus_protocol_optional_commands_testing_process_pfm_update_complete_fail_port1 (
 	CuTest *test, struct cmd_interface *cmd, struct manifest_cmd_interface_mock *pfm_1)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_complete_pfm_update *req =
 		(struct cerberus_protocol_complete_pfm_update*) data;
@@ -1128,16 +1128,16 @@ void cerberus_protocol_optional_commands_testing_process_pfm_update_complete_fai
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_COMPLETE_PFM_UPDATE;
 
 	req->port_id = 1;
 	req->activation = 0;
 	request.length =  sizeof (struct cerberus_protocol_complete_pfm_update);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&pfm_1->mock, pfm_1->base.finish_manifest, pfm_1,
 		MANIFEST_MANAGER_NO_MEMORY, MOCK_ARG (false));
@@ -1153,7 +1153,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_port0_region
 	struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_0)
 {
 	struct pfm_mock pfm;
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_id *req = (struct cerberus_protocol_get_pfm_id*) data;
 	struct cerberus_protocol_get_pfm_id_version_response *resp =
@@ -1164,7 +1164,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_port0_region
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_ID;
 
@@ -1172,9 +1172,9 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_port0_region
 	req->region = 0;
 	req->id = 0;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_id);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = pfm_mock_init (&pfm);
 	CuAssertIntEquals (test, 0, status);
@@ -1194,7 +1194,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_port0_region
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_pfm_id_version_response),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -1214,7 +1214,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_port0_region
 	struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_0)
 {
 	struct pfm_mock pfm;
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_id *req = (struct cerberus_protocol_get_pfm_id*) data;
 	struct cerberus_protocol_get_pfm_id_version_response *resp =
@@ -1225,7 +1225,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_port0_region
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_ID;
 
@@ -1233,9 +1233,9 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_port0_region
 	req->region = 1;
 	req->id = 0;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_id);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = pfm_mock_init (&pfm);
 	CuAssertIntEquals (test, 0, status);
@@ -1255,7 +1255,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_port0_region
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_pfm_id_version_response),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -1275,7 +1275,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_port1_region
 	struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_1)
 {
 	struct pfm_mock pfm;
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_id *req = (struct cerberus_protocol_get_pfm_id*) data;
 	struct cerberus_protocol_get_pfm_id_version_response *resp =
@@ -1286,7 +1286,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_port1_region
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_ID;
 
@@ -1294,9 +1294,9 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_port1_region
 	req->region = 0;
 	req->id = 0;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_id);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = pfm_mock_init (&pfm);
 	CuAssertIntEquals (test, 0, status);
@@ -1316,7 +1316,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_port1_region
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_pfm_id_version_response),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -1336,7 +1336,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_port1_region
 	struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_1)
 {
 	struct pfm_mock pfm;
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_id *req = (struct cerberus_protocol_get_pfm_id*) data;
 	struct cerberus_protocol_get_pfm_id_version_response *resp =
@@ -1347,7 +1347,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_port1_region
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_ID;
 
@@ -1355,9 +1355,9 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_port1_region
 	req->region = 1;
 	req->id = 0;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_id);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = pfm_mock_init (&pfm);
 	CuAssertIntEquals (test, 0, status);
@@ -1377,7 +1377,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_port1_region
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_pfm_id_version_response),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -1397,7 +1397,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_no_id_type_p
 	struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_0)
 {
 	struct pfm_mock pfm;
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_id *req = (struct cerberus_protocol_get_pfm_id*) data;
 	struct cerberus_protocol_get_pfm_id_version_response *resp =
@@ -1408,16 +1408,16 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_no_id_type_p
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_ID;
 
 	req->port_id = 0;
 	req->region = 0;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_id) - 1;
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = pfm_mock_init (&pfm);
 	CuAssertIntEquals (test, 0, status);
@@ -1437,7 +1437,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_no_id_type_p
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_pfm_id_version_response),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -1457,7 +1457,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_no_id_type_p
 	struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_1)
 {
 	struct pfm_mock pfm;
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_id *req = (struct cerberus_protocol_get_pfm_id*) data;
 	struct cerberus_protocol_get_pfm_id_version_response *resp =
@@ -1468,16 +1468,16 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_no_id_type_p
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_ID;
 
 	req->port_id = 1;
 	req->region = 0;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_id) - 1;
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = pfm_mock_init (&pfm);
 	CuAssertIntEquals (test, 0, status);
@@ -1497,7 +1497,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_no_id_type_p
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_pfm_id_version_response),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -1516,7 +1516,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_no_id_type_p
 void cerberus_protocol_optional_commands_testing_process_get_pfm_id_port0_region0_null (
 	CuTest *test, struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_id *req = (struct cerberus_protocol_get_pfm_id*) data;
 	struct cerberus_protocol_get_pfm_id_version_response *resp =
@@ -1526,7 +1526,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_port0_region
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_ID;
 
@@ -1534,16 +1534,16 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_port0_region
 	req->region = 0;
 	req->id = 0;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_id);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_pfm_id_version_response),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -1559,7 +1559,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_port0_region
 void cerberus_protocol_optional_commands_testing_process_get_pfm_id_port0_region1_null (
 	CuTest *test, struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_id *req = (struct cerberus_protocol_get_pfm_id*) data;
 	struct cerberus_protocol_get_pfm_id_version_response *resp =
@@ -1569,7 +1569,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_port0_region
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_ID;
 
@@ -1577,16 +1577,16 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_port0_region
 	req->region = 1;
 	req->id = 0;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_id);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_pfm_id_version_response),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -1602,7 +1602,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_port0_region
 void cerberus_protocol_optional_commands_testing_process_get_pfm_id_port1_region0_null (
 	CuTest *test, struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_id *req = (struct cerberus_protocol_get_pfm_id*) data;
 	struct cerberus_protocol_get_pfm_id_version_response *resp =
@@ -1612,7 +1612,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_port1_region
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_ID;
 
@@ -1620,16 +1620,16 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_port1_region
 	req->region = 0;
 	req->id = 0;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_id);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_pfm_id_version_response),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -1645,7 +1645,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_port1_region
 void cerberus_protocol_optional_commands_testing_process_get_pfm_id_port1_region1_null (
 	CuTest *test, struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_id *req = (struct cerberus_protocol_get_pfm_id*) data;
 	struct cerberus_protocol_get_pfm_id_version_response *resp =
@@ -1655,7 +1655,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_port1_region
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_ID;
 
@@ -1663,16 +1663,16 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_port1_region
 	req->region = 1;
 	req->id = 0;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_id);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_pfm_id_version_response),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -1688,7 +1688,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_port1_region
 void cerberus_protocol_optional_commands_testing_process_get_pfm_id_no_active_pfm_port0 (CuTest *test,
 	struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_0)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_id *req = (struct cerberus_protocol_get_pfm_id*) data;
 	struct cerberus_protocol_get_pfm_id_version_response *resp =
@@ -1698,7 +1698,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_no_active_pf
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_ID;
 
@@ -1706,9 +1706,9 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_no_active_pf
 	req->region = 0;
 	req->id = 0;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_id);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&pfm_manager_0->mock, pfm_manager_0->base.get_active_pfm, pfm_manager_0,
 		(intptr_t) NULL);
@@ -1722,7 +1722,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_no_active_pf
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_pfm_id_version_response),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -1737,7 +1737,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_no_active_pf
 void cerberus_protocol_optional_commands_testing_process_get_pfm_id_no_active_pfm_port1 (CuTest *test,
 	struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_1)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_id *req = (struct cerberus_protocol_get_pfm_id*) data;
 	struct cerberus_protocol_get_pfm_id_version_response *resp =
@@ -1747,7 +1747,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_no_active_pf
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_ID;
 
@@ -1755,9 +1755,9 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_no_active_pf
 	req->region = 0;
 	req->id = 0;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_id);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&pfm_manager_1->mock, pfm_manager_1->base.get_active_pfm, pfm_manager_1,
 		(intptr_t) NULL);
@@ -1771,7 +1771,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_no_active_pf
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_pfm_id_version_response),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -1783,10 +1783,10 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_no_active_pf
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 }
 
-void cerberus_protocol_optional_commands_testing_process_get_pfm_id_no_pending_pfm_port0 (CuTest *test,
-	struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_0)
+void cerberus_protocol_optional_commands_testing_process_get_pfm_id_no_pending_pfm_port0 (
+	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_0)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_id *req = (struct cerberus_protocol_get_pfm_id*) data;
 	struct cerberus_protocol_get_pfm_id_version_response *resp =
@@ -1796,7 +1796,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_no_pending_p
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_ID;
 
@@ -1804,9 +1804,9 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_no_pending_p
 	req->region = 1;
 	req->id = 0;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_id);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&pfm_manager_0->mock, pfm_manager_0->base.get_pending_pfm, pfm_manager_0,
 		(intptr_t) NULL);
@@ -1820,7 +1820,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_no_pending_p
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_pfm_id_version_response),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -1835,7 +1835,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_no_pending_p
 void cerberus_protocol_optional_commands_testing_process_get_pfm_id_no_pending_pfm_port1 (CuTest *test,
 	struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_1)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_id *req = (struct cerberus_protocol_get_pfm_id*) data;
 	struct cerberus_protocol_get_pfm_id_version_response *resp =
@@ -1845,7 +1845,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_no_pending_p
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_ID;
 
@@ -1853,9 +1853,9 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_no_pending_p
 	req->region = 1;
 	req->id = 0;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_id);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&pfm_manager_1->mock, pfm_manager_1->base.get_pending_pfm, pfm_manager_1,
 		(intptr_t) NULL);
@@ -1869,7 +1869,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_no_pending_p
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_pfm_id_version_response),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -1885,7 +1885,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_fail_port0 (
 	struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_0)
 {
 	struct pfm_mock pfm;
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_id *req = (struct cerberus_protocol_get_pfm_id*) data;
 	int status;
@@ -1893,7 +1893,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_fail_port0 (
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_ID;
 
@@ -1901,9 +1901,9 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_fail_port0 (
 	req->region = 0;
 	req->id = 0;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_id);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = pfm_mock_init (&pfm);
 	CuAssertIntEquals (test, 0, status);
@@ -1930,7 +1930,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_fail_port1 (
 	struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_1)
 {
 	struct pfm_mock pfm;
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_id *req = (struct cerberus_protocol_get_pfm_id*) data;
 	int status;
@@ -1938,7 +1938,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_fail_port1 (
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_ID;
 
@@ -1946,9 +1946,9 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_fail_port1 (
 	req->region = 0;
 	req->id = 0;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_id);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = pfm_mock_init (&pfm);
 	CuAssertIntEquals (test, 0, status);
@@ -1974,7 +1974,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_fail_port1 (
 void cerberus_protocol_optional_commands_testing_process_get_pfm_id_invalid_len (CuTest *test,
 	struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_id *req = (struct cerberus_protocol_get_pfm_id*) data;
 	int status;
@@ -1982,7 +1982,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_invalid_len 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_ID;
 
@@ -1990,9 +1990,9 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_invalid_len 
 	req->region = 0;
 	req->id = 0;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_id) + 1;
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -2009,7 +2009,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_invalid_len 
 void cerberus_protocol_optional_commands_testing_process_get_pfm_id_invalid_port (CuTest *test,
 	struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_id *req = (struct cerberus_protocol_get_pfm_id*) data;
 	int status;
@@ -2017,7 +2017,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_invalid_port
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_ID;
 
@@ -2025,9 +2025,9 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_invalid_port
 	req->region = 0;
 	req->id = 0;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_id);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -2038,7 +2038,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_invalid_port
 void cerberus_protocol_optional_commands_testing_process_get_pfm_id_invalid_region (CuTest *test,
 	struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_id *req = (struct cerberus_protocol_get_pfm_id*) data;
 	int status;
@@ -2046,7 +2046,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_invalid_regi
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_ID;
 
@@ -2054,9 +2054,9 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_invalid_regi
 	req->region = 2;
 	req->id = 0;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_id);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -2067,7 +2067,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_invalid_regi
 void cerberus_protocol_optional_commands_testing_process_get_pfm_id_invalid_id (CuTest *test,
 	struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_id *req = (struct cerberus_protocol_get_pfm_id*) data;
 	int status;
@@ -2075,7 +2075,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_invalid_id (
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_ID;
 
@@ -2083,9 +2083,9 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_invalid_id (
 	req->region = 1;
 	req->id = 2;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_id);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -2097,7 +2097,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_por
 	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_0)
 {
 	struct pfm_mock pfm;
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_id *req = (struct cerberus_protocol_get_pfm_id*) data;
 	struct cerberus_protocol_get_pfm_id_platform_response *resp =
@@ -2109,7 +2109,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_por
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_ID;
 
@@ -2117,9 +2117,9 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_por
 	req->region = 0;
 	req->id = 1;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_id);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = pfm_mock_init (&pfm);
 	CuAssertIntEquals (test, 0, status);
@@ -2140,7 +2140,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_por
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test,
 		cerberus_protocol_get_pfm_id_platform_response_length (id_length), request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -2160,7 +2160,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_por
 	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_0)
 {
 	struct pfm_mock pfm;
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_id *req = (struct cerberus_protocol_get_pfm_id*) data;
 	struct cerberus_protocol_get_pfm_id_platform_response *resp =
@@ -2172,7 +2172,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_por
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_ID;
 
@@ -2180,9 +2180,9 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_por
 	req->region = 1;
 	req->id = 1;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_id);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = pfm_mock_init (&pfm);
 	CuAssertIntEquals (test, 0, status);
@@ -2203,7 +2203,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_por
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test,
 		cerberus_protocol_get_pfm_id_platform_response_length (id_length), request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -2223,7 +2223,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_por
 	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_1)
 {
 	struct pfm_mock pfm;
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_id *req = (struct cerberus_protocol_get_pfm_id*) data;
 	struct cerberus_protocol_get_pfm_id_platform_response *resp =
@@ -2235,7 +2235,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_por
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_ID;
 
@@ -2243,9 +2243,9 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_por
 	req->region = 0;
 	req->id = 1;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_id);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = pfm_mock_init (&pfm);
 	CuAssertIntEquals (test, 0, status);
@@ -2266,7 +2266,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_por
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test,
 		cerberus_protocol_get_pfm_id_platform_response_length (id_length), request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -2286,7 +2286,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_por
 	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_1)
 {
 	struct pfm_mock pfm;
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_id *req = (struct cerberus_protocol_get_pfm_id*) data;
 	struct cerberus_protocol_get_pfm_id_platform_response *resp =
@@ -2298,7 +2298,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_por
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_ID;
 
@@ -2306,9 +2306,9 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_por
 	req->region = 1;
 	req->id = 1;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_id);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = pfm_mock_init (&pfm);
 	CuAssertIntEquals (test, 0, status);
@@ -2329,7 +2329,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_por
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test,
 		cerberus_protocol_get_pfm_id_platform_response_length (id_length), request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -2348,7 +2348,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_por
 void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_port0_region0_null (
 	CuTest *test, struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_id *req = (struct cerberus_protocol_get_pfm_id*) data;
 	struct cerberus_protocol_get_pfm_id_platform_response *resp =
@@ -2358,7 +2358,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_por
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_ID;
 
@@ -2366,16 +2366,16 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_por
 	req->region = 0;
 	req->id = 1;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_id);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_pfm_id_platform_response),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -2391,7 +2391,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_por
 void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_port0_region1_null (
 	CuTest *test, struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_id *req = (struct cerberus_protocol_get_pfm_id*) data;
 	struct cerberus_protocol_get_pfm_id_platform_response *resp =
@@ -2401,7 +2401,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_por
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_ID;
 
@@ -2409,16 +2409,16 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_por
 	req->region = 1;
 	req->id = 1;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_id);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_pfm_id_platform_response),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -2434,7 +2434,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_por
 void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_port1_region0_null (
 	CuTest *test, struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_id *req = (struct cerberus_protocol_get_pfm_id*) data;
 	struct cerberus_protocol_get_pfm_id_platform_response *resp =
@@ -2444,7 +2444,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_por
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_ID;
 
@@ -2452,16 +2452,16 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_por
 	req->region = 0;
 	req->id = 1;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_id);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_pfm_id_platform_response),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -2477,7 +2477,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_por
 void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_port1_region1_null (
 	CuTest *test, struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_id *req = (struct cerberus_protocol_get_pfm_id*) data;
 	struct cerberus_protocol_get_pfm_id_platform_response *resp =
@@ -2487,7 +2487,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_por
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_ID;
 
@@ -2495,16 +2495,16 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_por
 	req->region = 1;
 	req->id = 1;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_id);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_pfm_id_platform_response),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -2521,7 +2521,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_fai
 	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_0)
 {
 	struct pfm_mock pfm;
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_id *req = (struct cerberus_protocol_get_pfm_id*) data;
 	int max = CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG - 1;
@@ -2530,7 +2530,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_fai
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_ID;
 
@@ -2538,9 +2538,9 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_fai
 	req->region = 0;
 	req->id = 1;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_id);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = pfm_mock_init (&pfm);
 	CuAssertIntEquals (test, 0, status);
@@ -2567,7 +2567,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_fai
 	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_1)
 {
 	struct pfm_mock pfm;
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_id *req = (struct cerberus_protocol_get_pfm_id*) data;
 	int max = CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG - 1;
@@ -2576,7 +2576,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_fai
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_ID;
 
@@ -2584,9 +2584,9 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_fai
 	req->region = 0;
 	req->id = 1;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_id);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = pfm_mock_init (&pfm);
 	CuAssertIntEquals (test, 0, status);
@@ -2612,7 +2612,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_fai
 void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_no_active_pfm_port0 (
 	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_0)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_id *req = (struct cerberus_protocol_get_pfm_id*) data;
 	struct cerberus_protocol_get_pfm_id_platform_response *resp =
@@ -2622,7 +2622,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_no_
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_ID;
 
@@ -2630,9 +2630,9 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_no_
 	req->region = 0;
 	req->id = 1;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_id);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&pfm_manager_0->mock, pfm_manager_0->base.get_active_pfm, pfm_manager_0,
 		(intptr_t) NULL);
@@ -2646,7 +2646,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_no_
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, cerberus_protocol_get_pfm_id_platform_response_length (1),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -2662,7 +2662,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_no_
 void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_no_active_pfm_port1 (
 	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_1)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_id *req = (struct cerberus_protocol_get_pfm_id*) data;
 	struct cerberus_protocol_get_pfm_id_platform_response *resp =
@@ -2672,7 +2672,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_no_
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_ID;
 
@@ -2680,9 +2680,9 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_no_
 	req->region = 0;
 	req->id = 1;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_id);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&pfm_manager_1->mock, pfm_manager_1->base.get_active_pfm, pfm_manager_1,
 		(intptr_t) NULL);
@@ -2696,7 +2696,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_no_
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, cerberus_protocol_get_pfm_id_platform_response_length (1),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -2712,7 +2712,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_no_
 void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_no_pending_pfm_port0 (
 	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_0)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_id *req = (struct cerberus_protocol_get_pfm_id*) data;
 	struct cerberus_protocol_get_pfm_id_platform_response *resp =
@@ -2722,7 +2722,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_no_
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_ID;
 
@@ -2730,9 +2730,9 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_no_
 	req->region = 1;
 	req->id = 1;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_id);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&pfm_manager_0->mock, pfm_manager_0->base.get_pending_pfm, pfm_manager_0,
 		(intptr_t) NULL);
@@ -2746,7 +2746,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_no_
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, cerberus_protocol_get_pfm_id_platform_response_length (1),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -2762,7 +2762,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_no_
 void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_no_pending_pfm_port1 (
 	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_1)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_id *req = (struct cerberus_protocol_get_pfm_id*) data;
 	struct cerberus_protocol_get_pfm_id_platform_response *resp =
@@ -2772,7 +2772,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_no_
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_ID;
 
@@ -2780,9 +2780,9 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_no_
 	req->region = 1;
 	req->id = 1;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_id);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&pfm_manager_1->mock, pfm_manager_1->base.get_pending_pfm, pfm_manager_1,
 		(intptr_t) NULL);
@@ -2796,7 +2796,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_no_
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, cerberus_protocol_get_pfm_id_platform_response_length (1),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -2812,7 +2812,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_id_platform_no_
 void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_port0_region0 (
 	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_0)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_supported_fw *req =
 		(struct cerberus_protocol_get_pfm_supported_fw*) data;
@@ -2822,14 +2822,14 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_po
 	const char version[] = "1.2.3.4";
 	uint32_t pfm_id = 0xAABBCCDD;
 	uint32_t offset = 0;
-	size_t max = MCTP_PROTOCOL_MAX_MESSAGE_BODY -
+	size_t max = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY -
 		sizeof (struct cerberus_protocol_get_pfm_supported_fw_response);
 	int status;
 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_SUPPORTED_FW;
 
@@ -2837,9 +2837,9 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_po
 	req->region = 0;
 	req->offset = offset;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_supported_fw);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = pfm_mock_init (&pfm);
 	CuAssertIntEquals (test, 0, status);
@@ -2866,7 +2866,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_po
 	CuAssertIntEquals (test,
 		sizeof (struct cerberus_protocol_get_pfm_supported_fw_response) + sizeof (version),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -2887,7 +2887,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_po
 void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_port0_region1 (
 	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_0)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_supported_fw *req =
 		(struct cerberus_protocol_get_pfm_supported_fw*) data;
@@ -2897,14 +2897,14 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_po
 	const char version[] = "1.2.3.4";
 	uint32_t pfm_id = 0xAABBCCDD;
 	uint32_t offset = 0;
-	size_t max = MCTP_PROTOCOL_MAX_MESSAGE_BODY -
+	size_t max = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY -
 		sizeof (struct cerberus_protocol_get_pfm_supported_fw_response);
 	int status;
 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_SUPPORTED_FW;
 
@@ -2912,9 +2912,9 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_po
 	req->region = 1;
 	req->offset = offset;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_supported_fw);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = pfm_mock_init (&pfm);
 	CuAssertIntEquals (test, 0, status);
@@ -2941,7 +2941,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_po
 	CuAssertIntEquals (test,
 		sizeof (struct cerberus_protocol_get_pfm_supported_fw_response) + sizeof (version),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -2962,7 +2962,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_po
 void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_port1_region0 (
 	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_1)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_supported_fw *req =
 		(struct cerberus_protocol_get_pfm_supported_fw*) data;
@@ -2972,14 +2972,14 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_po
 	const char version[] = "1.2.3.4";
 	uint32_t pfm_id = 0xAABBCCDD;
 	uint32_t offset = 0;
-	size_t max = MCTP_PROTOCOL_MAX_MESSAGE_BODY -
+	size_t max = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY -
 		sizeof (struct cerberus_protocol_get_pfm_supported_fw_response);
 	int status;
 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_SUPPORTED_FW;
 
@@ -2987,9 +2987,9 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_po
 	req->region = 0;
 	req->offset = offset;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_supported_fw);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = pfm_mock_init (&pfm);
 	CuAssertIntEquals (test, 0, status);
@@ -3016,7 +3016,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_po
 	CuAssertIntEquals (test,
 		sizeof (struct cerberus_protocol_get_pfm_supported_fw_response) + sizeof (version),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -3037,7 +3037,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_po
 void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_port1_region1 (
 	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_1)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_supported_fw *req =
 		(struct cerberus_protocol_get_pfm_supported_fw*) data;
@@ -3047,14 +3047,14 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_po
 	const char version[] = "1.2.3.4";
 	uint32_t pfm_id = 0xAABBCCDD;
 	uint32_t offset = 0;
-	size_t max = MCTP_PROTOCOL_MAX_MESSAGE_BODY -
+	size_t max = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY -
 		sizeof (struct cerberus_protocol_get_pfm_supported_fw_response);
 	int status;
 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_SUPPORTED_FW;
 
@@ -3062,9 +3062,9 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_po
 	req->region = 1;
 	req->offset = offset;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_supported_fw);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = pfm_mock_init (&pfm);
 	CuAssertIntEquals (test, 0, status);
@@ -3091,7 +3091,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_po
 	CuAssertIntEquals (test,
 		sizeof (struct cerberus_protocol_get_pfm_supported_fw_response) + sizeof (version),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -3112,7 +3112,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_po
 void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_with_firmware_id_port0 (
 	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_0)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_supported_fw *req =
 		(struct cerberus_protocol_get_pfm_supported_fw*) data;
@@ -3123,14 +3123,14 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_wi
 	const char version[] = "1.2.3.4";
 	uint32_t pfm_id = 0xAABBCCDD;
 	uint32_t offset = 0;
-	size_t max = MCTP_PROTOCOL_MAX_MESSAGE_BODY -
+	size_t max = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY -
 		sizeof (struct cerberus_protocol_get_pfm_supported_fw_response);
 	int status;
 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_SUPPORTED_FW;
 
@@ -3140,9 +3140,9 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_wi
 	cerberus_protocol_get_pfm_supported_fw_id_length (req) = sizeof (fw_id);
 	strcpy (cerberus_protocol_get_pfm_supported_fw_id (req), fw_id);
 	request.length = sizeof (struct cerberus_protocol_get_pfm_supported_fw) + 1 + sizeof (fw_id);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = pfm_mock_init (&pfm);
 	CuAssertIntEquals (test, 0, status);
@@ -3170,7 +3170,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_wi
 	CuAssertIntEquals (test,
 		sizeof (struct cerberus_protocol_get_pfm_supported_fw_response) + sizeof (version),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -3191,7 +3191,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_wi
 void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_with_firmware_id_port1 (
 	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_1)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_supported_fw *req =
 		(struct cerberus_protocol_get_pfm_supported_fw*) data;
@@ -3202,14 +3202,14 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_wi
 	const char version[] = "1.2.3.4";
 	uint32_t pfm_id = 0xAABBCCDD;
 	uint32_t offset = 0;
-	size_t max = MCTP_PROTOCOL_MAX_MESSAGE_BODY -
+	size_t max = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY -
 		sizeof (struct cerberus_protocol_get_pfm_supported_fw_response);
 	int status;
 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_SUPPORTED_FW;
 
@@ -3219,9 +3219,9 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_wi
 	cerberus_protocol_get_pfm_supported_fw_id_length (req) = sizeof (fw_id);
 	strcpy (cerberus_protocol_get_pfm_supported_fw_id (req), fw_id);
 	request.length = sizeof (struct cerberus_protocol_get_pfm_supported_fw) + 1 + sizeof (fw_id);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = pfm_mock_init (&pfm);
 	CuAssertIntEquals (test, 0, status);
@@ -3249,7 +3249,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_wi
 	CuAssertIntEquals (test,
 		sizeof (struct cerberus_protocol_get_pfm_supported_fw_response) + sizeof (version),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -3270,7 +3270,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_wi
 void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_zero_length_firmware_id_port0 (
 	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_0)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_supported_fw *req =
 		(struct cerberus_protocol_get_pfm_supported_fw*) data;
@@ -3280,14 +3280,14 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_ze
 	const char version[] = "1.2.3.4";
 	uint32_t pfm_id = 0xAABBCCDD;
 	uint32_t offset = 0;
-	size_t max = MCTP_PROTOCOL_MAX_MESSAGE_BODY -
+	size_t max = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY -
 		sizeof (struct cerberus_protocol_get_pfm_supported_fw_response);
 	int status;
 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_SUPPORTED_FW;
 
@@ -3296,9 +3296,9 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_ze
 	req->offset = offset;
 	cerberus_protocol_get_pfm_supported_fw_id_length (req) = 0;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_supported_fw) + 1;
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = pfm_mock_init (&pfm);
 	CuAssertIntEquals (test, 0, status);
@@ -3325,7 +3325,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_ze
 	CuAssertIntEquals (test,
 		sizeof (struct cerberus_protocol_get_pfm_supported_fw_response) + sizeof (version),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -3346,7 +3346,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_ze
 void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_zero_length_firmware_id_port1 (
 	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_1)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_supported_fw *req =
 		(struct cerberus_protocol_get_pfm_supported_fw*) data;
@@ -3356,14 +3356,14 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_ze
 	const char version[] = "1.2.3.4";
 	uint32_t pfm_id = 0xAABBCCDD;
 	uint32_t offset = 0;
-	size_t max = MCTP_PROTOCOL_MAX_MESSAGE_BODY -
+	size_t max = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY -
 		sizeof (struct cerberus_protocol_get_pfm_supported_fw_response);
 	int status;
 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_SUPPORTED_FW;
 
@@ -3372,9 +3372,9 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_ze
 	req->offset = offset;
 	cerberus_protocol_get_pfm_supported_fw_id_length (req) = 0;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_supported_fw) + 1;
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = pfm_mock_init (&pfm);
 	CuAssertIntEquals (test, 0, status);
@@ -3401,7 +3401,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_ze
 	CuAssertIntEquals (test,
 		sizeof (struct cerberus_protocol_get_pfm_supported_fw_response) + sizeof (version),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -3422,7 +3422,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_ze
 void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_nonzero_offset_port0 (
 	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_0)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_supported_fw *req =
 		(struct cerberus_protocol_get_pfm_supported_fw*) data;
@@ -3432,14 +3432,14 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_no
 	const char version[] = "1.2.3.4";
 	uint32_t pfm_id = 0xAABBCCDD;
 	uint32_t offset = 3;
-	size_t max = MCTP_PROTOCOL_MAX_MESSAGE_BODY -
+	size_t max = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY -
 		sizeof (struct cerberus_protocol_get_pfm_supported_fw_response);
 	int status;
 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_SUPPORTED_FW;
 
@@ -3447,9 +3447,9 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_no
 	req->region = 0;
 	req->offset = offset;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_supported_fw);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = pfm_mock_init (&pfm);
 	CuAssertIntEquals (test, 0, status);
@@ -3477,7 +3477,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_no
 	CuAssertIntEquals (test,
 		sizeof (struct cerberus_protocol_get_pfm_supported_fw_response) + sizeof (version) - offset,
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -3498,7 +3498,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_no
 void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_nonzero_offset_port1 (
 	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_1)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_supported_fw *req =
 		(struct cerberus_protocol_get_pfm_supported_fw*) data;
@@ -3508,14 +3508,14 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_no
 	const char version[] = "1.2.3.4";
 	uint32_t pfm_id = 0xAABBCCDD;
 	uint32_t offset = 3;
-	size_t max = MCTP_PROTOCOL_MAX_MESSAGE_BODY -
+	size_t max = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY -
 		sizeof (struct cerberus_protocol_get_pfm_supported_fw_response);
 	int status;
 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_SUPPORTED_FW;
 
@@ -3523,9 +3523,9 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_no
 	req->region = 0;
 	req->offset = offset;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_supported_fw);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = pfm_mock_init (&pfm);
 	CuAssertIntEquals (test, 0, status);
@@ -3553,7 +3553,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_no
 	CuAssertIntEquals (test,
 		sizeof (struct cerberus_protocol_get_pfm_supported_fw_response) + sizeof (version) - offset,
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -3574,7 +3574,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_no
 void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_limited_response_port0 (
 	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_0)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_supported_fw *req =
 		(struct cerberus_protocol_get_pfm_supported_fw*) data;
@@ -3590,7 +3590,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_li
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_SUPPORTED_FW;
 
@@ -3600,8 +3600,8 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_li
 	request.length = sizeof (struct cerberus_protocol_get_pfm_supported_fw);
 	request.max_response =
 		(sizeof (version) - 1) + sizeof (struct cerberus_protocol_get_pfm_supported_fw_response);
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = pfm_mock_init (&pfm);
 	CuAssertIntEquals (test, 0, status);
@@ -3629,7 +3629,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_li
 	CuAssertIntEquals (test,
 		sizeof (struct cerberus_protocol_get_pfm_supported_fw_response) + sizeof (version) - 1,
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -3652,7 +3652,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_li
 void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_limited_response_port1 (
 	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_1)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_supported_fw *req =
 		(struct cerberus_protocol_get_pfm_supported_fw*) data;
@@ -3668,7 +3668,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_li
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_SUPPORTED_FW;
 
@@ -3678,8 +3678,8 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_li
 	request.length = sizeof (struct cerberus_protocol_get_pfm_supported_fw);
 	request.max_response =
 		(sizeof (version) - 1) + sizeof (struct cerberus_protocol_get_pfm_supported_fw_response);
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = pfm_mock_init (&pfm);
 	CuAssertIntEquals (test, 0, status);
@@ -3707,7 +3707,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_li
 	CuAssertIntEquals (test,
 		sizeof (struct cerberus_protocol_get_pfm_supported_fw_response) + sizeof (version) - 1,
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -3730,7 +3730,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_li
 void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_empty_list_port0 (
 	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_0)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_supported_fw *req =
 		(struct cerberus_protocol_get_pfm_supported_fw*) data;
@@ -3739,14 +3739,14 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_em
 	struct pfm_mock pfm;
 	uint32_t pfm_id = 0xAABBCCDD;
 	uint32_t offset = 0;
-	size_t max = MCTP_PROTOCOL_MAX_MESSAGE_BODY -
+	size_t max = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY -
 		sizeof (struct cerberus_protocol_get_pfm_supported_fw_response);
 	int status;
 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_SUPPORTED_FW;
 
@@ -3754,9 +3754,9 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_em
 	req->region = 0;
 	req->offset = offset;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_supported_fw);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = pfm_mock_init (&pfm);
 	CuAssertIntEquals (test, 0, status);
@@ -3781,7 +3781,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_em
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_pfm_supported_fw_response),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -3800,7 +3800,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_em
 void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_empty_list_port1 (
 	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_1)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_supported_fw *req =
 		(struct cerberus_protocol_get_pfm_supported_fw*) data;
@@ -3809,14 +3809,14 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_em
 	struct pfm_mock pfm;
 	uint32_t pfm_id = 0xAABBCCDD;
 	uint32_t offset = 0;
-	size_t max = MCTP_PROTOCOL_MAX_MESSAGE_BODY -
+	size_t max = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY -
 		sizeof (struct cerberus_protocol_get_pfm_supported_fw_response);
 	int status;
 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_SUPPORTED_FW;
 
@@ -3824,9 +3824,9 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_em
 	req->region = 0;
 	req->offset = offset;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_supported_fw);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = pfm_mock_init (&pfm);
 	CuAssertIntEquals (test, 0, status);
@@ -3851,7 +3851,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_em
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_pfm_supported_fw_response),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -3870,7 +3870,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_em
 void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_empty_list_nonzero_offset_port0 (
 	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_0)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_supported_fw *req =
 		(struct cerberus_protocol_get_pfm_supported_fw*) data;
@@ -3879,14 +3879,14 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_em
 	struct pfm_mock pfm;
 	uint32_t pfm_id = 0xAABBCCDD;
 	uint32_t offset = 1;
-	size_t max = MCTP_PROTOCOL_MAX_MESSAGE_BODY -
+	size_t max = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY -
 		sizeof (struct cerberus_protocol_get_pfm_supported_fw_response);
 	int status;
 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_SUPPORTED_FW;
 
@@ -3894,9 +3894,9 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_em
 	req->region = 0;
 	req->offset = offset;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_supported_fw);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = pfm_mock_init (&pfm);
 	CuAssertIntEquals (test, 0, status);
@@ -3921,7 +3921,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_em
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_pfm_supported_fw_response),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -3940,7 +3940,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_em
 void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_empty_list_nonzero_offset_port1 (
 	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_1)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_supported_fw *req =
 		(struct cerberus_protocol_get_pfm_supported_fw*) data;
@@ -3949,14 +3949,14 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_em
 	struct pfm_mock pfm;
 	uint32_t pfm_id = 0xAABBCCDD;
 	uint32_t offset = 1;
-	size_t max = MCTP_PROTOCOL_MAX_MESSAGE_BODY -
+	size_t max = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY -
 		sizeof (struct cerberus_protocol_get_pfm_supported_fw_response);
 	int status;
 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_SUPPORTED_FW;
 
@@ -3964,9 +3964,9 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_em
 	req->region = 0;
 	req->offset = offset;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_supported_fw);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = pfm_mock_init (&pfm);
 	CuAssertIntEquals (test, 0, status);
@@ -3991,7 +3991,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_em
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_pfm_supported_fw_response),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -4010,7 +4010,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_em
 void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_port0_region0_null (
 	CuTest *test, struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_supported_fw *req =
 		(struct cerberus_protocol_get_pfm_supported_fw*) data;
@@ -4022,7 +4022,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_po
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_SUPPORTED_FW;
 
@@ -4030,16 +4030,16 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_po
 	req->region = 0;
 	req->offset = offset;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_supported_fw);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_pfm_supported_fw_response),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -4055,7 +4055,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_po
 void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_port0_region1_null (
 	CuTest *test, struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_supported_fw *req =
 		(struct cerberus_protocol_get_pfm_supported_fw*) data;
@@ -4067,7 +4067,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_po
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_SUPPORTED_FW;
 
@@ -4075,16 +4075,16 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_po
 	req->region = 1;
 	req->offset = offset;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_supported_fw);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_pfm_supported_fw_response),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -4100,7 +4100,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_po
 void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_port1_region0_null (
 	CuTest *test, struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_supported_fw *req =
 		(struct cerberus_protocol_get_pfm_supported_fw*) data;
@@ -4112,7 +4112,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_po
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_SUPPORTED_FW;
 
@@ -4120,16 +4120,16 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_po
 	req->region = 0;
 	req->offset = offset;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_supported_fw);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_pfm_supported_fw_response),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -4145,7 +4145,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_po
 void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_port1_region1_null (
 	CuTest *test, struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_supported_fw *req =
 		(struct cerberus_protocol_get_pfm_supported_fw*) data;
@@ -4157,7 +4157,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_po
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_SUPPORTED_FW;
 
@@ -4165,16 +4165,16 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_po
 	req->region = 1;
 	req->offset = offset;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_supported_fw);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_pfm_supported_fw_response),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -4190,7 +4190,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_po
 void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_no_active_pfm_port0 (
 	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_0)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_supported_fw *req =
 		(struct cerberus_protocol_get_pfm_supported_fw*) data;
@@ -4202,7 +4202,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_no
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_SUPPORTED_FW;
 
@@ -4210,9 +4210,9 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_no
 	req->region = 0;
 	req->offset = offset;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_supported_fw);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&pfm_manager_0->mock, pfm_manager_0->base.get_active_pfm, pfm_manager_0,
 		(intptr_t) NULL);
@@ -4226,7 +4226,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_no
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_pfm_supported_fw_response),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -4241,7 +4241,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_no
 void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_no_active_pfm_port1 (
 	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_1)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_supported_fw *req =
 		(struct cerberus_protocol_get_pfm_supported_fw*) data;
@@ -4253,7 +4253,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_no
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_SUPPORTED_FW;
 
@@ -4261,9 +4261,9 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_no
 	req->region = 0;
 	req->offset = offset;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_supported_fw);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&pfm_manager_1->mock, pfm_manager_1->base.get_active_pfm, pfm_manager_1,
 		(intptr_t) NULL);
@@ -4277,7 +4277,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_no
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_pfm_supported_fw_response),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -4292,7 +4292,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_no
 void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_no_pending_pfm_port0 (
 	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_0)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_supported_fw *req =
 		(struct cerberus_protocol_get_pfm_supported_fw*) data;
@@ -4304,7 +4304,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_no
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_SUPPORTED_FW;
 
@@ -4312,9 +4312,9 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_no
 	req->region = 1;
 	req->offset = offset;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_supported_fw);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&pfm_manager_0->mock, pfm_manager_0->base.get_pending_pfm, pfm_manager_0,
 		(intptr_t) NULL);
@@ -4328,7 +4328,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_no
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_pfm_supported_fw_response),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -4343,7 +4343,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_no
 void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_no_pending_pfm_port1 (
 	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_1)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_supported_fw *req =
 		(struct cerberus_protocol_get_pfm_supported_fw*) data;
@@ -4355,7 +4355,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_no
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_SUPPORTED_FW;
 
@@ -4363,9 +4363,9 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_no
 	req->region = 1;
 	req->offset = offset;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_supported_fw);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&pfm_manager_1->mock, pfm_manager_1->base.get_pending_pfm, pfm_manager_1,
 		(intptr_t) NULL);
@@ -4379,7 +4379,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_no
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_pfm_supported_fw_response),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -4394,7 +4394,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_no
 void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_fail_id_port0 (
 	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_0)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_supported_fw *req =
 		(struct cerberus_protocol_get_pfm_supported_fw*) data;
@@ -4405,7 +4405,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_fa
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_SUPPORTED_FW;
 
@@ -4413,9 +4413,9 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_fa
 	req->region = 0;
 	req->offset = offset;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_supported_fw);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = pfm_mock_init (&pfm);
 	CuAssertIntEquals (test, 0, status);
@@ -4441,7 +4441,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_fa
 void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_fail_id_port1 (
 	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_1)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_supported_fw *req =
 		(struct cerberus_protocol_get_pfm_supported_fw*) data;
@@ -4452,7 +4452,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_fa
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_SUPPORTED_FW;
 
@@ -4460,9 +4460,9 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_fa
 	req->region = 0;
 	req->offset = offset;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_supported_fw);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = pfm_mock_init (&pfm);
 	CuAssertIntEquals (test, 0, status);
@@ -4488,14 +4488,14 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_fa
 void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_fail_port0 (
 	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_0)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_supported_fw *req =
 		(struct cerberus_protocol_get_pfm_supported_fw*) data;
 	struct pfm_mock pfm;
 	uint32_t pfm_id = 0xAABBCCDD;
 	uint32_t offset = 0;
-	size_t max = MCTP_PROTOCOL_MAX_MESSAGE_BODY -
+	size_t max = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY -
 		sizeof (struct cerberus_protocol_get_pfm_supported_fw_response);
 	int status;
 
@@ -4503,7 +4503,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_fa
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_SUPPORTED_FW;
 
@@ -4511,9 +4511,9 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_fa
 	req->region = 0;
 	req->offset = offset;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_supported_fw);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = pfm_mock_init (&pfm);
 	CuAssertIntEquals (test, 0, status);
@@ -4546,14 +4546,14 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_fa
 void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_fail_port1 (
 	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_1)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_supported_fw *req =
 		(struct cerberus_protocol_get_pfm_supported_fw*) data;
 	struct pfm_mock pfm;
 	uint32_t pfm_id = 0xAABBCCDD;
 	uint32_t offset = 0;
-	size_t max = MCTP_PROTOCOL_MAX_MESSAGE_BODY -
+	size_t max = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY -
 		sizeof (struct cerberus_protocol_get_pfm_supported_fw_response);
 	int status;
 
@@ -4561,7 +4561,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_fa
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_SUPPORTED_FW;
 
@@ -4569,9 +4569,9 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_fa
 	req->region = 0;
 	req->offset = offset;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_supported_fw);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = pfm_mock_init (&pfm);
 	CuAssertIntEquals (test, 0, status);
@@ -4604,7 +4604,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_fa
 void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_invalid_len (
 	CuTest *test, struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_supported_fw *req =
 		(struct cerberus_protocol_get_pfm_supported_fw*) data;
@@ -4615,7 +4615,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_in
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_SUPPORTED_FW;
 
@@ -4626,9 +4626,9 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_in
 	strcpy (cerberus_protocol_get_pfm_supported_fw_id (req), fw_id);
 	request.length =
 		sizeof (struct cerberus_protocol_get_pfm_supported_fw) + 1 + sizeof (fw_id) + 1;
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -4645,7 +4645,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_in
 void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_invalid_region (
 	CuTest *test, struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_supported_fw *req =
 		(struct cerberus_protocol_get_pfm_supported_fw*) data;
@@ -4655,7 +4655,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_in
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_SUPPORTED_FW;
 
@@ -4663,9 +4663,9 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_in
 	req->region = 2;
 	req->offset = offset;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_supported_fw);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -4676,7 +4676,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_in
 void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_invalid_port (
 	CuTest *test, struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_pfm_supported_fw *req =
 		(struct cerberus_protocol_get_pfm_supported_fw*) data;
@@ -4686,7 +4686,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_in
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_PFM_SUPPORTED_FW;
 
@@ -4694,9 +4694,9 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_in
 	req->region = 0;
 	req->offset = offset;
 	request.length = sizeof (struct cerberus_protocol_get_pfm_supported_fw);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -4707,7 +4707,7 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_in
 void cerberus_protocol_optional_commands_testing_process_log_clear_debug (CuTest *test,
 	struct cmd_interface *cmd, struct cmd_background_mock *background)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_clear_log *req = (struct cerberus_protocol_clear_log*) data;
 	int status;
@@ -4715,15 +4715,15 @@ void cerberus_protocol_optional_commands_testing_process_log_clear_debug (CuTest
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_CLEAR_LOG;
 
 	req->log_type = 1;
 	request.length = sizeof (struct cerberus_protocol_clear_log);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&background->mock, background->base.debug_log_clear, background, 0);
 	CuAssertIntEquals (test, 0, status);
@@ -4738,7 +4738,7 @@ void cerberus_protocol_optional_commands_testing_process_log_clear_debug (CuTest
 void cerberus_protocol_optional_commands_testing_process_log_clear_attestation (CuTest *test,
 	struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_clear_log *req = (struct cerberus_protocol_clear_log*) data;
 	int status;
@@ -4746,15 +4746,15 @@ void cerberus_protocol_optional_commands_testing_process_log_clear_attestation (
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_CLEAR_LOG;
 
 	req->log_type = 2;
 	request.length = sizeof (struct cerberus_protocol_clear_log);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -4766,7 +4766,7 @@ void cerberus_protocol_optional_commands_testing_process_log_clear_attestation (
 void cerberus_protocol_optional_commands_testing_process_log_clear_invalid_len (CuTest *test,
 	struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_clear_log *req = (struct cerberus_protocol_clear_log*) data;
 	int status;
@@ -4774,15 +4774,15 @@ void cerberus_protocol_optional_commands_testing_process_log_clear_invalid_len (
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_CLEAR_LOG;
 
 	req->log_type = 2;
 	request.length = sizeof (struct cerberus_protocol_clear_log) + 1;
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -4799,7 +4799,7 @@ void cerberus_protocol_optional_commands_testing_process_log_clear_invalid_len (
 void cerberus_protocol_optional_commands_testing_process_log_clear_invalid_type (CuTest *test,
 	struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_clear_log *req = (struct cerberus_protocol_clear_log*) data;
 	int status;
@@ -4807,15 +4807,15 @@ void cerberus_protocol_optional_commands_testing_process_log_clear_invalid_type 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_CLEAR_LOG;
 
 	req->log_type = 3;
 	request.length = sizeof (struct cerberus_protocol_clear_log);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -4826,7 +4826,7 @@ void cerberus_protocol_optional_commands_testing_process_log_clear_invalid_type 
 void cerberus_protocol_optional_commands_testing_process_log_clear_debug_fail (CuTest *test,
 	struct cmd_interface *cmd, struct cmd_background_mock *background)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_clear_log *req = (struct cerberus_protocol_clear_log*) data;
 	int status;
@@ -4834,15 +4834,15 @@ void cerberus_protocol_optional_commands_testing_process_log_clear_debug_fail (C
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_CLEAR_LOG;
 
 	req->log_type = 1;
 	request.length = sizeof (struct cerberus_protocol_clear_log);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&background->mock, background->base.debug_log_clear, background,
 		CMD_BACKGROUND_NO_MEMORY);
@@ -4857,7 +4857,7 @@ void cerberus_protocol_optional_commands_testing_process_log_clear_debug_fail (C
 void cerberus_protocol_optional_commands_testing_process_get_log_info (CuTest *test,
 	struct cmd_interface *cmd, struct logging_mock *debug, int attestation_entries)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_log_info *req = (struct cerberus_protocol_get_log_info*) data;
 	struct cerberus_protocol_get_log_info_response *resp =
@@ -4868,14 +4868,14 @@ void cerberus_protocol_optional_commands_testing_process_get_log_info (CuTest *t
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_LOG_INFO;
 
 	request.length = sizeof (struct cerberus_protocol_get_log_info);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	debug_log = &debug->base;
 
@@ -4887,7 +4887,7 @@ void cerberus_protocol_optional_commands_testing_process_get_log_info (CuTest *t
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_log_info_response),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -4907,7 +4907,7 @@ void cerberus_protocol_optional_commands_testing_process_get_log_info (CuTest *t
 void cerberus_protocol_optional_commands_testing_process_get_log_info_invalid_len (CuTest *test,
 	struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_log_info *req = (struct cerberus_protocol_get_log_info*) data;
 	int status;
@@ -4915,14 +4915,14 @@ void cerberus_protocol_optional_commands_testing_process_get_log_info_invalid_le
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_LOG_INFO;
 
 	request.length = sizeof (struct cerberus_protocol_get_log_info) + 1;
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -4933,7 +4933,7 @@ void cerberus_protocol_optional_commands_testing_process_get_log_info_invalid_le
 void cerberus_protocol_optional_commands_testing_process_get_log_info_fail_debug (CuTest *test,
 	struct cmd_interface *cmd, struct logging_mock *debug, int attestation_entries)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_log_info *req = (struct cerberus_protocol_get_log_info*) data;
 	struct cerberus_protocol_get_log_info_response *resp =
@@ -4944,14 +4944,14 @@ void cerberus_protocol_optional_commands_testing_process_get_log_info_fail_debug
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_LOG_INFO;
 
 	request.length = sizeof (struct cerberus_protocol_get_log_info);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	debug_log = &debug->base;
 
@@ -4963,7 +4963,7 @@ void cerberus_protocol_optional_commands_testing_process_get_log_info_fail_debug
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_log_info_response),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -4984,7 +4984,7 @@ void cerberus_protocol_optional_commands_testing_process_log_read_debug (CuTest 
 	struct cmd_interface *cmd, struct logging_mock *debug)
 {
 	uint8_t entry[256 * sizeof (struct debug_log_entry)];
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_log *req = (struct cerberus_protocol_get_log*) data;
 	struct cerberus_protocol_get_log_response *resp =
@@ -4998,16 +4998,16 @@ void cerberus_protocol_optional_commands_testing_process_log_read_debug (CuTest 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_READ_LOG;
 
 	req->log_type = 1;
 	req->offset = offset;
 	request.length = sizeof (struct cerberus_protocol_get_log);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	for (i_entry = 0; i_entry < 256; ++i_entry) {
 		struct debug_log_entry *contents =
@@ -5041,7 +5041,7 @@ void cerberus_protocol_optional_commands_testing_process_log_read_debug (CuTest 
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_log_response) + max,
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -5064,7 +5064,7 @@ void cerberus_protocol_optional_commands_testing_process_log_read_debug (CuTest 
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_log_response) + remain,
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -5084,7 +5084,7 @@ void cerberus_protocol_optional_commands_testing_process_log_read_debug_limited_
 	CuTest *test, struct cmd_interface *cmd, struct logging_mock *debug)
 {
 	uint8_t entry[256 * sizeof (struct debug_log_entry)];
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_log *req = (struct cerberus_protocol_get_log*) data;
 	struct cerberus_protocol_get_log_response *resp =
@@ -5098,16 +5098,16 @@ void cerberus_protocol_optional_commands_testing_process_log_read_debug_limited_
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_READ_LOG;
 
 	req->log_type = 1;
 	req->offset = offset;
 	request.length = sizeof (struct cerberus_protocol_get_log);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY - 128;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY - 128;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	for (i_entry = 0; i_entry < 256; ++i_entry) {
 		struct debug_log_entry *contents =
@@ -5141,7 +5141,7 @@ void cerberus_protocol_optional_commands_testing_process_log_read_debug_limited_
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_log_response) + max,
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -5164,7 +5164,7 @@ void cerberus_protocol_optional_commands_testing_process_log_read_debug_limited_
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_log_response) + remain,
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -5212,7 +5212,7 @@ void cerberus_protocol_optional_commands_testing_process_log_read_attestation (C
 		},
 	};
 	uint32_t offset = 0;
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_log *req = (struct cerberus_protocol_get_log*) data;
 	struct cerberus_protocol_get_log_response *resp =
@@ -5223,16 +5223,16 @@ void cerberus_protocol_optional_commands_testing_process_log_read_attestation (C
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_READ_LOG;
 
 	req->log_type = 2;
 	req->offset = offset;
 	request.length = sizeof (struct cerberus_protocol_get_log);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	memset (exp_buf, 0, sizeof (exp_buf));
 	for (i_measurement = 0; i_measurement < 6; ++i_measurement) {
@@ -5329,7 +5329,7 @@ void cerberus_protocol_optional_commands_testing_process_log_read_attestation (C
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_log_response) + sizeof (exp_buf),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -5376,7 +5376,7 @@ void cerberus_protocol_optional_commands_testing_process_log_read_attestation_li
 		},
 	};
 	uint32_t offset = 0;
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_log *req = (struct cerberus_protocol_get_log*) data;
 	struct cerberus_protocol_get_log_response *resp =
@@ -5388,7 +5388,7 @@ void cerberus_protocol_optional_commands_testing_process_log_read_attestation_li
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_READ_LOG;
 
@@ -5396,8 +5396,8 @@ void cerberus_protocol_optional_commands_testing_process_log_read_attestation_li
 	req->offset = offset;
 	request.length = sizeof (struct cerberus_protocol_get_log);
 	request.max_response = sizeof (exp_buf) - 10;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	memset (exp_buf, 0, sizeof (exp_buf));
 	for (i_measurement = 0; i_measurement < 6; ++i_measurement) {
@@ -5494,7 +5494,7 @@ void cerberus_protocol_optional_commands_testing_process_log_read_attestation_li
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_log_response) + max,
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -5511,7 +5511,7 @@ void cerberus_protocol_optional_commands_testing_process_log_read_attestation_li
 void cerberus_protocol_optional_commands_testing_process_log_read_debug_fail (CuTest *test,
 	struct cmd_interface *cmd, struct logging_mock *debug)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_log *req = (struct cerberus_protocol_get_log*) data;
 	uint32_t offset = 0;
@@ -5521,16 +5521,16 @@ void cerberus_protocol_optional_commands_testing_process_log_read_debug_fail (Cu
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_READ_LOG;
 
 	req->log_type = 1;
 	req->offset = offset;
 	request.length = sizeof (struct cerberus_protocol_get_log);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	debug_log = &debug->base;
 
@@ -5552,7 +5552,7 @@ void cerberus_protocol_optional_commands_testing_process_log_read_attestation_fa
 {
 	uint8_t buffer0[PCR_DIGEST_LENGTH] = {0};
 	uint32_t offset = 0;
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_log *req = (struct cerberus_protocol_get_log*) data;
 	int status;
@@ -5560,16 +5560,16 @@ void cerberus_protocol_optional_commands_testing_process_log_read_attestation_fa
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_READ_LOG;
 
 	req->log_type = 2;
 	req->offset = offset;
 	request.length = sizeof (struct cerberus_protocol_get_log);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&hash->mock, hash->base.start_sha256, hash, HASH_ENGINE_NO_MEMORY);
 	CuAssertIntEquals (test, 0, status);
@@ -5585,7 +5585,7 @@ void cerberus_protocol_optional_commands_testing_process_log_read_attestation_fa
 void cerberus_protocol_optional_commands_testing_process_log_read_invalid_offset (CuTest *test,
 	struct cmd_interface *cmd, struct logging_mock *debug)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_log *req = (struct cerberus_protocol_get_log*) data;
 	struct cerberus_protocol_get_log_response *resp =
@@ -5597,16 +5597,16 @@ void cerberus_protocol_optional_commands_testing_process_log_read_invalid_offset
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_READ_LOG;
 
 	req->log_type = 1;
 	req->offset = offset;
 	request.length = sizeof (struct cerberus_protocol_get_log);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	debug_log = &debug->base;
 
@@ -5618,7 +5618,7 @@ void cerberus_protocol_optional_commands_testing_process_log_read_invalid_offset
 	status = cmd->process_request (cmd, &request);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_log_response), request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -5634,7 +5634,7 @@ void cerberus_protocol_optional_commands_testing_process_log_read_invalid_offset
 void cerberus_protocol_optional_commands_testing_process_log_read_invalid_type (CuTest *test,
 	struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_log *req = (struct cerberus_protocol_get_log*) data;
 	uint32_t offset = 0;
@@ -5643,16 +5643,16 @@ void cerberus_protocol_optional_commands_testing_process_log_read_invalid_type (
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_READ_LOG;
 
 	req->log_type = 5;
 	req->offset = offset;
 	request.length = sizeof (struct cerberus_protocol_get_log);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -5663,7 +5663,7 @@ void cerberus_protocol_optional_commands_testing_process_log_read_invalid_type (
 void cerberus_protocol_optional_commands_testing_process_log_read_invalid_len (CuTest *test,
 	struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_log *req = (struct cerberus_protocol_get_log*) data;
 	uint32_t offset = 0;
@@ -5672,16 +5672,16 @@ void cerberus_protocol_optional_commands_testing_process_log_read_invalid_len (C
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_READ_LOG;
 
 	req->log_type = 4;
 	req->offset = offset;
 	request.length = sizeof (struct cerberus_protocol_get_log) + 1;
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -5724,7 +5724,7 @@ void cerberus_protocol_optional_commands_testing_process_log_read_tcg (CuTest *t
 			0x7f,0xe6,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x7f,0x6e
 		},
 	};
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_log *req = (struct cerberus_protocol_get_log*) data;
 	struct cerberus_protocol_get_log_response *resp =
@@ -5743,16 +5743,16 @@ void cerberus_protocol_optional_commands_testing_process_log_read_tcg (CuTest *t
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_READ_LOG;
 
 	req->log_type = CERBERUS_PROTOCOL_TCG_LOG;
 	req->offset = 0;
 	request.length = sizeof (struct cerberus_protocol_get_log);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	measurement.type = PCR_DATA_TYPE_1BYTE;
 	measurement.data.value_1byte = 0xAA;
@@ -5777,7 +5777,7 @@ void cerberus_protocol_optional_commands_testing_process_log_read_tcg (CuTest *t
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_log_response) +
 		sizeof (struct pcr_tcg_event) + sizeof (struct pcr_tcg_log_header) +
 		sizeof (struct pcr_tcg_event2) * 6 + sizeof (uint8_t) * 6, request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -5827,7 +5827,7 @@ void cerberus_protocol_optional_commands_testing_process_log_read_tcg (CuTest *t
 void cerberus_protocol_optional_commands_testing_process_log_read_tcg_fail (CuTest *test,
 	struct cmd_interface *cmd, struct pcr_store *store)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_log *req = (struct cerberus_protocol_get_log*) data;
 	struct pcr_measured_data measurement;
@@ -5836,16 +5836,16 @@ void cerberus_protocol_optional_commands_testing_process_log_read_tcg_fail (CuTe
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_READ_LOG;
 
 	req->log_type = CERBERUS_PROTOCOL_TCG_LOG;
 	req->offset = 0;
 	request.length = sizeof (struct cerberus_protocol_get_log);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	measurement.type = PCR_DATA_TYPE_CALLBACK;
 	measurement.data.callback.get_data =
@@ -5866,7 +5866,7 @@ void cerberus_protocol_optional_commands_testing_process_log_read_tcg_fail (CuTe
 void cerberus_protocol_optional_commands_testing_process_request_unseal_rsa (CuTest *test,
 	struct cmd_interface *cmd, struct cmd_background_mock *background)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_message_unseal *req = (struct cerberus_protocol_message_unseal*) data;
 	struct cerberus_protocol_unseal_pmrs sealing;
@@ -5881,7 +5881,7 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_rsa (CuT
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_UNSEAL_MESSAGE;
 
@@ -5896,9 +5896,9 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_rsa (CuT
 	memcpy ((uint8_t*) cerberus_protocol_get_unseal_pmr_sealing (req), &sealing, sizeof (sealing));
 	request.length = (sizeof (struct cerberus_protocol_message_unseal) - 1) +
 		KEY_SEED_ENCRYPT_OAEP_LEN + 2 + CIPHER_TEXT_LEN + 2 + PAYLOAD_HMAC_LEN + sizeof (sealing);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&background->mock, background->base.unseal_start, background, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (request.data, request.length), MOCK_ARG (request.length));
@@ -5914,7 +5914,7 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_rsa (CuT
 void cerberus_protocol_optional_commands_testing_process_request_unseal_ecc (CuTest *test,
 	struct cmd_interface *cmd, struct cmd_background_mock *background)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_message_unseal *req = (struct cerberus_protocol_message_unseal*) data;
 	struct cerberus_protocol_unseal_pmrs sealing;
@@ -5929,7 +5929,7 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_ecc (CuT
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_UNSEAL_MESSAGE;
 
@@ -5944,9 +5944,9 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_ecc (CuT
 	memcpy ((uint8_t*) cerberus_protocol_get_unseal_pmr_sealing (req), &sealing, sizeof (sealing));
 	request.length = (sizeof (struct cerberus_protocol_message_unseal) - 1) +
 		ECC_PUBKEY_DER_LEN + 2 + CIPHER_TEXT_LEN + 2 + PAYLOAD_HMAC_LEN + sizeof (sealing);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&background->mock, background->base.unseal_start, background, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (request.data, request.length), MOCK_ARG (request.length));
@@ -5962,7 +5962,7 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_ecc (CuT
 void cerberus_protocol_optional_commands_testing_process_request_unseal_fail (CuTest *test,
 	struct cmd_interface *cmd, struct cmd_background_mock *background)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_message_unseal *req = (struct cerberus_protocol_message_unseal*) data;
 	struct cerberus_protocol_unseal_pmrs sealing;
@@ -5977,7 +5977,7 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_fail (Cu
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_UNSEAL_MESSAGE;
 
@@ -5992,9 +5992,9 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_fail (Cu
 	memcpy ((uint8_t*) cerberus_protocol_get_unseal_pmr_sealing (req), &sealing, sizeof (sealing));
 	request.length = (sizeof (struct cerberus_protocol_message_unseal) - 1) +
 		KEY_SEED_ENCRYPT_OAEP_LEN + 2 + CIPHER_TEXT_LEN + 2 + PAYLOAD_HMAC_LEN + sizeof (sealing);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&background->mock, background->base.unseal_start, background,
 		CMD_BACKGROUND_UNSEAL_FAILED, MOCK_ARG_PTR_CONTAINS_TMP (request.data, request.length),
@@ -6010,7 +6010,7 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_fail (Cu
 void cerberus_protocol_optional_commands_testing_process_request_unseal_invalid_hmac (CuTest *test,
 	struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_message_unseal *req = (struct cerberus_protocol_message_unseal*) data;
 	struct cerberus_protocol_unseal_pmrs sealing;
@@ -6025,7 +6025,7 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_invalid_
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_UNSEAL_MESSAGE;
 
@@ -6040,9 +6040,9 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_invalid_
 	memcpy ((uint8_t*) cerberus_protocol_get_unseal_pmr_sealing (req), &sealing, sizeof (sealing));
 	request.length = (sizeof (struct cerberus_protocol_message_unseal) - 1) +
 		KEY_SEED_ENCRYPT_OAEP_LEN + 2 + CIPHER_TEXT_LEN + 2 + PAYLOAD_HMAC_LEN + sizeof (sealing);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = false;
 	status = cmd->process_request (cmd, &request);
@@ -6053,7 +6053,7 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_invalid_
 void cerberus_protocol_optional_commands_testing_process_request_unseal_invalid_seed (CuTest *test,
 	struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_message_unseal *req = (struct cerberus_protocol_message_unseal*) data;
 	struct cerberus_protocol_unseal_pmrs sealing;
@@ -6068,7 +6068,7 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_invalid_
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_UNSEAL_MESSAGE;
 
@@ -6083,9 +6083,9 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_invalid_
 	memcpy ((uint8_t*) cerberus_protocol_get_unseal_pmr_sealing (req), &sealing, sizeof (sealing));
 	request.length = (sizeof (struct cerberus_protocol_message_unseal) - 1) +
 		KEY_SEED_ENCRYPT_OAEP_LEN + 2 + CIPHER_TEXT_LEN + 2 + PAYLOAD_HMAC_LEN + sizeof (sealing);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = false;
 	status = cmd->process_request (cmd, &request);
@@ -6096,7 +6096,7 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_invalid_
 void cerberus_protocol_optional_commands_testing_process_request_unseal_rsa_invalid_padding (
 	CuTest *test, struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_message_unseal *req = (struct cerberus_protocol_message_unseal*) data;
 	struct cerberus_protocol_unseal_pmrs sealing;
@@ -6111,7 +6111,7 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_rsa_inva
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_UNSEAL_MESSAGE;
 
@@ -6127,9 +6127,9 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_rsa_inva
 	memcpy ((uint8_t*) cerberus_protocol_get_unseal_pmr_sealing (req), &sealing, sizeof (sealing));
 	request.length = (sizeof (struct cerberus_protocol_message_unseal) - 1) +
 		KEY_SEED_ENCRYPT_OAEP_LEN + 2 + CIPHER_TEXT_LEN + 2 + PAYLOAD_HMAC_LEN + sizeof (sealing);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = false;
 	status = cmd->process_request (cmd, &request);
@@ -6140,7 +6140,7 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_rsa_inva
 void cerberus_protocol_optional_commands_testing_process_request_unseal_no_seed (CuTest *test,
 	struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_message_unseal *req = (struct cerberus_protocol_message_unseal*) data;
 	struct cerberus_protocol_unseal_pmrs sealing;
@@ -6155,7 +6155,7 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_no_seed 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_UNSEAL_MESSAGE;
 
@@ -6169,9 +6169,9 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_no_seed 
 	memcpy ((uint8_t*) cerberus_protocol_get_unseal_pmr_sealing (req), &sealing, sizeof (sealing));
 	request.length = (sizeof (struct cerberus_protocol_message_unseal) - 1) + 2 + CIPHER_TEXT_LEN +
 		2 + PAYLOAD_HMAC_LEN + sizeof (sealing);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = false;
 	status = cmd->process_request (cmd, &request);
@@ -6182,7 +6182,7 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_no_seed 
 void cerberus_protocol_optional_commands_testing_process_request_unseal_incomplete_seed (
 	CuTest *test, struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_message_unseal *req = (struct cerberus_protocol_message_unseal*) data;
 	struct cerberus_protocol_unseal_pmrs sealing;
@@ -6197,7 +6197,7 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_incomple
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_UNSEAL_MESSAGE;
 
@@ -6212,9 +6212,9 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_incomple
 	memcpy ((uint8_t*) cerberus_protocol_get_unseal_pmr_sealing (req), &sealing, sizeof (sealing));
 	request.length = (sizeof (struct cerberus_protocol_message_unseal) - 1) +
 		KEY_SEED_ENCRYPT_OAEP_LEN - 1;
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = false;
 	status = cmd->process_request (cmd, &request);
@@ -6225,7 +6225,7 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_incomple
 void cerberus_protocol_optional_commands_testing_process_request_unseal_no_ciphertext (CuTest *test,
 	struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_message_unseal *req = (struct cerberus_protocol_message_unseal*) data;
 	struct cerberus_protocol_unseal_pmrs sealing;
@@ -6240,7 +6240,7 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_no_ciphe
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_UNSEAL_MESSAGE;
 
@@ -6254,9 +6254,9 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_no_ciphe
 	memcpy ((uint8_t*) cerberus_protocol_get_unseal_pmr_sealing (req), &sealing, sizeof (sealing));
 	request.length = (sizeof (struct cerberus_protocol_message_unseal) - 1) +
 		KEY_SEED_ENCRYPT_OAEP_LEN + 2 + 2 + PAYLOAD_HMAC_LEN + sizeof (sealing);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = false;
 	status = cmd->process_request (cmd, &request);
@@ -6267,7 +6267,7 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_no_ciphe
 void cerberus_protocol_optional_commands_testing_process_request_unseal_incomplete_ciphertext (
 	CuTest *test, struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_message_unseal *req = (struct cerberus_protocol_message_unseal*) data;
 	struct cerberus_protocol_unseal_pmrs sealing;
@@ -6282,7 +6282,7 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_incomple
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_UNSEAL_MESSAGE;
 
@@ -6297,9 +6297,9 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_incomple
 	memcpy ((uint8_t*) cerberus_protocol_get_unseal_pmr_sealing (req), &sealing, sizeof (sealing));
 	request.length = (sizeof (struct cerberus_protocol_message_unseal) - 1) +
 		KEY_SEED_ENCRYPT_OAEP_LEN + 2 + CIPHER_TEXT_LEN - 1;
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = false;
 	status = cmd->process_request (cmd, &request);
@@ -6310,7 +6310,7 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_incomple
 void cerberus_protocol_optional_commands_testing_process_request_unseal_no_hmac (CuTest *test,
 	struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_message_unseal *req = (struct cerberus_protocol_message_unseal*) data;
 	struct cerberus_protocol_unseal_pmrs sealing;
@@ -6325,7 +6325,7 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_no_hmac 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_UNSEAL_MESSAGE;
 
@@ -6339,9 +6339,9 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_no_hmac 
 	memcpy ((uint8_t*) cerberus_protocol_get_unseal_pmr_sealing (req), &sealing, sizeof (sealing));
 	request.length = (sizeof (struct cerberus_protocol_message_unseal) - 1) +
 		KEY_SEED_ENCRYPT_OAEP_LEN + 2 + CIPHER_TEXT_LEN + 2 + sizeof (sealing);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = false;
 	status = cmd->process_request (cmd, &request);
@@ -6352,7 +6352,7 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_no_hmac 
 void cerberus_protocol_optional_commands_testing_process_request_unseal_bad_hmac_length (
 	CuTest *test, struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_message_unseal *req = (struct cerberus_protocol_message_unseal*) data;
 	struct cerberus_protocol_unseal_pmrs sealing;
@@ -6367,7 +6367,7 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_bad_hmac
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_UNSEAL_MESSAGE;
 
@@ -6381,9 +6381,9 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_bad_hmac
 	request.length = (sizeof (struct cerberus_protocol_message_unseal) - 1) +
 		KEY_SEED_ENCRYPT_OAEP_LEN + 2 + CIPHER_TEXT_LEN + 2 + PAYLOAD_HMAC_LEN + 1 +
 		sizeof (sealing);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = false;
 	status = cmd->process_request (cmd, &request);
@@ -6404,7 +6404,7 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_bad_hmac
 void cerberus_protocol_optional_commands_testing_process_request_unseal_incomplete_hmac (
 	CuTest *test, struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_message_unseal *req = (struct cerberus_protocol_message_unseal*) data;
 	struct cerberus_protocol_unseal_pmrs sealing;
@@ -6419,7 +6419,7 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_incomple
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_UNSEAL_MESSAGE;
 
@@ -6434,9 +6434,9 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_incomple
 	memcpy ((uint8_t*) cerberus_protocol_get_unseal_pmr_sealing (req), &sealing, sizeof (sealing));
 	request.length = (sizeof (struct cerberus_protocol_message_unseal) - 1) +
 		KEY_SEED_ENCRYPT_OAEP_LEN + 2 + CIPHER_TEXT_LEN + 2 + PAYLOAD_HMAC_LEN - 1;
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = false;
 	status = cmd->process_request (cmd, &request);
@@ -6447,7 +6447,7 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_incomple
 void cerberus_protocol_optional_commands_testing_process_request_unseal_invalid_len (CuTest *test,
 	struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_message_unseal *req = (struct cerberus_protocol_message_unseal*) data;
 	struct cerberus_protocol_unseal_pmrs sealing;
@@ -6462,7 +6462,7 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_invalid_
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_UNSEAL_MESSAGE;
 
@@ -6476,9 +6476,9 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_invalid_
 	memcpy (cerberus_protocol_unseal_hmac (req), PAYLOAD_HMAC, PAYLOAD_HMAC_LEN);
 	memcpy ((uint8_t*) cerberus_protocol_get_unseal_pmr_sealing (req), &sealing, sizeof (sealing));
 	request.length = sizeof (struct cerberus_protocol_message_unseal) - 1;
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = false;
 	status = cmd->process_request (cmd, &request);
@@ -6505,13 +6505,13 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_invalid_
 void cerberus_protocol_optional_commands_testing_process_request_unseal_result (CuTest *test,
 	struct cmd_interface *cmd, struct cmd_background_mock *background)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_message_unseal_result *req =
 		(struct cerberus_protocol_message_unseal_result*) data;
 	struct cerberus_protocol_message_unseal_result_completed_response *resp =
 		(struct cerberus_protocol_message_unseal_result_completed_response*) data;
-	size_t max_buf_len = MCTP_PROTOCOL_MAX_MESSAGE_BODY -
+	size_t max_buf_len = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY -
 		sizeof (struct cerberus_protocol_message_unseal_result_completed_response) + 1;
 	uint32_t attestation_status = 0;
 	uint8_t key[] = {
@@ -6524,14 +6524,14 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_result (
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_UNSEAL_MESSAGE_RESULT;
 
 	request.length = sizeof (struct cerberus_protocol_message_unseal_result);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&background->mock, background->base.unseal_result, background,
 		0, MOCK_ARG_NOT_NULL, MOCK_ARG_PTR_CONTAINS_TMP (&max_buf_len, sizeof (max_buf_len)),
@@ -6550,7 +6550,7 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_result (
 		sizeof (struct cerberus_protocol_message_unseal_result_completed_response) -
 			sizeof (resp->key) + key_len,
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -6569,13 +6569,13 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_result (
 void cerberus_protocol_optional_commands_testing_process_request_unseal_result_limited_response (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_background_mock *background)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_message_unseal_result *req =
 		(struct cerberus_protocol_message_unseal_result*) data;
 	struct cerberus_protocol_message_unseal_result_completed_response *resp =
 		(struct cerberus_protocol_message_unseal_result_completed_response*) data;
-	size_t max_buf_len = MCTP_PROTOCOL_MAX_MESSAGE_BODY - 128 -
+	size_t max_buf_len = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY - 128 -
 		sizeof (struct cerberus_protocol_message_unseal_result_completed_response) + 1;
 	uint32_t attestation_status = 0;
 	uint8_t key[] = {
@@ -6588,14 +6588,14 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_result_l
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_UNSEAL_MESSAGE_RESULT;
 
 	request.length = sizeof (struct cerberus_protocol_message_unseal_result);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY - 128;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY - 128;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&background->mock, background->base.unseal_result, background,
 		0, MOCK_ARG_NOT_NULL, MOCK_ARG_PTR_CONTAINS_TMP (&max_buf_len, sizeof (max_buf_len)),
@@ -6614,7 +6614,7 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_result_l
 		sizeof (struct cerberus_protocol_message_unseal_result_completed_response) -
 			sizeof (resp->key) + key_len,
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -6633,13 +6633,13 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_result_l
 void cerberus_protocol_optional_commands_testing_process_request_unseal_result_busy (CuTest *test,
 	struct cmd_interface *cmd, struct cmd_background_mock *background)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_message_unseal_result *req =
 		(struct cerberus_protocol_message_unseal_result*) data;
 	struct cerberus_protocol_message_unseal_result_response *resp =
 		(struct cerberus_protocol_message_unseal_result_response*) data;
-	size_t max_buf_len = MCTP_PROTOCOL_MAX_MESSAGE_BODY -
+	size_t max_buf_len = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY -
 		sizeof (struct cerberus_protocol_message_unseal_result_completed_response) + 1;
 	uint32_t attestation_status = ATTESTATION_CMD_STATUS_RUNNING;
 	uint16_t key_len = 0;
@@ -6648,14 +6648,14 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_result_b
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_UNSEAL_MESSAGE_RESULT;
 
 	request.length = sizeof (struct cerberus_protocol_message_unseal_result);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&background->mock, background->base.unseal_result, background,
 		0, MOCK_ARG_NOT_NULL, MOCK_ARG_PTR_CONTAINS_TMP (&max_buf_len, sizeof (max_buf_len)),
@@ -6671,7 +6671,7 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_result_b
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_message_unseal_result_response),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -6686,25 +6686,25 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_result_b
 void cerberus_protocol_optional_commands_testing_process_request_unseal_result_fail (CuTest *test,
 	struct cmd_interface *cmd, struct cmd_background_mock *background)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_message_unseal_result *req =
 		(struct cerberus_protocol_message_unseal_result*) data;
-	size_t max_buf_len = MCTP_PROTOCOL_MAX_MESSAGE_BODY -
+	size_t max_buf_len = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY -
 		sizeof (struct cerberus_protocol_message_unseal_result_completed_response) + 1;
 	int status;
 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_UNSEAL_MESSAGE_RESULT;
 
 	request.length = sizeof (struct cerberus_protocol_message_unseal_result);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&background->mock, background->base.unseal_result, background,
 		CMD_BACKGROUND_UNSEAL_RESULT_FAILED, MOCK_ARG_NOT_NULL,
@@ -6721,7 +6721,7 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_result_f
 void cerberus_protocol_optional_commands_testing_process_request_unseal_result_invalid_len (
 	CuTest *test, struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_message_unseal_result *req =
 		(struct cerberus_protocol_message_unseal_result*) data;
@@ -6730,14 +6730,14 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_result_i
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_UNSEAL_MESSAGE_RESULT;
 
 	request.length = sizeof (struct cerberus_protocol_message_unseal_result) + 1;
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -6748,7 +6748,7 @@ void cerberus_protocol_optional_commands_testing_process_request_unseal_result_i
 void cerberus_protocol_optional_commands_testing_process_get_host_reset_status_port0_out_of_reset (
 	CuTest *test, struct cmd_interface *cmd, struct host_control_mock *host_ctrl_0)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_host_state *req = (struct cerberus_protocol_get_host_state*) data;
 	struct cerberus_protocol_get_host_state_response *resp =
@@ -6758,15 +6758,15 @@ void cerberus_protocol_optional_commands_testing_process_get_host_reset_status_p
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_HOST_STATE;
 
 	req->port_id = 0;
 	request.length = sizeof (struct cerberus_protocol_get_host_state);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&host_ctrl_0->mock, host_ctrl_0->base.is_processor_in_reset, host_ctrl_0,
 		0);
@@ -6777,7 +6777,7 @@ void cerberus_protocol_optional_commands_testing_process_get_host_reset_status_p
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_host_state_response),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -6792,7 +6792,7 @@ void cerberus_protocol_optional_commands_testing_process_get_host_reset_status_p
 void cerberus_protocol_optional_commands_testing_process_get_host_reset_status_port0_held_in_reset (
 	CuTest *test, struct cmd_interface *cmd, struct host_control_mock *host_ctrl_0)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_host_state *req = (struct cerberus_protocol_get_host_state*) data;
 	struct cerberus_protocol_get_host_state_response *resp =
@@ -6802,15 +6802,15 @@ void cerberus_protocol_optional_commands_testing_process_get_host_reset_status_p
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_HOST_STATE;
 
 	req->port_id = 0;
 	request.length = sizeof (struct cerberus_protocol_get_host_state);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&host_ctrl_0->mock, host_ctrl_0->base.is_processor_in_reset, host_ctrl_0,
 		1);
@@ -6824,7 +6824,7 @@ void cerberus_protocol_optional_commands_testing_process_get_host_reset_status_p
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_host_state_response),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -6839,7 +6839,7 @@ void cerberus_protocol_optional_commands_testing_process_get_host_reset_status_p
 void cerberus_protocol_optional_commands_testing_process_get_host_reset_status_port0_not_held_in_reset (
 	CuTest *test, struct cmd_interface *cmd, struct host_control_mock *host_ctrl_0)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_host_state *req = (struct cerberus_protocol_get_host_state*) data;
 	struct cerberus_protocol_get_host_state_response *resp =
@@ -6849,15 +6849,15 @@ void cerberus_protocol_optional_commands_testing_process_get_host_reset_status_p
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_HOST_STATE;
 
 	req->port_id = 0;
 	request.length = sizeof (struct cerberus_protocol_get_host_state);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&host_ctrl_0->mock, host_ctrl_0->base.is_processor_in_reset, host_ctrl_0,
 		1);
@@ -6871,7 +6871,7 @@ void cerberus_protocol_optional_commands_testing_process_get_host_reset_status_p
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_host_state_response),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -6886,7 +6886,7 @@ void cerberus_protocol_optional_commands_testing_process_get_host_reset_status_p
 void cerberus_protocol_optional_commands_testing_process_get_host_reset_status_port0_null (
 	CuTest *test, struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_host_state *req = (struct cerberus_protocol_get_host_state*) data;
 	int status;
@@ -6894,15 +6894,15 @@ void cerberus_protocol_optional_commands_testing_process_get_host_reset_status_p
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_HOST_STATE;
 
 	req->port_id = 0;
 	request.length = sizeof (struct cerberus_protocol_get_host_state);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -6913,7 +6913,7 @@ void cerberus_protocol_optional_commands_testing_process_get_host_reset_status_p
 void cerberus_protocol_optional_commands_testing_process_get_host_reset_status_port1_out_of_reset (
 	CuTest *test, struct cmd_interface *cmd, struct host_control_mock *host_ctrl_1)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_host_state *req = (struct cerberus_protocol_get_host_state*) data;
 	struct cerberus_protocol_get_host_state_response *resp =
@@ -6923,15 +6923,15 @@ void cerberus_protocol_optional_commands_testing_process_get_host_reset_status_p
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_HOST_STATE;
 
 	req->port_id = 1;
 	request.length = sizeof (struct cerberus_protocol_get_host_state);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&host_ctrl_1->mock, host_ctrl_1->base.is_processor_in_reset, host_ctrl_1,
 		0);
@@ -6942,7 +6942,7 @@ void cerberus_protocol_optional_commands_testing_process_get_host_reset_status_p
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_host_state_response),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -6957,7 +6957,7 @@ void cerberus_protocol_optional_commands_testing_process_get_host_reset_status_p
 void cerberus_protocol_optional_commands_testing_process_get_host_reset_status_port1_held_in_reset (
 	CuTest *test, struct cmd_interface *cmd, struct host_control_mock *host_ctrl_1)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_host_state *req = (struct cerberus_protocol_get_host_state*) data;
 	struct cerberus_protocol_get_host_state_response *resp =
@@ -6967,15 +6967,15 @@ void cerberus_protocol_optional_commands_testing_process_get_host_reset_status_p
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_HOST_STATE;
 
 	req->port_id = 1;
 	request.length = sizeof (struct cerberus_protocol_get_host_state);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&host_ctrl_1->mock, host_ctrl_1->base.is_processor_in_reset, host_ctrl_1,
 		1);
@@ -6989,7 +6989,7 @@ void cerberus_protocol_optional_commands_testing_process_get_host_reset_status_p
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_host_state_response),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -7004,7 +7004,7 @@ void cerberus_protocol_optional_commands_testing_process_get_host_reset_status_p
 void cerberus_protocol_optional_commands_testing_process_get_host_reset_status_port1_not_held_in_reset (
 	CuTest *test, struct cmd_interface *cmd, struct host_control_mock *host_ctrl_1)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_host_state *req = (struct cerberus_protocol_get_host_state*) data;
 	struct cerberus_protocol_get_host_state_response *resp =
@@ -7014,15 +7014,15 @@ void cerberus_protocol_optional_commands_testing_process_get_host_reset_status_p
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_HOST_STATE;
 
 	req->port_id = 1;
 	request.length = sizeof (struct cerberus_protocol_get_host_state);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&host_ctrl_1->mock, host_ctrl_1->base.is_processor_in_reset, host_ctrl_1,
 		1);
@@ -7036,7 +7036,7 @@ void cerberus_protocol_optional_commands_testing_process_get_host_reset_status_p
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_host_state_response),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -7051,7 +7051,7 @@ void cerberus_protocol_optional_commands_testing_process_get_host_reset_status_p
 void cerberus_protocol_optional_commands_testing_process_get_host_reset_status_port1_null (
 	CuTest *test, struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_host_state *req = (struct cerberus_protocol_get_host_state*) data;
 	int status;
@@ -7059,15 +7059,15 @@ void cerberus_protocol_optional_commands_testing_process_get_host_reset_status_p
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_HOST_STATE;
 
 	req->port_id = 1;
 	request.length = sizeof (struct cerberus_protocol_get_host_state);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -7078,7 +7078,7 @@ void cerberus_protocol_optional_commands_testing_process_get_host_reset_status_p
 void cerberus_protocol_optional_commands_testing_process_get_host_reset_status_invalid_len (
 	CuTest *test, struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_host_state *req = (struct cerberus_protocol_get_host_state*) data;
 	int status;
@@ -7086,15 +7086,15 @@ void cerberus_protocol_optional_commands_testing_process_get_host_reset_status_i
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_HOST_STATE;
 
 	req->port_id = 0;
 	request.length = sizeof (struct cerberus_protocol_get_host_state) + 1;
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -7111,7 +7111,7 @@ void cerberus_protocol_optional_commands_testing_process_get_host_reset_status_i
 void cerberus_protocol_optional_commands_testing_process_get_host_reset_status_invalid_port (
 	CuTest *test, struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_host_state *req = (struct cerberus_protocol_get_host_state*) data;
 	int status;
@@ -7119,15 +7119,15 @@ void cerberus_protocol_optional_commands_testing_process_get_host_reset_status_i
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_HOST_STATE;
 
 	req->port_id = 2;
 	request.length = sizeof (struct cerberus_protocol_get_host_state);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -7138,7 +7138,7 @@ void cerberus_protocol_optional_commands_testing_process_get_host_reset_status_i
 void cerberus_protocol_optional_commands_testing_process_get_host_reset_status_check_error (
 	CuTest *test, struct cmd_interface *cmd, struct host_control_mock *host_ctrl_1)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_host_state *req = (struct cerberus_protocol_get_host_state*) data;
 	int status;
@@ -7146,15 +7146,15 @@ void cerberus_protocol_optional_commands_testing_process_get_host_reset_status_c
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_HOST_STATE;
 
 	req->port_id = 1;
 	request.length = sizeof (struct cerberus_protocol_get_host_state);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&host_ctrl_1->mock, host_ctrl_1->base.is_processor_in_reset, host_ctrl_1,
 		HOST_CONTROL_RESET_CHECK_FAILED);
@@ -7169,7 +7169,7 @@ void cerberus_protocol_optional_commands_testing_process_get_host_reset_status_c
 void cerberus_protocol_optional_commands_testing_process_get_host_reset_status_hold_check_error (
 	CuTest *test, struct cmd_interface *cmd, struct host_control_mock *host_ctrl_0)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_host_state *req = (struct cerberus_protocol_get_host_state*) data;
 	int status;
@@ -7177,15 +7177,15 @@ void cerberus_protocol_optional_commands_testing_process_get_host_reset_status_h
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_HOST_STATE;
 
 	req->port_id = 0;
 	request.length = sizeof (struct cerberus_protocol_get_host_state);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&host_ctrl_0->mock, host_ctrl_0->base.is_processor_in_reset, host_ctrl_0,
 		1);
@@ -7204,7 +7204,7 @@ void cerberus_protocol_optional_commands_testing_process_reset_bypass_no_nonce_a
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth,
 	struct cmd_background_mock *background)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
 	int status;
@@ -7214,15 +7214,15 @@ void cerberus_protocol_optional_commands_testing_process_reset_bypass_no_nonce_a
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_RESET_CONFIG;
 
 	req->type = 0;
 	request.length = sizeof (struct cerberus_protocol_reset_config);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&auth->mock, auth->base.authorize_revert_bypass, auth, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (&null, sizeof (null)),
@@ -7241,7 +7241,7 @@ void cerberus_protocol_optional_commands_testing_process_reset_bypass_no_nonce_a
 void cerberus_protocol_optional_commands_testing_process_reset_bypass_no_nonce_challenge (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
 	struct cerberus_protocol_reset_config_response *resp =
@@ -7257,15 +7257,15 @@ void cerberus_protocol_optional_commands_testing_process_reset_bypass_no_nonce_c
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_RESET_CONFIG;
 
 	req->type = 0;
 	request.length = sizeof (struct cerberus_protocol_reset_config);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	for (i = 0; i < (int) sizeof (nonce); i++) {
 		nonce[i] = i;
@@ -7284,7 +7284,7 @@ void cerberus_protocol_optional_commands_testing_process_reset_bypass_no_nonce_c
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_reset_config_response) + length,
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -7301,7 +7301,7 @@ void cerberus_protocol_optional_commands_testing_process_reset_bypass_no_nonce_c
 void cerberus_protocol_optional_commands_testing_process_reset_bypass_no_nonce_max_challenge (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
 	struct cerberus_protocol_reset_config_response *resp =
@@ -7317,15 +7317,15 @@ void cerberus_protocol_optional_commands_testing_process_reset_bypass_no_nonce_m
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_RESET_CONFIG;
 
 	req->type = 0;
 	request.length = sizeof (struct cerberus_protocol_reset_config);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	for (i = 0; i < (int) sizeof (nonce); i++) {
 		nonce[i] = i;
@@ -7344,7 +7344,7 @@ void cerberus_protocol_optional_commands_testing_process_reset_bypass_no_nonce_m
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_reset_config_response) + length,
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -7361,7 +7361,7 @@ void cerberus_protocol_optional_commands_testing_process_reset_bypass_no_nonce_m
 void cerberus_protocol_optional_commands_testing_process_reset_bypass_no_nonce_not_authorized (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
 	int status;
@@ -7371,15 +7371,15 @@ void cerberus_protocol_optional_commands_testing_process_reset_bypass_no_nonce_n
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_RESET_CONFIG;
 
 	req->type = 0;
 	request.length = sizeof (struct cerberus_protocol_reset_config);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&auth->mock, auth->base.authorize_revert_bypass, auth,
 		AUTHORIZATION_NOT_AUTHORIZED, MOCK_ARG_PTR_CONTAINS_TMP (&null, sizeof (null)),
@@ -7397,7 +7397,7 @@ void cerberus_protocol_optional_commands_testing_process_reset_bypass_with_nonce
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth,
 	struct cmd_background_mock *background)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
 	int status;
@@ -7407,7 +7407,7 @@ void cerberus_protocol_optional_commands_testing_process_reset_bypass_with_nonce
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_RESET_CONFIG;
 
@@ -7417,9 +7417,9 @@ void cerberus_protocol_optional_commands_testing_process_reset_bypass_with_nonce
 	}
 
 	request.length = sizeof (struct cerberus_protocol_reset_config) + length;
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&auth->mock, auth->base.authorize_revert_bypass, auth, 0,
 		MOCK_ARG_PTR_PTR_CONTAINS_TMP (cerberus_protocol_reset_authorization (req), length),
@@ -7438,7 +7438,7 @@ void cerberus_protocol_optional_commands_testing_process_reset_bypass_with_nonce
 void cerberus_protocol_optional_commands_testing_process_reset_bypass_with_nonce_not_authorized (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
 	int status;
@@ -7448,7 +7448,7 @@ void cerberus_protocol_optional_commands_testing_process_reset_bypass_with_nonce
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_RESET_CONFIG;
 
@@ -7458,9 +7458,9 @@ void cerberus_protocol_optional_commands_testing_process_reset_bypass_with_nonce
 	}
 
 	request.length = sizeof (struct cerberus_protocol_reset_config) + length;
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&auth->mock, auth->base.authorize_revert_bypass, auth,
 		AUTHORIZATION_NOT_AUTHORIZED,
@@ -7478,7 +7478,7 @@ void cerberus_protocol_optional_commands_testing_process_reset_bypass_with_nonce
 void cerberus_protocol_optional_commands_testing_process_reset_bypass_no_nonce_invalid_challenge (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
 	int status;
@@ -7492,15 +7492,15 @@ void cerberus_protocol_optional_commands_testing_process_reset_bypass_no_nonce_i
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_RESET_CONFIG;
 
 	req->type = 0;
 	request.length = sizeof (struct cerberus_protocol_reset_config);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	for (i = 0; i < (int) sizeof (nonce); i++) {
 		nonce[i] = i;
@@ -7523,7 +7523,7 @@ void cerberus_protocol_optional_commands_testing_process_reset_bypass_no_nonce_i
 void cerberus_protocol_optional_commands_testing_process_reset_bypass_no_nonce_invalid_challenge_limited_response (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
 	int status;
@@ -7537,15 +7537,15 @@ void cerberus_protocol_optional_commands_testing_process_reset_bypass_no_nonce_i
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_RESET_CONFIG;
 
 	req->type = 0;
 	request.length = sizeof (struct cerberus_protocol_reset_config);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY - 128;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY - 128;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	for (i = 0; i < (int) sizeof (nonce); i++) {
 		nonce[i] = i;
@@ -7569,7 +7569,7 @@ void cerberus_protocol_optional_commands_testing_process_reset_bypass_error (CuT
 	struct cmd_interface *cmd, struct cmd_authorization_mock *auth,
 	struct cmd_background_mock *background)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
 	int status;
@@ -7579,15 +7579,15 @@ void cerberus_protocol_optional_commands_testing_process_reset_bypass_error (CuT
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_RESET_CONFIG;
 
 	req->type = 0;
 	request.length = sizeof (struct cerberus_protocol_reset_config);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&auth->mock, auth->base.authorize_revert_bypass, auth, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (&null, sizeof (null)),
@@ -7607,7 +7607,7 @@ void cerberus_protocol_optional_commands_testing_process_restore_defaults_no_non
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth,
 	struct cmd_background_mock *background)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
 	int status;
@@ -7617,15 +7617,15 @@ void cerberus_protocol_optional_commands_testing_process_restore_defaults_no_non
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_RESET_CONFIG;
 
 	req->type = 1;
 	request.length = sizeof (struct cerberus_protocol_reset_config);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&auth->mock, auth->base.authorize_reset_defaults, auth, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (&null, sizeof (null)),
@@ -7644,7 +7644,7 @@ void cerberus_protocol_optional_commands_testing_process_restore_defaults_no_non
 void cerberus_protocol_optional_commands_testing_process_restore_defaults_no_nonce_challenge (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
 	struct cerberus_protocol_reset_config_response *resp =
@@ -7660,15 +7660,15 @@ void cerberus_protocol_optional_commands_testing_process_restore_defaults_no_non
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_RESET_CONFIG;
 
 	req->type = 1;
 	request.length = sizeof (struct cerberus_protocol_reset_config);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	for (i = 0; i < (int) sizeof (nonce); i++) {
 		nonce[i] = i;
@@ -7687,7 +7687,7 @@ void cerberus_protocol_optional_commands_testing_process_restore_defaults_no_non
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_reset_config_response) + length,
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -7704,7 +7704,7 @@ void cerberus_protocol_optional_commands_testing_process_restore_defaults_no_non
 void cerberus_protocol_optional_commands_testing_process_restore_defaults_no_nonce_max_challenge (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
 	struct cerberus_protocol_reset_config_response *resp =
@@ -7720,15 +7720,15 @@ void cerberus_protocol_optional_commands_testing_process_restore_defaults_no_non
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_RESET_CONFIG;
 
 	req->type = 1;
 	request.length = sizeof (struct cerberus_protocol_reset_config);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	for (i = 0; i < (int) sizeof (nonce); i++) {
 		nonce[i] = i;
@@ -7747,7 +7747,7 @@ void cerberus_protocol_optional_commands_testing_process_restore_defaults_no_non
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_reset_config_response) + length,
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -7764,7 +7764,7 @@ void cerberus_protocol_optional_commands_testing_process_restore_defaults_no_non
 void cerberus_protocol_optional_commands_testing_process_restore_defaults_no_nonce_not_authorized (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
 	int status;
@@ -7774,15 +7774,15 @@ void cerberus_protocol_optional_commands_testing_process_restore_defaults_no_non
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_RESET_CONFIG;
 
 	req->type = 1;
 	request.length = sizeof (struct cerberus_protocol_reset_config);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&auth->mock, auth->base.authorize_reset_defaults, auth,
 		AUTHORIZATION_NOT_AUTHORIZED, MOCK_ARG_PTR_CONTAINS_TMP (&null, sizeof (null)),
@@ -7800,7 +7800,7 @@ void cerberus_protocol_optional_commands_testing_process_restore_defaults_with_n
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth,
 	struct cmd_background_mock *background)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
 	int status;
@@ -7810,7 +7810,7 @@ void cerberus_protocol_optional_commands_testing_process_restore_defaults_with_n
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_RESET_CONFIG;
 
@@ -7820,9 +7820,9 @@ void cerberus_protocol_optional_commands_testing_process_restore_defaults_with_n
 	}
 
 	request.length = sizeof (struct cerberus_protocol_reset_config) + length;
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&auth->mock, auth->base.authorize_reset_defaults, auth, 0,
 		MOCK_ARG_PTR_PTR_CONTAINS_TMP (cerberus_protocol_reset_authorization (req), length),
@@ -7841,7 +7841,7 @@ void cerberus_protocol_optional_commands_testing_process_restore_defaults_with_n
 void cerberus_protocol_optional_commands_testing_process_restore_defaults_with_nonce_not_authorized (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
 	int status;
@@ -7851,7 +7851,7 @@ void cerberus_protocol_optional_commands_testing_process_restore_defaults_with_n
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_RESET_CONFIG;
 
@@ -7861,9 +7861,9 @@ void cerberus_protocol_optional_commands_testing_process_restore_defaults_with_n
 	}
 
 	request.length = sizeof (struct cerberus_protocol_reset_config) + length;
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&auth->mock, auth->base.authorize_reset_defaults, auth,
 		AUTHORIZATION_NOT_AUTHORIZED,
@@ -7881,7 +7881,7 @@ void cerberus_protocol_optional_commands_testing_process_restore_defaults_with_n
 void cerberus_protocol_optional_commands_testing_process_restore_defaults_no_nonce_invalid_challenge (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
 	int status;
@@ -7895,15 +7895,15 @@ void cerberus_protocol_optional_commands_testing_process_restore_defaults_no_non
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_RESET_CONFIG;
 
 	req->type = 1;
 	request.length = sizeof (struct cerberus_protocol_reset_config);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	for (i = 0; i < (int) sizeof (nonce); i++) {
 		nonce[i] = i;
@@ -7926,7 +7926,7 @@ void cerberus_protocol_optional_commands_testing_process_restore_defaults_no_non
 void cerberus_protocol_optional_commands_testing_process_restore_defaults_no_nonce_invalid_challenge_limited_response (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
 	int status;
@@ -7940,15 +7940,15 @@ void cerberus_protocol_optional_commands_testing_process_restore_defaults_no_non
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_RESET_CONFIG;
 
 	req->type = 1;
 	request.length = sizeof (struct cerberus_protocol_reset_config);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY - 128;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY - 128;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	for (i = 0; i < (int) sizeof (nonce); i++) {
 		nonce[i] = i;
@@ -7972,7 +7972,7 @@ void cerberus_protocol_optional_commands_testing_process_restore_defaults_error 
 	struct cmd_interface *cmd, struct cmd_authorization_mock *auth,
 	struct cmd_background_mock *background)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
 	int status;
@@ -7982,15 +7982,15 @@ void cerberus_protocol_optional_commands_testing_process_restore_defaults_error 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_RESET_CONFIG;
 
 	req->type = 1;
 	request.length = sizeof (struct cerberus_protocol_reset_config);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&auth->mock, auth->base.authorize_reset_defaults, auth, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (&null, sizeof (null)),
@@ -8010,7 +8010,7 @@ void cerberus_protocol_optional_commands_testing_process_clear_platform_config_n
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth,
 	struct cmd_background_mock *background)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
 	int status;
@@ -8020,15 +8020,15 @@ void cerberus_protocol_optional_commands_testing_process_clear_platform_config_n
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_RESET_CONFIG;
 
 	req->type = 2;
 	request.length = sizeof (struct cerberus_protocol_reset_config);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&auth->mock, auth->base.authorize_clear_platform_config, auth, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (&null, sizeof (null)),
@@ -8048,7 +8048,7 @@ void cerberus_protocol_optional_commands_testing_process_clear_platform_config_n
 void cerberus_protocol_optional_commands_testing_process_clear_platform_config_no_nonce_challenge (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
 	struct cerberus_protocol_reset_config_response *resp =
@@ -8064,15 +8064,15 @@ void cerberus_protocol_optional_commands_testing_process_clear_platform_config_n
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_RESET_CONFIG;
 
 	req->type = 2;
 	request.length = sizeof (struct cerberus_protocol_reset_config);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	for (i = 0; i < (int) sizeof (nonce); i++) {
 		nonce[i] = i;
@@ -8091,7 +8091,7 @@ void cerberus_protocol_optional_commands_testing_process_clear_platform_config_n
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_reset_config_response) + length,
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -8108,7 +8108,7 @@ void cerberus_protocol_optional_commands_testing_process_clear_platform_config_n
 void cerberus_protocol_optional_commands_testing_process_clear_platform_config_no_nonce_max_challenge (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
 	struct cerberus_protocol_reset_config_response *resp =
@@ -8124,15 +8124,15 @@ void cerberus_protocol_optional_commands_testing_process_clear_platform_config_n
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_RESET_CONFIG;
 
 	req->type = 2;
 	request.length = sizeof (struct cerberus_protocol_reset_config);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	for (i = 0; i < (int) sizeof (nonce); i++) {
 		nonce[i] = i;
@@ -8151,7 +8151,7 @@ void cerberus_protocol_optional_commands_testing_process_clear_platform_config_n
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_reset_config_response) + length,
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -8168,7 +8168,7 @@ void cerberus_protocol_optional_commands_testing_process_clear_platform_config_n
 void cerberus_protocol_optional_commands_testing_process_clear_platform_config_no_nonce_not_authorized (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
 	int status;
@@ -8178,15 +8178,15 @@ void cerberus_protocol_optional_commands_testing_process_clear_platform_config_n
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_RESET_CONFIG;
 
 	req->type = 2;
 	request.length = sizeof (struct cerberus_protocol_reset_config);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&auth->mock, auth->base.authorize_clear_platform_config, auth,
 		AUTHORIZATION_NOT_AUTHORIZED, MOCK_ARG_PTR_CONTAINS_TMP (&null, sizeof (null)),
@@ -8204,7 +8204,7 @@ void cerberus_protocol_optional_commands_testing_process_clear_platform_config_w
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth,
 	struct cmd_background_mock *background)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
 	int status;
@@ -8214,7 +8214,7 @@ void cerberus_protocol_optional_commands_testing_process_clear_platform_config_w
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_RESET_CONFIG;
 
@@ -8224,9 +8224,9 @@ void cerberus_protocol_optional_commands_testing_process_clear_platform_config_w
 	}
 
 	request.length = sizeof (struct cerberus_protocol_reset_config) + length;
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&auth->mock, auth->base.authorize_clear_platform_config, auth, 0,
 		MOCK_ARG_PTR_PTR_CONTAINS_TMP (cerberus_protocol_reset_authorization (req), length),
@@ -8246,7 +8246,7 @@ void cerberus_protocol_optional_commands_testing_process_clear_platform_config_w
 void cerberus_protocol_optional_commands_testing_process_clear_platform_config_with_nonce_not_authorized (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
 	int status;
@@ -8256,7 +8256,7 @@ void cerberus_protocol_optional_commands_testing_process_clear_platform_config_w
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_RESET_CONFIG;
 
@@ -8266,9 +8266,9 @@ void cerberus_protocol_optional_commands_testing_process_clear_platform_config_w
 	}
 
 	request.length = sizeof (struct cerberus_protocol_reset_config) + length;
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&auth->mock, auth->base.authorize_clear_platform_config, auth,
 		AUTHORIZATION_NOT_AUTHORIZED,
@@ -8286,7 +8286,7 @@ void cerberus_protocol_optional_commands_testing_process_clear_platform_config_w
 void cerberus_protocol_optional_commands_testing_process_clear_platform_config_no_nonce_invalid_challenge (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
 	int status;
@@ -8300,15 +8300,15 @@ void cerberus_protocol_optional_commands_testing_process_clear_platform_config_n
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_RESET_CONFIG;
 
 	req->type = 2;
 	request.length = sizeof (struct cerberus_protocol_reset_config);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	for (i = 0; i < (int) sizeof (nonce); i++) {
 		nonce[i] = i;
@@ -8331,7 +8331,7 @@ void cerberus_protocol_optional_commands_testing_process_clear_platform_config_n
 void cerberus_protocol_optional_commands_testing_process_clear_platform_config_no_nonce_invalid_challenge_limited_response (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
 	int status;
@@ -8345,15 +8345,15 @@ void cerberus_protocol_optional_commands_testing_process_clear_platform_config_n
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_RESET_CONFIG;
 
 	req->type = 2;
 	request.length = sizeof (struct cerberus_protocol_reset_config);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY - 128;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY - 128;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	for (i = 0; i < (int) sizeof (nonce); i++) {
 		nonce[i] = i;
@@ -8377,7 +8377,7 @@ void cerberus_protocol_optional_commands_testing_process_clear_platform_config_e
 	struct cmd_interface *cmd, struct cmd_authorization_mock *auth,
 	struct cmd_background_mock *background)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
 	int status;
@@ -8387,15 +8387,15 @@ void cerberus_protocol_optional_commands_testing_process_clear_platform_config_e
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_RESET_CONFIG;
 
 	req->type = 2;
 	request.length = sizeof (struct cerberus_protocol_reset_config);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&auth->mock, auth->base.authorize_clear_platform_config, auth, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (&null, sizeof (null)),
@@ -8415,7 +8415,7 @@ void cerberus_protocol_optional_commands_testing_process_reset_intrusion_no_nonc
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth,
 	struct cmd_background_mock *background)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
 	int status;
@@ -8425,15 +8425,15 @@ void cerberus_protocol_optional_commands_testing_process_reset_intrusion_no_nonc
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_RESET_CONFIG;
 
 	req->type = 4;
 	request.length = sizeof (struct cerberus_protocol_reset_config);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&auth->mock, auth->base.authorize_reset_intrusion, auth, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (&null, sizeof (null)),
@@ -8452,7 +8452,7 @@ void cerberus_protocol_optional_commands_testing_process_reset_intrusion_no_nonc
 void cerberus_protocol_optional_commands_testing_process_reset_intrusion_no_nonce_challenge (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
 	struct cerberus_protocol_reset_config_response *resp =
@@ -8468,15 +8468,15 @@ void cerberus_protocol_optional_commands_testing_process_reset_intrusion_no_nonc
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_RESET_CONFIG;
 
 	req->type = 4;
 	request.length = sizeof (struct cerberus_protocol_reset_config);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	for (i = 0; i < (int) sizeof (nonce); i++) {
 		nonce[i] = i;
@@ -8495,7 +8495,7 @@ void cerberus_protocol_optional_commands_testing_process_reset_intrusion_no_nonc
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_reset_config_response) + length,
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -8512,7 +8512,7 @@ void cerberus_protocol_optional_commands_testing_process_reset_intrusion_no_nonc
 void cerberus_protocol_optional_commands_testing_process_reset_intrusion_no_nonce_max_challenge (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
 	struct cerberus_protocol_reset_config_response *resp =
@@ -8528,15 +8528,15 @@ void cerberus_protocol_optional_commands_testing_process_reset_intrusion_no_nonc
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_RESET_CONFIG;
 
 	req->type = 4;
 	request.length = sizeof (struct cerberus_protocol_reset_config);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	for (i = 0; i < (int) sizeof (nonce); i++) {
 		nonce[i] = i;
@@ -8555,7 +8555,7 @@ void cerberus_protocol_optional_commands_testing_process_reset_intrusion_no_nonc
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_reset_config_response) + length,
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -8572,7 +8572,7 @@ void cerberus_protocol_optional_commands_testing_process_reset_intrusion_no_nonc
 void cerberus_protocol_optional_commands_testing_process_reset_intrusion_no_nonce_not_authorized (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
 	int status;
@@ -8582,15 +8582,15 @@ void cerberus_protocol_optional_commands_testing_process_reset_intrusion_no_nonc
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_RESET_CONFIG;
 
 	req->type = 4;
 	request.length = sizeof (struct cerberus_protocol_reset_config);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&auth->mock, auth->base.authorize_reset_intrusion, auth,
 		AUTHORIZATION_NOT_AUTHORIZED, MOCK_ARG_PTR_CONTAINS_TMP (&null, sizeof (null)),
@@ -8608,7 +8608,7 @@ void cerberus_protocol_optional_commands_testing_process_reset_intrusion_with_no
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth,
 	struct cmd_background_mock *background)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
 	int status;
@@ -8618,7 +8618,7 @@ void cerberus_protocol_optional_commands_testing_process_reset_intrusion_with_no
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_RESET_CONFIG;
 
@@ -8628,9 +8628,9 @@ void cerberus_protocol_optional_commands_testing_process_reset_intrusion_with_no
 	}
 
 	request.length = sizeof (struct cerberus_protocol_reset_config) + length;
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&auth->mock, auth->base.authorize_reset_intrusion, auth, 0,
 		MOCK_ARG_PTR_PTR_CONTAINS_TMP (cerberus_protocol_reset_authorization (req), length),
@@ -8649,7 +8649,7 @@ void cerberus_protocol_optional_commands_testing_process_reset_intrusion_with_no
 void cerberus_protocol_optional_commands_testing_process_reset_intrusion_with_nonce_not_authorized (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
 	int status;
@@ -8659,7 +8659,7 @@ void cerberus_protocol_optional_commands_testing_process_reset_intrusion_with_no
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_RESET_CONFIG;
 
@@ -8669,9 +8669,9 @@ void cerberus_protocol_optional_commands_testing_process_reset_intrusion_with_no
 	}
 
 	request.length = sizeof (struct cerberus_protocol_reset_config) + length;
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&auth->mock, auth->base.authorize_reset_intrusion, auth,
 		AUTHORIZATION_NOT_AUTHORIZED,
@@ -8689,7 +8689,7 @@ void cerberus_protocol_optional_commands_testing_process_reset_intrusion_with_no
 void cerberus_protocol_optional_commands_testing_process_reset_intrusion_no_nonce_invalid_challenge (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
 	int status;
@@ -8703,15 +8703,15 @@ void cerberus_protocol_optional_commands_testing_process_reset_intrusion_no_nonc
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_RESET_CONFIG;
 
 	req->type = 4;
 	request.length = sizeof (struct cerberus_protocol_reset_config);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	for (i = 0; i < (int) sizeof (nonce); i++) {
 		nonce[i] = i;
@@ -8734,7 +8734,7 @@ void cerberus_protocol_optional_commands_testing_process_reset_intrusion_no_nonc
 void cerberus_protocol_optional_commands_testing_process_reset_intrusion_no_nonce_invalid_challenge_limited_response (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
 	int status;
@@ -8748,15 +8748,15 @@ void cerberus_protocol_optional_commands_testing_process_reset_intrusion_no_nonc
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_RESET_CONFIG;
 
 	req->type = 4;
 	request.length = sizeof (struct cerberus_protocol_reset_config);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY - 128;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY - 128;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	for (i = 0; i < (int) sizeof (nonce); i++) {
 		nonce[i] = i;
@@ -8780,7 +8780,7 @@ void cerberus_protocol_optional_commands_testing_process_reset_intrusion_error (
 	struct cmd_interface *cmd, struct cmd_authorization_mock *auth,
 	struct cmd_background_mock *background)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
 	int status;
@@ -8790,15 +8790,15 @@ void cerberus_protocol_optional_commands_testing_process_reset_intrusion_error (
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_RESET_CONFIG;
 
 	req->type = 4;
 	request.length = sizeof (struct cerberus_protocol_reset_config);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&auth->mock, auth->base.authorize_reset_intrusion, auth, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (&null, sizeof (null)),
@@ -8817,7 +8817,7 @@ void cerberus_protocol_optional_commands_testing_process_reset_intrusion_error (
 void cerberus_protocol_optional_commands_testing_process_reset_config_invalid_len (CuTest *test,
 	struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
 	int status;
@@ -8825,15 +8825,15 @@ void cerberus_protocol_optional_commands_testing_process_reset_config_invalid_le
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_RESET_CONFIG;
 
 	req->type = 0;
 	request.length = sizeof (struct cerberus_protocol_reset_config) - 1;
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = false;
 	status = cmd->process_request (cmd, &request);
@@ -8844,7 +8844,7 @@ void cerberus_protocol_optional_commands_testing_process_reset_config_invalid_le
 void cerberus_protocol_optional_commands_testing_process_reset_config_invalid_request_subtype (
 	CuTest *test, struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
 	int status;
@@ -8852,15 +8852,15 @@ void cerberus_protocol_optional_commands_testing_process_reset_config_invalid_re
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_RESET_CONFIG;
 
 	req->type = 5;
 	request.length = sizeof (struct cerberus_protocol_reset_config);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = false;
 	status = cmd->process_request (cmd, &request);
@@ -8871,7 +8871,7 @@ void cerberus_protocol_optional_commands_testing_process_reset_config_invalid_re
 void cerberus_protocol_optional_commands_testing_process_prepare_recovery_image_port0 (CuTest *test,
 	struct cmd_interface *cmd, struct recovery_image_cmd_interface_mock *recovery_0)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_prepare_recovery_image_update *req =
 		(struct cerberus_protocol_prepare_recovery_image_update*) data;
@@ -8881,16 +8881,16 @@ void cerberus_protocol_optional_commands_testing_process_prepare_recovery_image_
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_PREPARE_RECOVERY_IMAGE;
 
 	req->port_id = 0;
 	req->size = length;
 	request.length = sizeof (struct cerberus_protocol_prepare_recovery_image_update);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&recovery_0->mock, recovery_0->base.prepare_recovery_image, recovery_0, 0,
 		MOCK_ARG (length));
@@ -8906,7 +8906,7 @@ void cerberus_protocol_optional_commands_testing_process_prepare_recovery_image_
 void cerberus_protocol_optional_commands_testing_process_prepare_recovery_image_port1 (CuTest *test,
 	struct cmd_interface *cmd, struct recovery_image_cmd_interface_mock *recovery_1)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_prepare_recovery_image_update *req =
 		(struct cerberus_protocol_prepare_recovery_image_update*) data;
@@ -8916,16 +8916,16 @@ void cerberus_protocol_optional_commands_testing_process_prepare_recovery_image_
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_PREPARE_RECOVERY_IMAGE;
 
 	req->port_id = 1;
 	req->size = length;
 	request.length = sizeof (struct cerberus_protocol_prepare_recovery_image_update);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&recovery_1->mock, recovery_1->base.prepare_recovery_image, recovery_1, 0,
 		MOCK_ARG (length));
@@ -8941,7 +8941,7 @@ void cerberus_protocol_optional_commands_testing_process_prepare_recovery_image_
 void cerberus_protocol_optional_commands_testing_process_prepare_recovery_image_port0_null (
 	CuTest *test, struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_prepare_recovery_image_update *req =
 		(struct cerberus_protocol_prepare_recovery_image_update*) data;
@@ -8951,16 +8951,16 @@ void cerberus_protocol_optional_commands_testing_process_prepare_recovery_image_
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_PREPARE_RECOVERY_IMAGE;
 
 	req->port_id = 0;
 	req->size = length;
 	request.length = sizeof (struct cerberus_protocol_prepare_recovery_image_update);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -8971,7 +8971,7 @@ void cerberus_protocol_optional_commands_testing_process_prepare_recovery_image_
 void cerberus_protocol_optional_commands_testing_process_prepare_recovery_image_port1_null (
 	CuTest *test, struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_prepare_recovery_image_update *req =
 		(struct cerberus_protocol_prepare_recovery_image_update*) data;
@@ -8981,16 +8981,16 @@ void cerberus_protocol_optional_commands_testing_process_prepare_recovery_image_
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_PREPARE_RECOVERY_IMAGE;
 
 	req->port_id = 1;
 	req->size = length;
 	request.length = sizeof (struct cerberus_protocol_prepare_recovery_image_update);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -9001,7 +9001,7 @@ void cerberus_protocol_optional_commands_testing_process_prepare_recovery_image_
 void cerberus_protocol_optional_commands_testing_process_prepare_recovery_image_invalid_len (
 	CuTest *test, struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_prepare_recovery_image_update *req =
 		(struct cerberus_protocol_prepare_recovery_image_update*) data;
@@ -9011,16 +9011,16 @@ void cerberus_protocol_optional_commands_testing_process_prepare_recovery_image_
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_PREPARE_RECOVERY_IMAGE;
 
 	req->port_id = 0;
 	req->size = length;
 	request.length = sizeof (struct cerberus_protocol_prepare_recovery_image_update) + 1;
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -9037,7 +9037,7 @@ void cerberus_protocol_optional_commands_testing_process_prepare_recovery_image_
 void cerberus_protocol_optional_commands_testing_process_prepare_recovery_image_fail (CuTest *test,
 	struct cmd_interface *cmd, struct recovery_image_cmd_interface_mock *recovery_0)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_prepare_recovery_image_update *req =
 		(struct cerberus_protocol_prepare_recovery_image_update*) data;
@@ -9047,16 +9047,16 @@ void cerberus_protocol_optional_commands_testing_process_prepare_recovery_image_
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_PREPARE_RECOVERY_IMAGE;
 
 	req->port_id = 0;
 	req->size = length;
 	request.length = sizeof (struct cerberus_protocol_prepare_recovery_image_update);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&recovery_0->mock, recovery_0->base.prepare_recovery_image, recovery_0,
 		RECOVERY_IMAGE_INVALID_ARGUMENT, MOCK_ARG (length));
@@ -9071,7 +9071,7 @@ void cerberus_protocol_optional_commands_testing_process_prepare_recovery_image_
 void cerberus_protocol_optional_commands_testing_process_prepare_recovery_image_bad_port_index (
 	CuTest *test, struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_prepare_recovery_image_update *req =
 		(struct cerberus_protocol_prepare_recovery_image_update*) data;
@@ -9081,16 +9081,16 @@ void cerberus_protocol_optional_commands_testing_process_prepare_recovery_image_
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_PREPARE_RECOVERY_IMAGE;
 
 	req->port_id = 2;
 	req->size = length;
 	request.length = sizeof (struct cerberus_protocol_prepare_recovery_image_update);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -9101,7 +9101,7 @@ void cerberus_protocol_optional_commands_testing_process_prepare_recovery_image_
 void cerberus_protocol_optional_commands_testing_process_update_recovery_image_port0 (CuTest *test,
 	struct cmd_interface *cmd, struct recovery_image_cmd_interface_mock *recovery_0)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_recovery_image_update *req =
 		(struct cerberus_protocol_recovery_image_update*) data;
@@ -9110,16 +9110,16 @@ void cerberus_protocol_optional_commands_testing_process_update_recovery_image_p
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_UPDATE_RECOVERY_IMAGE;
 
 	req->port_id = 0;
 	req->payload = 0xAA;
 	request.length = sizeof (struct cerberus_protocol_recovery_image_update);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&recovery_0->mock, recovery_0->base.update_recovery_image, recovery_0, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (&req->payload, 1), MOCK_ARG (1));
@@ -9135,7 +9135,7 @@ void cerberus_protocol_optional_commands_testing_process_update_recovery_image_p
 void cerberus_protocol_optional_commands_testing_process_update_recovery_image_port1 (CuTest *test,
 	struct cmd_interface *cmd, struct recovery_image_cmd_interface_mock *recovery_1)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_recovery_image_update *req =
 		(struct cerberus_protocol_recovery_image_update*) data;
@@ -9144,16 +9144,16 @@ void cerberus_protocol_optional_commands_testing_process_update_recovery_image_p
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_UPDATE_RECOVERY_IMAGE;
 
 	req->port_id = 1;
 	req->payload = 0xAA;
 	request.length = sizeof (struct cerberus_protocol_recovery_image_update);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&recovery_1->mock, recovery_1->base.update_recovery_image, recovery_1, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (&req->payload, 1), MOCK_ARG (1));
@@ -9169,7 +9169,7 @@ void cerberus_protocol_optional_commands_testing_process_update_recovery_image_p
 void cerberus_protocol_optional_commands_testing_process_update_recovery_image_port0_null (
 	CuTest *test, struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_recovery_image_update *req =
 		(struct cerberus_protocol_recovery_image_update*) data;
@@ -9178,16 +9178,16 @@ void cerberus_protocol_optional_commands_testing_process_update_recovery_image_p
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_UPDATE_RECOVERY_IMAGE;
 
 	req->port_id = 0;
 	req->payload = 0xAA;
 	request.length = sizeof (struct cerberus_protocol_recovery_image_update);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -9198,7 +9198,7 @@ void cerberus_protocol_optional_commands_testing_process_update_recovery_image_p
 void cerberus_protocol_optional_commands_testing_process_update_recovery_image_port1_null (
 	CuTest *test, struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_recovery_image_update *req =
 		(struct cerberus_protocol_recovery_image_update*) data;
@@ -9207,16 +9207,16 @@ void cerberus_protocol_optional_commands_testing_process_update_recovery_image_p
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_UPDATE_RECOVERY_IMAGE;
 
 	req->port_id = 1;
 	req->payload = 0xAA;
 	request.length = sizeof (struct cerberus_protocol_recovery_image_update);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -9227,7 +9227,7 @@ void cerberus_protocol_optional_commands_testing_process_update_recovery_image_p
 void cerberus_protocol_optional_commands_testing_process_update_recovery_image_no_data (
 	CuTest *test, struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_recovery_image_update *req =
 		(struct cerberus_protocol_recovery_image_update*) data;
@@ -9236,16 +9236,16 @@ void cerberus_protocol_optional_commands_testing_process_update_recovery_image_n
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_UPDATE_RECOVERY_IMAGE;
 
 	req->port_id = 0;
 	request.length =
 		sizeof (struct cerberus_protocol_recovery_image_update) - sizeof (req->payload);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -9256,7 +9256,7 @@ void cerberus_protocol_optional_commands_testing_process_update_recovery_image_n
 void cerberus_protocol_optional_commands_testing_process_update_recovery_image_bad_port_index (
 	CuTest *test, struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_recovery_image_update *req =
 		(struct cerberus_protocol_recovery_image_update*) data;
@@ -9265,16 +9265,16 @@ void cerberus_protocol_optional_commands_testing_process_update_recovery_image_b
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_UPDATE_RECOVERY_IMAGE;
 
 	req->port_id = 2;
 	req->payload = 0xAA;
 	request.length = sizeof (struct cerberus_protocol_recovery_image_update);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -9285,7 +9285,7 @@ void cerberus_protocol_optional_commands_testing_process_update_recovery_image_b
 void cerberus_protocol_optional_commands_testing_process_update_recovery_image_fail (CuTest *test,
 	struct cmd_interface *cmd, struct recovery_image_cmd_interface_mock *recovery_0)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_recovery_image_update *req =
 		(struct cerberus_protocol_recovery_image_update*) data;
@@ -9294,16 +9294,16 @@ void cerberus_protocol_optional_commands_testing_process_update_recovery_image_f
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_UPDATE_RECOVERY_IMAGE;
 
 	req->port_id = 0;
 	req->payload = 0xAA;
 	request.length = sizeof (struct cerberus_protocol_recovery_image_update);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&recovery_0->mock, recovery_0->base.update_recovery_image, recovery_0,
 		RECOVERY_IMAGE_INVALID_ARGUMENT, MOCK_ARG_PTR_CONTAINS_TMP (&req->payload, 1), MOCK_ARG (1));
@@ -9318,7 +9318,7 @@ void cerberus_protocol_optional_commands_testing_process_update_recovery_image_f
 void cerberus_protocol_optional_commands_testing_process_activate_recovery_image_port0 (
 	CuTest *test, struct cmd_interface *cmd, struct recovery_image_cmd_interface_mock *recovery_0)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_complete_recovery_image_update *req =
 		(struct cerberus_protocol_complete_recovery_image_update*) data;
@@ -9327,15 +9327,15 @@ void cerberus_protocol_optional_commands_testing_process_activate_recovery_image
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_ACTIVATE_RECOVERY_IMAGE;
 
 	req->port_id = 0;
 	request.length = sizeof (struct cerberus_protocol_complete_recovery_image_update);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&recovery_0->mock, recovery_0->base.activate_recovery_image, recovery_0,
 		0);
@@ -9351,7 +9351,7 @@ void cerberus_protocol_optional_commands_testing_process_activate_recovery_image
 void cerberus_protocol_optional_commands_testing_process_activate_recovery_image_port1 (
 	CuTest *test, struct cmd_interface *cmd, struct recovery_image_cmd_interface_mock *recovery_1)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_complete_recovery_image_update *req =
 		(struct cerberus_protocol_complete_recovery_image_update*) data;
@@ -9360,15 +9360,15 @@ void cerberus_protocol_optional_commands_testing_process_activate_recovery_image
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_ACTIVATE_RECOVERY_IMAGE;
 
 	req->port_id = 1;
 	request.length = sizeof (struct cerberus_protocol_complete_recovery_image_update);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&recovery_1->mock, recovery_1->base.activate_recovery_image, recovery_1,
 		0);
@@ -9384,7 +9384,7 @@ void cerberus_protocol_optional_commands_testing_process_activate_recovery_image
 void cerberus_protocol_optional_commands_testing_process_activate_recovery_image_port0_null (
 	CuTest *test, struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_complete_recovery_image_update *req =
 		(struct cerberus_protocol_complete_recovery_image_update*) data;
@@ -9393,15 +9393,15 @@ void cerberus_protocol_optional_commands_testing_process_activate_recovery_image
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_ACTIVATE_RECOVERY_IMAGE;
 
 	req->port_id = 0;
 	request.length = sizeof (struct cerberus_protocol_complete_recovery_image_update);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -9412,7 +9412,7 @@ void cerberus_protocol_optional_commands_testing_process_activate_recovery_image
 void cerberus_protocol_optional_commands_testing_process_activate_recovery_image_port1_null (
 	CuTest *test, struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_complete_recovery_image_update *req =
 		(struct cerberus_protocol_complete_recovery_image_update*) data;
@@ -9421,15 +9421,15 @@ void cerberus_protocol_optional_commands_testing_process_activate_recovery_image
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_ACTIVATE_RECOVERY_IMAGE;
 
 	req->port_id = 1;
 	request.length = sizeof (struct cerberus_protocol_complete_recovery_image_update);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -9440,7 +9440,7 @@ void cerberus_protocol_optional_commands_testing_process_activate_recovery_image
 void cerberus_protocol_optional_commands_testing_process_activate_recovery_image_invalid_len (
 	CuTest *test, struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_complete_recovery_image_update *req =
 		(struct cerberus_protocol_complete_recovery_image_update*) data;
@@ -9449,15 +9449,15 @@ void cerberus_protocol_optional_commands_testing_process_activate_recovery_image
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_ACTIVATE_RECOVERY_IMAGE;
 
 	req->port_id = 0;
 	request.length = sizeof (struct cerberus_protocol_complete_recovery_image_update) + 1;
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -9474,7 +9474,7 @@ void cerberus_protocol_optional_commands_testing_process_activate_recovery_image
 void cerberus_protocol_optional_commands_testing_process_activate_recovery_image_bad_port_index (
 	CuTest *test, struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_complete_recovery_image_update *req =
 		(struct cerberus_protocol_complete_recovery_image_update*) data;
@@ -9483,15 +9483,15 @@ void cerberus_protocol_optional_commands_testing_process_activate_recovery_image
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_ACTIVATE_RECOVERY_IMAGE;
 
 	req->port_id = 2;
 	request.length = sizeof (struct cerberus_protocol_complete_recovery_image_update);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -9502,7 +9502,7 @@ void cerberus_protocol_optional_commands_testing_process_activate_recovery_image
 void cerberus_protocol_optional_commands_testing_process_activate_recovery_image_fail (CuTest *test,
 	struct cmd_interface *cmd, struct recovery_image_cmd_interface_mock *recovery_0)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_complete_recovery_image_update *req =
 		(struct cerberus_protocol_complete_recovery_image_update*) data;
@@ -9511,15 +9511,15 @@ void cerberus_protocol_optional_commands_testing_process_activate_recovery_image
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_ACTIVATE_RECOVERY_IMAGE;
 
 	req->port_id = 0;
 	request.length = sizeof (struct cerberus_protocol_complete_recovery_image_update);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&recovery_0->mock, recovery_0->base.activate_recovery_image, recovery_0,
 		RECOVERY_IMAGE_INVALID_ARGUMENT);
@@ -9534,7 +9534,7 @@ void cerberus_protocol_optional_commands_testing_process_activate_recovery_image
 void cerberus_protocol_optional_commands_testing_process_get_recovery_image_version_port0 (
 	CuTest *test, struct cmd_interface *cmd, struct recovery_image_manager_mock *recovery_manager_0)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_recovery_image_id *req =
 		(struct cerberus_protocol_get_recovery_image_id*) data;
@@ -9546,16 +9546,16 @@ void cerberus_protocol_optional_commands_testing_process_get_recovery_image_vers
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_RECOVERY_IMAGE_VERSION;
 
 	req->port_id = 0;
 	req->id = 0;
 	request.length = sizeof (struct cerberus_protocol_get_recovery_image_id);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = recovery_image_mock_init (&image);
 	CuAssertIntEquals (test, 0, status);
@@ -9579,7 +9579,7 @@ void cerberus_protocol_optional_commands_testing_process_get_recovery_image_vers
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test,
 		sizeof (struct cerberus_protocol_get_recovery_image_id_version_response), request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -9597,7 +9597,7 @@ void cerberus_protocol_optional_commands_testing_process_get_recovery_image_vers
 void cerberus_protocol_optional_commands_testing_process_get_recovery_image_version_port1 (
 	CuTest *test, struct cmd_interface *cmd, struct recovery_image_manager_mock *recovery_manager_1)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_recovery_image_id *req =
 		(struct cerberus_protocol_get_recovery_image_id*) data;
@@ -9609,16 +9609,16 @@ void cerberus_protocol_optional_commands_testing_process_get_recovery_image_vers
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_RECOVERY_IMAGE_VERSION;
 
 	req->port_id = 1;
 	req->id = 0;
 	request.length = sizeof (struct cerberus_protocol_get_recovery_image_id);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = recovery_image_mock_init (&image);
 	CuAssertIntEquals (test, 0, status);
@@ -9642,7 +9642,7 @@ void cerberus_protocol_optional_commands_testing_process_get_recovery_image_vers
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test,
 		sizeof (struct cerberus_protocol_get_recovery_image_id_version_response), request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -9660,7 +9660,7 @@ void cerberus_protocol_optional_commands_testing_process_get_recovery_image_vers
 void cerberus_protocol_optional_commands_testing_process_get_recovery_image_version_no_id_type (
 	CuTest *test, struct cmd_interface *cmd, struct recovery_image_manager_mock *recovery_manager_0)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_recovery_image_id *req =
 		(struct cerberus_protocol_get_recovery_image_id*) data;
@@ -9672,15 +9672,15 @@ void cerberus_protocol_optional_commands_testing_process_get_recovery_image_vers
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_RECOVERY_IMAGE_VERSION;
 
 	req->port_id = 0;
 	request.length = sizeof (struct cerberus_protocol_get_recovery_image_id) - 1;
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = recovery_image_mock_init (&image);
 	CuAssertIntEquals (test, 0, status);
@@ -9704,7 +9704,7 @@ void cerberus_protocol_optional_commands_testing_process_get_recovery_image_vers
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test,
 		sizeof (struct cerberus_protocol_get_recovery_image_id_version_response), request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -9722,7 +9722,7 @@ void cerberus_protocol_optional_commands_testing_process_get_recovery_image_vers
 void cerberus_protocol_optional_commands_testing_process_get_recovery_image_version_port0_null (
 	CuTest *test, struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_recovery_image_id *req =
 		(struct cerberus_protocol_get_recovery_image_id*) data;
@@ -9731,16 +9731,16 @@ void cerberus_protocol_optional_commands_testing_process_get_recovery_image_vers
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_RECOVERY_IMAGE_VERSION;
 
 	req->port_id = 0;
 	req->id = 0;
 	request.length = sizeof (struct cerberus_protocol_get_recovery_image_id);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -9751,7 +9751,7 @@ void cerberus_protocol_optional_commands_testing_process_get_recovery_image_vers
 void cerberus_protocol_optional_commands_testing_process_get_recovery_image_version_port1_null (
 	CuTest *test, struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_recovery_image_id *req =
 		(struct cerberus_protocol_get_recovery_image_id*) data;
@@ -9760,16 +9760,16 @@ void cerberus_protocol_optional_commands_testing_process_get_recovery_image_vers
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_RECOVERY_IMAGE_VERSION;
 
 	req->port_id = 1;
 	req->id = 0;
 	request.length = sizeof (struct cerberus_protocol_get_recovery_image_id);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -9780,7 +9780,7 @@ void cerberus_protocol_optional_commands_testing_process_get_recovery_image_vers
 void cerberus_protocol_optional_commands_testing_process_get_recovery_image_version_no_image (
 	CuTest *test, struct cmd_interface *cmd, struct recovery_image_manager_mock *recovery_manager_0)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_recovery_image_id *req =
 		(struct cerberus_protocol_get_recovery_image_id*) data;
@@ -9792,16 +9792,16 @@ void cerberus_protocol_optional_commands_testing_process_get_recovery_image_vers
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_RECOVERY_IMAGE_VERSION;
 
 	req->port_id = 0;
 	req->id = 0;
 	request.length = sizeof (struct cerberus_protocol_get_recovery_image_id);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&recovery_manager_0->mock,
 		recovery_manager_0->base.get_active_recovery_image, recovery_manager_0,
@@ -9814,7 +9814,7 @@ void cerberus_protocol_optional_commands_testing_process_get_recovery_image_vers
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test,
 		sizeof (struct cerberus_protocol_get_recovery_image_id_version_response), request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -9829,7 +9829,7 @@ void cerberus_protocol_optional_commands_testing_process_get_recovery_image_vers
 void cerberus_protocol_optional_commands_testing_process_get_recovery_image_version_fail (
 	CuTest *test, struct cmd_interface *cmd, struct recovery_image_manager_mock *recovery_manager_0)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_recovery_image_id *req =
 		(struct cerberus_protocol_get_recovery_image_id*) data;
@@ -9839,16 +9839,16 @@ void cerberus_protocol_optional_commands_testing_process_get_recovery_image_vers
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_RECOVERY_IMAGE_VERSION;
 
 	req->port_id = 0;
 	req->id = 0;
 	request.length = sizeof (struct cerberus_protocol_get_recovery_image_id);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = recovery_image_mock_init (&image);
 	CuAssertIntEquals (test, 0, status);
@@ -9878,7 +9878,7 @@ void cerberus_protocol_optional_commands_testing_process_get_recovery_image_vers
 void cerberus_protocol_optional_commands_testing_process_get_recovery_image_version_invalid_len (
 	CuTest *test, struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_recovery_image_id *req =
 		(struct cerberus_protocol_get_recovery_image_id*) data;
@@ -9887,16 +9887,16 @@ void cerberus_protocol_optional_commands_testing_process_get_recovery_image_vers
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_RECOVERY_IMAGE_VERSION;
 
 	req->port_id = 0;
 	req->id = 0;
 	request.length = sizeof (struct cerberus_protocol_get_recovery_image_id) + 1;
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -9913,7 +9913,7 @@ void cerberus_protocol_optional_commands_testing_process_get_recovery_image_vers
 void cerberus_protocol_optional_commands_testing_process_get_recovery_image_version_bad_port_index (
 	CuTest *test, struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_recovery_image_id *req =
 		(struct cerberus_protocol_get_recovery_image_id*) data;
@@ -9922,16 +9922,16 @@ void cerberus_protocol_optional_commands_testing_process_get_recovery_image_vers
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_RECOVERY_IMAGE_VERSION;
 
 	req->port_id = 2;
 	req->id = 0;
 	request.length = sizeof (struct cerberus_protocol_get_recovery_image_id);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -9942,7 +9942,7 @@ void cerberus_protocol_optional_commands_testing_process_get_recovery_image_vers
 void cerberus_protocol_optional_commands_testing_process_get_attestation_data (CuTest *test,
 	struct cmd_interface *cmd, struct pcr_store *store)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_attestation_data *req =
 		(struct cerberus_protocol_get_attestation_data*) data;
@@ -9961,7 +9961,7 @@ void cerberus_protocol_optional_commands_testing_process_get_attestation_data (C
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_ATTESTATION_DATA;
 
@@ -9970,9 +9970,9 @@ void cerberus_protocol_optional_commands_testing_process_get_attestation_data (C
 	req->offset = 0;
 
 	request.length = sizeof (struct cerberus_protocol_get_attestation_data);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -9980,7 +9980,7 @@ void cerberus_protocol_optional_commands_testing_process_get_attestation_data (C
 	CuAssertIntEquals (test,
 		sizeof (struct cerberus_protocol_get_attestation_data_response) + sizeof (uint8_t),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -9998,7 +9998,7 @@ void cerberus_protocol_optional_commands_testing_process_get_attestation_data (C
 void cerberus_protocol_optional_commands_testing_process_get_attestation_data_with_offset (
 	CuTest *test, struct cmd_interface *cmd, struct pcr_store *store)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_attestation_data *req =
 		(struct cerberus_protocol_get_attestation_data*) data;
@@ -10017,7 +10017,7 @@ void cerberus_protocol_optional_commands_testing_process_get_attestation_data_wi
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_ATTESTATION_DATA;
 
@@ -10026,9 +10026,9 @@ void cerberus_protocol_optional_commands_testing_process_get_attestation_data_wi
 	req->offset = 3;
 
 	request.length = sizeof (struct cerberus_protocol_get_attestation_data);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -10036,7 +10036,7 @@ void cerberus_protocol_optional_commands_testing_process_get_attestation_data_wi
 	CuAssertIntEquals (test,
 		sizeof (struct cerberus_protocol_get_attestation_data_response) + sizeof (data_8byte) - 3,
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -10054,7 +10054,7 @@ void cerberus_protocol_optional_commands_testing_process_get_attestation_data_wi
 void cerberus_protocol_optional_commands_testing_process_get_attestation_data_invalid_len (
 	CuTest *test, struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_attestation_data *req =
 		(struct cerberus_protocol_get_attestation_data*) data;
@@ -10063,7 +10063,7 @@ void cerberus_protocol_optional_commands_testing_process_get_attestation_data_in
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_ATTESTATION_DATA;
 
@@ -10072,9 +10072,9 @@ void cerberus_protocol_optional_commands_testing_process_get_attestation_data_in
 	req->offset = 0;
 
 	request.length = sizeof (struct cerberus_protocol_get_attestation_data) + 1;
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -10091,7 +10091,7 @@ void cerberus_protocol_optional_commands_testing_process_get_attestation_data_in
 void cerberus_protocol_optional_commands_testing_process_get_attestation_data_fail (CuTest *test,
 	struct cmd_interface *cmd, struct pcr_store *store, struct flash_mock *flash)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_attestation_data *req =
 		(struct cerberus_protocol_get_attestation_data*) data;
@@ -10109,7 +10109,7 @@ void cerberus_protocol_optional_commands_testing_process_get_attestation_data_fa
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_ATTESTATION_DATA;
 
@@ -10118,9 +10118,9 @@ void cerberus_protocol_optional_commands_testing_process_get_attestation_data_fa
 	req->offset = 0;
 
 	request.length = sizeof (struct cerberus_protocol_get_attestation_data);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&flash->mock, flash->base.read, flash, FLASH_MASTER_XFER_FAILED,
 		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL,  MOCK_ARG (100));
@@ -10135,7 +10135,7 @@ void cerberus_protocol_optional_commands_testing_process_get_attestation_data_fa
 void cerberus_protocol_optional_commands_testing_process_get_attestation_data_no_data (
 	CuTest *test, struct cmd_interface *cmd, struct pcr_store *store)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_attestation_data *req =
 		(struct cerberus_protocol_get_attestation_data*) data;
@@ -10146,7 +10146,7 @@ void cerberus_protocol_optional_commands_testing_process_get_attestation_data_no
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	req->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	req->header.command = CERBERUS_PROTOCOL_GET_ATTESTATION_DATA;
 
@@ -10155,9 +10155,9 @@ void cerberus_protocol_optional_commands_testing_process_get_attestation_data_no
 	req->offset = 0;
 
 	request.length = sizeof (struct cerberus_protocol_get_attestation_data);
-	request.max_response = MCTP_PROTOCOL_MAX_MESSAGE_BODY;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -10165,7 +10165,7 @@ void cerberus_protocol_optional_commands_testing_process_get_attestation_data_no
 	CuAssertIntEquals (test,
 		sizeof (struct cerberus_protocol_get_attestation_data_response),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -10179,9 +10179,9 @@ void cerberus_protocol_optional_commands_testing_process_get_attestation_data_no
 void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_0 (CuTest *test,
 	struct cmd_interface *cmd, struct session_manager_mock *session)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
-	uint8_t response_data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t response_data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg response;
 	struct cerberus_protocol_key_exchange_type_0 *rq =
 		(struct cerberus_protocol_key_exchange_type_0*) data;
@@ -10198,7 +10198,7 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_0
 	memset (response_data, 0, sizeof (response_data));
 	response.data = response_data;
 
-	rq->common.header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	rq->common.header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	rq->common.header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	rq->common.header.command = CERBERUS_PROTOCOL_EXCHANGE_KEYS;
 
@@ -10210,10 +10210,10 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_0
 		ECC_PUBKEY_DER_LEN);
 
 	request.length = cerberus_protocol_key_exchange_type_0_length (ECC_PUBKEY_DER_LEN);
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	resp->common.header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	resp->common.header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	resp->common.header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	resp->common.header.command = CERBERUS_PROTOCOL_EXCHANGE_KEYS;
 
@@ -10236,8 +10236,8 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_0
 
 	response.length = cerberus_protocol_key_exchange_type_0_response_length (ECC_PUBKEY_DER_LEN,
 		ECC_SIG_TEST_LEN, SHA256_HASH_LENGTH);
-	response.source_eid = MCTP_PROTOCOL_BMC_EID;
-	response.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	response.crypto_timeout = true;
 
 	status = mock_expect (&session->mock, session->base.establish_session, session, 0,
@@ -10256,7 +10256,7 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_0
 	CuAssertIntEquals (test,
 		cerberus_protocol_key_exchange_type_0_response_length (ECC_PUBKEY_DER_LEN, ECC_SIG_TEST_LEN,
 		SHA256_HASH_LENGTH), request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->common.header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->common.header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->common.header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->common.header.crypt);
 	CuAssertIntEquals (test, 0, resp->common.header.reserved2);
@@ -10289,7 +10289,7 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_0
 void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_0_fail (
 	CuTest *test, struct cmd_interface *cmd, struct session_manager_mock *session)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_key_exchange_type_0 *rq =
 		(struct cerberus_protocol_key_exchange_type_0*) data;
@@ -10299,7 +10299,7 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_0
 	memset (data, 0, sizeof (data));
 	request.data = data;
 
-	rq->common.header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	rq->common.header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	rq->common.header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	rq->common.header.command = CERBERUS_PROTOCOL_EXCHANGE_KEYS;
 
@@ -10310,8 +10310,8 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_0
 		ECC_PUBKEY_DER_LEN);
 
 	request.length = cerberus_protocol_key_exchange_type_0_length (ECC_PUBKEY_DER_LEN);
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&session->mock, session->base.establish_session, session,
 		SESSION_MANAGER_NO_MEMORY,
@@ -10329,13 +10329,13 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_0
 void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_1 (CuTest *test,
 	struct cmd_interface *cmd, struct session_manager_mock *session)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
-	uint8_t decrypted_data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t decrypted_data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg decrypted_request;
-	uint8_t response_data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t response_data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg response;
-	uint8_t encrypted_data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t encrypted_data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg encrypted_response;
 	struct cerberus_protocol_key_exchange_type_1 *rq =
 		(struct cerberus_protocol_key_exchange_type_1*) data;
@@ -10362,7 +10362,7 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_1
 	memset (encrypted_data, 0, sizeof (encrypted_data));
 	encrypted_response.data = encrypted_data;
 
-	rq->common.header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	rq->common.header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	rq->common.header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	rq->common.header.crypt = 1;
 	rq->common.header.command = CERBERUS_PROTOCOL_EXCHANGE_KEYS;
@@ -10373,10 +10373,10 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_1
 	memset (cerberus_protocol_key_exchange_type_1_hmac_data (rq), 0xCC, sizeof (hmac_buf));
 
 	request.length = cerberus_protocol_key_exchange_type_1_length (sizeof (hmac_buf));
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	decrypted_rq->common.header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	decrypted_rq->common.header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	decrypted_rq->common.header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	decrypted_rq->common.header.crypt = 1;
 	decrypted_rq->common.header.command = CERBERUS_PROTOCOL_EXCHANGE_KEYS;
@@ -10388,10 +10388,10 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_1
 		sizeof (hmac_buf));
 
 	decrypted_request.length = cerberus_protocol_key_exchange_type_1_length (sizeof (hmac_buf));
-	decrypted_request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	decrypted_request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	decrypted_request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	decrypted_request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	resp->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	resp->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	resp->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	resp->header.crypt = 1;
 	resp->header.command = CERBERUS_PROTOCOL_EXCHANGE_KEYS;
@@ -10399,13 +10399,13 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_1
 	resp->key_type = CERBERUS_PROTOCOL_PAIRED_KEY_HMAC;
 
 	response.length = sizeof (struct cerberus_protocol_key_exchange_response);
-	response.source_eid = MCTP_PROTOCOL_BMC_EID;
-	response.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	response.crypto_timeout = true;
 
 	resp = (struct cerberus_protocol_key_exchange_response*) encrypted_response.data;
 
-	resp->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	resp->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	resp->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	resp->header.crypt = 1;
 	resp->header.command = CERBERUS_PROTOCOL_EXCHANGE_KEYS;
@@ -10413,8 +10413,8 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_1
 	resp->key_type = 0xBB;
 
 	encrypted_response.length = sizeof (struct cerberus_protocol_key_exchange_response);
-	encrypted_response.source_eid = MCTP_PROTOCOL_BMC_EID;
-	encrypted_response.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	encrypted_response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	encrypted_response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	encrypted_response.crypto_timeout = true;
 
 	status = mock_expect (&session->mock, session->base.decrypt_message, session, 0,
@@ -10426,7 +10426,7 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_1
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&session->mock, session->base.setup_paired_session, session, 0,
-		MOCK_ARG (MCTP_PROTOCOL_BMC_EID), MOCK_ARG (ECC_PUBKEY_DER_LEN),
+		MOCK_ARG (MCTP_BASE_PROTOCOL_BMC_EID), MOCK_ARG (ECC_PUBKEY_DER_LEN),
 		MOCK_ARG_PTR_CONTAINS_TMP (hmac_buf, sizeof (hmac_buf)), MOCK_ARG (sizeof (hmac_buf)));
 	CuAssertIntEquals (test, 0, status);
 
@@ -10445,7 +10445,7 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_1
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_key_exchange_response),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 1, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -10460,7 +10460,7 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_1
 void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_1_unencrypted (
 	CuTest *test, struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_key_exchange_type_1 *rq =
 		(struct cerberus_protocol_key_exchange_type_1*) data;
@@ -10471,7 +10471,7 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_1
 	memset (data, 0, sizeof (data));
 	request.data = data;
 
-	rq->common.header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	rq->common.header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	rq->common.header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	rq->common.header.crypt = 0;
 	rq->common.header.command = CERBERUS_PROTOCOL_EXCHANGE_KEYS;
@@ -10482,8 +10482,8 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_1
 	memcpy (cerberus_protocol_key_exchange_type_1_hmac_data (rq), hmac_buf, sizeof (hmac_buf));
 
 	request.length = cerberus_protocol_key_exchange_type_1_length (sizeof (hmac_buf));
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = false;
 	status = cmd->process_request (cmd, &request);
@@ -10494,9 +10494,9 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_1
 void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_1_fail (
 	CuTest *test, struct cmd_interface *cmd, struct session_manager_mock *session)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
-	uint8_t decrypted_data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t decrypted_data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg decrypted_request;
 	struct cerberus_protocol_key_exchange_type_1 *rq =
 		(struct cerberus_protocol_key_exchange_type_1*) data;
@@ -10513,7 +10513,7 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_1
 	memset (decrypted_data, 0, sizeof (decrypted_data));
 	decrypted_request.data = decrypted_data;
 
-	rq->common.header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	rq->common.header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	rq->common.header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	rq->common.header.crypt = 1;
 	rq->common.header.command = CERBERUS_PROTOCOL_EXCHANGE_KEYS;
@@ -10524,10 +10524,10 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_1
 	memset (cerberus_protocol_key_exchange_type_1_hmac_data (rq), 0xCC, sizeof (hmac_buf));
 
 	request.length = cerberus_protocol_key_exchange_type_1_length (sizeof (hmac_buf));
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	decrypted_rq->common.header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	decrypted_rq->common.header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	decrypted_rq->common.header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	decrypted_rq->common.header.crypt = 1;
 	decrypted_rq->common.header.command = CERBERUS_PROTOCOL_EXCHANGE_KEYS;
@@ -10539,8 +10539,8 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_1
 		sizeof (hmac_buf));
 
 	decrypted_request.length = cerberus_protocol_key_exchange_type_1_length (sizeof (hmac_buf));
-	decrypted_request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	decrypted_request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	decrypted_request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	decrypted_request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&session->mock, session->base.decrypt_message, session, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,
@@ -10551,7 +10551,7 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_1
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&session->mock, session->base.setup_paired_session, session,
-		SESSION_MANAGER_NO_MEMORY, MOCK_ARG (MCTP_PROTOCOL_BMC_EID), MOCK_ARG (ECC_PUBKEY_DER_LEN),
+		SESSION_MANAGER_NO_MEMORY, MOCK_ARG (MCTP_BASE_PROTOCOL_BMC_EID), MOCK_ARG (ECC_PUBKEY_DER_LEN),
 		MOCK_ARG_PTR_CONTAINS_TMP (hmac_buf, sizeof (hmac_buf)), MOCK_ARG (sizeof (hmac_buf)));
 	CuAssertIntEquals (test, 0, status);
 
@@ -10564,9 +10564,9 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_1
 void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_2 (CuTest *test,
 	struct cmd_interface *cmd, struct session_manager_mock *session)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
-	uint8_t decrypted_data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t decrypted_data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg decrypted_request;
 	struct cerberus_protocol_key_exchange *rq =
 		(struct cerberus_protocol_key_exchange*) data;
@@ -10585,7 +10585,7 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_2
 	memset (decrypted_data, 0, sizeof (decrypted_data));
 	decrypted_request.data = decrypted_data;
 
-	rq->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	rq->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	rq->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	rq->header.crypt = 1;
 	rq->header.command = CERBERUS_PROTOCOL_EXCHANGE_KEYS;
@@ -10595,10 +10595,10 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_2
 	memset (cerberus_protocol_key_exchange_type_2_hmac_data (rq), 0xCC, sizeof (hmac_buf));
 
 	request.length = cerberus_protocol_key_exchange_type_2_length (sizeof (hmac_buf));
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	decrypted_rq->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	decrypted_rq->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	decrypted_rq->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	decrypted_rq->header.crypt = 1;
 	decrypted_rq->header.command = CERBERUS_PROTOCOL_EXCHANGE_KEYS;
@@ -10609,8 +10609,8 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_2
 		sizeof (hmac_buf));
 
 	decrypted_request.length = cerberus_protocol_key_exchange_type_2_length (sizeof (hmac_buf));
-	decrypted_request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	decrypted_request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	decrypted_request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	decrypted_request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&session->mock, session->base.decrypt_message, session, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,
@@ -10621,7 +10621,7 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_2
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&session->mock, session->base.reset_session, session, 0,
-		MOCK_ARG (MCTP_PROTOCOL_BMC_EID), MOCK_ARG_PTR_CONTAINS_TMP (hmac_buf, sizeof (hmac_buf)),
+		MOCK_ARG (MCTP_BASE_PROTOCOL_BMC_EID), MOCK_ARG_PTR_CONTAINS_TMP (hmac_buf, sizeof (hmac_buf)),
 		MOCK_ARG (sizeof (hmac_buf)));
 	CuAssertIntEquals (test, 0, status);
 
@@ -10630,7 +10630,7 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_2
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_key_exchange_response),
 		request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -10645,7 +10645,7 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_2
 void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_2_unencrypted (
 	CuTest *test, struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_key_exchange *rq = (struct cerberus_protocol_key_exchange*) data;
 	uint8_t hmac_buf[SHA256_HASH_LENGTH] = {0};
@@ -10655,7 +10655,7 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_2
 	memset (data, 0, sizeof (data));
 	request.data = data;
 
-	rq->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	rq->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	rq->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	rq->header.command = CERBERUS_PROTOCOL_EXCHANGE_KEYS;
 
@@ -10664,8 +10664,8 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_2
 	memcpy (cerberus_protocol_key_exchange_type_2_hmac_data (rq), hmac_buf, sizeof (hmac_buf));
 
 	request.length = cerberus_protocol_key_exchange_type_2_length (sizeof (hmac_buf));
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = false;
 	status = cmd->process_request (cmd, &request);
@@ -10676,9 +10676,9 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_2
 void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_2_fail (
 	CuTest *test, struct cmd_interface *cmd, struct session_manager_mock *session)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
-	uint8_t decrypted_data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t decrypted_data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg decrypted_request;
 	struct cerberus_protocol_key_exchange *rq =
 		(struct cerberus_protocol_key_exchange*) data;
@@ -10695,7 +10695,7 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_2
 	memset (decrypted_data, 0, sizeof (decrypted_data));
 	decrypted_request.data = decrypted_data;
 
-	rq->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	rq->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	rq->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	rq->header.crypt = 1;
 	rq->header.command = CERBERUS_PROTOCOL_EXCHANGE_KEYS;
@@ -10705,10 +10705,10 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_2
 	memset (cerberus_protocol_key_exchange_type_2_hmac_data (rq), 0xCC, sizeof (hmac_buf));
 
 	request.length = cerberus_protocol_key_exchange_type_2_length (sizeof (hmac_buf));
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	decrypted_rq->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	decrypted_rq->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	decrypted_rq->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	decrypted_rq->header.crypt = 1;
 	decrypted_rq->header.command = CERBERUS_PROTOCOL_EXCHANGE_KEYS;
@@ -10719,8 +10719,8 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_2
 		sizeof (hmac_buf));
 
 	decrypted_request.length = cerberus_protocol_key_exchange_type_2_length (sizeof (hmac_buf));
-	decrypted_request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	decrypted_request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	decrypted_request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	decrypted_request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&session->mock, session->base.decrypt_message, session, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,
@@ -10731,7 +10731,7 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_2
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&session->mock, session->base.reset_session, session,
-		SESSION_MANAGER_NO_MEMORY, MOCK_ARG (MCTP_PROTOCOL_BMC_EID),
+		SESSION_MANAGER_NO_MEMORY, MOCK_ARG (MCTP_BASE_PROTOCOL_BMC_EID),
 		MOCK_ARG_PTR_CONTAINS_TMP (hmac_buf, sizeof (hmac_buf)), MOCK_ARG (sizeof (hmac_buf)));
 	CuAssertIntEquals (test, 0, status);
 
@@ -10744,7 +10744,7 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_2
 void cerberus_protocol_optional_commands_testing_process_get_key_exchange_unsupported (CuTest *test,
 	struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_key_exchange_type_0 *rq =
 		(struct cerberus_protocol_key_exchange_type_0*) data;
@@ -10754,7 +10754,7 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_unsupp
 	memset (data, 0, sizeof (data));
 	request.data = data;
 
-	rq->common.header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	rq->common.header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	rq->common.header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	rq->common.header.command = CERBERUS_PROTOCOL_EXCHANGE_KEYS;
 
@@ -10765,8 +10765,8 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_unsupp
 		ECC_PUBKEY_DER_LEN);
 
 	request.length = cerberus_protocol_key_exchange_type_0_length (ECC_PUBKEY_DER_LEN);
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = false;
 	status = cmd->process_request (cmd, &request);
@@ -10777,7 +10777,7 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_unsupp
 void cerberus_protocol_optional_commands_testing_process_get_key_exchange_unsupported_index (
 	CuTest *test, struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_key_exchange_type_0 *rq =
 		(struct cerberus_protocol_key_exchange_type_0*) data;
@@ -10787,7 +10787,7 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_unsupp
 	memset (data, 0, sizeof (data));
 	request.data = data;
 
-	rq->common.header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	rq->common.header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	rq->common.header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	rq->common.header.command = CERBERUS_PROTOCOL_EXCHANGE_KEYS;
 
@@ -10798,8 +10798,8 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_unsupp
 		ECC_PUBKEY_DER_LEN);
 
 	request.length = cerberus_protocol_key_exchange_type_0_length (ECC_PUBKEY_DER_LEN);
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = false;
 	status = cmd->process_request (cmd, &request);
@@ -10810,7 +10810,7 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_unsupp
 void cerberus_protocol_optional_commands_testing_process_get_key_exchange_invalid_len (CuTest *test,
 	struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_key_exchange *rq = (struct cerberus_protocol_key_exchange*) data;
 	int status;
@@ -10819,7 +10819,7 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_invali
 	memset (data, 0, sizeof (data));
 	request.data = data;
 
-	rq->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	rq->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	rq->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	rq->header.crypt = 0;
 	rq->header.command = CERBERUS_PROTOCOL_EXCHANGE_KEYS;
@@ -10827,8 +10827,8 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_invali
 	rq->key_type = CERBERUS_PROTOCOL_SESSION_KEY;
 
 	request.length = sizeof (struct cerberus_protocol_key_exchange);
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = false;
 	status = cmd->process_request (cmd, &request);
@@ -10839,13 +10839,13 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_invali
 void cerberus_protocol_optional_commands_testing_process_session_sync (CuTest *test,
 	struct cmd_interface *cmd, struct session_manager_mock *session)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
-	uint8_t decrypted_data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t decrypted_data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg decrypted_request;
-	uint8_t response_data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t response_data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg response;
-	uint8_t encrypted_data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t encrypted_data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg encrypted_response;
 	struct cerberus_protocol_session_sync *rq = (struct cerberus_protocol_session_sync*) data;
 	struct cerberus_protocol_session_sync *decrypted_rq =
@@ -10880,7 +10880,7 @@ void cerberus_protocol_optional_commands_testing_process_session_sync (CuTest *t
 	memset (encrypted_data, 0, sizeof (encrypted_data));
 	encrypted_response.data = encrypted_data;
 
-	rq->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	rq->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	rq->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	rq->header.crypt = 1;
 	rq->header.command = CERBERUS_PROTOCOL_SESSION_SYNC;
@@ -10888,10 +10888,10 @@ void cerberus_protocol_optional_commands_testing_process_session_sync (CuTest *t
 	rq->rn_req = 0xeeff0011;
 
 	request.length = sizeof (struct cerberus_protocol_session_sync);
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	decrypted_rq->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	decrypted_rq->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	decrypted_rq->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	decrypted_rq->header.crypt = 1;
 	decrypted_rq->header.command = CERBERUS_PROTOCOL_SESSION_SYNC;
@@ -10899,24 +10899,24 @@ void cerberus_protocol_optional_commands_testing_process_session_sync (CuTest *t
 	decrypted_rq->rn_req = 0xaabbccdd;
 
 	decrypted_request.length = sizeof (struct cerberus_protocol_session_sync);
-	decrypted_request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	decrypted_request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	decrypted_request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	decrypted_request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	resp->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	resp->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	resp->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	resp->header.crypt = 1;
 	resp->header.command = CERBERUS_PROTOCOL_SESSION_SYNC;
 
 	response.length = sizeof (struct cerberus_protocol_session_sync_response) +
 		sizeof (hmac_expected);
-	response.source_eid = MCTP_PROTOCOL_BMC_EID;
-	response.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	response.crypto_timeout = true;
 
 	memcpy (cerberus_protocol_session_sync_hmac_data (resp), hmac_expected,
 		sizeof (hmac_expected));
 
-	resp->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	resp->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	resp->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	resp->header.crypt = 1;
 	resp->header.command = CERBERUS_PROTOCOL_SESSION_SYNC;
@@ -10926,8 +10926,8 @@ void cerberus_protocol_optional_commands_testing_process_session_sync (CuTest *t
 
 	encrypted_response.length = sizeof (struct cerberus_protocol_session_sync_response) +
 		sizeof (hmac_expected_encrypted);
-	encrypted_response.source_eid = MCTP_PROTOCOL_BMC_EID;
-	encrypted_response.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	encrypted_response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	encrypted_response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	encrypted_response.crypto_timeout = true;
 
 	status = mock_expect (&session->mock, session->base.decrypt_message, session, 0,
@@ -10939,7 +10939,7 @@ void cerberus_protocol_optional_commands_testing_process_session_sync (CuTest *t
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&session->mock, session->base.session_sync, session,
-		sizeof (hmac_expected), MOCK_ARG (MCTP_PROTOCOL_BMC_EID), MOCK_ARG (0xaabbccdd),
+		sizeof (hmac_expected), MOCK_ARG (MCTP_BASE_PROTOCOL_BMC_EID), MOCK_ARG (0xaabbccdd),
 		MOCK_ARG_NOT_NULL, MOCK_ARG_ANY);
 	status |= mock_expect_output (&session->mock, 2, hmac_expected, sizeof (hmac_expected), -1);
 	CuAssertIntEquals (test, 0, status);
@@ -10957,7 +10957,7 @@ void cerberus_protocol_optional_commands_testing_process_session_sync (CuTest *t
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_session_sync_response) +
 		sizeof (hmac_expected_encrypted), request.length);
-	CuAssertIntEquals (test, MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 1, resp->header.crypt);
 	CuAssertIntEquals (test, 0, resp->header.reserved2);
@@ -10975,7 +10975,7 @@ void cerberus_protocol_optional_commands_testing_process_session_sync (CuTest *t
 void cerberus_protocol_optional_commands_testing_process_session_sync_no_session_mgr (CuTest *test,
 	struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_session_sync *rq = (struct cerberus_protocol_session_sync*) data;
 	int status;
@@ -10984,7 +10984,7 @@ void cerberus_protocol_optional_commands_testing_process_session_sync_no_session
 	memset (data, 0, sizeof (data));
 	request.data = data;
 
-	rq->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	rq->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	rq->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	rq->header.crypt = 0;
 	rq->header.command = CERBERUS_PROTOCOL_SESSION_SYNC;
@@ -10992,8 +10992,8 @@ void cerberus_protocol_optional_commands_testing_process_session_sync_no_session
 	rq->rn_req = 0xeeff0011;
 
 	request.length = sizeof (struct cerberus_protocol_session_sync);
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	request.crypto_timeout = false;
 	status = cmd->process_request (cmd, &request);
@@ -11004,9 +11004,9 @@ void cerberus_protocol_optional_commands_testing_process_session_sync_no_session
 void cerberus_protocol_optional_commands_testing_process_session_sync_fail (CuTest *test,
 	struct cmd_interface *cmd, struct session_manager_mock *session)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
-	uint8_t decrypted_data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t decrypted_data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg decrypted_request;
 	struct cerberus_protocol_session_sync *rq = (struct cerberus_protocol_session_sync*) data;
 	struct cerberus_protocol_session_sync *decrypted_rq =
@@ -11021,7 +11021,7 @@ void cerberus_protocol_optional_commands_testing_process_session_sync_fail (CuTe
 	memset (decrypted_data, 0, sizeof (decrypted_data));
 	decrypted_request.data = decrypted_data;
 
-	rq->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	rq->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	rq->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	rq->header.crypt = 1;
 	rq->header.command = CERBERUS_PROTOCOL_SESSION_SYNC;
@@ -11029,10 +11029,10 @@ void cerberus_protocol_optional_commands_testing_process_session_sync_fail (CuTe
 	rq->rn_req = 0xeeff0011;
 
 	request.length = sizeof (struct cerberus_protocol_session_sync);
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	decrypted_rq->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	decrypted_rq->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	decrypted_rq->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	decrypted_rq->header.crypt = 1;
 	decrypted_rq->header.command = CERBERUS_PROTOCOL_SESSION_SYNC;
@@ -11040,8 +11040,8 @@ void cerberus_protocol_optional_commands_testing_process_session_sync_fail (CuTe
 	decrypted_rq->rn_req = 0xaabbccdd;
 
 	decrypted_request.length = sizeof (struct cerberus_protocol_session_sync);
-	decrypted_request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	decrypted_request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	decrypted_request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	decrypted_request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&session->mock, session->base.decrypt_message, session, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,
@@ -11052,7 +11052,7 @@ void cerberus_protocol_optional_commands_testing_process_session_sync_fail (CuTe
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&session->mock, session->base.session_sync, session,
-		SESSION_MANAGER_NO_MEMORY, MOCK_ARG (MCTP_PROTOCOL_BMC_EID), MOCK_ARG (0xaabbccdd),
+		SESSION_MANAGER_NO_MEMORY, MOCK_ARG (MCTP_BASE_PROTOCOL_BMC_EID), MOCK_ARG (0xaabbccdd),
 		MOCK_ARG_NOT_NULL, MOCK_ARG_ANY);
 	CuAssertIntEquals (test, 0, status);
 
@@ -11065,7 +11065,7 @@ void cerberus_protocol_optional_commands_testing_process_session_sync_fail (CuTe
 void cerberus_protocol_optional_commands_testing_process_session_sync_unencrypted (CuTest *test,
 	struct cmd_interface *cmd)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_session_sync *rq = (struct cerberus_protocol_session_sync*) data;
 	int status;
@@ -11074,14 +11074,14 @@ void cerberus_protocol_optional_commands_testing_process_session_sync_unencrypte
 	memset (data, 0, sizeof (data));
 	request.data = data;
 
-	rq->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	rq->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	rq->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	rq->header.crypt = 0;
 	rq->header.command = CERBERUS_PROTOCOL_SESSION_SYNC;
 
 	request.length = sizeof (struct cerberus_protocol_session_sync);
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	rq->rn_req = 0xaabbccdd;
 
@@ -11094,9 +11094,9 @@ void cerberus_protocol_optional_commands_testing_process_session_sync_unencrypte
 void cerberus_protocol_optional_commands_testing_process_session_sync_invalid_len (CuTest *test,
 	struct cmd_interface *cmd, struct session_manager_mock *session)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
-	uint8_t decrypted_data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t decrypted_data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg decrypted_request;
 	struct cerberus_protocol_session_sync *rq = (struct cerberus_protocol_session_sync*) data;
 	struct cerberus_protocol_session_sync *decrypted_rq =
@@ -11111,7 +11111,7 @@ void cerberus_protocol_optional_commands_testing_process_session_sync_invalid_le
 	memset (decrypted_data, 0, sizeof (decrypted_data));
 	decrypted_request.data = decrypted_data;
 
-	rq->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	rq->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	rq->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	rq->header.crypt = 1;
 	rq->header.command = CERBERUS_PROTOCOL_SESSION_SYNC;
@@ -11119,10 +11119,10 @@ void cerberus_protocol_optional_commands_testing_process_session_sync_invalid_le
 	rq->rn_req = 0xeeff0011;
 
 	request.length = sizeof (struct cerberus_protocol_session_sync);
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	decrypted_rq->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	decrypted_rq->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	decrypted_rq->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	decrypted_rq->header.crypt = 1;
 	decrypted_rq->header.command = CERBERUS_PROTOCOL_SESSION_SYNC;
@@ -11130,8 +11130,8 @@ void cerberus_protocol_optional_commands_testing_process_session_sync_invalid_le
 	decrypted_rq->rn_req = 0xaabbccdd;
 
 	decrypted_request.length = sizeof (struct cerberus_protocol_session_sync) - 1;
-	decrypted_request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	decrypted_request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	decrypted_request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	decrypted_request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&session->mock, session->base.decrypt_message, session, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,
@@ -11147,8 +11147,8 @@ void cerberus_protocol_optional_commands_testing_process_session_sync_invalid_le
 	CuAssertIntEquals (test, true, request.crypto_timeout);
 
 	decrypted_request.length = sizeof (struct cerberus_protocol_session_sync) + 1;
-	decrypted_request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	decrypted_request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	decrypted_request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	decrypted_request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&session->mock, session->base.decrypt_message, session, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,

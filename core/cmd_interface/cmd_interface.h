@@ -21,6 +21,7 @@ struct cmd_interface_msg {
 	size_t length;					/**< Length of the data buffer contents. */
 	size_t max_response;			/**< Maximum length allowed for a response. */
 	uint8_t source_eid;				/**< Endpoint ID that generated the message. */
+	uint8_t source_addr;			/**< Address of device that generated the message. */
 	uint8_t target_eid;				/**< Endpoint ID that should process the message. */
 	bool crypto_timeout;			/**< Flag indicating if the message is a request and required
 										cryptographic operations and should be granted a longer

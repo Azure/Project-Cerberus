@@ -22,7 +22,7 @@
 void cerberus_protocol_debug_commands_testing_process_debug_fill_log (CuTest *test,
 	struct cmd_interface *cmd, struct cmd_background_mock *background)
 {
-	uint8_t data[MCTP_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_header header = {0};
 	int status;
@@ -30,14 +30,14 @@ void cerberus_protocol_debug_commands_testing_process_debug_fill_log (CuTest *te
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
 	request.data = data;
-	header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	header.command = CERBERUS_PROTOCOL_DEBUG_FILL_LOG;
 
 	memcpy (request.data, &header, sizeof (header));
 	request.length = CERBERUS_PROTOCOL_MIN_MSG_LEN;
-	request.source_eid = MCTP_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_PROTOCOL_PA_ROT_CTRL_EID;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&background->mock, background->base.debug_log_fill, background, 0);
 	CuAssertIntEquals (test, 0, status);

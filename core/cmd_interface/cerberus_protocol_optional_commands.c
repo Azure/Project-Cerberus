@@ -20,7 +20,6 @@
 #include "cmd_authorization.h"
 #include "cmd_background.h"
 #include "cmd_interface.h"
-#include "device_manager.h"
 #include "session_manager.h"
 #include "recovery/recovery_image.h"
 #include "cerberus_protocol_required_commands.h"

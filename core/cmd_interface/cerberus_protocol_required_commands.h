@@ -199,7 +199,8 @@ struct cerberus_protocol_export_csr_response {
  * Maximum amount of CSR data supported by the local device's configuration
  */
 #define	CERBERUS_PROTOCOL_LOCAL_MAX_CSR_DATA	\
-	((MCTP_PROTOCOL_MAX_MESSAGE_BODY - sizeof (struct cerberus_protocol_export_csr_response)) + sizeof (uint8_t))
+	((MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY - sizeof (struct cerberus_protocol_export_csr_response)) + \
+	sizeof (uint8_t))
 
 /**
  * Cerberus protocol get certificate state request format

@@ -26,7 +26,7 @@
 #include "recovery/recovery_image_cmd_interface.h"
 #include "cmd_device.h"
 #include "common/observable.h"
-#include "cmd_interface/cerberus_protocol_observer.h"
+#include "cerberus_protocol_observer.h"
 
 
 /**
@@ -85,9 +85,9 @@ int cmd_interface_system_init (struct cmd_interface_system *intf,
 	struct session_manager *session);
 void cmd_interface_system_deinit (struct cmd_interface_system *intf);
 
-int cmd_interface_system_add_cerberus_protocol_observer (struct cmd_interface_system *intf, 
+int cmd_interface_system_add_cerberus_protocol_observer (struct cmd_interface_system *intf,
 	struct cerberus_protocol_observer *observer);
-int cmd_interface_system_remove_cerberus_protocol_observer (struct cmd_interface_system *intf, 
+int cmd_interface_system_remove_cerberus_protocol_observer (struct cmd_interface_system *intf,
 	struct cerberus_protocol_observer *observer);
 
 /* Internal functions for use by derived types. */

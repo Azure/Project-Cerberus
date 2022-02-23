@@ -5,7 +5,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <string.h>
-#include "mctp/mctp_protocol.h"
+#include "mctp/mctp_base_protocol.h"
 #include "cerberus_protocol.h"
 #include "session_manager.h"
 #include "cmd_interface.h"
@@ -33,7 +33,7 @@ static int cmd_interface_is_request_encrypted (struct cmd_interface *intf,
 	header = (struct cerberus_protocol_header*) request->data;
 
 	if ((request->length < CERBERUS_PROTOCOL_MIN_MSG_LEN) ||
-		(header->msg_type != MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF) ||
+		(header->msg_type != MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF) ||
 		(header->pci_vendor_id != CERBERUS_PROTOCOL_MSFT_PCI_VID)) {
 		return 0;
 	}
@@ -78,7 +78,7 @@ int cmd_interface_process_cerberus_protocol_message (struct cmd_interface *intf,
 		return CMD_HANDLER_PAYLOAD_TOO_SHORT;
 	}
 
-	if ((header->msg_type != (MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF)) ||
+	if ((header->msg_type != (MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF)) ||
 		(header->pci_vendor_id != CERBERUS_PROTOCOL_MSFT_PCI_VID)) {
 		return CMD_HANDLER_UNSUPPORTED_MSG;
 	}
@@ -180,7 +180,7 @@ int cmd_interface_generate_error_packet (struct cmd_interface *intf,
 	memset (error_msg, 0, sizeof (struct cerberus_protocol_error));
 
 	error_msg->header.rq = cmd_set;
-	error_msg->header.msg_type = MCTP_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	error_msg->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	error_msg->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
 	error_msg->header.command = CERBERUS_PROTOCOL_ERROR;
 

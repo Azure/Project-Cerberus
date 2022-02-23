@@ -10,25 +10,23 @@
 #include "cmd_interface/cmd_channel.h"
 #include "cmd_interface/device_manager.h"
 #include "cmd_interface/cmd_interface.h"
-#include "mctp_protocol.h"
+#include "mctp_base_protocol.h"
 
 
 /**
  * MCTP interface context
  */
 struct mctp_interface {
-	struct cmd_interface *cmd_interface;					/**< Command interface instance */
+	struct cmd_interface *cmd_cerberus;						/**< Command interface instance to handle Cerberus protocol messages */
+	struct cmd_interface *cmd_mctp;							/**< Command interface instance to handle MCTP control protocol messages */
 	struct device_manager *device_manager;					/**< Device manager linked to command interface */
-	uint8_t msg_buffer[MCTP_PROTOCOL_MAX_MESSAGE_LEN];		/**< Buffer for MCTP messages */
+	uint8_t msg_buffer[MCTP_BASE_PROTOCOL_MAX_MESSAGE_LEN];	/**< Buffer for MCTP messages */
 	struct cmd_message resp_buffer;							/**< Buffer for transmitting responses */
 	struct cmd_interface_msg req_buffer;					/**< Buffer for request processing */
 	int start_packet_len;									/**< Length of MCTP start packet */
-	uint16_t pci_vendor_id;									/**< Protocol PCI vendor ID */
-	uint16_t protocol_version;								/**< Protocol version */
 	uint8_t packet_seq;										/**< Current MCTP exchange packet sequence */
 	uint8_t msg_tag;										/**< Current MCTP exchange message tag */
 	uint8_t msg_type;										/**< Current MCTP exchange message type */
-	uint8_t eid;											/**< MCTP EID to listen to */
 	int channel_id;											/**< Channel ID associated with the interface. */
 	uint8_t response_eid;									/**< MCTP EID for device we expect a response from */
 	uint8_t response_msg_tag;								/**< MCTP message tag for transaction we expect response for */
@@ -40,8 +38,8 @@ struct mctp_interface {
 };
 
 
-int mctp_interface_init (struct mctp_interface *mctp, struct cmd_interface *cmd_interface,
-	struct device_manager *device_mgr, uint8_t eid, uint16_t pci_vid, uint16_t protocol_version);
+int mctp_interface_init (struct mctp_interface *mctp, struct cmd_interface *cmd_cerberus,
+	struct cmd_interface *cmd_mctp, struct device_manager *device_mgr);
 void mctp_interface_deinit (struct mctp_interface *mctp);
 
 int mctp_interface_set_channel_id (struct mctp_interface *mctp, int channel_id);

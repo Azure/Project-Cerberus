@@ -41,29 +41,29 @@
 /**
  * The maximum supported payload size for an MCTP packet.
  */
-// #define MCTP_PROTOCOL_MAX_TRANSMISSION_UNIT				247
+// #define MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT				247
 
 /**
  * The maximum supported body size for an MCTP message.
  */
-// #define MCTP_PROTOCOL_MAX_MESSAGE_BODY					4096
+// #define MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY					4096
 
 /**
  * The maximum time allowed after receiving a completed request before the response must start
  * transmission.  The timeout is in milliseconds.
  */
-// #define MCTP_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS			100
+// #define MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS			100
 
 /**
  * The maximum time allowed after receiving a completed cryptographic request before the response
  * must start transmission.  This timeout is in milliseconds.
  */
-// #define MCTP_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS				1000
+// #define MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS				1000
 
 /**
  * The VID set value to utilize in a Get Vendor Defined Message Support response.
  */
-// #define CERBERUS_VID_SET_RESPONSE						0xFF
+// #define CERBERUS_VID_SET_RESPONSE							0xFF
 
 
 #endif /* PLATFORM_CONFIG_H_ */
