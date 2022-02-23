@@ -190,7 +190,8 @@ int pfm_manager_flash_init_port (struct pfm_manager_flash *manager, struct pfm_f
 
 	status = manifest_manager_flash_init (&manager->manifest_manager, &manager->base.base,
 		&pfm_region1->base.base, &pfm_region2->base.base, &pfm_region1->base_flash,
-		&pfm_region2->base_flash, &state->base, hash, verification, 0, MANIFEST_LOGGING_EMPTY_PFM);
+		&pfm_region2->base_flash, &state->base, hash, verification, 0, MANIFEST_LOGGING_EMPTY_PFM,
+		false);
 	if (status != 0) {
 		goto manifest_base_error;
 	}

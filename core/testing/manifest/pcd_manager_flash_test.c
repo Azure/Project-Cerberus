@@ -323,6 +323,20 @@ static int pcd_manager_flash_testing_verify_pcd_empty (struct pcd_manager_flash_
 }
 
 /**
+ * Set up expectations for verifying a SKU-specific PCD on flash.
+ *
+ * @param manager The testing components.
+ * @param address The base address of the PCD.
+ *
+ * @return 0 if the expectations were set up successfully or an error code.
+ */
+static int pcd_manager_flash_testing_verify_sku_specific_pcd (
+	struct pcd_manager_flash_testing *manager, uint32_t address)
+{
+	return pcd_manager_flash_testing_verify_a_pcd (manager, address, &PCD_SKU_SPECIFIC_TESTING, 0);
+}
+
+/**
  * Set up expectations for verifying the PCDs during initialization.
  *
  * @param manager The testing components.
@@ -2133,6 +2147,57 @@ static void pcd_manager_flash_test_verify_pending_pcd_different_platform_id (CuT
 	pcd_manager_flash_testing_validate_and_release (test, &manager);
 }
 
+static void pcd_manager_flash_test_verify_pending_pcd_upgrade_platform_id (CuTest *test)
+{
+	struct pcd_manager_flash_testing manager;
+	int status;
+
+	TEST_START;
+
+	pcd_manager_flash_testing_init (test, &manager, 0x10000, 0x20000,
+		pcd_manager_flash_testing_verify_pcd, NULL, true);
+
+	CuAssertPtrEquals (test, &manager.pcd1, manager.test.base.get_active_pcd (&manager.test.base));
+
+	pcd_manager_flash_testing_write_new_pcd (test, &manager, 0x20000);
+
+	status = pcd_manager_flash_testing_verify_a_pcd (&manager, 0x20000, &PCD_SKU_SPECIFIC_TESTING, 
+		0); 
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrEquals (test, &manager.pcd1, manager.test.base.get_active_pcd (&manager.test.base));
+
+	pcd_manager_flash_testing_validate_and_release (test, &manager);
+}
+
+static void pcd_manager_flash_test_verify_pending_pcd_downgrade_platform_id (CuTest *test)
+{
+	struct pcd_manager_flash_testing manager;
+	int status;
+
+	TEST_START;
+
+	pcd_manager_flash_testing_init (test, &manager, 0x10000, 0x20000,
+		pcd_manager_flash_testing_verify_sku_specific_pcd, NULL, true);
+
+	CuAssertPtrEquals (test, &manager.pcd1, manager.test.base.get_active_pcd (&manager.test.base));
+
+	pcd_manager_flash_testing_write_new_pcd (test, &manager, 0x20000);
+
+	status = pcd_manager_flash_testing_verify_a_pcd (&manager, 0x20000, &PCD_TESTING, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
+	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ID, status);
+
+	CuAssertPtrEquals (test, &manager.pcd1, manager.test.base.get_active_pcd (&manager.test.base));
+
+	pcd_manager_flash_testing_validate_and_release (test, &manager);
+}
+
 static void pcd_manager_flash_test_verify_pending_pcd_no_clear_region2 (CuTest *test)
 {
 	struct pcd_manager_flash_testing manager;
@@ -3023,6 +3088,8 @@ TEST (pcd_manager_flash_test_verify_pending_pcd_with_active);
 TEST (pcd_manager_flash_test_verify_pending_pcd_lower_id);
 TEST (pcd_manager_flash_test_verify_pending_pcd_same_id);
 TEST (pcd_manager_flash_test_verify_pending_pcd_different_platform_id);
+TEST (pcd_manager_flash_test_verify_pending_pcd_upgrade_platform_id);
+TEST (pcd_manager_flash_test_verify_pending_pcd_downgrade_platform_id);
 TEST (pcd_manager_flash_test_verify_pending_pcd_no_clear_region2);
 TEST (pcd_manager_flash_test_verify_pending_pcd_no_clear_region1);
 TEST (pcd_manager_flash_test_verify_pending_pcd_extra_data_written);

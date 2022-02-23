@@ -155,7 +155,7 @@ int pcd_manager_flash_init (struct pcd_manager_flash *manager, struct pcd_flash 
 	status = manifest_manager_flash_init (&manager->manifest_manager, &manager->base.base,
 		&pcd_region1->base.base, &pcd_region2->base.base, &pcd_region1->base_flash,
 		&pcd_region2->base_flash, state, hash, verification, SYSTEM_STATE_MANIFEST_PCD,
-		MANIFEST_LOGGING_EMPTY_PCD);
+		MANIFEST_LOGGING_EMPTY_PCD, true);
 	if (status != 0) {
 		pcd_manager_release (&manager->base);
 		return status;

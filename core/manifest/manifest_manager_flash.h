@@ -44,6 +44,7 @@ struct manifest_manager_flash {
 	struct flash_updater *updating;					/**< The update manager being used to write new manifest data. */
 	platform_mutex lock;							/**< Synchronization for flash manager state. */
 	uint8_t manifest_index;							/**< Index of manifest in state manager. */
+	bool sku_upgrade_permitted;						/**< Manifest permitted to upgrade from generic to SKU-specific */
 
 	/**
 	 * Function called after standard manifest verification has been completed successfully.  This
@@ -61,7 +62,8 @@ int manifest_manager_flash_init (struct manifest_manager_flash *manager,
 	struct manifest_manager *base, struct manifest *region1, struct manifest *region2,
 	struct manifest_flash *region1_flash, struct manifest_flash *region2_flash,
 	struct state_manager *state, struct hash_engine *hash,
-	struct signature_verification *verification, uint8_t manifest_index, uint8_t log_msg_empty);
+	struct signature_verification *verification, uint8_t manifest_index, uint8_t log_msg_empty,
+	bool sku_upgrade_permitted);
 void manifest_manager_flash_release (struct manifest_manager_flash *manager);
 
 struct manifest_manager_flash_region* manifest_manager_flash_get_region (

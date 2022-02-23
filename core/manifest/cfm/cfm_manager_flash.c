@@ -162,7 +162,7 @@ int cfm_manager_flash_init (struct cfm_manager_flash *manager, struct cfm_flash 
 	status = manifest_manager_flash_init (&manager->manifest_manager, &manager->base.base,
 		&cfm_region1->base.base, &cfm_region2->base.base, &cfm_region1->base_flash,
 		&cfm_region2->base_flash, state, hash, verification, SYSTEM_STATE_MANIFEST_CFM,
-		MANIFEST_LOGGING_EMPTY_CFM);
+		MANIFEST_LOGGING_EMPTY_CFM, false);
 	if (status != 0) {
 		cfm_manager_release (&manager->base);
 		return status;

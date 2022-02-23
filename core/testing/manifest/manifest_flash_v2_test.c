@@ -13,7 +13,7 @@
 #include "crypto/rsa.h"
 #include "manifest_flash_v2_testing.h"
 #include "pfm_flash_v2_testing.h"
-
+#include "pcd_testing.h"
 
 TEST_SUITE_LABEL ("manifest_flash_v2");
 
@@ -7413,8 +7413,68 @@ static void manifest_flash_v2_test_compare_platform_id_equal (CuTest *test)
 	manifest_flash_v2_testing_init_and_verify (test, &manifest2, 0x20000, PFM_MAGIC_NUM,
 		PFM_V2_MAGIC_NUM, &PFM_V2_PLAT_FIRST.manifest, 0, false, 0);
 
-	status = manifest_flash_compare_platform_id (&manifest1.test, &manifest2.test);
+	status = manifest_flash_compare_platform_id (&manifest1.test, &manifest2.test, false);
 	CuAssertIntEquals (test, 0, status);
+
+	manifest_flash_v2_testing_validate_and_release (test, &manifest1);
+	manifest_flash_v2_testing_validate_and_release (test, &manifest2);
+}
+
+static void manifest_flash_v2_test_compare_platform_id_sku_upgrade (CuTest *test)
+{
+	struct manifest_flash_v2_testing manifest1;
+	struct manifest_flash_v2_testing manifest2;
+	int status;
+
+	TEST_START;
+
+	manifest_flash_v2_testing_init_and_verify (test, &manifest1, 0x10000, PCD_MAGIC_NUM,
+		PCD_V2_MAGIC_NUM, &PCD_TESTING.manifest, 0, false, 0);
+	manifest_flash_v2_testing_init_and_verify (test, &manifest2, 0x20000, PCD_MAGIC_NUM,
+		PCD_V2_MAGIC_NUM, &PCD_SKU_SPECIFIC_TESTING.manifest, 0, false, 0);
+
+	status = manifest_flash_compare_platform_id (&manifest1.test, &manifest2.test, true);
+	CuAssertIntEquals (test, 0, status);
+
+	manifest_flash_v2_testing_validate_and_release (test, &manifest1);
+	manifest_flash_v2_testing_validate_and_release (test, &manifest2);
+}
+
+static void manifest_flash_v2_test_compare_platform_id_sku_upgrade_not_permitted (CuTest *test)
+{
+	struct manifest_flash_v2_testing manifest1;
+	struct manifest_flash_v2_testing manifest2;
+	int status;
+
+	TEST_START;
+
+	manifest_flash_v2_testing_init_and_verify (test, &manifest1, 0x10000, PCD_MAGIC_NUM,
+		PCD_V2_MAGIC_NUM, &PCD_TESTING.manifest, 0, false, 0);
+	manifest_flash_v2_testing_init_and_verify (test, &manifest2, 0x20000, PCD_MAGIC_NUM,
+		PCD_V2_MAGIC_NUM, &PCD_SKU_SPECIFIC_TESTING.manifest, 0, false, 0);
+
+	status = manifest_flash_compare_platform_id (&manifest1.test, &manifest2.test, false);
+	CuAssertIntEquals (test, 1, status);
+
+	manifest_flash_v2_testing_validate_and_release (test, &manifest1);
+	manifest_flash_v2_testing_validate_and_release (test, &manifest2);
+}
+
+static void manifest_flash_v2_test_compare_platform_id_sku_downgrade (CuTest *test)
+{
+	struct manifest_flash_v2_testing manifest1;
+	struct manifest_flash_v2_testing manifest2;
+	int status;
+
+	TEST_START;
+
+	manifest_flash_v2_testing_init_and_verify (test, &manifest1, 0x10000, PCD_MAGIC_NUM,
+		PCD_V2_MAGIC_NUM, &PCD_SKU_SPECIFIC_TESTING.manifest, 0, false, 0);
+	manifest_flash_v2_testing_init_and_verify (test, &manifest2, 0x20000, PCD_MAGIC_NUM,
+		PCD_V2_MAGIC_NUM, &PCD_TESTING.manifest, 0, false, 0);
+
+	status = manifest_flash_compare_platform_id (&manifest1.test, &manifest2.test, true);
+	CuAssertIntEquals (test, 1, status);
 
 	manifest_flash_v2_testing_validate_and_release (test, &manifest1);
 	manifest_flash_v2_testing_validate_and_release (test, &manifest2);
@@ -7433,7 +7493,7 @@ static void manifest_flash_v2_test_compare_platform_id_different (CuTest *test)
 	manifest_flash_v2_testing_init_and_verify (test, &manifest2, 0x20000, PFM_MAGIC_NUM,
 		PFM_V2_MAGIC_NUM, &PFM_V2_TWO_FW.manifest, 0, false, 0);
 
-	status = manifest_flash_compare_platform_id (&manifest2.test, &manifest1.test);
+	status = manifest_flash_compare_platform_id (&manifest2.test, &manifest1.test, false);
 	CuAssertIntEquals (test, 1, status);
 
 	manifest_flash_v2_testing_validate_and_release (test, &manifest1);
@@ -7453,7 +7513,7 @@ static void manifest_flash_v2_test_compare_platform_id_no_manifest1 (CuTest *tes
 	manifest_flash_v2_testing_init_and_verify (test, &manifest2, 0x20000, PFM_MAGIC_NUM,
 		PFM_V2_MAGIC_NUM, &PFM_V2_PLAT_FIRST.manifest, 0, false, 0);
 
-	status = manifest_flash_compare_platform_id (&manifest1.test, &manifest2.test);
+	status = manifest_flash_compare_platform_id (&manifest1.test, &manifest2.test, false);
 	CuAssertIntEquals (test, MANIFEST_NO_MANIFEST, status);
 
 	manifest_flash_v2_testing_validate_and_release (test, &manifest1);
@@ -7473,7 +7533,7 @@ static void manifest_flash_v2_test_compare_platform_id_no_manifest2 (CuTest *tes
 	manifest_flash_v2_testing_init (test, &manifest2, 0x20000, PFM_MAGIC_NUM,
 		PFM_V2_MAGIC_NUM);
 
-	status = manifest_flash_compare_platform_id (&manifest1.test, &manifest2.test);
+	status = manifest_flash_compare_platform_id (&manifest1.test, &manifest2.test, false);
 	CuAssertIntEquals (test, MANIFEST_NO_MANIFEST, status);
 
 	manifest_flash_v2_testing_validate_and_release (test, &manifest1);
@@ -7493,7 +7553,7 @@ static void manifest_flash_v2_test_compare_platform_id_no_manifests (CuTest *tes
 	manifest_flash_v2_testing_init (test, &manifest2, 0x20000, PFM_MAGIC_NUM,
 		PFM_V2_MAGIC_NUM);
 
-	status = manifest_flash_compare_platform_id (&manifest1.test, &manifest2.test);
+	status = manifest_flash_compare_platform_id (&manifest1.test, &manifest2.test, false);
 	CuAssertIntEquals (test, MANIFEST_NO_MANIFEST, status);
 
 	manifest_flash_v2_testing_validate_and_release (test, &manifest1);
@@ -7510,7 +7570,7 @@ static void manifest_flash_v2_test_compare_platform_id_null_manifest1 (CuTest *t
 	manifest_flash_v2_testing_init_and_verify (test, &manifest2, 0x20000, PFM_MAGIC_NUM,
 		PFM_V2_MAGIC_NUM, &PFM_V2_PLAT_FIRST.manifest, 0, false, 0);
 
-	status = manifest_flash_compare_platform_id (NULL, &manifest2.test);
+	status = manifest_flash_compare_platform_id (NULL, &manifest2.test, false);
 	CuAssertIntEquals (test, MANIFEST_INVALID_ARGUMENT, status);
 
 	manifest_flash_v2_testing_validate_and_release (test, &manifest2);
@@ -7526,7 +7586,7 @@ static void manifest_flash_v2_test_compare_platform_id_null_manifest2 (CuTest *t
 	manifest_flash_v2_testing_init_and_verify (test, &manifest1, 0x10000, PFM_MAGIC_NUM,
 		PFM_V2_MAGIC_NUM, &PFM_V2.manifest, 0, false, 0);
 
-	status = manifest_flash_compare_platform_id (&manifest1.test, NULL);
+	status = manifest_flash_compare_platform_id (&manifest1.test, NULL, false);
 	CuAssertIntEquals (test, MANIFEST_INVALID_ARGUMENT, status);
 
 	manifest_flash_v2_testing_validate_and_release (test, &manifest1);
@@ -7538,7 +7598,7 @@ static void manifest_flash_v2_test_compare_platform_id_both_null (CuTest *test)
 
 	TEST_START;
 
-	status = manifest_flash_compare_platform_id (NULL, NULL);
+	status = manifest_flash_compare_platform_id (NULL, NULL, false);
 	CuAssertIntEquals (test, MANIFEST_INVALID_ARGUMENT, status);
 }
 
@@ -7712,6 +7772,9 @@ TEST (manifest_flash_v2_test_read_element_data_element_hash_error);
 TEST (manifest_flash_v2_test_read_element_data_extra_element_data_read_error);
 TEST (manifest_flash_v2_test_read_element_data_finish_element_hash_error);
 TEST (manifest_flash_v2_test_compare_platform_id_equal);
+TEST (manifest_flash_v2_test_compare_platform_id_sku_upgrade);
+TEST (manifest_flash_v2_test_compare_platform_id_sku_upgrade_not_permitted);
+TEST (manifest_flash_v2_test_compare_platform_id_sku_downgrade);
 TEST (manifest_flash_v2_test_compare_platform_id_different);
 TEST (manifest_flash_v2_test_compare_platform_id_no_manifest1);
 TEST (manifest_flash_v2_test_compare_platform_id_no_manifest2);

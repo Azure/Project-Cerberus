@@ -70,7 +70,7 @@ struct flash* manifest_flash_get_flash (struct manifest_flash *manifest);
 
 int manifest_flash_compare_id (struct manifest_flash *manifest1, struct manifest_flash *manifest2);
 int manifest_flash_compare_platform_id (struct manifest_flash *manifest1,
-	struct manifest_flash *manifest2);
+	struct manifest_flash *manifest2, bool sku_upgrade_permitted);
 
 
 #endif //MANIFEST_FLASH_H

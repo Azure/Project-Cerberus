@@ -87,7 +87,8 @@ static int manifest_manager_flash_check_pending_platform_id (struct manifest_man
 	pending = manifest_manager_flash_get_region (manager, false);
 
 	if (active->is_valid && pending->is_valid) {
-		status = manifest_flash_compare_platform_id (active->flash, pending->flash);
+		status = manifest_flash_compare_platform_id (active->flash, pending->flash, 
+			manager->sku_upgrade_permitted);
 		if (status == 1) {
 			pending->is_valid = false;
 			status = MANIFEST_MANAGER_INCOMPATIBLE;
@@ -144,6 +145,7 @@ static int manifest_manager_flash_check_empty_manifest (struct manifest_manager_
  * @param verification The module to use for manifest verification.
  * @param manifest_index State manager manifest index to use for maintaining active region state.
  * @param log_msg_empty The log message identifier to use when an empty pending manifest is present.
+ * @param sku_upgrade_permitted Manifest permitted to upgrade from generic to SKU-specific.
  *
  * @return 0 if the manifest manager was successfully initialized or an error code.
  */
@@ -151,7 +153,8 @@ int manifest_manager_flash_init (struct manifest_manager_flash *manager,
 	struct manifest_manager *base, struct manifest *region1, struct manifest *region2,
 	struct manifest_flash *region1_flash, struct manifest_flash *region2_flash,
 	struct state_manager *state, struct hash_engine *hash,
-	struct signature_verification *verification, uint8_t manifest_index, uint8_t log_msg_empty)
+	struct signature_verification *verification, uint8_t manifest_index, uint8_t log_msg_empty,
+	bool sku_upgrade_permitted)
 {
 	int status;
 
@@ -168,6 +171,7 @@ int manifest_manager_flash_init (struct manifest_manager_flash *manager,
 	manager->hash = hash;
 	manager->verification = verification;
 	manager->manifest_index = manifest_index;
+	manager->sku_upgrade_permitted = sku_upgrade_permitted;
 
 	status = state->is_manifest_valid (state, manifest_index);
 	if (status != 0) {

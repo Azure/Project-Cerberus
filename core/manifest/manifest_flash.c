@@ -945,13 +945,14 @@ int manifest_flash_compare_id (struct manifest_flash *manifest1, struct manifest
  * Compare the platform IDs of two manifests.  If either manifest is invalid, an error will be
  * returned.
  *
- * @param manifest1 The first manifest for comparison.
- * @param manifest2 The second manifest for comparison.
+ * @param manifest1 The active manifest for comparison.
+ * @param manifest2 The pending manifest for comparison.
+ * @param sku_upgrade_permitted Manifest permitted to upgrade from generic to SKU-specific.
  *
  * @return 0 if both manifests have the same platform ID, 1 if not, or an error code.
  */
 int manifest_flash_compare_platform_id (struct manifest_flash *manifest1,
-	struct manifest_flash *manifest2)
+	struct manifest_flash *manifest2, bool sku_upgrade_permitted)
 {
 	if ((manifest1 == NULL) || (manifest2 == NULL)) {
 		return MANIFEST_INVALID_ARGUMENT;
@@ -960,11 +961,12 @@ int manifest_flash_compare_platform_id (struct manifest_flash *manifest1,
 	if (!manifest1->manifest_valid || !manifest2->manifest_valid) {
 		return MANIFEST_NO_MANIFEST;
 	}
-
-	if (strcmp (manifest1->platform_id, manifest2->platform_id) == 0) {
-		return 0;
+	
+	if (sku_upgrade_permitted) {
+		return (strncmp (manifest1->platform_id, manifest2->platform_id, 
+			strlen (manifest1->platform_id)) != 0);
 	}
 	else {
-		return 1;
+		return (strcmp (manifest1->platform_id, manifest2->platform_id) != 0);
 	}
 }
