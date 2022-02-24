@@ -910,12 +910,12 @@ int manifest_flash_get_num_child_elements (struct manifest_flash *manifest,
 		return MANIFEST_NO_MANIFEST;
 	}
 
-	if (entry >= manifest->toc_header.entry_count) {
-		return 0;
-	}
-
 	if (child_len != NULL) {
 		*child_len = 0;
+	}
+
+	if (entry >= manifest->toc_header.entry_count) {
+		return 0;
 	}
 
 	entry_addr = manifest->addr + sizeof (struct manifest_header) +

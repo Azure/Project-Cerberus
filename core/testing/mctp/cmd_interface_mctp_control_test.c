@@ -1205,6 +1205,8 @@ static void cmd_interface_mctp_control_test_remove_mctp_control_protocol_observe
 	CuAssertIntEquals (test, MCTP_CONTROL_SET_EID_ALLOCATION_STATUS_NO_EID_POOL,
 		rsp->eid_allocation_status);
 	CuAssertIntEquals (test, 0, rsp->eid_pool_size);
+
+	complete_cmd_interface_mctp_control_test (test, &cmd);
 }
 
 static void cmd_interface_mctp_control_test_remove_mctp_control_protocol_observer_invalid_arg (

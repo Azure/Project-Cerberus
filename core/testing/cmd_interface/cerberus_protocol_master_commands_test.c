@@ -1357,7 +1357,7 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_reg
 	struct cerberus_protocol_get_cfm_component_ids_response *resp =
 		(struct cerberus_protocol_get_cfm_component_ids_response*) data;
 	const char *types[3] = {"Component1", "Component2", "Component3"};
-	uint8_t types_buf[36];
+	uint8_t types_buf[33];
 	uint32_t cfm_id = 0xAABBCCDD;
 	uint32_t offset = 0;
 	size_t length;
@@ -1450,7 +1450,7 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_reg
 	struct cerberus_protocol_get_cfm_component_ids_response *resp =
 		(struct cerberus_protocol_get_cfm_component_ids_response*) data;
 	const char *types[3] = {"Component1", "Component2", "Component3"};
-	uint8_t types_buf[36];
+	uint8_t types_buf[33];
 	uint32_t cfm_id = 0xAABBCCDD;
 	uint32_t offset = 0;
 	size_t length;
@@ -1543,7 +1543,7 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_non
 	struct cerberus_protocol_get_cfm_component_ids_response *resp =
 		(struct cerberus_protocol_get_cfm_component_ids_response*) data;
 	const char *types[3] = {"Component1", "Component2", "Component3"};
-	uint8_t types_buf[36];
+	uint8_t types_buf[33];
 	uint32_t cfm_id = 0xAABBCCDD;
 	uint32_t offset = 0;
 	size_t length;
@@ -1636,7 +1636,7 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_lim
 	struct cerberus_protocol_get_cfm_component_ids_response *resp =
 		(struct cerberus_protocol_get_cfm_component_ids_response*) data;
 	const char *types[3] = {"Component1", "Component2", "Component3"};
-	uint8_t types_buf[36];
+	uint8_t types_buf[33];
 	uint32_t cfm_id = 0xAABBCCDD;
 	uint32_t offset = 0;
 	size_t length;
@@ -2048,7 +2048,7 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_inv
 	struct cerberus_protocol_get_cfm_component_ids_response *resp =
 		(struct cerberus_protocol_get_cfm_component_ids_response*) data;
 	const char *types[3] = {"Component1", "Component2", "Component3"};
-	uint8_t types_buf[36];
+	uint8_t types_buf[33];
 	uint32_t cfm_id = 0xAABBCCDD;
 	uint32_t offset = 0;
 	size_t length;
