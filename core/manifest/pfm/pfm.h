@@ -147,7 +147,7 @@ struct pfm {
 	void (*free_fw_versions) (struct pfm *pfm, struct pfm_firmware_versions *ver_list);
 
 	/**
-	 * Get the list of supported firmware versions advertised int the PFM, but the list of version
+	 * Get the list of supported firmware versions advertised in the PFM, but the list of version
 	 * strings will be populated directly in the provided buffer instead of allocating a PFM
 	 * structure.
 	 *

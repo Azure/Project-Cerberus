@@ -3046,6 +3046,35 @@ static void hash_test_calculate_sha512_small_buffer (CuTest *test)
 }
 #endif
 
+static void hash_test_get_hash_len (CuTest *test)
+{
+	int status;
+
+	TEST_START;
+
+	status = hash_get_hash_len (HASH_TYPE_SHA1);
+	CuAssertIntEquals (test, SHA1_HASH_LENGTH, status);
+
+	status = hash_get_hash_len (HASH_TYPE_SHA256);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = hash_get_hash_len (HASH_TYPE_SHA384);
+	CuAssertIntEquals (test, SHA384_HASH_LENGTH, status);
+
+	status = hash_get_hash_len (HASH_TYPE_SHA512);
+	CuAssertIntEquals (test, SHA512_HASH_LENGTH, status);
+}
+
+static void hash_test_get_hash_len_unsupported (CuTest *test)
+{
+	int status;
+
+	TEST_START;
+
+	status = hash_get_hash_len (4);
+	CuAssertIntEquals (test, HASH_ENGINE_UNKNOWN_HASH, status);
+}
+
 
 TEST_SUITE_START (hash);
 
@@ -3161,5 +3190,7 @@ TEST (hash_test_calculate_sha384_small_buffer);
 #ifdef HASH_ENABLE_SHA512
 TEST (hash_test_calculate_sha512_small_buffer);
 #endif
+TEST (hash_test_get_hash_len);
+TEST (hash_test_get_hash_len_unsupported);
 
 TEST_SUITE_END;

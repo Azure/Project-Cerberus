@@ -1,0 +1,128 @@
+<CFMComponent type="Component1" attestation_protocol="Cerberus" slot_num="1">
+	<RootCADigest>
+		<HashType>SHA256</HashType>
+		<Digest>
+			EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+		</Digest>
+		<Digest>
+			FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+		</Digest>
+	</RootCADigest>
+	<PMR pmr_id="1">
+		<HashType>SHA256</HashType>
+		<InitialValue>
+			1111111111111111111111111111111111111111111111111111111111111111
+		</InitialValue>
+	</PMR>
+	<PMR pmr_id="2">
+		<HashType>SHA512</HashType>
+		<InitialValue>
+			11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111
+		</InitialValue>
+	</PMR>
+	<PMRDigest pmr_id="0">
+		<HashType>SHA256</HashType>
+		<Digest>
+			AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+		</Digest>
+		<Digest>
+			BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
+		</Digest>
+	</PMRDigest>
+	<PMRDigest pmr_id="4">
+		<HashType>SHA512</HashType>
+		<Digest>
+			CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+		</Digest>
+	</PMRDigest>
+	<Measurement pmr_id = "1" measurement_id="2">
+		<HashType>SHA256</HashType>
+		<Digest>
+			CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+		</Digest>
+		<Digest>
+			EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+		</Digest>
+	</Measurement>
+	<Measurement pmr_id = "2" measurement_id="2">
+		<HashType>SHA256</HashType>
+		<Digest>
+			CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+		</Digest>
+	</Measurement>
+	<MeasurementData pmr_id="1" measurement_id="2">
+		<AllowableData>
+			<Check>Equal</Check>
+			<Data>
+				"Test1"
+			</Data>
+			<Data>
+				"Test2"
+			</Data>
+			<Bitmask>
+				00FF00FFFF
+			</Bitmask>
+		</AllowableData>
+		<AllowableData>
+			<Check>GreaterThan</Check>
+			<Data>
+				0000220000
+			</Data>
+			<Bitmask>
+				0000FF0000
+			</Bitmask>
+		</AllowableData>
+	</MeasurementData>
+	<MeasurementData pmr_id="1" measurement_id="4">
+		<AllowableData>
+			<Check>NotEqual</Check>
+			<Data>
+				6543
+			</Data>
+			<Bitmask>
+				00FF
+			</Bitmask>
+		</AllowableData>
+		<AllowableData>
+			<Check>NotEqual</Check>
+			<Data>
+				1011
+			</Data>
+		</AllowableData>
+	</MeasurementData>
+	<AllowablePFM port="1" platform="platformA">
+		<ManifestID>
+			<Check>Equal</Check>
+			<ID>0x99</ID>
+			<ID>0x9A</ID>
+		</ManifestID>
+		<ManifestID>
+			<Check>GreaterThan</Check>
+			<ID>0x9D</ID>
+		</ManifestID>
+	</AllowablePFM>
+	<AllowablePFM port="2" platform="platformB">
+		<ManifestID>
+			<Check>LessOrEqual</Check>
+			<ID>0x55</ID>
+		</ManifestID>
+	</AllowablePFM>
+	<AllowableCFM index="1" platform="platformC">
+		<ManifestID>
+			<Check>GreaterThan</Check>
+			<ID>0x12</ID>
+		</ManifestID>
+	</AllowableCFM>
+	<AllowableCFM index="2" platform="platformE">
+		<ManifestID>
+			<Check>Equal</Check>
+			<ID>0xAB</ID>
+		</ManifestID>
+	</AllowableCFM>
+	<AllowablePCD platform="platformD">
+		<ManifestID>
+			<Check>LessOrEqual</Check>
+			<ID>0x34</ID>
+		</ManifestID>
+	</AllowablePCD>
+</CFMComponent>

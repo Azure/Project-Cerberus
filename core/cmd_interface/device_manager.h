@@ -6,7 +6,9 @@
 
 #include <stdint.h>
 #include "status/rot_status.h"
+#include "manifest/manifest_format.h"
 #include "common/certificate.h"
+#include "crypto/hash.h"
 
 
 /**
@@ -149,6 +151,7 @@ struct device_manager_entry {
 	struct device_manager_info info;					/**< Device info and capabilities*/
 	struct device_manager_cert_chain cert_chain;		/**< Device certificate chain */
 	uint8_t state;										/**< Device state */
+	uint8_t component_type[SHA256_HASH_LENGTH];			/**< Digest of component type key in PCD and CFM */
 };
 
 /**
@@ -204,6 +207,10 @@ int device_manager_get_device_cert_chain (struct device_manager *mgr, int device
 
 int device_manager_get_device_state (struct device_manager *mgr, int device_num);
 int device_manager_update_device_state (struct device_manager *mgr, int device_num, int state);
+
+const uint8_t* device_manager_get_component_type (struct device_manager *mgr, uint8_t eid);
+int device_manager_update_component_type (struct device_manager *mgr, struct hash_engine *hash,
+	uint8_t eid, const char* component_type);
 
 
 #define	DEVICE_MGR_ERROR(code)		ROT_ERROR (ROT_MODULE_DEVICE_MANAGER, code)

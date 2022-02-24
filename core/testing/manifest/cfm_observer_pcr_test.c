@@ -30,6 +30,14 @@ static const uint8_t CFM_PLATFORM_ID_HASH[] = {
  */
 static const uint32_t CFM_PLATFORM_ID_HASH_LEN = sizeof (CFM_PLATFORM_ID_HASH);
 
+/**
+ * CFM_DATA hash digest for testing.
+ */
+const uint8_t CFM_HASH_DIGEST[] = {
+	0x8a,0xfd,0xac,0x0f,0x82,0x6a,0x88,0x25,0x30,0x92,0x98,0xbd,0xc1,0x40,0xda,0xad,
+	0xa1,0x96,0x8e,0x56,0xc0,0x9a,0x3d,0x02,0x7f,0xf6,0xe7,0xbc,0xc0,0xfe,0xd3,0x5a
+};
+
 
 /*******************
  * Test cases
@@ -225,9 +233,10 @@ static void cfm_observer_pcr_test_on_cfm_activated (CuTest *test)
 		SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&cfm.mock, cfm.base.base.get_hash, &cfm, CFM_HASH_LEN, MOCK_ARG (&hash),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
-	status |= mock_expect_output (&cfm.mock, 1, CFM_HASH, CFM_HASH_LEN, 2);
+	status = mock_expect (&cfm.mock, cfm.base.base.get_hash, &cfm, CFM_TESTING.manifest.hash_len,
+		MOCK_ARG (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+	status |= mock_expect_output (&cfm.mock, 1, CFM_TESTING.manifest.hash,
+		CFM_TESTING.manifest.hash_len, 2);
 
 	status |= mock_expect (&cfm.mock, cfm.base.base.get_id, &cfm, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&cfm.mock, 0, &id, sizeof (uint32_t), -1);
@@ -246,7 +255,8 @@ static void cfm_observer_pcr_test_on_cfm_activated (CuTest *test)
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
 	CuAssertIntEquals (test, 0, status);
 
-	status = testing_validate_array (CFM_HASH_DIGEST, measurement.digest, CFM_HASH_LEN);
+	status = testing_validate_array (CFM_HASH_DIGEST, measurement.digest,
+		CFM_TESTING.manifest.hash_len);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 1), &id_measurement);
@@ -616,9 +626,10 @@ static void cfm_observer_pcr_test_on_cfm_activated_get_id_error (CuTest *test)
 		SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&cfm.mock, cfm.base.base.get_hash, &cfm, CFM_HASH_LEN, MOCK_ARG (&hash),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
-	status |= mock_expect_output (&cfm.mock, 1, CFM_HASH, CFM_HASH_LEN, 2);
+	status = mock_expect (&cfm.mock, cfm.base.base.get_hash, &cfm, CFM_TESTING.manifest.hash_len,
+		MOCK_ARG (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+	status |= mock_expect_output (&cfm.mock, 1, CFM_TESTING.manifest.hash,
+		CFM_TESTING.manifest.hash_len, 2);
 
 	status |= mock_expect (&cfm.mock, cfm.base.base.get_id, &cfm, MANIFEST_GET_ID_FAILED,
 		MOCK_ARG_NOT_NULL);
@@ -705,9 +716,10 @@ static void cfm_observer_pcr_test_on_cfm_activated_get_platform_id_error (CuTest
 		SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&cfm.mock, cfm.base.base.get_hash, &cfm, CFM_HASH_LEN, MOCK_ARG (&hash),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
-	status |= mock_expect_output (&cfm.mock, 1, CFM_HASH, CFM_HASH_LEN, 2);
+	status = mock_expect (&cfm.mock, cfm.base.base.get_hash, &cfm, CFM_TESTING.manifest.hash_len,
+		MOCK_ARG (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+	status |= mock_expect_output (&cfm.mock, 1, CFM_TESTING.manifest.hash,
+		CFM_TESTING.manifest.hash_len, 2);
 
 	status |= mock_expect (&cfm.mock, cfm.base.base.get_id, &cfm, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&cfm.mock, 0, &id, sizeof (uint32_t), -1);
@@ -722,7 +734,8 @@ static void cfm_observer_pcr_test_on_cfm_activated_get_platform_id_error (CuTest
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
 	CuAssertIntEquals (test, 0, status);
 
-	status = testing_validate_array (CFM_HASH_DIGEST, measurement.digest, CFM_HASH_LEN);
+	status = testing_validate_array (CFM_HASH_DIGEST, measurement.digest,
+		CFM_TESTING.manifest.hash_len);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 1), &id_measurement);
@@ -815,9 +828,10 @@ static void cfm_observer_pcr_test_record_measurement (CuTest *test)
 	status = mock_expect (&manager.mock, manager.base.get_active_cfm, &manager, (intptr_t) &cfm);
 	status |= mock_expect (&manager.mock, manager.base.free_cfm, &manager, 0, MOCK_ARG (&cfm));
 
-	status |= mock_expect (&cfm.mock, cfm.base.base.get_hash, &cfm, CFM_HASH_LEN, MOCK_ARG (&hash),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
-	status |= mock_expect_output (&cfm.mock, 1, CFM_HASH, CFM_HASH_LEN, 2);
+	status |= mock_expect (&cfm.mock, cfm.base.base.get_hash, &cfm, CFM_TESTING.manifest.hash_len,
+		MOCK_ARG (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+	status |= mock_expect_output (&cfm.mock, 1, CFM_TESTING.manifest.hash,
+		CFM_TESTING.manifest.hash_len, 2);
 
 	status |= mock_expect (&cfm.mock, cfm.base.base.get_id, &cfm, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&cfm.mock, 0, &id, sizeof (uint32_t), -1);
@@ -836,7 +850,8 @@ static void cfm_observer_pcr_test_record_measurement (CuTest *test)
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
 	CuAssertIntEquals (test, 0, status);
 
-	status = testing_validate_array (CFM_HASH_DIGEST, measurement.digest, CFM_HASH_LEN);
+	status = testing_validate_array (CFM_HASH_DIGEST, measurement.digest,
+		CFM_TESTING.manifest.hash_len);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 1), &id_measurement);
@@ -1417,9 +1432,10 @@ static void cfm_observer_pcr_test_record_measurement_get_id_error (CuTest *test)
 	status = mock_expect (&manager.mock, manager.base.get_active_cfm, &manager, (intptr_t) &cfm);
 	status |= mock_expect (&manager.mock, manager.base.free_cfm, &manager, 0, MOCK_ARG (&cfm));
 
-	status |= mock_expect (&cfm.mock, cfm.base.base.get_hash, &cfm, CFM_HASH_LEN, MOCK_ARG (&hash),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
-	status |= mock_expect_output (&cfm.mock, 1, CFM_HASH, CFM_HASH_LEN, 2);
+	status |= mock_expect (&cfm.mock, cfm.base.base.get_hash, &cfm, CFM_TESTING.manifest.hash_len,
+		MOCK_ARG (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+	status |= mock_expect_output (&cfm.mock, 1, CFM_TESTING.manifest.hash,
+		CFM_TESTING.manifest.hash_len, 2);
 
 	status |= mock_expect (&cfm.mock, cfm.base.base.get_id, &cfm, MANIFEST_GET_ID_FAILED,
 		MOCK_ARG_NOT_NULL);
@@ -1508,9 +1524,10 @@ static void cfm_observer_pcr_test_record_measurement_get_platform_id_error (CuTe
 	status = mock_expect (&manager.mock, manager.base.get_active_cfm, &manager, (intptr_t) &cfm);
 	status |= mock_expect (&manager.mock, manager.base.free_cfm, &manager, 0, MOCK_ARG (&cfm));
 
-	status |= mock_expect (&cfm.mock, cfm.base.base.get_hash, &cfm, CFM_HASH_LEN, MOCK_ARG (&hash),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
-	status |= mock_expect_output (&cfm.mock, 1, CFM_HASH, CFM_HASH_LEN, 2);
+	status |= mock_expect (&cfm.mock, cfm.base.base.get_hash, &cfm, CFM_TESTING.manifest.hash_len,
+		MOCK_ARG (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+	status |= mock_expect_output (&cfm.mock, 1, CFM_TESTING.manifest.hash,
+		CFM_TESTING.manifest.hash_len, 2);
 
 	status |= mock_expect (&cfm.mock, cfm.base.base.get_id, &cfm, 0, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&cfm.mock, 0, &id, sizeof (uint32_t), -1);

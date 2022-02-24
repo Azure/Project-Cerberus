@@ -376,8 +376,8 @@ static int pcd_manager_flash_testing_initial_pcd_validation (
  *
  * @param test The testing framework.
  * @param manager The testing components to initialize.
- * @param addr1 The base address for the first PFM.
- * @param addr2 The base address for the second PFM.
+ * @param addr1 The base address for the first PCD.
+ * @param addr2 The base address for the second PCD.
  * @param pcd1 The PCD verification function for region 1.
  * @param pcd2 The PCD verification function for region 2.
  * @param pcd1_active Flag indicating if region 1 is active.

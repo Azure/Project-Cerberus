@@ -154,7 +154,7 @@ struct cerberus_protocol_get_cfm_component_ids_response {
  * @param req The command request structure containing the message.
  */
 #define	CERBERUS_PROTOCOL_MAX_COMPONENT_IDS(req)	\
-	(req->max_response - sizeof (struct cerberus_protocol_get_cfm_component_ids_response))
+	((req)->max_response - sizeof (struct cerberus_protocol_get_cfm_component_ids_response))
 
 /**
  * Cerberus protocol get platform configuration data ID request format

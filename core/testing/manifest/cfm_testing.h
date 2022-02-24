@@ -5,35 +5,23 @@
 #define CFM_TESTING_H_
 
 #include <stdint.h>
+#include "manifest_v2_testing.h"
 
 
-extern const uint8_t CFM_DATA[];
-extern const uint32_t CFM_DATA_LEN;
-
-extern const size_t CFM_SIGNATURE_LEN;
-extern const uint32_t CFM_SIGNATURE_OFFSET;
-extern const uint8_t *CFM_SIGNATURE;
-
-extern const uint8_t CFM2_DATA[];
-extern const uint32_t CFM2_DATA_LEN;
-
-extern const uint8_t *CFM2_SIGNATURE;
-
-extern const uint8_t CFM_HASH[];
-extern const uint8_t CFM_HASH_DIGEST[];
-extern const uint8_t CFM2_HASH[];
-extern const uint32_t CFM_HASH_LEN;
-extern const char CFM_PLATFORM_ID[];
-extern const size_t CFM_PLATFORM_ID_LEN;
-
-/*
- * Constant CFM sizes.
+/**
+ * Describe a test CFM structure.
  */
-#define	CFM_HEADER_SIZE				12
-#define	CFM_COMPONENTS_HDR_SIZE		4
-#define	CFM_COMPONENT_HDR_SIZE		8
-#define	CFM_FW_HEADER_SIZE			8
-#define	CFM_IMG_HEADER_SIZE			8
+struct cfm_testing_data {
+	struct manifest_v2_testing_data manifest;			/**< Common manifest components. */
+	size_t component_device1_len;						/**< First component device element data length. */
+	uint32_t component_device1_offset;					/**< Offset of the first component device element. */
+	int component_device1_entry;						/**< TOC entry for the first component device element. */
+	int component_device1_hash;							/**< TOC hash for the first component device element. */
+};
+
+extern const struct cfm_testing_data CFM_TESTING;
+extern const struct cfm_testing_data CFM_ONLY_PMR_DIGEST_TESTING;
+extern const struct cfm_testing_data CFM_EMPTY_TESTING;
 
 
 #endif /* CFM_TESTING_H_ */

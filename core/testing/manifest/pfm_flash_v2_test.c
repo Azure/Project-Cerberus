@@ -118,7 +118,7 @@ static const char PFM_V2_FW_VERSION3_V3[] = "Test3V3";
 #define	PFM_V2_FW_VERSION3_V3_PAD	1
 
 /**
- * Maxmim length firmware version string.
+ * Maximum length firmware version string.
  */
 static const char PFM_V2_FW_VERSION_MAX[] = "0123456789abcdef0123456789abcdef0123456789abcdef012345"
 	"6789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123"

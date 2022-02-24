@@ -10,6 +10,7 @@
 #include "cmd_interface/device_manager.h"
 #include "mctp/mctp_base_protocol.h"
 #include "testing/crypto/x509_testing.h"
+#include "testing/mock/crypto/hash_mock.h"
 
 
 TEST_SUITE_LABEL ("device_manager");
@@ -2478,6 +2479,221 @@ static void device_manager_test_get_crypto_timeout_by_eid_null (CuTest *test)
 	device_manager_release (&manager);
 }
 
+static void device_manager_test_update_component_type (CuTest *test)
+{
+	struct device_manager manager;
+	struct hash_engine_mock hash;
+	uint8_t digest[SHA256_HASH_LENGTH] = {0};
+	const uint8_t *component_type;
+	int status;
+
+	TEST_START;
+
+	digest[0] = 0xAA;
+	digest[10] = 0xBB;
+	digest[20] = 0xCC;
+	digest[SHA256_HASH_LENGTH - 1] = 0xDD;
+
+	status = hash_mock_init (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&hash.mock, hash.base.calculate_sha256, &hash, 0,
+		MOCK_ARG_PTR_CONTAINS ("Component1", strlen ("Component1")),
+		MOCK_ARG (strlen ("Component1")), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&hash.mock, 2, digest, SHA256_HASH_LENGTH, -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_init (&manager, 2, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_eid (&manager, 0, 0x0A);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_component_type (&manager, &hash.base, 0x0A, "Component1");
+	CuAssertIntEquals (test, 0, status);
+
+	component_type = device_manager_get_component_type (&manager, 0x0A);
+
+	status = testing_validate_array (digest, component_type, sizeof (digest));
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_validate_and_release (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_update_component_type_invalid_arg (CuTest *test)
+{
+	struct device_manager manager;
+	struct hash_engine_mock hash;
+	int status;
+
+	TEST_START;
+
+	status = hash_mock_init (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_init (&manager, 2, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_component_type (NULL, &hash.base, 0, "Component1");
+	CuAssertIntEquals (test, DEVICE_MGR_INVALID_ARGUMENT, status);
+
+	status = device_manager_update_component_type (&manager, NULL, 0, "Component1");
+	CuAssertIntEquals (test, DEVICE_MGR_INVALID_ARGUMENT, status);
+
+	status = device_manager_update_component_type (&manager, &hash.base, 0, NULL);
+	CuAssertIntEquals (test, DEVICE_MGR_INVALID_ARGUMENT, status);
+
+	status = device_manager_update_component_type (&manager, &hash.base, 0,
+		"CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"
+		"CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"
+		"CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC");
+	CuAssertIntEquals (test, DEVICE_MGR_INVALID_ARGUMENT, status);
+
+	status = hash_mock_validate_and_release (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_update_component_type_invalid_device (CuTest *test)
+{
+	struct device_manager manager;
+	struct hash_engine_mock hash;
+	int status;
+
+	TEST_START;
+
+	status = hash_mock_init (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_init (&manager, 2, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_component_type (&manager, &hash.base, 0x0A, "Component1");
+	CuAssertIntEquals (test, DEVICE_MGR_UNKNOWN_DEVICE, status);
+
+	status = hash_mock_validate_and_release (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_update_component_type_hash_fail (CuTest *test)
+{
+	struct device_manager manager;
+	struct hash_engine_mock hash;
+	int status;
+
+	TEST_START;
+
+	status = hash_mock_init (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&hash.mock, hash.base.calculate_sha256, &hash, HASH_ENGINE_NO_MEMORY,
+		MOCK_ARG_PTR_CONTAINS ("Component1", strlen ("Component1")),
+		MOCK_ARG (strlen ("Component1")), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_init (&manager, 2, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_component_type (&manager, &hash.base, 0, "Component1");
+	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
+
+	status = hash_mock_validate_and_release (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_get_component_type (CuTest *test)
+{
+	struct device_manager manager;
+	struct hash_engine_mock hash;
+	uint8_t digest[SHA256_HASH_LENGTH] = {0};
+	const uint8_t *component_type;
+	int status;
+
+	TEST_START;
+
+	digest[0] = 0xAA;
+	digest[10] = 0xBB;
+	digest[20] = 0xCC;
+	digest[SHA256_HASH_LENGTH - 1] = 0xDD;
+
+	status = hash_mock_init (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&hash.mock, hash.base.calculate_sha256, &hash, 0,
+		MOCK_ARG_PTR_CONTAINS ("Component1", strlen ("Component1")),
+		MOCK_ARG (strlen ("Component1")), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&hash.mock, 2, digest, SHA256_HASH_LENGTH, -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_init (&manager, 2, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_eid (&manager, 0, 0x0A);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_component_type (&manager, &hash.base, 0x0A, "Component1");
+	CuAssertIntEquals (test, 0, status);
+
+	component_type = device_manager_get_component_type (&manager, 0x0A);
+
+	status = testing_validate_array (digest, component_type, sizeof (digest));
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_validate_and_release (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_get_component_type_unknown_eid (CuTest *test)
+{
+	struct device_manager manager;
+	const uint8_t *component_type;
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 2, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE);
+	CuAssertIntEquals (test, 0, status);
+
+	component_type = device_manager_get_component_type (&manager, 0x0b);
+	CuAssertPtrEquals (test, NULL, (void*) component_type);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_get_component_type_null (CuTest *test)
+{
+	struct device_manager manager;
+	const uint8_t *component_type;
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 2, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE);
+	CuAssertIntEquals (test, 0, status);
+
+	component_type = device_manager_get_component_type (NULL, 0);
+	CuAssertPtrEquals (test, NULL, (void*) component_type);
+
+	device_manager_release (&manager);
+}
+
 
 TEST_SUITE_START (device_manager);
 
@@ -2572,5 +2788,12 @@ TEST (device_manager_test_get_crypto_timeout_by_eid_remote_device);
 TEST (device_manager_test_get_crypto_timeout_by_eid_remote_device_no_capabilities);
 TEST (device_manager_test_get_crypto_timeout_by_eid_remote_device_unknown_device);
 TEST (device_manager_test_get_crypto_timeout_by_eid_null);
+TEST (device_manager_test_update_component_type);
+TEST (device_manager_test_update_component_type_invalid_arg);
+TEST (device_manager_test_update_component_type_invalid_device);
+TEST (device_manager_test_update_component_type_hash_fail);
+TEST (device_manager_test_get_component_type);
+TEST (device_manager_test_get_component_type_unknown_eid);
+TEST (device_manager_test_get_component_type_null);
 
 TEST_SUITE_END;

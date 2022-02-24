@@ -643,14 +643,14 @@ int manifest_flash_get_signature (struct manifest_flash *manifest, uint8_t *sign
  * @param hash The hash engine to use for element validation.
  * @param type Identifier for the type of element to find.
  * @param start Index of the table of contents entry to start searching for the element.
- * @param parent_type Identifier the type of the parent element.  If the element has no parent,
+ * @param parent_type Identifier for the type of the parent element.  If the element has no parent,
  * MANIFEST_NO_PARENT must be provided.
  * @param read_offset Offset into the element data to start reading.  The entire element is still
  * validated, but the buffer will only contain element data starting starting at the offset.
  * @param found Optional output indicating which TOC entry was used for the element.
  * @param format Optional output for the format version of the element data.
  * @param total_len Optional output for the total length of the element data.
- * @param element Optional pointer to the ouput buffer for the element data.  If the output buffer
+ * @param element Optional pointer to the output buffer for the element data.  If the output buffer
  * is null, a buffer will by dynamically allocated to fit the entire element.  This buffer must be
  * freed by the caller.  If the pointer is null, no element data will be read.
  * @param length Length of the element output buffer, if the buffer is not null.  If the actual
@@ -684,7 +684,7 @@ int manifest_flash_read_element_data (struct manifest_flash *manifest, struct ha
 
 	if (start >= manifest->toc_header.entry_count) {
 		return (parent_type == MANIFEST_NO_PARENT) ?
-			MANIFEST_ELEMENT_NOT_FOUND : MANIFEST_CHILD_NOT_FOUND;;
+			MANIFEST_ELEMENT_NOT_FOUND : MANIFEST_CHILD_NOT_FOUND;
 	}
 
 	entry_addr =
@@ -873,6 +873,124 @@ int manifest_flash_read_element_data (struct manifest_flash *manifest, struct ha
 
 error:
 	hash->cancel (hash);
+	return status;
+}
+
+/**
+ * Find the number of direct child elements of specified type of requested element.  If element has
+ * nested children, they are not counted.
+ *
+ * @param manifest The manifest to read.
+ * @param hash The hash engine to use for element validation.
+ * @param entry Starting table of contents entry to start processing.
+ * @param type Type of requested parent element.
+ * @param parent_type Type of parent to requested parent element.
+ * @param child_type Type of child element to get count of.
+ * @param child_len Optional output buffer with total length of child elements.
+ *
+ * @return The number of child elements found or an error code.  Use ROT_IS_ERROR to check the
+ * return value.
+ */
+int manifest_flash_get_num_child_elements (struct manifest_flash *manifest,
+	struct hash_engine *hash, int entry, uint8_t type, uint8_t parent_type, uint8_t child_type,
+	size_t *child_len)
+{
+	uint8_t validate_hash[SHA512_HASH_LENGTH];
+	struct manifest_toc_entry toc_entry;
+	uint32_t entry_addr;
+	uint32_t hash_addr;
+	int child_count = 0;
+	int status;
+
+	if ((manifest == NULL) || (hash == NULL)) {
+		return MANIFEST_INVALID_ARGUMENT;
+	}
+
+	if (!manifest->manifest_valid) {
+		return MANIFEST_NO_MANIFEST;
+	}
+
+	if (entry >= manifest->toc_header.entry_count) {
+		return 0;
+	}
+
+	if (child_len != NULL) {
+		*child_len = 0;
+	}
+
+	entry_addr = manifest->addr + sizeof (struct manifest_header) +
+		sizeof (struct manifest_toc_header);
+	hash_addr = entry_addr + ((sizeof (struct manifest_toc_entry) + manifest->toc_hash_length) *
+		manifest->toc_header.entry_count);
+
+	/* Start hashing to verify the TOC contents. */
+	status = hash_start_new_hash (hash, manifest->toc_hash_type);
+	if (status != 0) {
+		return status;
+	}
+
+	status = hash->update (hash, (uint8_t*) &manifest->toc_header,
+		sizeof (struct manifest_toc_header));
+	if (status != 0) {
+		goto error;
+	}
+
+	/* Hash the TOC data before the first entry that will be read. */
+	status = flash_hash_update_contents (manifest->flash, entry_addr,
+		sizeof (struct manifest_toc_entry) * entry, hash);
+	if (status != 0) {
+		goto error;
+	}
+
+	entry_addr += (sizeof (struct manifest_toc_entry) * entry);
+
+	for (; entry < manifest->toc_header.entry_count;
+		++entry, entry_addr += sizeof (struct manifest_toc_entry)) {
+		status = manifest->flash->read (manifest->flash, entry_addr, (uint8_t*) &toc_entry,
+			sizeof (struct manifest_toc_entry));
+		if (status != 0) {
+			goto error;
+		}
+
+		status = hash->update (hash, (uint8_t*) &toc_entry, sizeof (struct manifest_toc_entry));
+		if (status != 0) {
+			goto error;
+		}
+
+		if ((toc_entry.parent == parent_type) || (toc_entry.type_id == parent_type)) {
+			entry_addr += sizeof (struct manifest_toc_entry);
+			break;
+		}
+		if ((toc_entry.parent == type) && (toc_entry.type_id == child_type)) {
+			++child_count;
+
+			if (child_len != NULL) {
+				*child_len = *child_len + toc_entry.length;
+			}
+		}
+	}
+
+	/* Hash the unneeded TOC data until the entry hash. */
+	status = flash_hash_update_contents (manifest->flash, entry_addr, hash_addr - entry_addr, hash);
+	if (status != 0) {
+		goto error;
+	}
+
+	/*  Validate the TOC. */
+	status = hash->finish (hash, validate_hash, sizeof (validate_hash));
+	if (status != 0) {
+		goto error;
+	}
+
+	if (memcmp (validate_hash, manifest->toc_hash, manifest->toc_hash_length) != 0) {
+		return MANIFEST_TOC_INVALID;
+	}
+
+	return child_count;
+
+error:
+	hash->cancel (hash);
+
 	return status;
 }
 

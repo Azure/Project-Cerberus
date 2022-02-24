@@ -1092,7 +1092,7 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_id_platform_regio
 	struct cerberus_protocol_get_cfm_id *req = (struct cerberus_protocol_get_cfm_id*) data;
 	struct cerberus_protocol_get_cfm_id_platform_response *resp =
 		(struct cerberus_protocol_get_cfm_id_platform_response*) data;
-	size_t id_length = CFM_PLATFORM_ID_LEN + 1;
+	size_t id_length = CFM_TESTING.manifest.plat_id_str_len + 1;
 	int max = CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG - 1;
 	int status;
 
@@ -1120,7 +1120,8 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_id_platform_regio
 
 	status |= mock_expect (&cfm_mock.mock, cfm_mock.base.base.get_platform_id, &cfm_mock, 0,
 		MOCK_ARG_PTR_PTR_NOT_NULL, MOCK_ARG (max));
-	status |= mock_expect_output_ptr (&cfm_mock.mock, 0, CFM_PLATFORM_ID, id_length, 1);
+	status |= mock_expect_output_ptr (&cfm_mock.mock, 0, CFM_TESTING.manifest.plat_id_str,
+		id_length, 1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1138,7 +1139,7 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_id_platform_regio
 	CuAssertIntEquals (test, 0, resp->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_CFM_ID, resp->header.command);
 	CuAssertIntEquals (test, 1, resp->valid);
-	CuAssertStrEquals (test, CFM_PLATFORM_ID, (char*) &resp->platform);
+	CuAssertStrEquals (test, CFM_TESTING.manifest.plat_id_str, (char*) &resp->platform);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 
 	status = cfm_mock_validate_and_release (&cfm_mock);
@@ -1154,7 +1155,7 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_id_platform_regio
 	struct cerberus_protocol_get_cfm_id *req = (struct cerberus_protocol_get_cfm_id*) data;
 	struct cerberus_protocol_get_cfm_id_platform_response *resp =
 		(struct cerberus_protocol_get_cfm_id_platform_response*) data;
-	size_t id_length = CFM_PLATFORM_ID_LEN + 1;
+	size_t id_length = CFM_TESTING.manifest.plat_id_str_len + 1;
 	int max = CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG - 1;
 	int status;
 
@@ -1182,7 +1183,8 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_id_platform_regio
 
 	status |= mock_expect (&cfm_mock.mock, cfm_mock.base.base.get_platform_id, &cfm_mock, 0,
 		MOCK_ARG_PTR_PTR_NOT_NULL, MOCK_ARG (max));
-	status |= mock_expect_output_ptr (&cfm_mock.mock, 0, CFM_PLATFORM_ID, id_length, -1);
+	status |= mock_expect_output_ptr (&cfm_mock.mock, 0, CFM_TESTING.manifest.plat_id_str,
+		id_length, -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1200,7 +1202,7 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_id_platform_regio
 	CuAssertIntEquals (test, 0, resp->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_CFM_ID, resp->header.command);
 	CuAssertIntEquals (test, 1, resp->valid);
-	CuAssertStrEquals (test, CFM_PLATFORM_ID, (char*) &resp->platform);
+	CuAssertStrEquals (test, CFM_TESTING.manifest.plat_id_str, (char*) &resp->platform);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 
 	status = cfm_mock_validate_and_release (&cfm_mock);
@@ -1348,25 +1350,31 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_reg
 	struct cmd_interface *cmd, struct cfm_manager_mock *cfm_manager)
 {
 	struct cfm_mock cfm_mock;
-	struct cfm_component_ids ids_list= {0};
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_cfm_component_ids *req =
 		(struct cerberus_protocol_get_cfm_component_ids*) data;
 	struct cerberus_protocol_get_cfm_component_ids_response *resp =
 		(struct cerberus_protocol_get_cfm_component_ids_response*) data;
-	uint32_t ids[100];
+	const char *types[3] = {"Component1", "Component2", "Component3"};
+	uint8_t types_buf[36];
 	uint32_t cfm_id = 0xAABBCCDD;
 	uint32_t offset = 0;
+	size_t length;
+	size_t resp_length;
 	int status;
 	int i;
 
-	for (i = 0; i < 100; ++i) {
-		ids[i] = i;
+	for (i = 0; i < 3; ++i) {
+		strcpy ((char*) &types_buf[offset], types[i]);
+		offset += strlen (types[i]);
+
+		types_buf[offset] = '\0';
+		offset += 1;
 	}
 
-	ids_list.ids = ids;
-	ids_list.count = 100;
+	offset = 0;
+	resp_length = sizeof (types_buf);
 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
@@ -1382,6 +1390,8 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_reg
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
+	length = CERBERUS_PROTOCOL_MAX_COMPONENT_IDS (&request);
+
 	status = cfm_mock_init (&cfm_mock);
 	CuAssertIntEquals (test, 0, status);
 
@@ -1396,13 +1406,9 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_reg
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&cfm_mock.mock, 0, &cfm_id, sizeof (cfm_id), -1);
 
-	status |= mock_expect (&cfm_mock.mock, cfm_mock.base.get_supported_component_ids, &cfm_mock, 0,
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&cfm_mock.mock, 0, &ids_list, sizeof (ids_list), -1);
-	status |= mock_expect_save_arg (&cfm_mock.mock, 0, 0);
-
-	status |= mock_expect (&cfm_mock.mock, cfm_mock.base.free_component_ids, &cfm_mock, 0,
-		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&cfm_mock.mock, cfm_mock.base.buffer_supported_components, &cfm_mock,
+		resp_length, MOCK_ARG (offset), MOCK_ARG (length), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&cfm_mock.mock, 2, types_buf, sizeof (types_buf), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1410,7 +1416,7 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_reg
 	status = cmd->process_request (cmd, &request);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test,
-		sizeof (struct cerberus_protocol_get_cfm_component_ids_response) + sizeof (ids),
+		sizeof (struct cerberus_protocol_get_cfm_component_ids_response) + resp_length,
 		request.length);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
@@ -1425,8 +1431,8 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_reg
 	CuAssertIntEquals (test, 0xAABBCCDD, resp->version);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 
-	status = testing_validate_array ((uint8_t*) ids, cerberus_protocol_cfm_component_ids (resp),
-		sizeof (ids));
+	status = testing_validate_array (types_buf, cerberus_protocol_cfm_component_ids (resp),
+		resp_length);
 	CuAssertIntEquals (test, 0, status);
 
 	status = cfm_mock_validate_and_release (&cfm_mock);
@@ -1437,25 +1443,31 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_reg
 	struct cmd_interface *cmd, struct cfm_manager_mock *cfm_manager)
 {
 	struct cfm_mock cfm_mock;
-	struct cfm_component_ids ids_list= {0};
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_cfm_component_ids *req =
 		(struct cerberus_protocol_get_cfm_component_ids*) data;
 	struct cerberus_protocol_get_cfm_component_ids_response *resp =
 		(struct cerberus_protocol_get_cfm_component_ids_response*) data;
-	uint32_t ids[100];
+	const char *types[3] = {"Component1", "Component2", "Component3"};
+	uint8_t types_buf[36];
 	uint32_t cfm_id = 0xAABBCCDD;
 	uint32_t offset = 0;
+	size_t length;
+	size_t resp_length;
 	int status;
 	int i;
 
-	for (i = 0; i < 100; ++i) {
-		ids[i] = i;
+	for (i = 0; i < 3; ++i) {
+		strcpy ((char*) &types_buf[offset], types[i]);
+		offset += strlen (types[i]);
+
+		types_buf[offset] = '\0';
+		offset += 1;
 	}
 
-	ids_list.ids = ids;
-	ids_list.count = 100;
+	offset = 0;
+	resp_length = sizeof (types_buf);
 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
@@ -1471,6 +1483,8 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_reg
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
+	length = CERBERUS_PROTOCOL_MAX_COMPONENT_IDS (&request);
+
 	status = cfm_mock_init (&cfm_mock);
 	CuAssertIntEquals (test, 0, status);
 
@@ -1485,13 +1499,9 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_reg
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&cfm_mock.mock, 0, &cfm_id, sizeof (cfm_id), -1);
 
-	status |= mock_expect (&cfm_mock.mock, cfm_mock.base.get_supported_component_ids, &cfm_mock, 0,
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&cfm_mock.mock, 0, &ids_list, sizeof (ids_list), -1);
-	status |= mock_expect_save_arg (&cfm_mock.mock, 0, 0);
-
-	status |= mock_expect (&cfm_mock.mock, cfm_mock.base.free_component_ids, &cfm_mock, 0,
-		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&cfm_mock.mock, cfm_mock.base.buffer_supported_components, &cfm_mock,
+		resp_length, MOCK_ARG (offset), MOCK_ARG (length), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&cfm_mock.mock, 2, types_buf, sizeof (types_buf), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1499,7 +1509,7 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_reg
 	status = cmd->process_request (cmd, &request);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test,
-		sizeof (struct cerberus_protocol_get_cfm_component_ids_response) + sizeof (ids),
+		sizeof (struct cerberus_protocol_get_cfm_component_ids_response) + resp_length,
 		request.length);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
@@ -1514,8 +1524,8 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_reg
 	CuAssertIntEquals (test, 0xAABBCCDD, resp->version);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 
-	status = testing_validate_array ((uint8_t*) ids, cerberus_protocol_cfm_component_ids (resp),
-		sizeof (ids));
+	status = testing_validate_array (types_buf, cerberus_protocol_cfm_component_ids (resp),
+		resp_length);
 	CuAssertIntEquals (test, 0, status);
 
 	status = cfm_mock_validate_and_release (&cfm_mock);
@@ -1526,25 +1536,31 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_non
 	CuTest *test, struct cmd_interface *cmd, struct cfm_manager_mock *cfm_manager)
 {
 	struct cfm_mock cfm_mock;
-	struct cfm_component_ids ids_list= {0};
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_cfm_component_ids *req =
 		(struct cerberus_protocol_get_cfm_component_ids*) data;
 	struct cerberus_protocol_get_cfm_component_ids_response *resp =
 		(struct cerberus_protocol_get_cfm_component_ids_response*) data;
-	uint32_t ids[100];
+	const char *types[3] = {"Component1", "Component2", "Component3"};
+	uint8_t types_buf[36];
 	uint32_t cfm_id = 0xAABBCCDD;
-	uint32_t offset = sizeof (ids) / 2;
+	uint32_t offset = 0;
+	size_t length;
+	size_t resp_length;
 	int status;
 	int i;
 
-	for (i = 0; i < 100; ++i) {
-		ids[i] = i;
+	for (i = 0; i < 3; ++i) {
+		strcpy ((char*) &types_buf[offset], types[i]);
+		offset += strlen (types[i]);
+
+		types_buf[offset] = '\0';
+		offset += 1;
 	}
 
-	ids_list.ids = ids;
-	ids_list.count = 100;
+	offset = sizeof (types_buf) / 2;
+	resp_length = sizeof (types_buf) / 2 + 1;
 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
@@ -1560,6 +1576,8 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_non
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
+	length = CERBERUS_PROTOCOL_MAX_COMPONENT_IDS (&request);
+
 	status = cfm_mock_init (&cfm_mock);
 	CuAssertIntEquals (test, 0, status);
 
@@ -1574,13 +1592,9 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_non
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&cfm_mock.mock, 0, &cfm_id, sizeof (cfm_id), -1);
 
-	status |= mock_expect (&cfm_mock.mock, cfm_mock.base.get_supported_component_ids, &cfm_mock, 0,
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&cfm_mock.mock, 0, &ids_list, sizeof (ids_list), -1);
-	status |= mock_expect_save_arg (&cfm_mock.mock, 0, 0);
-
-	status |= mock_expect (&cfm_mock.mock, cfm_mock.base.free_component_ids, &cfm_mock, 0,
-		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&cfm_mock.mock, cfm_mock.base.buffer_supported_components, &cfm_mock,
+		resp_length, MOCK_ARG (offset), MOCK_ARG (length), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&cfm_mock.mock, 2, &types_buf[offset], resp_length, -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1588,7 +1602,7 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_non
 	status = cmd->process_request (cmd, &request);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test,
-		sizeof (struct cerberus_protocol_get_cfm_component_ids_response) + (sizeof (ids) / 2),
+		sizeof (struct cerberus_protocol_get_cfm_component_ids_response) + resp_length,
 		request.length);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
@@ -1603,8 +1617,8 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_non
 	CuAssertIntEquals (test, 0xAABBCCDD, resp->version);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 
-	status = testing_validate_array ((uint8_t*) &ids[50],
-		cerberus_protocol_cfm_component_ids (resp), sizeof (ids) / 2);
+	status = testing_validate_array (&types_buf[offset],
+		cerberus_protocol_cfm_component_ids (resp), resp_length);
 	CuAssertIntEquals (test, 0, status);
 
 	status = cfm_mock_validate_and_release (&cfm_mock);
@@ -1615,26 +1629,31 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_lim
 	CuTest *test, struct cmd_interface *cmd, struct cfm_manager_mock *cfm_manager)
 {
 	struct cfm_mock cfm_mock;
-	struct cfm_component_ids ids_list= {0};
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_cfm_component_ids *req =
 		(struct cerberus_protocol_get_cfm_component_ids*) data;
 	struct cerberus_protocol_get_cfm_component_ids_response *resp =
 		(struct cerberus_protocol_get_cfm_component_ids_response*) data;
-	uint32_t ids[100];
+	const char *types[3] = {"Component1", "Component2", "Component3"};
+	uint8_t types_buf[36];
 	uint32_t cfm_id = 0xAABBCCDD;
 	uint32_t offset = 0;
+	size_t length;
+	size_t resp_length = sizeof (types) - 10 -
+		sizeof (struct cerberus_protocol_get_cfm_component_ids_response);
 	int status;
 	int i;
-	int max = sizeof (ids) - 10 - sizeof (struct cerberus_protocol_get_cfm_component_ids_response);
 
-	for (i = 0; i < 100; ++i) {
-		ids[i] = i;
+	for (i = 0; i < 3; ++i) {
+		strcpy ((char*) &types_buf[offset], types[i]);
+		offset += strlen (types[i]);
+
+		types_buf[offset] = '\0';
+		offset += 1;
 	}
 
-	ids_list.ids = ids;
-	ids_list.count = 100;
+	offset = 0;
 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
@@ -1646,9 +1665,11 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_lim
 	req->region = 0;
 	req->offset = offset;
 	request.length = sizeof (struct cerberus_protocol_get_cfm_component_ids);
-	request.max_response = sizeof (ids) - 10;
+	request.max_response = sizeof (types) - 10;
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	length = CERBERUS_PROTOCOL_MAX_COMPONENT_IDS (&request);
 
 	status = cfm_mock_init (&cfm_mock);
 	CuAssertIntEquals (test, 0, status);
@@ -1664,20 +1685,17 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_lim
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&cfm_mock.mock, 0, &cfm_id, sizeof (cfm_id), -1);
 
-	status |= mock_expect (&cfm_mock.mock, cfm_mock.base.get_supported_component_ids, &cfm_mock, 0,
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&cfm_mock.mock, 0, &ids_list, sizeof (ids_list), -1);
-	status |= mock_expect_save_arg (&cfm_mock.mock, 0, 0);
-
-	status |= mock_expect (&cfm_mock.mock, cfm_mock.base.free_component_ids, &cfm_mock, 0,
-		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&cfm_mock.mock, cfm_mock.base.buffer_supported_components, &cfm_mock,
+		resp_length, MOCK_ARG (offset), MOCK_ARG (length), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&cfm_mock.mock, 2, types_buf, sizeof (types_buf), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_cfm_component_ids_response) + max,
+	CuAssertIntEquals (test,
+		sizeof (struct cerberus_protocol_get_cfm_component_ids_response) + resp_length,
 		request.length);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
@@ -1692,8 +1710,8 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_lim
 	CuAssertIntEquals (test, 0xAABBCCDD, resp->version);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 
-	status = testing_validate_array ((uint8_t*) ids, cerberus_protocol_cfm_component_ids (resp),
-		max);
+	status = testing_validate_array (types_buf, cerberus_protocol_cfm_component_ids (resp),
+		resp_length);
 	CuAssertIntEquals (test, 0, status);
 
 	status = cfm_mock_validate_and_release (&cfm_mock);
@@ -1906,6 +1924,7 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_fai
 		(struct cerberus_protocol_get_cfm_component_ids*) data;
 	uint32_t cfm_id = 0xAABBCCDD;
 	uint32_t offset = 0;
+	size_t length;
 	int status;
 
 	memset (&request, 0, sizeof (request));
@@ -1922,6 +1941,8 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_fai
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
+	length = CERBERUS_PROTOCOL_MAX_COMPONENT_IDS (&request);
+
 	status = cfm_mock_init (&cfm_mock);
 	CuAssertIntEquals (test, 0, status);
 
@@ -1936,8 +1957,8 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_fai
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&cfm_mock.mock, 0, &cfm_id, sizeof (cfm_id), -1);
 
-	status |= mock_expect (&cfm_mock.mock, cfm_mock.base.get_supported_component_ids, &cfm_mock,
-		CFM_NO_MEMORY, MOCK_ARG_NOT_NULL);
+	status |= mock_expect (&cfm_mock.mock, cfm_mock.base.buffer_supported_components, &cfm_mock,
+		CFM_NO_MEMORY, MOCK_ARG (0), MOCK_ARG (length), MOCK_ARG_NOT_NULL);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2020,25 +2041,29 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_inv
 	CuTest *test, struct cmd_interface *cmd, struct cfm_manager_mock *cfm_manager)
 {
 	struct cfm_mock cfm_mock;
-	struct cfm_component_ids ids_list= {0};
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_get_cfm_component_ids *req =
 		(struct cerberus_protocol_get_cfm_component_ids*) data;
 	struct cerberus_protocol_get_cfm_component_ids_response *resp =
 		(struct cerberus_protocol_get_cfm_component_ids_response*) data;
-	uint32_t ids[100];
+	const char *types[3] = {"Component1", "Component2", "Component3"};
+	uint8_t types_buf[36];
 	uint32_t cfm_id = 0xAABBCCDD;
-	uint32_t offset = sizeof (ids);
+	uint32_t offset = 0;
+	size_t length;
 	int status;
 	int i;
 
-	for (i = 0; i < 100; ++i) {
-		ids[i] = i;
+	for (i = 0; i < 3; ++i) {
+		strcpy ((char*) &types_buf[offset], types[i]);
+		offset += strlen (types[i]);
+
+		types_buf[offset] = '\0';
+		offset += 1;
 	}
 
-	ids_list.ids = ids;
-	ids_list.count = 100;
+	offset = sizeof (types_buf);
 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
@@ -2054,6 +2079,8 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_inv
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
+	length = CERBERUS_PROTOCOL_MAX_COMPONENT_IDS (&request);
+
 	status = cfm_mock_init (&cfm_mock);
 	CuAssertIntEquals (test, 0, status);
 
@@ -2068,21 +2095,16 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_inv
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&cfm_mock.mock, 0, &cfm_id, sizeof (cfm_id), -1);
 
-	status |= mock_expect (&cfm_mock.mock, cfm_mock.base.get_supported_component_ids, &cfm_mock, 0,
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&cfm_mock.mock, 0, &ids_list, sizeof (ids_list), -1);
-	status |= mock_expect_save_arg (&cfm_mock.mock, 0, 0);
-
-	status |= mock_expect (&cfm_mock.mock, cfm_mock.base.free_component_ids, &cfm_mock, 0,
-		MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&cfm_mock.mock, cfm_mock.base.buffer_supported_components, &cfm_mock, 0,
+		MOCK_ARG (offset), MOCK_ARG (length), MOCK_ARG_NOT_NULL);
 
 	CuAssertIntEquals (test, 0, status);
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_cfm_component_ids_response),
-		request.length);
+	CuAssertIntEquals (test,
+		sizeof (struct cerberus_protocol_get_cfm_component_ids_response), request.length);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
@@ -4973,7 +4995,7 @@ static void cerberus_protocol_master_commands_test_generate_get_device_capabilit
 		DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&device_mgr, 0, MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, 
+	status = device_manager_update_device_entry (&device_mgr, 0, MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID,
 		0xAA);
 	CuAssertIntEquals (test, 0, status);
 
@@ -5009,7 +5031,7 @@ static void cerberus_protocol_master_commands_test_generate_get_device_capabilit
 		DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&device_mgr, 0, MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, 
+	status = device_manager_update_device_entry (&device_mgr, 0, MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID,
 		0xAA);
 	CuAssertIntEquals (test, 0, status);
 
@@ -5033,7 +5055,7 @@ static void cerberus_protocol_master_commands_test_generate_get_device_capabilit
 		DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&device_mgr, 0, MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, 
+	status = device_manager_update_device_entry (&device_mgr, 0, MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID,
 		0xAA);
 	CuAssertIntEquals (test, 0, status);
 

@@ -8,6 +8,7 @@
 #include "device_manager.h"
 #include "common/common_math.h"
 #include "mctp/mctp_base_protocol.h"
+#include "crypto/hash.h"
 
 
 /**
@@ -39,9 +40,9 @@ int device_manager_init (struct device_manager *mgr, int num_devices, uint8_t hi
 	}
 
 	/* Initialize the local device capabilities. */
-	mgr->entries[0].info.capabilities.request.max_message_size = 
+	mgr->entries[0].info.capabilities.request.max_message_size =
 		MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
-	mgr->entries[0].info.capabilities.request.max_packet_size = 
+	mgr->entries[0].info.capabilities.request.max_packet_size =
 		MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT;
 	mgr->entries[0].info.capabilities.request.security_mode =
 		DEVICE_MANAGER_SECURITY_AUTHENTICATION;
@@ -251,7 +252,7 @@ int device_manager_update_device_eid (struct device_manager *mgr, int device_num
  *
  * @return Completion status, 0 if success or an error code.
  */
-int device_manager_update_device_entry (struct device_manager *mgr, int device_num, uint8_t eid, 
+int device_manager_update_device_entry (struct device_manager *mgr, int device_num, uint8_t eid,
 	uint8_t smbus_addr)
 {
 	if (mgr == NULL) {
@@ -264,6 +265,7 @@ int device_manager_update_device_entry (struct device_manager *mgr, int device_n
 
 	mgr->entries[device_num].info.eid = eid;
 	mgr->entries[device_num].info.smbus_addr = smbus_addr;
+	mgr->entries[device_num].component_type[0] = '\0';
 
 	return 0;
 }
@@ -688,4 +690,58 @@ int device_manager_update_device_state (struct device_manager *mgr, int device_n
 	mgr->entries[device_num].state = state;
 
 	return 0;
+}
+
+/**
+ * Find component type digest for a device in device manager table.
+ *
+ * @param mgr The device manager to utilize.
+ * @param eid The EID of the device table entry to utilize.
+ *
+ * @return The component type digest if found or NULL.
+ */
+const uint8_t* device_manager_get_component_type (struct device_manager *mgr, uint8_t eid)
+{
+	int device_num;
+
+	if (mgr == NULL) {
+		return NULL;
+	}
+
+	device_num = device_manager_get_device_num (mgr, eid);
+	if (ROT_IS_ERROR (device_num)) {
+		return NULL;
+	}
+
+	return mgr->entries[device_num].component_type;
+}
+
+/**
+ * Update device manager device table entry component type
+ *
+ * @param mgr Device manager instance to utilize.
+ * @param hash Hashing engine to utilize.
+ * @param eid The EID of the device table entry to utilize.
+ * @param component_type Component type to set.
+ *
+ * @return Completion status, 0 if success or an error code.
+ */
+int device_manager_update_component_type (struct device_manager *mgr, struct hash_engine *hash,
+	uint8_t eid, const char *component_type)
+{
+	int device_num;
+
+	if ((mgr == NULL) || (hash == NULL) || (component_type == NULL) ||
+		(strlen (component_type) >= MANIFEST_MAX_STRING)) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	device_num = device_manager_get_device_num (mgr, eid);
+	if (ROT_IS_ERROR (device_num)) {
+		return device_num;
+	}
+
+	return hash->calculate_sha256 (hash, (uint8_t*) component_type,
+		strlen (component_type), mgr->entries[device_num].component_type,
+		sizeof (mgr->entries[device_num].component_type));
 }

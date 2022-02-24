@@ -39,6 +39,18 @@ PCD_V2_I2C_POWER_CONTROLLER_TYPE_ID = int ("0x42", 16)
 PCD_V2_DIRECT_COMPONENT_TYPE_ID = int ("0x43", 16)
 PCD_V2_MCTP_BRIDGE_COMPONENT_TYPE_ID = int ("0x44", 16)
 
+CFM_V2_COMPONENT_DEVICE_TYPE_ID = int ("0x70", 16)
+CFM_V2_PMR_TYPE_ID = int ("0x71", 16)
+CFM_V2_PMR_DIGEST_TYPE_ID = int ("0x72", 16)
+CFM_V2_MEASUREMENT_TYPE_ID = int ("0x73", 16)
+CFM_V2_MEASUREMENT_DATA_TYPE_ID = int ("0x74", 16)
+CFM_V2_ALLOWABLE_DATA_TYPE_ID = int ("0x75", 16)
+CFM_V2_ALLOWABLE_PFM_TYPE_ID = int ("0x76", 16)
+CFM_V2_ALLOWABLE_CFM_TYPE_ID = int ("0x77", 16)
+CFM_V2_ALLOWABLE_PCD_TYPE_ID = int ("0x78", 16)
+CFM_V2_ALLOWABLE_ID_TYPE_ID = int ("0x79", 16)
+CFM_V2_ROOT_CA_TYPE_ID = int ("0x7A", 16)
+
 class manifest_header (ctypes.LittleEndianStructure):
     _pack_ = 1
     _fields_ = [('length', ctypes.c_ushort),
@@ -102,6 +114,7 @@ def load_config (config_file):
     config["hash_type"] = ""
     config["key_type"] = ""
     config["max_rw_sections"] = ""
+    config["cfm"] = ""
 
     with open (config_file, 'r') as fh:
         data = fh.readlines ()
@@ -127,6 +140,8 @@ def load_config (config_file):
             config["prv_key_path"] = string.split ("=")[-1].strip ()
         elif string.startswith ("MaxRWSections"):
             config["max_rw_sections"] = string.split ("=")[-1].strip ()
+        elif string.startswith ("CFM"):
+            config["cfm"] = string.split ("=")[-1].strip ()
         else:
             config["xml_list"].append (string)
 
@@ -163,7 +178,7 @@ def load_key (key_type, key_size, prv_key_path):
         print ("No RSA private key provided in config, unsigned manifest will be generated.")
         return False, key_size, None
 
-def generate_manifest_header (manifest_id, key_size, manifest_type, hash_type, key_type, 
+def generate_manifest_header (manifest_id, key_size, manifest_type, hash_type, key_type,
     manifest_version):
     """
     Create a manifest header
@@ -172,7 +187,7 @@ def generate_manifest_header (manifest_id, key_size, manifest_type, hash_type, k
     :param key_size: Size of signing key, optional
     :param manifest_type: Manifest type
     :param hash_type: Hashing algorithm
-    :param key_type: Signing key algorithm, optional 
+    :param key_type: Signing key algorithm, optional
     :param manifest_version: Manifest version
 
     :return Instance of a manifest header
@@ -215,12 +230,13 @@ def load_xmls (config_filename, max_num_xmls, xml_type):
     Load XMLs listed in config file
 
     :param config_filename: Path to config file
-    :param max_num_xmls: Maximum number of XMLs that can be loaded, set to NULL if no limit
+    :param max_num_xmls: Maximum number of XMLs that can be loaded, set to None if no limit
     :param xml_type: Type of XML
 
     :return list of XML elements, boolean indicating whether to sign output or not, key size,
-        key to use for signing, output ID, output filename and manifest xml version, boolean for 
-        whether XML is for an empty manifest, number of non-contiguous RW sections supported
+        key to use for signing, output ID, output filename and manifest xml version, boolean for
+        whether XML is for an empty manifest, number of non-contiguous RW sections supported,
+        selection list
     """
 
     config = load_config (config_filename)
@@ -231,6 +247,7 @@ def load_xmls (config_filename, max_num_xmls, xml_type):
     sign = False
     empty = False
     max_rw_sections = 3
+    selection_list = None
 
     if "key_type" in config and config["key_type"]:
         if config["key_type"] == "ECC":
@@ -243,7 +260,7 @@ def load_xmls (config_filename, max_num_xmls, xml_type):
             hash_type = 1
         else:
             hash_type = 0
-    
+
     if "key_size" in config and config["key_size"]:
         key_size = int (config["key_size"])
 
@@ -252,6 +269,11 @@ def load_xmls (config_filename, max_num_xmls, xml_type):
 
     if "max_rw_sections" in config and config["max_rw_sections"]:
         max_rw_sections = int (config["max_rw_sections"])
+
+    if "cfm" in config and config["cfm"]:
+        selection_list = manifest_parser.load_and_process_selection_xml (config["cfm"])
+    elif xml_type is manifest_types.CFM:
+        raise RuntimeError ("Missing CFM XML")
 
     if max_num_xmls and (len (config["xml_list"]) > max_num_xmls):
         raise RuntimeError ("Too many XML files provided: {0}".format (len (config["xml_list"])))
@@ -263,17 +285,18 @@ def load_xmls (config_filename, max_num_xmls, xml_type):
     matching_xml_found = False
 
     for xml in config["xml_list"]:
-        parsed_xml, curr_xml_version, empty = manifest_parser.load_and_process_xml (xml, xml_type)
+        parsed_xml, curr_xml_version, empty = manifest_parser.load_and_process_xml (xml, xml_type,
+            selection_list)
 
         if parsed_xml is None:
-            raise RuntimeError ("Failed to parse XML: {0}".format (xml))
-        else:
-            if xml_version is None:
-                xml_version = curr_xml_version
+            continue
 
-            if xml_version != curr_xml_version:
-                raise RuntimeError (
-                    "Failed to generate manifest: XML version is different - {0}".format (xml))
+        if xml_version is None:
+            xml_version = curr_xml_version
+
+        if xml_version != curr_xml_version:
+            raise RuntimeError (
+                "Failed to generate manifest: XML version is different - {0}".format (xml))
 
         for previous_file, previous_xml in processed_xml.items():
             if (previous_xml.get('version_id') == parsed_xml.get('version_id')):
@@ -295,8 +318,11 @@ def load_xmls (config_filename, max_num_xmls, xml_type):
     else:
         manifest_id = list (processed_xml.items())[0][1]["version"]
 
+    if len (processed_xml) == 0:
+        empty = True
+
     return processed_xml, sign, key_size, key, key_type, hash_type, manifest_id, config["output"], \
-        xml_version, empty, max_rw_sections
+        xml_version, empty, max_rw_sections, selection_list
 
 def write_manifest (xml_version, sign, manifest, key, key_size, key_type, output_filename,
     manifest_length, sig_length):
@@ -329,7 +355,7 @@ def write_manifest (xml_version, sign, manifest, key, key_size, key_type, output
 
     if sign:
         manifest_hash_buf = (ctypes.c_ubyte * manifest_length) ()
-        ctypes.memmove (ctypes.addressof (manifest_hash_buf), ctypes.addressof (manifest), 
+        ctypes.memmove (ctypes.addressof (manifest_hash_buf), ctypes.addressof (manifest),
             manifest_length)
         h = sha_algo.new (manifest_hash_buf)
 
@@ -344,7 +370,7 @@ def write_manifest (xml_version, sign, manifest, key, key_size, key_type, output
 
         manifest_buf = (ctypes.c_char * (manifest_length + sig_length)) ()
         ctypes.memset (manifest_buf, 0, manifest_length + sig_length)
-        ctypes.memmove (ctypes.byref (manifest_buf, manifest_length), 
+        ctypes.memmove (ctypes.byref (manifest_buf, manifest_length),
             ctypes.addressof (signature_buf), signature_buf_len)
     else:
         manifest_buf = (ctypes.c_char * (manifest_length)) ()
@@ -395,7 +421,7 @@ def generate_hash (element, hash_engine):
     # gives TypeError: Object type <class> cannot be passed to C code.
     element_size = ctypes.sizeof (element)
     element_buf = (ctypes.c_ubyte * element_size) ()
-    
+
     ctypes.memmove (ctypes.addressof (element_buf), ctypes.addressof (element), element_size)
 
     hash_object = hash_engine.new (element_buf)
@@ -413,7 +439,7 @@ def get_platform_id_from_xml_list (xml_list):
     """
 
     platform_id = None
-    
+
     for filename, xml in xml_list.items ():
         if "platform_id" not in xml:
             raise KeyError ("Failed to generate manifest: XML has no platform id - {0}".format (
@@ -449,6 +475,24 @@ def get_hash_engine (hash_type):
 
     return hash_engine
 
+def get_hash_len (hash_type):
+    """
+    Get hash len.
+
+    :param hash_type: Hashing algorithm to use
+
+    :return Hash len
+    """
+
+    if hash_type == 0:
+        return 32
+    elif hash_type == 1:
+        return 48
+    elif hash_type == 2:
+        return 64
+    else:
+        raise ValueError ("Invalid manifest hash type: {0}".format (hash_type))
+
 def generate_platform_id_buf (xml_platform_id, hash_engine):
     """
     Create a platform ID object from parsed XML list
@@ -477,11 +521,11 @@ def generate_platform_id_buf (xml_platform_id, hash_engine):
                     ('platform_id', ctypes.c_char * platform_id_str_len),
                     ('platform_id_padding', ctypes.c_ubyte * padding_len)]
 
-    platform_id = platform_id_element (platform_id_str_len, reserved, 
+    platform_id = platform_id_element (platform_id_str_len, reserved,
         platform_id_str.encode ('utf-8'), padding)
     platform_id_len = ctypes.sizeof (platform_id)
 
-    platform_id_toc_entry = manifest_toc_entry (V2_PLATFORM_TYPE_ID, V2_BASE_TYPE_ID, 1, 0, 0, 
+    platform_id_toc_entry = manifest_toc_entry (V2_PLATFORM_TYPE_ID, V2_BASE_TYPE_ID, 1, 0, 0,
         platform_id_len)
 
     platform_id_hash = generate_hash (platform_id, hash_engine)
@@ -490,13 +534,13 @@ def generate_platform_id_buf (xml_platform_id, hash_engine):
 
 def generate_toc (hash_engine, hash_type, toc_list, hash_list):
     """
-    Create manifest table of contents from list of pregenerated TOC entries and hash list for all 
+    Create manifest table of contents from list of pregenerated TOC entries and hash list for all
     elements
 
     :param hash_engine: Hashing engine
     :param hash_type: Hashing algorithm
     :param toc_list: List of TOC entries to be included in the TOC
-    :param hash_list: List of hashes for all elements in manifest. Hash list ordering must match 
+    :param hash_list: List of hashes for all elements in manifest. Hash list ordering must match
         toc_list's
 
     :return TOC buffer
@@ -508,7 +552,7 @@ def generate_toc (hash_engine, hash_type, toc_list, hash_list):
     check_maximum (len (toc_list), 255, "Number of ToC elements")
 
     num_entries = len (toc_list)
-    hash_len = hash_engine.digest_size 
+    hash_len = hash_engine.digest_size
 
     toc_len = ctypes.sizeof (manifest_toc_header) + \
         (ctypes.sizeof (manifest_toc_entry) + hash_len) * num_entries
@@ -530,12 +574,12 @@ def generate_toc (hash_engine, hash_type, toc_list, hash_list):
         entry.hash_id = hash_id
         hash_id += 1
 
-        ctypes.memmove (ctypes.addressof (toc) + toc_offset, ctypes.addressof (entry), 
+        ctypes.memmove (ctypes.addressof (toc) + toc_offset, ctypes.addressof (entry),
             toc_entry_len)
         toc_offset += toc_entry_len
 
     for hash_entry in hash_list:
-        ctypes.memmove (ctypes.addressof (toc) + toc_offset, ctypes.addressof (hash_entry), 
+        ctypes.memmove (ctypes.addressof (toc) + toc_offset, ctypes.addressof (hash_entry),
             hash_len)
         toc_offset += hash_len
 
@@ -544,12 +588,12 @@ def generate_toc (hash_engine, hash_type, toc_list, hash_list):
     toc_w_hash = (ctypes.c_ubyte * (toc_len + hash_len)) ()
 
     ctypes.memmove (ctypes.addressof (toc_w_hash), ctypes.addressof (toc), toc_len)
-    ctypes.memmove (ctypes.addressof (toc_w_hash) + toc_offset, ctypes.addressof (table_hash), 
+    ctypes.memmove (ctypes.addressof (toc_w_hash) + toc_offset, ctypes.addressof (table_hash),
         hash_len)
 
     return toc_w_hash
 
-def generate_manifest (hash_engine, hash_type, manifest_id, manifest_type, xml_version, sign, key, 
+def generate_manifest (hash_engine, hash_type, manifest_id, manifest_type, xml_version, sign, key,
     key_size, key_type, toc_list, hash_list, elements_list, elements_len, output):
     """
     Generate manifest from element, hash, and toc entries list
@@ -562,9 +606,9 @@ def generate_manifest (hash_engine, hash_type, manifest_id, manifest_type, xml_v
     :param sign: Boolean indicating whether to sign manifest or not
     :param key: Key to use for signing
     :param key_size: Size of signing key, optional
-    :param key_type: Signing key algorithm, optional 
+    :param key_type: Signing key algorithm, optional
     :param toc_list: List of TOC entries to be included in the TOC
-    :param hash_list: List of hashes for all elements in manifest. Hash list ordering must match 
+    :param hash_list: List of hashes for all elements in manifest. Hash list ordering must match
         toc_list's
     :param elements_list: List of elements to be included in manifest
     :param elements_len: Length of all elements' buffers
@@ -573,7 +617,7 @@ def generate_manifest (hash_engine, hash_type, manifest_id, manifest_type, xml_v
 
     manifest_len = elements_len
 
-    manifest_header = generate_manifest_header (manifest_id, key_size, manifest_type, hash_type, 
+    manifest_header = generate_manifest_header (manifest_id, key_size, manifest_type, hash_type,
         key_type, xml_version)
     manifest_header_len = ctypes.sizeof (manifest_header)
     manifest_len += manifest_header_len
@@ -587,7 +631,7 @@ def generate_manifest (hash_engine, hash_type, manifest_id, manifest_type, xml_v
     manifest_buf = (ctypes.c_ubyte * manifest_len) ()
     offset = 0
 
-    ctypes.memmove (ctypes.addressof (manifest_buf) + offset, ctypes.addressof (manifest_header), 
+    ctypes.memmove (ctypes.addressof (manifest_buf) + offset, ctypes.addressof (manifest_header),
         manifest_header_len)
     offset += manifest_header_len
 
@@ -596,12 +640,12 @@ def generate_manifest (hash_engine, hash_type, manifest_id, manifest_type, xml_v
 
     for element in elements_list:
         element_len = ctypes.sizeof (element)
-        ctypes.memmove (ctypes.addressof (manifest_buf) + offset, ctypes.addressof (element), 
+        ctypes.memmove (ctypes.addressof (manifest_buf) + offset, ctypes.addressof (element),
             element_len)
 
         offset += element_len
 
-    write_manifest (xml_version, sign, manifest_buf, key, key_size, key_type, output, 
+    write_manifest (xml_version, sign, manifest_buf, key, key_size, key_type, output,
         manifest_header.length - manifest_header.sig_length, manifest_header.sig_length)
 
 def check_maximum (value, maximum, value_name):
@@ -614,7 +658,7 @@ def check_maximum (value, maximum, value_name):
     """
 
     if value > maximum:
-        raise ValueError ("{0} value greater than maximum: {1} vs {2}".format (value_name, 
+        raise ValueError ("{0} value greater than maximum: {1} vs {2}".format (value_name,
             value, maximum))
 
 def generate_4byte_padding_buf (length):
@@ -634,7 +678,7 @@ def generate_4byte_padding_buf (length):
 
 def check_region_address_validity (start_addr, end_addr, check_alignment=True):
     """
-    Ensure end address comes after start address and optionally start and end address of a region 
+    Ensure end address comes after start address and optionally start and end address of a region
     are 64kB aligned
 
     :param start_addr: Region start address

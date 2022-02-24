@@ -41,6 +41,7 @@ enum {
 	HASH_ACTIVE_NONE = 0xff,			/**< No hash context is active. */
 };
 
+
 /**
  * A platform-independent API for calculating hashes.  Hash engine instances are not guaranteed to
  * be thread-safe.
@@ -198,6 +199,9 @@ struct hash_engine {
 int hash_start_new_hash (struct hash_engine *engine, enum hash_type type);
 int hash_calculate (struct hash_engine *engine, enum hash_type type, const uint8_t *data,
 	size_t length, uint8_t *hash, size_t hash_length);
+
+int hash_get_hash_len (enum hash_type hash_type);
+
 
 
 /* HMAC functions */

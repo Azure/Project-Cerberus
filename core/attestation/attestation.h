@@ -44,23 +44,27 @@ struct attestation_chain_digest {
  */
 struct attestation_challenge {
 	uint8_t slot_num;							/**< The slot number of the chain to use. */
-	uint8_t reserved;							/**< Reserved field */
-	uint8_t nonce[ATTESTATION_NONCE_LEN];		/**< Nonce buffer. */
+	uint8_t reserved;							/**< Reserved */
+	uint8_t nonce[ATTESTATION_NONCE_LEN];		/**< Nonce chosen by requestor. */
 };
+
+#define ATTESTATION_CHALLENGE_LEN 				(sizeof (struct attestation_challenge))
 
 /**
  * Challenge attestation response.  This follows the format in the Cerberus protocol.
  */
 struct attestation_response {
-	uint8_t slot_num;							/**< The slot number of the chain to use. */
+	uint8_t slot_num;							/**< The slot number of the chain used when generating response. */
 	uint8_t slot_mask;							/**< The certificate slot mask. */
 	uint8_t min_protocol_version;				/**< Minimum protocol version supported by device. */
 	uint8_t max_protocol_version;				/**< Maximum protocol version supported by device. */
-	uint16_t reserved;							/**< Reserved field. */
-	uint8_t nonce[ATTESTATION_NONCE_LEN];		/**< Nonce buffer. */
-	uint8_t num_digests;						/**< Number of firmware digests. */
-	uint8_t digests_size;						/**< Length of firmware digest in bytes. */
+	uint16_t reserved;							/**< Reserved. */
+	uint8_t nonce[ATTESTATION_NONCE_LEN];		/**< Nonce chosen by responder. */
+	uint8_t num_digests;						/**< Number of components used to generate PMR digest. */
+	uint8_t digests_size;						/**< Length of PMR digests in bytes. */
 };
+
+#define ATTESTATION_CHALLENGE_RSP_LEN 			(sizeof (struct attestation_response))
 #pragma pack(pop)
 
 
@@ -72,7 +76,7 @@ struct attestation_response {
 enum {
 	ATTESTATION_INVALID_ARGUMENT = ATTESTATION_ERROR (0x00),				/**< Input parameter is null or not valid. */
 	ATTESTATION_NO_MEMORY = ATTESTATION_ERROR (0x01),						/**< Memory allocation failed. */
-	ATTESTATION_INVALID_SLOT_NUM = ATTESTATION_ERROR (0x02),				/**< Invalid certifcate number in certificate chain. */
+	ATTESTATION_INVALID_SLOT_NUM = ATTESTATION_ERROR (0x02),				/**< Unsupported certificate slot number. */
 	ATTESTATION_INVALID_STATE = ATTESTATION_ERROR (0x03),					/**< Invalid state. */
 	ATTESTATION_INVALID_DEVICE_NUM = ATTESTATION_ERROR (0x04),				/**< Invalid device number. */
 	ATTESTATION_INVALID_CERT_NUM = ATTESTATION_ERROR (0x05),				/**< Invalid certificate number. */
@@ -85,6 +89,8 @@ enum {
 	ATTESTATION_CERT_NOT_AVAILABLE = ATTESTATION_ERROR (0x0C),				/**< Certificate queried not found. */
 	ATTESTATION_BAD_LENGTH = ATTESTATION_ERROR (0x0D),						/**< The payload length is wrong for the request. */
 	ATTESTATION_UNSUPPORTED_OPERATION = ATTESTATION_ERROR (0x0E),			/**< The requested operation is not supported. */
+	ATTESTATION_NO_CFM = ATTESTATION_ERROR (0x0F),							/**< No active CFM found. */
+	ATTESTATION_COMPONENT_TYPE_NOT_SET = ATTESTATION_ERROR (0x10),			/**< Component to attest has no component type set in device manager. */
 };
 
 

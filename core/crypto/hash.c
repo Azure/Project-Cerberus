@@ -130,6 +130,33 @@ int hash_calculate (struct hash_engine *engine, enum hash_type type, const uint8
 }
 
 /**
+ * Get hash length for indicated hash type.
+ *
+ * @param hash_type The type of hashing algorithm to use.
+ *
+ * @return Hash length if hash type is supported or an error code.
+ */
+int hash_get_hash_len (enum hash_type hash_type)
+{
+	switch (hash_type) {
+		case HASH_TYPE_SHA1:
+			return SHA1_HASH_LENGTH;
+
+		case HASH_TYPE_SHA256:
+			return SHA256_HASH_LENGTH;
+
+		case HASH_TYPE_SHA384:
+			return SHA384_HASH_LENGTH;
+
+		case HASH_TYPE_SHA512:
+			return SHA512_HASH_LENGTH;
+
+		default:
+			return HASH_ENGINE_UNKNOWN_HASH;
+	}
+}
+
+/**
  * Generate an HMAC for a block of data.
  *
  * @param engine The hashing engine to use for generating the HMAC.

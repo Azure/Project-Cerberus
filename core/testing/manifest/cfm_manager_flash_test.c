@@ -21,69 +21,6 @@ TEST_SUITE_LABEL ("cfm_manager_flash");
 
 
 /**
- * CFM with ID 2 for testing.
- */
-const uint8_t CFM2_DATA[] = {
-	0xbc,0x01,0x92,0xa5,0x02,0x00,0x00,0x00,0x00,0x01,0x00,0x00,0xb0,0x00,0x02,0x00,
-	0x40,0x00,0x01,0x00,0x04,0x00,0x00,0x00,0x38,0x00,0x01,0x00,0x08,0x00,0x00,0x00,
-	0x76,0x34,0x2e,0x30,0x34,0x2e,0x30,0x34,0x28,0x00,0x20,0x00,0x03,0x00,0x00,0x00,
-	0x85,0x08,0xf3,0x46,0xb4,0xda,0x1f,0xec,0x3e,0x78,0x20,0xc1,0x58,0x2f,0x73,0xe2,
-	0x1c,0x18,0xa2,0x83,0x5d,0xc0,0x99,0x26,0x0b,0xb9,0xaf,0x13,0x65,0x03,0xee,0x2d,
-	0x6c,0x00,0x01,0x00,0x03,0x00,0x00,0x00,0x64,0x00,0x02,0x00,0x09,0x00,0x00,0x00,
-	0x76,0x30,0x33,0x2e,0x30,0x33,0x2e,0x30,0x33,0x00,0x00,0x00,0x28,0x00,0x20,0x00,
-	0x02,0x00,0x00,0x00,0x85,0x08,0xf3,0x46,0xb4,0xda,0x1f,0xec,0x3e,0x78,0x20,0xc1,
-	0x58,0x2f,0x73,0xe2,0x1c,0x18,0xa2,0x83,0x5d,0xc0,0x99,0x26,0x0b,0xb9,0xaf,0x13,
-	0x65,0x03,0xee,0x2d,0x28,0x00,0x20,0x00,0x03,0x00,0x00,0x00,0x85,0x08,0xf3,0x46,
-	0xb4,0xda,0x1f,0xec,0x3e,0x78,0x20,0xc1,0x58,0x2f,0x73,0xe2,0x1c,0x18,0xa2,0x83,
-	0x5d,0xc0,0x99,0x26,0x0b,0xb9,0xaf,0x13,0x65,0x03,0xee,0x2d,0xb6,0x8a,0xd2,0xf2,
-	0x88,0xd7,0xd2,0xa6,0xeb,0x4c,0x48,0x57,0x73,0x32,0x26,0x41,0xf4,0x52,0x58,0x68,
-	0xa3,0x4d,0x2f,0xd7,0xac,0x2b,0x4f,0x1e,0xd7,0x29,0xf1,0x8f,0x10,0x0b,0x1d,0xca,
-	0x40,0x7a,0xf5,0xa5,0xe0,0xf0,0x11,0x37,0x14,0xd0,0x76,0xbe,0x7e,0x4b,0x6e,0x75,
-	0xb5,0x61,0x7a,0x8c,0xc0,0xa1,0xc7,0x87,0x14,0x83,0x84,0x60,0xe1,0x97,0x5d,0xa2,
-	0x74,0x26,0x23,0xec,0x12,0xe7,0x40,0x9f,0xa5,0xe9,0x9e,0xae,0xa5,0x60,0xc9,0x24,
-	0x24,0x67,0x85,0x7d,0x94,0xd2,0xf7,0x62,0x79,0xbe,0xb0,0xf6,0x50,0xdc,0x4f,0xac,
-	0x65,0xd1,0x6c,0x45,0xc0,0x66,0x89,0x57,0x82,0x1e,0x94,0x1f,0x33,0x5f,0x87,0x5a,
-	0x9b,0xc6,0x64,0xad,0xe0,0xbf,0x19,0x07,0xdf,0xf5,0x78,0x03,0x8e,0x87,0x3d,0xb1,
-	0x86,0x3d,0x06,0xf9,0xc9,0xaf,0x19,0x62,0x90,0x5b,0xee,0x67,0x02,0xa5,0x75,0xe6,
-	0x2a,0x83,0x27,0x26,0x13,0xc0,0x31,0xf2,0x7d,0x7c,0xff,0x2e,0x23,0x79,0x53,0x16,
-	0x8e,0xf3,0x2f,0x05,0xc4,0x47,0xe9,0xa9,0x3e,0x0a,0xc6,0xde,0x4c,0x97,0x40,0x8f,
-	0x55,0x16,0x66,0x0f,0xca,0xd2,0x43,0x06,0xb4,0xf0,0x32,0x7e,0x9e,0x8c,0x7d,0x77,
-	0x26,0x4f,0x7c,0xad,0x90,0x13,0x35,0x8e,0xd4,0x65,0x7b,0xb4,0x7c,0x32,0x7a,0x32,
-	0x2a,0xc0,0x07,0x2f,0x22,0x9a,0x60,0x54,0xc6,0x8a,0xd3,0x31,0x68,0x85,0xcf,0xf5,
-	0x09,0x4d,0xa0,0x2f,0x6a,0x5c,0x36,0x0d,0xf6,0x93,0x3f,0x6d,0x74,0x29,0x60,0xc6,
-	0x30,0xf7,0x6d,0xb8,0x4d,0x6e,0xa6,0x53,0x47,0x84,0x3c,0xc1
-};
-
-/**
- * Length of the second testing CFM.
- */
-const uint32_t CFM2_DATA_LEN = sizeof (CFM2_DATA);
-
-/**
- * The offset from the base for the second CFM signature.
- */
-const uint32_t CFM2_SIGNATURE_OFFSET = (sizeof (CFM2_DATA) - 256);
-
-/**
- * The signature for the second CFM.
- */
-const uint8_t *CFM2_SIGNATURE = CFM2_DATA + (sizeof (CFM2_DATA) - 256);
-
-/**
- * The length of the CFM signature.
- */
-const size_t CFM2_SIGNATURE_LEN = 256;
-
-/**
- * CFM2_DATA hash for testing.
- */
-const uint8_t CFM2_HASH[] = {
-	0x8c,0x0e,0xbf,0x80,0x79,0x71,0x39,0xf1,0x08,0x4f,0xad,0x8c,0xd0,0x6b,0x92,0xfb,
-	0x6a,0xb0,0x9b,0xac,0x06,0x09,0x74,0x14,0xd9,0xa7,0xcb,0x1f,0x67,0x66,0x0a,0x8d
-};
-
-
-/**
  * Dependencies for testing the CFM manager.
  */
 struct cfm_manager_flash_testing {
@@ -179,12 +116,14 @@ static void cfm_manager_flash_testing_init_dependencies (CuTest *test,
 
 	cfm_manager_flash_testing_init_system_state (test, manager);
 
-	status = cfm_flash_init (&manager->cfm1, &manager->flash.base, addr1, manager->signature1,
-		sizeof (manager->signature1), manager->platform_id1, sizeof (manager->platform_id1));
+	status = cfm_flash_init (&manager->cfm1, &manager->flash.base, &manager->hash.base, addr1,
+		manager->signature1, sizeof (manager->signature1), manager->platform_id1,
+		sizeof (manager->platform_id1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm_flash_init (&manager->cfm2, &manager->flash.base, addr2, manager->signature2,
-		sizeof (manager->signature2), manager->platform_id2, sizeof (manager->platform_id2));
+	status = cfm_flash_init (&manager->cfm2, &manager->flash.base, &manager->hash.base, addr2,
+		manager->signature2, sizeof (manager->signature2), manager->platform_id2,
+		sizeof (manager->platform_id2));
 	CuAssertIntEquals (test, 0, status);
 
 	status = cfm_observer_mock_init (&manager->observer);
@@ -243,40 +182,134 @@ static void cfm_manager_flash_testing_validate_and_release (CuTest *test,
  * Set up expectations for verifying a CFM on flash.
  *
  * @param manager The testing components.
- * @param cfm The CFM data to read.
- * @param length The length of the CFM data.
- * @param hash The CFM hash.
- * @param signature The CFM signature.
- * @param offset The offset of the CFM signature.
  * @param address The base address of the CFM.
+ * @param testing_data Container with testing data.
+ * @param sig_verification_result Result of the signature verification call.
  *
  * @return 0 if the expectations were set up successfully or an error code.
  */
 static int cfm_manager_flash_testing_verify_cfm (struct cfm_manager_flash_testing *manager,
-	const uint8_t *cfm, size_t length, const uint8_t *hash, const uint8_t *signature, size_t offset,
-	uint32_t address)
+	uint32_t address, const struct cfm_testing_data *testing_data, int sig_verification_result)
 {
+	uint32_t vvalidate_toc_start = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE;
+	uint32_t validate_start = testing_data->manifest.plat_id_offset +
+		MANIFEST_V2_PLATFORM_HEADER_SIZE;
 	int status;
 
 	status = flash_master_mock_expect_rx_xfer (&manager->flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock, 0, cfm, length,
-		FLASH_EXP_READ_CMD (0x03, address, 0, -1, CFM_HEADER_SIZE));
+	status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock, 0, testing_data->manifest.raw,
+		MANIFEST_V2_HEADER_SIZE,
+		FLASH_EXP_READ_CMD (0x03, address, 0, -1, MANIFEST_V2_HEADER_SIZE));
 
 	status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock, 0, signature,
-		CFM_SIGNATURE_LEN, FLASH_EXP_READ_CMD (0x03, address + offset, 0, -1, CFM_SIGNATURE_LEN));
+	status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock, 0,
+		testing_data->manifest.signature, testing_data->manifest.sig_len,
+		FLASH_EXP_READ_CMD (0x03, address + testing_data->manifest.sig_offset, 0, -1,
+			testing_data->manifest.sig_len));
 
-	status |= flash_master_mock_expect_verify_flash (&manager->flash_mock, address, cfm,
-		length - CFM_SIGNATURE_LEN);
+	status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock, 0,
+		testing_data->manifest.raw + MANIFEST_V2_TOC_HDR_OFFSET, MANIFEST_V2_TOC_HEADER_SIZE,
+		FLASH_EXP_READ_CMD (0x03, address + MANIFEST_V2_TOC_HDR_OFFSET, 0, -1,
+			MANIFEST_V2_TOC_HEADER_SIZE));
 
-	status |= mock_expect (&manager->verification.mock, manager->verification.base.verify_signature,
-		&manager->verification, 0, MOCK_ARG_PTR_CONTAINS (hash, CFM_HASH_LEN),
-		MOCK_ARG (CFM_HASH_LEN), MOCK_ARG_PTR_CONTAINS (signature, CFM_SIGNATURE_LEN),
-		MOCK_ARG (CFM_SIGNATURE_LEN));
+	status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock, 0,
+		testing_data->manifest.raw + MANIFEST_V2_TOC_ENTRY_OFFSET, MANIFEST_V2_TOC_ENTRY_SIZE,
+		FLASH_EXP_READ_CMD (0x03, address + MANIFEST_V2_TOC_ENTRY_OFFSET, 0, -1,
+			MANIFEST_V2_TOC_ENTRY_SIZE));
+
+	status |= flash_master_mock_expect_verify_flash (&manager->flash_mock,
+		address + vvalidate_toc_start, testing_data->manifest.raw + vvalidate_toc_start,
+		testing_data->manifest.toc_hash_offset - vvalidate_toc_start);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock, 0,
+		testing_data->manifest.raw + testing_data->manifest.toc_hash_offset,
+		testing_data->manifest.toc_hash_len,
+		FLASH_EXP_READ_CMD (0x03, address + testing_data->manifest.toc_hash_offset, 0, -1,
+			testing_data->manifest.toc_hash_len));
+
+	status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock, 0,
+		testing_data->manifest.raw + testing_data->manifest.plat_id_offset,
+		MANIFEST_V2_PLATFORM_HEADER_SIZE,
+		FLASH_EXP_READ_CMD (0x03, address + testing_data->manifest.plat_id_offset, 0, -1,
+			MANIFEST_V2_PLATFORM_HEADER_SIZE));
+
+	status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock, 0,
+		testing_data->manifest.raw + validate_start, testing_data->manifest.plat_id_str_len,
+		FLASH_EXP_READ_CMD (0x03, address + validate_start, 0, -1,
+			testing_data->manifest.plat_id_str_len));
+
+	validate_start += testing_data->manifest.plat_id_str_len;
+
+	status |= flash_master_mock_expect_verify_flash (&manager->flash_mock, address + validate_start,
+		testing_data->manifest.raw + validate_start,
+		testing_data->manifest.length - validate_start - testing_data->manifest.sig_len);
+
+	status |= mock_expect (&manager->verification.mock,
+		manager->verification.base.verify_signature, &manager->verification,
+		sig_verification_result, MOCK_ARG_PTR_CONTAINS (testing_data->manifest.hash,
+		CFM_TESTING.manifest.hash_len), MOCK_ARG (testing_data->manifest.hash_len),
+		MOCK_ARG_PTR_CONTAINS (testing_data->manifest.signature, testing_data->manifest.sig_len),
+		MOCK_ARG (testing_data->manifest.sig_len));
 
 	return status;
+}
+
+/**
+ * Initialize CFM manager for testing.
+ *
+ * @param test The testing framework.
+ * @param manager The testing components to initialize.
+ * @param addr1 The base address for the first CFM.
+ * @param addr2 The base address for the second CFM.
+ * @param cfm1 The CFM verification function for region 1.
+ * @param cfm2 The CFM verification function for region 2.
+ * @param cfm1_active Flag indicating if region 1 is active.
+ */
+static void cfm_manager_flash_testing_init (CuTest *test, struct cfm_manager_flash_testing *manager,
+	uint32_t addr1, uint32_t addr2, int (*cfm1) (struct cfm_manager_flash_testing*, uint32_t),
+	int (*cfm2) (struct cfm_manager_flash_testing*, uint32_t), bool cfm1_active)
+{
+	int status;
+
+	cfm_manager_flash_testing_init_dependencies (test, manager, addr1, addr2);
+
+	if (!cfm1_active) {
+		status = manager->state_mgr.save_active_manifest (&manager->state_mgr,
+			SYSTEM_STATE_MANIFEST_CFM, MANIFEST_REGION_2);
+		CuAssertIntEquals (test, 0, status);
+	}
+
+	/* Use blank check to simulate empty CFM regions. */
+	status = flash_master_mock_expect_blank_check (&manager->flash_mock, 0x10000,
+		MANIFEST_V2_HEADER_SIZE);
+	status |= flash_master_mock_expect_blank_check (&manager->flash_mock, 0x20000,
+		MANIFEST_V2_HEADER_SIZE);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_flash_init (&manager->test, &manager->cfm1, &manager->cfm2,
+		&manager->state_mgr, &manager->hash.base, &manager->verification.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&manager->flash_mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&manager->flash_mock_state.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&manager->verification.mock);
+	CuAssertIntEquals (test, 0, status);
 }
 
 /**
@@ -327,8 +360,10 @@ static void cfm_manager_flash_test_init (CuTest *test)
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000, CFM_HEADER_SIZE);
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, CFM_HEADER_SIZE);
+	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000,
+		MANIFEST_V2_HEADER_SIZE);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
+		MANIFEST_V2_HEADER_SIZE);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -363,11 +398,11 @@ static void cfm_manager_flash_test_init_only_active_region1 (CuTest *test)
 
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x10000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_TESTING, 0);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, CFM_HEADER_SIZE);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
+		MANIFEST_V2_HEADER_SIZE);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -395,10 +430,10 @@ static void cfm_manager_flash_test_init_only_active_region2 (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000, CFM_HEADER_SIZE);
+	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000,
+		MANIFEST_V2_HEADER_SIZE);
 
-	status |= cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x20000);
+	status |= cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_TESTING, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -422,10 +457,10 @@ static void cfm_manager_flash_test_init_only_pending_region2 (CuTest *test)
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000, CFM_HEADER_SIZE);
+	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000,
+		MANIFEST_V2_HEADER_SIZE);
 
-	status |= cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x20000);
+	status |= cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_TESTING, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -452,11 +487,11 @@ static void cfm_manager_flash_test_init_only_pending_region1 (CuTest *test)
 		MANIFEST_REGION_2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x10000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_TESTING, 0);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, CFM_HEADER_SIZE);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
+		MANIFEST_V2_HEADER_SIZE);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -479,10 +514,9 @@ static void cfm_manager_flash_test_init_active_and_pending (CuTest *test)
 
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x10000);
-	status |= cfm_manager_flash_testing_verify_cfm (&manager, CFM2_DATA, CFM2_DATA_LEN, CFM2_HASH,
-		CFM2_SIGNATURE, CFM2_SIGNATURE_OFFSET, 0x20000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_TESTING, 0);
+	status |= cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_ONLY_PMR_DIGEST_TESTING,
+		0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -505,10 +539,9 @@ static void cfm_manager_flash_test_init_region2_pending_lower_id (CuTest *test)
 
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM2_DATA, CFM2_DATA_LEN, CFM2_HASH,
-		CFM2_SIGNATURE, CFM2_SIGNATURE_OFFSET, 0x10000);
-	status |= cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x20000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_ONLY_PMR_DIGEST_TESTING,
+		0);
+	status |= cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_TESTING, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -531,10 +564,8 @@ static void cfm_manager_flash_test_init_region2_pending_same_id (CuTest *test)
 
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x10000);
-	status |= cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x20000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_TESTING, 0);
+	status |= cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_TESTING, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -561,10 +592,9 @@ static void cfm_manager_flash_test_init_region1_pending_lower_id (CuTest *test)
 		MANIFEST_REGION_2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x10000);
-	status |= cfm_manager_flash_testing_verify_cfm (&manager, CFM2_DATA, CFM2_DATA_LEN, CFM2_HASH,
-		CFM2_SIGNATURE, CFM2_SIGNATURE_OFFSET, 0x20000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_TESTING, 0);
+	status |= cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_ONLY_PMR_DIGEST_TESTING,
+		0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -591,10 +621,8 @@ static void cfm_manager_flash_test_init_region1_pending_same_id (CuTest *test)
 		MANIFEST_REGION_2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x10000);
-	status |= cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x20000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_TESTING, 0);
+	status |= cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_TESTING, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -604,6 +632,96 @@ static void cfm_manager_flash_test_init_region1_pending_same_id (CuTest *test)
 
 	CuAssertPtrEquals (test, &manager.cfm2, manager.test.base.get_active_cfm (&manager.test.base));
 	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_cfm (&manager.test.base));
+
+	cfm_manager_flash_testing_validate_and_release (test, &manager);
+}
+
+static void cfm_manager_flash_test_init_only_pending_region2_empty_manifest (CuTest *test)
+{
+	struct cfm_manager_flash_testing manager;
+	int status;
+
+	TEST_START;
+
+	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
+
+	status = flash_master_mock_expect_blank_check (&manager.flash_mock, manager.cfm1_addr,
+		MANIFEST_V2_HEADER_SIZE);
+	status |= cfm_manager_flash_testing_verify_cfm (&manager, manager.cfm2_addr, &CFM_EMPTY_TESTING,
+		0);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Erase manifest regions. */
+	status = flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x20000);
+	status |= flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x10000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_flash_init (&manager.test, &manager.cfm1, &manager.cfm2,
+		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_cfm (&manager.test.base));
+
+	cfm_manager_flash_testing_validate_and_release (test, &manager);
+}
+
+static void cfm_manager_flash_test_init_only_pending_region1_empty_manifest (CuTest *test)
+{
+	struct cfm_manager_flash_testing manager;
+	int status;
+
+	TEST_START;
+
+	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
+
+	status = manager.state_mgr.save_active_manifest (&manager.state_mgr, SYSTEM_STATE_MANIFEST_CFM,
+		MANIFEST_REGION_2);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_flash_testing_verify_cfm (&manager, manager.cfm1_addr, &CFM_EMPTY_TESTING,
+		0);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, manager.cfm2_addr,
+		MANIFEST_V2_HEADER_SIZE);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Erase manifest regions. */
+	status = flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x10000);
+	status |= flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x20000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_flash_init (&manager.test, &manager.cfm1, &manager.cfm2,
+		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_cfm (&manager.test.base));
+
+	cfm_manager_flash_testing_validate_and_release (test, &manager);
+}
+
+static void cfm_manager_flash_test_init_active_and_pending_empty_manifest (CuTest *test)
+{
+	struct cfm_manager_flash_testing manager;
+	int status;
+
+	TEST_START;
+
+	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
+
+	status = cfm_manager_flash_testing_verify_cfm (&manager, manager.cfm1_addr, &CFM_TESTING, 0);
+	status |= cfm_manager_flash_testing_verify_cfm (&manager, manager.cfm2_addr, &CFM_EMPTY_TESTING,
+		0);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Erase manifest regions. */
+	status = flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x20000);
+	status |= flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x10000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_flash_init (&manager.test, &manager.cfm1, &manager.cfm2,
+		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_cfm (&manager.test.base));
 
 	cfm_manager_flash_testing_validate_and_release (test, &manager);
 }
@@ -675,7 +793,8 @@ static void cfm_manager_flash_test_init_region2_flash_error (CuTest *test)
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000, CFM_HEADER_SIZE);
+	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000,
+		MANIFEST_V2_HEADER_SIZE);
 
 	status |= flash_master_mock_expect_xfer (&manager.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
@@ -698,27 +817,13 @@ static void cfm_manager_flash_test_init_cfm_bad_signature (CuTest *test)
 
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, CFM_DATA, CFM_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, CFM_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, CFM_SIGNATURE,
-		CFM_SIGNATURE_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + CFM_SIGNATURE_OFFSET, 0, -1, CFM_SIGNATURE_LEN));
-
-	status |= flash_master_mock_expect_verify_flash (&manager.flash_mock, 0x10000, CFM_DATA,
-		CFM_DATA_LEN - CFM_SIGNATURE_LEN);
-
-	status |= mock_expect (&manager.verification.mock, manager.verification.base.verify_signature,
-		&manager.verification, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_NOT_NULL, MOCK_ARG (CFM_HASH_LEN),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (CFM_SIGNATURE_LEN));
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_TESTING,
+		RSA_ENGINE_BAD_SIGNATURE);
+	CuAssertIntEquals (test, 0, status);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, CFM_HEADER_SIZE);
-
+	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
+		MANIFEST_V2_HEADER_SIZE);
 	CuAssertIntEquals (test, 0, status);
 
 	status = cfm_manager_flash_init (&manager.test, &manager.cfm1, &manager.cfm2,
@@ -726,7 +831,6 @@ static void cfm_manager_flash_test_init_cfm_bad_signature (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_cfm (&manager.test.base));
-	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_cfm (&manager.test.base));
 
 	cfm_manager_flash_testing_validate_and_release (test, &manager);
 }
@@ -740,27 +844,13 @@ static void cfm_manager_flash_test_init_cfm_bad_signature_ecc (CuTest *test)
 
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, CFM_DATA, CFM_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, CFM_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, CFM_SIGNATURE,
-		CFM_SIGNATURE_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + CFM_SIGNATURE_OFFSET, 0, -1, CFM_SIGNATURE_LEN));
-
-	status |= flash_master_mock_expect_verify_flash (&manager.flash_mock, 0x10000, CFM_DATA,
-		CFM_DATA_LEN - CFM_SIGNATURE_LEN);
-
-	status |= mock_expect (&manager.verification.mock, manager.verification.base.verify_signature,
-		&manager.verification, ECC_ENGINE_BAD_SIGNATURE, MOCK_ARG_NOT_NULL, MOCK_ARG (CFM_HASH_LEN),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (CFM_SIGNATURE_LEN));
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_TESTING,
+		ECC_ENGINE_BAD_SIGNATURE);
+	CuAssertIntEquals (test, 0, status);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, CFM_HEADER_SIZE);
-
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
+		MANIFEST_V2_HEADER_SIZE);
 	CuAssertIntEquals (test, 0, status);
 
 	status = cfm_manager_flash_init (&manager.test, &manager.cfm1, &manager.cfm2,
@@ -768,7 +858,6 @@ static void cfm_manager_flash_test_init_cfm_bad_signature_ecc (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_cfm (&manager.test.base));
-	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_cfm (&manager.test.base));
 
 	cfm_manager_flash_testing_validate_and_release (test, &manager);
 }
@@ -777,11 +866,11 @@ static void cfm_manager_flash_test_init_bad_length (CuTest *test)
 {
 	struct cfm_manager_flash_testing manager;
 	int status;
-	uint8_t cfm_bad_data[CFM_SIGNATURE_OFFSET];
+	uint8_t cfm_bad_data[CFM_TESTING.manifest.sig_offset];
 
 	TEST_START;
 
-	memcpy (cfm_bad_data, CFM_DATA, sizeof (cfm_bad_data));
+	memcpy (cfm_bad_data, CFM_TESTING.manifest.raw, sizeof (cfm_bad_data));
 	cfm_bad_data[9] = 0xff;
 
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
@@ -789,10 +878,45 @@ static void cfm_manager_flash_test_init_bad_length (CuTest *test)
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, cfm_bad_data,
-		sizeof (cfm_bad_data), FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, CFM_HEADER_SIZE));
+		sizeof (cfm_bad_data), FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1,
+		MANIFEST_V2_HEADER_SIZE));
 
 	/* Use blank check to simulate empty CFM regions. */
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, CFM_HEADER_SIZE);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
+		MANIFEST_V2_HEADER_SIZE);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_flash_init (&manager.test, &manager.cfm1, &manager.cfm2,
+		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_cfm (&manager.test.base));
+
+	cfm_manager_flash_testing_validate_and_release (test, &manager);
+}
+
+static void cfm_manager_flash_test_init_bad_magic_number (CuTest *test)
+{
+	struct cfm_manager_flash_testing manager;
+	int status;
+	uint8_t cfm_bad_data[CFM_TESTING.manifest.sig_offset];
+
+	TEST_START;
+
+	memcpy (cfm_bad_data, CFM_TESTING.manifest.raw, sizeof (cfm_bad_data));
+	cfm_bad_data[2] ^= 0x55;
+
+	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
+
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, cfm_bad_data,
+		sizeof (cfm_bad_data), FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, MANIFEST_V2_HEADER_SIZE));
+
+	/* Use blank check to simulate empty CFM regions. */
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
+		MANIFEST_V2_HEADER_SIZE);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -806,35 +930,57 @@ static void cfm_manager_flash_test_init_bad_length (CuTest *test)
 	cfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
-static void cfm_manager_flash_test_init_bad_magic_number (CuTest *test)
+static void cfm_manager_flash_test_init_empty_manifest_pending_erase_error (CuTest *test)
 {
 	struct cfm_manager_flash_testing manager;
 	int status;
-	uint8_t cfm_bad_data[CFM_SIGNATURE_OFFSET];
 
 	TEST_START;
 
-	memcpy (cfm_bad_data, CFM_DATA, sizeof (cfm_bad_data));
-	cfm_bad_data[2] ^= 0x55;
-
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
+	status = flash_master_mock_expect_blank_check (&manager.flash_mock, manager.cfm1_addr,
+		MANIFEST_V2_HEADER_SIZE);
+	status |= cfm_manager_flash_testing_verify_cfm (&manager, manager.cfm2_addr, &CFM_EMPTY_TESTING,
+		0);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Erase manifest regions. */
+	status = flash_master_mock_expect_xfer (&manager.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, cfm_bad_data,
-		sizeof (cfm_bad_data), FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, CFM_HEADER_SIZE));
-
-	/* Use blank check to simulate empty CFM regions. */
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, CFM_HEADER_SIZE);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = cfm_manager_flash_init (&manager.test, &manager.cfm1, &manager.cfm2,
 		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
+	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
+
+	cfm_manager_flash_testing_validate_and_release (test, &manager);
+}
+
+static void cfm_manager_flash_test_init_empty_manifest_active_erase_error (CuTest *test)
+{
+	struct cfm_manager_flash_testing manager;
+	int status;
+
+	TEST_START;
+
+	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
+
+	status = flash_master_mock_expect_blank_check (&manager.flash_mock, manager.cfm1_addr,
+		MANIFEST_V2_HEADER_SIZE);
+	status |= cfm_manager_flash_testing_verify_cfm (&manager, manager.cfm2_addr, &CFM_EMPTY_TESTING,
+		0);
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_cfm (&manager.test.base));
-	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_cfm (&manager.test.base));
+	/* Erase manifest regions. */
+	status = flash_master_mock_expect_erase_flash (&manager.flash_mock, 0x20000);
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock, FLASH_MASTER_XFER_FAILED,
+		FLASH_EXP_READ_STATUS_REG);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_flash_init (&manager.test, &manager.cfm1, &manager.cfm2,
+		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
+	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
 	cfm_manager_flash_testing_validate_and_release (test, &manager);
 }
@@ -848,11 +994,11 @@ static void cfm_manager_flash_test_get_active_cfm_null (CuTest *test)
 
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x10000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_TESTING, 0);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, CFM_HEADER_SIZE);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
+		MANIFEST_V2_HEADER_SIZE);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -878,11 +1024,11 @@ static void cfm_manager_flash_test_get_pending_cfm_null (CuTest *test)
 		MANIFEST_REGION_2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA,	CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x10000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_TESTING, 0);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, CFM_HEADER_SIZE);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
+		MANIFEST_V2_HEADER_SIZE);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -905,10 +1051,9 @@ static void cfm_manager_flash_test_activate_pending_cfm_region2 (CuTest *test)
 
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x10000);
-	status |= cfm_manager_flash_testing_verify_cfm (&manager, CFM2_DATA, CFM2_DATA_LEN, CFM2_HASH,
-		CFM2_SIGNATURE, CFM2_SIGNATURE_OFFSET, 0x20000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_TESTING, 0);
+	status |= cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_ONLY_PMR_DIGEST_TESTING,
+		0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -942,10 +1087,9 @@ static void cfm_manager_flash_test_activate_pending_cfm_region1 (CuTest *test)
 		MANIFEST_REGION_2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM2_DATA, CFM2_DATA_LEN, CFM2_HASH,
-		CFM2_SIGNATURE, CFM2_SIGNATURE_OFFSET, 0x10000);
-	status |= cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x20000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_ONLY_PMR_DIGEST_TESTING,
+		0);
+	status |= cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_TESTING, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -975,10 +1119,9 @@ static void cfm_manager_flash_test_activate_pending_cfm_region2_notify_observers
 
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x10000);
-	status |= cfm_manager_flash_testing_verify_cfm (&manager, CFM2_DATA, CFM2_DATA_LEN, CFM2_HASH,
-		CFM2_SIGNATURE, CFM2_SIGNATURE_OFFSET, 0x20000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_TESTING, 0);
+	status |= cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_ONLY_PMR_DIGEST_TESTING,
+		0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1020,10 +1163,9 @@ static void cfm_manager_flash_test_activate_pending_cfm_region1_notify_observers
 		MANIFEST_REGION_2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM2_DATA, CFM2_DATA_LEN, CFM2_HASH,
-		CFM2_SIGNATURE, CFM2_SIGNATURE_OFFSET, 0x10000);
-	status |= cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x20000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_ONLY_PMR_DIGEST_TESTING,
+		0);
+	status |= cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_TESTING, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1060,11 +1202,11 @@ static void cfm_manager_flash_test_activate_pending_cfm_no_pending_region2 (CuTe
 
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x10000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_TESTING, 0);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, CFM_HEADER_SIZE);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
+		MANIFEST_V2_HEADER_SIZE);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1095,10 +1237,10 @@ static void cfm_manager_flash_test_activate_pending_cfm_no_pending_region1 (CuTe
 	CuAssertIntEquals (test, 0, status);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000, CFM_HEADER_SIZE);
+	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000,
+		MANIFEST_V2_HEADER_SIZE);
 
-	status |= cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x20000);
+	status |= cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_TESTING, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1124,11 +1266,11 @@ static void cfm_manager_flash_test_activate_pending_cfm_no_pending_notify_observ
 
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x10000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_TESTING, 0);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, CFM_HEADER_SIZE);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
+		MANIFEST_V2_HEADER_SIZE);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1157,10 +1299,9 @@ static void cfm_manager_flash_test_activate_pending_cfm_null (CuTest *test)
 
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x10000);
-	status |= cfm_manager_flash_testing_verify_cfm (&manager, CFM2_DATA, CFM2_DATA_LEN, CFM2_HASH,
-		CFM2_SIGNATURE, CFM2_SIGNATURE_OFFSET, 0x20000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_TESTING, 0);
+	status |= cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_ONLY_PMR_DIGEST_TESTING,
+		0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1184,8 +1325,10 @@ static void cfm_manager_flash_test_clear_pending_region_region2 (CuTest *test)
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000, CFM_HEADER_SIZE);
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, CFM_HEADER_SIZE);
+	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000,
+		MANIFEST_V2_HEADER_SIZE);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
+		MANIFEST_V2_HEADER_SIZE);
 	status |= flash_master_mock_expect_erase_flash_verify (&manager.flash_mock, 0x20000, 0x10000);
 	CuAssertIntEquals (test, 0, status);
 
@@ -1216,8 +1359,10 @@ static void cfm_manager_flash_test_clear_pending_region_region1 (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000, CFM_HEADER_SIZE);
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, CFM_HEADER_SIZE);
+	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000,
+		MANIFEST_V2_HEADER_SIZE);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
+		MANIFEST_V2_HEADER_SIZE);
 
 	status |= flash_master_mock_expect_erase_flash_verify (&manager.flash_mock, 0x10000, 0x10000);
 
@@ -1245,10 +1390,9 @@ static void cfm_manager_flash_test_clear_pending_region_invalidate_pending_regio
 
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x10000);
-	status |= cfm_manager_flash_testing_verify_cfm (&manager, CFM2_DATA, CFM2_DATA_LEN, CFM2_HASH,
-		CFM2_SIGNATURE, CFM2_SIGNATURE_OFFSET, 0x20000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_TESTING, 0);
+	status |= cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_ONLY_PMR_DIGEST_TESTING,
+		0);
 
 	status |= flash_master_mock_expect_erase_flash_verify (&manager.flash_mock, 0x20000, 0x10000);
 
@@ -1280,10 +1424,9 @@ static void cfm_manager_flash_test_clear_pending_region_invalidate_pending_regio
 		MANIFEST_REGION_2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM2_DATA, CFM2_DATA_LEN, CFM2_HASH,
-		CFM2_SIGNATURE, CFM2_SIGNATURE_OFFSET, 0x10000);
-	status |= cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x20000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_ONLY_PMR_DIGEST_TESTING,
+		0);
+	status |= cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_TESTING, 0);
 
 	status |= flash_master_mock_expect_erase_flash_verify (&manager.flash_mock, 0x10000, 0x10000);
 
@@ -1312,8 +1455,10 @@ static void cfm_manager_flash_test_clear_pending_region_null (CuTest *test)
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000, CFM_HEADER_SIZE);
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, CFM_HEADER_SIZE);
+	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000,
+		MANIFEST_V2_HEADER_SIZE);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
+		MANIFEST_V2_HEADER_SIZE);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1337,8 +1482,10 @@ static void cfm_manager_flash_test_clear_pending_region_manifest_too_large (CuTe
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000, CFM_HEADER_SIZE);
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, CFM_HEADER_SIZE);
+	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000,
+		MANIFEST_V2_HEADER_SIZE);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
+		MANIFEST_V2_HEADER_SIZE);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1363,10 +1510,9 @@ static void cfm_manager_flash_test_clear_pending_region_manifest_too_large_with_
 
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x10000);
-	status |= cfm_manager_flash_testing_verify_cfm (&manager, CFM2_DATA, CFM2_DATA_LEN, CFM2_HASH,
-		CFM2_SIGNATURE, CFM2_SIGNATURE_OFFSET, 0x20000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_TESTING, 0);
+	status |= cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_ONLY_PMR_DIGEST_TESTING,
+		0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1393,10 +1539,9 @@ static void cfm_manager_flash_test_clear_pending_region_erase_error_region2 (CuT
 
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x10000);
-	status |= cfm_manager_flash_testing_verify_cfm (&manager, CFM2_DATA, CFM2_DATA_LEN, CFM2_HASH,
-		CFM2_SIGNATURE, CFM2_SIGNATURE_OFFSET, 0x20000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_TESTING, 0);
+	status |= cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_ONLY_PMR_DIGEST_TESTING,
+		0);
 
 	status |= flash_master_mock_expect_xfer (&manager.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
@@ -1429,10 +1574,9 @@ static void cfm_manager_flash_test_clear_pending_region_erase_error_region1 (CuT
 		MANIFEST_REGION_2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM2_DATA, CFM2_DATA_LEN, CFM2_HASH,
-		CFM2_SIGNATURE, CFM2_SIGNATURE_OFFSET, 0x10000);
-	status |= cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x20000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_ONLY_PMR_DIGEST_TESTING,
+		0);
+	status |= cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_TESTING, 0);
 
 	status |= flash_master_mock_expect_xfer (&manager.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
@@ -1462,10 +1606,9 @@ static void cfm_manager_flash_test_clear_pending_region_cfm_in_use_region2 (CuTe
 
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x10000);
-	status |= cfm_manager_flash_testing_verify_cfm (&manager, CFM2_DATA, CFM2_DATA_LEN, CFM2_HASH,
-		CFM2_SIGNATURE, CFM2_SIGNATURE_OFFSET, 0x20000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_TESTING, 0);
+	status |= cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_ONLY_PMR_DIGEST_TESTING,
+		0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1511,10 +1654,9 @@ static void cfm_manager_flash_test_clear_pending_region_cfm_in_use_region1 (CuTe
 		MANIFEST_REGION_2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM2_DATA, CFM2_DATA_LEN, CFM2_HASH,
-		CFM2_SIGNATURE, CFM2_SIGNATURE_OFFSET, 0x10000);
-	status |= cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x20000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_ONLY_PMR_DIGEST_TESTING,
+		0);
+	status |= cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_TESTING, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1557,10 +1699,9 @@ static void cfm_manager_flash_test_clear_pending_region_cfm_in_use_multiple_regi
 
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x10000);
-	status |= cfm_manager_flash_testing_verify_cfm (&manager, CFM2_DATA, CFM2_DATA_LEN, CFM2_HASH,
-		CFM2_SIGNATURE, CFM2_SIGNATURE_OFFSET, 0x20000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_TESTING, 0);
+	status |= cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_ONLY_PMR_DIGEST_TESTING,
+		0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1616,10 +1757,9 @@ static void cfm_manager_flash_test_clear_pending_region_cfm_in_use_multiple_regi
 		MANIFEST_REGION_2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM2_DATA, CFM2_DATA_LEN, CFM2_HASH,
-		CFM2_SIGNATURE, CFM2_SIGNATURE_OFFSET, 0x10000);
-	status |= cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x20000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_ONLY_PMR_DIGEST_TESTING,
+		0);
+	status |= cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_TESTING, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1670,10 +1810,9 @@ static void cfm_manager_flash_test_clear_pending_region_in_use_after_activate_re
 
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x10000);
-	status |= cfm_manager_flash_testing_verify_cfm (&manager, CFM2_DATA, CFM2_DATA_LEN, CFM2_HASH,
-		CFM2_SIGNATURE, CFM2_SIGNATURE_OFFSET, 0x20000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_TESTING, 0);
+	status |= cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_ONLY_PMR_DIGEST_TESTING,
+		0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1722,10 +1861,9 @@ static void cfm_manager_flash_test_clear_pending_region_in_use_after_activate_re
 		MANIFEST_REGION_2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM2_DATA, CFM2_DATA_LEN, CFM2_HASH,
-		CFM2_SIGNATURE, CFM2_SIGNATURE_OFFSET, 0x10000);
-	status |= cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x20000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_ONLY_PMR_DIGEST_TESTING,
+		0);
+	status |= cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_TESTING, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1769,11 +1907,11 @@ static void cfm_manager_flash_test_clear_pending_no_pending_in_use_region2 (CuTe
 
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x10000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_TESTING, 0);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, CFM_HEADER_SIZE);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
+		MANIFEST_V2_HEADER_SIZE);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1809,10 +1947,10 @@ static void cfm_manager_flash_test_clear_pending_no_pending_in_use_region1 (CuTe
 	CuAssertIntEquals (test, 0, status);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000, CFM_HEADER_SIZE);
+	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000,
+		MANIFEST_V2_HEADER_SIZE);
 
-	status |= cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x20000);
+	status |= cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_TESTING, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1844,10 +1982,9 @@ static void cfm_manager_flash_test_clear_pending_region_extra_free_call (CuTest 
 
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x10000);
-	status |= cfm_manager_flash_testing_verify_cfm (&manager, CFM2_DATA, CFM2_DATA_LEN, CFM2_HASH,
-		CFM2_SIGNATURE, CFM2_SIGNATURE_OFFSET, 0x20000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_TESTING, 0);
+	status |= cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_ONLY_PMR_DIGEST_TESTING,
+		0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1899,10 +2036,9 @@ static void cfm_manager_flash_test_clear_pending_region_free_null_region2 (CuTes
 
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x10000);
-	status |= cfm_manager_flash_testing_verify_cfm (&manager, CFM2_DATA, CFM2_DATA_LEN, CFM2_HASH,
-		CFM2_SIGNATURE, CFM2_SIGNATURE_OFFSET, 0x20000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_TESTING, 0);
+	status |= cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_ONLY_PMR_DIGEST_TESTING,
+		0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1935,10 +2071,9 @@ static void cfm_manager_flash_test_clear_pending_region_free_null_region1 (CuTes
 		MANIFEST_REGION_2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM2_DATA, CFM2_DATA_LEN, CFM2_HASH,
-		CFM2_SIGNATURE, CFM2_SIGNATURE_OFFSET, 0x10000);
-	status |= cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x20000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_ONLY_PMR_DIGEST_TESTING,
+		0);
+	status |= cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_TESTING, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1968,10 +2103,9 @@ static void cfm_manager_flash_test_clear_pending_region_free_null_manager (CuTes
 
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x10000);
-	status |= cfm_manager_flash_testing_verify_cfm (&manager, CFM2_DATA, CFM2_DATA_LEN, CFM2_HASH,
-		CFM2_SIGNATURE, CFM2_SIGNATURE_OFFSET, 0x20000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_TESTING, 0);
+	status |= cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_ONLY_PMR_DIGEST_TESTING,
+		0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2002,8 +2136,10 @@ static void cfm_manager_flash_test_write_pending_data_region2 (CuTest *test)
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000, CFM_HEADER_SIZE);
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, CFM_HEADER_SIZE);
+	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000,
+		MANIFEST_V2_HEADER_SIZE);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
+		MANIFEST_V2_HEADER_SIZE);
 
 	status |= flash_master_mock_expect_erase_flash_verify (&manager.flash_mock, 0x20000, 0x10000);
 	status |= flash_master_mock_expect_write (&manager.flash_mock, 0x20000, data, sizeof (data));
@@ -2042,8 +2178,10 @@ static void cfm_manager_flash_test_write_pending_data_region1 (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000, CFM_HEADER_SIZE);
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, CFM_HEADER_SIZE);
+	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000,
+		MANIFEST_V2_HEADER_SIZE);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
+		MANIFEST_V2_HEADER_SIZE);
 
 	status |= flash_master_mock_expect_erase_flash_verify (&manager.flash_mock, 0x10000, 0x10000);
 	status |= flash_master_mock_expect_write (&manager.flash_mock, 0x10000, data, sizeof (data));
@@ -2080,8 +2218,10 @@ static void cfm_manager_flash_test_write_pending_data_multiple (CuTest *test)
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000, CFM_HEADER_SIZE);
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, CFM_HEADER_SIZE);
+	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000,
+		MANIFEST_V2_HEADER_SIZE);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
+		MANIFEST_V2_HEADER_SIZE);
 
 	status |= flash_master_mock_expect_erase_flash_verify (&manager.flash_mock, 0x20000, 0x10000);
 
@@ -2128,8 +2268,10 @@ static void cfm_manager_flash_test_write_pending_data_block_end (CuTest *test)
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000, CFM_HEADER_SIZE);
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, CFM_HEADER_SIZE);
+	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000,
+		MANIFEST_V2_HEADER_SIZE);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
+		MANIFEST_V2_HEADER_SIZE);
 
 	status |= flash_master_mock_expect_erase_flash_verify (&manager.flash_mock, 0x20000, 0x10000);
 	status |= flash_master_mock_expect_write (&manager.flash_mock, 0x20000, fill, sizeof (fill));
@@ -2170,8 +2312,10 @@ static void cfm_manager_flash_test_write_pending_data_null (CuTest *test)
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000, CFM_HEADER_SIZE);
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, CFM_HEADER_SIZE);
+	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000,
+		MANIFEST_V2_HEADER_SIZE);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
+		MANIFEST_V2_HEADER_SIZE);
 
 	status |= flash_master_mock_expect_erase_flash_verify (&manager.flash_mock, 0x20000, 0x10000);
 
@@ -2208,8 +2352,10 @@ static void cfm_manager_flash_test_write_pending_data_write_error (CuTest *test)
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000, CFM_HEADER_SIZE);
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, CFM_HEADER_SIZE);
+	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000,
+		MANIFEST_V2_HEADER_SIZE);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
+		MANIFEST_V2_HEADER_SIZE);
 
 	status |= flash_master_mock_expect_erase_flash_verify (&manager.flash_mock, 0x20000, 0x10000);
 	status |= flash_master_mock_expect_xfer (&manager.flash_mock, FLASH_MASTER_XFER_FAILED,
@@ -2247,8 +2393,10 @@ static void cfm_manager_flash_test_write_pending_data_write_after_error (CuTest 
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000, CFM_HEADER_SIZE);
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, CFM_HEADER_SIZE);
+	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000,
+		MANIFEST_V2_HEADER_SIZE);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
+		MANIFEST_V2_HEADER_SIZE);
 
 	status |= flash_master_mock_expect_erase_flash_verify (&manager.flash_mock, 0x20000, 0x10000);
 
@@ -2296,8 +2444,10 @@ static void cfm_manager_flash_test_write_pending_data_partial_write (CuTest *tes
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000, CFM_HEADER_SIZE);
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, CFM_HEADER_SIZE);
+	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000,
+		MANIFEST_V2_HEADER_SIZE);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
+		MANIFEST_V2_HEADER_SIZE);
 
 	status |= flash_master_mock_expect_erase_flash_verify (&manager.flash_mock, 0x20000, 0x10000);
 	status |= flash_master_mock_expect_write (&manager.flash_mock, 0x20000, fill, sizeof (fill));
@@ -2350,8 +2500,10 @@ static void cfm_manager_flash_test_write_pending_data_write_after_partial_write 
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000, CFM_HEADER_SIZE);
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, CFM_HEADER_SIZE);
+	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000,
+		MANIFEST_V2_HEADER_SIZE);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
+		MANIFEST_V2_HEADER_SIZE);
 
 	status |= flash_master_mock_expect_erase_flash_verify (&manager.flash_mock, 0x20000, 0x10000);
 	status |= flash_master_mock_expect_write (&manager.flash_mock, 0x20000, fill, sizeof (fill));
@@ -2408,8 +2560,10 @@ static void cfm_manager_flash_test_write_pending_data_without_clear (CuTest *tes
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000, CFM_HEADER_SIZE);
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, CFM_HEADER_SIZE);
+	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000,
+		MANIFEST_V2_HEADER_SIZE);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
+		MANIFEST_V2_HEADER_SIZE);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2440,8 +2594,10 @@ static void cfm_manager_flash_test_write_pending_data_restart_write (CuTest *tes
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000, CFM_HEADER_SIZE);
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, CFM_HEADER_SIZE);
+	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000,
+		MANIFEST_V2_HEADER_SIZE);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
+		MANIFEST_V2_HEADER_SIZE);
 
 	status |= flash_master_mock_expect_erase_flash_verify (&manager.flash_mock, 0x20000, 0x10000);
 
@@ -2494,8 +2650,10 @@ static void cfm_manager_flash_test_write_pending_data_too_long (CuTest *test)
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000, CFM_HEADER_SIZE);
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, CFM_HEADER_SIZE);
+	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000,
+		MANIFEST_V2_HEADER_SIZE);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
+		MANIFEST_V2_HEADER_SIZE);
 
 	status |= flash_master_mock_expect_erase_flash_verify (&manager.flash_mock, 0x20000, 0x10000);
 	status |= flash_master_mock_expect_write (&manager.flash_mock, 0x20000, fill, sizeof (fill));
@@ -2535,10 +2693,9 @@ static void cfm_manager_flash_test_write_pending_data_cfm_in_use (CuTest *test)
 
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x10000);
-	status |= cfm_manager_flash_testing_verify_cfm (&manager, CFM2_DATA, CFM2_DATA_LEN, CFM2_HASH,
-		CFM2_SIGNATURE, CFM2_SIGNATURE_OFFSET, 0x20000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_TESTING, 0);
+	status |= cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_ONLY_PMR_DIGEST_TESTING,
+		0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2576,8 +2733,10 @@ static void cfm_manager_flash_test_verify_pending_cfm_region2 (CuTest *test)
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000, CFM_HEADER_SIZE);
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, CFM_HEADER_SIZE);
+	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000,
+		MANIFEST_V2_HEADER_SIZE);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
+		MANIFEST_V2_HEADER_SIZE);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2590,8 +2749,7 @@ static void cfm_manager_flash_test_verify_pending_cfm_region2 (CuTest *test)
 
 	cfm_manager_flash_testing_write_new_cfm (test, &manager, 0x20000);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x20000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_TESTING, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
@@ -2617,8 +2775,10 @@ static void cfm_manager_flash_test_verify_pending_cfm_region1 (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000, CFM_HEADER_SIZE);
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, CFM_HEADER_SIZE);
+	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000,
+		MANIFEST_V2_HEADER_SIZE);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
+		MANIFEST_V2_HEADER_SIZE);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2631,8 +2791,7 @@ static void cfm_manager_flash_test_verify_pending_cfm_region1 (CuTest *test)
 
 	cfm_manager_flash_testing_write_new_cfm (test, &manager, 0x10000);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x10000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_TESTING, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
@@ -2654,8 +2813,10 @@ static void cfm_manager_flash_test_verify_pending_cfm_region2_notify_observers (
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000, CFM_HEADER_SIZE);
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, CFM_HEADER_SIZE);
+	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000,
+		MANIFEST_V2_HEADER_SIZE);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
+		MANIFEST_V2_HEADER_SIZE);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2671,8 +2832,7 @@ static void cfm_manager_flash_test_verify_pending_cfm_region2_notify_observers (
 	status = cfm_manager_add_observer (&manager.test.base, &manager.observer.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x20000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_TESTING, 0);
 	status |= mock_expect (&manager.observer.mock, manager.observer.base.on_cfm_verified,
 		&manager.observer, 0, MOCK_ARG (&manager.cfm2));
 
@@ -2701,8 +2861,10 @@ static void cfm_manager_flash_test_verify_pending_cfm_region1_notify_observers (
 	CuAssertIntEquals (test, 0, status);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000, CFM_HEADER_SIZE);
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, CFM_HEADER_SIZE);
+	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000,
+		MANIFEST_V2_HEADER_SIZE);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
+		MANIFEST_V2_HEADER_SIZE);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2718,8 +2880,7 @@ static void cfm_manager_flash_test_verify_pending_cfm_region1_notify_observers (
 	status = cfm_manager_add_observer (&manager.test.base, &manager.observer.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x10000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_TESTING, 0);
 	status |= mock_expect (&manager.observer.mock, manager.observer.base.on_cfm_verified,
 		&manager.observer, 0, MOCK_ARG (&manager.cfm1));
 
@@ -2744,10 +2905,10 @@ static void cfm_manager_flash_test_verify_pending_cfm_already_valid_region2 (CuT
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000, CFM_HEADER_SIZE);
+	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000,
+		MANIFEST_V2_HEADER_SIZE);
 
-	status |= cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x20000);
+	status |= cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_TESTING, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2780,11 +2941,11 @@ static void cfm_manager_flash_test_verify_pending_cfm_already_valid_region1 (CuT
 		MANIFEST_REGION_2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x10000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_TESTING, 0);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, CFM_HEADER_SIZE);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
+		MANIFEST_V2_HEADER_SIZE);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2814,10 +2975,10 @@ static void cfm_manager_flash_test_verify_pending_cfm_already_valid_notify_obser
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000, CFM_HEADER_SIZE);
+	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000,
+		MANIFEST_V2_HEADER_SIZE);
 
-	status |= cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x20000);
+	status |= cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_TESTING, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2849,11 +3010,11 @@ static void cfm_manager_flash_test_verify_pending_cfm_with_active (CuTest *test)
 
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x10000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_TESTING, 0);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, CFM_HEADER_SIZE);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
+		MANIFEST_V2_HEADER_SIZE);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2866,8 +3027,8 @@ static void cfm_manager_flash_test_verify_pending_cfm_with_active (CuTest *test)
 
 	cfm_manager_flash_testing_write_new_cfm (test, &manager, 0x20000);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM2_DATA, CFM2_DATA_LEN, CFM2_HASH,
-		CFM2_SIGNATURE, CFM2_SIGNATURE_OFFSET, 0x20000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_ONLY_PMR_DIGEST_TESTING,
+		0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2889,10 +3050,9 @@ static void cfm_manager_flash_test_verify_pending_cfm_already_valid_with_active 
 
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x10000);
-	status |= cfm_manager_flash_testing_verify_cfm (&manager, CFM2_DATA, CFM2_DATA_LEN, CFM2_HASH,
-		CFM2_SIGNATURE, CFM2_SIGNATURE_OFFSET, 0x20000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_TESTING, 0);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_ONLY_PMR_DIGEST_TESTING,
+		0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2921,11 +3081,12 @@ static void cfm_manager_flash_test_verify_pending_cfm_lower_id (CuTest *test)
 
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM2_DATA, CFM2_DATA_LEN, CFM2_HASH,
-		CFM2_SIGNATURE, CFM2_SIGNATURE_OFFSET, 0x10000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_ONLY_PMR_DIGEST_TESTING,
+		0);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, CFM_HEADER_SIZE);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
+		MANIFEST_V2_HEADER_SIZE);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2938,8 +3099,7 @@ static void cfm_manager_flash_test_verify_pending_cfm_lower_id (CuTest *test)
 
 	cfm_manager_flash_testing_write_new_cfm (test, &manager, 0x20000);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x20000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_TESTING, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2961,11 +3121,11 @@ static void cfm_manager_flash_test_verify_pending_cfm_same_id (CuTest *test)
 
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x10000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_TESTING, 0);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, CFM_HEADER_SIZE);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
+		MANIFEST_V2_HEADER_SIZE);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2978,8 +3138,7 @@ static void cfm_manager_flash_test_verify_pending_cfm_same_id (CuTest *test)
 
 	cfm_manager_flash_testing_write_new_cfm (test, &manager, 0x20000);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x20000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_TESTING, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3002,8 +3161,10 @@ static void cfm_manager_flash_test_verify_pending_cfm_no_clear_region2 (CuTest *
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000, CFM_HEADER_SIZE);
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, CFM_HEADER_SIZE);
+	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000,
+		MANIFEST_V2_HEADER_SIZE);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
+		MANIFEST_V2_HEADER_SIZE);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3037,8 +3198,10 @@ static void cfm_manager_flash_test_verify_pending_cfm_no_clear_region1 (CuTest *
 	CuAssertIntEquals (test, 0, status);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000, CFM_HEADER_SIZE);
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, CFM_HEADER_SIZE);
+	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000,
+		MANIFEST_V2_HEADER_SIZE);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
+		MANIFEST_V2_HEADER_SIZE);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3070,8 +3233,10 @@ static void cfm_manager_flash_test_verify_pending_cfm_extra_data_written (CuTest
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000, CFM_HEADER_SIZE);
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, CFM_HEADER_SIZE);
+	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000,
+		MANIFEST_V2_HEADER_SIZE);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
+		MANIFEST_V2_HEADER_SIZE);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3084,8 +3249,7 @@ static void cfm_manager_flash_test_verify_pending_cfm_extra_data_written (CuTest
 	status = flash_master_mock_expect_write (&manager.flash_mock, 0x20000 + offset, data,
 		sizeof (data));
 
-	status |= cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		 CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x20000);
+	status |= cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_TESTING, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = manager.test.base.base.write_pending_data (&manager.test.base.base, data,
@@ -3111,8 +3275,10 @@ static void cfm_manager_flash_test_verify_pending_cfm_null (CuTest *test)
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000, CFM_HEADER_SIZE);
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, CFM_HEADER_SIZE);
+	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000,
+		MANIFEST_V2_HEADER_SIZE);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
+		MANIFEST_V2_HEADER_SIZE);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3144,8 +3310,10 @@ static void cfm_manager_flash_test_verify_pending_cfm_verify_error_region2 (CuTe
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000, CFM_HEADER_SIZE);
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, CFM_HEADER_SIZE);
+	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000,
+		MANIFEST_V2_HEADER_SIZE);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
+		MANIFEST_V2_HEADER_SIZE);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3185,8 +3353,10 @@ static void cfm_manager_flash_test_verify_pending_cfm_verify_error_region1 (CuTe
 	CuAssertIntEquals (test, 0, status);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000, CFM_HEADER_SIZE);
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, CFM_HEADER_SIZE);
+	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000,
+		MANIFEST_V2_HEADER_SIZE);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
+		MANIFEST_V2_HEADER_SIZE);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3222,8 +3392,10 @@ static void cfm_manager_flash_test_verify_pending_cfm_verify_error_notify_observ
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000, CFM_HEADER_SIZE);
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, CFM_HEADER_SIZE);
+	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000,
+		MANIFEST_V2_HEADER_SIZE);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
+		MANIFEST_V2_HEADER_SIZE);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3259,48 +3431,20 @@ static void cfm_manager_flash_test_verify_pending_cfm_verify_fail_region2 (CuTes
 
 	TEST_START;
 
-	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
-
-	/* Use blank check to simulate empty CFM regions. */
-	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000, CFM_HEADER_SIZE);
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, CFM_HEADER_SIZE);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm_manager_flash_init (&manager.test, &manager.cfm1, &manager.cfm2,
-		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
-	CuAssertIntEquals (test, 0, status);
+	cfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, NULL, NULL, true);
 
 	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_cfm (&manager.test.base));
-	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_cfm (&manager.test.base));
 
 	cfm_manager_flash_testing_write_new_cfm (test, &manager, 0x20000);
 
-	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, CFM_DATA, CFM_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x20000, 0, -1, CFM_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, CFM2_SIGNATURE,
-		CFM2_SIGNATURE_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x20000 + CFM_SIGNATURE_OFFSET, 0, -1, CFM2_SIGNATURE_LEN));
-
-	status |= flash_master_mock_expect_verify_flash (&manager.flash_mock, 0x20000, CFM_DATA,
-		CFM_DATA_LEN - CFM_SIGNATURE_LEN);
-
-	status |= mock_expect (&manager.verification.mock, manager.verification.base.verify_signature,
-		&manager.verification, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_NOT_NULL, MOCK_ARG (CFM_HASH_LEN),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (CFM_SIGNATURE_LEN));
-
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_TESTING,
+		RSA_ENGINE_BAD_SIGNATURE);
 	CuAssertIntEquals (test, 0, status);
 
 	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
 	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
 
 	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_cfm (&manager.test.base));
-	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_cfm (&manager.test.base));
 
 	cfm_manager_flash_testing_validate_and_release (test, &manager);
 }
@@ -3312,52 +3456,20 @@ static void cfm_manager_flash_test_verify_pending_cfm_verify_fail_region1 (CuTes
 
 	TEST_START;
 
-	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
-
-	status = manager.state_mgr.save_active_manifest (&manager.state_mgr, SYSTEM_STATE_MANIFEST_CFM,
-		MANIFEST_REGION_2);
-	CuAssertIntEquals (test, 0, status);
-
-	/* Use blank check to simulate empty CFM regions. */
-	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000, CFM_HEADER_SIZE);
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, CFM_HEADER_SIZE);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm_manager_flash_init (&manager.test, &manager.cfm1, &manager.cfm2,
-		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
-	CuAssertIntEquals (test, 0, status);
+	cfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, NULL, NULL, false);
 
 	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_cfm (&manager.test.base));
-	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_cfm (&manager.test.base));
 
 	cfm_manager_flash_testing_write_new_cfm (test, &manager, 0x10000);
 
-	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, CFM_DATA, CFM_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, CFM_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, CFM2_SIGNATURE,
-		CFM_SIGNATURE_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + CFM_SIGNATURE_OFFSET, 0, -1, CFM_SIGNATURE_LEN));
-
-	status |= flash_master_mock_expect_verify_flash (&manager.flash_mock, 0x10000, CFM_DATA,
-		CFM_DATA_LEN - CFM_SIGNATURE_LEN);
-
-	status |= mock_expect (&manager.verification.mock, manager.verification.base.verify_signature,
-		&manager.verification, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_NOT_NULL, MOCK_ARG (CFM_HASH_LEN),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (CFM_SIGNATURE_LEN));
-
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_TESTING,
+		RSA_ENGINE_BAD_SIGNATURE);
 	CuAssertIntEquals (test, 0, status);
 
 	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
 	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
 
 	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_cfm (&manager.test.base));
-	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_cfm (&manager.test.base));
 
 	cfm_manager_flash_testing_validate_and_release (test, &manager);
 }
@@ -3369,48 +3481,20 @@ static void cfm_manager_flash_test_verify_pending_cfm_verify_fail_ecc_region2 (C
 
 	TEST_START;
 
-	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
-
-	/* Use blank check to simulate empty CFM regions. */
-	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000, CFM_HEADER_SIZE);
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, CFM_HEADER_SIZE);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm_manager_flash_init (&manager.test, &manager.cfm1, &manager.cfm2,
-		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
-	CuAssertIntEquals (test, 0, status);
+	cfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, NULL, NULL, true);
 
 	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_cfm (&manager.test.base));
-	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_cfm (&manager.test.base));
 
 	cfm_manager_flash_testing_write_new_cfm (test, &manager, 0x20000);
 
-	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, CFM_DATA, CFM_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x20000, 0, -1, CFM_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, CFM2_SIGNATURE,
-		CFM2_SIGNATURE_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x20000 + CFM_SIGNATURE_OFFSET, 0, -1, CFM2_SIGNATURE_LEN));
-
-	status |= flash_master_mock_expect_verify_flash (&manager.flash_mock, 0x20000, CFM_DATA,
-		CFM_DATA_LEN - CFM_SIGNATURE_LEN);
-
-	status |= mock_expect (&manager.verification.mock, manager.verification.base.verify_signature,
-		&manager.verification, ECC_ENGINE_BAD_SIGNATURE, MOCK_ARG_NOT_NULL, MOCK_ARG (CFM_HASH_LEN),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (CFM_SIGNATURE_LEN));
-
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_TESTING,
+		ECC_ENGINE_BAD_SIGNATURE);
 	CuAssertIntEquals (test, 0, status);
 
 	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
 	CuAssertIntEquals (test, ECC_ENGINE_BAD_SIGNATURE, status);
 
 	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_cfm (&manager.test.base));
-	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_cfm (&manager.test.base));
 
 	cfm_manager_flash_testing_validate_and_release (test, &manager);
 }
@@ -3422,52 +3506,20 @@ static void cfm_manager_flash_test_verify_pending_cfm_verify_fail_ecc_region1 (C
 
 	TEST_START;
 
-	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
-
-	status = manager.state_mgr.save_active_manifest (&manager.state_mgr, SYSTEM_STATE_MANIFEST_CFM,
-		MANIFEST_REGION_2);
-	CuAssertIntEquals (test, 0, status);
-
-	/* Use blank check to simulate empty CFM regions. */
-	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000, CFM_HEADER_SIZE);
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, CFM_HEADER_SIZE);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm_manager_flash_init (&manager.test, &manager.cfm1, &manager.cfm2,
-		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
-	CuAssertIntEquals (test, 0, status);
+	cfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, NULL, NULL, false);
 
 	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_cfm (&manager.test.base));
-	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_cfm (&manager.test.base));
 
 	cfm_manager_flash_testing_write_new_cfm (test, &manager, 0x10000);
 
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, CFM_DATA, CFM_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, CFM_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, CFM2_SIGNATURE,
-		CFM_SIGNATURE_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + CFM_SIGNATURE_OFFSET, 0, -1, CFM_SIGNATURE_LEN));
-
-	status |= flash_master_mock_expect_verify_flash (&manager.flash_mock, 0x10000, CFM_DATA,
-		CFM_DATA_LEN - CFM_SIGNATURE_LEN);
-
-	status |= mock_expect (&manager.verification.mock, manager.verification.base.verify_signature,
-		&manager.verification, ECC_ENGINE_BAD_SIGNATURE, MOCK_ARG_NOT_NULL, MOCK_ARG (CFM_HASH_LEN),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (CFM_SIGNATURE_LEN));
-
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_TESTING,
+		ECC_ENGINE_BAD_SIGNATURE);
 	CuAssertIntEquals (test, 0, status);
 
 	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
 	CuAssertIntEquals (test, ECC_ENGINE_BAD_SIGNATURE, status);
 
 	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_cfm (&manager.test.base));
-	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_cfm (&manager.test.base));
 
 	cfm_manager_flash_testing_validate_and_release (test, &manager);
 }
@@ -3482,8 +3534,10 @@ static void cfm_manager_flash_test_verify_pending_cfm_verify_after_verify_error 
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000, CFM_HEADER_SIZE);
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, CFM_HEADER_SIZE);
+	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000,
+		MANIFEST_V2_HEADER_SIZE);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
+		MANIFEST_V2_HEADER_SIZE);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3519,40 +3573,15 @@ static void cfm_manager_flash_test_verify_pending_cfm_verify_after_verify_fail (
 
 	TEST_START;
 
-	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
-
-	/* Use blank check to simulate empty CFM regions. */
-	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000, CFM_HEADER_SIZE);
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, CFM_HEADER_SIZE);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm_manager_flash_init (&manager.test, &manager.cfm1, &manager.cfm2,
-		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
-	CuAssertIntEquals (test, 0, status);
+	cfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, NULL, NULL, true);
 
 	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_cfm (&manager.test.base));
-	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_cfm (&manager.test.base));
 
 	cfm_manager_flash_testing_write_new_cfm (test, &manager, 0x20000);
 
-	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, CFM_DATA, CFM_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x20000, 0, -1, CFM_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, CFM2_SIGNATURE,
-		CFM2_SIGNATURE_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x20000 + CFM_SIGNATURE_OFFSET, 0, -1, CFM2_SIGNATURE_LEN));
-
-	status |= flash_master_mock_expect_verify_flash (&manager.flash_mock, 0x20000, CFM_DATA,
-		CFM_DATA_LEN - CFM_SIGNATURE_LEN);
-
-	status |= mock_expect (&manager.verification.mock, manager.verification.base.verify_signature,
-		&manager.verification, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_NOT_NULL, MOCK_ARG (CFM_HASH_LEN),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (CFM_SIGNATURE_LEN));
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_TESTING,
+		RSA_ENGINE_BAD_SIGNATURE);
+	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3560,7 +3589,6 @@ static void cfm_manager_flash_test_verify_pending_cfm_verify_after_verify_fail (
 	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
 
 	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_cfm (&manager.test.base));
-	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_cfm (&manager.test.base));
 
 	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_NONE_PENDING, status);
@@ -3579,8 +3607,10 @@ static void cfm_manager_flash_test_verify_pending_cfm_write_after_verify (CuTest
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000, CFM_HEADER_SIZE);
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, CFM_HEADER_SIZE);
+	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000,
+		MANIFEST_V2_HEADER_SIZE);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
+		MANIFEST_V2_HEADER_SIZE);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3590,8 +3620,7 @@ static void cfm_manager_flash_test_verify_pending_cfm_write_after_verify (CuTest
 
 	cfm_manager_flash_testing_write_new_cfm (test, &manager, 0x20000);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x20000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_TESTING, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
@@ -3621,8 +3650,10 @@ static void cfm_manager_flash_test_verify_pending_cfm_write_after_verify_error (
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000, CFM_HEADER_SIZE);
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, CFM_HEADER_SIZE);
+	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000,
+		MANIFEST_V2_HEADER_SIZE);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
+		MANIFEST_V2_HEADER_SIZE);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3663,8 +3694,10 @@ static void cfm_manager_flash_test_verify_pending_cfm_incomplete_cfm (CuTest *te
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000, CFM_HEADER_SIZE);
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, CFM_HEADER_SIZE);
+	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000,
+		MANIFEST_V2_HEADER_SIZE);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
+		MANIFEST_V2_HEADER_SIZE);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3695,8 +3728,10 @@ static void cfm_manager_flash_test_verify_pending_cfm_write_after_incomplete_cfm
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000, CFM_HEADER_SIZE);
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, CFM_HEADER_SIZE);
+	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000,
+		MANIFEST_V2_HEADER_SIZE);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
+		MANIFEST_V2_HEADER_SIZE);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3729,10 +3764,9 @@ static void cfm_manager_flash_test_clear_all_manifests_region1 (CuTest *test)
 
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x10000);
-	status |= cfm_manager_flash_testing_verify_cfm (&manager, CFM2_DATA, CFM2_DATA_LEN, CFM2_HASH,
-		CFM2_SIGNATURE, CFM2_SIGNATURE_OFFSET, 0x20000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_TESTING, 0);
+	status |= cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_ONLY_PMR_DIGEST_TESTING,
+		0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3770,10 +3804,9 @@ static void cfm_manager_flash_test_clear_all_manifests_region2 (CuTest *test)
 		MANIFEST_REGION_2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM2_DATA, CFM2_DATA_LEN, CFM2_HASH,
-		CFM2_SIGNATURE, CFM2_SIGNATURE_OFFSET, 0x10000);
-	status |= cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x20000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_ONLY_PMR_DIGEST_TESTING,
+		0);
+	status |= cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_TESTING, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3807,10 +3840,9 @@ static void cfm_manager_flash_test_clear_all_manifests_region1_notify_observers 
 
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x10000);
-	status |= cfm_manager_flash_testing_verify_cfm (&manager, CFM2_DATA, CFM2_DATA_LEN, CFM2_HASH,
-		CFM2_SIGNATURE, CFM2_SIGNATURE_OFFSET, 0x20000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_TESTING, 0);
+	status |= cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_ONLY_PMR_DIGEST_TESTING,
+		0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3854,10 +3886,9 @@ static void cfm_manager_flash_test_clear_all_manifests_region2_notify_observers 
 		MANIFEST_REGION_2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM2_DATA, CFM2_DATA_LEN, CFM2_HASH,
-		CFM2_SIGNATURE, CFM2_SIGNATURE_OFFSET, 0x10000);
-	status |= cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x20000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_ONLY_PMR_DIGEST_TESTING,
+		0);
+	status |= cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_TESTING, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3897,11 +3928,11 @@ static void cfm_manager_flash_test_clear_all_manifests_only_active (CuTest *test
 
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x10000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_TESTING, 0);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, CFM_HEADER_SIZE);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
+		MANIFEST_V2_HEADER_SIZE);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3936,10 +3967,10 @@ static void cfm_manager_flash_test_clear_all_manifests_only_pending (CuTest *tes
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000, CFM_HEADER_SIZE);
+	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000,
+		MANIFEST_V2_HEADER_SIZE);
 
-	status |= cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x20000);
+	status |= cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_TESTING, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3974,8 +4005,10 @@ static void cfm_manager_flash_test_clear_all_manifests_no_cfms (CuTest *test)
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
 	/* Use blank check to simulate empty CFM regions. */
-	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000, CFM_HEADER_SIZE);
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, CFM_HEADER_SIZE);
+	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x10000,
+		MANIFEST_V2_HEADER_SIZE);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
+		MANIFEST_V2_HEADER_SIZE);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -4011,10 +4044,9 @@ static void cfm_manager_flash_test_clear_all_manifests_pending_in_use (CuTest *t
 
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x10000);
-	status |= cfm_manager_flash_testing_verify_cfm (&manager, CFM2_DATA, CFM2_DATA_LEN, CFM2_HASH,
-		CFM2_SIGNATURE, CFM2_SIGNATURE_OFFSET, 0x20000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_TESTING, 0);
+	status |= cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_ONLY_PMR_DIGEST_TESTING,
+		0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -4068,10 +4100,9 @@ static void cfm_manager_flash_test_clear_all_manifests_active_in_use (CuTest *te
 
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x10000);
-	status |= cfm_manager_flash_testing_verify_cfm (&manager, CFM2_DATA, CFM2_DATA_LEN, CFM2_HASH,
-		CFM2_SIGNATURE, CFM2_SIGNATURE_OFFSET, 0x20000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_TESTING, 0);
+	status |= cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_ONLY_PMR_DIGEST_TESTING,
+		0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -4129,10 +4160,9 @@ static void cfm_manager_flash_test_clear_all_manifests_active_in_use_notify_obse
 
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x10000);
-	status |= cfm_manager_flash_testing_verify_cfm (&manager, CFM2_DATA, CFM2_DATA_LEN, CFM2_HASH,
-		CFM2_SIGNATURE, CFM2_SIGNATURE_OFFSET, 0x20000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_TESTING, 0);
+	status |= cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_ONLY_PMR_DIGEST_TESTING,
+		0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -4195,10 +4225,9 @@ static void cfm_manager_flash_test_clear_all_manifests_during_update (CuTest *te
 
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x10000);
-	status |= cfm_manager_flash_testing_verify_cfm (&manager, CFM2_DATA, CFM2_DATA_LEN, CFM2_HASH,
-		CFM2_SIGNATURE, CFM2_SIGNATURE_OFFSET, 0x20000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_TESTING, 0);
+	status |= cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_ONLY_PMR_DIGEST_TESTING,
+		0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -4245,10 +4274,9 @@ static void cfm_manager_flash_test_clear_all_manifests_null (CuTest *test)
 
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x10000);
-	status |= cfm_manager_flash_testing_verify_cfm (&manager, CFM2_DATA, CFM2_DATA_LEN, CFM2_HASH,
-		CFM2_SIGNATURE, CFM2_SIGNATURE_OFFSET, 0x20000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_TESTING, 0);
+	status |= cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_ONLY_PMR_DIGEST_TESTING,
+		0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -4277,10 +4305,9 @@ static void cfm_manager_flash_test_clear_all_manifests_erase_pending_error (CuTe
 
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x10000);
-	status |= cfm_manager_flash_testing_verify_cfm (&manager, CFM2_DATA, CFM2_DATA_LEN, CFM2_HASH,
-		CFM2_SIGNATURE, CFM2_SIGNATURE_OFFSET, 0x20000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_TESTING, 0);
+	status |= cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_ONLY_PMR_DIGEST_TESTING,
+		0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -4314,10 +4341,9 @@ static void cfm_manager_flash_test_clear_all_manifests_erase_active_error (CuTes
 
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x10000);
-	status |= cfm_manager_flash_testing_verify_cfm (&manager, CFM2_DATA, CFM2_DATA_LEN, CFM2_HASH,
-		CFM2_SIGNATURE, CFM2_SIGNATURE_OFFSET, 0x20000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_TESTING, 0);
+	status |= cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_ONLY_PMR_DIGEST_TESTING,
+		0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -4353,10 +4379,9 @@ static void cfm_manager_flash_test_clear_all_manifests_erase_active_error_notify
 
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
-	status = cfm_manager_flash_testing_verify_cfm (&manager, CFM_DATA, CFM_DATA_LEN, CFM_HASH,
-		CFM_SIGNATURE, CFM_SIGNATURE_OFFSET, 0x10000);
-	status |= cfm_manager_flash_testing_verify_cfm (&manager, CFM2_DATA, CFM2_DATA_LEN, CFM2_HASH,
-		CFM2_SIGNATURE, CFM2_SIGNATURE_OFFSET, 0x20000);
+	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_TESTING, 0);
+	status |= cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_ONLY_PMR_DIGEST_TESTING,
+		0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -4398,7 +4423,9 @@ TEST (cfm_manager_flash_test_init_region2_pending_lower_id);
 TEST (cfm_manager_flash_test_init_region2_pending_same_id);
 TEST (cfm_manager_flash_test_init_region1_pending_lower_id);
 TEST (cfm_manager_flash_test_init_region1_pending_same_id);
-/* TODO: Add tests for empty CFMs. */
+TEST (cfm_manager_flash_test_init_only_pending_region2_empty_manifest);
+TEST (cfm_manager_flash_test_init_only_pending_region1_empty_manifest);
+TEST (cfm_manager_flash_test_init_active_and_pending_empty_manifest);
 TEST (cfm_manager_flash_test_init_null);
 TEST (cfm_manager_flash_test_init_region1_flash_error);
 TEST (cfm_manager_flash_test_init_region2_flash_error);
@@ -4406,6 +4433,8 @@ TEST (cfm_manager_flash_test_init_cfm_bad_signature);
 TEST (cfm_manager_flash_test_init_cfm_bad_signature_ecc);
 TEST (cfm_manager_flash_test_init_bad_length);
 TEST (cfm_manager_flash_test_init_bad_magic_number);
+TEST (cfm_manager_flash_test_init_empty_manifest_pending_erase_error);
+TEST (cfm_manager_flash_test_init_empty_manifest_active_erase_error);
 TEST (cfm_manager_flash_test_get_active_cfm_null);
 TEST (cfm_manager_flash_test_get_pending_cfm_null);
 TEST (cfm_manager_flash_test_activate_pending_cfm_region2);

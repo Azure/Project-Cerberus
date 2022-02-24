@@ -1046,17 +1046,19 @@ static void cfm_manager_test_get_cfm_measured_data (CuTest *test)
 	status |= mock_expect (&manager.mock, manager.base.free_cfm, &manager,
 		0, MOCK_ARG (&cfm.base));
 
-	status |= mock_expect (&cfm.mock, cfm.base.base.get_hash, &cfm, CFM_HASH_LEN,
+	status |= mock_expect (&cfm.mock, cfm.base.base.get_hash, &cfm, CFM_TESTING.manifest.hash_len,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
-	status |= mock_expect_output (&cfm.mock, 1, CFM_HASH, CFM_HASH_LEN, 2);
+	status |= mock_expect_output (&cfm.mock, 1, CFM_TESTING.manifest.hash, 
+		CFM_TESTING.manifest.hash_len, 2);
 
 	CuAssertIntEquals (test, 0, status);
 
 	status = cfm_manager_get_cfm_measured_data (&manager.base, 0, buffer, length, &total_len);
-	CuAssertIntEquals (test, CFM_HASH_LEN, status);
-	CuAssertIntEquals (test, CFM_HASH_LEN, total_len);
+	CuAssertIntEquals (test, CFM_TESTING.manifest.hash_len, status);
+	CuAssertIntEquals (test, CFM_TESTING.manifest.hash_len, total_len);
 
-	status = testing_validate_array (CFM_HASH, buffer, CFM_HASH_LEN);
+	status = testing_validate_array (CFM_TESTING.manifest.hash, buffer, 
+		CFM_TESTING.manifest.hash_len);
 	CuAssertIntEquals (test, 0, status);
 
 	status = cfm_mock_validate_and_release (&cfm);
@@ -1179,17 +1181,19 @@ static void cfm_manager_test_get_cfm_measured_data_offset (CuTest *test)
 	status |= mock_expect (&manager.mock, manager.base.free_cfm, &manager,
 		0, MOCK_ARG (&cfm.base));
 
-	status |= mock_expect (&cfm.mock, cfm.base.base.get_hash, &cfm, CFM_HASH_LEN,
+	status |= mock_expect (&cfm.mock, cfm.base.base.get_hash, &cfm, CFM_TESTING.manifest.hash_len,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
-	status |= mock_expect_output (&cfm.mock, 1, CFM_HASH, CFM_HASH_LEN, 2);
+	status |= mock_expect_output (&cfm.mock, 1, CFM_TESTING.manifest.hash, 
+		CFM_TESTING.manifest.hash_len, 2);
 
 	CuAssertIntEquals (test, 0, status);
 
 	status = cfm_manager_get_cfm_measured_data (&manager.base, offset, buffer, length, &total_len);
-	CuAssertIntEquals (test, CFM_HASH_LEN - offset, status);
-	CuAssertIntEquals (test, CFM_HASH_LEN, total_len);
+	CuAssertIntEquals (test, CFM_TESTING.manifest.hash_len - offset, status);
+	CuAssertIntEquals (test, CFM_TESTING.manifest.hash_len, total_len);
 
-	status = testing_validate_array (CFM_HASH + 2, buffer, CFM_HASH_LEN - 2);
+	status = testing_validate_array (CFM_TESTING.manifest.hash + 2, buffer, 
+		CFM_TESTING.manifest.hash_len - 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = cfm_mock_validate_and_release (&cfm);
@@ -1220,9 +1224,10 @@ static void cfm_manager_test_get_cfm_measured_data_small_buffer (CuTest *test)
 	status |= mock_expect (&manager.mock, manager.base.free_cfm, &manager,
 		0, MOCK_ARG (&cfm.base));
 
-	status |= mock_expect (&cfm.mock, cfm.base.base.get_hash, &cfm, CFM_HASH_LEN,
+	status |= mock_expect (&cfm.mock, cfm.base.base.get_hash, &cfm, CFM_TESTING.manifest.hash_len,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
-	status |= mock_expect_output (&cfm.mock, 1, CFM_HASH, CFM_HASH_LEN, 2);
+	status |= mock_expect_output (&cfm.mock, 1, CFM_TESTING.manifest.hash, 
+		CFM_TESTING.manifest.hash_len, 2);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1231,7 +1236,8 @@ static void cfm_manager_test_get_cfm_measured_data_small_buffer (CuTest *test)
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH - 2, status);
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH, total_len);
 
-	status = testing_validate_array (CFM_HASH, buffer, CFM_HASH_LEN - 2);
+	status = testing_validate_array (CFM_TESTING.manifest.hash, buffer, 
+		CFM_TESTING.manifest.hash_len - 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = cfm_mock_validate_and_release (&cfm);
@@ -1297,19 +1303,20 @@ static void cfm_manager_test_get_cfm_measured_data_0_bytes_read (CuTest *test)
 	status = mock_expect (&manager.mock, manager.base.get_active_cfm, &manager,
 		(intptr_t) &cfm.base);
 
-	status |= mock_expect (&cfm.mock, cfm.base.base.get_hash, &cfm, CFM_HASH_LEN,
+	status |= mock_expect (&cfm.mock, cfm.base.base.get_hash, &cfm, CFM_TESTING.manifest.hash_len,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
-	status |= mock_expect_output (&cfm.mock, 1, CFM_HASH, CFM_HASH_LEN, 2);
+	status |= mock_expect_output (&cfm.mock, 1, CFM_TESTING.manifest.hash, 
+		CFM_TESTING.manifest.hash_len, 2);
 
 	status |= mock_expect (&manager.mock, manager.base.free_cfm, &manager,
 		0, MOCK_ARG (&cfm.base));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm_manager_get_cfm_measured_data (&manager.base, CFM_HASH_LEN, buffer, length,
-		&total_len);
+	status = cfm_manager_get_cfm_measured_data (&manager.base, CFM_TESTING.manifest.hash_len, 
+		buffer, length,	&total_len);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, CFM_HASH_LEN, total_len);
+	CuAssertIntEquals (test, CFM_TESTING.manifest.hash_len, total_len);
 
 	status = cfm_mock_validate_and_release (&cfm);
 	CuAssertIntEquals (test, 0, status);

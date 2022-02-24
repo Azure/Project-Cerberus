@@ -53,5 +53,9 @@ void manifest_flash_v2_testing_read_element_mocked_hash (CuTest *test,
 	int entry, int start, int hash_id, uint32_t offset, size_t length, size_t read_len,
 	uint32_t read_offset);
 
+void manifest_flash_v2_testing_get_num_child_elements (CuTest *test,
+	struct manifest_flash_v2_testing *manifest, const struct manifest_v2_testing_data *data,
+	int entry, int last_entry);
+
 
 #endif /* MANIFEST_FLASH_V2_TESTING_H_ */

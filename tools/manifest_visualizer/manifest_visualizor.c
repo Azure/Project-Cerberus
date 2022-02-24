@@ -26,9 +26,9 @@ enum {
 };
 
 
-int32_t visualize_pfm_v1 (uint8_t *pfm) 
+int32_t visualize_pfm_v1 (uint8_t *pfm)
 {
-	struct pfm_allowable_firmware_header *allowable_fw_header = 
+	struct pfm_allowable_firmware_header *allowable_fw_header =
 		(struct pfm_allowable_firmware_header*) pfm;
 	uint8_t* pointer = ((uint8_t*)allowable_fw_header) +
 		sizeof (struct pfm_allowable_firmware_header);
@@ -239,122 +239,6 @@ int32_t visualize_pfm_v1 (uint8_t *pfm)
 	return (pointer - pfm);
 }
 
-int32_t visualize_cfm (uint8_t *cfm) 
-{
-	struct cfm_components_header *components_header = (struct cfm_components_header*)cfm;
-	uint8_t* pointer = ((uint8_t*)components_header) + sizeof (struct cfm_components_header);
-
-	printf ("cfm_components_header\n");
-	printf ("{");
-	printf ("\tlength: %i\n", components_header->length);
-	printf ("\tcomponents_count: %i\n", components_header->components_count);
-	printf ("\treserved: %i\n", components_header->reserved);
-	printf ("}\n");
-
-	printf ("Components\n");
-	printf ("[\n");
-
-	for (int i = 0; i < components_header->components_count; ++i)
-	{
-		struct cfm_component_header *component_header = (struct cfm_component_header*) pointer;
-		printf ("\t{\n");
-		printf ("\t\tcfm_component_header\n");
-		printf ("\t\t{\n");
-		printf ("\t\t\tlength: %i\n", component_header->length);
-		printf ("\t\t\tfw_count: %i\n", component_header->fw_count);
-		printf ("\t\t\treserved: %i\n", component_header->reserved);
-		printf ("\t\t\tcomponent_id: 0x%x\n", component_header->component_id);
-		printf ("\t\t}\n");
-		
-		pointer += sizeof (struct cfm_component_header);
-
-		printf ("\t\tFirmware\n");
-		printf ("\t\t[\n");
-
-		for (int j = 0; j < component_header->fw_count; ++j)
-		{
-			struct cfm_fw_header *fw_header = (struct cfm_fw_header*) pointer;
-			char *version_id = (char*)malloc (fw_header->version_length + 1);
-			if(version_id == NULL)
-			{
-				printf ("Failed to allocate version ID buffer.\n");
-				return -1;
-			}
-
-			strncpy (version_id, (char*)((uint8_t*)fw_header + sizeof (struct cfm_fw_header)),
-            	fw_header->version_length);
-			version_id[fw_header->version_length] = '\0';
-
-			int alignment = fw_header->version_length % 4;
-			alignment = (alignment == 0) ? 0 : (4 - alignment);
-			pointer += sizeof (struct cfm_fw_header) + fw_header->version_length + alignment;
-
-			printf ("\t\t\t{\n");
-			printf ("\t\t\t\tcfm_fw_header\n");
-			printf ("\t\t\t\t{\n");
-			printf ("\t\t\t\t\tlength: %i\n", fw_header->length);
-			printf ("\t\t\t\t\timg_count: %i\n", fw_header->img_count);
-			printf ("\t\t\t\t\treserved: %i\n", fw_header->reserved);
-			printf ("\t\t\t\t\tversion_length: %i\n", fw_header->version_length);
-			printf ("\t\t\t\t\treserved2: %i\n", fw_header->reserved2);
-			printf ("\t\t\t\t}\n");
-
-			printf ("\t\t\t\tversion_id: %s\n", version_id);
-
-			printf ("\t\t\t\tSigned Images\n");
-			printf ("\t\t\t\t[\n");
-
-			for (int k = 0; k < fw_header->img_count; ++k)
-			{
-				struct cfm_img_header *img_header = (struct cfm_img_header*) pointer;
-				uint8_t *digest = malloc (img_header->digest_length);
-				if(digest == NULL)
-				{
-					printf ("Failed to allocate digest buffer.\n");
-					return -1;
-				}
-
-				memcpy(digest, (char*)((uint8_t*)img_header + sizeof (struct cfm_img_header)),
-					img_header->digest_length);
-
-				pointer += sizeof (struct cfm_img_header) + img_header->digest_length;
-
-				printf ("\t\t\t\t\t{\n");
-				printf ("\t\t\t\t\t\tcfm_img_header\n");
-				printf ("\t\t\t\t\t\t{\n");
-				printf ("\t\t\t\t\t\t\tlength: %i\n", img_header->length);
-				printf ("\t\t\t\t\t\t\tdigest_length: %i\n", img_header->digest_length);
-				printf ("\t\t\t\t\t\t\tflags: %i\n", img_header->flags);
-				printf ("\t\t\t\t\t\t\treserved: %i\n", img_header->reserved);
-				printf ("\t\t\t\t\t\t}\n");
-
-				printf ("\t\t\t\t\t\tDigest:");
-				for (int l = 0; l < img_header->digest_length; ++l)
-				{
-					if ((l % 32) == 0)
-					{
-						printf ("\n\t\t\t\t\t\t\t");
-					}
-					printf ("%02x", digest[l]);
-				}
-
-				printf ("\n");
-				printf ("\t\t\t\t\t}\n");
-				free (digest);
-			}
-
-			printf ("\t\t\t\t]\n");
-			printf ("\t\t\t}\n");
-		}
-		printf ("\t\t]\n");
-		printf ("\t}\n");
-	}
-
-	printf ("]\n");
-
-	return (pointer - cfm);
-}
-
 int32_t visualize_toc (uint8_t *start)
 {
 	struct manifest_toc_header *toc_header = (struct manifest_toc_header*) start;
@@ -397,16 +281,16 @@ int32_t visualize_toc (uint8_t *start)
 
 		printf ("\t\tmanifest_toc_entry\n");
 		printf ("\t\t{\n");
-		printf ("\t\t\ttype_id: %i\n", entry->type_id);
-		printf ("\t\t\tparent: %i\n", entry->parent);
+		printf ("\t\t\ttype_id: 0x%x\n", entry->type_id);
+		printf ("\t\t\tparent: 0x%x\n", entry->parent);
 		printf ("\t\t\tformat: %i\n", entry->format);
 		printf ("\t\t\thash_id: %i\n", entry->hash_id);
-		printf ("\t\t\toffset: %i\n", entry->offset);
-		printf ("\t\t\tlength: %i\n", entry->length);
+		printf ("\t\t\toffset: 0x%x\n", entry->offset);
+		printf ("\t\t\tlength: 0x%x\n", entry->length);
 		printf ("\t\t}\n");
 	}
 
-	printf ("\t]\n");	
+	printf ("\t]\n");
 
 	printf ("\tHash\n");
 	printf ("\t[\n");
@@ -439,7 +323,7 @@ int32_t visualize_toc (uint8_t *start)
 	printf ("\n");
 	printf ("\t\t}\n");
 
-	printf ("\t]\n");	
+	printf ("\t]\n");
 
 	printf ("}\n");
 
@@ -472,7 +356,7 @@ int32_t visualize_pcd_port_element (uint8_t *start, const char* prefix)
 {
 	uint8_t *pointer = start;
 	struct pcd_port_element *port = (struct pcd_port_element*) pointer;
-	
+
 	pointer += sizeof (struct pcd_port_element);
 
 	printf ("%spcd_port_element\n", prefix);
@@ -490,7 +374,7 @@ int32_t visualize_pcd_port_element (uint8_t *start, const char* prefix)
 int32_t visualize_pcd_power_controller_element (uint8_t *start, const char* prefix)
 {
 	uint8_t *pointer = start;
-	struct pcd_power_controller_element *power_controller = 
+	struct pcd_power_controller_element *power_controller =
 		(struct pcd_power_controller_element*) pointer;
 
 	pointer += sizeof (struct pcd_power_controller_element);
@@ -665,7 +549,7 @@ int32_t visualize_platform_id (uint8_t *start, const char *prefix)
 
 	id_len = ((platform_id->id_length + 3) & ~((size_t) 3));
 	pointer += id_len;
-	
+
 	printf ("%s}\n", prefix);
 
 	return (pointer - start);
@@ -771,9 +655,9 @@ int32_t visualize_pfm_fw_version_element (uint8_t *start, const char* prefix)
 	printf ("%s\t[\n", prefix);
 
 	for (int i = 0; i < version->rw_count; ++i) {
-		struct pfm_fw_version_element_rw_region *rw = 
+		struct pfm_fw_version_element_rw_region *rw =
 			(struct pfm_fw_version_element_rw_region*) pointer;
-		pointer += (sizeof (struct pfm_fw_version_element_rw_region) - 
+		pointer += (sizeof (struct pfm_fw_version_element_rw_region) -
 			sizeof (struct pfm_flash_region));
 		struct pfm_flash_region *region = (struct pfm_flash_region*) pointer;
 		pointer += sizeof (struct pfm_flash_region);
@@ -808,7 +692,7 @@ int32_t visualize_pfm_fw_version_element (uint8_t *start, const char* prefix)
 		printf ("%s\t\t\tregion_count: %i\n", prefix, img->region_count);
 		printf ("%s\t\t\tflags: 0x%x\n", prefix, img->flags);
 		printf ("%s\t\t\treserved: %i\n", prefix, img->reserved);
-		
+
 		switch (img->hash_type) {
 		case MANIFEST_HASH_SHA256:
 			hash_len = SHA256_HASH_LENGTH;
@@ -823,7 +707,7 @@ int32_t visualize_pfm_fw_version_element (uint8_t *start, const char* prefix)
 			printf ("Unsupported hash type selected: %i\n", img->hash_type);
 			return -1;
 		}
-		
+
 		printf ("%s\t\t\tHash:\n", prefix);
 		printf ("%s\t\t\t{", prefix);
 		for (int j = 0; j < hash_len; ++j, ++pointer)
@@ -847,10 +731,10 @@ int32_t visualize_pfm_fw_version_element (uint8_t *start, const char* prefix)
 			printf ("%s\t\t\t\tRegion %i\n", prefix, j);
 			printf ("%s\t\t\t\t{\n", prefix);
 			printf ("%s\t\t\t\t\tImage Start Address: 0x%x\n", prefix, *address);
-			
+
 			address = (uint32_t*) pointer;
 			pointer += sizeof (uint32_t);
-			
+
 			printf ("%s\t\t\t\t\tImage End Address: 0x%x\n", prefix, *address);
 			printf ("%s\t\t\t\t}\n", prefix);
 		}
@@ -866,7 +750,456 @@ int32_t visualize_pfm_fw_version_element (uint8_t *start, const char* prefix)
 	return (pointer - start);
 }
 
-int32_t visualize_pfm (uint8_t *start) 
+int32_t visualize_cfm_component_device (uint8_t *start, const char* prefix)
+{
+	uint8_t *pointer = start;
+	struct cfm_component_device_element *device = (struct cfm_component_device_element*) pointer;
+	char* type;
+	size_t type_len;
+
+	pointer += (sizeof (struct cfm_component_device_element) - MANIFEST_MAX_STRING);
+
+	printf ("%scfm_component_device_element\n", prefix);
+	printf ("%s{\n", prefix);
+	printf ("%s\tcert_slot: %i\n", prefix, device->cert_slot);
+	printf ("%s\tattestation_protocol: %i\n", prefix, device->attestation_protocol);
+	printf ("%s\treserved: %i\n", prefix, device->reserved);
+	printf ("%s\ttype_len: %i\n", prefix, device->type_len);
+
+	type = malloc ((size_t) device->type_len + 1);
+	if (type == NULL) {
+		printf ("Failed to allocate type buffer.\n");
+		return -1;
+	}
+
+	memcpy (type, pointer, device->type_len);
+	type[device->type_len] = '\0';
+
+	printf ("%s\tType: %s\n", prefix, type);
+	free (type);
+
+	type_len = (((size_t) device->type_len + 3) & ~((size_t) 3));
+	pointer += type_len;
+
+	printf ("%s}\n", prefix);
+
+	return (pointer - start);
+}
+
+int32_t visualize_cfm_pmr_digest (uint8_t *start, const char* prefix)
+{
+	uint8_t *pointer = start;
+	struct cfm_pmr_digest_element *pmr_digest = (struct cfm_pmr_digest_element*) pointer;
+	int hash_len;
+
+	pointer += sizeof (struct cfm_pmr_digest_element);
+
+	printf ("%scfm_pmr_digest_element\n", prefix);
+	printf ("%s{\n", prefix);
+	printf ("%s\tpmr_id: %i\n", prefix, pmr_digest->pmr_id);
+	printf ("%s\treserved: %i\n", prefix, pmr_digest->reserved);
+	printf ("%s\tpmr_hash_type: %i\n", prefix, pmr_digest->pmr_hash_type);
+	printf ("%s\tdigest_count: %i\n", prefix, pmr_digest->digest_count);
+	printf ("%s\treserved2: %i\n", prefix, pmr_digest->reserved2);
+
+	switch (pmr_digest->pmr_hash_type) {
+	case MANIFEST_HASH_SHA256:
+		hash_len = SHA256_HASH_LENGTH;
+		break;
+	case MANIFEST_HASH_SHA384:
+		hash_len = SHA384_HASH_LENGTH;
+		break;
+	case MANIFEST_HASH_SHA512:
+		hash_len = SHA512_HASH_LENGTH;
+		break;
+	default:
+		printf ("Unsupported hash type selected: %i\n", pmr_digest->pmr_hash_type);
+		return -1;
+	}
+
+	printf ("%s\tHashes:\n", prefix);
+	printf ("%s\t[\n", prefix);
+
+	for (int i = 0; i < pmr_digest->digest_count; ++i) {
+		printf ("%s\t\t{", prefix);
+
+		for (int j = 0; j < hash_len; ++j, ++pointer)
+		{
+			if ((j % 32) == 0)
+			{
+				printf ("%s\n\t\t\t", prefix);
+			}
+
+			printf ("%02x", *pointer);
+		}
+		printf ("%s\n\t\t}\n", prefix);
+	}
+
+	printf ("%s\t]\n", prefix);
+	printf ("%s}\n", prefix);
+
+	return (pointer - start);
+}
+
+int32_t visualize_cfm_measurement (uint8_t *start, const char* prefix)
+{
+	uint8_t *pointer = start;
+	struct cfm_measurement_element *measurement = (struct cfm_measurement_element*) pointer;
+	int hash_len;
+
+	pointer += sizeof (struct cfm_measurement_element);
+
+	printf ("%scfm_measurement_element\n", prefix);
+	printf ("%s{\n", prefix);
+	printf ("%s\tpmr_id: %i\n", prefix, measurement->pmr_id);
+	printf ("%s\tmeasurement_id: %i\n", prefix, measurement->measurement_id);
+	printf ("%s\treserved: %i\n", prefix, measurement->reserved);
+	printf ("%s\thash_type: %i\n", prefix, measurement->hash_type);
+	printf ("%s\tdigest_count: %i\n", prefix, measurement->digest_count);
+
+	switch (measurement->hash_type) {
+	case MANIFEST_HASH_SHA256:
+		hash_len = SHA256_HASH_LENGTH;
+		break;
+	case MANIFEST_HASH_SHA384:
+		hash_len = SHA384_HASH_LENGTH;
+		break;
+	case MANIFEST_HASH_SHA512:
+		hash_len = SHA512_HASH_LENGTH;
+		break;
+	default:
+		printf ("Unsupported hash type selected: %i\n", measurement->hash_type);
+		return -1;
+	}
+
+	printf ("%s\tHashes:\n", prefix);
+	printf ("%s\t[\n", prefix);
+
+	for (int i = 0; i < measurement->digest_count; ++i) {
+		printf ("%s\t\t{", prefix);
+
+		for (int j = 0; j < hash_len; ++j, ++pointer)
+		{
+			if ((j % 32) == 0)
+			{
+				printf ("%s\n\t\t\t", prefix);
+			}
+
+			printf ("%02x", *pointer);
+		}
+		printf ("%s\n\t\t}\n", prefix);
+	}
+
+	printf ("%s\t]\n", prefix);
+	printf ("%s}\n", prefix);
+
+	return (pointer - start);
+}
+
+int32_t visualize_cfm_measurement_data (uint8_t *start, const char* prefix)
+{
+	uint8_t *pointer = start;
+	struct cfm_measurement_data_element *measurement_data =
+		(struct cfm_measurement_data_element*) pointer;
+
+	pointer += sizeof (struct cfm_measurement_data_element);
+
+	printf ("%scfm_measurement_data_element\n", prefix);
+	printf ("%s{\n", prefix);
+	printf ("%s\tpmr_id: %i\n", prefix, measurement_data->pmr_id);
+	printf ("%s\tmeasurement_id: %i\n", prefix, measurement_data->measurement_id);
+	printf ("%s\treserved: %i\n", prefix, measurement_data->reserved);
+	printf ("%s}\n", prefix);
+
+	return (pointer - start);
+}
+
+int32_t visualize_cfm_allowable_data (uint8_t *start, const char* prefix)
+{
+	uint8_t *pointer = start;
+	struct cfm_allowable_data_element *allowable_data =
+		(struct cfm_allowable_data_element*) pointer;
+	int total_data_len = 0;
+
+	pointer += sizeof (struct cfm_allowable_data_element);
+
+	printf ("%scfm_allowable_data_element\n", prefix);
+	printf ("%s{\n", prefix);
+	printf ("%s\treserved: %i\n", prefix, allowable_data->reserved);
+	printf ("%s\tbitmask_presence: %i\n", prefix, allowable_data->bitmask_presence);
+	printf ("%s\tcheck: %i\n", prefix, allowable_data->check);
+	printf ("%s\tnum_data: %i\n", prefix, allowable_data->num_data);
+	printf ("%s\tdata_len: %i\n", prefix, allowable_data->data_len);
+	printf ("%s\treserved2[0]: %i\n", prefix, allowable_data->reserved2[0]);
+	printf ("%s\treserved2[1]: %i\n", prefix, allowable_data->reserved2[1]);
+	printf ("%s\treserved2[2]: %i\n", prefix, allowable_data->reserved2[2]);
+
+	if (allowable_data->bitmask_presence) {
+		printf ("%s\tBitmask:\n", prefix);
+		printf ("%s\t{", prefix);
+
+		for (int i = 0; i < allowable_data->data_len; ++i, ++pointer)
+		{
+			if ((i % 32) == 0)
+			{
+				printf ("%s\n\t\t", prefix);
+			}
+
+			printf ("%02x", *pointer);
+		}
+
+		pointer += ((((size_t) allowable_data->data_len + 3) &
+			~((size_t) 3)) - allowable_data->data_len);
+
+		printf ("\n\t}\n");
+	}
+
+	printf ("%s\tData:\n", prefix);
+	printf ("%s\t[\n", prefix);
+
+	for (int i = 0; i < allowable_data->num_data; ++i) {
+		printf ("%s\t\t{", prefix);
+
+		for (int j = 0; j < allowable_data->data_len; ++j, ++pointer, ++total_data_len)
+		{
+			if ((j % 32) == 0)
+			{
+				printf ("%s\n\t\t\t", prefix);
+			}
+
+			printf ("%02x", *pointer);
+		}
+
+		printf ("\n\t\t}\n");
+	}
+
+	pointer += ((((size_t) total_data_len + 3) & ~((size_t) 3)) - total_data_len);
+
+	printf ("%s\t]\n", prefix);
+	printf ("%s}\n", prefix);
+
+	return (pointer - start);
+}
+
+int32_t visualize_cfm_allowable_manifest (uint8_t *start, const char* prefix)
+{
+	uint8_t *pointer = start;
+	struct cfm_allowable_manifest *allowable_manifest = (struct cfm_allowable_manifest*) pointer;
+	uint8_t *platform_id;
+	size_t platform_id_len;
+
+	pointer += (sizeof (struct cfm_allowable_manifest) - MANIFEST_MAX_STRING);
+
+	printf ("%scfm_allowable_manifest:\n", prefix);
+	printf ("%s{\n", prefix);
+	printf ("%s\tplatform_id_len: %i\n", prefix, allowable_manifest->platform_id_len);
+
+	platform_id = malloc ((size_t) allowable_manifest->platform_id_len + 1);
+	if (platform_id == NULL) {
+		printf ("Failed to allocate platform ID buffer.\n");
+		return -1;
+	}
+
+	memcpy (platform_id, pointer, allowable_manifest->platform_id_len);
+	platform_id[allowable_manifest->platform_id_len] = '\0';
+
+	printf ("%s\tplatform_id: %s\n", prefix, platform_id);
+	free (platform_id);
+
+	platform_id_len = (((size_t) allowable_manifest->platform_id_len + 3) & ~((size_t) 3));
+	pointer += platform_id_len;
+
+	printf ("%s}\n", prefix);
+
+	return (pointer - start);
+}
+
+int32_t visualize_cfm_allowable_pfm (uint8_t *start, const char* prefix)
+{
+	uint8_t *pointer = start;
+	struct cfm_allowable_pfm_element *pfm = (struct cfm_allowable_pfm_element*) pointer;
+
+	pointer += (sizeof (struct cfm_allowable_pfm_element) - sizeof (struct cfm_allowable_manifest));
+
+	printf ("%scfm_allowable_pfm_element:\n", prefix);
+	printf ("%s{\n", prefix);
+	printf ("%s\tport_id: %i\n", prefix, pfm->port_id);
+
+	pointer += visualize_cfm_allowable_manifest (pointer, "\t");;
+
+	printf ("%s}\n", prefix);
+
+	return (pointer - start);
+}
+
+int32_t visualize_cfm_allowable_cfm (uint8_t *start, const char* prefix)
+{
+	uint8_t *pointer = start;
+	struct cfm_allowable_cfm_element *cfm = (struct cfm_allowable_cfm_element*) pointer;
+
+	pointer += (sizeof (struct cfm_allowable_cfm_element) - sizeof (struct cfm_allowable_manifest));
+
+	printf ("%scfm_allowable_cfm_element:\n", prefix);
+	printf ("%s{\n", prefix);
+	printf ("%s\tindex: %i\n", prefix, cfm->index);
+
+	pointer += visualize_cfm_allowable_manifest (pointer, "\t");;
+
+	printf ("%s}\n", prefix);
+
+	return (pointer - start);
+}
+
+int32_t visualize_cfm_allowable_pcd (uint8_t *start, const char* prefix)
+{
+	uint8_t *pointer = start;
+	struct cfm_allowable_pcd_element *pcd = (struct cfm_allowable_pcd_element*) pointer;
+
+	pointer += (sizeof (struct cfm_allowable_pcd_element) - sizeof (struct cfm_allowable_manifest));
+
+	printf ("%scfm_allowable_pcd_element:\n", prefix);
+	printf ("%s{\n", prefix);
+	printf ("%s\treserved: %i\n", prefix, pcd->reserved);
+
+	pointer += visualize_cfm_allowable_manifest (pointer, "\t");;
+
+	printf ("%s}\n", prefix);
+
+	return (pointer - start);
+}
+
+int32_t visualize_cfm_allowable_id (uint8_t *start, const char* prefix)
+{
+	uint8_t *pointer = start;
+	uint32_t *id;
+	struct cfm_allowable_id_element *allowable_id = (struct cfm_allowable_id_element*) pointer;
+
+	pointer += sizeof (struct cfm_allowable_id_element);
+
+	printf ("%scfm_allowable_id_element\n", prefix);
+	printf ("%s{\n", prefix);
+	printf ("%s\tcheck: %i\n", prefix, allowable_id->check);
+	printf ("%s\tnum_id: %i\n", prefix, allowable_id->num_id);
+	printf ("%s\treserved: %i\n", prefix, allowable_id->reserved);
+
+	printf ("%s\tIDs:\n", prefix);
+	printf ("%s\t[\n", prefix);
+
+	for (int i = 0; i < allowable_id->num_id; ++i, pointer += sizeof (uint32_t)) {
+		id = (uint32_t*) pointer;
+		printf ("\t\t0x%08x\n", *id);
+	}
+
+	printf ("%s\t]\n", prefix);
+	printf ("%s}\n", prefix);
+
+	return (pointer - start);
+}
+
+int32_t visualize_cfm_root_ca_digests (uint8_t *start, const char* prefix)
+{
+	uint8_t *pointer = start;
+	struct cfm_root_ca_digests_element *root_ca_digests =
+		(struct cfm_root_ca_digests_element*) pointer;
+	int hash_len;
+
+	pointer += sizeof (struct cfm_root_ca_digests_element);
+
+	printf ("%scfm_root_ca_digests_element\n", prefix);
+	printf ("%s{\n", prefix);
+	printf ("%s\treserved: %i\n", prefix, root_ca_digests->reserved);
+	printf ("%s\thash_type: %i\n", prefix, root_ca_digests->hash_type);
+	printf ("%s\tca_count: %i\n", prefix, root_ca_digests->ca_count);
+	printf ("%s\treserved2: %i\n", prefix, root_ca_digests->reserved2);
+
+	switch (root_ca_digests->hash_type) {
+	case MANIFEST_HASH_SHA256:
+		hash_len = SHA256_HASH_LENGTH;
+		break;
+	case MANIFEST_HASH_SHA384:
+		hash_len = SHA384_HASH_LENGTH;
+		break;
+	case MANIFEST_HASH_SHA512:
+		hash_len = SHA512_HASH_LENGTH;
+		break;
+	default:
+		printf ("Unsupported hash type selected: %i\n", root_ca_digests->hash_type);
+		return -1;
+	}
+
+	printf ("%s\tHashes:\n", prefix);
+	printf ("%s\t[\n", prefix);
+
+	for (int i = 0; i < root_ca_digests->ca_count; ++i) {
+		printf ("%s\t\t{", prefix);
+
+		for (int j = 0; j < hash_len; ++j, ++pointer)
+		{
+			if ((j % 32) == 0)
+			{
+				printf ("%s\n\t\t\t", prefix);
+			}
+
+			printf ("%02x", *pointer);
+		}
+		printf ("%s\n\t\t}\n", prefix);
+	}
+
+	printf ("%s\t]\n", prefix);
+	printf ("%s}\n", prefix);
+
+	return (pointer - start);
+}
+
+int32_t visualize_cfm_pmr (uint8_t *start, const char* prefix)
+{
+	uint8_t *pointer = start;
+	struct cfm_pmr_element *pmr = (struct cfm_pmr_element*) pointer;
+	int hash_len;
+
+	pointer += (sizeof (struct cfm_pmr_element) - sizeof (pmr->initial_value));
+
+	printf ("%scfm_pmr_element\n", prefix);
+	printf ("%s{\n", prefix);
+	printf ("%s\tpmr_id: %i\n", prefix, pmr->pmr_id);
+	printf ("%s\treserved: %i\n", prefix, pmr->reserved);
+	printf ("%s\thash_type: %i\n", prefix, pmr->hash_type);
+	printf ("%s\treserved2: %i\n", prefix, pmr->reserved2);
+
+	switch (pmr->hash_type) {
+		case MANIFEST_HASH_SHA256:
+			hash_len = SHA256_HASH_LENGTH;
+			break;
+		case MANIFEST_HASH_SHA384:
+			hash_len = SHA384_HASH_LENGTH;
+			break;
+		case MANIFEST_HASH_SHA512:
+			hash_len = SHA512_HASH_LENGTH;
+			break;
+		default:
+			printf ("Unsupported hash type selected: %i\n", pmr->hash_type);
+			return -1;
+	}
+
+	printf ("%s\tInitial Value:\n", prefix);
+	printf ("%s\t{", prefix);
+
+	for (int j = 0; j < hash_len; ++j, ++pointer)
+	{
+		if ((j % 32) == 0)
+		{
+			printf ("%s\n\t\t", prefix);
+		}
+
+		printf ("%02x", *pointer);
+	}
+	printf ("%s\n\t}\n", prefix);
+	printf ("%s\n}\n", prefix);
+
+	return (pointer - start);
+}
+
+int32_t visualize_pfm (uint8_t *start)
 {
 	uint8_t *pointer = start;
 	int32_t offset;
@@ -880,7 +1213,7 @@ int32_t visualize_pfm (uint8_t *start)
 
 	for (int i = 0; i < entry_count; ++i) {
 		switch (element_types[i]) {
-			case PFM_FLASH_DEVICE: 
+			case PFM_FLASH_DEVICE:
 				offset = visualize_pfm_flash_device_element (pointer, "");
 				break;
 			case PFM_FIRMWARE:
@@ -904,7 +1237,80 @@ int32_t visualize_pfm (uint8_t *start)
 	return (pointer - start);
 }
 
-int32_t visualize_pcd (uint8_t *start) 
+int32_t visualize_cfm (uint8_t *start)
+{
+	uint8_t *pointer = start;
+	int32_t offset;
+
+	offset = visualize_toc (pointer);
+	if (offset == -1) {
+		return offset;
+	}
+
+	pointer += offset;
+
+	for (int i = 0; i < entry_count; ++i) {
+		switch (element_types[i]) {
+			case CFM_COMPONENT_DEVICE:
+				offset = visualize_cfm_component_device (pointer, "");
+				break;
+
+			case CFM_PMR_DIGEST:
+				offset = visualize_cfm_pmr_digest (pointer, "");
+				break;
+
+			case CFM_MEASUREMENT:
+				offset = visualize_cfm_measurement (pointer, "");
+				break;
+
+			case CFM_MEASUREMENT_DATA:
+				offset = visualize_cfm_measurement_data (pointer, "");
+				break;
+
+			case CFM_ALLOWABLE_DATA:
+				offset = visualize_cfm_allowable_data (pointer, "");
+				break;
+
+			case CFM_ALLOWABLE_PFM:
+				offset = visualize_cfm_allowable_pfm (pointer, "");
+				break;
+
+			case CFM_ALLOWABLE_CFM:
+				offset = visualize_cfm_allowable_cfm (pointer, "");
+				break;
+
+			case CFM_ALLOWABLE_PCD:
+				offset = visualize_cfm_allowable_pcd (pointer, "");
+				break;
+
+			case CFM_ALLOWABLE_ID:
+				offset = visualize_cfm_allowable_id (pointer, "");
+				break;
+
+			case CFM_ROOT_CA:
+				offset = visualize_cfm_root_ca_digests (pointer, "");
+				break;
+
+			case CFM_PMR:
+				offset = visualize_cfm_pmr (pointer, "");
+				break;
+
+			default:
+				offset = visualize_common_element (element_types[i], pointer, "");
+				break;
+		}
+
+		if (offset == -1) {
+			return -1;
+		}
+
+		pointer += offset;
+	}
+
+	return (pointer - start);
+}
+
+int32_t visualize_pcd (uint8_t *start)
 {
 	uint8_t *pointer = start;
 	int32_t offset;
@@ -956,7 +1362,7 @@ int main (int argc, char** argv)
 	uint8_t *manifest;
 	unsigned long fileLen;
 
-	if (argc < 2 || argv == NULL) {
+	if (argc < 1 || argv == NULL) {
 		printf ("No manifest file passed in.\n");
 		return -1;
 	}
@@ -999,7 +1405,7 @@ int main (int argc, char** argv)
 		case PFM_V2_MAGIC_NUM:
 			offset = visualize_pfm (manifest + sizeof (struct manifest_header));
 			break;
-		case CFM_MAGIC_NUM:
+		case CFM_V2_MAGIC_NUM:
 			offset = visualize_cfm (manifest + sizeof (struct manifest_header));
 			break;
 		case PCD_V2_MAGIC_NUM:
@@ -1007,7 +1413,7 @@ int main (int argc, char** argv)
 			break;
 		default:
 			goto exit;
-	} 
+	}
 
 	if (offset == -1) {
 		goto exit;

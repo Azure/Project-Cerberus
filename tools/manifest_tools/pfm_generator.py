@@ -23,7 +23,7 @@ def generate_rw_regions_buf (xml_rw):
 
     :param xml_rw: List of parsed XML of RW regions to be included in PFM
 
-    :return RW regions buffer, length of RW regions buffer, number of RW regions, list of all 
+    :return RW regions buffer, length of RW regions buffer, number of RW regions, list of all
         regions
     """
 
@@ -45,19 +45,19 @@ def generate_rw_regions_buf (xml_rw):
     reserved_buf = (ctypes.c_ubyte * 3) ()
     ctypes.memset (reserved_buf, 0, 3)
     for rw_region in xml_rw:
-        rw_start_addr = int (manifest_common.get_key_from_dict (rw_region, "start", 
+        rw_start_addr = int (manifest_common.get_key_from_dict (rw_region, "start",
             "RW region start address"), 16)
-        rw_end_addr = int (manifest_common.get_key_from_dict (rw_region, "end", 
+        rw_end_addr = int (manifest_common.get_key_from_dict (rw_region, "end",
             "RW region end address"), 16)
         manifest_common.check_region_address_validity (rw_start_addr, rw_end_addr)
 
         all_regions.append ([rw_start_addr, rw_end_addr])
 
-        rw_flags = int (manifest_common.get_key_from_dict (rw_region, "operation_fail", 
+        rw_flags = int (manifest_common.get_key_from_dict (rw_region, "operation_fail",
             "Operation on Fail"), 16)
 
         rw_region_body = pfm_rw_region (rw_flags, reserved_buf, rw_start_addr, rw_end_addr)
-        rw_regions_len = manifest_common.move_list_to_buffer (rw_regions_buf, rw_regions_len, 
+        rw_regions_len = manifest_common.move_list_to_buffer (rw_regions_buf, rw_regions_len,
             [rw_region_body])
 
     return rw_regions_buf, rw_regions_len, num_rw_regions, all_regions
@@ -68,7 +68,7 @@ def generate_signed_imgs_buf (xml_signed_imgs):
 
     :param xml_signed_imgs: List of parsed XML of signed images to be included in PFM
 
-    :return Signed images buffer, length of signed images buffer, number of signed images, list of 
+    :return Signed images buffer, length of signed images buffer, number of signed images, list of
         all regions
     """
 
@@ -93,10 +93,10 @@ def generate_signed_imgs_buf (xml_signed_imgs):
     all_regions = []
 
     for signed_img in xml_signed_imgs:
-        hash_type = int (manifest_common.get_key_from_dict (signed_img, "hash_type", "Hash type"), 
+        hash_type = int (manifest_common.get_key_from_dict (signed_img, "hash_type", "Hash type"),
             16)
         validate = manifest_common.get_key_from_dict (signed_img, "validate", "Validate region")
-        signed_img_hash = manifest_common.get_key_from_dict (signed_img, "hash", 
+        signed_img_hash = manifest_common.get_key_from_dict (signed_img, "hash",
             "Signed image hash")
         signed_img_hash_arr = (ctypes.c_ubyte * len (signed_img_hash)).from_buffer_copy (
             signed_img_hash)
@@ -112,16 +112,16 @@ def generate_signed_imgs_buf (xml_signed_imgs):
                 len (signed_img["regions"]))) ()
 
             for region in signed_img["regions"]:
-                img_start_addr = int (manifest_common.get_key_from_dict (region, "start", 
+                img_start_addr = int (manifest_common.get_key_from_dict (region, "start",
                     "Signed image start address"), 16)
-                img_end_addr = int (manifest_common.get_key_from_dict (region, "end", 
+                img_end_addr = int (manifest_common.get_key_from_dict (region, "end",
                     "Signed image end address"), 16)
                 manifest_common.check_region_address_validity (img_start_addr, img_end_addr, False)
 
                 all_regions.append ([img_start_addr, img_end_addr])
 
                 signed_image_region = pfm_signed_image_region (img_start_addr, img_end_addr)
-                signed_regions_len = manifest_common.move_list_to_buffer (signed_regions_buf, 
+                signed_regions_len = manifest_common.move_list_to_buffer (signed_regions_buf,
                     signed_regions_len, [signed_image_region])
                 num_signed_regions += 1
 
@@ -129,7 +129,7 @@ def generate_signed_imgs_buf (xml_signed_imgs):
             signed_regions_len + signed_img_hash_arr_len)) ()
         signed_img_header = pfm_signed_image_header (hash_type, num_signed_regions, img_flags, 0)
 
-        signed_img_len = manifest_common.move_list_to_buffer (signed_img_buf, 0, [signed_img_header, 
+        signed_img_len = manifest_common.move_list_to_buffer (signed_img_buf, 0, [signed_img_header,
             signed_img_hash_arr, signed_regions_buf])
 
         signed_imgs_len += signed_img_len
@@ -162,7 +162,7 @@ def generate_permutations (src_list):
 
             for permutation in permutations:
                 permutation.extend (version)
-            
+
             total_permutations.extend (permutations)
 
     return total_permutations
@@ -174,7 +174,7 @@ def check_max_rw_sections (all_rw_regions, max_rw_sections):
     :param all_rw_regions: All RW regions for each FW type
     :param max_rw_sections: Number of non-contiguous RW sections supported
     """
-    
+
     all_rw_permutations = generate_permutations (all_rw_regions)
 
     for permutation in all_rw_permutations:
@@ -212,16 +212,16 @@ def check_overlapping_regions (all_regions):
                     if manifest_common.check_if_regions_overlap (region1, region2):
                         raise ValueError (
                             "Region at [0x{0}:0x{1}] overlapping with region at [0x{2}:0x{3}]".format (
-                                format (region1[0], 'x'), format (region1[1], 'x'), 
+                                format (region1[0], 'x'), format (region1[1], 'x'),
                                 format (region2[0], 'x'), format (region2[1], 'x')))
 
                 for i_fw_type2 in range (i_fw_type1 + 1, len (all_regions)):
                     for version2 in all_regions[i_fw_type2]:
-                        for region2 in version2:                            
+                        for region2 in version2:
                             if manifest_common.check_if_regions_overlap (region1, region2):
                                 raise ValueError (
                                     "Region at [0x{0}:0x{1}] overlapping with region at [0x{2}:0x{3}]".format (
-                                        format (region1[0], 'x'), format (region1[1], 'x'), 
+                                        format (region1[0], 'x'), format (region1[1], 'x'),
                                         format (region2[0], 'x'), format (region2[1], 'x')))
 
 def generate_fw_versions_list (xml_list, hash_engine, max_rw_sections):
@@ -243,7 +243,7 @@ def generate_fw_versions_list (xml_list, hash_engine, max_rw_sections):
     unused_byte = None
     all_regions = {}
     all_rw_regions = {}
-    
+
     for filename, xml in xml_list.items():
         fw_type = manifest_common.get_key_from_dict (xml, "fw_type", "FW Type")
         manifest_common.check_maximum (len (fw_type), 255, "FW type {0} string length".format (
@@ -254,18 +254,18 @@ def generate_fw_versions_list (xml_list, hash_engine, max_rw_sections):
             all_regions[fw_type] = []
             all_rw_regions[fw_type] = []
 
-        unused_byte_val = int (manifest_common.get_key_from_dict (xml, "unused_byte", 
+        unused_byte_val = int (manifest_common.get_key_from_dict (xml, "unused_byte",
             "Unused Byte"), 16)
         manifest_common.check_maximum (unused_byte_val, 255, "Unused byte")
 
         if unused_byte is None:
             unused_byte = unused_byte_val
-        else: 
+        else:
             if unused_byte_val != unused_byte:
                 raise ValueError ("Different unused byte values found: ({0}) vs ({1}) - {2}".format (
                     unused_byte_val, unused_byte, filename))
 
-        runtime_update_val = manifest_common.get_key_from_dict (xml, "runtime_update", 
+        runtime_update_val = manifest_common.get_key_from_dict (xml, "runtime_update",
             "Runtime Update")
         if fw_type not in runtime_update_list:
             runtime_update_list[fw_type] = runtime_update_val
@@ -275,9 +275,9 @@ def generate_fw_versions_list (xml_list, hash_engine, max_rw_sections):
                     "Different runtime update values found for FW type ({0}): ({1}) vs ({2}) - {3}".format (
                         fw_type, runtime_update_val, runtime_update_list[fw_type], filename))
 
-        version_addr = int (manifest_common.get_key_from_dict (xml, "version_addr", 
+        version_addr = int (manifest_common.get_key_from_dict (xml, "version_addr",
             "Version Address"), 16)
-            
+
         version_id = manifest_common.get_key_from_dict (xml, "version_id", "Version ID")
         version_id_len = len (version_id)
         manifest_common.check_maximum (version_id_len, 255, "Version ID {0} length".format (
@@ -310,8 +310,8 @@ def generate_fw_versions_list (xml_list, hash_engine, max_rw_sections):
                         ('version_id_padding', ctypes.c_ubyte * padding_len),
                         ('rw_regions', ctypes.c_ubyte * rw_regions_len),
                         ('signed_imgs', ctypes.c_ubyte * signed_imgs_len)]
-        
-        fw_version = pfm_fw_version (num_signed_imgs, num_rw_regions, version_id_len, 0, 
+
+        fw_version = pfm_fw_version (num_signed_imgs, num_rw_regions, version_id_len, 0,
             version_addr, version_id.encode ('utf-8'), padding, rw_regions_buf, signed_imgs_buf)
 
         for prev_version_id, prev_fw_version in fw_version_list[fw_type].items ():
@@ -330,7 +330,7 @@ def generate_fw_versions_list (xml_list, hash_engine, max_rw_sections):
     all_rw_regions_list = []
 
     for fw_id, fw_id_list in all_regions.items():
-        all_regions_list.append (fw_id_list) 
+        all_regions_list.append (fw_id_list)
     for fw_id, fw_id_list in all_rw_regions.items():
         all_rw_regions_list.append (fw_id_list)
 
@@ -360,7 +360,7 @@ def generate_fw_buf (xml_list, hash_engine, max_rw_sections):
     num_fw = 0
     fw_len = 0
 
-    fw_version_list, runtime_update_list, unused_byte = generate_fw_versions_list (xml_list, 
+    fw_version_list, runtime_update_list, unused_byte = generate_fw_versions_list (xml_list,
         hash_engine, max_rw_sections)
 
     for fw_id, fw_versions in fw_version_list.items ():
@@ -379,7 +379,7 @@ def generate_fw_buf (xml_list, hash_engine, max_rw_sections):
 
         fw_flags = 0 if runtime_update_list[fw_id] == "false" else 1
         fw = pfm_fw (len (fw_versions), fw_id_len, fw_flags, 0, fw_id.encode ('utf-8'), padding)
-        fw_toc_entry = manifest_common.manifest_toc_entry (manifest_common.PFM_V2_FW_TYPE_ID, 
+        fw_toc_entry = manifest_common.manifest_toc_entry (manifest_common.PFM_V2_FW_TYPE_ID,
             manifest_common.V2_BASE_TYPE_ID, 1, 0, 0, ctypes.sizeof (fw))
         fw_hash = manifest_common.generate_hash (fw, hash_engine)
 
@@ -393,7 +393,7 @@ def generate_fw_buf (xml_list, hash_engine, max_rw_sections):
             fw_len += ctypes.sizeof (fw_version)
 
             fw_version_toc_entry = manifest_common.manifest_toc_entry (
-                manifest_common.PFM_V2_FW_VERSION_TYPE_ID, manifest_common.PFM_V2_FW_TYPE_ID, 1, 
+                manifest_common.PFM_V2_FW_VERSION_TYPE_ID, manifest_common.PFM_V2_FW_TYPE_ID, 1,
                 0, 0, ctypes.sizeof (fw_version))
             fw_toc_list.append (fw_version_toc_entry)
 
@@ -426,7 +426,7 @@ def generate_flash_device_buf (hash_engine, unused_byte, fw_count):
 
     flash_device = pfm_flash_device (unused_byte, fw_count, 0)
     flash_device_toc_entry = manifest_common.manifest_toc_entry (
-        manifest_common.PFM_V2_FLASH_DEVICE_TYPE_ID, manifest_common.V2_BASE_TYPE_ID, 0, 0, 0, 
+        manifest_common.PFM_V2_FLASH_DEVICE_TYPE_ID, manifest_common.V2_BASE_TYPE_ID, 0, 0, 0,
         ctypes.sizeof (flash_device))
     flash_device_hash = manifest_common.generate_hash (flash_device, hash_engine)
 
@@ -442,7 +442,8 @@ parser.add_argument ('--bypass', action = 'store_true', help = 'Create a bypass 
 args = parser.parse_args ()
 
 processed_xml, sign, key_size, key, key_type, hash_type, pfm_id, output, xml_version, empty, \
-    max_rw_sections = manifest_common.load_xmls (args.config, None, manifest_types.PFM)
+    max_rw_sections, selection_list = \
+        manifest_common.load_xmls (args.config, None, manifest_types.PFM)
 
 if xml_version == manifest_types.VERSION_2:
     elements_list = []
@@ -461,7 +462,7 @@ if xml_version == manifest_types.VERSION_2:
     hash_list.append (platform_id_hash)
 
     if not args.bypass:
-        fw, num_fw, fw_toc_entries, fw_hashes, unused_byte = generate_fw_buf (processed_xml, 
+        fw, num_fw, fw_toc_entries, fw_hashes, unused_byte = generate_fw_buf (processed_xml,
             hash_engine, max_rw_sections)
 
         flash_device, flash_device_toc_entry, flash_device_hash = generate_flash_device_buf (
@@ -476,13 +477,13 @@ if xml_version == manifest_types.VERSION_2:
         elements_list.append (fw)
         toc_list.extend (fw_toc_entries)
         hash_list.extend (fw_hashes)
-        
-    manifest_common.generate_manifest (hash_engine, hash_type, pfm_id, manifest_types.PFM, 
-        xml_version, sign, key, key_size, key_type, toc_list, hash_list, elements_list, pfm_len, 
+
+    manifest_common.generate_manifest (hash_engine, hash_type, pfm_id, manifest_types.PFM,
+        xml_version, sign, key, key_size, key_type, toc_list, hash_list, elements_list, pfm_len,
         output)
 
 else:
-    pfm_generator_v1.generate_v1_pfm (pfm_id, key_size, hash_type, key_type, processed_xml, 
+    pfm_generator_v1.generate_v1_pfm (pfm_id, key_size, hash_type, key_type, processed_xml,
         args.bypass, sign, key, output)
 
 print ("Completed PFM generation: {0}".format (output))

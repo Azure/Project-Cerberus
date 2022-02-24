@@ -541,11 +541,9 @@ int cerberus_protocol_get_cfm_component_ids (struct cfm_manager *cfm_mgr,
 		(struct cerberus_protocol_get_cfm_component_ids*) request->data;
 	struct cerberus_protocol_get_cfm_component_ids_response *rsp =
 		(struct cerberus_protocol_get_cfm_component_ids_response*) request->data;
-	struct cfm_component_ids component_ids;
 	struct cfm *curr_cfm = NULL;
-	uint16_t length;
-	uint32_t id_length;
 	uint32_t offset;
+	size_t length;
 	int status = 0;
 
 	if (request->length != sizeof (struct cerberus_protocol_get_cfm_component_ids)) {
@@ -564,9 +562,8 @@ int cerberus_protocol_get_cfm_component_ids (struct cfm_manager *cfm_mgr,
 		return status;
 	}
 
-	offset = rq->offset;
-
 	if (curr_cfm != NULL) {
+		offset = rq->offset;
 		rsp->valid = 1;
 
 		status = curr_cfm->base.get_id (&curr_cfm->base, &rsp->version);
@@ -574,26 +571,17 @@ int cerberus_protocol_get_cfm_component_ids (struct cfm_manager *cfm_mgr,
 			goto exit;
 		}
 
-		status = curr_cfm->get_supported_component_ids (curr_cfm, &component_ids);
-		if (status != 0) {
+		length = CERBERUS_PROTOCOL_MAX_COMPONENT_IDS (request);
+
+		status = curr_cfm->buffer_supported_components (curr_cfm, offset, length,
+			cerberus_protocol_cfm_component_ids (rsp));
+		if (ROT_IS_ERROR (status)) {
 			goto exit;
 		}
 
-		id_length = component_ids.count * sizeof (uint32_t);
+		request->length = cerberus_protocol_get_cfm_component_ids_response_length (status);
 
-		if (offset >= id_length) {
-			request->length = cerberus_protocol_get_cfm_component_ids_response_length (0);
-			goto cleanup_component_ids;
-		}
-
-		length = min (CERBERUS_PROTOCOL_MAX_COMPONENT_IDS (request), id_length - offset);
-		memcpy (cerberus_protocol_cfm_component_ids (rsp), &((uint8_t*) component_ids.ids)[offset],
-			length);
-
-		request->length = cerberus_protocol_get_cfm_component_ids_response_length (length);
-
-	cleanup_component_ids:
-		curr_cfm->free_component_ids (curr_cfm, &component_ids);
+		status = 0;
 	}
 	else {
 		rsp->valid = 0;
@@ -603,6 +591,7 @@ int cerberus_protocol_get_cfm_component_ids (struct cfm_manager *cfm_mgr,
 
 exit:
 	cerberus_protocol_free_cfm (cfm_mgr, curr_cfm);
+
 	return status;
 }
 

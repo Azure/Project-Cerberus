@@ -42,7 +42,7 @@ def generate_ports (xml_ports, hash_engine):
     toc_entries = []
     hashes = []
     num_ports = len (xml_ports)
-    ports_len = 0 
+    ports_len = 0
     class pcd_port (ctypes.LittleEndianStructure):
         _pack_ = 1
         _fields_ = [('port_id', ctypes.c_ubyte),
@@ -56,25 +56,25 @@ def generate_ports (xml_ports, hash_engine):
         reset_ctrl = int (manifest_common.get_key_from_dict (port, "reset_ctrl", "Port"))
         flash_mode = int (manifest_common.get_key_from_dict (port, "flash_mode", "Port"))
         policy = int (manifest_common.get_key_from_dict (port, "policy", "Port"))
-        runtime_verification = int (manifest_common.get_key_from_dict (port, "runtime_verification", 
+        runtime_verification = int (manifest_common.get_key_from_dict (port, "runtime_verification",
             "Port"))
-        watchdog_monitoring = int (manifest_common.get_key_from_dict (port, "watchdog_monitoring", 
+        watchdog_monitoring = int (manifest_common.get_key_from_dict (port, "watchdog_monitoring",
             "Port"))
         pulse_interval = int (manifest_common.get_key_from_dict (port, "pulse_interval", "Port"))
 
         port_flags = (watchdog_monitoring << 5) | (runtime_verification << 4) | \
-            (flash_mode << 2) | reset_ctrl 
+            (flash_mode << 2) | reset_ctrl
 
         port_buf = pcd_port (int (id), port_flags, policy, pulse_interval, spi_freq)
         port_toc_entry = manifest_common.manifest_toc_entry (
-            manifest_common.PCD_V2_SPI_FLASH_PORT_TYPE_ID, manifest_common.PCD_V2_ROT_TYPE_ID, 1, 0, 
+            manifest_common.PCD_V2_SPI_FLASH_PORT_TYPE_ID, manifest_common.PCD_V2_ROT_TYPE_ID, 1, 0,
             0, ctypes.sizeof (pcd_port))
         port_hash = manifest_common.generate_hash (port_buf, hash_engine)
 
         ports.append (port_buf)
         toc_entries.append (port_toc_entry)
         hashes.append (port_hash)
-        
+
         ports_len += ctypes.sizeof (port_buf)
 
     ports_buf = (ctypes.c_ubyte * ports_len) ()
@@ -95,13 +95,13 @@ def generate_rot (xml_rot, num_components, num_ports, hash_engine):
     """
 
     rot_type = int (manifest_common.get_key_from_dict (xml_rot, "type", "RoT"))
-    rot_address = int (manifest_common.get_key_from_dict (xml_rot["interface"], "address", 
+    rot_address = int (manifest_common.get_key_from_dict (xml_rot["interface"], "address",
         "RoT interface"))
-    rot_eid = int (manifest_common.get_key_from_dict (xml_rot["interface"], "rot_eid", 
+    rot_eid = int (manifest_common.get_key_from_dict (xml_rot["interface"], "rot_eid",
         "RoT interface"))
-    bridge_eid = int (manifest_common.get_key_from_dict (xml_rot["interface"], "bridge_eid", 
+    bridge_eid = int (manifest_common.get_key_from_dict (xml_rot["interface"], "bridge_eid",
         "RoT interface"))
-    bridge_address = int (manifest_common.get_key_from_dict (xml_rot["interface"], "bridge_address", 
+    bridge_address = int (manifest_common.get_key_from_dict (xml_rot["interface"], "bridge_address",
         "RoT interface"))
 
     rot_flags = rot_type
@@ -117,10 +117,10 @@ def generate_rot (xml_rot, num_components, num_ports, hash_engine):
                     ('bridge_eid', ctypes.c_ubyte),
                     ('reserved', ctypes.c_ubyte)]
 
-    rot = pcd_rot_element (rot_flags, num_ports, num_components, rot_address, rot_eid, 
+    rot = pcd_rot_element (rot_flags, num_ports, num_components, rot_address, rot_eid,
         bridge_address, bridge_eid, 0)
     rot_len = ctypes.sizeof (rot)
-    rot_toc_entry = manifest_common.manifest_toc_entry (manifest_common.PCD_V2_ROT_TYPE_ID, 
+    rot_toc_entry = manifest_common.manifest_toc_entry (manifest_common.PCD_V2_ROT_TYPE_ID,
         manifest_common.V2_BASE_TYPE_ID, 1, 0, 0, rot_len)
 
     rot_hash = manifest_common.generate_hash (rot, hash_engine)
@@ -156,11 +156,11 @@ def generate_power_controller (xml_power_controller, hash_engine):
     """
     Create a power_controller object from parsed XML list
 
-    :param xml_power_controller: List of parsed XML of power_controller to be included in 
+    :param xml_power_controller: List of parsed XML of power_controller to be included in
         power_controller object
     :param hash_engine: Hashing engine
 
-    :return Instance of a power_controller object, power_controller's TOC entry, 
+    :return Instance of a power_controller object, power_controller's TOC entry,
         hash of power_controller object
     """
 
@@ -176,16 +176,16 @@ def generate_power_controller (xml_power_controller, hash_engine):
         muxes_len = 0
         num_muxes = 0
 
-    bus = int (manifest_common.get_key_from_dict (xml_power_controller["interface"], "bus", 
+    bus = int (manifest_common.get_key_from_dict (xml_power_controller["interface"], "bus",
         "Power controller interface"))
-    address = int (manifest_common.get_key_from_dict (xml_power_controller["interface"], "address", 
+    address = int (manifest_common.get_key_from_dict (xml_power_controller["interface"], "address",
         "Power controller interface"))
-    eid = int (manifest_common.get_key_from_dict (xml_power_controller["interface"], "eid", 
+    eid = int (manifest_common.get_key_from_dict (xml_power_controller["interface"], "eid",
         "Power controller interface"))
-    i2c_mode = int (manifest_common.get_key_from_dict (xml_power_controller["interface"], 
+    i2c_mode = int (manifest_common.get_key_from_dict (xml_power_controller["interface"],
         "i2c_mode", "Power controller interface"))
 
-    i2c_flags = i2c_mode 
+    i2c_flags = i2c_mode
 
     class pcd_power_controller_element (ctypes.LittleEndianStructure):
         _pack_ = 1
@@ -199,7 +199,7 @@ def generate_power_controller (xml_power_controller, hash_engine):
     power_controller = pcd_power_controller_element (num_muxes, i2c_flags, bus, address, eid, muxes)
     power_controller_len = ctypes.sizeof (power_controller)
     power_controller_toc_entry = manifest_common.manifest_toc_entry (
-        manifest_common.PCD_V2_I2C_POWER_CONTROLLER_TYPE_ID, manifest_common.V2_BASE_TYPE_ID, 1, 0, 
+        manifest_common.PCD_V2_I2C_POWER_CONTROLLER_TYPE_ID, manifest_common.V2_BASE_TYPE_ID, 1, 0,
         0, power_controller_len)
 
     power_controller_hash = manifest_common.generate_hash (power_controller, hash_engine)
@@ -225,17 +225,17 @@ def generate_direct_component_buf (xml_component):
     powerctrl_mask = int (manifest_common.get_key_from_dict (xml_component["powerctrl"], "mask",
         "Direct Component"))
     component_type = manifest_common.get_key_from_dict (xml_component, "type", "Direct Component")
-    i2c_mode = int (manifest_common.get_key_from_dict (xml_component["interface"], "i2c_mode", 
+    i2c_mode = int (manifest_common.get_key_from_dict (xml_component["interface"], "i2c_mode",
         "Direct Component"))
-    bus = int (manifest_common.get_key_from_dict (xml_component["interface"], "bus", 
+    bus = int (manifest_common.get_key_from_dict (xml_component["interface"], "bus",
         "Direct Component"))
-    address = int (manifest_common.get_key_from_dict (xml_component["interface"], "address", 
+    address = int (manifest_common.get_key_from_dict (xml_component["interface"], "address",
         "Direct Component"))
-    eid = int (manifest_common.get_key_from_dict (xml_component["interface"], "eid", 
+    eid = int (manifest_common.get_key_from_dict (xml_component["interface"], "eid",
         "Direct Component"))
 
     type_len = len (component_type)
-    i2c_flags = i2c_mode 
+    i2c_flags = i2c_mode
 
     manifest_common.check_maximum (type_len, 255, "Component type {0} length".format (
         component_type))
@@ -263,12 +263,12 @@ def generate_direct_component_buf (xml_component):
                     ('eid', ctypes.c_ubyte),
                     ('muxes', ctypes.c_ubyte * muxes_len)]
 
-    component = pcd_direct_i2c_component_element (policy, powerctrl_reg, powerctrl_mask, type_len, 
+    component = pcd_direct_i2c_component_element (policy, powerctrl_reg, powerctrl_mask, type_len,
         component_type.encode ('utf-8'), padding, num_muxes, i2c_flags, bus, address, eid, muxes)
     component_len = ctypes.sizeof (component)
 
     component_toc_entry = manifest_common.manifest_toc_entry (
-        manifest_common.PCD_V2_DIRECT_COMPONENT_TYPE_ID, manifest_common.V2_BASE_TYPE_ID, 1, 
+        manifest_common.PCD_V2_DIRECT_COMPONENT_TYPE_ID, manifest_common.V2_BASE_TYPE_ID, 1,
         0, 0, component_len)
 
     component_hash = manifest_common.generate_hash (component, hash_engine)
@@ -279,31 +279,31 @@ def generate_mctp_bridge_component_buf (xml_component):
     """
     Create an MCTP bridges component object from parsed XML list
 
-    :param xml_component: List of parsed XML of component to be included in MCTP bridge component 
+    :param xml_component: List of parsed XML of component to be included in MCTP bridge component
         object
 
     :return Instance of a component object, component's TOC entry, component hash
     """
 
-    policy = int (manifest_common.get_key_from_dict (xml_component, "policy", 
+    policy = int (manifest_common.get_key_from_dict (xml_component, "policy",
         "MCTP Bridge Component"))
     powerctrl_reg = int (manifest_common.get_key_from_dict (xml_component["powerctrl"], "register",
         "MCTP Bridge Component"))
     powerctrl_mask = int (manifest_common.get_key_from_dict (xml_component["powerctrl"], "mask",
         "MCTP Bridge Component"))
-    component_type = manifest_common.get_key_from_dict (xml_component, "type", 
+    component_type = manifest_common.get_key_from_dict (xml_component, "type",
         "MCTP Bridge Component")
-    device_id = int (manifest_common.get_key_from_dict (xml_component, "deviceid", 
+    device_id = int (manifest_common.get_key_from_dict (xml_component, "deviceid",
         "MCTP Bridge Component"))
-    vendor_id = int (manifest_common.get_key_from_dict (xml_component, "vendorid", 
+    vendor_id = int (manifest_common.get_key_from_dict (xml_component, "vendorid",
         "MCTP Bridge Component"))
-    sub_device_id = int (manifest_common.get_key_from_dict (xml_component, "subdeviceid", 
+    sub_device_id = int (manifest_common.get_key_from_dict (xml_component, "subdeviceid",
         "MCTP Bridge Component"))
-    sub_vendor_id = int (manifest_common.get_key_from_dict (xml_component, "subvendorid", 
+    sub_vendor_id = int (manifest_common.get_key_from_dict (xml_component, "subvendorid",
         "MCTP Bridge Component"))
-    sub_vendor_id = int (manifest_common.get_key_from_dict (xml_component, "subvendorid", 
+    sub_vendor_id = int (manifest_common.get_key_from_dict (xml_component, "subvendorid",
         "MCTP Bridge Component"))
-    components_count = int (manifest_common.get_key_from_dict (xml_component, "count", 
+    components_count = int (manifest_common.get_key_from_dict (xml_component, "count",
         "MCTP Bridge Component"))
     eid = int (manifest_common.get_key_from_dict (xml_component, "eid", "MCTP Bridge Component"))
 
@@ -329,13 +329,13 @@ def generate_mctp_bridge_component_buf (xml_component):
                     ('eid', ctypes.c_ubyte),
                     ('reserved', ctypes.c_ushort)]
 
-    component = pcd_mctp_bridge_component_element (policy, powerctrl_reg, powerctrl_mask, type_len, 
-        component_type.encode ('utf-8'), padding, device_id, vendor_id, sub_device_id, 
+    component = pcd_mctp_bridge_component_element (policy, powerctrl_reg, powerctrl_mask, type_len,
+        component_type.encode ('utf-8'), padding, device_id, vendor_id, sub_device_id,
         sub_vendor_id, components_count, eid, 0)
     component_len = ctypes.sizeof (component)
 
     component_toc_entry = manifest_common.manifest_toc_entry (
-        manifest_common.PCD_V2_MCTP_BRIDGE_COMPONENT_TYPE_ID, manifest_common.V2_BASE_TYPE_ID, 1, 
+        manifest_common.PCD_V2_MCTP_BRIDGE_COMPONENT_TYPE_ID, manifest_common.V2_BASE_TYPE_ID, 1,
         0, 0, component_len)
 
     component_hash = manifest_common.generate_hash (component, hash_engine)
@@ -349,7 +349,7 @@ def generate_components (xml_components, hash_engine):
     :param xml_components: List of parsed XML of components to be included in PCD
     :param hash_engine: Hashing engine
 
-    :return Components buffer, number of components, list of component TOC entries, 
+    :return Components buffer, number of components, list of component TOC entries,
         list of component hashes
     """
 
@@ -372,7 +372,7 @@ def generate_components (xml_components, hash_engine):
                 generate_mctp_bridge_component_buf (component)
         else:
             raise ValueError ("Unsupported component connection type: {0}".format (connection))
-        
+
         components_list.append (component_buf)
         components_toc_list.append (component_toc_entry)
         hash_list.append (component_hash)
@@ -393,8 +393,9 @@ parser.add_argument ('config', nargs = '?', default = default_config,
     help = 'Path to configuration file')
 args = parser.parse_args ()
 
-processed_xml, sign, key_size, key, key_type, hash_type, pcd_id, output, xml_version, empty, max_num_rw_sections = \
-    manifest_common.load_xmls (args.config, 1, manifest_types.PCD)
+processed_xml, sign, key_size, key, key_type, hash_type, pcd_id, output, xml_version, empty, \
+    max_num_rw_sections, selection_list = \
+        manifest_common.load_xmls (args.config, 1, manifest_types.PCD)
 
 hash_engine = manifest_common.get_hash_engine (hash_type)
 
@@ -408,7 +409,7 @@ hash_list = []
 
 platform_id, platform_id_toc_entry, platform_id_hash = manifest_common.generate_platform_id_buf (
     processed_xml, hash_engine)
-    
+
 pcd_len = ctypes.sizeof (platform_id)
 elements_list.append (platform_id)
 toc_list.append (platform_id_toc_entry)
@@ -418,7 +419,7 @@ if not empty:
     if "power_controller" in processed_xml:
         power_controller, power_controller_toc_entry, power_controller_hash = \
             generate_power_controller (processed_xml["power_controller"], hash_engine)
-        
+
         pcd_len += ctypes.sizeof (power_controller)
         elements_list.append (power_controller)
         toc_list.append (power_controller_toc_entry)
@@ -437,9 +438,9 @@ if not empty:
         ports, num_ports, ports_toc_entries, ports_hash = generate_ports (
             processed_xml["rot"]["ports"], hash_engine)
 
-    rot, rot_toc_entry, rot_hash = generate_rot (processed_xml["rot"], num_components, num_ports, 
+    rot, rot_toc_entry, rot_hash = generate_rot (processed_xml["rot"], num_components, num_ports,
         hash_engine)
-        
+
     pcd_len += ctypes.sizeof (rot)
     elements_list.append (rot)
     toc_list.append (rot_toc_entry)
@@ -451,7 +452,7 @@ if not empty:
         toc_list.extend (ports_toc_entries)
         hash_list.extend (ports_hash)
 
-manifest_common.generate_manifest (hash_engine, hash_type, pcd_id, manifest_types.PCD, xml_version, 
+manifest_common.generate_manifest (hash_engine, hash_type, pcd_id, manifest_types.PCD, xml_version,
     sign, key, key_size, key_type, toc_list, hash_list, elements_list, pcd_len, output)
 
 print ("Completed PCD generation: {0}".format (output))

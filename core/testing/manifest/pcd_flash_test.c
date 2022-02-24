@@ -1594,7 +1594,7 @@ struct pcd_flash_testing {
 static void pcd_flash_testing_init_dependencies (CuTest *test, struct pcd_flash_testing *pcd,
 	uint32_t address)
 {
-	manifest_flash_v2_testing_init_dependencies (test, &pcd->manifest, address);;
+	manifest_flash_v2_testing_init_dependencies (test, &pcd->manifest, address);
 }
 
 /**
