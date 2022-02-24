@@ -107,6 +107,50 @@ static void ocp_recovery_smbus_testing_release (CuTest *test,
 	ocp_recovery_smbus_release (&smbus->test);
 }
 
+/**
+ * Check the device status response for a specific protocol status code.
+ *
+ * @param test The test framework.
+ * @param smbus Testing components to use for the check.
+ * @param protocol_status The expected protocol status code.
+ */
+static void ocp_recovery_smbus_testing_check_protocol_status (CuTest *test,
+	struct ocp_recovery_smbus_testing *smbus, uint8_t protocol_status)
+{
+	int status;
+	uint8_t expected[] = {
+		0x00,protocol_status,0x00,0x00,0x00,0x00,0x05,0x00,0x00,0x00,0x00,0x00
+	};
+	enum ocp_recovery_device_status_code status_code = 0;
+	enum ocp_recovery_recovery_reason_code reason_code = 0;
+	struct ocp_recovery_device_status_vendor vendor = {
+		.failure_id = 0,
+		.error_code = 0
+	};
+	const union ocp_recovery_smbus_cmd_buffer *output = NULL;
+
+	status = ocp_recovery_smbus_receive_byte (&smbus->test, OCP_RECOVERY_CMD_DEVICE_STATUS);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&smbus->hw.mock, smbus->hw.base.get_device_status, &smbus->hw, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&smbus->hw.mock, 0, &status_code, sizeof (status_code), -1);
+	status |= mock_expect_output (&smbus->hw.mock, 1, &reason_code, sizeof (reason_code), -1);
+	status |= mock_expect_output (&smbus->hw.mock, 2, &vendor, sizeof (vendor), -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_smbus_transmit_bytes (&smbus->test, 0x69, &output);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, output);
+
+	status = testing_validate_array (expected, output->block_cmd.payload.bytes, sizeof (expected));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&smbus->hw.mock);
+	CuAssertIntEquals (test, 0, status);
+}
+
 
 /*******************
  * Test cases
@@ -318,6 +362,8 @@ static void ocp_recovery_smbus_test_block_write_command_with_bad_pec (CuTest *te
 	CuAssertIntEquals (test, 0, smbus.cms_0[0]);
 	CuAssertIntEquals (test, 0, smbus.cms_0[1]);
 
+	ocp_recovery_smbus_testing_check_protocol_status (test, &smbus, 4);
+
 	ocp_recovery_smbus_testing_release (test, &smbus);
 }
 
@@ -507,10 +553,52 @@ static void ocp_recovery_smbus_test_block_write_command_overflow_buffer (CuTest 
 	status = ocp_recovery_smbus_receive_byte (&smbus.test, 0x55);
 	CuAssertIntEquals (test, OCP_RECOVERY_SMBUS_OVERFLOW, status);
 
-	/* Nothing will be written because the PEC will fail. */
 	ocp_recovery_smbus_stop (&smbus.test);
 	CuAssertIntEquals (test, 0, smbus.cms_0[0]);
 	CuAssertIntEquals (test, 0, smbus.cms_0[1]);
+
+	ocp_recovery_smbus_testing_check_protocol_status (test, &smbus, 3);
+
+	ocp_recovery_smbus_testing_release (test, &smbus);
+}
+
+static void ocp_recovery_smbus_test_block_write_command_overflow_multiple (CuTest *test)
+{
+	struct ocp_recovery_smbus_testing smbus;
+	int status;
+	int i;
+
+	TEST_START;
+
+	ocp_recovery_smbus_testing_init (test, &smbus);
+
+	ocp_recovery_smbus_start (&smbus.test, 0x69);
+
+	status = ocp_recovery_smbus_receive_byte (&smbus.test, OCP_RECOVERY_CMD_INDIRECT_DATA);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_smbus_receive_byte (&smbus.test, 0xff);
+	CuAssertIntEquals (test, 0, status);
+
+	for (i = 0; i < 256; i++) {
+		status = ocp_recovery_smbus_receive_byte (&smbus.test, i);
+		CuAssertIntEquals (test, 0, status);
+	}
+
+	status = ocp_recovery_smbus_receive_byte (&smbus.test, 0x55);
+	CuAssertIntEquals (test, OCP_RECOVERY_SMBUS_OVERFLOW, status);
+
+	status = ocp_recovery_smbus_receive_byte (&smbus.test, 0x56);
+	CuAssertIntEquals (test, OCP_RECOVERY_SMBUS_NACK, status);
+
+	status = ocp_recovery_smbus_receive_byte (&smbus.test, 0x57);
+	CuAssertIntEquals (test, OCP_RECOVERY_SMBUS_NACK, status);
+
+	ocp_recovery_smbus_stop (&smbus.test);
+	CuAssertIntEquals (test, 0, smbus.cms_0[0]);
+	CuAssertIntEquals (test, 0, smbus.cms_0[1]);
+
+	ocp_recovery_smbus_testing_check_protocol_status (test, &smbus, 3);
 
 	ocp_recovery_smbus_testing_release (test, &smbus);
 }
@@ -940,6 +1028,7 @@ TEST (ocp_recovery_smbus_test_block_write_command_twice);
 TEST (ocp_recovery_smbus_test_block_write_command_with_pec_twice);
 TEST (ocp_recovery_smbus_test_block_write_command_call_stop_twice);
 TEST (ocp_recovery_smbus_test_block_write_command_overflow_buffer);
+TEST (ocp_recovery_smbus_test_block_write_command_overflow_multiple);
 TEST (ocp_recovery_smbus_test_block_write_command_full_memory_region_with_pec);
 TEST (ocp_recovery_smbus_test_block_write_invalid_command);
 TEST (ocp_recovery_smbus_test_block_write_command_static_init);

@@ -90,7 +90,7 @@ static void ocp_recovery_test_cap_id_format (CuTest *test)
 	CuAssertIntEquals (test, 0x0403, msg->base.nvme.vendor_id);
 	CuAssertPtrEquals (test, &raw_buffer[4], msg->base.nvme.serial_num);
 
-	CuAssertPtrEquals (test, &raw_buffer[25], msg->vendor_string);
+	CuAssertPtrEquals (test, &raw_buffer[24], msg->vendor_string);
 }
 
 static void ocp_recovery_test_device_status_format (CuTest *test)
@@ -119,7 +119,7 @@ static void ocp_recovery_test_device_status_format (CuTest *test)
 static void ocp_recovery_test_reset_format (CuTest *test)
 {
 	uint8_t raw_buffer[] = {
-		0x01,0x02
+		0x01,0x02,0x03
 	};
 	struct ocp_recovery_reset *msg;
 
@@ -130,6 +130,7 @@ static void ocp_recovery_test_reset_format (CuTest *test)
 	msg = (struct ocp_recovery_reset*) raw_buffer;
 	CuAssertIntEquals (test, 0x01, msg->reset_ctrl);
 	CuAssertIntEquals (test, 0x02, msg->forced_recovery);
+	CuAssertIntEquals (test, 0x03, msg->intf_control);
 }
 
 static void ocp_recovery_test_recovery_ctrl_format (CuTest *test)
@@ -190,7 +191,7 @@ static void ocp_recovery_test_hw_status_format (CuTest *test)
 static void ocp_recovery_test_indirect_ctrl_format (CuTest *test)
 {
 	uint8_t raw_buffer[] = {
-		0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0a
+		0x01,0x02,0x03,0x04,0x05,0x06
 	};
 	struct ocp_recovery_indirect_ctrl *msg;
 
@@ -201,7 +202,7 @@ static void ocp_recovery_test_indirect_ctrl_format (CuTest *test)
 	msg = (struct ocp_recovery_indirect_ctrl*) raw_buffer;
 	CuAssertIntEquals (test, 0x01, msg->cms);
 	CuAssertIntEquals (test, 0x02, msg->reserved);
-	CuAssertTrue (test, (0x0a09080706050403 == msg->offset));	// IntEquals can't handle 64-bit
+	CuAssertIntEquals (test, 0x06050403, msg->offset);
 }
 
 static void ocp_recovery_test_indirect_status_format (CuTest *test)

@@ -66,6 +66,9 @@ enum {
 	OCP_RECOVERY_PROT_CAP_SUPPORTS_DEVICE_RESET = (1U << 3),		/**< Supports a full device reset option in the RESET command. */
 	OCP_RECOVERY_PROT_CAP_SUPPORTS_DEVICE_STATUS = (1U << 4),		/**< Supports the DEVICE_STATUS command. */
 	OCP_RECOVERY_PROT_CAP_SUPPORTS_MEMORY_ACCESS = (1U << 5),		/**< Supports INDIRECT commands to access device memory. */
+	OCP_RECOVERY_PROT_CAP_SUPPORTS_LOCAL_IMAGE = (1U << 6),			/**< Supports a locally stored for recovery. */
+	OCP_RECOVERY_PROT_CAP_SUPPORTS_PUSH_IMAGE = (1U << 7),			/**< Supports pushing an image over the recovery interface. */
+	OCP_RECOVERY_PROT_CAP_SUPPORTS_INTF_ISOLATION = (1U << 8),		/**< Supports control over bus mastering of the recovery interface. */
 };
 
 /**
@@ -96,11 +99,11 @@ struct ocp_recovery_prot_cap {
  * Identifier specifying the type of ID reported by the device.
  */
 enum {
-	OCP_RECOVERY_ID_CAP_PCI_VENDOR = 0,		/**< The device reports a PCI vendor/device ID. */
-	OCP_RECOVERY_ID_CAP_IANA = 1,			/**< The device reports an IANA vendor/product ID. */
-	OCP_RECOVERY_ID_CAP_UUID = 2,			/**< The device reports a UUID. */
-	OCP_RECOVERY_ID_CAP_PNP_VENDOR = 3,		/**< The device reports a PnP vendor/product ID. */
-	OCP_RECOVERY_ID_CAP_ACPI_VENDOR = 4,	/**< The device reports an ACPI vendor/product ID. */
+	OCP_RECOVERY_ID_CAP_PCI_VENDOR = 0x0,	/**< The device reports a PCI vendor/device ID. */
+	OCP_RECOVERY_ID_CAP_IANA = 0x1,			/**< The device reports an IANA vendor/product ID. */
+	OCP_RECOVERY_ID_CAP_UUID = 0x2,			/**< The device reports a UUID. */
+	OCP_RECOVERY_ID_CAP_PNP_VENDOR = 0x3,	/**< The device reports a PnP vendor/product ID. */
+	OCP_RECOVERY_ID_CAP_ACPI_VENDOR = 0x4,	/**< The device reports an ACPI vendor/product ID. */
 	OCP_RECOVERY_ID_CAP_NVME_MI = 0xf,		/**< The device reports NVMe vendor ID. */
 };
 
@@ -121,7 +124,7 @@ struct ocp_recovery_id_cap {
 				uint16_t subsystem_vendor_id;	/**< PCI subsystem vender ID. */
 				uint16_t subsystem_device_id;	/**< PCI subsystem device ID. */
 				uint8_t revsion_id;				/**< PCI revision ID. */
-				uint8_t pad[14];				/**< Zero padding. */
+				uint8_t pad[13];				/**< Zero padding. */
 			} pci;
 
 			/**
@@ -130,7 +133,7 @@ struct ocp_recovery_id_cap {
 			struct ocp_recovery_id_cap_iana {
 				uint8_t enterprise_id[4];		/**< IANA enterprise ID. */
 				uint8_t product_id[12];			/**< ACPI product ID. */
-				uint8_t pad[7];					/**< Zero padding. */
+				uint8_t pad[6];					/**< Zero padding. */
 			} iana;
 
 			/**
@@ -138,7 +141,7 @@ struct ocp_recovery_id_cap {
 			 */
 			struct ocp_recovery_id_cap_uuid {
 				uint8_t uuid[16];				/**< Device UUID. */
-				uint8_t pad[7];					/**< Zero padding. */
+				uint8_t pad[6];					/**< Zero padding. */
 			} uuid;
 
 			/**
@@ -147,7 +150,7 @@ struct ocp_recovery_id_cap {
 			struct ocp_recovery_id_cap_pnp {
 				uint8_t vendor_id[3];			/**< PnP vendor ID. */
 				uint8_t product_id[4];			/**< PnP product ID. */
-				uint8_t pad[16];				/**< Zero padding. */
+				uint8_t pad[15];				/**< Zero padding. */
 			} pnp;
 
 			/**
@@ -156,7 +159,7 @@ struct ocp_recovery_id_cap {
 			struct ocp_recovery_id_cap_acpi {
 				uint8_t vendor_id[4];			/**< ACPI vendor ID. */
 				uint8_t product_id[3];			/**< ACPI product ID. */
-				uint8_t pad[16];				/**< Zero padding. */
+				uint8_t pad[15];				/**< Zero padding. */
 			} acpi;
 
 			/**
@@ -164,11 +167,11 @@ struct ocp_recovery_id_cap {
 			 */
 			struct ocp_recovery_id_cap_nvme_mi {
 				uint16_t vendor_id;				/**< NVMe vendor ID. */
-				uint8_t serial_num[21];			/**< Device serial number. */
+				uint8_t serial_num[20];			/**< Device serial number. */
 			} nvme;
 		};
 	} base;										/**< The minimum required portion of the ID_CAP command. */
-	uint8_t vendor_string[230];					/**< Vendor-specific ID string. */
+	uint8_t vendor_string[231];					/**< Vendor-specific ID string. */
 };
 
 
@@ -178,10 +181,10 @@ struct ocp_recovery_id_cap {
 enum ocp_recovery_device_status_code {
 	OCP_RECOVERY_DEVICE_STATUS_PENDING = 0x00,			/**< Device is booting and does not yet have a status. */
 	OCP_RECOVERY_DEVICE_STATUS_HEALTHY = 0x01,			/**< Device is running and healthy. */
-	OCP_RECOVERY_DEVICE_STATUS_DEVICE_ERROR = 0x03,		/**< Non-fatal or some other "soft" error state. */
-	OCP_RECOVERY_DEVICE_STATUS_RECOVERY_MODE = 0x06,	/**< Ready to accept an recovery image. */
-	OCP_RECOVERY_DEVICE_STATUS_RECOVERY_PENDING = 0x07,	/**< Waiting for a device reset to apply a recovery image. */
-	OCP_RECOVERY_DEVICE_STATUS_RUNNING_RECOVERY = 0x09,	/**< The device recovery image is executing. */
+	OCP_RECOVERY_DEVICE_STATUS_DEVICE_ERROR = 0x02,		/**< Non-fatal or some other "soft" error state. */
+	OCP_RECOVERY_DEVICE_STATUS_RECOVERY_MODE = 0x03,	/**< Ready to accept an recovery image. */
+	OCP_RECOVERY_DEVICE_STATUS_RECOVERY_PENDING = 0x04,	/**< Waiting for a device reset to apply a recovery image. */
+	OCP_RECOVERY_DEVICE_STATUS_RUNNING_RECOVERY = 0x05,	/**< The device recovery image is executing. */
 	OCP_RECOVERY_DEVICE_STATUS_BOOT_FAILURE = 0x0e,		/**< Device boot has halted due to some error condition. */
 	OCP_RECOVERY_DEVICE_STATUS_FATAL_ERROR = 0x0f,		/**< The device has encountered a fatal error. */
 };
@@ -192,6 +195,9 @@ enum ocp_recovery_device_status_code {
 enum {
 	OCP_RECOVERY_DEVICE_STATUS_PROTO_NO_ERROR = 0x00,			/**< No error has been encountered. */
 	OCP_RECOVERY_DEVICE_STATUS_PROTO_UNSUPPORTED_CMD = 0x01,	/**< A unsupported command was sent to the device. */
+	OCP_RECOVERY_DEVICE_STATUS_PROTO_UNSUPPORTED_PARAM = 0x02,	/**< A command received an unsupported parameter. */
+	OCP_RECOVERY_DEVICE_STATUS_PROTO_LENGTH_ERROR = 0x03,		/**< A write command contained an invalid number of bytes. */
+	OCP_RECOVERY_DEVICE_STATUS_PROTO_CRC_ERROR = 0x04,			/**< The physical layer detected a CRC error. */
 };
 
 /**
@@ -204,17 +210,18 @@ enum ocp_recovery_recovery_reason_code {
 	OCP_RECOVERY_DEVICE_STATUS_REC_BIST_FAILURE = 0x03,			/**< A self-test failure (e.g. crypto KAT). */
 	OCP_RECOVERY_DEVICE_STATUS_REC_NO_CRITICAL_DATA = 0x04,		/**< Data critical for device function was not found or was corrupt. */
 	OCP_RECOVERY_DEVICE_STATUS_REC_NO_KEY_MANIFEST = 0x05,		/**< The FW key manifest was not found or was corrupt. */
-	OCP_RECOVERY_DEVICE_STATUS_REC_MAIFEST_AUTH_FAIL = 0x05,	/**< The FW key manifest failed authentication. */
-	OCP_RECOVERY_DEVICE_STATUS_REC_NO_BOOT_LOADER = 0x06,		/**< The FW boot loader was not found or was corrupt. */
-	OCP_RECOVERY_DEVICE_STATUS_REC_BOOT_AUTH_FAIL = 0x07,		/**< The FW boot loader failed authentication. */
-	OCP_RECOVERY_DEVICE_STATUS_REC_BOOT_REVOKED = 0x08,			/**< The FW boot loader failed anti-rollback checks. */
-	OCP_RECOVERY_DEVICE_STATUS_REC_NO_FW_IMAGE  = 0x09,			/**< The main FW image was not found or was corrupt. */
-	OCP_RECOVERY_DEVICE_STATUS_REC_FW_AUTH_FAIL = 0x0a,			/**< The main FW image failed authentication. */
-	OCP_RECOVERY_DEVICE_STATUS_REC_FW_REVOKED = 0x0b,			/**< The main FW image failed anti-rollback checks. */
-	OCP_RECOVERY_DEVICE_STATUS_REC_NO_RECOVERY_FW = 0x0c,		/**< The recovery FW was not found or was corrupt. */
-	OCP_RECOVERY_DEVICE_STATUS_REC_RECOVERY_AUTH_FAIL = 0x0d,	/**< The recovery FW failed authentication. */
-	OCP_RECOVERY_DEVICE_STATUS_REC_RECOVERY_REVOKED = 0x0e,		/**< The recovery FW failed anti-rollback checks. */
-	OCP_RECOVERY_DEVICE_STATUS_REC_FORCED_RECOVERY = 0x0f,		/**< The device was forced into recovery mode. */
+	OCP_RECOVERY_DEVICE_STATUS_REC_MAIFEST_AUTH_FAIL = 0x06,	/**< The FW key manifest failed authentication. */
+	OCP_RECOVERY_DEVICE_STATUS_REC_MANIFEST_REVOKED = 0x07,		/**< The FW key manifest failed anti-rollback checks. */
+	OCP_RECOVERY_DEVICE_STATUS_REC_NO_BOOT_LOADER = 0x08,		/**< The FW boot loader was not found or was corrupt. */
+	OCP_RECOVERY_DEVICE_STATUS_REC_BOOT_AUTH_FAIL = 0x09,		/**< The FW boot loader failed authentication. */
+	OCP_RECOVERY_DEVICE_STATUS_REC_BOOT_REVOKED = 0x0a,			/**< The FW boot loader failed anti-rollback checks. */
+	OCP_RECOVERY_DEVICE_STATUS_REC_NO_FW_IMAGE  = 0x0b,			/**< The main FW image was not found or was corrupt. */
+	OCP_RECOVERY_DEVICE_STATUS_REC_FW_AUTH_FAIL = 0x0c,			/**< The main FW image failed authentication. */
+	OCP_RECOVERY_DEVICE_STATUS_REC_FW_REVOKED = 0x0d,			/**< The main FW image failed anti-rollback checks. */
+	OCP_RECOVERY_DEVICE_STATUS_REC_NO_RECOVERY_FW = 0x0e,		/**< The recovery FW was not found or was corrupt. */
+	OCP_RECOVERY_DEVICE_STATUS_REC_RECOVERY_AUTH_FAIL = 0x0f,	/**< The recovery FW failed authentication. */
+	OCP_RECOVERY_DEVICE_STATUS_REC_RECOVERY_REVOKED = 0x10,		/**< The recovery FW failed anti-rollback checks. */
+	OCP_RECOVERY_DEVICE_STATUS_REC_FORCED_RECOVERY = 0x11,		/**< The device was forced into recovery mode. */
 };
 
 /**
@@ -250,11 +257,20 @@ enum {
 };
 
 /**
+ * Control for interface mastering.
+ */
+enum {
+	OCP_RECOVERY_RESET_INTF_DISABLE_MASTERING = 0x00,	/**< The interface must not master the physical bus. */
+	OCP_RECOVERY_RESET_INTF_ENABLE_MASTERING = 0x01,	/**< The interface may master the physical bus. */
+};
+
+/**
  * OCP Recovery Reset (RESET) command format.
  */
 struct ocp_recovery_reset {
 	uint8_t reset_ctrl;				/**< Control resets triggered through the recovery interface. */
 	uint8_t forced_recovery;		/**< Control recovery mode execution on the next reset. */
+	uint8_t intf_control;			/**< Control for interface bus mastering. */
 };
 
 
@@ -337,7 +353,7 @@ struct ocp_recovery_hw_status {
 struct ocp_recovery_indirect_ctrl {
 	uint8_t cms;					/**< Index for the memory region to access. */
 	uint8_t reserved;				/**< Unused. */
-	uint64_t offset;				/**< The offset within the memory region to start accessing data from. */
+	uint32_t offset;				/**< The offset within the memory region to start accessing data from. */
 };
 
 
@@ -377,7 +393,7 @@ enum ocp_recovery_region_type {
 struct ocp_recovery_indirect_status {
 	uint8_t status;					/**< Status of the last indirect operation. */
 	uint8_t type;					/**< The type of region currently being accessed. */
-	uint32_t size;					/**< Total size of the memory region. */
+	uint32_t size;					/**< Total size of the memory region, in 4-byte units. */
 };
 
 

@@ -9,13 +9,45 @@
 #include <stdbool.h>
 #include "status/rot_status.h"
 #include "ocp_recovery.h"
-#include "logging/logging.h"
 
 
 /**
- * Length marker to use indicating a variable-length CMS that using a logging interface.
+ * Length marker to use indicating a variable CMS that using an API instance to get the data.
  */
-#define	OCP_RECOVERY_DEVICE_CMS_LENGTH_LOG		0
+#define	OCP_RECOVERY_DEVICE_CMS_LENGTH_VARIABLE		0
+
+/**
+ * Interface to read data from a CMS that is variable is some why.  It may be a variable-length
+ * region, such as a log.  It may be a region whose data is not directly accessible in memory, in
+ * which case this would act as an adapter to get this information.
+ *
+ * This interface only supports read-only regions of data.
+ */
+struct ocp_recovery_device_variable_cms {
+	/**
+	 * Get the size of the data contained in the CMS.
+	 *
+	 * @param cms The CMS to query.
+	 *
+	 * @return Length of the data in the CMS or an error code.  Use ROT_IS_ERROR to check the return
+	 * value.
+	 */
+	int (*get_size) (struct ocp_recovery_device_variable_cms *cms);
+
+	/**
+	 * Get the data contained within the CMS.
+	 *
+	 * @param cms The CMS to query.
+	 * @param offset The offset within the CMS to start reading.
+	 * @param data Output buffer that will hold the contents of the CMS.
+	 * @param length The maximum length of the data that should be read.
+	 *
+	 * @return The number of bytes read from the CMS or an error code.  Use ROT_IS_ERROR to check
+	 * the return value.
+	 */
+	int (*get_data) (struct ocp_recovery_device_variable_cms *cms, size_t offset, uint8_t *data,
+		size_t length);
+};
 
 /**
  * Defines a region of memory that is accessible through the recovery interface.  The OCP Recovery
@@ -25,18 +57,18 @@
  */
 struct ocp_recovery_device_cms {
 	union {
-		uint8_t *base_addr;					/**< The base address for the region of memory. */
-		struct logging *log;				/**< Log interface for the memory region.  Must be a RO region. */
+		uint8_t *base_addr;									/**< The base address for a fixed-length region of memory. */
+		struct ocp_recovery_device_variable_cms *variable;	/**< Log interface for the memory region.  Must be a RO region. */
 	};
 	/**
 	 * Size of the memory that is accessible, in bytes.
 	 *
 	 * This must be 4-byte aligned if the region is writable.  It should be 4-byte aligned in all
-	 * cases. A length of 0 indicates a variable length region using the logging interface.  When
-	 * using a logging interface, it is best if the log entries are 4-byte aligned.
+	 * cases. A length of 0 indicates a variable length region using the variable interface.  When
+	 * using a variable interface, it is best if the data will always be 4-byte aligned.
 	 */
 	size_t length;
-	enum ocp_recovery_region_type type;		/**< The type of memory region that is exposed. */
+	enum ocp_recovery_region_type type;						/**< The type of memory region that is exposed. */
 };
 
 #pragma pack(push, 1)
@@ -203,6 +235,7 @@ int ocp_recovery_device_read_request (struct ocp_recovery_device *device,
 	union ocp_recovery_device_cmd_buffer *data);
 
 void ocp_recovery_device_checksum_failure (struct ocp_recovery_device *device);
+void ocp_recovery_device_write_overflow (struct ocp_recovery_device *device);
 
 
 #define	OCP_RECOVERY_DEVICE_ERROR(code)		ROT_ERROR (ROT_MODULE_OCP_RECOVERY_DEVICE, code)
@@ -225,6 +258,10 @@ enum {
 	OCP_RECOVERY_DEVICE_RO_CMS = OCP_RECOVERY_DEVICE_ERROR (0x0b),				/**< Received a write request for a RO CMS. */
 	OCP_RECOVERY_DEVICE_RW_CMS_NOT_ALIGNED = OCP_RECOVERY_DEVICE_ERROR (0x0c),	/**< A RW CMS is not 4-byte aligned. */
 	OCP_RECOVERY_DEVICE_RW_LOG = OCP_RECOVERY_DEVICE_ERROR (0x0d),				/**< A CMS with a logging interface was set as RW. */
+	OCP_RECOVERY_DEVICE_UNSUPPORTED_PARAM = OCP_RECOVERY_DEVICE_ERROR (0x0e),	/**< Received a valid operation with an unsupported parameter. */
+	OCP_RECOVERY_DEVICE_EXTRA_CMD_BYTES = OCP_RECOVERY_DEVICE_ERROR (0x0f),		/**< Too much data was sent for the command. */
+	OCP_RECOVERY_DEVICE_CMS_SIZE_FAILED = OCP_RECOVERY_DEVICE_ERROR (0x10),		/**< Could not determine the size of a variable CMS. */
+	OCP_RECOVERY_DEVICE_CMS_DATA_FAILED = OCP_RECOVERY_DEVICE_ERROR (0x11),		/**< Failed to read data from a variable CMS. */
 };
 
 

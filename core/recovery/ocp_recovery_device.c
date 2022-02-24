@@ -89,7 +89,7 @@ int ocp_recovery_device_init_state (const struct ocp_recovery_device *device)
 					return OCP_RECOVERY_DEVICE_RW_CMS_NOT_ALIGNED;
 				}
 
-				if (device->cms[i].length == OCP_RECOVERY_DEVICE_CMS_LENGTH_LOG) {
+				if (device->cms[i].length == OCP_RECOVERY_DEVICE_CMS_LENGTH_VARIABLE) {
 					/* Writable regions can't use logging interfaces. */
 					return OCP_RECOVERY_DEVICE_RW_LOG;
 				}
@@ -137,6 +137,7 @@ int ocp_recovery_device_start_new_command (struct ocp_recovery_device *device,
 
 	if ((command_code < OCP_RECOVERY_CMD_MIN_VALID) ||
 		(command_code > OCP_RECOVERY_CMD_MAX_VALID)) {
+		device->state->protocol_status |= OCP_RECOVERY_DEVICE_STATUS_PROTO_UNSUPPORTED_CMD;
 		return OCP_RECOVERY_DEVICE_NACK;
 	}
 
@@ -159,9 +160,14 @@ static int ocp_recovery_device_write_reset (struct ocp_recovery_device *device,
 {
 	int status = 0;
 
-	/* Forced recovery support is not checked and no error/status information is updated for that
-	 * case.  If the device doesn't support it, the API call will ignore that parameter.  There is
-	 * not much value is feeding back any information, either, since the device is getting reset. */
+	if (reset->intf_control != OCP_RECOVERY_RESET_INTF_DISABLE_MASTERING) {
+		return OCP_RECOVERY_DEVICE_UNSUPPORTED_PARAM;
+	}
+
+	if ((!device->hw->supports_forced_recovery) &&
+		(reset->forced_recovery == OCP_RECOVERY_RESET_FORCED_RECOVERY)) {
+		return OCP_RECOVERY_DEVICE_UNSUPPORTED_PARAM;
+	}
 
 	switch (reset->reset_ctrl) {
 		case OCP_RECOVERY_RESET_DEVICE_RESET:
@@ -170,7 +176,7 @@ static int ocp_recovery_device_write_reset (struct ocp_recovery_device *device,
 					(reset->forced_recovery == OCP_RECOVERY_RESET_FORCED_RECOVERY));
 			}
 			else {
-				status = OCP_RECOVERY_DEVICE_UNSUPPORTED;
+				status = OCP_RECOVERY_DEVICE_UNSUPPORTED_PARAM;
 			}
 			break;
 
@@ -180,7 +186,7 @@ static int ocp_recovery_device_write_reset (struct ocp_recovery_device *device,
 					(reset->forced_recovery == OCP_RECOVERY_RESET_FORCED_RECOVERY));
 			}
 			else {
-				status = OCP_RECOVERY_DEVICE_UNSUPPORTED;
+				status = OCP_RECOVERY_DEVICE_UNSUPPORTED_PARAM;
 			}
 			break;
 	}
@@ -202,17 +208,24 @@ static int ocp_recovery_device_write_recovery_ctrl (struct ocp_recovery_device *
 	bool auth_error;
 	int status = 0;
 
-	if (!device->hw->activate_recovery) {
-		/* TODO: Can't return unsupported here.  This is a required command.  Just need to ignore it. */
-		return OCP_RECOVERY_DEVICE_UNSUPPORTED;
+	if (recovery_ctrl->cms >= device->cms_count) {
+		return OCP_RECOVERY_DEVICE_UNSUPPORTED_CMS;
+	}
+
+	if (recovery_ctrl->recovery_image == OCP_RECOVERY_RECOVERY_CTRL_IMAGE_IN_DEVICE) {
+		return OCP_RECOVERY_DEVICE_UNSUPPORTED_PARAM;
+	}
+
+	if ((!device->hw->activate_recovery) &&
+		((recovery_ctrl->recovery_image == OCP_RECOVERY_RECOVERY_CTRL_IMAGE_FROM_CMS) ||
+			(recovery_ctrl->activate == OCP_RECOVERY_RECOVERY_CTRL_ACTIVATE_IMAGE))) {
+		return OCP_RECOVERY_DEVICE_UNSUPPORTED_PARAM;
 	}
 
 	if (recovery_ctrl->recovery_image == OCP_RECOVERY_RECOVERY_CTRL_IMAGE_FROM_CMS) {
-		if (recovery_ctrl->cms >= device->cms_count) {
-			status = OCP_RECOVERY_DEVICE_UNSUPPORTED_CMS;
-		}
-		else if (device->cms[recovery_ctrl->cms].type !=
+		if (device->cms[recovery_ctrl->cms].type !=
 			OCP_RECOVERY_INDIRECT_STATUS_REGION_RECOVERY_CODE) {
+			device->state->recovery_status = OCP_RECOVERY_RECOVERY_STATUS_INVALID_CMS;
 			status = OCP_RECOVERY_DEVICE_CMS_NOT_CODE_REGION;
 		}
 
@@ -231,9 +244,6 @@ static int ocp_recovery_device_write_recovery_ctrl (struct ocp_recovery_device *
 					device->state->recovery_status = OCP_RECOVERY_RECOVERY_STATUS_FAILED;
 				}
 			}
-		}
-		else if (status != 0) {
-			device->state->recovery_status = OCP_RECOVERY_RECOVERY_STATUS_INVALID_CMS;
 		}
 	}
 
@@ -269,9 +279,6 @@ static int ocp_recovery_device_write_indirect_ctrl (struct ocp_recovery_device *
 	/* Address offset must be 4-byte aligned.  Move to the next aligned address. */
 	device->state->indirect_ctrl.offset = (device->state->indirect_ctrl.offset + 3) & ~0x3ull;
 
-	/* Clear any existing status for the previous memory region. */
-	device->state->indirect_status = 0;
-
 	return 0;
 }
 
@@ -290,7 +297,6 @@ static int ocp_recovery_device_write_indirect_data (struct ocp_recovery_device *
 	const struct ocp_recovery_device_cms *cms;
 	size_t write_len;
 	const uint8_t *pos;
-	bool wrap = false;
 
 	if (!device->cms) {
 		return OCP_RECOVERY_DEVICE_UNSUPPORTED;
@@ -314,7 +320,7 @@ static int ocp_recovery_device_write_indirect_data (struct ocp_recovery_device *
 		/* Check the offset to see if the read should wrap to the beginning. */
 		if (device->state->indirect_ctrl.offset >= cms->length) {
 			device->state->indirect_ctrl.offset = 0;
-			wrap = true;
+			device->state->indirect_status |= OCP_RECOVERY_INDIRECT_STATUS_OVERLFLOW;
 		}
 
 		write_len = min (length, cms->length - device->state->indirect_ctrl.offset);
@@ -326,15 +332,6 @@ static int ocp_recovery_device_write_indirect_data (struct ocp_recovery_device *
 		length -= write_len;
 		pos += write_len;
 	} while (length > 0);
-
-	/* Update the indirect status to indicate if there was or was not a memory wrap around during
-	 * this operation. */
-	if (wrap) {
-		device->state->indirect_status |= OCP_RECOVERY_INDIRECT_STATUS_OVERLFLOW;
-	}
-	else {
-		device->state->indirect_status &= ~OCP_RECOVERY_INDIRECT_STATUS_OVERLFLOW;
-	}
 
 	return 0;
 }
@@ -368,8 +365,11 @@ int ocp_recovery_device_write_request (struct ocp_recovery_device *device,
 			break;
 
 		case OCP_RECOVERY_CMD_RESET:
-			if (length >= sizeof (struct ocp_recovery_reset)) {
+			if (length == sizeof (struct ocp_recovery_reset)) {
 				status = ocp_recovery_device_write_reset (device, &data->reset);
+			}
+			else if (length > sizeof (struct ocp_recovery_reset)) {
+				status = OCP_RECOVERY_DEVICE_EXTRA_CMD_BYTES;
 			}
 			else {
 				status = OCP_RECOVERY_DEVICE_CMD_INCOMPLETE;
@@ -377,8 +377,11 @@ int ocp_recovery_device_write_request (struct ocp_recovery_device *device,
 			break;
 
 		case OCP_RECOVERY_CMD_RECOVERY_CTRL:
-			if (length >= sizeof (struct ocp_recovery_recovery_ctrl)) {
+			if (length == sizeof (struct ocp_recovery_recovery_ctrl)) {
 				status = ocp_recovery_device_write_recovery_ctrl (device, &data->recovery_ctrl);
+			}
+			else if (length > sizeof (struct ocp_recovery_recovery_ctrl)) {
+				status = OCP_RECOVERY_DEVICE_EXTRA_CMD_BYTES;
 			}
 			else {
 				status = OCP_RECOVERY_DEVICE_CMD_INCOMPLETE;
@@ -386,8 +389,11 @@ int ocp_recovery_device_write_request (struct ocp_recovery_device *device,
 			break;
 
 		case OCP_RECOVERY_CMD_INDIRECT_CTRL:
-			if (length >= sizeof (struct ocp_recovery_indirect_ctrl)) {
+			if (length == sizeof (struct ocp_recovery_indirect_ctrl)) {
 				status = ocp_recovery_device_write_indirect_ctrl (device, &data->indirect_ctrl);
+			}
+			else if (length > sizeof (struct ocp_recovery_indirect_ctrl)) {
+				status = OCP_RECOVERY_DEVICE_EXTRA_CMD_BYTES;
 			}
 			else {
 				status = OCP_RECOVERY_DEVICE_CMD_INCOMPLETE;
@@ -403,14 +409,26 @@ int ocp_recovery_device_write_request (struct ocp_recovery_device *device,
 			break;
 	}
 
-	if (status == OCP_RECOVERY_DEVICE_UNSUPPORTED) {
-		device->state->protocol_status = OCP_RECOVERY_DEVICE_STATUS_PROTO_UNSUPPORTED_CMD;
-	}
-	else {
-		/* After successfully writing data, clear the protocol error.
-		 *
-		 * NOTE:  Behavior of the protocol error is not clearly defined in the OCP spec. */
-		device->state->protocol_status = 0;
+	/* Update the protocol status in the case of an error. */
+	switch (status) {
+		case 0:
+			/* Successful command. */
+			break;
+
+		case OCP_RECOVERY_DEVICE_UNSUPPORTED:
+		case OCP_RECOVERY_DEVICE_RO_COMMAND:
+			device->state->protocol_status = OCP_RECOVERY_DEVICE_STATUS_PROTO_UNSUPPORTED_CMD;
+			break;
+
+		case OCP_RECOVERY_DEVICE_UNSUPPORTED_PARAM:
+		case OCP_RECOVERY_DEVICE_UNSUPPORTED_CMS:
+			device->state->protocol_status = OCP_RECOVERY_DEVICE_STATUS_PROTO_UNSUPPORTED_PARAM;
+			break;
+
+		case OCP_RECOVERY_DEVICE_CMD_INCOMPLETE:
+		case OCP_RECOVERY_DEVICE_EXTRA_CMD_BYTES:
+			device->state->protocol_status = OCP_RECOVERY_DEVICE_STATUS_PROTO_LENGTH_ERROR;
+			break;
 	}
 
 	device->state->active_cmd = OCP_RECOVERY_DEVICE_NO_COMMAND;
@@ -453,6 +471,10 @@ static int ocp_recovery_device_read_prot_cap (struct ocp_recovery_device *device
 	if (device->cms) {
 		prot_cap->capabilities |= OCP_RECOVERY_PROT_CAP_SUPPORTS_MEMORY_ACCESS;
 		prot_cap->cms_regions = device->cms_count;
+
+		if (device->hw->activate_recovery) {
+			prot_cap->capabilities |= OCP_RECOVERY_PROT_CAP_SUPPORTS_PUSH_IMAGE;
+		}
 	}
 
 	return sizeof (struct ocp_recovery_prot_cap);
@@ -481,6 +503,9 @@ static int ocp_recovery_device_read_device_status (struct ocp_recovery_device *d
 	device_status->base.heartbeat = 0;
 	device_status->base.vendor_length = sizeof (struct ocp_recovery_device_status_vendor);
 
+	/* Clear the protocol status on read. */
+	device->state->protocol_status = 0;
+
 	return sizeof (device_status->base) + device_status->base.vendor_length;
 }
 
@@ -507,11 +532,11 @@ static int ocp_recovery_device_read_indirect_status (struct ocp_recovery_device 
 		cms = &device->cms[device->state->indirect_ctrl.cms];
 
 		indirect_status->type = cms->type;
-		if (cms->length != OCP_RECOVERY_DEVICE_CMS_LENGTH_LOG) {
+		if (cms->length != OCP_RECOVERY_DEVICE_CMS_LENGTH_VARIABLE) {
 			indirect_status->size = cms->length;
 		}
 		else {
-			status = cms->log->get_size (cms->log);
+			status = cms->variable->get_size (cms->variable);
 			if (ROT_IS_ERROR (status)) {
 				return status;
 			}
@@ -526,6 +551,9 @@ static int ocp_recovery_device_read_indirect_status (struct ocp_recovery_device 
 		indirect_status->type = OCP_RECOVERY_INDIRECT_STATUS_REGION_UNSUPPORTED;
 		indirect_status->size = 0;
 	}
+
+	/* Clear the indirect status on read. */
+	device->state->indirect_status = 0;
 
 	return sizeof (struct ocp_recovery_indirect_status);
 }
@@ -543,7 +571,6 @@ static int ocp_recovery_device_read_indirect_data (struct ocp_recovery_device *d
 {
 	const struct ocp_recovery_device_cms *cms;
 	size_t read_len;
-	bool wrap = false;
 
 	if (!device->cms) {
 		return OCP_RECOVERY_DEVICE_UNSUPPORTED;
@@ -557,8 +584,11 @@ static int ocp_recovery_device_read_indirect_data (struct ocp_recovery_device *d
 	cms = &device->cms[device->state->indirect_ctrl.cms];
 
 	/* Check the offset to see if the read should wrap to the beginning. */
-	if (cms->length == OCP_RECOVERY_DEVICE_CMS_LENGTH_LOG) {
-		read_len = cms->log->get_size (cms->log);
+	if (cms->length == OCP_RECOVERY_DEVICE_CMS_LENGTH_VARIABLE) {
+		read_len = cms->variable->get_size (cms->variable);
+		if (ROT_IS_ERROR ((int) read_len)) {
+			return read_len;
+		}
 	}
 	else {
 		read_len = cms->length;
@@ -566,15 +596,18 @@ static int ocp_recovery_device_read_indirect_data (struct ocp_recovery_device *d
 
 	if (device->state->indirect_ctrl.offset >= read_len) {
 		device->state->indirect_ctrl.offset = 0;
-		wrap = true;
+		device->state->indirect_status |= OCP_RECOVERY_INDIRECT_STATUS_OVERLFLOW;
 	}
 
 	/* Read the data from the memory region. */
 	memset (indirect_data->data, 0, sizeof (indirect_data->data));
 
-	if (cms->length == OCP_RECOVERY_DEVICE_CMS_LENGTH_LOG) {
-		read_len = cms->log->read_contents (cms->log, device->state->indirect_ctrl.offset,
+	if (cms->length == OCP_RECOVERY_DEVICE_CMS_LENGTH_VARIABLE) {
+		read_len = cms->variable->get_data (cms->variable, device->state->indirect_ctrl.offset,
 			indirect_data->data, OCP_RECOVERY_DEVICE_MAX_INDIRECT_READ);
+		if (ROT_IS_ERROR ((int) read_len)) {
+			return read_len;
+		}
 	}
 	else {
 		size_t max_length = OCP_RECOVERY_DEVICE_MAX_INDIRECT_READ;
@@ -587,18 +620,6 @@ static int ocp_recovery_device_read_indirect_data (struct ocp_recovery_device *d
 	/* Make sure we only ever increment the offset in 4-byte chunks. */
 	read_len = (read_len + 3) & ~0x3ull;
 	device->state->indirect_ctrl.offset += read_len;
-
-	/* Update the indirect status to indicate if there was or was not a memory wrap around during
-	 * this operation. */
-	if (wrap) {
-		device->state->indirect_status |= OCP_RECOVERY_INDIRECT_STATUS_OVERLFLOW;
-	}
-	else {
-		device->state->indirect_status &= ~OCP_RECOVERY_INDIRECT_STATUS_OVERLFLOW;
-	}
-
-	/* Clear any write error status. */
-	device->state->indirect_status &= ~OCP_RECOVERY_INDIRECT_STATUS_READ_ONLY;
 
 	return read_len;
 }
@@ -644,9 +665,8 @@ int ocp_recovery_device_read_request (struct ocp_recovery_device *device,
 			break;
 
 		case OCP_RECOVERY_CMD_RESET:
-			data->reset.reset_ctrl = 0;
-			data->reset.forced_recovery = 0;
 			status = sizeof (struct ocp_recovery_reset);
+			memset (&data->reset, 0, status);
 			break;
 
 		case OCP_RECOVERY_CMD_RECOVERY_CTRL:
@@ -683,15 +703,19 @@ int ocp_recovery_device_read_request (struct ocp_recovery_device *device,
 			break;
 	}
 
-	if (status == OCP_RECOVERY_DEVICE_UNSUPPORTED) {
-		device->state->protocol_status = OCP_RECOVERY_DEVICE_STATUS_PROTO_UNSUPPORTED_CMD;
-	}
-	else if (device->state->active_cmd != OCP_RECOVERY_CMD_DEVICE_STATUS) {
-		/* After successfully reading data, clear the protocol error, unless the read was for the
-		 * DEVICE_STATUS command.
-		 *
-		 * NOTE:  Behavior of the protocol error is not clearly defined in the OCP spec. */
-		device->state->protocol_status = 0;
+	/* Update the protocol status in the case of an error. */
+	switch (status) {
+		case 0:
+			/* Successful command. */
+			break;
+
+		case OCP_RECOVERY_DEVICE_UNSUPPORTED:
+			device->state->protocol_status = OCP_RECOVERY_DEVICE_STATUS_PROTO_UNSUPPORTED_CMD;
+			break;
+
+		case OCP_RECOVERY_DEVICE_UNSUPPORTED_CMS:
+			device->state->protocol_status = OCP_RECOVERY_DEVICE_STATUS_PROTO_UNSUPPORTED_PARAM;
+			break;
 	}
 
 	device->state->active_cmd = OCP_RECOVERY_DEVICE_NO_COMMAND;
@@ -708,5 +732,21 @@ void ocp_recovery_device_checksum_failure (struct ocp_recovery_device *device)
 {
 	if (device) {
 		device->state->active_cmd = OCP_RECOVERY_DEVICE_NO_COMMAND;
+		device->state->protocol_status = OCP_RECOVERY_DEVICE_STATUS_PROTO_CRC_ERROR;
+	}
+}
+
+/**
+ * Notify the recovery handler that the physical layer has received more data than allowed by the
+ * protocol, overflowing the command buffer.  The received command has been discarded and any
+ * current command context should be closed.
+ *
+ * @param device The recovery handler to update.
+ */
+void ocp_recovery_device_write_overflow (struct ocp_recovery_device *device)
+{
+	if (device) {
+		device->state->active_cmd = OCP_RECOVERY_DEVICE_NO_COMMAND;
+		device->state->protocol_status = OCP_RECOVERY_DEVICE_STATUS_PROTO_LENGTH_ERROR;
 	}
 }

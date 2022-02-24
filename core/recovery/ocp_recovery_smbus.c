@@ -10,14 +10,19 @@
 
 
 /**
+ * Initial value to use for the count of received bytes.
+ */
+#define	OCP_RECOVERY_SMBUS_NEW_COMMAND				-1
+
+/**
  * Indicator that an invalid command code was received by the device.
  */
 #define	OCP_RECOVERY_SMBUS_COMMAND_CODE_INVALID		-2
 
 /**
- * Initial value to use for the count of received bytes.
+ * Indicator that too much data has been received by the device.
  */
-#define	OCP_RECOVERY_SMBUS_NEW_COMMAND				-1
+#define	OCP_RECOVERY_SMBUS_COMMAND_OVERFLOW			-3
 
 
 /**
@@ -154,7 +159,7 @@ int ocp_recovery_smbus_receive_byte (struct ocp_recovery_smbus *smbus, uint8_t d
 		return OCP_RECOVERY_DEVICE_INVALID_ARGUMENT;
 	}
 
-	if (smbus->state->rx_bytes == OCP_RECOVERY_SMBUS_COMMAND_CODE_INVALID) {
+	if (smbus->state->rx_bytes <= OCP_RECOVERY_SMBUS_COMMAND_CODE_INVALID) {
 		/* If the physical interface is not able to prevent additional data from being received for
 		 * an invalid command, continue to inform the lower layer that the command is invalid and
 		 * ignore it. */
@@ -175,8 +180,10 @@ int ocp_recovery_smbus_receive_byte (struct ocp_recovery_smbus *smbus, uint8_t d
 		smbus->state->cmd.bytes[smbus->state->rx_bytes] = data;
 	}
 	else {
-		/* Just throw extra bytes away.  Leave the rest of the command intact.  If the PEC is valid,
-		 * it will be processed normally. */
+		/* Ignore the extra byte and notify the protocol handler that the command is not valid. */
+		smbus->state->rx_bytes = OCP_RECOVERY_SMBUS_COMMAND_OVERFLOW;
+		ocp_recovery_device_write_overflow (smbus->device);
+
 		return OCP_RECOVERY_SMBUS_OVERFLOW;
 	}
 
