@@ -270,6 +270,9 @@ def load_xmls (config_filename, max_num_xmls, xml_type):
     if "max_rw_sections" in config and config["max_rw_sections"]:
         max_rw_sections = int (config["max_rw_sections"])
 
+        if max_rw_sections > 6:
+            raise RuntimeError ("Maximum RW sections cannot be greater than 6")
+
     if "cfm" in config and config["cfm"]:
         selection_list = manifest_parser.load_and_process_selection_xml (config["cfm"])
     elif xml_type is manifest_types.CFM:
