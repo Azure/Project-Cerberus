@@ -7,7 +7,7 @@
 #include "platform.h"
 #include "testing.h"
 #include "logging/logging_memory.h"
-
+#include "logging/logging_memory_static.h"
 
 
 TEST_SUITE_LABEL ("logging_memory");
@@ -20,11 +20,12 @@ TEST_SUITE_LABEL ("logging_memory");
 static void logging_memory_test_init (CuTest *test)
 {
 	struct logging_memory logging;
+	struct logging_memory_state state;
 	int status;
 
 	TEST_START;
 
-	status = logging_memory_init (&logging, 32, 11);
+	status = logging_memory_init (&logging, &state, 32, 11);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrNotNull (test, logging.base.create_entry);
@@ -47,23 +48,28 @@ static void logging_memory_test_init (CuTest *test)
 static void logging_memory_test_init_null (CuTest *test)
 {
 	struct logging_memory logging;
+	struct logging_memory_state state;
 	int status;
 
 	TEST_START;
 
-	status = logging_memory_init (NULL, 32, 11);
+	status = logging_memory_init (NULL, &state, 32, 11);
 	CuAssertIntEquals (test, LOGGING_INVALID_ARGUMENT, status);
 
-	status = logging_memory_init (&logging, 0, 11);
+	status = logging_memory_init (&logging, NULL, 32, 11);
 	CuAssertIntEquals (test, LOGGING_INVALID_ARGUMENT, status);
 
-	status = logging_memory_init (&logging, 32, 0);
+	status = logging_memory_init (&logging, &state, 0, 11);
+	CuAssertIntEquals (test, LOGGING_INVALID_ARGUMENT, status);
+
+	status = logging_memory_init (&logging, &state, 32, 0);
 	CuAssertIntEquals (test, LOGGING_INVALID_ARGUMENT, status);
 }
 
 static void logging_memory_test_init_from_buffer (CuTest *test)
 {
 	struct logging_memory logging;
+	struct logging_memory_state state;
 	int status;
 	const int entry_size = 11;
 	const int entry_len = entry_size + sizeof (struct logging_entry_header);
@@ -73,7 +79,8 @@ static void logging_memory_test_init_from_buffer (CuTest *test)
 
 	TEST_START;
 
-	status = logging_memory_init_from_buffer (&logging, buffer, sizeof (buffer), entry_size);
+	status = logging_memory_init_from_buffer (&logging, &state, buffer, sizeof (buffer),
+		entry_size);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrNotNull (test, logging.base.create_entry);
@@ -96,6 +103,7 @@ static void logging_memory_test_init_from_buffer (CuTest *test)
 static void logging_memory_test_init_from_buffer_null (CuTest *test)
 {
 	struct logging_memory logging;
+	struct logging_memory_state state;
 	int status;
 	const int entry_size = 11;
 	const int entry_len = entry_size + sizeof (struct logging_entry_header);
@@ -105,19 +113,27 @@ static void logging_memory_test_init_from_buffer_null (CuTest *test)
 
 	TEST_START;
 
-	status = logging_memory_init_from_buffer (NULL, buffer, sizeof (buffer), entry_size);
+	status = logging_memory_init_from_buffer (NULL, &state, buffer, sizeof (buffer),
+		entry_size);
 	CuAssertIntEquals (test, LOGGING_INVALID_ARGUMENT, status);
 
-	status = logging_memory_init_from_buffer (&logging, NULL, sizeof (buffer), entry_size);
+	status = logging_memory_init_from_buffer (&logging, NULL, buffer, sizeof (buffer),
+		entry_size);
 	CuAssertIntEquals (test, LOGGING_INVALID_ARGUMENT, status);
 
-	status = logging_memory_init_from_buffer (&logging, buffer, sizeof (buffer), 0);
+	status = logging_memory_init_from_buffer (&logging, &state, NULL, sizeof (buffer),
+		entry_size);
+	CuAssertIntEquals (test, LOGGING_INVALID_ARGUMENT, status);
+
+	status = logging_memory_init_from_buffer (&logging, &state, buffer, sizeof (buffer),
+		0);
 	CuAssertIntEquals (test, LOGGING_INVALID_ARGUMENT, status);
 }
 
 static void logging_memory_test_init_from_buffer_too_small (CuTest *test)
 {
 	struct logging_memory logging;
+	struct logging_memory_state state;
 	int status;
 	const int entry_size = 11;
 	const int entry_len = entry_size + sizeof (struct logging_entry_header);
@@ -127,16 +143,17 @@ static void logging_memory_test_init_from_buffer_too_small (CuTest *test)
 
 	TEST_START;
 
-	status = logging_memory_init_from_buffer (&logging, buffer, 0, entry_size);
+	status = logging_memory_init_from_buffer (&logging, &state, buffer, 0, entry_size);
 	CuAssertIntEquals (test, LOGGING_INSUFFICIENT_STORAGE, status);
 
-	status = logging_memory_init_from_buffer (&logging, buffer, entry_size - 1, entry_size);
+	status = logging_memory_init_from_buffer (&logging, &state, buffer, entry_size - 1, entry_size);
 	CuAssertIntEquals (test, LOGGING_INSUFFICIENT_STORAGE, status);
 }
 
 static void logging_memory_test_init_append_existing (CuTest *test)
 {
 	struct logging_memory logging;
+	struct logging_memory_state state;
 	int status;
 	const int entry_size = 11;
 	const int entry_len = entry_size + sizeof (struct logging_entry_header);
@@ -148,7 +165,8 @@ static void logging_memory_test_init_append_existing (CuTest *test)
 
 	memset (buffer, 0, sizeof (buffer));
 
-	status = logging_memory_init_append_existing (&logging, buffer, sizeof (buffer), entry_size);
+	status = logging_memory_init_append_existing (&logging, &state, buffer, sizeof (buffer),
+		entry_size);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrNotNull (test, logging.base.create_entry);
@@ -171,6 +189,7 @@ static void logging_memory_test_init_append_existing (CuTest *test)
 static void logging_memory_test_init_append_existing_null (CuTest *test)
 {
 	struct logging_memory logging;
+	struct logging_memory_state state;
 	int status;
 	const int entry_size = 11;
 	const int entry_len = entry_size + sizeof (struct logging_entry_header);
@@ -182,19 +201,27 @@ static void logging_memory_test_init_append_existing_null (CuTest *test)
 
 	memset (buffer, 0, sizeof (buffer));
 
-	status = logging_memory_init_append_existing (NULL, buffer, sizeof (buffer), entry_size);
+	status = logging_memory_init_append_existing (NULL, &state, buffer, sizeof (buffer),
+		entry_size);
 	CuAssertIntEquals (test, LOGGING_INVALID_ARGUMENT, status);
 
-	status = logging_memory_init_append_existing (&logging, NULL, sizeof (buffer), entry_size);
+	status = logging_memory_init_append_existing (&logging, NULL, buffer, sizeof (buffer),
+		entry_size);
 	CuAssertIntEquals (test, LOGGING_INVALID_ARGUMENT, status);
 
-	status = logging_memory_init_append_existing (&logging, buffer, sizeof (buffer), 0);
+	status = logging_memory_init_append_existing (&logging, &state, NULL, sizeof (buffer),
+		entry_size);
+	CuAssertIntEquals (test, LOGGING_INVALID_ARGUMENT, status);
+
+	status = logging_memory_init_append_existing (&logging, &state, buffer, sizeof (buffer),
+		0);
 	CuAssertIntEquals (test, LOGGING_INVALID_ARGUMENT, status);
 }
 
 static void logging_memory_test_init_append_existing_too_small (CuTest *test)
 {
 	struct logging_memory logging;
+	struct logging_memory_state state;
 	int status;
 	const int entry_size = 11;
 	const int entry_len = entry_size + sizeof (struct logging_entry_header);
@@ -206,10 +233,217 @@ static void logging_memory_test_init_append_existing_too_small (CuTest *test)
 
 	memset (buffer, 0, sizeof (buffer));
 
-	status = logging_memory_init_append_existing (&logging, buffer, 0, entry_size);
+	status = logging_memory_init_append_existing (&logging, &state, buffer, 0, entry_size);
 	CuAssertIntEquals (test, LOGGING_INSUFFICIENT_STORAGE, status);
 
-	status = logging_memory_init_append_existing (&logging, buffer, entry_size - 1, entry_size);
+	status = logging_memory_init_append_existing (&logging, &state, buffer, entry_size - 1,
+		entry_size);
+	CuAssertIntEquals (test, LOGGING_INSUFFICIENT_STORAGE, status);
+}
+
+static void logging_memory_test_dynamic_buffer_static_init (CuTest *test)
+{
+	struct logging_memory_state state;
+	struct logging_memory logging = logging_memory_dynamic_buffer_static_init (&state, 32, 11);
+	int status;
+
+	TEST_START;
+
+	CuAssertPtrNotNull (test, logging.base.create_entry);
+#ifndef LOGGING_DISABLE_FLUSH
+	CuAssertPtrNotNull (test, logging.base.flush);
+#endif
+	CuAssertPtrNotNull (test, logging.base.clear);
+	CuAssertPtrNotNull (test, logging.base.get_size);
+	CuAssertPtrNotNull (test, logging.base.read_contents);
+
+	status = logging_memory_init_dynamic_state (&logging);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging.base.get_size (&logging.base);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Make sure the lock has been released. */
+	logging.base.get_size (&logging.base);
+
+	logging_memory_release (&logging);
+}
+
+static void logging_memory_test_dynamic_buffer_static_init_null (CuTest *test)
+{
+	struct logging_memory logging = logging_memory_dynamic_buffer_static_init (NULL, 32, 11);
+	int status;
+
+	TEST_START;
+
+	status = logging_memory_init_dynamic_state (NULL);
+	CuAssertIntEquals (test, LOGGING_INVALID_ARGUMENT, status);
+
+	status = logging_memory_init_dynamic_state (&logging);
+	CuAssertIntEquals (test, LOGGING_INVALID_ARGUMENT, status);
+}
+
+static void logging_memory_test_static_init (CuTest *test)
+{
+	struct logging_memory_state state;
+	const int entry_size = 11;
+	const int entry_len = entry_size + sizeof (struct logging_entry_header);
+	const int entry_count = 32;
+	const int entry_full = entry_len * entry_count;
+	uint8_t buffer[entry_full];
+	struct logging_memory logging = logging_memory_static_init (&state, buffer, entry_full,
+		entry_size);
+	int status;
+
+	TEST_START;
+
+	CuAssertPtrNotNull (test, logging.base.create_entry);
+#ifndef LOGGING_DISABLE_FLUSH
+	CuAssertPtrNotNull (test, logging.base.flush);
+#endif
+	CuAssertPtrNotNull (test, logging.base.clear);
+	CuAssertPtrNotNull (test, logging.base.get_size);
+	CuAssertPtrNotNull (test, logging.base.read_contents);
+
+	status = logging_memory_init_state (&logging);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging.base.get_size (&logging.base);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Make sure the lock has been released. */
+	logging.base.get_size (&logging.base);
+
+	logging_memory_release (&logging);
+}
+
+static void logging_memory_test_static_init_null (CuTest *test)
+{
+	struct logging_memory_state state;
+	const int entry_size = 11;
+	const int entry_len = entry_size + sizeof (struct logging_entry_header);
+	const int entry_count = 32;
+	const int entry_full = entry_len * entry_count;
+	uint8_t buffer[entry_full];
+	struct logging_memory logging = logging_memory_static_init (&state, buffer, entry_full,
+		entry_size);
+	int status;
+
+	TEST_START;
+
+	status = logging_memory_init_state (NULL);
+	CuAssertIntEquals (test, LOGGING_INVALID_ARGUMENT, status);
+
+	logging.state = NULL;
+	status = logging_memory_init_state (&logging);
+	CuAssertIntEquals (test, LOGGING_INVALID_ARGUMENT, status);
+
+	logging.state = &state;
+	logging.log_buffer = NULL;
+	status = logging_memory_init_state (&logging);
+	CuAssertIntEquals (test, LOGGING_INVALID_ARGUMENT, status);
+}
+
+static void logging_memory_test_static_init_buffer_too_small (CuTest *test)
+{
+	struct logging_memory_state state;
+	const int entry_size = 11;
+	const int entry_len = entry_size + sizeof (struct logging_entry_header);
+	const int entry_count = 32;
+	const int entry_full = entry_len * entry_count;
+	uint8_t buffer[entry_full];
+	struct logging_memory logging = logging_memory_static_init (&state, buffer, entry_size - 1,
+		entry_size);
+	int status;
+
+	TEST_START;
+
+	status = logging_memory_init_state (&logging);
+	CuAssertIntEquals (test, LOGGING_INSUFFICIENT_STORAGE, status);
+}
+
+static void logging_memory_test_static_init_append_existing (CuTest *test)
+{
+	struct logging_memory_state state;
+	const int entry_size = 11;
+	const int entry_len = entry_size + sizeof (struct logging_entry_header);
+	const int entry_count = 32;
+	const int entry_full = entry_len * entry_count;
+	uint8_t buffer[entry_full];
+	struct logging_memory logging = logging_memory_static_init (&state, buffer, entry_full,
+		entry_size);
+	int status;
+
+	TEST_START;
+
+	memset (buffer, 0, sizeof (buffer));
+
+	CuAssertPtrNotNull (test, logging.base.create_entry);
+#ifndef LOGGING_DISABLE_FLUSH
+	CuAssertPtrNotNull (test, logging.base.flush);
+#endif
+	CuAssertPtrNotNull (test, logging.base.clear);
+	CuAssertPtrNotNull (test, logging.base.get_size);
+	CuAssertPtrNotNull (test, logging.base.read_contents);
+
+	status = logging_memory_init_state_append_existing (&logging);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging.base.get_size (&logging.base);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Make sure the lock has been released. */
+	logging.base.get_size (&logging.base);
+
+	logging_memory_release (&logging);
+}
+
+static void logging_memory_test_static_init_append_existing_null (CuTest *test)
+{
+	struct logging_memory_state state;
+	const int entry_size = 11;
+	const int entry_len = entry_size + sizeof (struct logging_entry_header);
+	const int entry_count = 32;
+	const int entry_full = entry_len * entry_count;
+	uint8_t buffer[entry_full];
+	struct logging_memory logging = logging_memory_static_init (&state, buffer, entry_full,
+		entry_size);
+	int status;
+
+	TEST_START;
+
+	memset (buffer, 0, sizeof (buffer));
+
+	status = logging_memory_init_state_append_existing (NULL);
+	CuAssertIntEquals (test, LOGGING_INVALID_ARGUMENT, status);
+
+	logging.state = NULL;
+	status = logging_memory_init_state_append_existing (&logging);
+	CuAssertIntEquals (test, LOGGING_INVALID_ARGUMENT, status);
+
+	logging.state = &state;
+	logging.log_buffer = NULL;
+	status = logging_memory_init_state_append_existing (&logging);
+	CuAssertIntEquals (test, LOGGING_INVALID_ARGUMENT, status);
+}
+
+static void logging_memory_test_static_init_append_existing_buffer_too_small (CuTest *test)
+{
+	struct logging_memory_state state;
+	const int entry_size = 11;
+	const int entry_len = entry_size + sizeof (struct logging_entry_header);
+	const int entry_count = 32;
+	const int entry_full = entry_len * entry_count;
+	uint8_t buffer[entry_full];
+	struct logging_memory logging = logging_memory_static_init (&state, buffer, entry_size - 1,
+		entry_size);
+	int status;
+
+	TEST_START;
+
+	memset (buffer, 0, sizeof (buffer));
+
+	status = logging_memory_init_state_append_existing (&logging);
 	CuAssertIntEquals (test, LOGGING_INSUFFICIENT_STORAGE, status);
 }
 
@@ -223,11 +457,12 @@ static void logging_memory_test_release_null (CuTest *test)
 static void logging_memory_test_get_size_null (CuTest *test)
 {
 	struct logging_memory logging;
+	struct logging_memory_state state;
 	int status;
 
 	TEST_START;
 
-	status = logging_memory_init (&logging, 32, 11);
+	status = logging_memory_init (&logging, &state, 32, 11);
 	CuAssertIntEquals (test, 0, status);
 
 	status = logging.base.get_size (NULL);
@@ -242,6 +477,7 @@ static void logging_memory_test_get_size_null (CuTest *test)
 static void logging_memory_test_create_entry (CuTest *test)
 {
 	struct logging_memory logging;
+	struct logging_memory_state state;
 	int status;
 	const int entry_size = 11;
 	const int entry_len = entry_size + sizeof (struct logging_entry_header);
@@ -262,7 +498,7 @@ static void logging_memory_test_create_entry (CuTest *test)
 	header->entry_id = 0;
 	memcpy (&entry_data[sizeof (struct logging_entry_header)], entry, sizeof (entry));
 
-	status = logging_memory_init (&logging, entry_count, entry_size);
+	status = logging_memory_init (&logging, &state, entry_count, entry_size);
 	CuAssertIntEquals (test, 0, status);
 
 	status = logging.base.create_entry (&logging.base, entry, entry_size);
@@ -283,6 +519,7 @@ static void logging_memory_test_create_entry (CuTest *test)
 static void logging_memory_test_create_entry_from_buffer (CuTest *test)
 {
 	struct logging_memory logging;
+	struct logging_memory_state state;
 	int status;
 	const int entry_size = 11;
 	const int entry_len = entry_size + sizeof (struct logging_entry_header);
@@ -305,7 +542,8 @@ static void logging_memory_test_create_entry_from_buffer (CuTest *test)
 	header->entry_id = 0;
 	memcpy (&entry_data[sizeof (struct logging_entry_header)], entry, sizeof (entry));
 
-	status = logging_memory_init_from_buffer (&logging, buffer, sizeof (buffer), entry_size);
+	status = logging_memory_init_from_buffer (&logging, &state, buffer, sizeof (buffer),
+		entry_size);
 	CuAssertIntEquals (test, 0, status);
 
 	status = logging.base.create_entry (&logging.base, entry, entry_size);
@@ -329,6 +567,7 @@ static void logging_memory_test_create_entry_from_buffer (CuTest *test)
 static void logging_memory_test_create_entry_append_existing_empty (CuTest *test)
 {
 	struct logging_memory logging;
+	struct logging_memory_state state;
 	int status;
 	const int entry_size = 11;
 	const int entry_len = entry_size + sizeof (struct logging_entry_header);
@@ -351,7 +590,8 @@ static void logging_memory_test_create_entry_append_existing_empty (CuTest *test
 	header->entry_id = 0;
 	memcpy (&entry_data[sizeof (struct logging_entry_header)], entry, sizeof (entry));
 
-	status = logging_memory_init_append_existing (&logging, buffer, sizeof (buffer), entry_size);
+	status = logging_memory_init_append_existing (&logging, &state, buffer, sizeof (buffer),
+		entry_size);
 	CuAssertIntEquals (test, 0, status);
 
 	status = logging.base.create_entry (&logging.base, entry, entry_size);
@@ -375,6 +615,7 @@ static void logging_memory_test_create_entry_append_existing_empty (CuTest *test
 static void logging_memory_test_create_entry_multiple (CuTest *test)
 {
 	struct logging_memory logging;
+	struct logging_memory_state state;
 	int status;
 	const int entry_size = 11;
 	const int entry_len = entry_size + sizeof (struct logging_entry_header);
@@ -403,7 +644,7 @@ static void logging_memory_test_create_entry_multiple (CuTest *test)
 		pos += entry_size;
 	}
 
-	status = logging_memory_init (&logging, entry_count, entry_size);
+	status = logging_memory_init (&logging, &state, entry_count, entry_size);
 	CuAssertIntEquals (test, 0, status);
 
 	status = logging.base.create_entry (&logging.base, entry[0], entry_size);
@@ -430,6 +671,7 @@ static void logging_memory_test_create_entry_multiple (CuTest *test)
 static void logging_memory_test_create_entry_full_log (CuTest *test)
 {
 	struct logging_memory logging;
+	struct logging_memory_state state;
 	int status;
 	const int entry_size = 11;
 	const int entry_len = entry_size + sizeof (struct logging_entry_header);
@@ -458,7 +700,7 @@ static void logging_memory_test_create_entry_full_log (CuTest *test)
 		pos += entry_size;
 	}
 
-	status = logging_memory_init (&logging, entry_count, entry_size);
+	status = logging_memory_init (&logging, &state, entry_count, entry_size);
 	CuAssertIntEquals (test, 0, status);
 
 	for (i = 0; i < entry_count; i++) {
@@ -481,6 +723,7 @@ static void logging_memory_test_create_entry_full_log (CuTest *test)
 static void logging_memory_test_create_entry_log_wrap (CuTest *test)
 {
 	struct logging_memory logging;
+	struct logging_memory_state state;
 	int status;
 	const int entry_size = 11;
 	const int entry_len = entry_size + sizeof (struct logging_entry_header);
@@ -511,7 +754,7 @@ static void logging_memory_test_create_entry_log_wrap (CuTest *test)
 		}
 	}
 
-	status = logging_memory_init (&logging, entry_count, entry_size);
+	status = logging_memory_init (&logging, &state, entry_count, entry_size);
 	CuAssertIntEquals (test, 0, status);
 
 	for (i = 0; i < entry_count + 1; i++) {
@@ -534,6 +777,7 @@ static void logging_memory_test_create_entry_log_wrap (CuTest *test)
 static void logging_memory_test_create_entry_log_wrap_from_buffer_not_entry_aligned (CuTest *test)
 {
 	struct logging_memory logging;
+	struct logging_memory_state state;
 	int status;
 	const int entry_size = 11;
 	const int entry_len = entry_size + sizeof (struct logging_entry_header);
@@ -573,7 +817,8 @@ static void logging_memory_test_create_entry_log_wrap_from_buffer_not_entry_alig
 	memcpy (buffer_expected, &entry_data[entry_full - entry_len], entry_len);
 	memcpy (&buffer_expected[entry_len], entry_data, entry_full - entry_len);
 
-	status = logging_memory_init_from_buffer (&logging, buffer, sizeof (buffer), entry_size);
+	status = logging_memory_init_from_buffer (&logging, &state, buffer, sizeof (buffer),
+		entry_size);
 	CuAssertIntEquals (test, 0, status);
 
 	for (i = 0; i < entry_count + 1; i++) {
@@ -600,6 +845,7 @@ static void logging_memory_test_create_entry_log_wrap_appending_existing_empty_n
 	CuTest *test)
 {
 	struct logging_memory logging;
+	struct logging_memory_state state;
 	int status;
 	const int entry_size = 11;
 	const int entry_len = entry_size + sizeof (struct logging_entry_header);
@@ -639,7 +885,8 @@ static void logging_memory_test_create_entry_log_wrap_appending_existing_empty_n
 	memcpy (buffer_expected, &entry_data[entry_full - entry_len], entry_len);
 	memcpy (&buffer_expected[entry_len], entry_data, entry_full - entry_len);
 
-	status = logging_memory_init_append_existing (&logging, buffer, sizeof (buffer), entry_size);
+	status = logging_memory_init_append_existing (&logging, &state, buffer, sizeof (buffer),
+		entry_size);
 	CuAssertIntEquals (test, 0, status);
 
 	for (i = 0; i < entry_count + 1; i++) {
@@ -665,6 +912,7 @@ static void logging_memory_test_create_entry_log_wrap_appending_existing_empty_n
 static void logging_memory_test_create_entry_log_wrap_twice (CuTest *test)
 {
 	struct logging_memory logging;
+	struct logging_memory_state state;
 	int status;
 	const int entry_size = 11;
 	const int entry_len = entry_size + sizeof (struct logging_entry_header);
@@ -695,7 +943,7 @@ static void logging_memory_test_create_entry_log_wrap_twice (CuTest *test)
 		}
 	}
 
-	status = logging_memory_init (&logging, entry_count, entry_size);
+	status = logging_memory_init (&logging, &state, entry_count, entry_size);
 	CuAssertIntEquals (test, 0, status);
 
 	for (i = 0; i < (entry_count * 2) + 2; i++) {
@@ -718,6 +966,7 @@ static void logging_memory_test_create_entry_log_wrap_twice (CuTest *test)
 static void logging_memory_test_create_entry_append_existing_one_entry (CuTest *test)
 {
 	struct logging_memory logging;
+	struct logging_memory_state state;
 	int status;
 	const int entry_size = 11;
 	const int entry_len = entry_size + sizeof (struct logging_entry_header);
@@ -750,7 +999,8 @@ static void logging_memory_test_create_entry_append_existing_one_entry (CuTest *
 	}
 
 	/* Initialize the buffer with a single entry. */
-	status = logging_memory_init_from_buffer (&logging, buffer, sizeof (buffer), entry_size);
+	status = logging_memory_init_from_buffer (&logging, &state, buffer, sizeof (buffer),
+		entry_size);
 	CuAssertIntEquals (test, 0, status);
 
 	status = logging.base.create_entry (&logging.base, entry[0], entry_size);
@@ -759,7 +1009,8 @@ static void logging_memory_test_create_entry_append_existing_one_entry (CuTest *
 	logging_memory_release (&logging);
 
 	/* Append two more entries. */
-	status = logging_memory_init_append_existing (&logging, buffer, sizeof (buffer), entry_size);
+	status = logging_memory_init_append_existing (&logging, &state, buffer, sizeof (buffer),
+		entry_size);
 	CuAssertIntEquals (test, 0, status);
 
 	status = logging.base.create_entry (&logging.base, entry[1], entry_size);
@@ -786,6 +1037,7 @@ static void logging_memory_test_create_entry_append_existing_one_entry (CuTest *
 static void logging_memory_test_create_entry_append_existing_multiple_entries (CuTest *test)
 {
 	struct logging_memory logging;
+	struct logging_memory_state state;
 	int status;
 	const int entry_size = 11;
 	const int entry_len = entry_size + sizeof (struct logging_entry_header);
@@ -818,7 +1070,8 @@ static void logging_memory_test_create_entry_append_existing_multiple_entries (C
 	}
 
 	/* Initialize the buffer with multiple entries. */
-	status = logging_memory_init_from_buffer (&logging, buffer, sizeof (buffer), entry_size);
+	status = logging_memory_init_from_buffer (&logging, &state, buffer, sizeof (buffer),
+		entry_size);
 	CuAssertIntEquals (test, 0, status);
 
 	status = logging.base.create_entry (&logging.base, entry[0], entry_size);
@@ -833,7 +1086,8 @@ static void logging_memory_test_create_entry_append_existing_multiple_entries (C
 	logging_memory_release (&logging);
 
 	/* Append two more entries. */
-	status = logging_memory_init_append_existing (&logging, buffer, sizeof (buffer), entry_size);
+	status = logging_memory_init_append_existing (&logging, &state, buffer, sizeof (buffer),
+		entry_size);
 	CuAssertIntEquals (test, 0, status);
 
 	status = logging.base.create_entry (&logging.base, entry[3], entry_size);
@@ -863,6 +1117,7 @@ static void logging_memory_test_create_entry_append_existing_multiple_entries (C
 static void logging_memory_test_create_entry_append_existing_full_log (CuTest *test)
 {
 	struct logging_memory logging;
+	struct logging_memory_state state;
 	int status;
 	const int entry_size = 11;
 	const int entry_len = entry_size + sizeof (struct logging_entry_header);
@@ -911,7 +1166,8 @@ static void logging_memory_test_create_entry_append_existing_full_log (CuTest *t
 	memcpy (buffer_expected, &entry_data[entry_full - entry_len], entry_len);
 	memcpy (&buffer_expected[entry_len], entry_data, entry_full - entry_len);
 
-	status = logging_memory_init_append_existing (&logging, buffer, sizeof (buffer), entry_size);
+	status = logging_memory_init_append_existing (&logging, &state, buffer, sizeof (buffer),
+		entry_size);
 	CuAssertIntEquals (test, 0, status);
 
 	status = logging.base.create_entry (&logging.base, entry[entry_count], entry_size);
@@ -936,6 +1192,7 @@ static void logging_memory_test_create_entry_append_existing_full_log_not_entry_
 	CuTest *test)
 {
 	struct logging_memory logging;
+	struct logging_memory_state state;
 	int status;
 	const int entry_size = 11;
 	const int entry_len = entry_size + sizeof (struct logging_entry_header);
@@ -985,7 +1242,8 @@ static void logging_memory_test_create_entry_append_existing_full_log_not_entry_
 	memcpy (buffer_expected, &entry_data[entry_full - entry_len], entry_len);
 	memcpy (&buffer_expected[entry_len], entry_data, entry_full - entry_len);
 
-	status = logging_memory_init_append_existing (&logging, buffer, sizeof (buffer), entry_size);
+	status = logging_memory_init_append_existing (&logging, &state, buffer, sizeof (buffer),
+		entry_size);
 	CuAssertIntEquals (test, 0, status);
 
 	status = logging.base.create_entry (&logging.base, entry[entry_count], entry_size);
@@ -1009,6 +1267,7 @@ static void logging_memory_test_create_entry_append_existing_full_log_not_entry_
 static void logging_memory_test_create_entry_append_existing_full_log_start_in_middle (CuTest *test)
 {
 	struct logging_memory logging;
+	struct logging_memory_state state;
 	int status;
 	const int entry_size = 11;
 	const int entry_len = entry_size + sizeof (struct logging_entry_header);
@@ -1062,7 +1321,8 @@ static void logging_memory_test_create_entry_append_existing_full_log_start_in_m
 	memcpy (&buffer_expected[entry_len * 4], &entry_data[entry_full - entry_len], entry_len);
 	memcpy (&buffer_expected[entry_len * 5], &buffer[entry_len * 5], entry_len * (entry_count - 5));
 
-	status = logging_memory_init_append_existing (&logging, buffer, sizeof (buffer), entry_size);
+	status = logging_memory_init_append_existing (&logging, &state, buffer, sizeof (buffer),
+		entry_size);
 	CuAssertIntEquals (test, 0, status);
 
 	status = logging.base.create_entry (&logging.base, entry[entry_count], entry_size);
@@ -1087,6 +1347,7 @@ static void logging_memory_test_create_entry_append_existing_full_log_start_in_m
 	CuTest *test)
 {
 	struct logging_memory logging;
+	struct logging_memory_state state;
 	int status;
 	const int entry_size = 11;
 	const int entry_len = entry_size + sizeof (struct logging_entry_header);
@@ -1142,7 +1403,8 @@ static void logging_memory_test_create_entry_append_existing_full_log_start_in_m
 	memcpy (&buffer_expected[entry_len * 11], &buffer[entry_len * 11],
 		entry_len * (entry_count - 11));
 
-	status = logging_memory_init_append_existing (&logging, buffer, sizeof (buffer), entry_size);
+	status = logging_memory_init_append_existing (&logging, &state, buffer, sizeof (buffer),
+		entry_size);
 	CuAssertIntEquals (test, 0, status);
 
 	status = logging.base.create_entry (&logging.base, entry[entry_count], entry_size);
@@ -1163,9 +1425,163 @@ static void logging_memory_test_create_entry_append_existing_full_log_start_in_m
 	logging_memory_release (&logging);
 }
 
+static void logging_memory_test_create_entry_dynamic_buffer_static_init (CuTest *test)
+{
+	struct logging_memory_state state;
+	const int entry_size = 11;
+	const int entry_len = entry_size + sizeof (struct logging_entry_header);
+	const int entry_count = 32;
+	const int entry_full = entry_len * entry_count;
+	struct logging_memory logging = logging_memory_dynamic_buffer_static_init (&state, entry_count,
+		entry_size);
+	int status;
+	uint8_t entry[entry_size];
+	uint8_t entry_data[entry_len];
+	struct logging_entry_header *header;
+	uint8_t output[entry_full];
+
+	TEST_START;
+
+	memset (entry, 0, sizeof (entry));
+
+	header = (struct logging_entry_header*) entry_data;
+	header->log_magic = 0xCB;
+	header->length = entry_len;
+	header->entry_id = 0;
+	memcpy (&entry_data[sizeof (struct logging_entry_header)], entry, sizeof (entry));
+
+	status = logging_memory_init_dynamic_state (&logging);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging.base.create_entry (&logging.base, entry, entry_size);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging.base.get_size (&logging.base);
+	CuAssertIntEquals (test, sizeof (entry_data), status);
+
+	status = logging.base.read_contents (&logging.base, 0, output, sizeof (output));
+	CuAssertIntEquals (test, sizeof (entry_data), status);
+
+	status = testing_validate_array (entry_data, output, status);
+	CuAssertIntEquals (test, 0, status);
+
+	logging_memory_release (&logging);
+}
+
+static void logging_memory_test_create_entry_static_init (CuTest *test)
+{
+	struct logging_memory_state state;
+	int status;
+	const int entry_size = 11;
+	const int entry_len = entry_size + sizeof (struct logging_entry_header);
+	const int entry_count = 32;
+	const int entry_full = entry_len * entry_count;
+	uint8_t buffer[entry_full];
+	struct logging_memory logging = logging_memory_static_init (&state, buffer, entry_full,
+		entry_size);
+	uint8_t entry[entry_size];
+	uint8_t entry_data[entry_len];
+	struct logging_entry_header *header;
+	uint8_t output[entry_full];
+
+	TEST_START;
+
+	memset (buffer, 0, sizeof (buffer));
+	memset (entry, 0, sizeof (entry));
+
+	header = (struct logging_entry_header*) entry_data;
+	header->log_magic = 0xCB;
+	header->length = entry_len;
+	header->entry_id = 0;
+	memcpy (&entry_data[sizeof (struct logging_entry_header)], entry, sizeof (entry));
+
+	status = logging_memory_init_state (&logging);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging.base.create_entry (&logging.base, entry, entry_size);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging.base.get_size (&logging.base);
+	CuAssertIntEquals (test, sizeof (entry_data), status);
+
+	status = logging.base.read_contents (&logging.base, 0, output, sizeof (output));
+	CuAssertIntEquals (test, sizeof (entry_data), status);
+
+	status = testing_validate_array (entry_data, output, status);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (entry_data, buffer, sizeof (entry_data));
+	CuAssertIntEquals (test, 0, status);
+
+	logging_memory_release (&logging);
+}
+
+static void logging_memory_test_create_entry_static_init_append_existing (CuTest *test)
+{
+	struct logging_memory_state state;
+	int status;
+	const int entry_size = 11;
+	const int entry_len = entry_size + sizeof (struct logging_entry_header);
+	const int entry_count = 32;
+	const int entry_full = entry_len * entry_count;
+	uint8_t buffer[entry_full];
+	struct logging_memory logging = logging_memory_static_init (&state, buffer, entry_full,
+		entry_size);
+	uint8_t entry[3][entry_size];
+	uint8_t entry_data[entry_len * 3];
+	struct logging_entry_header *header;
+	int i;
+	uint8_t *pos;
+	uint8_t output[entry_full];
+
+	TEST_START;
+
+	memset (buffer, 0, sizeof (buffer));
+
+	pos = entry_data;
+	for (i = 0; i < 3; i++) {
+		memset (entry[i], i, entry_size);
+
+		header = (struct logging_entry_header*) pos;
+		header->log_magic = 0xCB;
+		header->length = entry_len;
+		header->entry_id = i;
+		pos += sizeof (struct logging_entry_header);
+
+		memcpy (pos, entry[i], entry_size);
+		pos += entry_size;
+	}
+
+	memcpy (buffer, entry_data, entry_len);
+
+	status = logging_memory_init_state_append_existing (&logging);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging.base.create_entry (&logging.base, entry[1], entry_size);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging.base.create_entry (&logging.base, entry[2], entry_size);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging.base.get_size (&logging.base);
+	CuAssertIntEquals (test, sizeof (entry_data), status);
+
+	status = logging.base.read_contents (&logging.base, 0, output, sizeof (output));
+	CuAssertIntEquals (test, sizeof (entry_data), status);
+
+	status = testing_validate_array (entry_data, output, status);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (entry_data, buffer, sizeof (entry_data));
+	CuAssertIntEquals (test, 0, status);
+
+	logging_memory_release (&logging);
+}
+
 static void logging_memory_test_create_entry_null (CuTest *test)
 {
 	struct logging_memory logging;
+	struct logging_memory_state state;
 	int status;
 	const int entry_size = 11;
 	const int entry_len = entry_size + sizeof (struct logging_entry_header);
@@ -1182,7 +1598,7 @@ static void logging_memory_test_create_entry_null (CuTest *test)
 	header->entry_id = 0;
 	memcpy (&entry_data[sizeof (struct logging_entry_header)], entry, sizeof (entry));
 
-	status = logging_memory_init (&logging, entry_count, entry_size);
+	status = logging_memory_init (&logging, &state, entry_count, entry_size);
 	CuAssertIntEquals (test, 0, status);
 
 	status = logging.base.create_entry (NULL, entry, entry_size);
@@ -1200,6 +1616,7 @@ static void logging_memory_test_create_entry_null (CuTest *test)
 static void logging_memory_test_create_entry_bad_length (CuTest *test)
 {
 	struct logging_memory logging;
+	struct logging_memory_state state;
 	int status;
 	const int entry_size = 11;
 	const int entry_len = entry_size + sizeof (struct logging_entry_header);
@@ -1216,7 +1633,7 @@ static void logging_memory_test_create_entry_bad_length (CuTest *test)
 	header->entry_id = 0;
 	memcpy (&entry_data[sizeof (struct logging_entry_header)], entry, sizeof (entry));
 
-	status = logging_memory_init (&logging, entry_count, entry_size);
+	status = logging_memory_init (&logging, &state, entry_count, entry_size);
 	CuAssertIntEquals (test, 0, status);
 
 	status = logging.base.create_entry (&logging.base, entry, entry_size - 1);
@@ -1235,6 +1652,7 @@ static void logging_memory_test_create_entry_bad_length (CuTest *test)
 static void logging_memory_test_flush (CuTest *test)
 {
 	struct logging_memory logging;
+	struct logging_memory_state state;
 	int status;
 	const int entry_size = 11;
 	const int entry_len = entry_size + sizeof (struct logging_entry_header);
@@ -1255,7 +1673,57 @@ static void logging_memory_test_flush (CuTest *test)
 	header->entry_id = 0;
 	memcpy (&entry_data[sizeof (struct logging_entry_header)], entry, sizeof (entry));
 
-	status = logging_memory_init (&logging, entry_count, entry_size);
+	status = logging_memory_init (&logging, &state, entry_count, entry_size);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging.base.create_entry (&logging.base, entry, entry_size);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging.base.get_size (&logging.base);
+	CuAssertIntEquals (test, sizeof (entry_data), status);
+
+	status = logging.base.flush (&logging.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging.base.get_size (&logging.base);
+	CuAssertIntEquals (test, sizeof (entry_data), status);
+
+	status = logging.base.read_contents (&logging.base, 0, output, sizeof (output));
+	CuAssertIntEquals (test, sizeof (entry_data), status);
+
+	status = testing_validate_array (entry_data, output, status);
+	CuAssertIntEquals (test, 0, status);
+
+	logging_memory_release (&logging);
+}
+
+static void logging_memory_test_flush_static_init (CuTest *test)
+{
+	struct logging_memory_state state;
+	int status;
+	const int entry_size = 11;
+	const int entry_len = entry_size + sizeof (struct logging_entry_header);
+	const int entry_count = 32;
+	const int entry_full = entry_len * entry_count;
+	uint8_t buffer[entry_full];
+	struct logging_memory logging = logging_memory_static_init (&state, buffer, entry_full,
+		entry_size);
+	uint8_t entry[entry_size];
+	uint8_t entry_data[entry_len];
+	struct logging_entry_header *header;
+	uint8_t output[entry_full];
+
+	TEST_START;
+
+	memset (entry, 0, sizeof (entry));
+
+	header = (struct logging_entry_header*) entry_data;
+	header->log_magic = 0xCB;
+	header->length = entry_len;
+	header->entry_id = 0;
+	memcpy (&entry_data[sizeof (struct logging_entry_header)], entry, sizeof (entry));
+
+	status = logging_memory_init_state (&logging);
 	CuAssertIntEquals (test, 0, status);
 
 	status = logging.base.create_entry (&logging.base, entry, entry_size);
@@ -1282,6 +1750,7 @@ static void logging_memory_test_flush (CuTest *test)
 static void logging_memory_test_flush_null (CuTest *test)
 {
 	struct logging_memory logging;
+	struct logging_memory_state state;
 	int status;
 	const int entry_size = 11;
 	const int entry_len = entry_size + sizeof (struct logging_entry_header);
@@ -1302,7 +1771,7 @@ static void logging_memory_test_flush_null (CuTest *test)
 	header->entry_id = 0;
 	memcpy (&entry_data[sizeof (struct logging_entry_header)], entry, sizeof (entry));
 
-	status = logging_memory_init (&logging, entry_count, entry_size);
+	status = logging_memory_init (&logging, &state, entry_count, entry_size);
 	CuAssertIntEquals (test, 0, status);
 
 	status = logging.base.create_entry (&logging.base, entry, entry_size);
@@ -1330,6 +1799,7 @@ static void logging_memory_test_flush_null (CuTest *test)
 static void logging_memory_test_read_contents_partial_read (CuTest *test)
 {
 	struct logging_memory logging;
+	struct logging_memory_state state;
 	int status;
 	const int entry_size = 11;
 	const int entry_len = entry_size + sizeof (struct logging_entry_header);
@@ -1358,7 +1828,7 @@ static void logging_memory_test_read_contents_partial_read (CuTest *test)
 		pos += entry_size;
 	}
 
-	status = logging_memory_init (&logging, entry_count, entry_size);
+	status = logging_memory_init (&logging, &state, entry_count, entry_size);
 	CuAssertIntEquals (test, 0, status);
 
 	for (i = 0; i < entry_count; i++) {
@@ -1381,6 +1851,7 @@ static void logging_memory_test_read_contents_partial_read (CuTest *test)
 static void logging_memory_test_read_contents_partial_read_with_wrap (CuTest *test)
 {
 	struct logging_memory logging;
+	struct logging_memory_state state;
 	int status;
 	const int entry_size = 11;
 	const int entry_len = entry_size + sizeof (struct logging_entry_header);
@@ -1411,7 +1882,7 @@ static void logging_memory_test_read_contents_partial_read_with_wrap (CuTest *te
 		}
 	}
 
-	status = logging_memory_init (&logging, entry_count, entry_size);
+	status = logging_memory_init (&logging, &state, entry_count, entry_size);
 	CuAssertIntEquals (test, 0, status);
 
 	for (i = 0; i < entry_count + 1; i++) {
@@ -1434,6 +1905,7 @@ static void logging_memory_test_read_contents_partial_read_with_wrap (CuTest *te
 static void logging_memory_test_read_contents_partial_read_across_wrap (CuTest *test)
 {
 	struct logging_memory logging;
+	struct logging_memory_state state;
 	int status;
 	const int entry_size = 11;
 	const int entry_len = entry_size + sizeof (struct logging_entry_header);
@@ -1464,7 +1936,7 @@ static void logging_memory_test_read_contents_partial_read_across_wrap (CuTest *
 		}
 	}
 
-	status = logging_memory_init (&logging, entry_count, entry_size);
+	status = logging_memory_init (&logging, &state, entry_count, entry_size);
 	CuAssertIntEquals (test, 0, status);
 
 	for (i = 0; i < entry_count + 3; i++) {
@@ -1487,6 +1959,7 @@ static void logging_memory_test_read_contents_partial_read_across_wrap (CuTest *
 static void logging_memory_test_read_contents_offset_read (CuTest *test)
 {
 	struct logging_memory logging;
+	struct logging_memory_state state;
 	int status;
 	const int entry_size = 11;
 	const int entry_len = entry_size + sizeof (struct logging_entry_header);
@@ -1515,7 +1988,7 @@ static void logging_memory_test_read_contents_offset_read (CuTest *test)
 		pos += entry_size;
 	}
 
-	status = logging_memory_init (&logging, entry_count, entry_size);
+	status = logging_memory_init (&logging, &state, entry_count, entry_size);
 	CuAssertIntEquals (test, 0, status);
 
 	for (i = 0; i < entry_count; i++) {
@@ -1538,6 +2011,7 @@ static void logging_memory_test_read_contents_offset_read (CuTest *test)
 static void logging_memory_test_read_contents_offset_read_with_wrap (CuTest *test)
 {
 	struct logging_memory logging;
+	struct logging_memory_state state;
 	int status;
 	const int entry_size = 11;
 	const int entry_len = entry_size + sizeof (struct logging_entry_header);
@@ -1568,7 +2042,7 @@ static void logging_memory_test_read_contents_offset_read_with_wrap (CuTest *tes
 		}
 	}
 
-	status = logging_memory_init (&logging, entry_count, entry_size);
+	status = logging_memory_init (&logging, &state, entry_count, entry_size);
 	CuAssertIntEquals (test, 0, status);
 
 	for (i = 0; i < entry_count + 1; i++) {
@@ -1591,6 +2065,7 @@ static void logging_memory_test_read_contents_offset_read_with_wrap (CuTest *tes
 static void logging_memory_test_read_contents_offset_across_wrap (CuTest *test)
 {
 	struct logging_memory logging;
+	struct logging_memory_state state;
 	int status;
 	const int entry_size = 11;
 	const int entry_len = entry_size + sizeof (struct logging_entry_header);
@@ -1621,7 +2096,7 @@ static void logging_memory_test_read_contents_offset_across_wrap (CuTest *test)
 		}
 	}
 
-	status = logging_memory_init (&logging, entry_count, entry_size);
+	status = logging_memory_init (&logging, &state, entry_count, entry_size);
 	CuAssertIntEquals (test, 0, status);
 
 	for (i = 0; i < entry_count + 3; i++) {
@@ -1645,6 +2120,7 @@ static void logging_memory_test_read_contents_offset_across_wrap (CuTest *test)
 static void logging_memory_test_read_contents_offset_past_end (CuTest *test)
 {
 	struct logging_memory logging;
+	struct logging_memory_state state;
 	int status;
 	const int entry_size = 11;
 	const int entry_len = entry_size + sizeof (struct logging_entry_header);
@@ -1673,7 +2149,7 @@ static void logging_memory_test_read_contents_offset_past_end (CuTest *test)
 		pos += entry_size;
 	}
 
-	status = logging_memory_init (&logging, entry_count, entry_size);
+	status = logging_memory_init (&logging, &state, entry_count, entry_size);
 	CuAssertIntEquals (test, 0, status);
 
 	for (i = 0; i < 3; i++) {
@@ -1694,6 +2170,7 @@ static void logging_memory_test_read_contents_offset_past_end (CuTest *test)
 static void logging_memory_test_read_contents_partial_read_with_offset (CuTest *test)
 {
 	struct logging_memory logging;
+	struct logging_memory_state state;
 	int status;
 	const int entry_size = 11;
 	const int entry_len = entry_size + sizeof (struct logging_entry_header);
@@ -1722,7 +2199,7 @@ static void logging_memory_test_read_contents_partial_read_with_offset (CuTest *
 		pos += entry_size;
 	}
 
-	status = logging_memory_init (&logging, entry_count, entry_size);
+	status = logging_memory_init (&logging, &state, entry_count, entry_size);
 	CuAssertIntEquals (test, 0, status);
 
 	for (i = 0; i < entry_count; i++) {
@@ -1745,6 +2222,7 @@ static void logging_memory_test_read_contents_partial_read_with_offset (CuTest *
 static void logging_memory_test_read_contents_partial_read_with_offset_across_wrap (CuTest *test)
 {
 	struct logging_memory logging;
+	struct logging_memory_state state;
 	int status;
 	const int entry_size = 11;
 	const int entry_len = entry_size + sizeof (struct logging_entry_header);
@@ -1775,7 +2253,7 @@ static void logging_memory_test_read_contents_partial_read_with_offset_across_wr
 		}
 	}
 
-	status = logging_memory_init (&logging, entry_count, entry_size);
+	status = logging_memory_init (&logging, &state, entry_count, entry_size);
 	CuAssertIntEquals (test, 0, status);
 
 	for (i = 0; i < entry_count + 5; i++) {
@@ -1799,6 +2277,7 @@ static void logging_memory_test_read_contents_partial_read_with_offset_across_wr
 static void logging_memory_test_clear (CuTest *test)
 {
 	struct logging_memory logging;
+	struct logging_memory_state state;
 	int status;
 	const int entry_size = 11;
 	const int entry_len = entry_size + sizeof (struct logging_entry_header);
@@ -1817,7 +2296,7 @@ static void logging_memory_test_clear (CuTest *test)
 	header->entry_id = 0;
 	memcpy (&entry_data[sizeof (struct logging_entry_header)], entry, sizeof (entry));
 
-	status = logging_memory_init (&logging, entry_count, entry_size);
+	status = logging_memory_init (&logging, &state, entry_count, entry_size);
 	CuAssertIntEquals (test, 0, status);
 
 	status = logging.base.create_entry (&logging.base, entry, entry_size);
@@ -1838,9 +2317,113 @@ static void logging_memory_test_clear (CuTest *test)
 	logging_memory_release (&logging);
 }
 
+static void logging_memory_test_clear_from_buffer (CuTest *test)
+{
+	struct logging_memory logging;
+	struct logging_memory_state state;
+	int status;
+	const int entry_size = 11;
+	const int entry_len = entry_size + sizeof (struct logging_entry_header);
+	const int entry_count = 32;
+	const int entry_full = entry_len * entry_count;
+	uint8_t entry[entry_size];
+	uint8_t entry_data[entry_len];
+	struct logging_entry_header *header;
+	uint8_t output[entry_full];
+	uint8_t buffer[entry_full];
+	uint8_t buffer_expected[sizeof (buffer)];
+
+	TEST_START;
+
+	memset (buffer, 0x55, sizeof (buffer));
+	memset (buffer_expected, 0, sizeof (buffer_expected));
+
+	header = (struct logging_entry_header*) entry_data;
+	header->log_magic = 0xCB;
+	header->length = entry_len;
+	header->entry_id = 0;
+	memcpy (&entry_data[sizeof (struct logging_entry_header)], entry, sizeof (entry));
+
+	status = logging_memory_init_from_buffer (&logging, &state, buffer, sizeof (buffer),
+		entry_size);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging.base.create_entry (&logging.base, entry, entry_size);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging.base.get_size (&logging.base);
+	CuAssertIntEquals (test, sizeof (entry_data), status);
+
+	status = logging.base.clear (&logging.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging.base.get_size (&logging.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging.base.read_contents (&logging.base, 0, output, sizeof (output));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (buffer_expected, buffer, sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	logging_memory_release (&logging);
+}
+
+static void logging_memory_test_clear_append_existing (CuTest *test)
+{
+	struct logging_memory logging;
+	struct logging_memory_state state;
+	int status;
+	const int entry_size = 11;
+	const int entry_len = entry_size + sizeof (struct logging_entry_header);
+	const int entry_count = 32;
+	const int entry_full = entry_len * entry_count;
+	uint8_t buffer[entry_full];
+	struct logging_entry_header *header;
+	int i;
+	uint8_t *pos;
+	uint8_t buffer_expected[sizeof (buffer)];
+
+	TEST_START;
+
+	memset (buffer, 0, sizeof (buffer));
+	memset (buffer_expected, 0, sizeof (buffer_expected));
+
+	pos = buffer;
+	for (i = 0; i < entry_count ; i++) {
+		header = (struct logging_entry_header*) pos;
+		header->log_magic = 0xCB;
+		header->length = entry_len;
+		header->entry_id = i;
+		pos += sizeof (struct logging_entry_header);
+
+		memset (pos, i, entry_size);
+		pos += entry_size;
+	}
+
+	status = logging_memory_init_append_existing (&logging, &state, buffer, sizeof (buffer),
+		entry_size);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging.base.get_size (&logging.base);
+	CuAssertIntEquals (test, sizeof (buffer), status);
+
+	status = logging.base.clear (&logging.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging.base.get_size (&logging.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (buffer_expected, buffer, sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	logging_memory_release (&logging);
+}
+
 static void logging_memory_test_clear_log_wrap (CuTest *test)
 {
 	struct logging_memory logging;
+	struct logging_memory_state state;
 	int status;
 	const int entry_size = 11;
 	const int entry_len = entry_size + sizeof (struct logging_entry_header);
@@ -1871,7 +2454,7 @@ static void logging_memory_test_clear_log_wrap (CuTest *test)
 		}
 	}
 
-	status = logging_memory_init (&logging, entry_count, entry_size);
+	status = logging_memory_init (&logging, &state, entry_count, entry_size);
 	CuAssertIntEquals (test, 0, status);
 
 	for (i = 0; i < entry_count + 1; i++) {
@@ -1897,6 +2480,7 @@ static void logging_memory_test_clear_log_wrap (CuTest *test)
 static void logging_memory_test_clear_add_after_clear (CuTest *test)
 {
 	struct logging_memory logging;
+	struct logging_memory_state state;
 	int status;
 	const int entry_size = 11;
 	const int entry_len = entry_size + sizeof (struct logging_entry_header);
@@ -1924,7 +2508,7 @@ static void logging_memory_test_clear_add_after_clear (CuTest *test)
 	header->entry_id = 1;
 	memcpy (&entry_data2[sizeof (struct logging_entry_header)], entry, sizeof (entry));
 
-	status = logging_memory_init (&logging, entry_count, entry_size);
+	status = logging_memory_init (&logging, &state, entry_count, entry_size);
 	CuAssertIntEquals (test, 0, status);
 
 	status = logging.base.create_entry (&logging.base, entry, entry_size);
@@ -1954,9 +2538,62 @@ static void logging_memory_test_clear_add_after_clear (CuTest *test)
 	logging_memory_release (&logging);
 }
 
+static void logging_memory_test_clear_static_init (CuTest *test)
+{
+	struct logging_memory_state state;
+	int status;
+	const int entry_size = 11;
+	const int entry_len = entry_size + sizeof (struct logging_entry_header);
+	const int entry_count = 32;
+	const int entry_full = entry_len * entry_count;
+	uint8_t buffer[entry_full];
+	struct logging_memory logging = logging_memory_static_init (&state, buffer, entry_full,
+		entry_size);
+	uint8_t entry[entry_size];
+	uint8_t entry_data[entry_len];
+	struct logging_entry_header *header;
+	uint8_t output[entry_full];
+	uint8_t buffer_expected[sizeof (buffer)];
+
+	TEST_START;
+
+	memset (buffer, 0x55, sizeof (buffer));
+	memset (buffer_expected, 0, sizeof (buffer_expected));
+
+	header = (struct logging_entry_header*) entry_data;
+	header->log_magic = 0xCB;
+	header->length = entry_len;
+	header->entry_id = 0;
+	memcpy (&entry_data[sizeof (struct logging_entry_header)], entry, sizeof (entry));
+
+	status = logging_memory_init_state (&logging);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging.base.create_entry (&logging.base, entry, entry_size);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging.base.get_size (&logging.base);
+	CuAssertIntEquals (test, sizeof (entry_data), status);
+
+	status = logging.base.clear (&logging.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging.base.get_size (&logging.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging.base.read_contents (&logging.base, 0, output, sizeof (output));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (buffer_expected, buffer, sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	logging_memory_release (&logging);
+}
+
 static void logging_memory_test_clear_null (CuTest *test)
 {
 	struct logging_memory logging;
+	struct logging_memory_state state;
 	int status;
 	const int entry_size = 11;
 	const int entry_len = entry_size + sizeof (struct logging_entry_header);
@@ -1973,7 +2610,7 @@ static void logging_memory_test_clear_null (CuTest *test)
 	header->entry_id = 0;
 	memcpy (&entry_data[sizeof (struct logging_entry_header)], entry, sizeof (entry));
 
-	status = logging_memory_init (&logging, entry_count, entry_size);
+	status = logging_memory_init (&logging, &state, entry_count, entry_size);
 	CuAssertIntEquals (test, 0, status);
 
 	status = logging.base.create_entry (&logging.base, entry, entry_size);
@@ -2002,6 +2639,14 @@ TEST (logging_memory_test_init_from_buffer_too_small);
 TEST (logging_memory_test_init_append_existing);
 TEST (logging_memory_test_init_append_existing_null);
 TEST (logging_memory_test_init_append_existing_too_small);
+TEST (logging_memory_test_dynamic_buffer_static_init);
+TEST (logging_memory_test_dynamic_buffer_static_init_null);
+TEST (logging_memory_test_static_init);
+TEST (logging_memory_test_static_init_null);
+TEST (logging_memory_test_static_init_buffer_too_small);
+TEST (logging_memory_test_static_init_append_existing);
+TEST (logging_memory_test_static_init_append_existing_null);
+TEST (logging_memory_test_static_init_append_existing_buffer_too_small);
 TEST (logging_memory_test_release_null);
 TEST (logging_memory_test_get_size_null);
 TEST (logging_memory_test_create_entry);
@@ -2019,10 +2664,14 @@ TEST (logging_memory_test_create_entry_append_existing_full_log);
 TEST (logging_memory_test_create_entry_append_existing_full_log_not_entry_aligned);
 TEST (logging_memory_test_create_entry_append_existing_full_log_start_in_middle);
 TEST (logging_memory_test_create_entry_append_existing_full_log_start_in_middle_max_entry_id);
+TEST (logging_memory_test_create_entry_dynamic_buffer_static_init);
+TEST (logging_memory_test_create_entry_static_init);
+TEST (logging_memory_test_create_entry_static_init_append_existing);
 TEST (logging_memory_test_create_entry_null);
 TEST (logging_memory_test_create_entry_bad_length);
 #ifndef LOGGING_DISABLE_FLUSH
 TEST (logging_memory_test_flush);
+TEST (logging_memory_test_flush_static_init);
 TEST (logging_memory_test_flush_null);
 #endif
 TEST (logging_memory_test_read_contents_partial_read);
@@ -2035,8 +2684,11 @@ TEST (logging_memory_test_read_contents_offset_past_end);
 TEST (logging_memory_test_read_contents_partial_read_with_offset);
 TEST (logging_memory_test_read_contents_partial_read_with_offset_across_wrap);
 TEST (logging_memory_test_clear);
+TEST (logging_memory_test_clear_from_buffer);
+TEST (logging_memory_test_clear_append_existing);
 TEST (logging_memory_test_clear_log_wrap);
 TEST (logging_memory_test_clear_add_after_clear);
+TEST (logging_memory_test_clear_static_init);
 TEST (logging_memory_test_clear_null);
 
 TEST_SUITE_END;
