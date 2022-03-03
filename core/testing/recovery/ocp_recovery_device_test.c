@@ -955,7 +955,7 @@ static void ocp_recovery_device_test_prot_cap_write_request (CuTest *test)
 	ocp_recovery_device_testing_release (test, &recovery);
 }
 
-static void ocp_recovery_device_test_id_cap_no_vendor_string (CuTest *test)
+static void ocp_recovery_device_test_device_id_no_vendor_string (CuTest *test)
 {
 	struct ocp_recovery_device_testing recovery;
 	int status;
@@ -963,7 +963,7 @@ static void ocp_recovery_device_test_id_cap_no_vendor_string (CuTest *test)
 		0x00,0x00,0x22,0x11,0x44,0x33,0x66,0x55,0x88,0x77,0x05,0x00,0x00,0x00,0x00,0x00,
 		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
 	};
-	struct ocp_recovery_id_cap hw_id = {
+	struct ocp_recovery_device_id hw_id = {
 		.base = {
 			.id_type = 0,
 			.vendor_length = 0,
@@ -984,11 +984,11 @@ static void ocp_recovery_device_test_id_cap_no_vendor_string (CuTest *test)
 
 	ocp_recovery_device_testing_init (test, &recovery, NULL, 0);
 
-	status = ocp_recovery_device_start_new_command (&recovery.test, OCP_RECOVERY_CMD_ID_CAP);
+	status = ocp_recovery_device_start_new_command (&recovery.test, OCP_RECOVERY_CMD_DEVICE_ID);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&recovery.hw.mock, recovery.hw.base.get_device_id, &recovery.hw,
-		2 + sizeof (struct ocp_recovery_id_cap_pci), MOCK_ARG_NOT_NULL);
+		2 + sizeof (struct ocp_recovery_device_id_pci), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&recovery.hw.mock, 0, &hw_id, sizeof (hw_id), -1);
 
 	CuAssertIntEquals (test, 0, status);
@@ -1004,7 +1004,7 @@ static void ocp_recovery_device_test_id_cap_no_vendor_string (CuTest *test)
 	ocp_recovery_device_testing_release (test, &recovery);
 }
 
-static void ocp_recovery_device_test_id_cap_with_vendor_string (CuTest *test)
+static void ocp_recovery_device_test_device_id_with_vendor_string (CuTest *test)
 {
 	struct ocp_recovery_device_testing recovery;
 	int status;
@@ -1012,7 +1012,7 @@ static void ocp_recovery_device_test_id_cap_with_vendor_string (CuTest *test)
 		0x02,0x04,0x00,0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88,0x99,0xaa,0xbb,0xcc,0xdd,
 		0xee,0xff,0x00,0x00,0x00,0x00,0x00,0x00,'T','e','s','t'
 	};
-	struct ocp_recovery_id_cap hw_id = {
+	struct ocp_recovery_device_id hw_id = {
 		.base = {
 			.id_type = 2,
 			.vendor_length = 4,
@@ -1032,11 +1032,11 @@ static void ocp_recovery_device_test_id_cap_with_vendor_string (CuTest *test)
 
 	ocp_recovery_device_testing_init (test, &recovery, NULL, 0);
 
-	status = ocp_recovery_device_start_new_command (&recovery.test, OCP_RECOVERY_CMD_ID_CAP);
+	status = ocp_recovery_device_start_new_command (&recovery.test, OCP_RECOVERY_CMD_DEVICE_ID);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&recovery.hw.mock, recovery.hw.base.get_device_id, &recovery.hw,
-		2 + sizeof (struct ocp_recovery_id_cap_uuid) + 4, MOCK_ARG_NOT_NULL);
+		2 + sizeof (struct ocp_recovery_device_id_uuid) + 4, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&recovery.hw.mock, 0, &hw_id, sizeof (hw_id), -1);
 
 	CuAssertIntEquals (test, 0, status);
@@ -1052,7 +1052,7 @@ static void ocp_recovery_device_test_id_cap_with_vendor_string (CuTest *test)
 	ocp_recovery_device_testing_release (test, &recovery);
 }
 
-static void ocp_recovery_device_test_id_cap_get_id_error (CuTest *test)
+static void ocp_recovery_device_test_device_id_get_id_error (CuTest *test)
 {
 	struct ocp_recovery_device_testing recovery;
 	int status;
@@ -1062,7 +1062,7 @@ static void ocp_recovery_device_test_id_cap_get_id_error (CuTest *test)
 
 	ocp_recovery_device_testing_init (test, &recovery, NULL, 0);
 
-	status = ocp_recovery_device_start_new_command (&recovery.test, OCP_RECOVERY_CMD_ID_CAP);
+	status = ocp_recovery_device_start_new_command (&recovery.test, OCP_RECOVERY_CMD_DEVICE_ID);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&recovery.hw.mock, recovery.hw.base.get_device_id, &recovery.hw,
@@ -1078,7 +1078,7 @@ static void ocp_recovery_device_test_id_cap_get_id_error (CuTest *test)
 	ocp_recovery_device_testing_release (test, &recovery);
 }
 
-static void ocp_recovery_device_test_id_cap_static_init (CuTest *test)
+static void ocp_recovery_device_test_device_id_static_init (CuTest *test)
 {
 	struct ocp_recovery_device_testing recovery;
 	struct ocp_recovery_device test_static = ocp_recovery_device_static_init (&recovery.state,
@@ -1088,7 +1088,7 @@ static void ocp_recovery_device_test_id_cap_static_init (CuTest *test)
 		0x00,0x00,0x22,0x11,0x44,0x33,0x66,0x55,0x88,0x77,0x05,0x00,0x00,0x00,0x00,0x00,
 		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
 	};
-	struct ocp_recovery_id_cap hw_id = {
+	struct ocp_recovery_device_id hw_id = {
 		.base = {
 			.id_type = 0,
 			.vendor_length = 0,
@@ -1110,11 +1110,11 @@ static void ocp_recovery_device_test_id_cap_static_init (CuTest *test)
 	status = ocp_recovery_device_init_state (&test_static);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ocp_recovery_device_start_new_command (&test_static, OCP_RECOVERY_CMD_ID_CAP);
+	status = ocp_recovery_device_start_new_command (&test_static, OCP_RECOVERY_CMD_DEVICE_ID);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&recovery.hw.mock, recovery.hw.base.get_device_id, &recovery.hw,
-		2 + sizeof (struct ocp_recovery_id_cap_pci), MOCK_ARG_NOT_NULL);
+		2 + sizeof (struct ocp_recovery_device_id_pci), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&recovery.hw.mock, 0, &hw_id, sizeof (hw_id), -1);
 
 	CuAssertIntEquals (test, 0, status);
@@ -1129,7 +1129,7 @@ static void ocp_recovery_device_test_id_cap_static_init (CuTest *test)
 	ocp_recovery_device_release (&test_static);
 }
 
-static void ocp_recovery_device_test_id_cap_write_request (CuTest *test)
+static void ocp_recovery_device_test_device_id_write_request (CuTest *test)
 {
 	struct ocp_recovery_device_testing recovery;
 	int status;
@@ -1142,7 +1142,7 @@ static void ocp_recovery_device_test_id_cap_write_request (CuTest *test)
 
 	ocp_recovery_device_testing_init (test, &recovery, NULL, 0);
 
-	status = ocp_recovery_device_start_new_command (&recovery.test, OCP_RECOVERY_CMD_ID_CAP);
+	status = ocp_recovery_device_start_new_command (&recovery.test, OCP_RECOVERY_CMD_DEVICE_ID);
 	CuAssertIntEquals (test, 0, status);
 
 	status = ocp_recovery_device_write_request (&recovery.test,
@@ -6238,11 +6238,11 @@ TEST (ocp_recovery_device_test_prot_cap_activate_recovery_image_no_cms_regions);
 TEST (ocp_recovery_device_test_prot_cap_all_optional_support);
 TEST (ocp_recovery_device_test_prot_cap_static_init);
 TEST (ocp_recovery_device_test_prot_cap_write_request);
-TEST (ocp_recovery_device_test_id_cap_no_vendor_string);
-TEST (ocp_recovery_device_test_id_cap_with_vendor_string);
-TEST (ocp_recovery_device_test_id_cap_get_id_error);
-TEST (ocp_recovery_device_test_id_cap_static_init);
-TEST (ocp_recovery_device_test_id_cap_write_request);
+TEST (ocp_recovery_device_test_device_id_no_vendor_string);
+TEST (ocp_recovery_device_test_device_id_with_vendor_string);
+TEST (ocp_recovery_device_test_device_id_get_id_error);
+TEST (ocp_recovery_device_test_device_id_static_init);
+TEST (ocp_recovery_device_test_device_id_write_request);
 TEST (ocp_recovery_device_test_device_status);
 TEST (ocp_recovery_device_test_device_status_static_init);
 TEST (ocp_recovery_device_test_device_status_write_request);

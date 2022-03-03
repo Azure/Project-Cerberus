@@ -47,10 +47,10 @@ static void ocp_recovery_test_prot_cap_format (CuTest *test)
 	CuAssertIntEquals (test, 0, OCP_RECOVERY_PROT_CAP_HEARTBEAT_US (msg->heartbeat_period));
 }
 
-static void ocp_recovery_test_cap_id_format (CuTest *test)
+static void ocp_recovery_test_device_id_format (CuTest *test)
 {
 	uint8_t raw_buffer[255];
-	struct ocp_recovery_id_cap *msg;
+	struct ocp_recovery_device_id *msg;
 	size_t i;
 
 	TEST_START;
@@ -59,9 +59,9 @@ static void ocp_recovery_test_cap_id_format (CuTest *test)
 		raw_buffer[i] = i + 1;
 	}
 
-	CuAssertIntEquals (test, sizeof (raw_buffer), sizeof (struct ocp_recovery_id_cap));
+	CuAssertIntEquals (test, sizeof (raw_buffer), sizeof (struct ocp_recovery_device_id));
 
-	msg = (struct ocp_recovery_id_cap*) raw_buffer;
+	msg = (struct ocp_recovery_device_id*) raw_buffer;
 	CuAssertIntEquals (test, 0x01, msg->base.id_type);
 	CuAssertIntEquals (test, 0x02, msg->base.vendor_length);
 
@@ -262,7 +262,7 @@ static void ocp_recovery_test_vendor_format (CuTest *test)
 TEST_SUITE_START (ocp_recovery);
 
 TEST (ocp_recovery_test_prot_cap_format);
-TEST (ocp_recovery_test_cap_id_format);
+TEST (ocp_recovery_test_device_id_format);
 TEST (ocp_recovery_test_device_status_format);
 TEST (ocp_recovery_test_reset_format);
 TEST (ocp_recovery_test_recovery_ctrl_format);

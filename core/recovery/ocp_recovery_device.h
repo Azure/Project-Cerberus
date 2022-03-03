@@ -85,7 +85,7 @@ struct ocp_recovery_device_status_vendor {
  */
 union ocp_recovery_device_cmd_buffer {
 	struct ocp_recovery_prot_cap prot_cap;					/**< The PROT_CAP command structure. */
-	struct ocp_recovery_id_cap id_cap;						/**< The ID_CAP command structure. */
+	struct ocp_recovery_device_id device_id;				/**< The DEVICE_ID command structure. */
 	struct ocp_recovery_device_status device_status;		/**< The DEVICE_STATUS command structure. */
 	struct ocp_recovery_reset reset;						/**< The RESET command structure. */
 	struct ocp_recovery_recovery_ctrl recovery_ctrl;		/**< The RECOVERY_CTRL command structure. */
@@ -112,7 +112,7 @@ struct ocp_recovery_device_hw {
 	 * @return The number of bytes written to the device ID buffer or an error code.
 	 */
 	int (*get_device_id) (struct ocp_recovery_device_hw *recovery_hw,
-		struct ocp_recovery_id_cap *id);
+		struct ocp_recovery_device_id *id);
 
 	/**
 	 * Get the current device status.

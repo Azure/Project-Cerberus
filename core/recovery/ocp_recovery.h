@@ -8,10 +8,9 @@
 
 
 /* The contents of this file and the protocol handlers that use it are meant to implement the OCP
- * Security Recovery specification, which can be found at https://www.opencompute.org/wiki/Security.
- *
- * At this time, the Recovery specification is a work in progress, so some of this may not be
- * finalized yet.  Changes to several commands and/or workflows is likely. */
+ * Security Recovery specification, which can be found at
+ * https://www.opencompute.org/wiki/Security. */
+
 
 /**
  * The 7-bit SMBus address that a device should use for OCP Recovery commands if SMBus ARP is not
@@ -25,7 +24,7 @@
 enum {
 	OCP_RECOVERY_CMD_MIN_VALID = 0x22,			/**< Minimum valid command code for OCP recovery. */
 	OCP_RECOVERY_CMD_PROT_CAP = 0x22,			/**< Recovery Capabilities command */
-	OCP_RECOVERY_CMD_ID_CAP = 0x23,				/**< Recovery Device Identifier command */
+	OCP_RECOVERY_CMD_DEVICE_ID = 0x23,			/**< Recovery Device Identifier command */
 	OCP_RECOVERY_CMD_DEVICE_STATUS = 0x24,		/**< Device Status command */
 	OCP_RECOVERY_CMD_RESET = 0x25,				/**< Reset Control command */
 	OCP_RECOVERY_CMD_RECOVERY_CTRL = 0x26,		/**< Recovery Configuration and Control command */
@@ -108,9 +107,9 @@ enum {
 };
 
 /**
- * OCP Recovery Device Identifier (ID_CAP) command format.
+ * OCP Recovery Device Identifier (DEVICE_ID) command format.
  */
-struct ocp_recovery_id_cap {
+struct ocp_recovery_device_id {
 	struct {
 		uint8_t id_type;						/**< Type of ID used by the device. */
 		uint8_t vendor_length;					/**< Length of the vendor-specific string. */
@@ -118,7 +117,7 @@ struct ocp_recovery_id_cap {
 			/**
 			 * PCI vendor/device ID format.
 			 */
-			struct ocp_recovery_id_cap_pci {
+			struct ocp_recovery_device_id_pci {
 				uint16_t vendor_id;				/**< PCI vendor ID. */
 				uint16_t device_id;				/**< PCI device ID. */
 				uint16_t subsystem_vendor_id;	/**< PCI subsystem vender ID. */
@@ -130,7 +129,7 @@ struct ocp_recovery_id_cap {
 			/**
 			 * IANA vender/product ID format.
 			 */
-			struct ocp_recovery_id_cap_iana {
+			struct ocp_recovery_device_id_iana {
 				uint8_t enterprise_id[4];		/**< IANA enterprise ID. */
 				uint8_t product_id[12];			/**< ACPI product ID. */
 				uint8_t pad[6];					/**< Zero padding. */
@@ -139,7 +138,7 @@ struct ocp_recovery_id_cap {
 			/**
 			 * Device UUID format.
 			 */
-			struct ocp_recovery_id_cap_uuid {
+			struct ocp_recovery_device_id_uuid {
 				uint8_t uuid[16];				/**< Device UUID. */
 				uint8_t pad[6];					/**< Zero padding. */
 			} uuid;
@@ -147,7 +146,7 @@ struct ocp_recovery_id_cap {
 			/**
 			 * PnP vendor/product ID format.
 			 */
-			struct ocp_recovery_id_cap_pnp {
+			struct ocp_recovery_device_id_pnp {
 				uint8_t vendor_id[3];			/**< PnP vendor ID. */
 				uint8_t product_id[4];			/**< PnP product ID. */
 				uint8_t pad[15];				/**< Zero padding. */
@@ -156,7 +155,7 @@ struct ocp_recovery_id_cap {
 			/**
 			 * ACPI vendor/product ID format.
 			 */
-			struct ocp_recovery_id_cap_acpi {
+			struct ocp_recovery_device_id_acpi {
 				uint8_t vendor_id[4];			/**< ACPI vendor ID. */
 				uint8_t product_id[3];			/**< ACPI product ID. */
 				uint8_t pad[15];				/**< Zero padding. */
@@ -165,7 +164,7 @@ struct ocp_recovery_id_cap {
 			/**
 			 * NVMe-MI vendor ID format.
 			 */
-			struct ocp_recovery_id_cap_nvme_mi {
+			struct ocp_recovery_device_id_nvme_mi {
 				uint16_t vendor_id;				/**< NVMe vendor ID. */
 				uint8_t serial_num[20];			/**< Device serial number. */
 			} nvme;

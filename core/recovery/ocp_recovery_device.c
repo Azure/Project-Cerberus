@@ -656,8 +656,8 @@ int ocp_recovery_device_read_request (struct ocp_recovery_device *device,
 			status = ocp_recovery_device_read_prot_cap (device, &data->prot_cap);
 			break;
 
-		case OCP_RECOVERY_CMD_ID_CAP:
-			status = device->hw->get_device_id (device->hw, &data->id_cap);
+		case OCP_RECOVERY_CMD_DEVICE_ID:
+			status = device->hw->get_device_id (device->hw, &data->device_id);
 			break;
 
 		case OCP_RECOVERY_CMD_DEVICE_STATUS:

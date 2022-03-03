@@ -8,7 +8,7 @@
 
 
 static int ocp_recovery_device_hw_mock_get_device_id (struct ocp_recovery_device_hw *recovery_hw,
-	struct ocp_recovery_id_cap *id)
+	struct ocp_recovery_device_id *id)
 {
 	struct ocp_recovery_device_hw_mock *mock = (struct ocp_recovery_device_hw_mock*) recovery_hw;
 
