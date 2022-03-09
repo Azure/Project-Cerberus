@@ -90,6 +90,34 @@ static void rng_openssl_test_generate_random_buffer_not_word_aligned (CuTest *te
 	rng_openssl_release (&engine);
 }
 
+static void rng_openssl_test_generate_random_buffer_start_not_word_aligned (CuTest *test)
+{
+	struct rng_engine_openssl engine;
+	uint8_t buffer[14] = {0};
+	uint8_t pad[4] = {0};
+	uint8_t zero[14] = {0};
+	uint8_t *out = &buffer[1];
+	int status;
+
+	TEST_START;
+
+	CuAssertTrue (test, (((uintptr_t) out & 0x3) != 0));
+
+	status = rng_openssl_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.generate_random_buffer (&engine.base, 12, out);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (zero, &buffer[1], sizeof (buffer) - 1);
+	CuAssertTrue (test, (status != 0));
+
+	status = testing_validate_array (zero, pad, sizeof (pad));
+	CuAssertIntEquals (test, 0, status);
+
+	rng_openssl_release (&engine);
+}
+
 static void rng_openssl_test_generate_random_buffer_twice (CuTest *test)
 {
 	struct rng_engine_openssl engine;
@@ -169,6 +197,7 @@ TEST (rng_openssl_test_init_null);
 TEST (rng_openssl_test_release_null);
 TEST (rng_openssl_test_generate_random_buffer);
 TEST (rng_openssl_test_generate_random_buffer_not_word_aligned);
+TEST (rng_openssl_test_generate_random_buffer_start_not_word_aligned);
 TEST (rng_openssl_test_generate_random_buffer_twice);
 TEST (rng_openssl_test_generate_random_buffer_no_data);
 TEST (rng_openssl_test_generate_random_buffer_null);
