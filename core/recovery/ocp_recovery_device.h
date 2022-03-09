@@ -185,6 +185,7 @@ struct ocp_recovery_device_state {
 	uint8_t protocol_status;							/**< The current device protocol status. */
 	uint8_t recovery_status;							/**< The current device recovery status. */
 	uint8_t indirect_status;							/**< The current device indirect status. */
+	struct ocp_recovery_reset reset;					/**< Current state of reset control data. */
 	struct ocp_recovery_recovery_ctrl recovery_ctrl;	/**< Current state of recovery control data. */
 	struct ocp_recovery_indirect_ctrl indirect_ctrl;	/**< Current state of the indirect control data. */
 };

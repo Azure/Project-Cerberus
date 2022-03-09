@@ -59,7 +59,7 @@ enum {
  * Capability bits that can be reported by a device in the PROT_CAP command.
  */
 enum {
-	OCP_RECOVERY_PROT_CAP_SUPPORTS_IDENTIFICATION = (1U << 0),		/**< Supports the ID_CAP command. */
+	OCP_RECOVERY_PROT_CAP_SUPPORTS_IDENTIFICATION = (1U << 0),		/**< Supports the DEVICE_ID command. */
 	OCP_RECOVERY_PROT_CAP_SUPPORTS_FORCED_RECOVERY = (1U << 1),		/**< Supports the forced recovery option in the RESET command. */
 	OCP_RECOVERY_PROT_CAP_SUPPORTS_MGMT_RESET = (1U << 2),			/**< Supports a management-only reset option in the RESET command. */
 	OCP_RECOVERY_PROT_CAP_SUPPORTS_DEVICE_RESET = (1U << 3),		/**< Supports a full device reset option in the RESET command. */
@@ -68,6 +68,8 @@ enum {
 	OCP_RECOVERY_PROT_CAP_SUPPORTS_LOCAL_IMAGE = (1U << 6),			/**< Supports a locally stored for recovery. */
 	OCP_RECOVERY_PROT_CAP_SUPPORTS_PUSH_IMAGE = (1U << 7),			/**< Supports pushing an image over the recovery interface. */
 	OCP_RECOVERY_PROT_CAP_SUPPORTS_INTF_ISOLATION = (1U << 8),		/**< Supports control over bus mastering of the recovery interface. */
+	OCP_RECOVERY_PROT_CAP_SUPPORTS_HW_STATUS = (1U << 9),			/**< Supports the HW_STATUS command. */
+	OCP_RECOVERY_PROT_CAP_SUPPORTS_VENDOR_COMMAND = (1U << 10),		/**< Supports the VENDOR command. */
 };
 
 /**
@@ -98,12 +100,12 @@ struct ocp_recovery_prot_cap {
  * Identifier specifying the type of ID reported by the device.
  */
 enum {
-	OCP_RECOVERY_ID_CAP_PCI_VENDOR = 0x0,	/**< The device reports a PCI vendor/device ID. */
-	OCP_RECOVERY_ID_CAP_IANA = 0x1,			/**< The device reports an IANA vendor/product ID. */
-	OCP_RECOVERY_ID_CAP_UUID = 0x2,			/**< The device reports a UUID. */
-	OCP_RECOVERY_ID_CAP_PNP_VENDOR = 0x3,	/**< The device reports a PnP vendor/product ID. */
-	OCP_RECOVERY_ID_CAP_ACPI_VENDOR = 0x4,	/**< The device reports an ACPI vendor/product ID. */
-	OCP_RECOVERY_ID_CAP_NVME_MI = 0xf,		/**< The device reports NVMe vendor ID. */
+	OCP_RECOVERY_DEVICE_ID_PCI_VENDOR = 0x0,	/**< The device reports a PCI vendor/device ID. */
+	OCP_RECOVERY_DEVICE_ID_IANA = 0x1,			/**< The device reports an IANA vendor/product ID. */
+	OCP_RECOVERY_DEVICE_ID_UUID = 0x2,			/**< The device reports a UUID. */
+	OCP_RECOVERY_DEVICE_ID_PNP_VENDOR = 0x3,	/**< The device reports a PnP vendor/product ID. */
+	OCP_RECOVERY_DEVICE_ID_ACPI_VENDOR = 0x4,	/**< The device reports an ACPI vendor/product ID. */
+	OCP_RECOVERY_DEVICE_ID_NVME_MI = 0xf,		/**< The device reports NVMe vendor ID. */
 };
 
 /**

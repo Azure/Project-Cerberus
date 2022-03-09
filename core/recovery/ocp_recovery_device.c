@@ -191,6 +191,13 @@ static int ocp_recovery_device_write_reset (struct ocp_recovery_device *device,
 			break;
 	}
 
+	/* If the device resets, this won't get called, but if the device is not reset, store the
+	 * value that was written. */
+	if (status == 0) {
+		memcpy (&device->state->reset, reset, sizeof (struct ocp_recovery_reset));
+		device->state->reset.reset_ctrl = OCP_RECOVERY_RESET_NO_RESET;
+	}
+
 	return status;
 }
 
@@ -249,6 +256,7 @@ static int ocp_recovery_device_write_recovery_ctrl (struct ocp_recovery_device *
 
 	memcpy (&device->state->recovery_ctrl, recovery_ctrl,
 		sizeof (struct ocp_recovery_recovery_ctrl));
+	device->state->recovery_ctrl.activate = OCP_RECOVERY_RECOVERY_CTRL_ACTIVATE_NONE;
 
 	return status;
 }
@@ -666,7 +674,7 @@ int ocp_recovery_device_read_request (struct ocp_recovery_device *device,
 
 		case OCP_RECOVERY_CMD_RESET:
 			status = sizeof (struct ocp_recovery_reset);
-			memset (&data->reset, 0, status);
+			memcpy (&data->reset, &device->state->reset, status);
 			break;
 
 		case OCP_RECOVERY_CMD_RECOVERY_CTRL:

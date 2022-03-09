@@ -444,6 +444,8 @@ void read_prot_cap (bool raw)
 	printf ("\t\tLocal C-Image: %s\n", (data[10] & (1U << 6)) ? "Yes" : "No");
 	printf ("\t\tPush C-Image: %s\n", (data[10] & (1U << 7)) ? "Yes" : "No");
 	printf ("\t\tInterface Isolation: %s\n", (data[11] & (1U << 0)) ? "Yes" : "No");
+	printf ("\t\tHardware Status: %s\n", (data[11] & (1U << 1)) ? "Yes" : "No");
+	printf ("\t\tVendor Command: %s\n", (data[11] & (1U << 2)) ? "Yes" : "No");
 	printf ("\tTotal CMS: %d\n", data[12]);
 	printf ("\tMax Response Time: %dus\n", 1U << data[13]);
 	printf ("\tHeartbeat: %dus\n", (data[14] == 0) ? 0 : (1U << data[14]));
@@ -452,6 +454,37 @@ void read_prot_cap (bool raw)
 	if (raw) {
 		print_byte_array (data, 0, 14, "Raw Data", "\t");
 		printf ("\n");
+	}
+}
+
+/**
+ * Capability bits indicating support for different commands.
+ */
+enum {
+	SUPPORT_DEVICE_ID = (1U << 0),									/**< The DEVICE_ID command is supported. */
+	SUPPORT_RESET = (1U << 1) | (1U << 2) | (1U << 3) | (1U << 8),	/**< The RESET command is supported. */
+	SUPPORT_DEVICE_STATUS = (1U << 4),								/**< The DEVICE_STATUS command is supported. */
+	SUPPORT_INDIRECT = (1U << 5) | (1U << 7),						/**< The INDIRECT commands are supported. */
+	SUPPORT_HW_STATUS = (1U << 9),									/**< The HW_STATUS command is supported. */
+	SUPPORT_VENDOR = (1U << 10),									/**< The VENDOR command is supported. */
+};
+
+/**
+ * Retrieve the capabilites bitmask from the device.
+ *
+ * @return The device capabilities.
+ */
+uint16_t get_device_capabilities ()
+{
+	uint8_t data[15];
+
+	smbus_block_read (PROT_CAP, data, sizeof (data), sizeof (data));
+
+	if (strncmp ("OCP RECV", (char*) data, 8) == 0) {
+		return (data[11] << 8) | data[10];
+	}
+	else {
+		return 0;
 	}
 }
 
@@ -1678,15 +1711,38 @@ void command_read_log ()
  */
 void command_show_all ()
 {
+	uint16_t capabilities = get_device_capabilities ();
+
 	read_prot_cap (raw_bytes);
-	read_device_id (raw_bytes);
-	read_device_status (raw_bytes);
-	read_reset (raw_bytes);
+
+	if (capabilities & SUPPORT_DEVICE_ID) {
+		read_device_id (raw_bytes);
+	}
+
+	if (capabilities & SUPPORT_DEVICE_STATUS) {
+		read_device_status (raw_bytes);
+	}
+
+	if (capabilities & SUPPORT_RESET) {
+		read_reset (raw_bytes);
+	}
+
 	read_recovery_ctrl (raw_bytes);
 	read_recovery_status (raw_bytes);
-	read_indirect_ctrl (raw_bytes);
-	read_indirect_status (raw_bytes);
-	read_indirect_data ();
+
+	if (capabilities & SUPPORT_HW_STATUS) {
+		read_hw_status (raw_bytes);
+	}
+
+	if (capabilities & SUPPORT_INDIRECT) {
+		read_indirect_ctrl (raw_bytes);
+		read_indirect_status (raw_bytes);
+		read_indirect_data ();
+	}
+
+	if (capabilities & SUPPORT_VENDOR) {
+		read_vendor ();
+	}
 }
 
 
