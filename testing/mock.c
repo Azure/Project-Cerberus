@@ -573,7 +573,7 @@ int mock_expect_external_action (struct mock *mock, mock_call_action action, voi
 static void mock_print_func (struct mock *mock, struct mock_call *call)
 {
 	int i;
-	platform_printf ("%s (%p", mock->func_name_map (call->func), call->instance);
+	platform_printf ("%s (%p", mock->func_name_map ((void*) call->func), call->instance);
 	for (i = 0; i < call->argc; i++) {
 		platform_printf (", 0x%lx", call->argv[i].value);
 	}
@@ -773,7 +773,7 @@ int mock_validate (struct mock *mock)
 					else {
 						for (i = 0; i < exp_pos->argc; i++) {
 							fail |= mock_validate_arg (mock, current,
-								mock->arg_name_map (exp_pos->func, i), &exp_pos->argv[i],
+								mock->arg_name_map ((void*) exp_pos->func, i), &exp_pos->argv[i],
 								&call_pos->argv[i]);
 						}
 					}
@@ -881,7 +881,7 @@ void mock_set_name (struct mock *mock, const char *name)
  *
  * @return The new call instance or null.
  */
-struct mock_call* mock_allocate_call (void *func, void *instance, size_t args, ...)
+struct mock_call* mock_allocate_call (const void *func, const void *instance, size_t args, ...)
 {
 	struct mock_call *call;
 	va_list arg_list;

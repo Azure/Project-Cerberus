@@ -8,7 +8,7 @@
 
 
 static int ocp_recovery_device_variable_cms_mock_get_size (
-	struct ocp_recovery_device_variable_cms *cms)
+	const struct ocp_recovery_device_variable_cms *cms)
 {
 	struct ocp_recovery_device_variable_cms_mock *mock =
 		(struct ocp_recovery_device_variable_cms_mock*) cms;
@@ -21,7 +21,7 @@ static int ocp_recovery_device_variable_cms_mock_get_size (
 }
 
 static int ocp_recovery_device_variable_cms_mock_get_data (
-	struct ocp_recovery_device_variable_cms *cms, size_t offset, uint8_t *data, size_t length)
+	const struct ocp_recovery_device_variable_cms *cms, size_t offset, uint8_t *data, size_t length)
 {
 	struct ocp_recovery_device_variable_cms_mock *mock =
 		(struct ocp_recovery_device_variable_cms_mock*) cms;

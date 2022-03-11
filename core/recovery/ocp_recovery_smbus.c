@@ -35,7 +35,7 @@
  * @return 0 if the handler was successfully initialized or an error code.
  */
 int ocp_recovery_smbus_init (struct ocp_recovery_smbus *smbus,
-	struct ocp_recovery_smbus_state *state, struct ocp_recovery_device *device)
+	struct ocp_recovery_smbus_state *state, const struct ocp_recovery_device *device)
 {
 	if ((smbus == NULL) || (state == NULL) || (device == NULL)) {
 		return OCP_RECOVERY_SMBUS_INVALID_ARGUMENT;
@@ -75,7 +75,7 @@ int ocp_recovery_smbus_init_state (const struct ocp_recovery_smbus *smbus)
  *
  * @param smbus The SMBus handler to release.
  */
-void ocp_recovery_smbus_release (struct ocp_recovery_smbus *smbus)
+void ocp_recovery_smbus_release (const struct ocp_recovery_smbus *smbus)
 {
 	UNUSED (smbus);
 }
@@ -88,7 +88,7 @@ void ocp_recovery_smbus_release (struct ocp_recovery_smbus *smbus)
  * @param smbus_addr The SMBus address for this device.  This should be the 7-bit address with no
  * read/write bit.
  */
-void ocp_recovery_smbus_start (struct ocp_recovery_smbus *smbus, uint8_t smbus_addr)
+void ocp_recovery_smbus_start (const struct ocp_recovery_smbus *smbus, uint8_t smbus_addr)
 {
 	if (smbus == NULL) {
 		return;
@@ -105,7 +105,7 @@ void ocp_recovery_smbus_start (struct ocp_recovery_smbus *smbus, uint8_t smbus_a
  *
  * @param smbus The SMBus handler to notify.
  */
-void ocp_recovery_smbus_stop (struct ocp_recovery_smbus *smbus)
+void ocp_recovery_smbus_stop (const struct ocp_recovery_smbus *smbus)
 {
 	bool pec_valid = true;
 
@@ -151,7 +151,7 @@ void ocp_recovery_smbus_stop (struct ocp_recovery_smbus *smbus)
  * represents a command code that is invalid and the physical layer should NACK the data.  In that
  * case, OCP_RECOVERY_SMBUS_NACK will be returned.
  */
-int ocp_recovery_smbus_receive_byte (struct ocp_recovery_smbus *smbus, uint8_t data)
+int ocp_recovery_smbus_receive_byte (const struct ocp_recovery_smbus *smbus, uint8_t data)
 {
 	int status;
 
@@ -204,7 +204,7 @@ int ocp_recovery_smbus_receive_byte (struct ocp_recovery_smbus *smbus, uint8_t d
  * @return 0 if the data to send was successfully generated or OCP_RECOVERY_SMBUS_INVALID_ARGUMENT
  * if either parameter is null.
  */
-int ocp_recovery_smbus_transmit_bytes (struct ocp_recovery_smbus *smbus, uint8_t smbus_addr,
+int ocp_recovery_smbus_transmit_bytes (const struct ocp_recovery_smbus *smbus, uint8_t smbus_addr,
 	const union ocp_recovery_smbus_cmd_buffer **data)
 {
 	int bytes;

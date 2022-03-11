@@ -8,10 +8,11 @@
 #include "common/unused.h"
 
 
-int ocp_recovery_device_variable_cms_log_get_size (struct ocp_recovery_device_variable_cms *cms)
+int ocp_recovery_device_variable_cms_log_get_size (
+	const struct ocp_recovery_device_variable_cms *cms)
 {
-	struct ocp_recovery_device_variable_cms_log *log =
-		(struct ocp_recovery_device_variable_cms_log*) cms;
+	const struct ocp_recovery_device_variable_cms_log *log =
+		(const struct ocp_recovery_device_variable_cms_log*) cms;
 
 	if (log == NULL) {
 		return OCP_RECOVERY_DEVICE_INVALID_ARGUMENT;
@@ -20,11 +21,11 @@ int ocp_recovery_device_variable_cms_log_get_size (struct ocp_recovery_device_va
 	return log->log->get_size (log->log);
 }
 
-int ocp_recovery_device_variable_cms_log_get_data (struct ocp_recovery_device_variable_cms *cms,
-	size_t offset, uint8_t *data, size_t length)
+int ocp_recovery_device_variable_cms_log_get_data (
+	const struct ocp_recovery_device_variable_cms *cms, size_t offset, uint8_t *data, size_t length)
 {
-	struct ocp_recovery_device_variable_cms_log *log =
-		(struct ocp_recovery_device_variable_cms_log*) cms;
+	const struct ocp_recovery_device_variable_cms_log *log =
+		(const struct ocp_recovery_device_variable_cms_log*) cms;
 
 	if (log == NULL) {
 		return OCP_RECOVERY_DEVICE_INVALID_ARGUMENT;
@@ -63,7 +64,8 @@ int ocp_recovery_device_variable_cms_log_init (struct ocp_recovery_device_variab
  *
  * @param cms The CMS interface to release.
  */
-void ocp_recovery_device_variable_cms_log_release (struct ocp_recovery_device_variable_cms_log *cms)
+void ocp_recovery_device_variable_cms_log_release (
+	const struct ocp_recovery_device_variable_cms_log *cms)
 {
 	UNUSED (cms);
 }

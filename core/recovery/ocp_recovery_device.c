@@ -35,7 +35,7 @@
  * @return 0 if the handler was successfully initialized or an error code.
  */
 int ocp_recovery_device_init (struct ocp_recovery_device *device,
-	struct ocp_recovery_device_state *state, struct ocp_recovery_device_hw *hw,
+	struct ocp_recovery_device_state *state, const struct ocp_recovery_device_hw *hw,
 	const struct ocp_recovery_device_cms *cms_list, size_t cms_count)
 {
 	if ((device == NULL) || (state == NULL) || (hw == NULL) ||
@@ -110,7 +110,7 @@ int ocp_recovery_device_init_state (const struct ocp_recovery_device *device)
  *
  * @param device The handler to release.
  */
-void ocp_recovery_device_release (struct ocp_recovery_device *device)
+void ocp_recovery_device_release (const struct ocp_recovery_device *device)
 {
 	UNUSED (device);
 }
@@ -128,7 +128,7 @@ void ocp_recovery_device_release (struct ocp_recovery_device *device)
  * @return 0 if the command has been accepted by the handler or an error code.  If the command is
  * invalid, OCP_RECOVERY_DEVICE_NACK is returned to indicate the transaction must be NACKed.
  */
-int ocp_recovery_device_start_new_command (struct ocp_recovery_device *device,
+int ocp_recovery_device_start_new_command (const struct ocp_recovery_device *device,
 	uint8_t command_code)
 {
 	if (device == NULL) {
@@ -155,7 +155,7 @@ int ocp_recovery_device_start_new_command (struct ocp_recovery_device *device,
  * @return 0 if the a device reset was triggered or OCP_RECOVERY_DEVICE_UNSUPPORTED if reset is not
  * supported.  In most cases, 0 will never be returned because the device would have been reset.
  */
-static int ocp_recovery_device_write_reset (struct ocp_recovery_device *device,
+static int ocp_recovery_device_write_reset (const struct ocp_recovery_device *device,
 	const struct ocp_recovery_reset *reset)
 {
 	int status = 0;
@@ -209,7 +209,7 @@ static int ocp_recovery_device_write_reset (struct ocp_recovery_device *device,
  *
  * @return 0 if the request completed successfully or an error code.
  */
-static int ocp_recovery_device_write_recovery_ctrl (struct ocp_recovery_device *device,
+static int ocp_recovery_device_write_recovery_ctrl (const struct ocp_recovery_device *device,
 	const struct ocp_recovery_recovery_ctrl *recovery_ctrl)
 {
 	bool auth_error;
@@ -269,7 +269,7 @@ static int ocp_recovery_device_write_recovery_ctrl (struct ocp_recovery_device *
  *
  * @return 0 if the request completed successfully or an error code.
  */
-static int ocp_recovery_device_write_indirect_ctrl (struct ocp_recovery_device *device,
+static int ocp_recovery_device_write_indirect_ctrl (const struct ocp_recovery_device *device,
 	const struct ocp_recovery_indirect_ctrl *indirect_ctrl)
 {
 	if (!device->cms) {
@@ -299,7 +299,7 @@ static int ocp_recovery_device_write_indirect_ctrl (struct ocp_recovery_device *
  *
  * @return 0 if the request completed successfully or an error code.
  */
-static int ocp_recovery_device_write_indirect_data (struct ocp_recovery_device *device,
+static int ocp_recovery_device_write_indirect_data (const struct ocp_recovery_device *device,
 	const struct ocp_recovery_indirect_data *indirect_data, size_t length)
 {
 	const struct ocp_recovery_device_cms *cms;
@@ -358,7 +358,7 @@ static int ocp_recovery_device_write_indirect_data (struct ocp_recovery_device *
  *
  * @return 0 if the command was processed successfully or an error code.
  */
-int ocp_recovery_device_write_request (struct ocp_recovery_device *device,
+int ocp_recovery_device_write_request (const struct ocp_recovery_device *device,
 	const union ocp_recovery_device_cmd_buffer *data, size_t length)
 {
 	int status = OCP_RECOVERY_DEVICE_RO_COMMAND;
@@ -451,7 +451,7 @@ int ocp_recovery_device_write_request (struct ocp_recovery_device *device,
  *
  * @return The number of bytes in the command response or an error code.
  */
-static int ocp_recovery_device_read_prot_cap (struct ocp_recovery_device *device,
+static int ocp_recovery_device_read_prot_cap (const struct ocp_recovery_device *device,
 	struct ocp_recovery_prot_cap *prot_cap)
 {
 	memcpy (prot_cap->magic_string, OCP_RECOVERY_PROT_CAP_MAGIC_STRING,
@@ -496,7 +496,7 @@ static int ocp_recovery_device_read_prot_cap (struct ocp_recovery_device *device
  *
  * @return The number of bytes in the command response or an error code.
  */
-static int ocp_recovery_device_read_device_status (struct ocp_recovery_device *device,
+static int ocp_recovery_device_read_device_status (const struct ocp_recovery_device *device,
 	struct ocp_recovery_device_status *device_status)
 {
 	enum ocp_recovery_device_status_code status_code;
@@ -525,7 +525,7 @@ static int ocp_recovery_device_read_device_status (struct ocp_recovery_device *d
  *
  * @return The number of bytes in the command response or an error code.
  */
-static int ocp_recovery_device_read_indirect_status (struct ocp_recovery_device *device,
+static int ocp_recovery_device_read_indirect_status (const struct ocp_recovery_device *device,
 	struct ocp_recovery_indirect_status *indirect_status)
 {
 	const struct ocp_recovery_device_cms *cms;
@@ -574,7 +574,7 @@ static int ocp_recovery_device_read_indirect_status (struct ocp_recovery_device 
  *
  * @return The number of bytes in the command response or an error code.
  */
-static int ocp_recovery_device_read_indirect_data (struct ocp_recovery_device *device,
+static int ocp_recovery_device_read_indirect_data (const struct ocp_recovery_device *device,
 	struct ocp_recovery_indirect_data *indirect_data)
 {
 	const struct ocp_recovery_device_cms *cms;
@@ -647,7 +647,7 @@ static int ocp_recovery_device_read_indirect_data (struct ocp_recovery_device *d
  * @return The number of bytes written to the data buffer or an error code.  Use ROT_IS_ERROR to
  * check the return value.
  */
-int ocp_recovery_device_read_request (struct ocp_recovery_device *device,
+int ocp_recovery_device_read_request (const struct ocp_recovery_device *device,
 	union ocp_recovery_device_cmd_buffer *data)
 {
 	int status;
@@ -736,7 +736,7 @@ int ocp_recovery_device_read_request (struct ocp_recovery_device *device,
  *
  * @param device The recovery handler to update.
  */
-void ocp_recovery_device_checksum_failure (struct ocp_recovery_device *device)
+void ocp_recovery_device_checksum_failure (const struct ocp_recovery_device *device)
 {
 	if (device) {
 		device->state->active_cmd = OCP_RECOVERY_DEVICE_NO_COMMAND;
@@ -751,7 +751,7 @@ void ocp_recovery_device_checksum_failure (struct ocp_recovery_device *device)
  *
  * @param device The recovery handler to update.
  */
-void ocp_recovery_device_write_overflow (struct ocp_recovery_device *device)
+void ocp_recovery_device_write_overflow (const struct ocp_recovery_device *device)
 {
 	if (device) {
 		device->state->active_cmd = OCP_RECOVERY_DEVICE_NO_COMMAND;

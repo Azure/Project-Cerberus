@@ -128,8 +128,8 @@ typedef intptr_t (*mock_call_action) (const struct mock_call *expected,
  */
 struct mock_call {
 	struct mock_call *next;		/**< The next function call in the list. */
-	void *func;					/**< The expected function. */
-	void *instance;				/**< The firmware image instance calling the function. */
+	const void *func;			/**< The expected function. */
+	const void *instance;		/**< The firmware image instance calling the function. */
 	int argc;					/**< The number of arguments. */
 	struct mock_arg *argv;		/**< The arguments to the function. */
 	intptr_t return_val;		/**< The value to return for the call. */
@@ -452,7 +452,7 @@ void mock_release (struct mock *mock);
 
 void mock_set_name (struct mock *mock, const char *name);
 
-struct mock_call* mock_allocate_call (void *func, void *instance, size_t args, ...);
+struct mock_call* mock_allocate_call (const void *func, const void *instance, size_t args, ...);
 intptr_t mock_return_from_call (struct mock *mock, struct mock_call *call);
 
 

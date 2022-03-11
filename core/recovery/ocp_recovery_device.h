@@ -32,7 +32,7 @@ struct ocp_recovery_device_variable_cms {
 	 * @return Length of the data in the CMS or an error code.  Use ROT_IS_ERROR to check the return
 	 * value.
 	 */
-	int (*get_size) (struct ocp_recovery_device_variable_cms *cms);
+	int (*get_size) (const struct ocp_recovery_device_variable_cms *cms);
 
 	/**
 	 * Get the data contained within the CMS.
@@ -45,8 +45,8 @@ struct ocp_recovery_device_variable_cms {
 	 * @return The number of bytes read from the CMS or an error code.  Use ROT_IS_ERROR to check
 	 * the return value.
 	 */
-	int (*get_data) (struct ocp_recovery_device_variable_cms *cms, size_t offset, uint8_t *data,
-		size_t length);
+	int (*get_data) (const struct ocp_recovery_device_variable_cms *cms, size_t offset,
+		uint8_t *data, size_t length);
 };
 
 /**
@@ -57,8 +57,8 @@ struct ocp_recovery_device_variable_cms {
  */
 struct ocp_recovery_device_cms {
 	union {
-		uint8_t *base_addr;									/**< The base address for a fixed-length region of memory. */
-		struct ocp_recovery_device_variable_cms *variable;	/**< Log interface for the memory region.  Must be a RO region. */
+		uint8_t *base_addr;											/**< The base address for a fixed-length region of memory. */
+		const struct ocp_recovery_device_variable_cms *variable;	/**< Log interface for the memory region.  Must be a RO region. */
 	};
 	/**
 	 * Size of the memory that is accessible, in bytes.
@@ -68,7 +68,7 @@ struct ocp_recovery_device_cms {
 	 * using a variable interface, it is best if the data will always be 4-byte aligned.
 	 */
 	size_t length;
-	enum ocp_recovery_region_type type;						/**< The type of memory region that is exposed. */
+	enum ocp_recovery_region_type type;								/**< The type of memory region that is exposed. */
 };
 
 #pragma pack(push, 1)
@@ -111,7 +111,7 @@ struct ocp_recovery_device_hw {
 	 *
 	 * @return The number of bytes written to the device ID buffer or an error code.
 	 */
-	int (*get_device_id) (struct ocp_recovery_device_hw *recovery_hw,
+	int (*get_device_id) (const struct ocp_recovery_device_hw *recovery_hw,
 		struct ocp_recovery_device_id *id);
 
 	/**
@@ -125,7 +125,7 @@ struct ocp_recovery_device_hw {
 	 * recovery mode, this should be set to OCP_RECOVERY_DEVICE_STATUS_REC_NO_FAILURE.
 	 * @param vendor Detailed error status using RoT error codes.
 	 */
-	void (*get_device_status) (struct ocp_recovery_device_hw *recovery_hw,
+	void (*get_device_status) (const struct ocp_recovery_device_hw *recovery_hw,
 		enum ocp_recovery_device_status_code *status_code,
 		enum ocp_recovery_recovery_reason_code *reason_code,
 		struct ocp_recovery_device_status_vendor *vendor);
@@ -140,7 +140,7 @@ struct ocp_recovery_device_hw {
 	 * @param forced_recovery Flag indicating if the device should be forced into recovery mode upon
 	 * reset.  If forced recovery is not supported, this parameter will be ignored.
 	 */
-	void (*reset_device) (struct ocp_recovery_device_hw *recovery_hw, bool forced_recovery);
+	void (*reset_device) (const struct ocp_recovery_device_hw *recovery_hw, bool forced_recovery);
 
 	/**
 	 * Execute a reset of the device management entity only.  This must not disrupt any bus
@@ -153,7 +153,8 @@ struct ocp_recovery_device_hw {
 	 * @param forced_recovery Flag indicating if the device should be forced into recovery mode upon
 	 * reset.  If forced recovery is not supported, this parameter will be ignored.
 	 */
-	void (*reset_management) (struct ocp_recovery_device_hw *recovery_hw, bool forced_recovery);
+	void (*reset_management) (const struct ocp_recovery_device_hw *recovery_hw,
+		bool forced_recovery);
 
 	/**
 	 * Validate and prepare a recovery image for execution.  The recovery image will written to a
@@ -168,7 +169,7 @@ struct ocp_recovery_device_hw {
 	 *
 	 * @return 0 if recovery image was successfully activated or an error code.
 	 */
-	int (*activate_recovery) (struct ocp_recovery_device_hw *recovery_hw,
+	int (*activate_recovery) (const struct ocp_recovery_device_hw *recovery_hw,
 		const struct ocp_recovery_device_cms *recovery, bool *is_auth_error);
 
 	/**
@@ -195,7 +196,7 @@ struct ocp_recovery_device_state {
  */
 struct ocp_recovery_device {
 	struct ocp_recovery_device_state *state;			/**< The variable context for the handler. */
-	struct ocp_recovery_device_hw *hw;					/**< HW interface to the device. */
+	const struct ocp_recovery_device_hw *hw;			/**< HW interface to the device. */
 	const struct ocp_recovery_device_cms *cms;			/**< Memory regions available for recovery commands. */
 	size_t cms_count;									/**< Number of memory regions supported. */
 };
@@ -222,21 +223,21 @@ struct ocp_recovery_device {
 	}
 
 int ocp_recovery_device_init (struct ocp_recovery_device *device,
-	struct ocp_recovery_device_state *state, struct ocp_recovery_device_hw *hw,
+	struct ocp_recovery_device_state *state, const struct ocp_recovery_device_hw *hw,
 	const struct ocp_recovery_device_cms *cms_list, size_t cms_count);
 int ocp_recovery_device_init_state (const struct ocp_recovery_device *device);
-void ocp_recovery_device_release (struct ocp_recovery_device *device);
+void ocp_recovery_device_release (const struct ocp_recovery_device *device);
 
-int ocp_recovery_device_start_new_command (struct ocp_recovery_device *device,
+int ocp_recovery_device_start_new_command (const struct ocp_recovery_device *device,
 	uint8_t command_code);
 
-int ocp_recovery_device_write_request (struct ocp_recovery_device *device,
+int ocp_recovery_device_write_request (const struct ocp_recovery_device *device,
 	const union ocp_recovery_device_cmd_buffer *data, size_t length);
-int ocp_recovery_device_read_request (struct ocp_recovery_device *device,
+int ocp_recovery_device_read_request (const struct ocp_recovery_device *device,
 	union ocp_recovery_device_cmd_buffer *data);
 
-void ocp_recovery_device_checksum_failure (struct ocp_recovery_device *device);
-void ocp_recovery_device_write_overflow (struct ocp_recovery_device *device);
+void ocp_recovery_device_checksum_failure (const struct ocp_recovery_device *device);
+void ocp_recovery_device_write_overflow (const struct ocp_recovery_device *device);
 
 
 #define	OCP_RECOVERY_DEVICE_ERROR(code)		ROT_ERROR (ROT_MODULE_OCP_RECOVERY_DEVICE, code)

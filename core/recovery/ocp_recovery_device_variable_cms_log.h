@@ -20,7 +20,7 @@ struct ocp_recovery_device_variable_cms_log {
 int ocp_recovery_device_variable_cms_log_init (struct ocp_recovery_device_variable_cms_log *cms,
 	struct logging *log);
 void ocp_recovery_device_variable_cms_log_release (
-	struct ocp_recovery_device_variable_cms_log *cms);
+	const struct ocp_recovery_device_variable_cms_log *cms);
 
 
 #endif /* OCP_RECOVERY_DEVICE_VARIABLE_CMS_LOG_H_ */

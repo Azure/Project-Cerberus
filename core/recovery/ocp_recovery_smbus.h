@@ -41,7 +41,7 @@ struct ocp_recovery_smbus_state {
  */
 struct ocp_recovery_smbus {
 	struct ocp_recovery_smbus_state *state;		/**< The variable context for the handler. */
-	struct ocp_recovery_device *device;			/**< The device handler for recovery commands. */
+	const struct ocp_recovery_device *device;	/**< The device handler for recovery commands. */
 };
 
 
@@ -60,15 +60,15 @@ struct ocp_recovery_smbus {
 	}
 
 int ocp_recovery_smbus_init (struct ocp_recovery_smbus *smbus,
-	struct ocp_recovery_smbus_state *state, struct ocp_recovery_device *device);
+	struct ocp_recovery_smbus_state *state, const struct ocp_recovery_device *device);
 int ocp_recovery_smbus_init_state (const struct ocp_recovery_smbus *smbus);
-void ocp_recovery_smbus_release (struct ocp_recovery_smbus *smbus);
+void ocp_recovery_smbus_release (const struct ocp_recovery_smbus *smbus);
 
-void ocp_recovery_smbus_start (struct ocp_recovery_smbus *smbus, uint8_t smbus_addr);
-void ocp_recovery_smbus_stop (struct ocp_recovery_smbus *smbus);
+void ocp_recovery_smbus_start (const struct ocp_recovery_smbus *smbus, uint8_t smbus_addr);
+void ocp_recovery_smbus_stop (const struct ocp_recovery_smbus *smbus);
 
-int ocp_recovery_smbus_receive_byte (struct ocp_recovery_smbus *smbus, uint8_t data);
-int ocp_recovery_smbus_transmit_bytes (struct ocp_recovery_smbus *smbus, uint8_t smbus_addr,
+int ocp_recovery_smbus_receive_byte (const struct ocp_recovery_smbus *smbus, uint8_t data);
+int ocp_recovery_smbus_transmit_bytes (const struct ocp_recovery_smbus *smbus, uint8_t smbus_addr,
 	const union ocp_recovery_smbus_cmd_buffer **data);
 
 

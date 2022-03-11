@@ -8,9 +8,11 @@
 
 
 /* Internal functions declared to allow for static initialization. */
-int ocp_recovery_device_variable_cms_log_get_size (struct ocp_recovery_device_variable_cms *cms);
-int ocp_recovery_device_variable_cms_log_get_data (struct ocp_recovery_device_variable_cms *cms,
-	size_t offset, uint8_t *data, size_t length);
+int ocp_recovery_device_variable_cms_log_get_size (
+	const struct ocp_recovery_device_variable_cms *cms);
+int ocp_recovery_device_variable_cms_log_get_data (
+	const struct ocp_recovery_device_variable_cms *cms, size_t offset, uint8_t *data,
+	size_t length);
 
 
 /**

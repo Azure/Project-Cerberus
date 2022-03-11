@@ -91,4 +91,4 @@ int debug_log_get_size (void);
 int debug_log_read_contents (uint32_t offset, uint8_t *contents, size_t length);
 
 
-#endif //DEBUG_LOG_H_
+#endif /* DEBUG_LOG_H_ */

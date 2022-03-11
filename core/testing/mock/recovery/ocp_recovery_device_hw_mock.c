@@ -7,8 +7,8 @@
 #include "ocp_recovery_device_hw_mock.h"
 
 
-static int ocp_recovery_device_hw_mock_get_device_id (struct ocp_recovery_device_hw *recovery_hw,
-	struct ocp_recovery_device_id *id)
+static int ocp_recovery_device_hw_mock_get_device_id (
+	const struct ocp_recovery_device_hw *recovery_hw, struct ocp_recovery_device_id *id)
 {
 	struct ocp_recovery_device_hw_mock *mock = (struct ocp_recovery_device_hw_mock*) recovery_hw;
 
@@ -21,7 +21,8 @@ static int ocp_recovery_device_hw_mock_get_device_id (struct ocp_recovery_device
 }
 
 static void ocp_recovery_device_hw_mock_get_device_status (
-	struct ocp_recovery_device_hw *recovery_hw, enum ocp_recovery_device_status_code *status_code,
+	const struct ocp_recovery_device_hw *recovery_hw,
+	enum ocp_recovery_device_status_code *status_code,
 	enum ocp_recovery_recovery_reason_code *reason_code,
 	struct ocp_recovery_device_status_vendor *vendor)
 {
@@ -35,8 +36,8 @@ static void ocp_recovery_device_hw_mock_get_device_status (
 		MOCK_ARG_CALL (status_code), MOCK_ARG_CALL (reason_code), MOCK_ARG_CALL (vendor));
 }
 
-static void ocp_recovery_device_hw_mock_reset_device (struct ocp_recovery_device_hw *recovery_hw,
-	bool forced_recovery)
+static void ocp_recovery_device_hw_mock_reset_device (
+	const struct ocp_recovery_device_hw *recovery_hw, bool forced_recovery)
 {
 	struct ocp_recovery_device_hw_mock *mock = (struct ocp_recovery_device_hw_mock*) recovery_hw;
 
@@ -49,7 +50,7 @@ static void ocp_recovery_device_hw_mock_reset_device (struct ocp_recovery_device
 }
 
 static void ocp_recovery_device_hw_mock_reset_management (
-	struct ocp_recovery_device_hw *recovery_hw, bool forced_recovery)
+	const struct ocp_recovery_device_hw *recovery_hw, bool forced_recovery)
 {
 	struct ocp_recovery_device_hw_mock *mock = (struct ocp_recovery_device_hw_mock*) recovery_hw;
 
@@ -62,8 +63,8 @@ static void ocp_recovery_device_hw_mock_reset_management (
 }
 
 static int ocp_recovery_device_hw_mock_activate_recovery (
-	struct ocp_recovery_device_hw *recovery_hw, const struct ocp_recovery_device_cms *recovery,
-	bool *is_auth_error)
+	const struct ocp_recovery_device_hw *recovery_hw,
+	const struct ocp_recovery_device_cms *recovery, bool *is_auth_error)
 {
 	struct ocp_recovery_device_hw_mock *mock = (struct ocp_recovery_device_hw_mock*) recovery_hw;
 
