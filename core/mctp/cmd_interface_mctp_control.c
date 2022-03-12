@@ -99,6 +99,7 @@ static int cmd_interface_mctp_control_process_request (struct cmd_interface *int
 	return status;
 }
 
+#ifdef CMD_ENABLE_ISSUE_REQUEST
 static int cmd_interface_mctp_control_process_response (struct cmd_interface *intf,
 	struct cmd_interface_msg *response)
 {
@@ -154,6 +155,7 @@ static int cmd_interface_mctp_control_process_response (struct cmd_interface *in
 			return CMD_HANDLER_MCTP_CTRL_UNKNOWN_RESPONSE;
 	}
 }
+#endif
 
 static int cmd_interface_mctp_control_generate_error_packet (struct cmd_interface *intf,
 	struct cmd_interface_msg *request, uint8_t error_code, uint32_t error_data, uint8_t cmd_set)
