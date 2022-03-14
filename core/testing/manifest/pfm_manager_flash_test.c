@@ -191,7 +191,9 @@ struct pfm_manager_flash_testing {
 	struct signature_verification_mock verification;	/**< PFM signature verification. */
 	struct flash_master_mock flash_mock;				/**< Flash master for PFM flash. */
 	struct flash_master_mock flash_mock_state;			/**< Flash master for host state flash. */
+	struct spi_flash_state flash_context;				/**< PFM flash context. */
 	struct spi_flash flash;								/**< Flash containing the PFM data. */
+	struct spi_flash_state flash_state_context;			/**< Host state flash context. */
 	struct spi_flash flash_state;						/**< Flash containing the host state. */
 	struct host_state_manager state_mgr;				/**< Manager for host state. */
 	struct pfm_flash pfm1;								/**< The first PFM. */
@@ -223,7 +225,8 @@ static void pfm_manager_flash_testing_init_host_state (CuTest *test,
 	status = flash_master_mock_init (&manager->flash_mock_state);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&manager->flash_state, &manager->flash_mock_state.base);
+	status = spi_flash_init (&manager->flash_state, &manager->flash_state_context,
+		&manager->flash_mock_state.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&manager->flash_state, 0x1000000);
@@ -272,7 +275,7 @@ static void pfm_manager_flash_testing_init_dependencies (CuTest *test,
 	status = flash_master_mock_init (&manager->flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&manager->flash, &manager->flash_mock.base);
+	status = spi_flash_init (&manager->flash, &manager->flash_context, &manager->flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&manager->flash, 0x1000000);

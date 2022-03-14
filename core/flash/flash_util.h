@@ -33,97 +33,101 @@ struct flash_region {
 };
 
 
-int flash_verify_contents (struct flash *flash, uint32_t start_addr, size_t length,
+int flash_verify_contents (const struct flash *flash, uint32_t start_addr, size_t length,
 	struct hash_engine *hash, enum hash_type type, struct rsa_engine *rsa, const uint8_t *signature,
 	size_t sig_length, const struct rsa_public_key *pub_key, uint8_t *hash_out, size_t hash_length);
-int flash_verify_noncontiguous_contents (struct flash *flash, const struct flash_region *regions,
-	size_t count, struct hash_engine *hash, enum hash_type type, struct rsa_engine *rsa,
-	const uint8_t *signature, size_t sig_length, const struct rsa_public_key *pub_key,
-	uint8_t *hash_out, size_t hash_length);
-int flash_verify_noncontiguous_contents_at_offset (struct flash *flash, uint32_t offset,
+int flash_verify_noncontiguous_contents (const struct flash *flash,
+	const struct flash_region *regions, size_t count, struct hash_engine *hash, enum hash_type type,
+	struct rsa_engine *rsa, const uint8_t *signature, size_t sig_length,
+	const struct rsa_public_key *pub_key, uint8_t *hash_out, size_t hash_length);
+int flash_verify_noncontiguous_contents_at_offset (const struct flash *flash, uint32_t offset,
 	const struct flash_region *regions, size_t count, struct hash_engine *hash, enum hash_type type,
 	struct rsa_engine *rsa, const uint8_t *signature, size_t sig_length,
 	const struct rsa_public_key *pub_key, uint8_t *hash_out, size_t hash_length);
 
-int flash_contents_verification (struct flash *flash, uint32_t start_addr, size_t length,
+int flash_contents_verification (const struct flash *flash, uint32_t start_addr, size_t length,
 	struct hash_engine *hash, enum hash_type type, struct signature_verification *verification,
 	const uint8_t *signature, size_t sig_length, uint8_t *hash_out, size_t hash_length);
-int flash_noncontiguous_contents_verification (struct flash *flash,
+int flash_noncontiguous_contents_verification (const struct flash *flash,
 	const struct flash_region *regions, size_t count, struct hash_engine *hash, enum hash_type type,
 	struct signature_verification *verification, const uint8_t *signature, size_t sig_length,
 	uint8_t *hash_out, size_t hash_length);
-int flash_noncontiguous_contents_verification_at_offset (struct flash *flash, uint32_t offset,
+int flash_noncontiguous_contents_verification_at_offset (const struct flash *flash, uint32_t offset,
 	const struct flash_region *regions, size_t count, struct hash_engine *hash, enum hash_type type,
 	struct signature_verification *verification, const uint8_t *signature, size_t sig_length,
 	uint8_t *hash_out, size_t hash_length);
 
-int flash_hash_contents (struct flash *flash, uint32_t start_addr, size_t length,
+int flash_hash_contents (const struct flash *flash, uint32_t start_addr, size_t length,
 	struct hash_engine *hash, enum hash_type type, uint8_t *hash_out, size_t hash_length);
-int flash_hash_noncontiguous_contents (struct flash *flash, const struct flash_region *regions,
-	size_t count, struct hash_engine *hash, enum hash_type type, uint8_t *hash_out,
-	size_t hash_length);
-int flash_hash_noncontiguous_contents_at_offset (struct flash *flash, uint32_t offset,
+int flash_hash_noncontiguous_contents (const struct flash *flash,
+	const struct flash_region *regions, size_t count, struct hash_engine *hash, enum hash_type type,
+	uint8_t *hash_out, size_t hash_length);
+int flash_hash_noncontiguous_contents_at_offset (const struct flash *flash, uint32_t offset,
 	const struct flash_region *regions, size_t count, struct hash_engine *hash, enum hash_type type,
 	uint8_t *hash_out, size_t hash_length);
 
-int flash_hash_update_contents (struct flash *flash, uint32_t start_addr, size_t length,
+int flash_hash_update_contents (const struct flash *flash, uint32_t start_addr, size_t length,
 	struct hash_engine *hash);
-int flash_hash_update_noncontiguous_contents (struct flash *flash,
+int flash_hash_update_noncontiguous_contents (const struct flash *flash,
 	const struct flash_region *regions, size_t count, struct hash_engine *hash);
-int flash_hash_update_noncontiguous_contents_at_offset (struct flash *flash, uint32_t offset,
+int flash_hash_update_noncontiguous_contents_at_offset (const struct flash *flash, uint32_t offset,
 	const struct flash_region *regions, size_t count, struct hash_engine *hash);
 
-int flash_erase_region (struct flash *flash, uint32_t start_addr, size_t length);
-int flash_sector_erase_region (struct flash *flash, uint32_t start_addr, size_t length);
-int flash_blank_check (struct flash *flash, uint32_t start_addr, size_t length);
-int flash_value_check (struct flash *flash, uint32_t start_addr, size_t length, uint8_t value);
+int flash_erase_region (const struct flash *flash, uint32_t start_addr, size_t length);
+int flash_sector_erase_region (const struct flash *flash, uint32_t start_addr, size_t length);
+int flash_blank_check (const struct flash *flash, uint32_t start_addr, size_t length);
+int flash_value_check (const struct flash *flash, uint32_t start_addr, size_t length,
+	uint8_t value);
 
-int flash_erase_region_and_verify (struct flash *flash, uint32_t start_addr, size_t length);
-int flash_sector_erase_region_and_verify (struct flash *flash, uint32_t start_addr, size_t length);
-
-int flash_program_data (struct flash *flash, uint32_t start_addr, const uint8_t *data,
-	size_t length);
-int flash_sector_program_data (struct flash *flash, uint32_t start_addr, const uint8_t *data,
-	size_t length);
-int flash_verify_data (struct flash *flash, uint32_t start_addr, const uint8_t *data,
+int flash_erase_region_and_verify (const struct flash *flash, uint32_t start_addr, size_t length);
+int flash_sector_erase_region_and_verify (const struct flash *flash, uint32_t start_addr,
 	size_t length);
 
-int flash_program_and_verify (struct flash *flash, uint32_t start_addr, const uint8_t *data,
+int flash_program_data (const struct flash *flash, uint32_t start_addr, const uint8_t *data,
 	size_t length);
-int flash_sector_program_and_verify (struct flash *flash, uint32_t start_addr, const uint8_t *data,
+int flash_sector_program_data (const struct flash *flash, uint32_t start_addr, const uint8_t *data,
 	size_t length);
-int flash_write_and_verify (struct flash *flash, uint32_t start_addr, const uint8_t *data,
-	size_t length);
-
-int flash_copy (struct flash *flash, uint32_t dest_addr, uint32_t src_addr, size_t length);
-int flash_sector_copy (struct flash *flash, uint32_t dest_addr, uint32_t src_addr, size_t length);
-int flash_verify_copy (struct flash *flash, uint32_t addr1, uint32_t addr2, size_t length);
-
-int flash_copy_and_verify (struct flash *flash, uint32_t dest_addr, uint32_t src_addr,
-	size_t length);
-int flash_sector_copy_and_verify (struct flash *flash, uint32_t dest_addr, uint32_t src_addr,
+int flash_verify_data (const struct flash *flash, uint32_t start_addr, const uint8_t *data,
 	size_t length);
 
-int flash_copy_to_blank (struct flash *flash, uint32_t dest_addr, uint32_t src_addr, size_t length);
-int flash_copy_to_blank_and_verify (struct flash *flash, uint32_t dest_addr, uint32_t src_addr,
+int flash_program_and_verify (const struct flash *flash, uint32_t start_addr, const uint8_t *data,
+	size_t length);
+int flash_sector_program_and_verify (const struct flash *flash, uint32_t start_addr,
+	const uint8_t *data, size_t length);
+int flash_write_and_verify (const struct flash *flash, uint32_t start_addr, const uint8_t *data,
 	size_t length);
 
-int flash_copy_ext (struct flash *dest_flash, uint32_t dest_addr, struct flash *src_flash,
+int flash_copy (const struct flash *flash, uint32_t dest_addr, uint32_t src_addr, size_t length);
+int flash_sector_copy (const struct flash *flash, uint32_t dest_addr, uint32_t src_addr,
+	size_t length);
+int flash_verify_copy (const struct flash *flash, uint32_t addr1, uint32_t addr2, size_t length);
+
+int flash_copy_and_verify (const struct flash *flash, uint32_t dest_addr, uint32_t src_addr,
+	size_t length);
+int flash_sector_copy_and_verify (const struct flash *flash, uint32_t dest_addr, uint32_t src_addr,
+	size_t length);
+
+int flash_copy_to_blank (const struct flash *flash, uint32_t dest_addr, uint32_t src_addr,
+	size_t length);
+int flash_copy_to_blank_and_verify (const struct flash *flash, uint32_t dest_addr,
 	uint32_t src_addr, size_t length);
-int flash_sector_copy_ext (struct flash *dest_flash, uint32_t dest_addr, struct flash *src_flash,
-	uint32_t src_addr, size_t length);
-int flash_verify_copy_ext (struct flash *flash1, uint32_t addr1, struct flash *flash2,
+
+int flash_copy_ext (const struct flash *dest_flash, uint32_t dest_addr,
+	const struct flash *src_flash, uint32_t src_addr, size_t length);
+int flash_sector_copy_ext (const struct flash *dest_flash, uint32_t dest_addr,
+	const struct flash *src_flash, uint32_t src_addr, size_t length);
+int flash_verify_copy_ext (const struct flash *flash1, uint32_t addr1, const struct flash *flash2,
 	uint32_t addr2, size_t length);
 
-int flash_copy_ext_and_verify (struct flash *dest_flash, uint32_t dest_addr,
-	struct flash *src_flash, uint32_t src_addr, size_t length);
-int flash_sector_copy_ext_and_verify (struct flash *dest_flash, uint32_t dest_addr,
-	struct flash *src_flash, uint32_t src_addr, size_t length);
+int flash_copy_ext_and_verify (const struct flash *dest_flash, uint32_t dest_addr,
+	const struct flash *src_flash, uint32_t src_addr, size_t length);
+int flash_sector_copy_ext_and_verify (const struct flash *dest_flash, uint32_t dest_addr,
+	const struct flash *src_flash, uint32_t src_addr, size_t length);
 
-int flash_copy_ext_to_blank (struct flash *dest_flash, uint32_t dest_addr, struct flash *src_flash,
-	uint32_t src_addr, size_t length);
-int flash_copy_ext_to_blank_and_verify (struct flash *dest_flash, uint32_t dest_addr,
-	struct flash *src_flash, uint32_t src_addr, size_t length);
+int flash_copy_ext_to_blank (const struct flash *dest_flash, uint32_t dest_addr,
+	const struct flash *src_flash, uint32_t src_addr, size_t length);
+int flash_copy_ext_to_blank_and_verify (const struct flash *dest_flash, uint32_t dest_addr,
+	const struct flash *src_flash, uint32_t src_addr, size_t length);
 
 
 #define	FLASH_UTIL_ERROR(code)		ROT_ERROR (ROT_MODULE_FLASH_UTIL, code)

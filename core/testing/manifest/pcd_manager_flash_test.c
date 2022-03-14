@@ -33,7 +33,9 @@ struct pcd_manager_flash_testing {
 	struct signature_verification_mock verification;	/**< PCD signature verification. */
 	struct flash_master_mock flash_mock;				/**< Flash master for PCD flash. */
 	struct flash_master_mock flash_mock_state;			/**< Flash master for host state flash. */
+	struct spi_flash_state flash_context;				/**< PCD flash context. */
 	struct spi_flash flash;								/**< Flash containing the PCD data. */
+	struct spi_flash_state flash_state_context;			/**< Host state flash context. */
 	struct spi_flash flash_state;						/**< Flash containing the host state. */
 	struct state_manager state_mgr;						/**< Manager for host state. */
 	struct pcd_flash pcd1;								/**< The first PCD. */
@@ -65,7 +67,8 @@ static void pcd_manager_flash_testing_init_system_state (CuTest *test,
 	status = flash_master_mock_init (&manager->flash_mock_state);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&manager->flash_state, &manager->flash_mock_state.base);
+	status = spi_flash_init (&manager->flash_state, &manager->flash_state_context,
+		&manager->flash_mock_state.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&manager->flash_state, 0x1000000);
@@ -114,7 +117,7 @@ static void pcd_manager_flash_testing_init_dependencies (CuTest *test,
 	status = flash_master_mock_init (&manager->flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&manager->flash, &manager->flash_mock.base);
+	status = spi_flash_init (&manager->flash, &manager->flash_context, &manager->flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&manager->flash, 0x1000000);
@@ -2161,8 +2164,8 @@ static void pcd_manager_flash_test_verify_pending_pcd_upgrade_platform_id (CuTes
 
 	pcd_manager_flash_testing_write_new_pcd (test, &manager, 0x20000);
 
-	status = pcd_manager_flash_testing_verify_a_pcd (&manager, 0x20000, &PCD_SKU_SPECIFIC_TESTING, 
-		0); 
+	status = pcd_manager_flash_testing_verify_a_pcd (&manager, 0x20000, &PCD_SKU_SPECIFIC_TESTING,
+		0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);

@@ -21,7 +21,9 @@ static void host_processor_dual_test_flash_rollback_no_pfm (CuTest *test)
 	struct host_processor_dual_testing host;
 	struct flash_master_mock flash1_mock_host;
 	struct flash_master_mock flash2_mock_host;
+	struct spi_flash_state state1_host;
 	struct spi_flash flash1_host;
+	struct spi_flash_state state2_host;
 	struct spi_flash flash2_host;
 	int status;
 	const int flash_size = 0x300;
@@ -45,10 +47,10 @@ static void host_processor_dual_test_flash_rollback_no_pfm (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 	flash2_mock_host.mock.name = "flash2_mock_host";
 
-	status = spi_flash_init (&flash1_host, &flash1_mock_host.base);
+	status = spi_flash_init (&flash1_host, &state1_host, &flash1_mock_host.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2_host, &flash2_mock_host.base);
+	status = spi_flash_init (&flash2_host, &state2_host, &flash2_mock_host.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1_host, flash_size);
@@ -107,7 +109,9 @@ static void host_processor_dual_test_flash_rollback_no_pfm_bypass (CuTest *test)
 	struct host_processor_dual_testing host;
 	struct flash_master_mock flash1_mock_host;
 	struct flash_master_mock flash2_mock_host;
+	struct spi_flash_state state1_host;
 	struct spi_flash flash1_host;
+	struct spi_flash_state state2_host;
 	struct spi_flash flash2_host;
 	int status;
 	const int flash_size = 0x300;
@@ -131,10 +135,10 @@ static void host_processor_dual_test_flash_rollback_no_pfm_bypass (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 	flash2_mock_host.mock.name = "flash2_mock_host";
 
-	status = spi_flash_init (&flash1_host, &flash1_mock_host.base);
+	status = spi_flash_init (&flash1_host, &state1_host, &flash1_mock_host.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2_host, &flash2_mock_host.base);
+	status = spi_flash_init (&flash2_host, &state2_host, &flash2_mock_host.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1_host, flash_size);
@@ -195,7 +199,9 @@ static void host_processor_dual_test_flash_rollback_no_pfm_checked (CuTest *test
 	struct host_processor_dual_testing host;
 	struct flash_master_mock flash1_mock_host;
 	struct flash_master_mock flash2_mock_host;
+	struct spi_flash_state state1_host;
 	struct spi_flash flash1_host;
+	struct spi_flash_state state2_host;
 	struct spi_flash flash2_host;
 	int status;
 	const int flash_size = 0x300;
@@ -219,10 +225,10 @@ static void host_processor_dual_test_flash_rollback_no_pfm_checked (CuTest *test
 	CuAssertIntEquals (test, 0, status);
 	flash2_mock_host.mock.name = "flash2_mock_host";
 
-	status = spi_flash_init (&flash1_host, &flash1_mock_host.base);
+	status = spi_flash_init (&flash1_host, &state1_host, &flash1_mock_host.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2_host, &flash2_mock_host.base);
+	status = spi_flash_init (&flash2_host, &state2_host, &flash2_mock_host.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1_host, flash_size);
@@ -283,7 +289,9 @@ static void host_processor_dual_test_flash_rollback_no_pfm_checked_bypass (CuTes
 	struct host_processor_dual_testing host;
 	struct flash_master_mock flash1_mock_host;
 	struct flash_master_mock flash2_mock_host;
+	struct spi_flash_state state1_host;
 	struct spi_flash flash1_host;
+	struct spi_flash_state state2_host;
 	struct spi_flash flash2_host;
 	int status;
 	const int flash_size = 0x300;
@@ -307,10 +315,10 @@ static void host_processor_dual_test_flash_rollback_no_pfm_checked_bypass (CuTes
 	CuAssertIntEquals (test, 0, status);
 	flash2_mock_host.mock.name = "flash2_mock_host";
 
-	status = spi_flash_init (&flash1_host, &flash1_mock_host.base);
+	status = spi_flash_init (&flash1_host, &state1_host, &flash1_mock_host.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2_host, &flash2_mock_host.base);
+	status = spi_flash_init (&flash2_host, &state2_host, &flash2_mock_host.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1_host, flash_size);
@@ -372,7 +380,9 @@ static void host_processor_dual_test_flash_rollback_no_pfm_dirty (CuTest *test)
 	struct host_processor_dual_testing host;
 	struct flash_master_mock flash1_mock_host;
 	struct flash_master_mock flash2_mock_host;
+	struct spi_flash_state state1_host;
 	struct spi_flash flash1_host;
+	struct spi_flash_state state2_host;
 	struct spi_flash flash2_host;
 	int status;
 	const int flash_size = 0x300;
@@ -396,10 +406,10 @@ static void host_processor_dual_test_flash_rollback_no_pfm_dirty (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 	flash2_mock_host.mock.name = "flash2_mock_host";
 
-	status = spi_flash_init (&flash1_host, &flash1_mock_host.base);
+	status = spi_flash_init (&flash1_host, &state1_host, &flash1_mock_host.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2_host, &flash2_mock_host.base);
+	status = spi_flash_init (&flash2_host, &state2_host, &flash2_mock_host.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1_host, flash_size);
@@ -464,7 +474,9 @@ static void host_processor_dual_test_flash_rollback_no_pfm_dirty_bypass (CuTest 
 	struct host_processor_dual_testing host;
 	struct flash_master_mock flash1_mock_host;
 	struct flash_master_mock flash2_mock_host;
+	struct spi_flash_state state1_host;
 	struct spi_flash flash1_host;
+	struct spi_flash_state state2_host;
 	struct spi_flash flash2_host;
 	int status;
 	const int flash_size = 0x300;
@@ -488,10 +500,10 @@ static void host_processor_dual_test_flash_rollback_no_pfm_dirty_bypass (CuTest 
 	CuAssertIntEquals (test, 0, status);
 	flash2_mock_host.mock.name = "flash2_mock_host";
 
-	status = spi_flash_init (&flash1_host, &flash1_mock_host.base);
+	status = spi_flash_init (&flash1_host, &state1_host, &flash1_mock_host.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2_host, &flash2_mock_host.base);
+	status = spi_flash_init (&flash2_host, &state2_host, &flash2_mock_host.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1_host, flash_size);
@@ -558,7 +570,9 @@ static void host_processor_dual_test_flash_rollback_no_pfm_dirty_checked (CuTest
 	struct host_processor_dual_testing host;
 	struct flash_master_mock flash1_mock_host;
 	struct flash_master_mock flash2_mock_host;
+	struct spi_flash_state state1_host;
 	struct spi_flash flash1_host;
+	struct spi_flash_state state2_host;
 	struct spi_flash flash2_host;
 	int status;
 	const int flash_size = 0x300;
@@ -582,10 +596,10 @@ static void host_processor_dual_test_flash_rollback_no_pfm_dirty_checked (CuTest
 	CuAssertIntEquals (test, 0, status);
 	flash2_mock_host.mock.name = "flash2_mock_host";
 
-	status = spi_flash_init (&flash1_host, &flash1_mock_host.base);
+	status = spi_flash_init (&flash1_host, &state1_host, &flash1_mock_host.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2_host, &flash2_mock_host.base);
+	status = spi_flash_init (&flash2_host, &state2_host, &flash2_mock_host.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1_host, flash_size);
@@ -652,7 +666,9 @@ static void host_processor_dual_test_flash_rollback_no_pfm_dirty_checked_bypass 
 	struct host_processor_dual_testing host;
 	struct flash_master_mock flash1_mock_host;
 	struct flash_master_mock flash2_mock_host;
+	struct spi_flash_state state1_host;
 	struct spi_flash flash1_host;
+	struct spi_flash_state state2_host;
 	struct spi_flash flash2_host;
 	int status;
 	const int flash_size = 0x300;
@@ -676,10 +692,10 @@ static void host_processor_dual_test_flash_rollback_no_pfm_dirty_checked_bypass 
 	CuAssertIntEquals (test, 0, status);
 	flash2_mock_host.mock.name = "flash2_mock_host";
 
-	status = spi_flash_init (&flash1_host, &flash1_mock_host.base);
+	status = spi_flash_init (&flash1_host, &state1_host, &flash1_mock_host.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2_host, &flash2_mock_host.base);
+	status = spi_flash_init (&flash2_host, &state2_host, &flash2_mock_host.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1_host, flash_size);
@@ -747,7 +763,9 @@ static void host_processor_dual_test_flash_rollback_no_pfm_pulse_reset (CuTest *
 	struct host_processor_dual_testing host;
 	struct flash_master_mock flash1_mock_host;
 	struct flash_master_mock flash2_mock_host;
+	struct spi_flash_state state1_host;
 	struct spi_flash flash1_host;
+	struct spi_flash_state state2_host;
 	struct spi_flash flash2_host;
 	int status;
 	const int flash_size = 0x300;
@@ -771,10 +789,10 @@ static void host_processor_dual_test_flash_rollback_no_pfm_pulse_reset (CuTest *
 	CuAssertIntEquals (test, 0, status);
 	flash2_mock_host.mock.name = "flash2_mock_host";
 
-	status = spi_flash_init (&flash1_host, &flash1_mock_host.base);
+	status = spi_flash_init (&flash1_host, &state1_host, &flash1_mock_host.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2_host, &flash2_mock_host.base);
+	status = spi_flash_init (&flash2_host, &state2_host, &flash2_mock_host.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1_host, flash_size);
@@ -833,7 +851,9 @@ static void host_processor_dual_test_flash_rollback_no_pfm_disable_bypass (CuTes
 	struct host_processor_dual_testing host;
 	struct flash_master_mock flash1_mock_host;
 	struct flash_master_mock flash2_mock_host;
+	struct spi_flash_state state1_host;
 	struct spi_flash flash1_host;
+	struct spi_flash_state state2_host;
 	struct spi_flash flash2_host;
 	int status;
 
@@ -850,10 +870,10 @@ static void host_processor_dual_test_flash_rollback_no_pfm_disable_bypass (CuTes
 	CuAssertIntEquals (test, 0, status);
 	flash2_mock_host.mock.name = "flash2_mock_host";
 
-	status = spi_flash_init (&flash1_host, &flash1_mock_host.base);
+	status = spi_flash_init (&flash1_host, &state1_host, &flash1_mock_host.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2_host, &flash2_mock_host.base);
+	status = spi_flash_init (&flash2_host, &state2_host, &flash2_mock_host.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
@@ -888,7 +908,9 @@ static void host_processor_dual_test_flash_rollback_no_pfm_no_reset (CuTest *tes
 	struct host_processor_dual_testing host;
 	struct flash_master_mock flash1_mock_host;
 	struct flash_master_mock flash2_mock_host;
+	struct spi_flash_state state1_host;
 	struct spi_flash flash1_host;
+	struct spi_flash_state state2_host;
 	struct spi_flash flash2_host;
 	int status;
 	const int flash_size = 0x300;
@@ -912,10 +934,10 @@ static void host_processor_dual_test_flash_rollback_no_pfm_no_reset (CuTest *tes
 	CuAssertIntEquals (test, 0, status);
 	flash2_mock_host.mock.name = "flash2_mock_host";
 
-	status = spi_flash_init (&flash1_host, &flash1_mock_host.base);
+	status = spi_flash_init (&flash1_host, &state1_host, &flash1_mock_host.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2_host, &flash2_mock_host.base);
+	status = spi_flash_init (&flash2_host, &state2_host, &flash2_mock_host.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1_host, flash_size);
@@ -969,7 +991,9 @@ static void host_processor_dual_test_flash_rollback_no_pfm_no_reset_pulse_reset 
 	struct host_processor_dual_testing host;
 	struct flash_master_mock flash1_mock_host;
 	struct flash_master_mock flash2_mock_host;
+	struct spi_flash_state state1_host;
 	struct spi_flash flash1_host;
+	struct spi_flash_state state2_host;
 	struct spi_flash flash2_host;
 	int status;
 	const int flash_size = 0x300;
@@ -993,10 +1017,10 @@ static void host_processor_dual_test_flash_rollback_no_pfm_no_reset_pulse_reset 
 	CuAssertIntEquals (test, 0, status);
 	flash2_mock_host.mock.name = "flash2_mock_host";
 
-	status = spi_flash_init (&flash1_host, &flash1_mock_host.base);
+	status = spi_flash_init (&flash1_host, &state1_host, &flash1_mock_host.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2_host, &flash2_mock_host.base);
+	status = spi_flash_init (&flash2_host, &state2_host, &flash2_mock_host.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1_host, flash_size);
@@ -1050,7 +1074,9 @@ static void host_processor_dual_test_flash_rollback_no_pfm_unsupported_flash (Cu
 	struct host_processor_dual_testing host;
 	struct flash_master_mock flash1_mock_host;
 	struct flash_master_mock flash2_mock_host;
+	struct spi_flash_state state1_host;
 	struct spi_flash flash1_host;
+	struct spi_flash_state state2_host;
 	struct spi_flash flash2_host;
 	int status;
 	const int flash_size = 0x300;
@@ -1074,10 +1100,10 @@ static void host_processor_dual_test_flash_rollback_no_pfm_unsupported_flash (Cu
 	CuAssertIntEquals (test, 0, status);
 	flash2_mock_host.mock.name = "flash2_mock_host";
 
-	status = spi_flash_init (&flash1_host, &flash1_mock_host.base);
+	status = spi_flash_init (&flash1_host, &state1_host, &flash1_mock_host.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2_host, &flash2_mock_host.base);
+	status = spi_flash_init (&flash2_host, &state2_host, &flash2_mock_host.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1_host, flash_size);
@@ -2704,7 +2730,9 @@ static void host_processor_dual_test_flash_rollback_no_pfm_rot_access_error (CuT
 	struct host_processor_dual_testing host;
 	struct flash_master_mock flash1_mock_host;
 	struct flash_master_mock flash2_mock_host;
+	struct spi_flash_state state1_host;
 	struct spi_flash flash1_host;
+	struct spi_flash_state state2_host;
 	struct spi_flash flash2_host;
 	int status;
 	const int flash_size = 0x300;
@@ -2722,10 +2750,10 @@ static void host_processor_dual_test_flash_rollback_no_pfm_rot_access_error (CuT
 	CuAssertIntEquals (test, 0, status);
 	flash2_mock_host.mock.name = "flash2_mock_host";
 
-	status = spi_flash_init (&flash1_host, &flash1_mock_host.base);
+	status = spi_flash_init (&flash1_host, &state1_host, &flash1_mock_host.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2_host, &flash2_mock_host.base);
+	status = spi_flash_init (&flash2_host, &state2_host, &flash2_mock_host.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1_host, flash_size);
@@ -2776,7 +2804,9 @@ static void host_processor_dual_test_flash_rollback_no_pfm_rot_access_error_puls
 	struct host_processor_dual_testing host;
 	struct flash_master_mock flash1_mock_host;
 	struct flash_master_mock flash2_mock_host;
+	struct spi_flash_state state1_host;
 	struct spi_flash flash1_host;
+	struct spi_flash_state state2_host;
 	struct spi_flash flash2_host;
 	int status;
 	const int flash_size = 0x300;
@@ -2794,10 +2824,10 @@ static void host_processor_dual_test_flash_rollback_no_pfm_rot_access_error_puls
 	CuAssertIntEquals (test, 0, status);
 	flash2_mock_host.mock.name = "flash2_mock_host";
 
-	status = spi_flash_init (&flash1_host, &flash1_mock_host.base);
+	status = spi_flash_init (&flash1_host, &state1_host, &flash1_mock_host.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2_host, &flash2_mock_host.base);
+	status = spi_flash_init (&flash2_host, &state2_host, &flash2_mock_host.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1_host, flash_size);
@@ -2848,7 +2878,9 @@ static void host_processor_dual_test_flash_rollback_no_pfm_rot_access_error_host
 	struct host_processor_dual_testing host;
 	struct flash_master_mock flash1_mock_host;
 	struct flash_master_mock flash2_mock_host;
+	struct spi_flash_state state1_host;
 	struct spi_flash flash1_host;
+	struct spi_flash_state state2_host;
 	struct spi_flash flash2_host;
 	int status;
 	const int flash_size = 0x300;
@@ -2866,10 +2898,10 @@ static void host_processor_dual_test_flash_rollback_no_pfm_rot_access_error_host
 	CuAssertIntEquals (test, 0, status);
 	flash2_mock_host.mock.name = "flash2_mock_host";
 
-	status = spi_flash_init (&flash1_host, &flash1_mock_host.base);
+	status = spi_flash_init (&flash1_host, &state1_host, &flash1_mock_host.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2_host, &flash2_mock_host.base);
+	status = spi_flash_init (&flash2_host, &state2_host, &flash2_mock_host.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1_host, flash_size);
@@ -2928,7 +2960,9 @@ static void host_processor_dual_test_flash_rollback_no_pfm_erase_error (CuTest *
 	struct host_processor_dual_testing host;
 	struct flash_master_mock flash1_mock_host;
 	struct flash_master_mock flash2_mock_host;
+	struct spi_flash_state state1_host;
 	struct spi_flash flash1_host;
+	struct spi_flash_state state2_host;
 	struct spi_flash flash2_host;
 	int status;
 	const int flash_size = 0x300;
@@ -2946,10 +2980,10 @@ static void host_processor_dual_test_flash_rollback_no_pfm_erase_error (CuTest *
 	CuAssertIntEquals (test, 0, status);
 	flash2_mock_host.mock.name = "flash2_mock_host";
 
-	status = spi_flash_init (&flash1_host, &flash1_mock_host.base);
+	status = spi_flash_init (&flash1_host, &state1_host, &flash1_mock_host.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2_host, &flash2_mock_host.base);
+	status = spi_flash_init (&flash2_host, &state2_host, &flash2_mock_host.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1_host, flash_size);
@@ -3007,7 +3041,9 @@ static void host_processor_dual_test_flash_rollback_no_pfm_erase_error_pulse_res
 	struct host_processor_dual_testing host;
 	struct flash_master_mock flash1_mock_host;
 	struct flash_master_mock flash2_mock_host;
+	struct spi_flash_state state1_host;
 	struct spi_flash flash1_host;
+	struct spi_flash_state state2_host;
 	struct spi_flash flash2_host;
 	int status;
 	const int flash_size = 0x300;
@@ -3025,10 +3061,10 @@ static void host_processor_dual_test_flash_rollback_no_pfm_erase_error_pulse_res
 	CuAssertIntEquals (test, 0, status);
 	flash2_mock_host.mock.name = "flash2_mock_host";
 
-	status = spi_flash_init (&flash1_host, &flash1_mock_host.base);
+	status = spi_flash_init (&flash1_host, &state1_host, &flash1_mock_host.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2_host, &flash2_mock_host.base);
+	status = spi_flash_init (&flash2_host, &state2_host, &flash2_mock_host.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1_host, flash_size);
@@ -3086,7 +3122,9 @@ static void host_processor_dual_test_flash_rollback_no_pfm_copy_error (CuTest *t
 	struct host_processor_dual_testing host;
 	struct flash_master_mock flash1_mock_host;
 	struct flash_master_mock flash2_mock_host;
+	struct spi_flash_state state1_host;
 	struct spi_flash flash1_host;
+	struct spi_flash_state state2_host;
 	struct spi_flash flash2_host;
 	int status;
 	const int flash_size = 0x300;
@@ -3104,10 +3142,10 @@ static void host_processor_dual_test_flash_rollback_no_pfm_copy_error (CuTest *t
 	CuAssertIntEquals (test, 0, status);
 	flash2_mock_host.mock.name = "flash2_mock_host";
 
-	status = spi_flash_init (&flash1_host, &flash1_mock_host.base);
+	status = spi_flash_init (&flash1_host, &state1_host, &flash1_mock_host.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2_host, &flash2_mock_host.base);
+	status = spi_flash_init (&flash2_host, &state2_host, &flash2_mock_host.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1_host, flash_size);
@@ -3166,7 +3204,9 @@ static void host_processor_dual_test_flash_rollback_no_pfm_copy_error_pulse_rese
 	struct host_processor_dual_testing host;
 	struct flash_master_mock flash1_mock_host;
 	struct flash_master_mock flash2_mock_host;
+	struct spi_flash_state state1_host;
 	struct spi_flash flash1_host;
+	struct spi_flash_state state2_host;
 	struct spi_flash flash2_host;
 	int status;
 	const int flash_size = 0x300;
@@ -3184,10 +3224,10 @@ static void host_processor_dual_test_flash_rollback_no_pfm_copy_error_pulse_rese
 	CuAssertIntEquals (test, 0, status);
 	flash2_mock_host.mock.name = "flash2_mock_host";
 
-	status = spi_flash_init (&flash1_host, &flash1_mock_host.base);
+	status = spi_flash_init (&flash1_host, &state1_host, &flash1_mock_host.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2_host, &flash2_mock_host.base);
+	status = spi_flash_init (&flash2_host, &state2_host, &flash2_mock_host.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1_host, flash_size);
@@ -3246,7 +3286,9 @@ static void host_processor_dual_test_flash_rollback_no_pfm_host_access_error (Cu
 	struct host_processor_dual_testing host;
 	struct flash_master_mock flash1_mock_host;
 	struct flash_master_mock flash2_mock_host;
+	struct spi_flash_state state1_host;
 	struct spi_flash flash1_host;
+	struct spi_flash_state state2_host;
 	struct spi_flash flash2_host;
 	int status;
 	const int flash_size = 0x300;
@@ -3270,10 +3312,10 @@ static void host_processor_dual_test_flash_rollback_no_pfm_host_access_error (Cu
 	CuAssertIntEquals (test, 0, status);
 	flash2_mock_host.mock.name = "flash2_mock_host";
 
-	status = spi_flash_init (&flash1_host, &flash1_mock_host.base);
+	status = spi_flash_init (&flash1_host, &state1_host, &flash1_mock_host.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2_host, &flash2_mock_host.base);
+	status = spi_flash_init (&flash2_host, &state2_host, &flash2_mock_host.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1_host, flash_size);
@@ -3342,7 +3384,9 @@ static void host_processor_dual_test_flash_rollback_no_pfm_host_access_error_pul
 	struct host_processor_dual_testing host;
 	struct flash_master_mock flash1_mock_host;
 	struct flash_master_mock flash2_mock_host;
+	struct spi_flash_state state1_host;
 	struct spi_flash flash1_host;
+	struct spi_flash_state state2_host;
 	struct spi_flash flash2_host;
 	int status;
 	const int flash_size = 0x300;
@@ -3366,10 +3410,10 @@ static void host_processor_dual_test_flash_rollback_no_pfm_host_access_error_pul
 	CuAssertIntEquals (test, 0, status);
 	flash2_mock_host.mock.name = "flash2_mock_host";
 
-	status = spi_flash_init (&flash1_host, &flash1_mock_host.base);
+	status = spi_flash_init (&flash1_host, &state1_host, &flash1_mock_host.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2_host, &flash2_mock_host.base);
+	status = spi_flash_init (&flash2_host, &state2_host, &flash2_mock_host.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1_host, flash_size);

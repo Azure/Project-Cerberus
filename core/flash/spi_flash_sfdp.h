@@ -40,17 +40,17 @@ struct spi_flash_sfdp_header {
  * SFDP interface for a single SPI flash.
  */
 struct spi_flash_sfdp {
-	struct flash_master *flash;					/**< SPI master for the flash device. */
+	const struct flash_master *flash;			/**< SPI master for the flash device. */
 	struct spi_flash_sfdp_header sfdp_header;	/**< The mandatory SFDP header information. */
 	uint8_t vendor;								/**< Vendor ID for the flash device. */
 	uint16_t device;							/**< Device ID for the flash device. */
 };
 
 
-int spi_flash_sfdp_init (struct spi_flash_sfdp *sfdp, struct flash_master *flash);
+int spi_flash_sfdp_init (struct spi_flash_sfdp *sfdp, const struct flash_master *flash);
 void spi_flash_sfdp_release (struct spi_flash_sfdp *sfdp);
 
-void spi_flash_sfdp_dump_header (struct spi_flash_sfdp *sfdp);
+void spi_flash_sfdp_dump_header (const struct spi_flash_sfdp *sfdp);
 
 
 /**
@@ -62,7 +62,7 @@ void spi_flash_sfdp_dump_header (struct spi_flash_sfdp *sfdp);
  * JEDEC SFDP basic parameter table.
  */
 struct spi_flash_sfdp_basic_table {
-	struct spi_flash_sfdp *sfdp;							/**< The SFDP instance for the table. */
+	const struct spi_flash_sfdp *sfdp;						/**< The SFDP instance for the table. */
 	uint32_t data[SPI_FLASH_SFDP_BASIC_TABLE_V1_5_DWORDS];	/**< The SFDP basic parameter table data. */
 };
 
@@ -112,33 +112,34 @@ enum spi_flash_sfdp_quad_enable {
 
 
 int spi_flash_sfdp_basic_table_init (struct spi_flash_sfdp_basic_table *table,
-	struct spi_flash_sfdp *sfdp);
+	const struct spi_flash_sfdp *sfdp);
 void spi_flash_sfdp_basic_table_release (struct spi_flash_sfdp_basic_table *table);
 
-int spi_flash_sfdp_get_device_capabilities (struct spi_flash_sfdp_basic_table *table,
+int spi_flash_sfdp_get_device_capabilities (const struct spi_flash_sfdp_basic_table *table,
 	uint32_t *capabilities);
-int spi_flash_sfdp_get_device_size (struct spi_flash_sfdp_basic_table *table);
-int spi_flash_sfdp_get_page_size (struct spi_flash_sfdp_basic_table *table);
+int spi_flash_sfdp_get_device_size (const struct spi_flash_sfdp_basic_table *table);
+int spi_flash_sfdp_get_page_size (const struct spi_flash_sfdp_basic_table *table);
 
-int spi_flash_sfdp_get_read_commands (struct spi_flash_sfdp_basic_table *table,
+int spi_flash_sfdp_get_read_commands (const struct spi_flash_sfdp_basic_table *table,
 	struct spi_flash_sfdp_read_commands *read);
 
-bool spi_flash_sfdp_use_busy_flag_status (struct spi_flash_sfdp_basic_table *table);
-bool spi_flash_sfdp_use_volatile_write_enable (struct spi_flash_sfdp_basic_table *table);
+bool spi_flash_sfdp_use_busy_flag_status (const struct spi_flash_sfdp_basic_table *table);
+bool spi_flash_sfdp_use_volatile_write_enable (const struct spi_flash_sfdp_basic_table *table);
 
-bool spi_flash_sfdp_supports_4byte_commands (struct spi_flash_sfdp_basic_table *table);
-int spi_flash_sfdp_get_4byte_mode_switch (struct spi_flash_sfdp_basic_table *table,
+bool spi_flash_sfdp_supports_4byte_commands (const struct spi_flash_sfdp_basic_table *table);
+int spi_flash_sfdp_get_4byte_mode_switch (const struct spi_flash_sfdp_basic_table *table,
 	enum spi_flash_sfdp_4byte_addressing *addr_4byte);
-bool spi_flash_sfdp_exit_4byte_mode_on_reset (struct spi_flash_sfdp_basic_table *table);
+bool spi_flash_sfdp_exit_4byte_mode_on_reset (const struct spi_flash_sfdp_basic_table *table);
 
-int spi_flash_sfdp_get_quad_enable (struct spi_flash_sfdp_basic_table *table,
+int spi_flash_sfdp_get_quad_enable (const struct spi_flash_sfdp_basic_table *table,
 	enum spi_flash_sfdp_quad_enable *quad_enable);
 
-int spi_flash_sfdp_get_reset_command (struct spi_flash_sfdp_basic_table *table, uint8_t *reset);
-int spi_flash_sfdp_get_deep_powerdown_commands (struct spi_flash_sfdp_basic_table *table,
+int spi_flash_sfdp_get_reset_command (const struct spi_flash_sfdp_basic_table *table,
+	uint8_t *reset);
+int spi_flash_sfdp_get_deep_powerdown_commands (const struct spi_flash_sfdp_basic_table *table,
 	uint8_t *enter, uint8_t *exit);
 
-void spi_flash_sfdp_dump_basic_table (struct spi_flash_sfdp_basic_table *table);
+void spi_flash_sfdp_dump_basic_table (const struct spi_flash_sfdp_basic_table *table);
 
 
 #define	SPI_FLASH_SFDP_ERROR(code)		ROT_ERROR (ROT_MODULE_SPI_FLASH_SFDP, code)

@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include "debug_log.h"
 #include "platform.h"
+#include "common/unused.h"
 
 
 struct logging *debug_log = NULL;
@@ -44,6 +45,12 @@ int debug_log_create_entry (uint8_t severity, uint8_t component, uint8_t msg_ind
 
 	return debug_log->create_entry (debug_log, (uint8_t*) &entry, sizeof (entry));
 #else
+	UNUSED (severity);
+	UNUSED (component);
+	UNUSED (msg_index);
+	UNUSED (arg1);
+	UNUSED (arg2);
+
 	return LOGGING_NO_LOG_AVAILABLE;
 #endif
 }
@@ -123,6 +130,10 @@ int debug_log_read_contents (uint32_t offset, uint8_t *contents, size_t length)
 
 	return debug_log->read_contents (debug_log, offset, contents, length);
 #else
+	UNUSED (offset);
+	UNUSED (contents);
+	UNUSED (length);
+
 	return LOGGING_NO_LOG_AVAILABLE;
 #endif
 }

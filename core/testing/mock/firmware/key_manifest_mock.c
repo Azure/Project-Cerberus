@@ -7,7 +7,7 @@
 #include "key_manifest_mock.h"
 
 
-static int key_manifest_mock_verify (struct key_manifest *manifest, struct hash_engine *hash)
+static int key_manifest_mock_verify (const struct key_manifest *manifest, struct hash_engine *hash)
 {
 	struct key_manifest_mock *mock = (struct key_manifest_mock*) manifest;
 
@@ -18,7 +18,7 @@ static int key_manifest_mock_verify (struct key_manifest *manifest, struct hash_
 	MOCK_RETURN (&mock->mock, key_manifest_mock_verify, manifest, MOCK_ARG_CALL (hash));
 }
 
-static int key_manifest_mock_is_allowed (struct key_manifest *manifest)
+static int key_manifest_mock_is_allowed (const struct key_manifest *manifest)
 {
 	struct key_manifest_mock *mock = (struct key_manifest_mock*) manifest;
 
@@ -29,7 +29,7 @@ static int key_manifest_mock_is_allowed (struct key_manifest *manifest)
 	MOCK_RETURN_NO_ARGS (&mock->mock, key_manifest_mock_is_allowed, manifest);
 }
 
-static int key_manifest_mock_revokes_old_manifest (struct key_manifest *manifest)
+static int key_manifest_mock_revokes_old_manifest (const struct key_manifest *manifest)
 {
 	struct key_manifest_mock *mock = (struct key_manifest_mock*) manifest;
 
@@ -40,7 +40,7 @@ static int key_manifest_mock_revokes_old_manifest (struct key_manifest *manifest
 	MOCK_RETURN_NO_ARGS (&mock->mock, key_manifest_mock_revokes_old_manifest, manifest);
 }
 
-static int key_manifest_mock_update_revocation (struct key_manifest *manifest)
+static int key_manifest_mock_update_revocation (const struct key_manifest *manifest)
 {
 	struct key_manifest_mock *mock = (struct key_manifest_mock*) manifest;
 
@@ -52,7 +52,7 @@ static int key_manifest_mock_update_revocation (struct key_manifest *manifest)
 }
 
 static const struct key_manifest_public_key* key_manifest_mock_get_root_key (
-	struct key_manifest *manifest)
+	const struct key_manifest *manifest)
 {
 	struct key_manifest_mock *mock = (struct key_manifest_mock*) manifest;
 
@@ -65,7 +65,7 @@ static const struct key_manifest_public_key* key_manifest_mock_get_root_key (
 }
 
 static const struct key_manifest_public_key* key_manifest_mock_get_app_key (
-	struct key_manifest *manifest)
+	const struct key_manifest *manifest)
 {
 	struct key_manifest_mock *mock = (struct key_manifest_mock*) manifest;
 
@@ -78,7 +78,7 @@ static const struct key_manifest_public_key* key_manifest_mock_get_app_key (
 }
 
 static const struct key_manifest_public_key* key_manifest_mock_get_manifest_key (
-	struct key_manifest *manifest)
+	const struct key_manifest *manifest)
 {
 	struct key_manifest_mock *mock = (struct key_manifest_mock*) manifest;
 

@@ -9,7 +9,7 @@
 #include "flash/flash_common.h"
 
 
-static int flash_mock_get_device_size (struct flash *flash, uint32_t *bytes)
+static int flash_mock_get_device_size (const struct flash *flash, uint32_t *bytes)
 {
 	struct flash_mock *mock = (struct flash_mock*) flash;
 
@@ -20,7 +20,8 @@ static int flash_mock_get_device_size (struct flash *flash, uint32_t *bytes)
 	MOCK_RETURN (&mock->mock, flash_mock_get_device_size, flash, MOCK_ARG_CALL (bytes));
 }
 
-static int flash_mock_read (struct flash *flash, uint32_t address, uint8_t *data, size_t length)
+static int flash_mock_read (const struct flash *flash, uint32_t address, uint8_t *data,
+	size_t length)
 {
 	struct flash_mock *mock = (struct flash_mock*) flash;
 
@@ -32,7 +33,7 @@ static int flash_mock_read (struct flash *flash, uint32_t address, uint8_t *data
 		MOCK_ARG_CALL (length));
 }
 
-static int flash_mock_get_page_size (struct flash *flash, uint32_t *bytes)
+static int flash_mock_get_page_size (const struct flash *flash, uint32_t *bytes)
 {
 	struct flash_mock *mock = (struct flash_mock*) flash;
 
@@ -43,7 +44,7 @@ static int flash_mock_get_page_size (struct flash *flash, uint32_t *bytes)
 	MOCK_RETURN (&mock->mock, flash_mock_get_page_size, flash, MOCK_ARG_CALL (bytes));
 }
 
-static int flash_mock_minimum_write_per_page (struct flash *flash, uint32_t *bytes)
+static int flash_mock_minimum_write_per_page (const struct flash *flash, uint32_t *bytes)
 {
 	struct flash_mock *mock = (struct flash_mock*) flash;
 
@@ -54,7 +55,7 @@ static int flash_mock_minimum_write_per_page (struct flash *flash, uint32_t *byt
 	MOCK_RETURN (&mock->mock, flash_mock_minimum_write_per_page, flash, MOCK_ARG_CALL (bytes));
 }
 
-static int flash_mock_write (struct flash *flash, uint32_t address, const uint8_t *data,
+static int flash_mock_write (const struct flash *flash, uint32_t address, const uint8_t *data,
 	size_t length)
 {
 	struct flash_mock *mock = (struct flash_mock*) flash;
@@ -67,7 +68,7 @@ static int flash_mock_write (struct flash *flash, uint32_t address, const uint8_
 		MOCK_ARG_CALL (data), MOCK_ARG_CALL (length));
 }
 
-static int flash_mock_get_sector_size (struct flash *flash, uint32_t *bytes)
+static int flash_mock_get_sector_size (const struct flash *flash, uint32_t *bytes)
 {
 	struct flash_mock *mock = (struct flash_mock*) flash;
 
@@ -78,7 +79,7 @@ static int flash_mock_get_sector_size (struct flash *flash, uint32_t *bytes)
 	MOCK_RETURN (&mock->mock, flash_mock_get_sector_size, flash, MOCK_ARG_CALL (bytes));
 }
 
-static int flash_mock_sector_erase (struct flash *flash, uint32_t sector_addr)
+static int flash_mock_sector_erase (const struct flash *flash, uint32_t sector_addr)
 {
 	struct flash_mock *mock = (struct flash_mock*) flash;
 
@@ -89,7 +90,7 @@ static int flash_mock_sector_erase (struct flash *flash, uint32_t sector_addr)
 	MOCK_RETURN (&mock->mock, flash_mock_sector_erase, flash, MOCK_ARG_CALL (sector_addr));
 }
 
-static int flash_mock_get_block_size (struct flash *flash, uint32_t *bytes)
+static int flash_mock_get_block_size (const struct flash *flash, uint32_t *bytes)
 {
 	struct flash_mock *mock = (struct flash_mock*) flash;
 
@@ -100,7 +101,7 @@ static int flash_mock_get_block_size (struct flash *flash, uint32_t *bytes)
 	MOCK_RETURN (&mock->mock, flash_mock_get_block_size, flash, MOCK_ARG_CALL (bytes));
 }
 
-static int flash_mock_block_erase (struct flash *flash, uint32_t block_addr)
+static int flash_mock_block_erase (const struct flash *flash, uint32_t block_addr)
 {
 	struct flash_mock *mock = (struct flash_mock*) flash;
 
@@ -111,7 +112,7 @@ static int flash_mock_block_erase (struct flash *flash, uint32_t block_addr)
 	MOCK_RETURN (&mock->mock, flash_mock_block_erase, flash, MOCK_ARG_CALL (block_addr));
 }
 
-static int flash_mock_chip_erase (struct flash *flash)
+static int flash_mock_chip_erase (const struct flash *flash)
 {
 	struct flash_mock *mock = (struct flash_mock*) flash;
 

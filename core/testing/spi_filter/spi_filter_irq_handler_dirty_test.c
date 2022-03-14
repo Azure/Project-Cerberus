@@ -23,9 +23,11 @@ TEST_SUITE_LABEL ("spi_filter_irq_handler_dirty");
  * @param state The host state instance to initialize.
  * @param flash_mock The mock for the flash state storage.
  * @param flash The flash device to initialize for state.
+ * @param flash_state Variable context for the flash device.
  */
 static void spi_filter_irq_handler_dirty_testing_init_host_state (CuTest *test,
-	struct host_state_manager *state, struct flash_master_mock *flash_mock, struct spi_flash *flash)
+	struct host_state_manager *state, struct flash_master_mock *flash_mock, struct spi_flash *flash,
+	struct spi_flash_state *flash_state)
 {
 	int status;
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
@@ -33,7 +35,7 @@ static void spi_filter_irq_handler_dirty_testing_init_host_state (CuTest *test,
 	status = flash_master_mock_init (flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (flash, &flash_mock->base);
+	status = spi_flash_init (flash, flash_state, &flash_mock->base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (flash, 0x1000000);
@@ -65,6 +67,7 @@ static void spi_filter_irq_handler_dirty_testing_init_host_state (CuTest *test,
 static void spi_filter_irq_handler_dirty_test_init (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct host_state_manager host_state;
 	struct host_control_mock control;
@@ -73,7 +76,8 @@ static void spi_filter_irq_handler_dirty_test_init (CuTest *test)
 
 	TEST_START;
 
-	spi_filter_irq_handler_dirty_testing_init_host_state (test, &host_state, &flash_mock, &flash);
+	spi_filter_irq_handler_dirty_testing_init_host_state (test, &host_state, &flash_mock, &flash,
+		&state);
 
 	status = host_control_mock_init (&control);
 	CuAssertIntEquals (test, 0, status);
@@ -97,6 +101,7 @@ static void spi_filter_irq_handler_dirty_test_init (CuTest *test)
 static void spi_filter_irq_handler_dirty_test_init_null (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct host_state_manager host_state;
 	struct host_control_mock control;
@@ -105,7 +110,8 @@ static void spi_filter_irq_handler_dirty_test_init_null (CuTest *test)
 
 	TEST_START;
 
-	spi_filter_irq_handler_dirty_testing_init_host_state (test, &host_state, &flash_mock, &flash);
+	spi_filter_irq_handler_dirty_testing_init_host_state (test, &host_state, &flash_mock, &flash,
+		&state);
 
 	status = host_control_mock_init (&control);
 	CuAssertIntEquals (test, 0, status);
@@ -138,6 +144,7 @@ static void spi_filter_irq_handler_dirty_test_release_null (CuTest *test)
 static void spi_filter_irq_handler_dirty_test_ro_flash_dirty (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct host_state_manager host_state;
 	struct host_control_mock control;
@@ -146,7 +153,8 @@ static void spi_filter_irq_handler_dirty_test_ro_flash_dirty (CuTest *test)
 
 	TEST_START;
 
-	spi_filter_irq_handler_dirty_testing_init_host_state (test, &host_state, &flash_mock, &flash);
+	spi_filter_irq_handler_dirty_testing_init_host_state (test, &host_state, &flash_mock, &flash,
+		&state);
 
 	status = host_control_mock_init (&control);
 	CuAssertIntEquals (test, 0, status);
@@ -176,6 +184,7 @@ static void spi_filter_irq_handler_dirty_test_ro_flash_dirty (CuTest *test)
 static void spi_filter_irq_handler_dirty_test_ro_flash_dirty_null (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct host_state_manager host_state;
 	struct host_control_mock control;
@@ -184,7 +193,8 @@ static void spi_filter_irq_handler_dirty_test_ro_flash_dirty_null (CuTest *test)
 
 	TEST_START;
 
-	spi_filter_irq_handler_dirty_testing_init_host_state (test, &host_state, &flash_mock, &flash);
+	spi_filter_irq_handler_dirty_testing_init_host_state (test, &host_state, &flash_mock, &flash,
+		&state);
 
 	status = host_control_mock_init (&control);
 	CuAssertIntEquals (test, 0, status);

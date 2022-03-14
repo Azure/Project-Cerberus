@@ -20,6 +20,8 @@ static void host_flash_initialization_test_init (CuTest *test)
 {
 	struct flash_master_mock flash_mock0;
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state0;
+	struct spi_flash_state state1;
 	struct spi_flash flash0;
 	struct spi_flash flash1;
 	struct host_flash_initialization init;
@@ -33,8 +35,8 @@ static void host_flash_initialization_test_init (CuTest *test)
 	status = flash_master_mock_init (&flash_mock1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_flash_initialization_init (&init, &flash0, &flash_mock0.base, &flash1,
-		&flash_mock1.base, false, false);
+	status = host_flash_initialization_init (&init, &flash0, &state0, &flash_mock0.base, &flash1,
+		&state1, &flash_mock1.base, false, false);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock0);
@@ -50,6 +52,8 @@ static void host_flash_initialization_test_init_null (CuTest *test)
 {
 	struct flash_master_mock flash_mock0;
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state0;
+	struct spi_flash_state state1;
 	struct spi_flash flash0;
 	struct spi_flash flash1;
 	struct host_flash_initialization init;
@@ -63,24 +67,32 @@ static void host_flash_initialization_test_init_null (CuTest *test)
 	status = flash_master_mock_init (&flash_mock1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_flash_initialization_init (NULL, &flash0, &flash_mock0.base, &flash1,
-		&flash_mock1.base, false, false);
+	status = host_flash_initialization_init (NULL, &flash0, &state0, &flash_mock0.base, &flash1,
+		&state1, &flash_mock1.base, false, false);
 	CuAssertIntEquals (test, HOST_FLASH_INIT_INVALID_ARGUMENT, status);
 
-	status = host_flash_initialization_init (&init, NULL, &flash_mock0.base, &flash1,
-		&flash_mock1.base, false, false);
+	status = host_flash_initialization_init (&init, NULL, &state0, &flash_mock0.base, &flash1,
+		&state1, &flash_mock1.base, false, false);
 	CuAssertIntEquals (test, HOST_FLASH_INIT_INVALID_ARGUMENT, status);
 
-	status = host_flash_initialization_init (&init, &flash0, NULL, &flash1,
-		&flash_mock1.base, false, false);
+	status = host_flash_initialization_init (&init, &flash0, NULL, &flash_mock0.base, &flash1,
+		&state1, &flash_mock1.base, false, false);
 	CuAssertIntEquals (test, HOST_FLASH_INIT_INVALID_ARGUMENT, status);
 
-	status = host_flash_initialization_init (&init, &flash0, &flash_mock0.base, NULL,
-		&flash_mock1.base, false, false);
+	status = host_flash_initialization_init (&init, &flash0, &state0, NULL, &flash1,
+		&state1, &flash_mock1.base, false, false);
 	CuAssertIntEquals (test, HOST_FLASH_INIT_INVALID_ARGUMENT, status);
 
-	status = host_flash_initialization_init (&init, &flash0, &flash_mock0.base, &flash1,
-		NULL, false, false);
+	status = host_flash_initialization_init (&init, &flash0, &state0, &flash_mock0.base, NULL,
+		&state1, &flash_mock1.base, false, false);
+	CuAssertIntEquals (test, HOST_FLASH_INIT_INVALID_ARGUMENT, status);
+
+	status = host_flash_initialization_init (&init, &flash0, &state0, &flash_mock0.base, &flash1,
+		NULL, &flash_mock1.base, false, false);
+	CuAssertIntEquals (test, HOST_FLASH_INIT_INVALID_ARGUMENT, status);
+
+	status = host_flash_initialization_init (&init, &flash0, &state0, &flash_mock0.base, &flash1,
+		&state1, NULL, false, false);
 	CuAssertIntEquals (test, HOST_FLASH_INIT_INVALID_ARGUMENT, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock0);
@@ -93,6 +105,7 @@ static void host_flash_initialization_test_init_null (CuTest *test)
 static void host_flash_initialization_test_init_single_flash (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct host_flash_initialization init;
 	int status;
@@ -102,8 +115,8 @@ static void host_flash_initialization_test_init_single_flash (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_flash_initialization_init_single_flash (&init, &flash, &flash_mock.base, false,
-		false);
+	status = host_flash_initialization_init_single_flash (&init, &flash, &state, &flash_mock.base,
+		false, false);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_validate_and_release (&flash_mock);
@@ -115,6 +128,7 @@ static void host_flash_initialization_test_init_single_flash (CuTest *test)
 static void host_flash_initialization_test_init_single_flash_null (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct host_flash_initialization init;
 	int status;
@@ -124,15 +138,19 @@ static void host_flash_initialization_test_init_single_flash_null (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_flash_initialization_init_single_flash (NULL, &flash, &flash_mock.base, false,
-		false);
+	status = host_flash_initialization_init_single_flash (NULL, &flash, &state, &flash_mock.base,
+		false, false);
 	CuAssertIntEquals (test, HOST_FLASH_INIT_INVALID_ARGUMENT, status);
 
-	status = host_flash_initialization_init_single_flash (&init, NULL, &flash_mock.base, false,
-		false);
+	status = host_flash_initialization_init_single_flash (&init, NULL, &state, &flash_mock.base,
+		false, false);
 	CuAssertIntEquals (test, HOST_FLASH_INIT_INVALID_ARGUMENT, status);
 
-	status = host_flash_initialization_init_single_flash (&init, &flash, NULL, false,
+	status = host_flash_initialization_init_single_flash (&init, &flash, NULL, &flash_mock.base,
+		false, false);
+	CuAssertIntEquals (test, HOST_FLASH_INIT_INVALID_ARGUMENT, status);
+
+	status = host_flash_initialization_init_single_flash (&init, &flash, &state, NULL, false,
 		false);
 	CuAssertIntEquals (test, HOST_FLASH_INIT_INVALID_ARGUMENT, status);
 
@@ -151,6 +169,8 @@ static void host_flash_initialization_test_initialize_flash (CuTest *test)
 {
 	struct flash_master_mock flash_mock0;
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state0;
+	struct spi_flash_state state1;
 	struct spi_flash flash0;
 	struct spi_flash flash1;
 	struct host_flash_initialization init;
@@ -195,8 +215,8 @@ static void host_flash_initialization_test_initialize_flash (CuTest *test)
 	status = flash_master_mock_init (&flash_mock1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_flash_initialization_init (&init, &flash0, &flash_mock0.base, &flash1,
-		&flash_mock1.base, false, false);
+	status = host_flash_initialization_init (&init, &flash0, &state0, &flash_mock0.base, &flash1,
+		&state1, &flash_mock1.base, false, false);
 	CuAssertIntEquals (test, 0, status);
 
 	/* Get Device ID. */
@@ -304,6 +324,8 @@ static void host_flash_initialization_test_initialize_flash_fast_read (CuTest *t
 {
 	struct flash_master_mock flash_mock0;
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state0;
+	struct spi_flash_state state1;
 	struct spi_flash flash0;
 	struct spi_flash flash1;
 	struct host_flash_initialization init;
@@ -348,8 +370,8 @@ static void host_flash_initialization_test_initialize_flash_fast_read (CuTest *t
 	status = flash_master_mock_init (&flash_mock1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_flash_initialization_init (&init, &flash0, &flash_mock0.base, &flash1,
-		&flash_mock1.base, true, false);
+	status = host_flash_initialization_init (&init, &flash0, &state0, &flash_mock0.base, &flash1,
+		&state1, &flash_mock1.base, true, false);
 	CuAssertIntEquals (test, 0, status);
 
 	/* Get Device ID. */
@@ -457,6 +479,8 @@ static void host_flash_initialization_test_initialize_flash_drive_strength (CuTe
 {
 	struct flash_master_mock flash_mock0;
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state0;
+	struct spi_flash_state state1;
 	struct spi_flash flash0;
 	struct spi_flash flash1;
 	struct host_flash_initialization init;
@@ -503,8 +527,8 @@ static void host_flash_initialization_test_initialize_flash_drive_strength (CuTe
 	status = flash_master_mock_init (&flash_mock1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_flash_initialization_init (&init, &flash0, &flash_mock0.base, &flash1,
-		&flash_mock1.base, false, true);
+	status = host_flash_initialization_init (&init, &flash0, &state0, &flash_mock0.base, &flash1,
+		&state1, &flash_mock1.base, false, true);
 	CuAssertIntEquals (test, 0, status);
 
 	/* Get Device ID. */
@@ -642,6 +666,8 @@ static void host_flash_initialization_test_initialize_flash_twice (CuTest *test)
 {
 	struct flash_master_mock flash_mock0;
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state0;
+	struct spi_flash_state state1;
 	struct spi_flash flash0;
 	struct spi_flash flash1;
 	struct host_flash_initialization init;
@@ -683,8 +709,8 @@ static void host_flash_initialization_test_initialize_flash_twice (CuTest *test)
 	status = flash_master_mock_init (&flash_mock1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_flash_initialization_init (&init, &flash0, &flash_mock0.base, &flash1,
-		&flash_mock1.base, false, false);
+	status = host_flash_initialization_init (&init, &flash0, &state0, &flash_mock0.base, &flash1,
+		&state1, &flash_mock1.base, false, false);
 	CuAssertIntEquals (test, 0, status);
 
 	/* Get Device ID. */
@@ -776,6 +802,7 @@ static void host_flash_initialization_test_initialize_flash_twice (CuTest *test)
 static void host_flash_initialization_test_initialize_flash_single_flash (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct host_flash_initialization init;
 	int status;
@@ -816,8 +843,8 @@ static void host_flash_initialization_test_initialize_flash_single_flash (CuTest
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_flash_initialization_init_single_flash (&init, &flash, &flash_mock.base, false,
-		false);
+	status = host_flash_initialization_init_single_flash (&init, &flash, &state, &flash_mock.base,
+		false, false);
 	CuAssertIntEquals (test, 0, status);
 
 	/* Get Device ID. */
@@ -890,6 +917,8 @@ static void host_flash_initialization_test_initialize_flash_cs0_error (CuTest *t
 {
 	struct flash_master_mock flash_mock0;
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state0;
+	struct spi_flash_state state1;
 	struct spi_flash flash0;
 	struct spi_flash flash1;
 	struct host_flash_initialization init;
@@ -931,8 +960,8 @@ static void host_flash_initialization_test_initialize_flash_cs0_error (CuTest *t
 	status = flash_master_mock_init (&flash_mock1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_flash_initialization_init (&init, &flash0, &flash_mock0.base, &flash1,
-		&flash_mock1.base, false, false);
+	status = host_flash_initialization_init (&init, &flash0, &state0, &flash_mock0.base, &flash1,
+		&state1, &flash_mock1.base, false, false);
 	CuAssertIntEquals (test, 0, status);
 
 	/* Get Device ID. */
@@ -1029,6 +1058,8 @@ static void host_flash_initialization_test_initialize_flash_cs1_error (CuTest *t
 {
 	struct flash_master_mock flash_mock0;
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state0;
+	struct spi_flash_state state1;
 	struct spi_flash flash0;
 	struct spi_flash flash1;
 	struct host_flash_initialization init;
@@ -1070,8 +1101,8 @@ static void host_flash_initialization_test_initialize_flash_cs1_error (CuTest *t
 	status = flash_master_mock_init (&flash_mock1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_flash_initialization_init (&init, &flash0, &flash_mock0.base, &flash1,
-		&flash_mock1.base, false, false);
+	status = host_flash_initialization_init (&init, &flash0, &state0, &flash_mock0.base, &flash1,
+		&state1, &flash_mock1.base, false, false);
 	CuAssertIntEquals (test, 0, status);
 
 	/* Get Device ID. */

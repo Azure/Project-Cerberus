@@ -32,7 +32,9 @@ struct host_flash_manager_single_testing {
 	RSA_TESTING_ENGINE rsa;							/**< RSA engine for testing. */
 	struct flash_master_mock flash_mock0;			/**< Mock for CS0 flash. */
 	struct flash_master_mock flash_mock_state;		/**< Mock for host state flash. */
+	struct spi_flash_state state0;					/**< CS0 flash device context. */
 	struct spi_flash flash0;						/**< CS0 flash device. */
+	struct spi_flash_state state;					/**< Host state flash context. */
 	struct spi_flash flash_state;					/**< Host state flash device. */
 	struct host_state_manager host_state;			/**< Host state. */
 	struct spi_filter_interface_mock filter;		/**< Mock for the SPI filter. */
@@ -59,7 +61,8 @@ static void host_flash_manager_single_testing_init_host_state (CuTest *test,
 	status = flash_master_mock_init (&manager->flash_mock_state);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&manager->flash_state, &manager->flash_mock_state.base);
+	status = spi_flash_init (&manager->flash_state, &manager->state,
+		&manager->flash_mock_state.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&manager->flash_state, 0x1000000);
@@ -113,7 +116,7 @@ static void host_flash_manager_single_testing_initialize_dependencies_no_flash_m
 	host_flash_manager_single_testing_init_host_state (test, manager);
 
 	status = host_flash_initialization_init_single_flash (&manager->flash_init, &manager->flash0,
-		&manager->flash_mock0.base, false, false);
+		&manager->state0, &manager->flash_mock0.base, false, false);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_control_mock_init (&manager->control);
@@ -159,7 +162,7 @@ static void host_flash_manager_single_testing_initialize_dependencies (CuTest *t
 
 	host_flash_manager_single_testing_initialize_dependencies_no_flash (test, manager);
 
-	status = spi_flash_init (&manager->flash0, &manager->flash_mock0.base);
+	status = spi_flash_init (&manager->flash0, &manager->state0, &manager->flash_mock0.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&manager->flash0, 0x1000000);
@@ -289,11 +292,13 @@ static void host_flash_manager_single_testing_check_state_persistence (CuTest *t
  *
  * @param test The testing framework.
  * @param flash The SPI flash to initialize.
+ * @param state Variable context for the SPI flash.
  * @param mock The flash mock for the SPI device.
  * @param id ID of the flash device.
  */
 static void host_flash_manager_single_testing_initialize_flash_device (CuTest *test,
-	struct spi_flash *flash, struct flash_master_mock *mock, const uint8_t *id)
+	struct spi_flash *flash, struct spi_flash_state *state, struct flash_master_mock *mock,
+	const uint8_t *id)
 {
 	uint32_t header[] = {
 		0x50444653,
@@ -350,7 +355,7 @@ static void host_flash_manager_single_testing_initialize_flash_device (CuTest *t
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_initialize_device (flash, &mock->base, false, false, false, false);
+	status = spi_flash_initialize_device (flash, state, &mock->base, false, false, false, false);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_validate (&mock->mock);
@@ -6176,7 +6181,7 @@ static void host_flash_manager_single_test_set_flash_for_rot_access (CuTest *tes
 
 	host_flash_manager_single_testing_initialize_dependencies_no_flash (test, &manager);
 	host_flash_manager_single_testing_initialize_flash_device (test, &manager.flash0,
-		&manager.flash_mock0, id);
+		&manager.state0, &manager.flash_mock0, id);
 
 	status = host_flash_manager_single_init (&manager.test, &manager.flash0, &manager.host_state,
 		&manager.filter.base, &manager.handler.base);
@@ -6304,7 +6309,7 @@ static void host_flash_manager_single_test_set_flash_for_rot_access_check_qspi_e
 
 	host_flash_manager_single_testing_initialize_dependencies_no_flash (test, &manager);
 	host_flash_manager_single_testing_initialize_flash_device (test, &manager.flash0,
-		&manager.flash_mock0, id);
+		&manager.state0, &manager.flash_mock0, id);
 
 	status = host_flash_manager_single_init (&manager.test, &manager.flash0, &manager.host_state,
 		&manager.filter.base, &manager.handler.base);
@@ -6375,7 +6380,7 @@ static void host_flash_manager_single_test_set_flash_for_rot_access_wip_set (CuT
 
 	host_flash_manager_single_testing_initialize_dependencies_no_flash (test, &manager);
 	host_flash_manager_single_testing_initialize_flash_device (test, &manager.flash0,
-		&manager.flash_mock0, id);
+		&manager.state0, &manager.flash_mock0, id);
 
 	status = host_flash_manager_single_init (&manager.test, &manager.flash0, &manager.host_state,
 		&manager.filter.base, &manager.handler.base);
@@ -6637,7 +6642,7 @@ static void host_flash_manager_single_test_set_flash_for_rot_access_wip_error (C
 
 	host_flash_manager_single_testing_initialize_dependencies_no_flash (test, &manager);
 	host_flash_manager_single_testing_initialize_flash_device (test, &manager.flash0,
-		&manager.flash_mock0, id);
+		&manager.state0, &manager.flash_mock0, id);
 
 	status = host_flash_manager_single_init (&manager.test, &manager.flash0, &manager.host_state,
 		&manager.filter.base, &manager.handler.base);
@@ -6674,7 +6679,7 @@ static void host_flash_manager_single_test_set_flash_for_rot_access_block_protec
 
 	host_flash_manager_single_testing_initialize_dependencies_no_flash (test, &manager);
 	host_flash_manager_single_testing_initialize_flash_device (test, &manager.flash0,
-		&manager.flash_mock0, id);
+		&manager.state0, &manager.flash_mock0, id);
 
 	status = host_flash_manager_single_init (&manager.test, &manager.flash0, &manager.host_state,
 		&manager.filter.base, &manager.handler.base);
@@ -6715,7 +6720,7 @@ static void host_flash_manager_single_test_set_flash_for_rot_access_qspi_error (
 
 	host_flash_manager_single_testing_initialize_dependencies_no_flash (test, &manager);
 	host_flash_manager_single_testing_initialize_flash_device (test, &manager.flash0,
-		&manager.flash_mock0, id);
+		&manager.state0, &manager.flash_mock0, id);
 
 	status = host_flash_manager_single_init (&manager.test, &manager.flash0, &manager.host_state,
 		&manager.filter.base, &manager.handler.base);
@@ -6770,7 +6775,7 @@ static void host_flash_manager_single_test_set_flash_for_rot_access_4byte_error 
 
 	host_flash_manager_single_testing_initialize_dependencies_no_flash (test, &manager);
 	host_flash_manager_single_testing_initialize_flash_device (test, &manager.flash0,
-		&manager.flash_mock0, id);
+		&manager.state0, &manager.flash_mock0, id);
 
 	status = host_flash_manager_single_init (&manager.test, &manager.flash0, &manager.host_state,
 		&manager.filter.base, &manager.handler.base);
@@ -7150,8 +7155,8 @@ static void host_flash_manager_single_test_config_spi_filter_flash_type_require_
 	TEST_START;
 
 	host_flash_manager_single_testing_initialize_dependencies_no_flash_master (test, &manager);
-	spi_flash_testing_discover_params (test, &manager.flash0, &manager.flash_mock0, id, header,
-		params, sizeof (params), 0x000030, FULL_CAPABILITIES);
+	spi_flash_testing_discover_params (test, &manager.flash0, &manager.state0, &manager.flash_mock0,
+		id, header, params, sizeof (params), 0x000030, FULL_CAPABILITIES);
 
 	status = host_flash_manager_single_init (&manager.test, &manager.flash0, &manager.host_state,
 		&manager.filter.base, &manager.handler.base);
@@ -7207,8 +7212,8 @@ static void host_flash_manager_single_test_config_spi_filter_flash_type_fixed_ad
 	TEST_START;
 
 	host_flash_manager_single_testing_initialize_dependencies_no_flash_master (test, &manager);
-	spi_flash_testing_discover_params (test, &manager.flash0, &manager.flash_mock0, id, header,
-		params, sizeof (params), 0x000030, FULL_CAPABILITIES);
+	spi_flash_testing_discover_params (test, &manager.flash0, &manager.state0, &manager.flash_mock0,
+		id, header, params, sizeof (params), 0x000030, FULL_CAPABILITIES);
 
 	status = host_flash_manager_single_init (&manager.test, &manager.flash0, &manager.host_state,
 		&manager.filter.base, &manager.handler.base);
@@ -7264,8 +7269,8 @@ static void host_flash_manager_single_test_config_spi_filter_flash_type_fixed_ad
 	TEST_START;
 
 	host_flash_manager_single_testing_initialize_dependencies_no_flash_master (test, &manager);
-	spi_flash_testing_discover_params (test, &manager.flash0, &manager.flash_mock0, id, header,
-		params, sizeof (params), 0x000030, FULL_CAPABILITIES);
+	spi_flash_testing_discover_params (test, &manager.flash0, &manager.state0, &manager.flash_mock0,
+		id, header, params, sizeof (params), 0x000030, FULL_CAPABILITIES);
 
 	status = host_flash_manager_single_init (&manager.test, &manager.flash0, &manager.host_state,
 		&manager.filter.base, &manager.handler.base);
@@ -7660,8 +7665,8 @@ static void host_flash_manager_single_test_config_spi_filter_flash_type_fixed_ad
 	TEST_START;
 
 	host_flash_manager_single_testing_initialize_dependencies_no_flash_master (test, &manager);
-	spi_flash_testing_discover_params (test, &manager.flash0, &manager.flash_mock0, id, header,
-		params, sizeof (params), 0x000030, FULL_CAPABILITIES);
+	spi_flash_testing_discover_params (test, &manager.flash0, &manager.state0, &manager.flash_mock0,
+		id, header, params, sizeof (params), 0x000030, FULL_CAPABILITIES);
 
 	status = host_flash_manager_single_init (&manager.test, &manager.flash0, &manager.host_state,
 		&manager.filter.base, &manager.handler.base);
@@ -7888,8 +7893,8 @@ static void host_flash_manager_single_test_initialize_flash_protection_fixed_3by
 	TEST_START;
 
 	host_flash_manager_single_testing_initialize_dependencies_no_flash_master (test, &manager);
-	spi_flash_testing_discover_params (test, &manager.flash0, &manager.flash_mock0, TEST_ID, header,
-		params, sizeof (params), 0x000030, FULL_CAPABILITIES);
+	spi_flash_testing_discover_params (test, &manager.flash0, &manager.state0, &manager.flash_mock0,
+		TEST_ID, header, params, sizeof (params), 0x000030, FULL_CAPABILITIES);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	status = host_flash_manager_single_init (&manager.test, &manager.flash0, &manager.host_state,
@@ -7961,8 +7966,8 @@ static void host_flash_manager_single_test_initialize_flash_protection_fixed_4by
 	TEST_START;
 
 	host_flash_manager_single_testing_initialize_dependencies_no_flash_master (test, &manager);
-	spi_flash_testing_discover_params (test, &manager.flash0, &manager.flash_mock0, TEST_ID, header,
-		params, sizeof (params), 0x000030, FULL_CAPABILITIES);
+	spi_flash_testing_discover_params (test, &manager.flash0, &manager.state0, &manager.flash_mock0,
+		TEST_ID, header, params, sizeof (params), 0x000030, FULL_CAPABILITIES);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	status = host_flash_manager_single_init (&manager.test, &manager.flash0, &manager.host_state,

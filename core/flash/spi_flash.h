@@ -34,11 +34,9 @@ struct spi_flash_commands {
 };
 
 /**
- * Interface to a single SPI flash.
+ * Variable context for a SPI flash driver instance.
  */
-struct spi_flash {
-	struct flash base;									/**< Base flash instance. */
-	struct flash_master *spi;							/**< The SPI master connected to the flash device. */
+struct spi_flash_state {
 	platform_mutex lock;								/**< Synchronization lock for accessing the flash. */
 	uint16_t addr_mode;									/**< The current address mode of the SPI flash device. */
 	uint8_t device_id[3];								/**< Device identification data. */
@@ -51,6 +49,15 @@ struct spi_flash {
 	bool reset_3byte;									/**< Flag to switch to 3-byte mode on reset. */
 	enum spi_flash_sfdp_quad_enable quad_enable;		/**< Method to enable QSPI. */
 	bool sr1_volatile;									/**< Flag to use volatile write enable for status register 1. */
+};
+
+/**
+ * Interface to a single SPI flash.
+ */
+struct spi_flash {
+	struct flash base;									/**< Base flash instance. */
+	struct spi_flash_state *state;						/**< Variable context for the flash instance. */
+	const struct flash_master *spi;						/**< The SPI master connected to the flash device. */
 };
 
 /**
@@ -87,57 +94,71 @@ struct spi_flash_device_info {
 #define	SPI_FLASH_DEVICE_INFO_SR1_VOLATILE		(1U << 2)
 
 
-int spi_flash_initialize_device (struct spi_flash *flash, struct flash_master *spi, bool fast_read,
+int spi_flash_initialize_device (struct spi_flash *flash, struct spi_flash_state *state,
+	const struct flash_master *spi, bool fast_read, bool wake_device, bool reset_device,
+	bool drive_strength);
+int spi_flash_initialize_device_state (const struct spi_flash *flash, bool fast_read,
 	bool wake_device, bool reset_device, bool drive_strength);
-int spi_flash_restore_device (struct spi_flash *flash, struct flash_master *spi,
-	struct spi_flash_device_info *info);
+int spi_flash_restore_device (struct spi_flash *flash, struct spi_flash_state *state,
+	const struct flash_master *spi, const struct spi_flash_device_info *info);
+int spi_flash_restore_device_state (const struct spi_flash *flash,
+	const struct spi_flash_device_info *info);
 
-int spi_flash_init (struct spi_flash *flash, struct flash_master *spi);
-int spi_flash_init_fast_read (struct spi_flash *flash, struct flash_master *spi);
-void spi_flash_release (struct spi_flash *flash);
+int spi_flash_init (struct spi_flash *flash, struct spi_flash_state *state,
+	const struct flash_master *spi);
+int spi_flash_init_fast_read (struct spi_flash *flash, struct spi_flash_state *state,
+	const struct flash_master *spi);
+int spi_flash_init_state (const struct spi_flash *flash);
+int spi_flash_init_state_fast_read (const struct spi_flash *flash);
+void spi_flash_release (const struct spi_flash *flash);
 
-int spi_flash_save_device_info (struct spi_flash *flash, struct spi_flash_device_info *info);
+int spi_flash_save_device_info (const struct spi_flash *flash, struct spi_flash_device_info *info);
 
-int spi_flash_discover_device_properties (struct spi_flash *flash, struct spi_flash_sfdp *sfdp);
-int spi_flash_set_device_size (struct spi_flash *flash, uint32_t bytes);
+int spi_flash_discover_device_properties (const struct spi_flash *flash,
+	const struct spi_flash_sfdp *sfdp);
+int spi_flash_set_device_size (const struct spi_flash *flash, uint32_t bytes);
+int spi_flash_set_read_command (const struct spi_flash *flash,
+	const struct spi_flash_sfdp_read_cmd *command, uint16_t flags);
+int spi_flash_set_write_command (const struct spi_flash *flash, uint8_t opcode, uint16_t flags);
 
-int spi_flash_get_device_id (struct spi_flash *flash, uint8_t *vendor, uint16_t *device);
-int spi_flash_get_device_size (struct spi_flash *flash, uint32_t *bytes);
+int spi_flash_get_device_id (const struct spi_flash *flash, uint8_t *vendor, uint16_t *device);
+int spi_flash_get_device_size (const struct spi_flash *flash, uint32_t *bytes);
 
-int spi_flash_reset_device (struct spi_flash *flash);
-int spi_flash_clear_block_protect (struct spi_flash *flash);
-int spi_flash_deep_power_down (struct spi_flash *flash, uint8_t enable);
+int spi_flash_reset_device (const struct spi_flash *flash);
+int spi_flash_clear_block_protect (const struct spi_flash *flash);
+int spi_flash_deep_power_down (const struct spi_flash *flash, uint8_t enable);
 
-int spi_flash_is_address_mode_fixed (struct spi_flash *flash);
-int spi_flash_address_mode_requires_write_enable (struct spi_flash *flash);
-int spi_flash_is_4byte_address_mode_on_reset (struct spi_flash *flash);
+int spi_flash_is_address_mode_fixed (const struct spi_flash *flash);
+int spi_flash_address_mode_requires_write_enable (const struct spi_flash *flash);
+int spi_flash_is_4byte_address_mode_on_reset (const struct spi_flash *flash);
 
-int spi_flash_enable_4byte_address_mode (struct spi_flash *flash, uint8_t enable);
-int spi_flash_is_4byte_address_mode (struct spi_flash *flash);
-int spi_flash_detect_4byte_address_mode (struct spi_flash *flash);
-int spi_flash_force_4byte_address_mode (struct spi_flash *flash, uint8_t enable);
+int spi_flash_enable_4byte_address_mode (const struct spi_flash *flash, uint8_t enable);
+int spi_flash_is_4byte_address_mode (const struct spi_flash *flash);
+int spi_flash_detect_4byte_address_mode (const struct spi_flash *flash);
+int spi_flash_force_4byte_address_mode (const struct spi_flash *flash, uint8_t enable);
 
-int spi_flash_enable_quad_spi (struct spi_flash *flash, uint8_t enable);
-int spi_flash_is_quad_spi_enabled (struct spi_flash *flash);
+int spi_flash_enable_quad_spi (const struct spi_flash *flash, uint8_t enable);
+int spi_flash_is_quad_spi_enabled (const struct spi_flash *flash);
 
-int spi_flash_configure_drive_strength (struct spi_flash *flash);
+int spi_flash_configure_drive_strength (const struct spi_flash *flash);
 
-int spi_flash_read (struct spi_flash *flash, uint32_t address, uint8_t *data, size_t length);
+int spi_flash_read (const struct spi_flash *flash, uint32_t address, uint8_t *data, size_t length);
 
-int spi_flash_get_page_size (struct spi_flash *flash, uint32_t *bytes);
-int spi_flash_minimum_write_per_page (struct spi_flash *flash, uint32_t *bytes);
-int spi_flash_write (struct spi_flash *flash, uint32_t address, const uint8_t *data, size_t length);
+int spi_flash_get_page_size (const struct spi_flash *flash, uint32_t *bytes);
+int spi_flash_minimum_write_per_page (const struct spi_flash *flash, uint32_t *bytes);
+int spi_flash_write (const struct spi_flash *flash, uint32_t address, const uint8_t *data,
+	size_t length);
 
-int spi_flash_get_sector_size (struct spi_flash *flash, uint32_t *bytes);
-int spi_flash_sector_erase (struct spi_flash *flash, uint32_t sector_addr);
+int spi_flash_get_sector_size (const struct spi_flash *flash, uint32_t *bytes);
+int spi_flash_sector_erase (const struct spi_flash *flash, uint32_t sector_addr);
 
-int spi_flash_get_block_size (struct spi_flash *flash, uint32_t *bytes);
-int spi_flash_block_erase (struct spi_flash *flash, uint32_t block_addr);
+int spi_flash_get_block_size (const struct spi_flash *flash, uint32_t *bytes);
+int spi_flash_block_erase (const struct spi_flash *flash, uint32_t block_addr);
 
-int spi_flash_chip_erase (struct spi_flash *flash);
+int spi_flash_chip_erase (const struct spi_flash *flash);
 
-int spi_flash_is_write_in_progress (struct spi_flash *flash);
-int spi_flash_wait_for_write (struct spi_flash *flash, int32_t timeout);
+int spi_flash_is_write_in_progress (const struct spi_flash *flash);
+int spi_flash_wait_for_write (const struct spi_flash *flash, int32_t timeout);
 
 
 #define	SPI_FLASH_ERROR(code)		ROT_ERROR (ROT_MODULE_SPI_FLASH, code)
@@ -161,6 +182,7 @@ enum {
 	SPI_FLASH_NO_4BYTE_CMDS = SPI_FLASH_ERROR (0x0c),			/**< The device does not support required 4-byte commands. */
 	SPI_FLASH_RESET_NOT_SUPPORTED = SPI_FLASH_ERROR (0x0d),		/**< Soft reset is not supported by the device. */
 	SPI_FLASH_PWRDOWN_NOT_SUPPORTED = SPI_FLASH_ERROR (0x0e),	/**< Deep power down is not supported by the device. */
+	SPI_FLASH_READ_ONLY_INTERFACE = SPI_FLASH_ERROR (0x0f),		/**< The interface is only configured to allow read access. */
 };
 
 

@@ -271,6 +271,7 @@ static void keystore_flash_test_load_key_backwards_compatibility (CuTest *test)
 {
 	HASH_TESTING_ENGINE hash;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash spi;
 	struct flash_store flash;
 	struct keystore_flash store;
@@ -287,7 +288,7 @@ static void keystore_flash_test_load_key_backwards_compatibility (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&spi, &flash_mock.base);
+	status = spi_flash_init (&spi, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&spi, 0x100000);
@@ -349,6 +350,7 @@ static void keystore_flash_test_load_key_backwards_compatibility_encrypted (CuTe
 	struct aes_engine_mock aes;
 	struct rng_engine_mock rng;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash spi;
 	struct flash_store_encrypted flash;
 	struct keystore_flash store;
@@ -372,7 +374,7 @@ static void keystore_flash_test_load_key_backwards_compatibility_encrypted (CuTe
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&spi, &flash_mock.base);
+	status = spi_flash_init (&spi, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&spi, 0x100000);

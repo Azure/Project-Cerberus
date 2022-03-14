@@ -52,7 +52,7 @@ struct key_manifest {
 	 *
 	 * @return 0 if the manifest is valid or an error code.
 	 */
-	int (*verify) (struct key_manifest *manifest, struct hash_engine *hash);
+	int (*verify) (const struct key_manifest *manifest, struct hash_engine *hash);
 
 	/**
 	 * Check if the key manifest is allowed to be used on this device.  An allowed manifest is one
@@ -69,7 +69,7 @@ struct key_manifest {
 	 *
 	 * @return 1 if the manifest is allowed to be used, 0 if it is not, or an error code.
 	 */
-	int (*is_allowed) (struct key_manifest *manifest);
+	int (*is_allowed) (const struct key_manifest *manifest);
 
 	/**
 	 * Check if the key manifest is configured to revoke any previous manifest.
@@ -84,7 +84,7 @@ struct key_manifest {
 	 * @return 1 if the manifest updates the revocation information, 0 if it does not, or an error
 	 * code.
 	 */
-	int (*revokes_old_manifest) (struct key_manifest *manifest);
+	int (*revokes_old_manifest) (const struct key_manifest *manifest);
 
 	/**
 	 * Update the device revocation information from the manifest.
@@ -98,7 +98,7 @@ struct key_manifest {
 	 *
 	 * @return 0 if the revocation information was successfully updated or an error code.
 	 */
-	int (*update_revocation) (struct key_manifest *manifest);
+	int (*update_revocation) (const struct key_manifest *manifest);
 
 	/**
 	 * Get the public key used to verify the key manifest.
@@ -111,7 +111,7 @@ struct key_manifest {
 	 * @return The root public key or null if there is an error.  The memory for this key is
 	 * managed by the manifest instance.
 	 */
-	const struct key_manifest_public_key* (*get_root_key) (struct key_manifest *manifest);
+	const struct key_manifest_public_key* (*get_root_key) (const struct key_manifest *manifest);
 
 	/**
 	 * Get the public key used to verify application images.
@@ -124,7 +124,7 @@ struct key_manifest {
 	 * @return The application public key or null if there is an error.  The memory for this key is
 	 * managed by the manifest instance.
 	 */
-	const struct key_manifest_public_key* (*get_app_key) (struct key_manifest *manifest);
+	const struct key_manifest_public_key* (*get_app_key) (const struct key_manifest *manifest);
 
 	/**
 	 * Get the public key used to verify FW manifests.
@@ -137,7 +137,7 @@ struct key_manifest {
 	 * @return The manifest public key or null if there is an error.  The memory for this key is
 	 * managed by the manifest instance.
 	 */
-	const struct key_manifest_public_key* (*get_manifest_key) (struct key_manifest *manifest);
+	const struct key_manifest_public_key* (*get_manifest_key) (const struct key_manifest *manifest);
 };
 
 

@@ -13,8 +13,10 @@
  *
  * @param init The initialization manager to initialize.
  * @param flash_cs0 The SPI flash interface for the device on CS0.
+ * @param state_cs0 Variable context for the SPI flash on CS0.
  * @param spi_cs0 The SPI master for the CS0 flash.
  * @param flash_cs1 The SPI flash interface for the device on CS1.  Set to null for single flash.
+ * @param state_cs1 Variable context for the SPI flash on CS1.  Set to null for single flash.
  * @param spi_cs1 The SPI master for the CS1 flash.  Set to null for single flash.
  * @param fast_read Flag to indicate if the SPI flash interface should use fast read commands.
  * @param drive_strength Flag to indicate if the device drive strength should be configured.
@@ -22,8 +24,10 @@
  * @return 0 if the initialization manager was successfully initialized or an error code.
  */
 int host_flash_initialization_init_internal (struct host_flash_initialization *init,
-	struct spi_flash *flash_cs0, struct flash_master *spi_cs0, struct spi_flash *flash_cs1,
-	struct flash_master *spi_cs1, bool fast_read, bool drive_strength)
+	struct spi_flash *flash_cs0, struct spi_flash_state *state_cs0,
+	const struct flash_master *spi_cs0, struct spi_flash *flash_cs1,
+	struct spi_flash_state *state_cs1, const struct flash_master *spi_cs1, bool fast_read,
+	bool drive_strength)
 {
 	int status;
 
@@ -35,13 +39,15 @@ int host_flash_initialization_init_internal (struct host_flash_initialization *i
 	}
 
 	init->flash_cs0 = flash_cs0;
+	init->state_cs0 = state_cs0;
 	init->spi_cs0 = spi_cs0;
 	init->flash_cs1 = flash_cs1;
+	init->state_cs1 = state_cs1;
 	init->spi_cs1 = spi_cs1;
 	init->fast_read = fast_read;
 	init->drive_strength = drive_strength;
 
-	if (!flash_cs1 || !spi_cs1) {
+	if (!flash_cs1 || !state_cs1 || !spi_cs1) {
 		init->is_init1 = true;
 	}
 
@@ -57,8 +63,10 @@ int host_flash_initialization_init_internal (struct host_flash_initialization *i
  *
  * @param init The initialization manager to initialize.
  * @param flash_cs0 The SPI flash interface for the device on CS0.
+ * @param state_cs0 Variable context for the SPI flash on CS0.
  * @param spi_cs0 The SPI master for the CS0 flash.
  * @param flash_cs1 The SPI flash interface for the device on CS1.
+ * @param state_cs1 Variable context for the SPI flash on CS1.
  * @param spi_cs1 The SPI master for the CS1 flash.
  * @param fast_read Flag to indicate if the SPI flash interface should use fast read commands.
  * @param drive_strength Flag to indicate if the device drive strength should be configured.
@@ -66,16 +74,18 @@ int host_flash_initialization_init_internal (struct host_flash_initialization *i
  * @return 0 if the initialization manager was successfully initialized or an error code.
  */
 int host_flash_initialization_init (struct host_flash_initialization *init,
-	struct spi_flash *flash_cs0, struct flash_master *spi_cs0, struct spi_flash *flash_cs1,
-	struct flash_master *spi_cs1, bool fast_read, bool drive_strength)
+	struct spi_flash *flash_cs0, struct spi_flash_state *state_cs0,
+	const struct flash_master *spi_cs0, struct spi_flash *flash_cs1,
+	struct spi_flash_state *state_cs1, const struct flash_master *spi_cs1, bool fast_read,
+	bool drive_strength)
 {
-	if ((init == NULL) || (flash_cs0 == NULL) || (spi_cs0 == NULL) || (flash_cs1 == NULL) ||
-		(spi_cs1 == NULL)) {
+	if ((init == NULL) || (flash_cs0 == NULL) || (state_cs0 == NULL) || (spi_cs0 == NULL) ||
+		(flash_cs1 == NULL) || (state_cs1 == NULL) || (spi_cs1 == NULL)) {
 		return HOST_FLASH_INIT_INVALID_ARGUMENT;
 	}
 
-	return host_flash_initialization_init_internal (init, flash_cs0, spi_cs0, flash_cs1, spi_cs1,
-		fast_read, drive_strength);
+	return host_flash_initialization_init_internal (init, flash_cs0, state_cs0, spi_cs0, flash_cs1,
+		state_cs1, spi_cs1, fast_read, drive_strength);
 }
 
 /**
@@ -87,6 +97,7 @@ int host_flash_initialization_init (struct host_flash_initialization *init,
  *
  * @param init The initialization manager to initialize.
  * @param flash The SPI flash interface for the device on CS0.
+ * @param state Variable context for the SPI flash on CS0.
  * @param spi The SPI master for the CS0 flash.
  * @param fast_read Flag to indicate if the SPI flash interface should use fast read commands.
  * @param drive_strength Flag to indicate if the device drive strength should be configured.
@@ -94,14 +105,15 @@ int host_flash_initialization_init (struct host_flash_initialization *init,
  * @return 0 if the initialization manager was successfully initialized or an error code.
  */
 int host_flash_initialization_init_single_flash (struct host_flash_initialization *init,
-	struct spi_flash *flash, struct flash_master *spi, bool fast_read, bool drive_strength)
+	struct spi_flash *flash, struct spi_flash_state *state, const struct flash_master *spi,
+	bool fast_read, bool drive_strength)
 {
-	if ((init == NULL) || (flash == NULL) || (spi == NULL)) {
+	if ((init == NULL) || (state == NULL) || (flash == NULL) || (spi == NULL)) {
 		return HOST_FLASH_INIT_INVALID_ARGUMENT;
 	}
 
-	return host_flash_initialization_init_internal (init, flash, spi, NULL, NULL, fast_read,
-		drive_strength);
+	return host_flash_initialization_init_internal (init, flash, state, spi, NULL, NULL, NULL,
+		fast_read, drive_strength);
 }
 
 /**
@@ -134,8 +146,8 @@ int host_flash_initialization_initialize_flash (struct host_flash_initialization
 	platform_mutex_lock (&init->lock);
 
 	if (!init->is_init0) {
-		status = spi_flash_initialize_device (init->flash_cs0, init->spi_cs0, init->fast_read,
-			false, false, init->drive_strength);
+		status = spi_flash_initialize_device (init->flash_cs0, init->state_cs0, init->spi_cs0,
+			init->fast_read, false, false, init->drive_strength);
 		if (status != 0) {
 			goto exit;
 		}
@@ -144,8 +156,8 @@ int host_flash_initialization_initialize_flash (struct host_flash_initialization
 	}
 
 	if (!init->is_init1) {
-		status = spi_flash_initialize_device (init->flash_cs1, init->spi_cs1, init->fast_read,
-			false, false, init->drive_strength);
+		status = spi_flash_initialize_device (init->flash_cs1, init->state_cs1, init->spi_cs1,
+			init->fast_read, false, false, init->drive_strength);
 		if (status != 0) {
 			goto exit;
 		}

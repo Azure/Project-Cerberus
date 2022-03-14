@@ -26,6 +26,7 @@ static void host_fw_determine_version_test (CuTest *test)
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	int status;
 	const char *version_exp = "1234";
@@ -36,7 +37,7 @@ static void host_fw_determine_version_test (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -70,6 +71,7 @@ static void host_fw_determine_version_test_no_match (CuTest *test)
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	int status;
 	const char *version_exp = "1234";
@@ -80,7 +82,7 @@ static void host_fw_determine_version_test_no_match (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -113,6 +115,7 @@ static void host_fw_determine_version_test_check_multiple (CuTest *test)
 	struct pfm_firmware_version version[4];
 	struct pfm_firmware_versions version_list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	int status;
 	const char *version_exp = "2222";
@@ -123,7 +126,7 @@ static void host_fw_determine_version_test_check_multiple (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -173,6 +176,7 @@ static void host_fw_determine_version_test_check_multiple_no_match (CuTest *test
 	struct pfm_firmware_version version[4];
 	struct pfm_firmware_versions version_list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	int status;
 	const char *version_exp = "1234";
@@ -183,7 +187,7 @@ static void host_fw_determine_version_test_check_multiple_no_match (CuTest *test
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -237,6 +241,7 @@ static void host_fw_determine_version_test_different_lengths (CuTest *test)
 	struct pfm_firmware_version version[4];
 	struct pfm_firmware_versions version_list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	int status;
 	const char *version_exp = "222222";
@@ -247,7 +252,7 @@ static void host_fw_determine_version_test_different_lengths (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -297,6 +302,7 @@ static void host_fw_determine_version_test_same_address (CuTest *test)
 	struct pfm_firmware_version version[4];
 	struct pfm_firmware_versions version_list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	int status;
 	const char *version_exp = "2222";
@@ -307,7 +313,7 @@ static void host_fw_determine_version_test_same_address (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -347,6 +353,7 @@ static void host_fw_determine_version_test_same_address_different_lengths (CuTes
 	struct pfm_firmware_version version[4];
 	struct pfm_firmware_versions version_list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	int status;
 	const char *version_exp = "222222";
@@ -357,7 +364,7 @@ static void host_fw_determine_version_test_same_address_different_lengths (CuTes
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -402,6 +409,7 @@ static void host_fw_determine_version_test_same_address_different_lengths_shorte
 	struct pfm_firmware_version version[4];
 	struct pfm_firmware_versions version_list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	int status;
 	const char *version_exp = "2222";
@@ -412,7 +420,7 @@ static void host_fw_determine_version_test_same_address_different_lengths_shorte
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -452,6 +460,7 @@ static void host_fw_determine_version_test_null (CuTest *test)
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	int status;
 	const char *version_exp = "1234";
@@ -462,7 +471,7 @@ static void host_fw_determine_version_test_null (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -493,6 +502,7 @@ static void host_fw_determine_version_test_empty_list (CuTest *test)
 {
 	struct pfm_firmware_versions version_list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	int status;
 	const struct pfm_firmware_version *version_out;
@@ -502,7 +512,7 @@ static void host_fw_determine_version_test_empty_list (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -525,6 +535,7 @@ static void host_fw_determine_version_test_read_fail (CuTest *test)
 	struct pfm_firmware_version version[4];
 	struct pfm_firmware_versions version_list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	int status;
 	const char *version_exp = "2222";
@@ -535,7 +546,7 @@ static void host_fw_determine_version_test_read_fail (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -577,6 +588,7 @@ static void host_fw_determine_version_test_read_fail_cache_update (CuTest *test)
 	struct pfm_firmware_version version[4];
 	struct pfm_firmware_versions version_list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	int status;
 	const char *version_exp = "222222";
@@ -587,7 +599,7 @@ static void host_fw_determine_version_test_read_fail_cache_update (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -629,6 +641,7 @@ static void host_fw_determine_offset_version_test (CuTest *test)
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	int status;
 	const char *version_exp = "1234";
@@ -639,7 +652,7 @@ static void host_fw_determine_offset_version_test (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -673,6 +686,7 @@ static void host_fw_determine_offset_version_test_no_match (CuTest *test)
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	int status;
 	const char *version_exp = "1234";
@@ -683,7 +697,7 @@ static void host_fw_determine_offset_version_test_no_match (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -716,6 +730,7 @@ static void host_fw_determine_offset_version_test_check_multiple (CuTest *test)
 	struct pfm_firmware_version version[4];
 	struct pfm_firmware_versions version_list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	int status;
 	const char *version_exp = "2222";
@@ -726,7 +741,7 @@ static void host_fw_determine_offset_version_test_check_multiple (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -776,6 +791,7 @@ static void host_fw_determine_offset_version_test_check_multiple_no_match (CuTes
 	struct pfm_firmware_version version[4];
 	struct pfm_firmware_versions version_list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	int status;
 	const char *version_exp = "1234";
@@ -786,7 +802,7 @@ static void host_fw_determine_offset_version_test_check_multiple_no_match (CuTes
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -840,6 +856,7 @@ static void host_fw_determine_offset_version_test_different_lengths (CuTest *tes
 	struct pfm_firmware_version version[4];
 	struct pfm_firmware_versions version_list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	int status;
 	const char *version_exp = "222222";
@@ -850,7 +867,7 @@ static void host_fw_determine_offset_version_test_different_lengths (CuTest *tes
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -900,6 +917,7 @@ static void host_fw_determine_offset_version_test_same_address (CuTest *test)
 	struct pfm_firmware_version version[4];
 	struct pfm_firmware_versions version_list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	int status;
 	const char *version_exp = "2222";
@@ -910,7 +928,7 @@ static void host_fw_determine_offset_version_test_same_address (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -950,6 +968,7 @@ static void host_fw_determine_offset_version_test_same_address_different_lengths
 	struct pfm_firmware_version version[4];
 	struct pfm_firmware_versions version_list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	int status;
 	const char *version_exp = "222222";
@@ -960,7 +979,7 @@ static void host_fw_determine_offset_version_test_same_address_different_lengths
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -1006,6 +1025,7 @@ static void host_fw_determine_offset_version_test_same_address_different_lengths
 	struct pfm_firmware_version version[4];
 	struct pfm_firmware_versions version_list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	int status;
 	const char *version_exp = "2222";
@@ -1016,7 +1036,7 @@ static void host_fw_determine_offset_version_test_same_address_different_lengths
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -1056,6 +1076,7 @@ static void host_fw_determine_offset_version_test_null (CuTest *test)
 	struct pfm_firmware_version version;
 	struct pfm_firmware_versions version_list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	int status;
 	const char *version_exp = "1234";
@@ -1066,7 +1087,7 @@ static void host_fw_determine_offset_version_test_null (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -1097,6 +1118,7 @@ static void host_fw_determine_offset_version_test_empty_list (CuTest *test)
 {
 	struct pfm_firmware_versions version_list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	int status;
 	const struct pfm_firmware_version *version_out;
@@ -1106,7 +1128,7 @@ static void host_fw_determine_offset_version_test_empty_list (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -1129,6 +1151,7 @@ static void host_fw_determine_offset_version_test_read_fail (CuTest *test)
 	struct pfm_firmware_version version[4];
 	struct pfm_firmware_versions version_list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	int status;
 	const char *version_exp = "2222";
@@ -1139,7 +1162,7 @@ static void host_fw_determine_offset_version_test_read_fail (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -1181,6 +1204,7 @@ static void host_fw_determine_offset_version_test_read_fail_cache_update (CuTest
 	struct pfm_firmware_version version[4];
 	struct pfm_firmware_versions version_list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	int status;
 	const char *version_exp = "222222";
@@ -1191,7 +1215,7 @@ static void host_fw_determine_offset_version_test_read_fail_cache_update (CuTest
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -1234,6 +1258,7 @@ static void host_fw_verify_images_test (CuTest *test)
 	struct pfm_image_signature sig;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -1251,7 +1276,7 @@ static void host_fw_verify_images_test (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -1295,6 +1320,7 @@ static void host_fw_verify_images_test_invalid (CuTest *test)
 	struct pfm_image_signature sig;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -1312,7 +1338,7 @@ static void host_fw_verify_images_test_invalid (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -1356,6 +1382,7 @@ static void host_fw_verify_images_test_not_contiguous (CuTest *test)
 	struct pfm_image_signature sig;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -1373,7 +1400,7 @@ static void host_fw_verify_images_test_not_contiguous (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -1438,6 +1465,7 @@ static void host_fw_verify_images_test_multiple (CuTest *test)
 	struct pfm_image_signature sig[3];
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -1457,7 +1485,7 @@ static void host_fw_verify_images_test_multiple (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -1529,6 +1557,7 @@ static void host_fw_verify_images_test_multiple_one_invalid (CuTest *test)
 	struct pfm_image_signature sig[3];
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -1548,7 +1577,7 @@ static void host_fw_verify_images_test_multiple_one_invalid (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -1615,6 +1644,7 @@ static void host_fw_verify_images_test_partial_validation (CuTest *test)
 	struct pfm_image_signature sig[3];
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -1634,7 +1664,7 @@ static void host_fw_verify_images_test_partial_validation (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -1699,6 +1729,7 @@ static void host_fw_verify_images_test_no_images (CuTest *test)
 {
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -1715,7 +1746,7 @@ static void host_fw_verify_images_test_no_images (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -1742,6 +1773,7 @@ static void host_fw_verify_images_test_hashes_sha256 (CuTest *test)
 	struct pfm_image_hash img_hash;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -1759,7 +1791,7 @@ static void host_fw_verify_images_test_hashes_sha256 (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -1803,6 +1835,7 @@ static void host_fw_verify_images_test_hashes_sha384 (CuTest *test)
 	struct pfm_image_hash img_hash;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -1820,7 +1853,7 @@ static void host_fw_verify_images_test_hashes_sha384 (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -1864,6 +1897,7 @@ static void host_fw_verify_images_test_hashes_sha512 (CuTest *test)
 	struct pfm_image_hash img_hash;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -1881,7 +1915,7 @@ static void host_fw_verify_images_test_hashes_sha512 (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -1925,6 +1959,7 @@ static void host_fw_verify_images_test_hashes_sha256_invalid (CuTest *test)
 	struct pfm_image_hash img_hash;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -1942,7 +1977,7 @@ static void host_fw_verify_images_test_hashes_sha256_invalid (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -1986,6 +2021,7 @@ static void host_fw_verify_images_test_hashes_sha384_invalid (CuTest *test)
 	struct pfm_image_hash img_hash;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -2003,7 +2039,7 @@ static void host_fw_verify_images_test_hashes_sha384_invalid (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -2047,6 +2083,7 @@ static void host_fw_verify_images_test_hashes_sha512_invalid (CuTest *test)
 	struct pfm_image_hash img_hash;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -2064,7 +2101,7 @@ static void host_fw_verify_images_test_hashes_sha512_invalid (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -2108,6 +2145,7 @@ static void host_fw_verify_images_test_hashes_not_contiguous (CuTest *test)
 	struct pfm_image_hash img_hash;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -2125,7 +2163,7 @@ static void host_fw_verify_images_test_hashes_not_contiguous (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -2190,6 +2228,7 @@ static void host_fw_verify_images_test_hashes_multiple (CuTest *test)
 	struct pfm_image_hash img_hash[3];
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -2209,7 +2248,7 @@ static void host_fw_verify_images_test_hashes_multiple (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -2281,6 +2320,7 @@ static void host_fw_verify_images_test_hashes_multiple_one_invalid (CuTest *test
 	struct pfm_image_hash img_hash[3];
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -2300,7 +2340,7 @@ static void host_fw_verify_images_test_hashes_multiple_one_invalid (CuTest *test
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -2367,6 +2407,7 @@ static void host_fw_verify_images_test_hashes_partial_validation (CuTest *test)
 	struct pfm_image_hash img_hash[3];
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -2386,7 +2427,7 @@ static void host_fw_verify_images_test_hashes_partial_validation (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -2453,6 +2494,7 @@ static void host_fw_verify_images_test_hashes_hash_error (CuTest *test)
 	struct pfm_image_hash img_hash;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -2470,7 +2512,7 @@ static void host_fw_verify_images_test_hashes_hash_error (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -2507,6 +2549,7 @@ static void host_fw_verify_images_test_null (CuTest *test)
 	struct pfm_image_signature sig;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -2524,7 +2567,7 @@ static void host_fw_verify_images_test_null (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -2570,6 +2613,7 @@ static void host_fw_verify_offset_images_test (CuTest *test)
 	struct pfm_image_signature sig;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -2587,7 +2631,7 @@ static void host_fw_verify_offset_images_test (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -2631,6 +2675,7 @@ static void host_fw_verify_offset_images_test_no_offset (CuTest *test)
 	struct pfm_image_signature sig;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -2648,7 +2693,7 @@ static void host_fw_verify_offset_images_test_no_offset (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -2692,6 +2737,7 @@ static void host_fw_verify_offset_images_test_invalid (CuTest *test)
 	struct pfm_image_signature sig;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -2709,7 +2755,7 @@ static void host_fw_verify_offset_images_test_invalid (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -2753,6 +2799,7 @@ static void host_fw_verify_offset_images_test_not_contiguous (CuTest *test)
 	struct pfm_image_signature sig;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -2770,7 +2817,7 @@ static void host_fw_verify_offset_images_test_not_contiguous (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -2835,6 +2882,7 @@ static void host_fw_verify_offset_images_test_multiple (CuTest *test)
 	struct pfm_image_signature sig[3];
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -2854,7 +2902,7 @@ static void host_fw_verify_offset_images_test_multiple (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -2926,6 +2974,7 @@ static void host_fw_verify_offset_images_test_multiple_one_invalid (CuTest *test
 	struct pfm_image_signature sig[3];
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -2945,7 +2994,7 @@ static void host_fw_verify_offset_images_test_multiple_one_invalid (CuTest *test
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -3012,6 +3061,7 @@ static void host_fw_verify_offset_images_test_partial_validation (CuTest *test)
 	struct pfm_image_signature sig[3];
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -3031,7 +3081,7 @@ static void host_fw_verify_offset_images_test_partial_validation (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -3096,6 +3146,7 @@ static void host_fw_verify_offset_images_test_no_images (CuTest *test)
 {
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -3112,7 +3163,7 @@ static void host_fw_verify_offset_images_test_no_images (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -3139,6 +3190,7 @@ static void host_fw_verify_offset_images_test_hashes_sha256 (CuTest *test)
 	struct pfm_image_hash img_hash;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -3156,7 +3208,7 @@ static void host_fw_verify_offset_images_test_hashes_sha256 (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -3200,6 +3252,7 @@ static void host_fw_verify_offset_images_test_hashes_sha384 (CuTest *test)
 	struct pfm_image_hash img_hash;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -3217,7 +3270,7 @@ static void host_fw_verify_offset_images_test_hashes_sha384 (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -3261,6 +3314,7 @@ static void host_fw_verify_offset_images_test_hashes_sha512 (CuTest *test)
 	struct pfm_image_hash img_hash;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -3278,7 +3332,7 @@ static void host_fw_verify_offset_images_test_hashes_sha512 (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -3322,6 +3376,7 @@ static void host_fw_verify_offset_images_test_hashes_no_offset (CuTest *test)
 	struct pfm_image_hash img_hash;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -3339,7 +3394,7 @@ static void host_fw_verify_offset_images_test_hashes_no_offset (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -3383,6 +3438,7 @@ static void host_fw_verify_offset_images_test_hashes_sha256_invalid (CuTest *tes
 	struct pfm_image_hash img_hash;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -3400,7 +3456,7 @@ static void host_fw_verify_offset_images_test_hashes_sha256_invalid (CuTest *tes
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -3444,6 +3500,7 @@ static void host_fw_verify_offset_images_test_hashes_sha384_invalid (CuTest *tes
 	struct pfm_image_hash img_hash;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -3461,7 +3518,7 @@ static void host_fw_verify_offset_images_test_hashes_sha384_invalid (CuTest *tes
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -3505,6 +3562,7 @@ static void host_fw_verify_offset_images_test_hashes_sha512_invalid (CuTest *tes
 	struct pfm_image_hash img_hash;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -3522,7 +3580,7 @@ static void host_fw_verify_offset_images_test_hashes_sha512_invalid (CuTest *tes
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -3566,6 +3624,7 @@ static void host_fw_verify_offset_images_test_hashes_not_contiguous (CuTest *tes
 	struct pfm_image_hash img_hash;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -3583,7 +3642,7 @@ static void host_fw_verify_offset_images_test_hashes_not_contiguous (CuTest *tes
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -3648,6 +3707,7 @@ static void host_fw_verify_offset_images_test_hashes_multiple (CuTest *test)
 	struct pfm_image_hash img_hash[3];
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -3667,7 +3727,7 @@ static void host_fw_verify_offset_images_test_hashes_multiple (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -3739,6 +3799,7 @@ static void host_fw_verify_offset_images_test_hashes_multiple_one_invalid (CuTes
 	struct pfm_image_hash img_hash[3];
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -3758,7 +3819,7 @@ static void host_fw_verify_offset_images_test_hashes_multiple_one_invalid (CuTes
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -3825,6 +3886,7 @@ static void host_fw_verify_offset_images_test_hashes_partial_validation (CuTest 
 	struct pfm_image_hash img_hash[3];
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -3844,7 +3906,7 @@ static void host_fw_verify_offset_images_test_hashes_partial_validation (CuTest 
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -3911,6 +3973,7 @@ static void host_fw_verify_offset_images_test_hashes_hash_error (CuTest *test)
 	struct pfm_image_hash img_hash;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -3928,7 +3991,7 @@ static void host_fw_verify_offset_images_test_hashes_hash_error (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -3966,6 +4029,7 @@ static void host_fw_verify_offset_images_test_null (CuTest *test)
 	struct pfm_image_signature sig;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -3983,7 +4047,7 @@ static void host_fw_verify_offset_images_test_null (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -4032,6 +4096,7 @@ static void host_fw_full_flash_verification_test (CuTest *test)
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -4049,7 +4114,7 @@ static void host_fw_full_flash_verification_test (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
@@ -4110,6 +4175,7 @@ static void host_fw_full_flash_verification_test_not_blank_byte (CuTest *test)
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -4127,7 +4193,7 @@ static void host_fw_full_flash_verification_test_not_blank_byte (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
@@ -4188,6 +4254,7 @@ static void host_fw_full_flash_verification_test_multiple_rw_regions (CuTest *te
 	struct pfm_read_write rw_prop[2];
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -4205,7 +4272,7 @@ static void host_fw_full_flash_verification_test_multiple_rw_regions (CuTest *te
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
@@ -4270,6 +4337,7 @@ static void host_fw_full_flash_verification_test_image_between_rw_regions (CuTes
 	struct pfm_read_write rw_prop[2];
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -4287,7 +4355,7 @@ static void host_fw_full_flash_verification_test_image_between_rw_regions (CuTes
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
@@ -4352,6 +4420,7 @@ static void host_fw_full_flash_verification_test_multiple_images (CuTest *test)
 	struct pfm_read_write rw_prop[2];
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -4370,7 +4439,7 @@ static void host_fw_full_flash_verification_test_multiple_images (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
@@ -4450,6 +4519,7 @@ static void host_fw_full_flash_verification_test_offset_image (CuTest *test)
 	struct pfm_read_write rw_prop[2];
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -4468,7 +4538,7 @@ static void host_fw_full_flash_verification_test_offset_image (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
@@ -4549,6 +4619,7 @@ static void host_fw_full_flash_verification_test_first_region_rw (CuTest *test)
 	struct pfm_read_write rw_prop[2];
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -4567,7 +4638,7 @@ static void host_fw_full_flash_verification_test_first_region_rw (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
@@ -4648,6 +4719,7 @@ static void host_fw_full_flash_verification_test_last_region_rw (CuTest *test)
 	struct pfm_read_write rw_prop[2];
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -4666,7 +4738,7 @@ static void host_fw_full_flash_verification_test_last_region_rw (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
@@ -4746,6 +4818,7 @@ static void host_fw_full_flash_verification_test_multipart_image (CuTest *test)
 	struct pfm_read_write rw_prop[2];
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -4764,7 +4837,7 @@ static void host_fw_full_flash_verification_test_multipart_image (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
@@ -4859,6 +4932,7 @@ static void host_fw_full_flash_verification_test_partial_validation (CuTest *tes
 	struct pfm_read_write rw_prop[2];
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -4877,7 +4951,7 @@ static void host_fw_full_flash_verification_test_partial_validation (CuTest *tes
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
@@ -4957,6 +5031,7 @@ static void host_fw_full_flash_verification_test_invalid_image (CuTest *test)
 	struct pfm_read_write rw_prop[2];
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -4975,7 +5050,7 @@ static void host_fw_full_flash_verification_test_invalid_image (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
@@ -5044,6 +5119,7 @@ static void host_fw_full_flash_verification_test_not_blank (CuTest *test)
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -5061,7 +5137,7 @@ static void host_fw_full_flash_verification_test_not_blank (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
@@ -5123,6 +5199,7 @@ static void host_fw_full_flash_verification_test_last_not_blank (CuTest *test)
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -5140,7 +5217,7 @@ static void host_fw_full_flash_verification_test_last_not_blank (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
@@ -5204,6 +5281,7 @@ static void host_fw_full_flash_verification_test_hashes_sha256 (CuTest *test)
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -5221,7 +5299,7 @@ static void host_fw_full_flash_verification_test_hashes_sha256 (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
@@ -5282,6 +5360,7 @@ static void host_fw_full_flash_verification_test_hashes_sha384 (CuTest *test)
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -5299,7 +5378,7 @@ static void host_fw_full_flash_verification_test_hashes_sha384 (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
@@ -5360,6 +5439,7 @@ static void host_fw_full_flash_verification_test_hashes_sha512 (CuTest *test)
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -5377,7 +5457,7 @@ static void host_fw_full_flash_verification_test_hashes_sha512 (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
@@ -5438,6 +5518,7 @@ static void host_fw_full_flash_verification_test_hashes_multipart_image (CuTest 
 	struct pfm_read_write rw_prop[2];
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -5456,7 +5537,7 @@ static void host_fw_full_flash_verification_test_hashes_multipart_image (CuTest 
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
@@ -5551,6 +5632,7 @@ static void host_fw_full_flash_verification_test_hashes_partial_validation (CuTe
 	struct pfm_read_write rw_prop[2];
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -5569,7 +5651,7 @@ static void host_fw_full_flash_verification_test_hashes_partial_validation (CuTe
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
@@ -5649,6 +5731,7 @@ static void host_fw_full_flash_verification_test_hashes_invalid_image (CuTest *t
 	struct pfm_read_write rw_prop[2];
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -5667,7 +5750,7 @@ static void host_fw_full_flash_verification_test_hashes_invalid_image (CuTest *t
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
@@ -5736,6 +5819,7 @@ static void host_fw_full_flash_verification_test_null (CuTest *test)
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -5753,7 +5837,7 @@ static void host_fw_full_flash_verification_test_null (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	img_region.start_addr = 0;
@@ -5816,8 +5900,10 @@ static void host_fw_migrate_read_write_data_test (CuTest *test)
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state1;
 	struct spi_flash flash1;
 	struct flash_master_mock flash_mock2;
+	struct spi_flash_state state2;
 	struct spi_flash flash2;
 	int status;
 
@@ -5829,10 +5915,10 @@ static void host_fw_migrate_read_write_data_test (CuTest *test)
 	status = flash_master_mock_init (&flash_mock2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
+	status = spi_flash_init (&flash1, &state1, &flash_mock1.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2, &flash_mock2.base);
+	status = spi_flash_init (&flash2, &state2, &flash_mock2.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1, 0x1000000);
@@ -5875,8 +5961,10 @@ static void host_fw_migrate_read_write_data_test_multiple_regions (CuTest *test)
 	struct pfm_read_write rw_prop[3];
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state1;
 	struct spi_flash flash1;
 	struct flash_master_mock flash_mock2;
+	struct spi_flash_state state2;
 	struct spi_flash flash2;
 	int status;
 
@@ -5888,10 +5976,10 @@ static void host_fw_migrate_read_write_data_test_multiple_regions (CuTest *test)
 	status = flash_master_mock_init (&flash_mock2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
+	status = spi_flash_init (&flash1, &state1, &flash_mock1.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2, &flash_mock2.base);
+	status = spi_flash_init (&flash2, &state2, &flash_mock2.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1, 0x1000000);
@@ -5947,11 +6035,13 @@ static void host_fw_migrate_read_write_data_test_different_addresses (CuTest *te
 	struct pfm_read_write rw_prop1;
 	struct pfm_read_write_regions rw_list1;
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state1;
 	struct spi_flash flash1;
 	struct flash_region rw_region2;
 	struct pfm_read_write rw_prop2;
 	struct pfm_read_write_regions rw_list2;
 	struct flash_master_mock flash_mock2;
+	struct spi_flash_state state2;
 	struct spi_flash flash2;
 	int status;
 
@@ -5963,10 +6053,10 @@ static void host_fw_migrate_read_write_data_test_different_addresses (CuTest *te
 	status = flash_master_mock_init (&flash_mock2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
+	status = spi_flash_init (&flash1, &state1, &flash_mock1.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2, &flash_mock2.base);
+	status = spi_flash_init (&flash2, &state2, &flash_mock2.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1, 0x1000000);
@@ -6016,11 +6106,13 @@ static void host_fw_migrate_read_write_data_test_multiple_diff_addresses (CuTest
 	struct pfm_read_write rw_prop1[3];
 	struct pfm_read_write_regions rw_list1;
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state1;
 	struct spi_flash flash1;
 	struct flash_region rw_region2[3];
 	struct pfm_read_write rw_prop2[3];
 	struct pfm_read_write_regions rw_list2;
 	struct flash_master_mock flash_mock2;
+	struct spi_flash_state state2;
 	struct spi_flash flash2;
 	int status;
 
@@ -6032,10 +6124,10 @@ static void host_fw_migrate_read_write_data_test_multiple_diff_addresses (CuTest
 	status = flash_master_mock_init (&flash_mock2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
+	status = spi_flash_init (&flash1, &state1, &flash_mock1.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2, &flash_mock2.base);
+	status = spi_flash_init (&flash2, &state2, &flash_mock2.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1, 0x1000000);
@@ -6099,11 +6191,13 @@ static void host_fw_migrate_read_write_data_test_dest_larger (CuTest *test)
 	struct pfm_read_write rw_prop1;
 	struct pfm_read_write_regions rw_list1;
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state1;
 	struct spi_flash flash1;
 	struct flash_region rw_region2;
 	struct pfm_read_write rw_prop2;
 	struct pfm_read_write_regions rw_list2;
 	struct flash_master_mock flash_mock2;
+	struct spi_flash_state state2;
 	struct spi_flash flash2;
 	int status;
 
@@ -6115,10 +6209,10 @@ static void host_fw_migrate_read_write_data_test_dest_larger (CuTest *test)
 	status = flash_master_mock_init (&flash_mock2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
+	status = spi_flash_init (&flash1, &state1, &flash_mock1.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2, &flash_mock2.base);
+	status = spi_flash_init (&flash2, &state2, &flash_mock2.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1, 0x1000000);
@@ -6169,11 +6263,13 @@ static void host_fw_migrate_read_write_data_test_dest_smaller (CuTest *test)
 	struct pfm_read_write rw_prop1;
 	struct pfm_read_write_regions rw_list1;
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state1;
 	struct spi_flash flash1;
 	struct flash_region rw_region2;
 	struct pfm_read_write rw_prop2;
 	struct pfm_read_write_regions rw_list2;
 	struct flash_master_mock flash_mock2;
+	struct spi_flash_state state2;
 	struct spi_flash flash2;
 	int status;
 
@@ -6185,10 +6281,10 @@ static void host_fw_migrate_read_write_data_test_dest_smaller (CuTest *test)
 	status = flash_master_mock_init (&flash_mock2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
+	status = spi_flash_init (&flash1, &state1, &flash_mock1.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2, &flash_mock2.base);
+	status = spi_flash_init (&flash2, &state2, &flash_mock2.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1, 0x1000000);
@@ -6239,11 +6335,13 @@ static void host_fw_migrate_read_write_data_test_multiple_one_smaller (CuTest *t
 	struct pfm_read_write rw_prop1[3];
 	struct pfm_read_write_regions rw_list1;
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state1;
 	struct spi_flash flash1;
 	struct flash_region rw_region2[3];
 	struct pfm_read_write rw_prop2[3];
 	struct pfm_read_write_regions rw_list2;
 	struct flash_master_mock flash_mock2;
+	struct spi_flash_state state2;
 	struct spi_flash flash2;
 	int status;
 
@@ -6255,10 +6353,10 @@ static void host_fw_migrate_read_write_data_test_multiple_one_smaller (CuTest *t
 	status = flash_master_mock_init (&flash_mock2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
+	status = spi_flash_init (&flash1, &state1, &flash_mock1.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2, &flash_mock2.base);
+	status = spi_flash_init (&flash2, &state2, &flash_mock2.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1, 0x1000000);
@@ -6322,11 +6420,13 @@ static void host_fw_migrate_read_write_data_test_dest_more_regions (CuTest *test
 	struct pfm_read_write rw_prop1[2];
 	struct pfm_read_write_regions rw_list1;
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state1;
 	struct spi_flash flash1;
 	struct flash_region rw_region2[3];
 	struct pfm_read_write rw_prop2[3];
 	struct pfm_read_write_regions rw_list2;
 	struct flash_master_mock flash_mock2;
+	struct spi_flash_state state2;
 	struct spi_flash flash2;
 	int status;
 
@@ -6338,10 +6438,10 @@ static void host_fw_migrate_read_write_data_test_dest_more_regions (CuTest *test
 	status = flash_master_mock_init (&flash_mock2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
+	status = spi_flash_init (&flash1, &state1, &flash_mock1.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2, &flash_mock2.base);
+	status = spi_flash_init (&flash2, &state2, &flash_mock2.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1, 0x1000000);
@@ -6402,11 +6502,13 @@ static void host_fw_migrate_read_write_data_test_src_more_regions (CuTest *test)
 	struct pfm_read_write rw_prop1[3];
 	struct pfm_read_write_regions rw_list1;
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state1;
 	struct spi_flash flash1;
 	struct flash_region rw_region2[3];
 	struct pfm_read_write rw_prop2[3];
 	struct pfm_read_write_regions rw_list2;
 	struct flash_master_mock flash_mock2;
+	struct spi_flash_state state2;
 	struct spi_flash flash2;
 	int status;
 
@@ -6418,10 +6520,10 @@ static void host_fw_migrate_read_write_data_test_src_more_regions (CuTest *test)
 	status = flash_master_mock_init (&flash_mock2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
+	status = spi_flash_init (&flash1, &state1, &flash_mock1.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2, &flash_mock2.base);
+	status = spi_flash_init (&flash2, &state2, &flash_mock2.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1, 0x1000000);
@@ -6481,11 +6583,13 @@ static void host_fw_migrate_read_write_data_test_diff_address_and_size (CuTest *
 	struct pfm_read_write rw_prop1[3];
 	struct pfm_read_write_regions rw_list1;
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state1;
 	struct spi_flash flash1;
 	struct flash_region rw_region2[3];
 	struct pfm_read_write rw_prop2[3];
 	struct pfm_read_write_regions rw_list2;
 	struct flash_master_mock flash_mock2;
+	struct spi_flash_state state2;
 	struct spi_flash flash2;
 	int status;
 
@@ -6497,10 +6601,10 @@ static void host_fw_migrate_read_write_data_test_diff_address_and_size (CuTest *
 	status = flash_master_mock_init (&flash_mock2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
+	status = spi_flash_init (&flash1, &state1, &flash_mock1.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2, &flash_mock2.base);
+	status = spi_flash_init (&flash2, &state2, &flash_mock2.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1, 0x1000000);
@@ -6564,11 +6668,13 @@ static void host_fw_migrate_read_write_data_test_diff_size_and_address (CuTest *
 	struct pfm_read_write rw_prop1[3];
 	struct pfm_read_write_regions rw_list1;
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state1;
 	struct spi_flash flash1;
 	struct flash_region rw_region2[3];
 	struct pfm_read_write rw_prop2[3];
 	struct pfm_read_write_regions rw_list2;
 	struct flash_master_mock flash_mock2;
+	struct spi_flash_state state2;
 	struct spi_flash flash2;
 	int status;
 
@@ -6580,10 +6686,10 @@ static void host_fw_migrate_read_write_data_test_diff_size_and_address (CuTest *
 	status = flash_master_mock_init (&flash_mock2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
+	status = spi_flash_init (&flash1, &state1, &flash_mock1.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2, &flash_mock2.base);
+	status = spi_flash_init (&flash2, &state2, &flash_mock2.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1, 0x1000000);
@@ -6647,11 +6753,13 @@ static void host_fw_migrate_read_write_data_test_all_different (CuTest *test)
 	struct pfm_read_write rw_prop1[3];
 	struct pfm_read_write_regions rw_list1;
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state1;
 	struct spi_flash flash1;
 	struct flash_region rw_region2[3];
 	struct pfm_read_write rw_prop2[3];
 	struct pfm_read_write_regions rw_list2;
 	struct flash_master_mock flash_mock2;
+	struct spi_flash_state state2;
 	struct spi_flash flash2;
 	int status;
 
@@ -6663,10 +6771,10 @@ static void host_fw_migrate_read_write_data_test_all_different (CuTest *test)
 	status = flash_master_mock_init (&flash_mock2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
+	status = spi_flash_init (&flash1, &state1, &flash_mock1.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2, &flash_mock2.base);
+	status = spi_flash_init (&flash2, &state2, &flash_mock2.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1, 0x1000000);
@@ -6726,11 +6834,13 @@ static void host_fw_migrate_read_write_data_test_multiple_diff_ordering (CuTest 
 	struct pfm_read_write rw_prop1[3];
 	struct pfm_read_write_regions rw_list1;
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state1;
 	struct spi_flash flash1;
 	struct flash_region rw_region2[3];
 	struct pfm_read_write rw_prop2[3];
 	struct pfm_read_write_regions rw_list2;
 	struct flash_master_mock flash_mock2;
+	struct spi_flash_state state2;
 	struct spi_flash flash2;
 	int status;
 
@@ -6742,10 +6852,10 @@ static void host_fw_migrate_read_write_data_test_multiple_diff_ordering (CuTest 
 	status = flash_master_mock_init (&flash_mock2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
+	status = spi_flash_init (&flash1, &state1, &flash_mock1.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2, &flash_mock2.base);
+	status = spi_flash_init (&flash2, &state2, &flash_mock2.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1, 0x1000000);
@@ -6816,8 +6926,10 @@ static void host_fw_migrate_read_write_data_test_no_source_regions (CuTest *test
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state1;
 	struct spi_flash flash1;
 	struct flash_master_mock flash_mock2;
+	struct spi_flash_state state2;
 	struct spi_flash flash2;
 	int status;
 
@@ -6829,10 +6941,10 @@ static void host_fw_migrate_read_write_data_test_no_source_regions (CuTest *test
 	status = flash_master_mock_init (&flash_mock2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
+	status = spi_flash_init (&flash1, &state1, &flash_mock1.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2, &flash_mock2.base);
+	status = spi_flash_init (&flash2, &state2, &flash_mock2.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1, 0x1000000);
@@ -6875,8 +6987,10 @@ static void host_fw_migrate_read_write_data_test_null (CuTest *test)
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state1;
 	struct spi_flash flash1;
 	struct flash_master_mock flash_mock2;
+	struct spi_flash_state state2;
 	struct spi_flash flash2;
 	int status;
 
@@ -6888,10 +7002,10 @@ static void host_fw_migrate_read_write_data_test_null (CuTest *test)
 	status = flash_master_mock_init (&flash_mock2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
+	status = spi_flash_init (&flash1, &state1, &flash_mock1.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2, &flash_mock2.base);
+	status = spi_flash_init (&flash2, &state2, &flash_mock2.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1, 0x1000000);
@@ -6934,8 +7048,10 @@ static void host_fw_migrate_read_write_data_test_erase_error (CuTest *test)
 	struct pfm_read_write rw_prop[3];
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state1;
 	struct spi_flash flash1;
 	struct flash_master_mock flash_mock2;
+	struct spi_flash_state state2;
 	struct spi_flash flash2;
 	int status;
 
@@ -6947,10 +7063,10 @@ static void host_fw_migrate_read_write_data_test_erase_error (CuTest *test)
 	status = flash_master_mock_init (&flash_mock2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
+	status = spi_flash_init (&flash1, &state1, &flash_mock1.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2, &flash_mock2.base);
+	status = spi_flash_init (&flash2, &state2, &flash_mock2.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1, 0x1000000);
@@ -6998,8 +7114,10 @@ static void host_fw_migrate_read_write_data_test_copy_error (CuTest *test)
 	struct pfm_read_write rw_prop[3];
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state1;
 	struct spi_flash flash1;
 	struct flash_master_mock flash_mock2;
+	struct spi_flash_state state2;
 	struct spi_flash flash2;
 	int status;
 
@@ -7011,10 +7129,10 @@ static void host_fw_migrate_read_write_data_test_copy_error (CuTest *test)
 	status = flash_master_mock_init (&flash_mock2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
+	status = spi_flash_init (&flash1, &state1, &flash_mock1.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2, &flash_mock2.base);
+	status = spi_flash_init (&flash2, &state2, &flash_mock2.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1, 0x1000000);
@@ -7481,8 +7599,10 @@ static void host_fw_restore_flash_device_test (CuTest *test)
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state1;
 	struct spi_flash flash1;
 	struct flash_master_mock flash_mock2;
+	struct spi_flash_state state2;
 	struct spi_flash flash2;
 	int status;
 	char *data = "Test";
@@ -7495,10 +7615,10 @@ static void host_fw_restore_flash_device_test (CuTest *test)
 	status = flash_master_mock_init (&flash_mock2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
+	status = spi_flash_init (&flash1, &state1, &flash_mock1.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2, &flash_mock2.base);
+	status = spi_flash_init (&flash2, &state2, &flash_mock2.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1, 0x1000000);
@@ -7560,8 +7680,10 @@ static void host_fw_restore_flash_device_test_multipart_image (CuTest *test)
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state1;
 	struct spi_flash flash1;
 	struct flash_master_mock flash_mock2;
+	struct spi_flash_state state2;
 	struct spi_flash flash2;
 	int status;
 	char *data = "Test";
@@ -7574,10 +7696,10 @@ static void host_fw_restore_flash_device_test_multipart_image (CuTest *test)
 	status = flash_master_mock_init (&flash_mock2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
+	status = spi_flash_init (&flash1, &state1, &flash_mock1.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2, &flash_mock2.base);
+	status = spi_flash_init (&flash2, &state2, &flash_mock2.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1, 0x1000000);
@@ -7643,8 +7765,10 @@ static void host_fw_restore_flash_device_test_multiple_images (CuTest *test)
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state1;
 	struct spi_flash flash1;
 	struct flash_master_mock flash_mock2;
+	struct spi_flash_state state2;
 	struct spi_flash flash2;
 	int status;
 	char *data1 = "Test";
@@ -7658,10 +7782,10 @@ static void host_fw_restore_flash_device_test_multiple_images (CuTest *test)
 	status = flash_master_mock_init (&flash_mock2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
+	status = spi_flash_init (&flash1, &state1, &flash_mock1.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2, &flash_mock2.base);
+	status = spi_flash_init (&flash2, &state2, &flash_mock2.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1, 0x1000000);
@@ -7735,8 +7859,10 @@ static void host_fw_restore_flash_device_test_multiple_rw_regions (CuTest *test)
 	struct pfm_read_write rw_prop[3];
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state1;
 	struct spi_flash flash1;
 	struct flash_master_mock flash_mock2;
+	struct spi_flash_state state2;
 	struct spi_flash flash2;
 	int status;
 	char *data = "Test";
@@ -7749,10 +7875,10 @@ static void host_fw_restore_flash_device_test_multiple_rw_regions (CuTest *test)
 	status = flash_master_mock_init (&flash_mock2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
+	status = spi_flash_init (&flash1, &state1, &flash_mock1.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2, &flash_mock2.base);
+	status = spi_flash_init (&flash2, &state2, &flash_mock2.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1, 0x1000000);
@@ -7822,8 +7948,10 @@ static void host_fw_restore_flash_device_test_rw_regions_not_ordered (CuTest *te
 	struct pfm_read_write rw_prop[3];
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state1;
 	struct spi_flash flash1;
 	struct flash_master_mock flash_mock2;
+	struct spi_flash_state state2;
 	struct spi_flash flash2;
 	int status;
 	char *data = "Test";
@@ -7836,10 +7964,10 @@ static void host_fw_restore_flash_device_test_rw_regions_not_ordered (CuTest *te
 	status = flash_master_mock_init (&flash_mock2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
+	status = spi_flash_init (&flash1, &state1, &flash_mock1.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2, &flash_mock2.base);
+	status = spi_flash_init (&flash2, &state2, &flash_mock2.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1, 0x1000000);
@@ -7909,8 +8037,10 @@ static void host_fw_restore_flash_device_test_start_and_end_rw (CuTest *test)
 	struct pfm_read_write rw_prop[3];
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state1;
 	struct spi_flash flash1;
 	struct flash_master_mock flash_mock2;
+	struct spi_flash_state state2;
 	struct spi_flash flash2;
 	int status;
 	char *data = "Test";
@@ -7923,10 +8053,10 @@ static void host_fw_restore_flash_device_test_start_and_end_rw (CuTest *test)
 	status = flash_master_mock_init (&flash_mock2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
+	status = spi_flash_init (&flash1, &state1, &flash_mock1.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2, &flash_mock2.base);
+	status = spi_flash_init (&flash2, &state2, &flash_mock2.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1, 0x1000000);
@@ -7996,8 +8126,10 @@ static void host_fw_restore_flash_device_test_hashes (CuTest *test)
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state1;
 	struct spi_flash flash1;
 	struct flash_master_mock flash_mock2;
+	struct spi_flash_state state2;
 	struct spi_flash flash2;
 	int status;
 	char *data = "Test";
@@ -8010,10 +8142,10 @@ static void host_fw_restore_flash_device_test_hashes (CuTest *test)
 	status = flash_master_mock_init (&flash_mock2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
+	status = spi_flash_init (&flash1, &state1, &flash_mock1.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2, &flash_mock2.base);
+	status = spi_flash_init (&flash2, &state2, &flash_mock2.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1, 0x1000000);
@@ -8075,8 +8207,10 @@ static void host_fw_restore_flash_device_test_hashes_multipart_image (CuTest *te
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state1;
 	struct spi_flash flash1;
 	struct flash_master_mock flash_mock2;
+	struct spi_flash_state state2;
 	struct spi_flash flash2;
 	int status;
 	char *data = "Test";
@@ -8089,10 +8223,10 @@ static void host_fw_restore_flash_device_test_hashes_multipart_image (CuTest *te
 	status = flash_master_mock_init (&flash_mock2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
+	status = spi_flash_init (&flash1, &state1, &flash_mock1.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2, &flash_mock2.base);
+	status = spi_flash_init (&flash2, &state2, &flash_mock2.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1, 0x1000000);
@@ -8158,8 +8292,10 @@ static void host_fw_restore_flash_device_test_hashes_multiple_images (CuTest *te
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state1;
 	struct spi_flash flash1;
 	struct flash_master_mock flash_mock2;
+	struct spi_flash_state state2;
 	struct spi_flash flash2;
 	int status;
 	char *data1 = "Test";
@@ -8173,10 +8309,10 @@ static void host_fw_restore_flash_device_test_hashes_multiple_images (CuTest *te
 	status = flash_master_mock_init (&flash_mock2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
+	status = spi_flash_init (&flash1, &state1, &flash_mock1.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2, &flash_mock2.base);
+	status = spi_flash_init (&flash2, &state2, &flash_mock2.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1, 0x1000000);
@@ -8250,8 +8386,10 @@ static void host_fw_restore_flash_device_test_null (CuTest *test)
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state1;
 	struct spi_flash flash1;
 	struct flash_master_mock flash_mock2;
+	struct spi_flash_state state2;
 	struct spi_flash flash2;
 	int status;
 	char *data = "Test";
@@ -8264,10 +8402,10 @@ static void host_fw_restore_flash_device_test_null (CuTest *test)
 	status = flash_master_mock_init (&flash_mock2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
+	status = spi_flash_init (&flash1, &state1, &flash_mock1.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2, &flash_mock2.base);
+	status = spi_flash_init (&flash2, &state2, &flash_mock2.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1, 0x1000000);
@@ -8330,8 +8468,10 @@ static void host_fw_restore_flash_device_test_erase_error (CuTest *test)
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state1;
 	struct spi_flash flash1;
 	struct flash_master_mock flash_mock2;
+	struct spi_flash_state state2;
 	struct spi_flash flash2;
 	int status;
 	char *data = "Test";
@@ -8344,10 +8484,10 @@ static void host_fw_restore_flash_device_test_erase_error (CuTest *test)
 	status = flash_master_mock_init (&flash_mock2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
+	status = spi_flash_init (&flash1, &state1, &flash_mock1.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2, &flash_mock2.base);
+	status = spi_flash_init (&flash2, &state2, &flash_mock2.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1, 0x1000000);
@@ -8406,8 +8546,10 @@ static void host_fw_restore_flash_device_test_last_erase_error (CuTest *test)
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state1;
 	struct spi_flash flash1;
 	struct flash_master_mock flash_mock2;
+	struct spi_flash_state state2;
 	struct spi_flash flash2;
 	int status;
 	char *data = "Test";
@@ -8420,10 +8562,10 @@ static void host_fw_restore_flash_device_test_last_erase_error (CuTest *test)
 	status = flash_master_mock_init (&flash_mock2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
+	status = spi_flash_init (&flash1, &state1, &flash_mock1.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2, &flash_mock2.base);
+	status = spi_flash_init (&flash2, &state2, &flash_mock2.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1, 0x1000000);
@@ -8483,8 +8625,10 @@ static void host_fw_restore_flash_device_test_copy_error (CuTest *test)
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state1;
 	struct spi_flash flash1;
 	struct flash_master_mock flash_mock2;
+	struct spi_flash_state state2;
 	struct spi_flash flash2;
 	int status;
 	char *data = "Test";
@@ -8497,10 +8641,10 @@ static void host_fw_restore_flash_device_test_copy_error (CuTest *test)
 	status = flash_master_mock_init (&flash_mock2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
+	status = spi_flash_init (&flash1, &state1, &flash_mock1.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2, &flash_mock2.base);
+	status = spi_flash_init (&flash2, &state2, &flash_mock2.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1, 0x1000000);
@@ -8562,8 +8706,10 @@ static void host_fw_restore_flash_device_test_hashes_copy_error (CuTest *test)
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state1;
 	struct spi_flash flash1;
 	struct flash_master_mock flash_mock2;
+	struct spi_flash_state state2;
 	struct spi_flash flash2;
 	int status;
 	char *data = "Test";
@@ -8576,10 +8722,10 @@ static void host_fw_restore_flash_device_test_hashes_copy_error (CuTest *test)
 	status = flash_master_mock_init (&flash_mock2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
+	status = spi_flash_init (&flash1, &state1, &flash_mock1.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2, &flash_mock2.base);
+	status = spi_flash_init (&flash2, &state2, &flash_mock2.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1, 0x1000000);
@@ -11463,8 +11609,10 @@ static void host_fw_restore_read_write_data_test_do_nothing (CuTest *test)
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state1;
 	struct spi_flash flash1;
 	struct flash_master_mock flash_mock2;
+	struct spi_flash_state state2;
 	struct spi_flash flash2;
 	int status;
 
@@ -11476,10 +11624,10 @@ static void host_fw_restore_read_write_data_test_do_nothing (CuTest *test)
 	status = flash_master_mock_init (&flash_mock2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
+	status = spi_flash_init (&flash1, &state1, &flash_mock1.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2, &flash_mock2.base);
+	status = spi_flash_init (&flash2, &state2, &flash_mock2.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1, 0x1000000);
@@ -11516,8 +11664,10 @@ static void host_fw_restore_read_write_data_test_erase_flash (CuTest *test)
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state1;
 	struct spi_flash flash1;
 	struct flash_master_mock flash_mock2;
+	struct spi_flash_state state2;
 	struct spi_flash flash2;
 	int status;
 
@@ -11529,10 +11679,10 @@ static void host_fw_restore_read_write_data_test_erase_flash (CuTest *test)
 	status = flash_master_mock_init (&flash_mock2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
+	status = spi_flash_init (&flash1, &state1, &flash_mock1.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2, &flash_mock2.base);
+	status = spi_flash_init (&flash2, &state2, &flash_mock2.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1, 0x1000000);
@@ -11572,8 +11722,10 @@ static void host_fw_restore_read_write_data_test_restore_flash (CuTest *test)
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state1;
 	struct spi_flash flash1;
 	struct flash_master_mock flash_mock2;
+	struct spi_flash_state state2;
 	struct spi_flash flash2;
 	int status;
 	uint8_t data[0x10000];
@@ -11591,10 +11743,10 @@ static void host_fw_restore_read_write_data_test_restore_flash (CuTest *test)
 	status = flash_master_mock_init (&flash_mock2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
+	status = spi_flash_init (&flash1, &state1, &flash_mock1.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2, &flash_mock2.base);
+	status = spi_flash_init (&flash2, &state2, &flash_mock2.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1, 0x1000000);
@@ -11637,8 +11789,10 @@ static void host_fw_restore_read_write_data_test_restore_flash_no_source_device 
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state1;
 	struct spi_flash flash1;
 	struct flash_master_mock flash_mock2;
+	struct spi_flash_state state2;
 	struct spi_flash flash2;
 	int status;
 
@@ -11650,10 +11804,10 @@ static void host_fw_restore_read_write_data_test_restore_flash_no_source_device 
 	status = flash_master_mock_init (&flash_mock2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
+	status = spi_flash_init (&flash1, &state1, &flash_mock1.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2, &flash_mock2.base);
+	status = spi_flash_init (&flash2, &state2, &flash_mock2.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1, 0x1000000);
@@ -11690,8 +11844,10 @@ static void host_fw_restore_read_write_data_test_reserved (CuTest *test)
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state1;
 	struct spi_flash flash1;
 	struct flash_master_mock flash_mock2;
+	struct spi_flash_state state2;
 	struct spi_flash flash2;
 	int status;
 
@@ -11703,10 +11859,10 @@ static void host_fw_restore_read_write_data_test_reserved (CuTest *test)
 	status = flash_master_mock_init (&flash_mock2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
+	status = spi_flash_init (&flash1, &state1, &flash_mock1.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2, &flash_mock2.base);
+	status = spi_flash_init (&flash2, &state2, &flash_mock2.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1, 0x1000000);
@@ -11743,8 +11899,10 @@ static void host_fw_restore_read_write_data_test_multiple_regions (CuTest *test)
 	struct pfm_read_write rw_prop[4];
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state1;
 	struct spi_flash flash1;
 	struct flash_master_mock flash_mock2;
+	struct spi_flash_state state2;
 	struct spi_flash flash2;
 	int status;
 	uint8_t data[0x10000];
@@ -11762,10 +11920,10 @@ static void host_fw_restore_read_write_data_test_multiple_regions (CuTest *test)
 	status = flash_master_mock_init (&flash_mock2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
+	status = spi_flash_init (&flash1, &state1, &flash_mock1.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2, &flash_mock2.base);
+	status = spi_flash_init (&flash2, &state2, &flash_mock2.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1, 0x1000000);
@@ -11822,8 +11980,10 @@ static void host_fw_restore_read_write_data_test_null (CuTest *test)
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state1;
 	struct spi_flash flash1;
 	struct flash_master_mock flash_mock2;
+	struct spi_flash_state state2;
 	struct spi_flash flash2;
 	int status;
 
@@ -11835,10 +11995,10 @@ static void host_fw_restore_read_write_data_test_null (CuTest *test)
 	status = flash_master_mock_init (&flash_mock2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
+	status = spi_flash_init (&flash1, &state1, &flash_mock1.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2, &flash_mock2.base);
+	status = spi_flash_init (&flash2, &state2, &flash_mock2.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1, 0x1000000);
@@ -11878,8 +12038,10 @@ static void host_fw_restore_read_write_data_test_erase_flash_error (CuTest *test
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state1;
 	struct spi_flash flash1;
 	struct flash_master_mock flash_mock2;
+	struct spi_flash_state state2;
 	struct spi_flash flash2;
 	int status;
 
@@ -11891,10 +12053,10 @@ static void host_fw_restore_read_write_data_test_erase_flash_error (CuTest *test
 	status = flash_master_mock_init (&flash_mock2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
+	status = spi_flash_init (&flash1, &state1, &flash_mock1.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2, &flash_mock2.base);
+	status = spi_flash_init (&flash2, &state2, &flash_mock2.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1, 0x1000000);
@@ -11935,8 +12097,10 @@ static void host_fw_restore_read_write_data_test_restore_flash_error (CuTest *te
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state1;
 	struct spi_flash flash1;
 	struct flash_master_mock flash_mock2;
+	struct spi_flash_state state2;
 	struct spi_flash flash2;
 	int status;
 
@@ -11948,10 +12112,10 @@ static void host_fw_restore_read_write_data_test_restore_flash_error (CuTest *te
 	status = flash_master_mock_init (&flash_mock2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
+	status = spi_flash_init (&flash1, &state1, &flash_mock1.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2, &flash_mock2.base);
+	status = spi_flash_init (&flash2, &state2, &flash_mock2.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1, 0x1000000);
@@ -11992,8 +12156,10 @@ static void host_fw_restore_read_write_data_test_multiple_regions_error (CuTest 
 	struct pfm_read_write rw_prop[4];
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state1;
 	struct spi_flash flash1;
 	struct flash_master_mock flash_mock2;
+	struct spi_flash_state state2;
 	struct spi_flash flash2;
 	int status;
 
@@ -12005,10 +12171,10 @@ static void host_fw_restore_read_write_data_test_multiple_regions_error (CuTest 
 	status = flash_master_mock_init (&flash_mock2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
+	status = spi_flash_init (&flash1, &state1, &flash_mock1.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2, &flash_mock2.base);
+	status = spi_flash_init (&flash2, &state2, &flash_mock2.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1, 0x1000000);
@@ -12058,6 +12224,7 @@ static void host_fw_verify_images_multiple_fw_test (CuTest *test)
 	struct pfm_image_signature sig;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -12075,7 +12242,7 @@ static void host_fw_verify_images_multiple_fw_test (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -12119,6 +12286,7 @@ static void host_fw_verify_images_multiple_fw_test_invalid (CuTest *test)
 	struct pfm_image_signature sig;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -12136,7 +12304,7 @@ static void host_fw_verify_images_multiple_fw_test_invalid (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -12180,6 +12348,7 @@ static void host_fw_verify_images_multiple_fw_test_multiple (CuTest *test)
 	struct pfm_image_signature sig[3];
 	struct pfm_image_list list[3];
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -12199,7 +12368,7 @@ static void host_fw_verify_images_multiple_fw_test_multiple (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -12279,6 +12448,7 @@ static void host_fw_verify_images_multiple_fw_test_hashes (CuTest *test)
 	struct pfm_image_hash img_hash;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -12296,7 +12466,7 @@ static void host_fw_verify_images_multiple_fw_test_hashes (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -12340,6 +12510,7 @@ static void host_fw_verify_images_multiple_fw_test_hashes_invalid (CuTest *test)
 	struct pfm_image_hash img_hash;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -12357,7 +12528,7 @@ static void host_fw_verify_images_multiple_fw_test_hashes_invalid (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -12401,6 +12572,7 @@ static void host_fw_verify_images_multiple_fw_test_hashes_multiple (CuTest *test
 	struct pfm_image_hash img_hash[3];
 	struct pfm_image_list list[3];
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -12420,7 +12592,7 @@ static void host_fw_verify_images_multiple_fw_test_hashes_multiple (CuTest *test
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -12500,6 +12672,7 @@ static void host_fw_verify_images_multiple_fw_test_null (CuTest *test)
 	struct pfm_image_signature sig;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -12517,7 +12690,7 @@ static void host_fw_verify_images_multiple_fw_test_null (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -12563,6 +12736,7 @@ static void host_fw_verify_offset_images_multiple_fw_test (CuTest *test)
 	struct pfm_image_signature sig;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -12580,7 +12754,7 @@ static void host_fw_verify_offset_images_multiple_fw_test (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -12625,6 +12799,7 @@ static void host_fw_verify_offset_images_multiple_fw_test_no_offset (CuTest *tes
 	struct pfm_image_signature sig;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -12642,7 +12817,7 @@ static void host_fw_verify_offset_images_multiple_fw_test_no_offset (CuTest *tes
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -12686,6 +12861,7 @@ static void host_fw_verify_offset_images_multiple_fw_test_invalid (CuTest *test)
 	struct pfm_image_signature sig;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -12703,7 +12879,7 @@ static void host_fw_verify_offset_images_multiple_fw_test_invalid (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -12748,6 +12924,7 @@ static void host_fw_verify_offset_images_multiple_fw_test_multiple (CuTest *test
 	struct pfm_image_signature sig[3];
 	struct pfm_image_list list[3];
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -12767,7 +12944,7 @@ static void host_fw_verify_offset_images_multiple_fw_test_multiple (CuTest *test
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -12848,6 +13025,7 @@ static void host_fw_verify_offset_images_multiple_fw_test_hashes (CuTest *test)
 	struct pfm_image_hash img_hash;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -12865,7 +13043,7 @@ static void host_fw_verify_offset_images_multiple_fw_test_hashes (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -12910,6 +13088,7 @@ static void host_fw_verify_offset_images_multiple_fw_test_hashes_no_offset (CuTe
 	struct pfm_image_hash img_hash;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -12927,7 +13106,7 @@ static void host_fw_verify_offset_images_multiple_fw_test_hashes_no_offset (CuTe
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -12971,6 +13150,7 @@ static void host_fw_verify_offset_images_multiple_fw_test_hashes_invalid (CuTest
 	struct pfm_image_hash img_hash;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -12988,7 +13168,7 @@ static void host_fw_verify_offset_images_multiple_fw_test_hashes_invalid (CuTest
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -13033,6 +13213,7 @@ static void host_fw_verify_offset_images_multiple_fw_test_hashes_multiple (CuTes
 	struct pfm_image_hash img_hash[3];
 	struct pfm_image_list list[3];
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -13052,7 +13233,7 @@ static void host_fw_verify_offset_images_multiple_fw_test_hashes_multiple (CuTes
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -13133,6 +13314,7 @@ static void host_fw_verify_offset_images_multiple_fw_test_null (CuTest *test)
 	struct pfm_image_signature sig;
 	struct pfm_image_list list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -13150,7 +13332,7 @@ static void host_fw_verify_offset_images_multiple_fw_test_null (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -13203,6 +13385,7 @@ static void host_fw_full_flash_verification_multiple_fw_test (CuTest *test)
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -13220,7 +13403,7 @@ static void host_fw_full_flash_verification_multiple_fw_test (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
@@ -13281,6 +13464,7 @@ static void host_fw_full_flash_verification_multiple_fw_test_multiple (CuTest *t
 	struct pfm_read_write rw_prop[4];
 	struct pfm_read_write_regions rw_list[3];
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -13300,7 +13484,7 @@ static void host_fw_full_flash_verification_multiple_fw_test_multiple (CuTest *t
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
@@ -13419,6 +13603,7 @@ static void host_fw_full_flash_verification_multiple_fw_test_hashes (CuTest *tes
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -13436,7 +13621,7 @@ static void host_fw_full_flash_verification_multiple_fw_test_hashes (CuTest *tes
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
@@ -13497,6 +13682,7 @@ static void host_fw_full_flash_verification_multiple_fw_test_hashes_multiple (Cu
 	struct pfm_read_write rw_prop[3];
 	struct pfm_read_write_regions rw_list[3];
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -13516,7 +13702,7 @@ static void host_fw_full_flash_verification_multiple_fw_test_hashes_multiple (Cu
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
@@ -13632,6 +13818,7 @@ static void host_fw_full_flash_verification_multiple_fw_test_null (CuTest *test)
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	HASH_TESTING_ENGINE hash;
 	RSA_TESTING_ENGINE rsa;
@@ -13649,7 +13836,7 @@ static void host_fw_full_flash_verification_multiple_fw_test_null (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	img_region.start_addr = 0;
@@ -13712,8 +13899,10 @@ static void host_fw_restore_read_write_data_multiple_fw_test (CuTest *test)
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state1;
 	struct spi_flash flash1;
 	struct flash_master_mock flash_mock2;
+	struct spi_flash_state state2;
 	struct spi_flash flash2;
 	int status;
 
@@ -13725,10 +13914,10 @@ static void host_fw_restore_read_write_data_multiple_fw_test (CuTest *test)
 	status = flash_master_mock_init (&flash_mock2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
+	status = spi_flash_init (&flash1, &state1, &flash_mock1.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2, &flash_mock2.base);
+	status = spi_flash_init (&flash2, &state2, &flash_mock2.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1, 0x1000000);
@@ -13768,8 +13957,10 @@ static void host_fw_restore_read_write_data_multiple_fw_test_no_source_device (C
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state1;
 	struct spi_flash flash1;
 	struct flash_master_mock flash_mock2;
+	struct spi_flash_state state2;
 	struct spi_flash flash2;
 	int status;
 
@@ -13781,10 +13972,10 @@ static void host_fw_restore_read_write_data_multiple_fw_test_no_source_device (C
 	status = flash_master_mock_init (&flash_mock2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
+	status = spi_flash_init (&flash1, &state1, &flash_mock1.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2, &flash_mock2.base);
+	status = spi_flash_init (&flash2, &state2, &flash_mock2.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1, 0x1000000);
@@ -13821,8 +14012,10 @@ static void host_fw_restore_read_write_data_multiple_fw_test_multiple (CuTest *t
 	struct pfm_read_write rw_prop[4];
 	struct pfm_read_write_regions rw_list[3];
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state1;
 	struct spi_flash flash1;
 	struct flash_master_mock flash_mock2;
+	struct spi_flash_state state2;
 	struct spi_flash flash2;
 	int status;
 	uint8_t data[0x10000];
@@ -13840,10 +14033,10 @@ static void host_fw_restore_read_write_data_multiple_fw_test_multiple (CuTest *t
 	status = flash_master_mock_init (&flash_mock2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
+	status = spi_flash_init (&flash1, &state1, &flash_mock1.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2, &flash_mock2.base);
+	status = spi_flash_init (&flash2, &state2, &flash_mock2.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1, 0x1000000);
@@ -13908,8 +14101,10 @@ static void host_fw_restore_read_write_data_multiple_fw_test_null (CuTest *test)
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state1;
 	struct spi_flash flash1;
 	struct flash_master_mock flash_mock2;
+	struct spi_flash_state state2;
 	struct spi_flash flash2;
 	int status;
 
@@ -13921,10 +14116,10 @@ static void host_fw_restore_read_write_data_multiple_fw_test_null (CuTest *test)
 	status = flash_master_mock_init (&flash_mock2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
+	status = spi_flash_init (&flash1, &state1, &flash_mock1.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2, &flash_mock2.base);
+	status = spi_flash_init (&flash2, &state2, &flash_mock2.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1, 0x1000000);
@@ -13964,8 +14159,10 @@ static void host_fw_restore_read_write_data_multiple_fw_test_error (CuTest *test
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state1;
 	struct spi_flash flash1;
 	struct flash_master_mock flash_mock2;
+	struct spi_flash_state state2;
 	struct spi_flash flash2;
 	int status;
 
@@ -13977,10 +14174,10 @@ static void host_fw_restore_read_write_data_multiple_fw_test_error (CuTest *test
 	status = flash_master_mock_init (&flash_mock2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
+	status = spi_flash_init (&flash1, &state1, &flash_mock1.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2, &flash_mock2.base);
+	status = spi_flash_init (&flash2, &state2, &flash_mock2.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1, 0x1000000);
@@ -14603,8 +14800,10 @@ static void host_fw_migrate_read_write_data_multiple_fw_test (CuTest *test)
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state1;
 	struct spi_flash flash1;
 	struct flash_master_mock flash_mock2;
+	struct spi_flash_state state2;
 	struct spi_flash flash2;
 	int status;
 
@@ -14616,10 +14815,10 @@ static void host_fw_migrate_read_write_data_multiple_fw_test (CuTest *test)
 	status = flash_master_mock_init (&flash_mock2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
+	status = spi_flash_init (&flash1, &state1, &flash_mock1.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2, &flash_mock2.base);
+	status = spi_flash_init (&flash2, &state2, &flash_mock2.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1, 0x1000000);
@@ -14663,8 +14862,10 @@ static void host_fw_migrate_read_write_data_multiple_fw_test_multiple (CuTest *t
 	struct pfm_read_write rw_prop[3];
 	struct pfm_read_write_regions rw_list[3];
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state1;
 	struct spi_flash flash1;
 	struct flash_master_mock flash_mock2;
+	struct spi_flash_state state2;
 	struct spi_flash flash2;
 	int status;
 
@@ -14676,10 +14877,10 @@ static void host_fw_migrate_read_write_data_multiple_fw_test_multiple (CuTest *t
 	status = flash_master_mock_init (&flash_mock2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
+	status = spi_flash_init (&flash1, &state1, &flash_mock1.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2, &flash_mock2.base);
+	status = spi_flash_init (&flash2, &state2, &flash_mock2.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1, 0x1000000);
@@ -14744,8 +14945,10 @@ static void host_fw_migrate_read_write_data_multiple_fw_test_diff_fw_count (CuTe
 	struct pfm_read_write rw_prop[3];
 	struct pfm_read_write_regions rw_list[3];
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state1;
 	struct spi_flash flash1;
 	struct flash_master_mock flash_mock2;
+	struct spi_flash_state state2;
 	struct spi_flash flash2;
 	int status;
 
@@ -14757,10 +14960,10 @@ static void host_fw_migrate_read_write_data_multiple_fw_test_diff_fw_count (CuTe
 	status = flash_master_mock_init (&flash_mock2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
+	status = spi_flash_init (&flash1, &state1, &flash_mock1.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2, &flash_mock2.base);
+	status = spi_flash_init (&flash2, &state2, &flash_mock2.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1, 0x1000000);
@@ -14814,8 +15017,10 @@ static void host_fw_migrate_read_write_data_multiple_fw_test_diff_regions (CuTes
 	struct pfm_read_write rw_prop2[4];
 	struct pfm_read_write_regions rw_list2[4];
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state1;
 	struct spi_flash flash1;
 	struct flash_master_mock flash_mock2;
+	struct spi_flash_state state2;
 	struct spi_flash flash2;
 	int status;
 
@@ -14827,10 +15032,10 @@ static void host_fw_migrate_read_write_data_multiple_fw_test_diff_regions (CuTes
 	status = flash_master_mock_init (&flash_mock2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
+	status = spi_flash_init (&flash1, &state1, &flash_mock1.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2, &flash_mock2.base);
+	status = spi_flash_init (&flash2, &state2, &flash_mock2.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1, 0x1000000);
@@ -14935,8 +15140,10 @@ static void host_fw_migrate_read_write_data_multiple_fw_test_no_source_regions (
 	struct pfm_read_write rw_prop[3];
 	struct pfm_read_write_regions rw_list[3];
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state1;
 	struct spi_flash flash1;
 	struct flash_master_mock flash_mock2;
+	struct spi_flash_state state2;
 	struct spi_flash flash2;
 	int status;
 
@@ -14948,10 +15155,10 @@ static void host_fw_migrate_read_write_data_multiple_fw_test_no_source_regions (
 	status = flash_master_mock_init (&flash_mock2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
+	status = spi_flash_init (&flash1, &state1, &flash_mock1.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2, &flash_mock2.base);
+	status = spi_flash_init (&flash2, &state2, &flash_mock2.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1, 0x1000000);
@@ -15016,8 +15223,10 @@ static void host_fw_migrate_read_write_data_multiple_fw_test_null (CuTest *test)
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state1;
 	struct spi_flash flash1;
 	struct flash_master_mock flash_mock2;
+	struct spi_flash_state state2;
 	struct spi_flash flash2;
 	int status;
 
@@ -15029,10 +15238,10 @@ static void host_fw_migrate_read_write_data_multiple_fw_test_null (CuTest *test)
 	status = flash_master_mock_init (&flash_mock2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
+	status = spi_flash_init (&flash1, &state1, &flash_mock1.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2, &flash_mock2.base);
+	status = spi_flash_init (&flash2, &state2, &flash_mock2.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1, 0x1000000);
@@ -15078,8 +15287,10 @@ static void host_fw_migrate_read_write_data_multiple_fw_test_erase_error (CuTest
 	struct pfm_read_write rw_prop[3];
 	struct pfm_read_write_regions rw_list[3];
 	struct flash_master_mock flash_mock1;
+	struct spi_flash_state state1;
 	struct spi_flash flash1;
 	struct flash_master_mock flash_mock2;
+	struct spi_flash_state state2;
 	struct spi_flash flash2;
 	int status;
 
@@ -15091,10 +15302,10 @@ static void host_fw_migrate_read_write_data_multiple_fw_test_erase_error (CuTest
 	status = flash_master_mock_init (&flash_mock2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash1, &flash_mock1.base);
+	status = spi_flash_init (&flash1, &state1, &flash_mock1.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash2, &flash_mock2.base);
+	status = spi_flash_init (&flash2, &state2, &flash_mock2.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash1, 0x1000000);

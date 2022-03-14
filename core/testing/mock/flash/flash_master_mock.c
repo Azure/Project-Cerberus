@@ -12,7 +12,7 @@
 const uint8_t WIP_STATUS = 0;
 
 
-static int flash_master_mock_xfer (struct flash_master *spi, const struct flash_xfer *xfer)
+static int flash_master_mock_xfer (const struct flash_master *spi, const struct flash_xfer *xfer)
 {
 	struct flash_master_mock *mock = (struct flash_master_mock*) spi;
 
@@ -26,7 +26,7 @@ static int flash_master_mock_xfer (struct flash_master *spi, const struct flash_
 		MOCK_ARG_CALL (xfer->flags));
 }
 
-static uint32_t flash_master_mock_capabilities (struct flash_master *spi)
+static uint32_t flash_master_mock_capabilities (const struct flash_master *spi)
 {
 	struct flash_master_mock *mock = (struct flash_master_mock*) spi;
 
@@ -37,7 +37,7 @@ static uint32_t flash_master_mock_capabilities (struct flash_master *spi)
 	MOCK_RETURN_NO_ARGS (&mock->mock, flash_master_mock_capabilities, spi);
 }
 
-static int flash_master_mock_get_spi_clock_frequency (struct flash_master *spi)
+static int flash_master_mock_get_spi_clock_frequency (const struct flash_master *spi)
 {
 	struct flash_master_mock *mock = (struct flash_master_mock*) spi;
 
@@ -48,7 +48,7 @@ static int flash_master_mock_get_spi_clock_frequency (struct flash_master *spi)
 	MOCK_RETURN_NO_ARGS (&mock->mock, flash_master_mock_get_spi_clock_frequency, spi);
 }
 
-static int flash_master_mock_set_spi_clock_frequency (struct flash_master *spi, uint32_t freq)
+static int flash_master_mock_set_spi_clock_frequency (const struct flash_master *spi, uint32_t freq)
 {
 	struct flash_master_mock *mock = (struct flash_master_mock*) spi;
 

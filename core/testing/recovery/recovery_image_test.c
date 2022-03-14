@@ -2985,6 +2985,7 @@ static void recovery_image_test_apply_to_flash (CuTest *test)
 {
 	struct flash_mock flash;
 	struct flash_master_mock host_flash_mock;
+	struct spi_flash_state host_flash_state;
 	struct spi_flash host_flash;
 	struct recovery_image recovery_image;
 	uint32_t src_addr;
@@ -3001,7 +3002,7 @@ static void recovery_image_test_apply_to_flash (CuTest *test)
 	status = flash_master_mock_init (&host_flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&host_flash, &host_flash_mock.base);
+	status = spi_flash_init (&host_flash, &host_flash_state, &host_flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&host_flash, 0x1000000);
@@ -3065,6 +3066,7 @@ static void recovery_image_test_apply_to_flash_with_multiple_recovery_sections (
 {
 	struct flash_mock flash;
 	struct flash_master_mock host_flash_mock;
+	struct spi_flash_state host_flash_state;
 	struct spi_flash host_flash;
 	struct recovery_image recovery_image;
 	uint32_t src_addr;
@@ -3081,7 +3083,7 @@ static void recovery_image_test_apply_to_flash_with_multiple_recovery_sections (
 	status = flash_master_mock_init (&host_flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&host_flash, &host_flash_mock.base);
+	status = spi_flash_init (&host_flash, &host_flash_state, &host_flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&host_flash, 0x1000000);
@@ -3168,6 +3170,7 @@ static void recovery_image_test_apply_to_flash_section_image_length_too_short (C
 {
 	struct flash_mock flash;
 	struct flash_master_mock host_flash_mock;
+	struct spi_flash_state host_flash_state;
 	struct spi_flash host_flash;
 	struct recovery_image recovery_image;
 	uint8_t bad_image[RECOVERY_IMAGE_DATA_LEN];
@@ -3189,7 +3192,7 @@ static void recovery_image_test_apply_to_flash_section_image_length_too_short (C
 	status = flash_master_mock_init (&host_flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&host_flash, &host_flash_mock.base);
+	status = spi_flash_init (&host_flash, &host_flash_state, &host_flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&host_flash, 0x1000000);
@@ -3259,6 +3262,7 @@ static void recovery_image_test_apply_to_flash_section_image_length_too_long (Cu
 {
 	struct flash_mock flash;
 	struct flash_master_mock host_flash_mock;
+	struct spi_flash_state host_flash_state;
 	struct spi_flash host_flash;
 	struct recovery_image recovery_image;
 	uint8_t bad_image[RECOVERY_IMAGE_DATA_LEN];
@@ -3280,7 +3284,7 @@ static void recovery_image_test_apply_to_flash_section_image_length_too_long (Cu
 	status = flash_master_mock_init (&host_flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&host_flash, &host_flash_mock.base);
+	status = spi_flash_init (&host_flash, &host_flash_state, &host_flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&host_flash, 0x1000000);
@@ -3344,6 +3348,7 @@ static void recovery_image_test_apply_to_flash_bad_image_header (CuTest *test)
 {
 	struct flash_mock flash;
 	struct flash_master_mock host_flash_mock;
+	struct spi_flash_state host_flash_state;
 	struct spi_flash host_flash;
 	struct recovery_image recovery_image;
 	uint8_t bad_header[RECOVERY_IMAGE_HEADER_FORMAT_0_TOTAL_LEN];
@@ -3360,7 +3365,7 @@ static void recovery_image_test_apply_to_flash_bad_image_header (CuTest *test)
 	status = flash_master_mock_init (&host_flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&host_flash, &host_flash_mock.base);
+	status = spi_flash_init (&host_flash, &host_flash_state, &host_flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&host_flash, 0x1000000);
@@ -3398,6 +3403,7 @@ static void recovery_image_test_apply_to_flash_bad_section_header (CuTest *test)
 {
 	struct flash_mock flash;
 	struct flash_master_mock host_flash_mock;
+	struct spi_flash_state host_flash_state;
 	struct spi_flash host_flash;
 	struct recovery_image recovery_image;
 	uint8_t bad_image[RECOVERY_IMAGE_DATA_LEN];
@@ -3414,7 +3420,7 @@ static void recovery_image_test_apply_to_flash_bad_section_header (CuTest *test)
 	status = flash_master_mock_init (&host_flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&host_flash, &host_flash_mock.base);
+	status = spi_flash_init (&host_flash, &host_flash_state, &host_flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&host_flash, 0x1000000);
@@ -3459,6 +3465,7 @@ static void recovery_image_test_apply_to_flash_read_data_error (CuTest *test)
 {
 	struct flash_mock flash;
 	struct flash_master_mock host_flash_mock;
+	struct spi_flash_state host_flash_state;
 	struct spi_flash host_flash;
 	struct recovery_image recovery_image;
 	uint32_t src_addr;
@@ -3472,7 +3479,7 @@ static void recovery_image_test_apply_to_flash_read_data_error (CuTest *test)
 	status = flash_master_mock_init (&host_flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&host_flash, &host_flash_mock.base);
+	status = spi_flash_init (&host_flash, &host_flash_state, &host_flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&host_flash, 0x1000000);
@@ -3530,6 +3537,7 @@ static void recovery_image_test_apply_to_flash_null (CuTest *test)
 {
 	struct flash_mock flash;
 	struct flash_master_mock host_flash_mock;
+	struct spi_flash_state host_flash_state;
 	struct spi_flash host_flash;
 	struct recovery_image recovery_image;
 	int status;
@@ -3542,7 +3550,7 @@ static void recovery_image_test_apply_to_flash_null (CuTest *test)
 	status = flash_master_mock_init (&host_flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&host_flash, &host_flash_mock.base);
+	status = spi_flash_init (&host_flash, &host_flash_state, &host_flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&host_flash, 0x1000000);

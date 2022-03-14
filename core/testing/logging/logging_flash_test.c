@@ -29,6 +29,7 @@ struct logging_entry_header_ca {
 static void logging_flash_test_init_empty (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -42,7 +43,7 @@ static void logging_flash_test_init_empty (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -83,6 +84,7 @@ static void logging_flash_test_init_empty (CuTest *test)
 static void logging_flash_test_init_first_sector_partial (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -104,7 +106,7 @@ static void logging_flash_test_init_first_sector_partial (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -144,6 +146,7 @@ static void logging_flash_test_init_first_sector_partial (CuTest *test)
 static void logging_flash_test_init_first_sector_partial_different_lengths (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -170,7 +173,7 @@ static void logging_flash_test_init_first_sector_partial_different_lengths (CuTe
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -210,6 +213,7 @@ static void logging_flash_test_init_first_sector_partial_different_lengths (CuTe
 static void logging_flash_test_init_first_sector_full_all_bytes (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -240,7 +244,7 @@ static void logging_flash_test_init_first_sector_full_all_bytes (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -280,6 +284,7 @@ static void logging_flash_test_init_first_sector_full_all_bytes (CuTest *test)
 static void logging_flash_test_init_first_sector_full_unused_bytes (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -311,7 +316,7 @@ static void logging_flash_test_init_first_sector_full_unused_bytes (CuTest *test
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -351,6 +356,7 @@ static void logging_flash_test_init_first_sector_full_unused_bytes (CuTest *test
 static void logging_flash_test_init_first_sector_full_unused_bytes_terminator (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -388,7 +394,7 @@ static void logging_flash_test_init_first_sector_full_unused_bytes_terminator (C
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -428,6 +434,7 @@ static void logging_flash_test_init_first_sector_full_unused_bytes_terminator (C
 static void logging_flash_test_init_first_sector_full_unused_bytes_terminator_large (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -464,7 +471,7 @@ static void logging_flash_test_init_first_sector_full_unused_bytes_terminator_la
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -504,6 +511,7 @@ static void logging_flash_test_init_first_sector_full_unused_bytes_terminator_la
 static void logging_flash_test_init_second_sector_partial_all_bytes (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -541,7 +549,7 @@ static void logging_flash_test_init_second_sector_partial_all_bytes (CuTest *tes
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -586,6 +594,7 @@ static void logging_flash_test_init_second_sector_partial_all_bytes (CuTest *tes
 static void logging_flash_test_init_second_sector_partial_unused_bytes (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -624,7 +633,7 @@ static void logging_flash_test_init_second_sector_partial_unused_bytes (CuTest *
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -669,6 +678,7 @@ static void logging_flash_test_init_second_sector_partial_unused_bytes (CuTest *
 static void logging_flash_test_init_second_sector_partial_unused_bytes_terminator (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -713,7 +723,7 @@ static void logging_flash_test_init_second_sector_partial_unused_bytes_terminato
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -759,6 +769,7 @@ static void logging_flash_test_init_second_sector_partial_unused_bytes_terminato
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -802,7 +813,7 @@ static void logging_flash_test_init_second_sector_partial_unused_bytes_terminato
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -847,6 +858,7 @@ static void logging_flash_test_init_second_sector_partial_unused_bytes_terminato
 static void logging_flash_test_init_all_sectors_full_all_bytes (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -879,7 +891,7 @@ static void logging_flash_test_init_all_sectors_full_all_bytes (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -914,6 +926,7 @@ static void logging_flash_test_init_all_sectors_full_all_bytes (CuTest *test)
 static void logging_flash_test_init_all_sectors_full_unused_bytes (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -947,7 +960,7 @@ static void logging_flash_test_init_all_sectors_full_unused_bytes (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -982,6 +995,7 @@ static void logging_flash_test_init_all_sectors_full_unused_bytes (CuTest *test)
 static void logging_flash_test_init_all_sectors_full_unused_bytes_terminator (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -1021,7 +1035,7 @@ static void logging_flash_test_init_all_sectors_full_unused_bytes_terminator (Cu
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -1056,6 +1070,7 @@ static void logging_flash_test_init_all_sectors_full_unused_bytes_terminator (Cu
 static void logging_flash_test_init_all_sectors_full_unused_bytes_terminator_large (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -1094,7 +1109,7 @@ static void logging_flash_test_init_all_sectors_full_unused_bytes_terminator_lar
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -1129,6 +1144,7 @@ static void logging_flash_test_init_all_sectors_full_unused_bytes_terminator_lar
 static void logging_flash_test_init_all_sectors_full_overwrite_all_bytes (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -1171,7 +1187,7 @@ static void logging_flash_test_init_all_sectors_full_overwrite_all_bytes (CuTest
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -1206,6 +1222,7 @@ static void logging_flash_test_init_all_sectors_full_overwrite_all_bytes (CuTest
 static void logging_flash_test_init_all_sectors_full_overwrite_unused_bytes (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -1249,7 +1266,7 @@ static void logging_flash_test_init_all_sectors_full_overwrite_unused_bytes (CuT
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -1285,6 +1302,7 @@ static void logging_flash_test_init_all_sectors_full_overwrite_unused_bytes_term
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -1340,7 +1358,7 @@ static void logging_flash_test_init_all_sectors_full_overwrite_unused_bytes_term
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -1376,6 +1394,7 @@ static void logging_flash_test_init_all_sectors_full_overwrite_unused_bytes_term
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -1430,7 +1449,7 @@ static void logging_flash_test_init_all_sectors_full_overwrite_unused_bytes_term
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -1465,6 +1484,7 @@ static void logging_flash_test_init_all_sectors_full_overwrite_unused_bytes_term
 static void logging_flash_test_init_all_sectors_partial_overwrite_all_bytes (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -1511,7 +1531,7 @@ static void logging_flash_test_init_all_sectors_partial_overwrite_all_bytes (CuT
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -1546,6 +1566,7 @@ static void logging_flash_test_init_all_sectors_partial_overwrite_all_bytes (CuT
 static void logging_flash_test_init_all_sectors_partial_overwrite_unused_bytes (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -1593,7 +1614,7 @@ static void logging_flash_test_init_all_sectors_partial_overwrite_unused_bytes (
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -1629,6 +1650,7 @@ static void logging_flash_test_init_all_sectors_partial_overwrite_unused_bytes_t
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -1688,7 +1710,7 @@ static void logging_flash_test_init_all_sectors_partial_overwrite_unused_bytes_t
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -1724,6 +1746,7 @@ static void logging_flash_test_init_all_sectors_partial_overwrite_unused_bytes_t
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -1782,7 +1805,7 @@ static void logging_flash_test_init_all_sectors_partial_overwrite_unused_bytes_t
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -1817,6 +1840,7 @@ static void logging_flash_test_init_all_sectors_partial_overwrite_unused_bytes_t
 static void logging_flash_test_init_ca_entry (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -1837,7 +1861,7 @@ static void logging_flash_test_init_ca_entry (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -1877,6 +1901,7 @@ static void logging_flash_test_init_ca_entry (CuTest *test)
 static void logging_flash_test_init_valid_entry_unknown_format (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -1904,7 +1929,7 @@ static void logging_flash_test_init_valid_entry_unknown_format (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -1944,6 +1969,7 @@ static void logging_flash_test_init_valid_entry_unknown_format (CuTest *test)
 static void logging_flash_test_init_no_valid_entry_markers (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -1965,7 +1991,7 @@ static void logging_flash_test_init_no_valid_entry_markers (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -2000,6 +2026,7 @@ static void logging_flash_test_init_no_valid_entry_markers (CuTest *test)
 static void logging_flash_test_init_entry_bad_length (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -2028,7 +2055,7 @@ static void logging_flash_test_init_entry_bad_length (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -2073,6 +2100,7 @@ static void logging_flash_test_init_entry_bad_length (CuTest *test)
 static void logging_flash_test_init_partial_entry_bad_length (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -2101,7 +2129,7 @@ static void logging_flash_test_init_partial_entry_bad_length (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -2141,6 +2169,7 @@ static void logging_flash_test_init_partial_entry_bad_length (CuTest *test)
 static void logging_flash_test_init_terminator_bad_length (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -2169,7 +2198,7 @@ static void logging_flash_test_init_terminator_bad_length (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -2214,6 +2243,7 @@ static void logging_flash_test_init_terminator_bad_length (CuTest *test)
 static void logging_flash_test_init_partial_terminator_bad_length (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -2242,7 +2272,7 @@ static void logging_flash_test_init_partial_terminator_bad_length (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -2282,6 +2312,7 @@ static void logging_flash_test_init_partial_terminator_bad_length (CuTest *test)
 static void logging_flash_test_init_partial_unused_not_blank (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -2305,7 +2336,7 @@ static void logging_flash_test_init_partial_unused_not_blank (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -2345,6 +2376,7 @@ static void logging_flash_test_init_partial_unused_not_blank (CuTest *test)
 static void logging_flash_test_init_null (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -2354,7 +2386,7 @@ static void logging_flash_test_init_null (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -2375,6 +2407,7 @@ static void logging_flash_test_init_null (CuTest *test)
 static void logging_flash_test_init_not_block_aligned (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -2384,7 +2417,7 @@ static void logging_flash_test_init_not_block_aligned (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -2405,6 +2438,7 @@ static void logging_flash_test_init_not_block_aligned (CuTest *test)
 static void logging_flash_test_init_flash_read_error (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -2414,7 +2448,7 @@ static void logging_flash_test_init_flash_read_error (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -2443,6 +2477,7 @@ static void logging_flash_test_release_null (CuTest *test)
 static void logging_flash_test_get_size_null (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -2456,7 +2491,7 @@ static void logging_flash_test_get_size_null (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -2491,6 +2526,7 @@ static void logging_flash_test_get_size_null (CuTest *test)
 static void logging_flash_test_create_entry (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -2513,7 +2549,7 @@ static void logging_flash_test_create_entry (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -2566,6 +2602,7 @@ static void logging_flash_test_create_entry (CuTest *test)
 static void logging_flash_test_create_entry_multiple (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -2597,7 +2634,7 @@ static void logging_flash_test_create_entry_multiple (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -2662,6 +2699,7 @@ static void logging_flash_test_create_entry_multiple (CuTest *test)
 static void logging_flash_test_create_entry_multiple_different_lengths (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -2696,7 +2734,7 @@ static void logging_flash_test_create_entry_multiple_different_lengths (CuTest *
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -2762,6 +2800,7 @@ static void logging_flash_test_create_entry_multiple_different_lengths (CuTest *
 static void logging_flash_test_create_entry_full_buffer_flush (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -2806,7 +2845,7 @@ static void logging_flash_test_create_entry_full_buffer_flush (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -2879,6 +2918,7 @@ static void logging_flash_test_create_entry_full_buffer_flush (CuTest *test)
 static void logging_flash_test_create_entry_full_buffer_flush_unused_bytes (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -2924,7 +2964,7 @@ static void logging_flash_test_create_entry_full_buffer_flush_unused_bytes (CuTe
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -2997,6 +3037,7 @@ static void logging_flash_test_create_entry_full_buffer_flush_unused_bytes (CuTe
 static void logging_flash_test_create_entry_full_buffer_flush_unused_bytes_terminator (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -3049,7 +3090,7 @@ static void logging_flash_test_create_entry_full_buffer_flush_unused_bytes_termi
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -3123,6 +3164,7 @@ static void logging_flash_test_create_entry_full_buffer_flush_unused_bytes_termi
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -3174,7 +3216,7 @@ static void logging_flash_test_create_entry_full_buffer_flush_unused_bytes_termi
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -3247,6 +3289,7 @@ static void logging_flash_test_create_entry_full_buffer_flush_unused_bytes_termi
 static void logging_flash_test_create_entry_sector_partial_full (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -3277,7 +3320,7 @@ static void logging_flash_test_create_entry_sector_partial_full (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -3336,6 +3379,7 @@ static void logging_flash_test_create_entry_sector_partial_full (CuTest *test)
 static void logging_flash_test_create_entry_second_sector_partial_all_bytes (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -3382,7 +3426,7 @@ static void logging_flash_test_create_entry_second_sector_partial_all_bytes (CuT
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -3450,6 +3494,7 @@ static void logging_flash_test_create_entry_second_sector_partial_all_bytes (CuT
 static void logging_flash_test_create_entry_second_sector_partial_unused_bytes (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -3497,7 +3542,7 @@ static void logging_flash_test_create_entry_second_sector_partial_unused_bytes (
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -3566,6 +3611,7 @@ static void logging_flash_test_create_entry_second_sector_partial_unused_bytes_t
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -3620,7 +3666,7 @@ static void logging_flash_test_create_entry_second_sector_partial_unused_bytes_t
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -3688,6 +3734,7 @@ static void logging_flash_test_create_entry_second_sector_partial_unused_bytes_t
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -3741,7 +3788,7 @@ static void logging_flash_test_create_entry_second_sector_partial_unused_bytes_t
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -3808,6 +3855,7 @@ static void logging_flash_test_create_entry_second_sector_partial_unused_bytes_t
 static void logging_flash_test_create_entry_fill_partial_buffer_flush (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -3860,7 +3908,7 @@ static void logging_flash_test_create_entry_fill_partial_buffer_flush (CuTest *t
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -3936,6 +3984,7 @@ static void logging_flash_test_create_entry_fill_partial_buffer_flush (CuTest *t
 static void logging_flash_test_create_entry_fill_partial_buffer_flush_unused_bytes (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -3989,7 +4038,7 @@ static void logging_flash_test_create_entry_fill_partial_buffer_flush_unused_byt
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -4066,6 +4115,7 @@ static void logging_flash_test_create_entry_fill_partial_buffer_flush_unused_byt
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -4126,7 +4176,7 @@ static void logging_flash_test_create_entry_fill_partial_buffer_flush_unused_byt
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -4203,6 +4253,7 @@ static void logging_flash_test_create_entry_fill_partial_buffer_flush_unused_byt
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -4262,7 +4313,7 @@ static void logging_flash_test_create_entry_fill_partial_buffer_flush_unused_byt
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -4338,6 +4389,7 @@ static void logging_flash_test_create_entry_fill_partial_buffer_flush_unused_byt
 static void logging_flash_test_create_entry_all_sectors_full (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -4379,7 +4431,7 @@ static void logging_flash_test_create_entry_all_sectors_full (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -4435,6 +4487,7 @@ static void logging_flash_test_create_entry_all_sectors_full (CuTest *test)
 static void logging_flash_test_create_entry_all_sectors_full_unused_bytes (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -4477,7 +4530,7 @@ static void logging_flash_test_create_entry_all_sectors_full_unused_bytes (CuTes
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -4533,6 +4586,7 @@ static void logging_flash_test_create_entry_all_sectors_full_unused_bytes (CuTes
 static void logging_flash_test_create_entry_all_sectors_full_unused_bytes_terminator (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -4581,7 +4635,7 @@ static void logging_flash_test_create_entry_all_sectors_full_unused_bytes_termin
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -4638,6 +4692,7 @@ static void logging_flash_test_create_entry_all_sectors_full_unused_bytes_termin
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -4685,7 +4740,7 @@ static void logging_flash_test_create_entry_all_sectors_full_unused_bytes_termin
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -4741,6 +4796,7 @@ static void logging_flash_test_create_entry_all_sectors_full_unused_bytes_termin
 static void logging_flash_test_create_entry_full_overwrite_middle (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -4791,7 +4847,7 @@ static void logging_flash_test_create_entry_full_overwrite_middle (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -4847,6 +4903,7 @@ static void logging_flash_test_create_entry_full_overwrite_middle (CuTest *test)
 static void logging_flash_test_create_entry_full_overwrite_middle_unused_bytes (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -4898,7 +4955,7 @@ static void logging_flash_test_create_entry_full_overwrite_middle_unused_bytes (
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -4955,6 +5012,7 @@ static void logging_flash_test_create_entry_full_overwrite_middle_unused_bytes_t
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -5018,7 +5076,7 @@ static void logging_flash_test_create_entry_full_overwrite_middle_unused_bytes_t
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -5075,6 +5133,7 @@ static void logging_flash_test_create_entry_full_overwrite_middle_unused_bytes_t
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -5137,7 +5196,7 @@ static void logging_flash_test_create_entry_full_overwrite_middle_unused_bytes_t
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -5193,6 +5252,7 @@ static void logging_flash_test_create_entry_full_overwrite_middle_unused_bytes_t
 static void logging_flash_test_create_entry_full_partial_overwrite_middle (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -5248,7 +5308,7 @@ static void logging_flash_test_create_entry_full_partial_overwrite_middle (CuTes
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -5303,6 +5363,7 @@ static void logging_flash_test_create_entry_full_partial_overwrite_middle_unused
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -5359,7 +5420,7 @@ static void logging_flash_test_create_entry_full_partial_overwrite_middle_unused
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -5414,6 +5475,7 @@ static void logging_flash_test_create_entry_full_partial_overwrite_middle_unused
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -5482,7 +5544,7 @@ static void logging_flash_test_create_entry_full_partial_overwrite_middle_unused
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -5536,6 +5598,7 @@ static void logging_flash_test_create_entry_full_partial_overwrite_middle_unused
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -5603,7 +5666,7 @@ static void logging_flash_test_create_entry_full_partial_overwrite_middle_unused
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -5657,6 +5720,7 @@ static void logging_flash_test_create_entry_full_partial_overwrite_middle_unused
 static void logging_flash_test_create_entry_full_buffer_after_partial_flush (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -5709,7 +5773,7 @@ static void logging_flash_test_create_entry_full_buffer_after_partial_flush (CuT
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -5807,6 +5871,7 @@ static void logging_flash_test_create_entry_full_buffer_after_partial_flush_unus
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -5860,7 +5925,7 @@ static void logging_flash_test_create_entry_full_buffer_after_partial_flush_unus
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -5958,6 +6023,7 @@ static void logging_flash_test_create_entry_full_buffer_after_partial_flush_unus
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -6018,7 +6084,7 @@ static void logging_flash_test_create_entry_full_buffer_after_partial_flush_unus
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -6116,6 +6182,7 @@ static void logging_flash_test_create_entry_full_buffer_after_partial_flush_unus
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -6175,7 +6242,7 @@ static void logging_flash_test_create_entry_full_buffer_after_partial_flush_unus
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -6272,6 +6339,7 @@ static void logging_flash_test_create_entry_full_buffer_after_partial_flush_unus
 static void logging_flash_test_create_entry_full_buffer_flush_multiple (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -6324,7 +6392,7 @@ static void logging_flash_test_create_entry_full_buffer_flush_multiple (CuTest *
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -6414,6 +6482,7 @@ static void logging_flash_test_create_entry_full_buffer_flush_multiple (CuTest *
 static void logging_flash_test_create_entry_full_buffer_flush_multiple_unused_bytes (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -6467,7 +6536,7 @@ static void logging_flash_test_create_entry_full_buffer_flush_multiple_unused_by
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -6558,6 +6627,7 @@ static void logging_flash_test_create_entry_full_buffer_flush_multiple_unused_by
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -6618,7 +6688,7 @@ static void logging_flash_test_create_entry_full_buffer_flush_multiple_unused_by
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -6709,6 +6779,7 @@ static void logging_flash_test_create_entry_full_buffer_flush_multiple_unused_by
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -6768,7 +6839,7 @@ static void logging_flash_test_create_entry_full_buffer_flush_multiple_unused_by
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -6858,6 +6929,7 @@ static void logging_flash_test_create_entry_full_buffer_flush_multiple_unused_by
 static void logging_flash_test_create_entry_wrap_to_start (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -6916,7 +6988,7 @@ static void logging_flash_test_create_entry_wrap_to_start (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -6997,6 +7069,7 @@ static void logging_flash_test_create_entry_wrap_to_start (CuTest *test)
 static void logging_flash_test_create_entry_wrap_to_start_unused_bytes (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -7056,7 +7129,7 @@ static void logging_flash_test_create_entry_wrap_to_start_unused_bytes (CuTest *
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -7137,6 +7210,7 @@ static void logging_flash_test_create_entry_wrap_to_start_unused_bytes (CuTest *
 static void logging_flash_test_create_entry_wrap_to_start_unused_bytes_terminator (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -7209,7 +7283,7 @@ static void logging_flash_test_create_entry_wrap_to_start_unused_bytes_terminato
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -7291,6 +7365,7 @@ static void logging_flash_test_create_entry_wrap_to_start_unused_bytes_terminato
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -7362,7 +7437,7 @@ static void logging_flash_test_create_entry_wrap_to_start_unused_bytes_terminato
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -7443,6 +7518,7 @@ static void logging_flash_test_create_entry_wrap_to_start_unused_bytes_terminato
 static void logging_flash_test_create_entry_init_with_entry_too_long (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -7498,7 +7574,7 @@ static void logging_flash_test_create_entry_init_with_entry_too_long (CuTest *te
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -7554,6 +7630,7 @@ static void logging_flash_test_create_entry_init_with_entry_too_long (CuTest *te
 static void logging_flash_test_create_entry_init_with_entry_too_short (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -7609,7 +7686,7 @@ static void logging_flash_test_create_entry_init_with_entry_too_short (CuTest *t
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -7665,6 +7742,7 @@ static void logging_flash_test_create_entry_init_with_entry_too_short (CuTest *t
 static void logging_flash_test_create_entry_init_with_terminator_too_long (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -7720,7 +7798,7 @@ static void logging_flash_test_create_entry_init_with_terminator_too_long (CuTes
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -7776,6 +7854,7 @@ static void logging_flash_test_create_entry_init_with_terminator_too_long (CuTes
 static void logging_flash_test_create_entry_init_with_terminator_too_short (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -7831,7 +7910,7 @@ static void logging_flash_test_create_entry_init_with_terminator_too_short (CuTe
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -7887,6 +7966,7 @@ static void logging_flash_test_create_entry_init_with_terminator_too_short (CuTe
 static void logging_flash_test_create_entry_sector_unused_not_blank (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -7917,7 +7997,7 @@ static void logging_flash_test_create_entry_sector_unused_not_blank (CuTest *tes
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -7978,6 +8058,7 @@ static void logging_flash_test_create_entry_sector_unused_not_blank (CuTest *tes
 static void logging_flash_test_create_entry_sector_unused_partially_not_blank (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -8010,7 +8091,7 @@ static void logging_flash_test_create_entry_sector_unused_partially_not_blank (C
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -8071,6 +8152,7 @@ static void logging_flash_test_create_entry_sector_unused_partially_not_blank (C
 static void logging_flash_test_create_entry_first_sector_not_valid (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -8096,7 +8178,7 @@ static void logging_flash_test_create_entry_first_sector_not_valid (CuTest *test
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -8157,6 +8239,7 @@ static void logging_flash_test_create_entry_first_sector_not_valid (CuTest *test
 static void logging_flash_test_create_entry_null (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -8171,7 +8254,7 @@ static void logging_flash_test_create_entry_null (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -8209,6 +8292,7 @@ static void logging_flash_test_create_entry_null (CuTest *test)
 static void logging_flash_test_create_entry_bad_length (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -8223,7 +8307,7 @@ static void logging_flash_test_create_entry_bad_length (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -8265,6 +8349,7 @@ static void logging_flash_test_create_entry_bad_length (CuTest *test)
 static void logging_flash_test_create_entry_flush_error (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -8292,7 +8377,7 @@ static void logging_flash_test_create_entry_flush_error (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -8345,6 +8430,7 @@ static void logging_flash_test_create_entry_flush_error (CuTest *test)
 static void logging_flash_test_create_entry_after_incomplete_flush (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -8381,7 +8467,7 @@ static void logging_flash_test_create_entry_after_incomplete_flush (CuTest *test
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -8460,6 +8546,7 @@ static void logging_flash_test_create_entry_after_incomplete_flush (CuTest *test
 static void logging_flash_test_create_entry_after_incomplete_flush_unused_bytes (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -8497,7 +8584,7 @@ static void logging_flash_test_create_entry_after_incomplete_flush_unused_bytes 
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -8577,6 +8664,7 @@ static void logging_flash_test_create_entry_after_incomplete_flush_unused_bytes_
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -8614,7 +8702,7 @@ static void logging_flash_test_create_entry_after_incomplete_flush_unused_bytes_
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -8694,6 +8782,7 @@ static void logging_flash_test_create_entry_after_incomplete_flush_unused_bytes_
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -8730,7 +8819,7 @@ static void logging_flash_test_create_entry_after_incomplete_flush_unused_bytes_
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -8809,6 +8898,7 @@ static void logging_flash_test_create_entry_after_incomplete_flush_unused_bytes_
 static void logging_flash_test_create_entry_full_buffer_flush_after_incomplete_flush (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -8853,7 +8943,7 @@ static void logging_flash_test_create_entry_full_buffer_flush_after_incomplete_f
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -8942,6 +9032,7 @@ static void logging_flash_test_create_entry_full_buffer_flush_after_incomplete_f
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -8987,7 +9078,7 @@ static void logging_flash_test_create_entry_full_buffer_flush_after_incomplete_f
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -9075,6 +9166,7 @@ static void logging_flash_test_create_entry_full_buffer_flush_after_incomplete_f
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -9127,7 +9219,7 @@ static void logging_flash_test_create_entry_full_buffer_flush_after_incomplete_f
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -9215,6 +9307,7 @@ static void logging_flash_test_create_entry_full_buffer_flush_after_incomplete_f
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -9266,7 +9359,7 @@ static void logging_flash_test_create_entry_full_buffer_flush_after_incomplete_f
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -9353,6 +9446,7 @@ static void logging_flash_test_create_entry_full_buffer_flush_after_incomplete_f
 static void logging_flash_test_flush_no_data (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -9366,7 +9460,7 @@ static void logging_flash_test_flush_no_data (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -9404,6 +9498,7 @@ static void logging_flash_test_flush_no_data (CuTest *test)
 static void logging_flash_test_flush_null (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -9417,7 +9512,7 @@ static void logging_flash_test_flush_null (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -9455,6 +9550,7 @@ static void logging_flash_test_flush_null (CuTest *test)
 static void logging_flash_test_flush_erase_error (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -9476,7 +9572,7 @@ static void logging_flash_test_flush_erase_error (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -9527,6 +9623,7 @@ static void logging_flash_test_flush_erase_error (CuTest *test)
 static void logging_flash_test_flush_write_error (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -9548,7 +9645,7 @@ static void logging_flash_test_flush_write_error (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -9601,6 +9698,7 @@ static void logging_flash_test_flush_write_error (CuTest *test)
 static void logging_flash_test_flush_incomplete_write (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -9637,7 +9735,7 @@ static void logging_flash_test_flush_incomplete_write (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -9697,6 +9795,7 @@ static void logging_flash_test_flush_incomplete_write (CuTest *test)
 static void logging_flash_test_flush_incomplete_write_unused_bytes (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -9734,7 +9833,7 @@ static void logging_flash_test_flush_incomplete_write_unused_bytes (CuTest *test
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -9794,6 +9893,7 @@ static void logging_flash_test_flush_incomplete_write_unused_bytes (CuTest *test
 static void logging_flash_test_flush_incomplete_write_unused_bytes_terminator (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -9831,7 +9931,7 @@ static void logging_flash_test_flush_incomplete_write_unused_bytes_terminator (C
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -9891,6 +9991,7 @@ static void logging_flash_test_flush_incomplete_write_unused_bytes_terminator (C
 static void logging_flash_test_flush_incomplete_write_unused_bytes_terminator_large (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -9927,7 +10028,7 @@ static void logging_flash_test_flush_incomplete_write_unused_bytes_terminator_la
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -9987,6 +10088,7 @@ static void logging_flash_test_flush_incomplete_write_unused_bytes_terminator_la
 static void logging_flash_test_flush_after_incomplete_write (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -10023,7 +10125,7 @@ static void logging_flash_test_flush_after_incomplete_write (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -10093,6 +10195,7 @@ static void logging_flash_test_flush_after_incomplete_write (CuTest *test)
 static void logging_flash_test_flush_after_incomplete_write_unused_bytes (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -10130,7 +10233,7 @@ static void logging_flash_test_flush_after_incomplete_write_unused_bytes (CuTest
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -10200,6 +10303,7 @@ static void logging_flash_test_flush_after_incomplete_write_unused_bytes (CuTest
 static void logging_flash_test_flush_after_incomplete_write_unused_bytes_terminator (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -10236,7 +10340,7 @@ static void logging_flash_test_flush_after_incomplete_write_unused_bytes_termina
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -10307,6 +10411,7 @@ static void logging_flash_test_flush_after_incomplete_write_unused_bytes_termina
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -10343,7 +10448,7 @@ static void logging_flash_test_flush_after_incomplete_write_unused_bytes_termina
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -10413,6 +10518,7 @@ static void logging_flash_test_flush_after_incomplete_write_unused_bytes_termina
 static void logging_flash_test_read_contents (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -10435,7 +10541,7 @@ static void logging_flash_test_read_contents (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -10485,6 +10591,7 @@ static void logging_flash_test_read_contents (CuTest *test)
 static void logging_flash_test_read_contents_empty (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -10499,7 +10606,7 @@ static void logging_flash_test_read_contents_empty (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -10534,6 +10641,7 @@ static void logging_flash_test_read_contents_empty (CuTest *test)
 static void logging_flash_test_read_contents_buffered_entry_only (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -10557,7 +10665,7 @@ static void logging_flash_test_read_contents_buffered_entry_only (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -10607,6 +10715,7 @@ static void logging_flash_test_read_contents_buffered_entry_only (CuTest *test)
 static void logging_flash_test_read_contents_first_sector_full (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -10638,7 +10747,7 @@ static void logging_flash_test_read_contents_first_sector_full (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -10688,6 +10797,7 @@ static void logging_flash_test_read_contents_first_sector_full (CuTest *test)
 static void logging_flash_test_read_contents_first_sector_full_unused_bytes (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -10720,7 +10830,7 @@ static void logging_flash_test_read_contents_first_sector_full_unused_bytes (CuT
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -10771,6 +10881,7 @@ static void logging_flash_test_read_contents_first_sector_full_unused_bytes_term
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -10809,7 +10920,7 @@ static void logging_flash_test_read_contents_first_sector_full_unused_bytes_term
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -10860,6 +10971,7 @@ static void logging_flash_test_read_contents_first_sector_full_unused_bytes_term
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -10897,7 +11009,7 @@ static void logging_flash_test_read_contents_first_sector_full_unused_bytes_term
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -10947,6 +11059,7 @@ static void logging_flash_test_read_contents_first_sector_full_unused_bytes_term
 static void logging_flash_test_read_contents_second_sector_partial (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -10991,7 +11104,7 @@ static void logging_flash_test_read_contents_second_sector_partial (CuTest *test
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -11051,6 +11164,7 @@ static void logging_flash_test_read_contents_second_sector_partial (CuTest *test
 static void logging_flash_test_read_contents_second_sector_partial_usused_bytes (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -11096,7 +11210,7 @@ static void logging_flash_test_read_contents_second_sector_partial_usused_bytes 
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -11157,6 +11271,7 @@ static void logging_flash_test_read_contents_second_sector_partial_usused_bytes_
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -11209,7 +11324,7 @@ static void logging_flash_test_read_contents_second_sector_partial_usused_bytes_
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -11270,6 +11385,7 @@ static void logging_flash_test_read_contents_second_sector_partial_usused_bytes_
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -11321,7 +11437,7 @@ static void logging_flash_test_read_contents_second_sector_partial_usused_bytes_
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -11381,6 +11497,7 @@ static void logging_flash_test_read_contents_second_sector_partial_usused_bytes_
 static void logging_flash_test_read_contents_all_sectors_full (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -11421,7 +11538,7 @@ static void logging_flash_test_read_contents_all_sectors_full (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -11469,6 +11586,7 @@ static void logging_flash_test_read_contents_all_sectors_full (CuTest *test)
 static void logging_flash_test_read_contents_all_sectors_full_unused_bytes (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -11510,7 +11628,7 @@ static void logging_flash_test_read_contents_all_sectors_full_unused_bytes (CuTe
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -11558,6 +11676,7 @@ static void logging_flash_test_read_contents_all_sectors_full_unused_bytes (CuTe
 static void logging_flash_test_read_contents_all_sectors_full_unused_bytes_terminator (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -11605,7 +11724,7 @@ static void logging_flash_test_read_contents_all_sectors_full_unused_bytes_termi
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -11654,6 +11773,7 @@ static void logging_flash_test_read_contents_all_sectors_full_unused_bytes_termi
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -11700,7 +11820,7 @@ static void logging_flash_test_read_contents_all_sectors_full_unused_bytes_termi
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -11748,6 +11868,7 @@ static void logging_flash_test_read_contents_all_sectors_full_unused_bytes_termi
 static void logging_flash_test_read_contents_all_sectors_full_overwrite (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -11801,7 +11922,7 @@ static void logging_flash_test_read_contents_all_sectors_full_overwrite (CuTest 
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -11855,6 +11976,7 @@ static void logging_flash_test_read_contents_all_sectors_full_overwrite (CuTest 
 static void logging_flash_test_read_contents_all_sectors_full_overwrite_unused_bytes (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -11909,7 +12031,7 @@ static void logging_flash_test_read_contents_all_sectors_full_overwrite_unused_b
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -11964,6 +12086,7 @@ static void logging_flash_test_read_contents_all_sectors_full_overwrite_unused_b
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -12030,7 +12153,7 @@ static void logging_flash_test_read_contents_all_sectors_full_overwrite_unused_b
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -12085,6 +12208,7 @@ static void logging_flash_test_read_contents_all_sectors_full_overwrite_unused_b
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -12150,7 +12274,7 @@ static void logging_flash_test_read_contents_all_sectors_full_overwrite_unused_b
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -12204,6 +12328,7 @@ static void logging_flash_test_read_contents_all_sectors_full_overwrite_unused_b
 static void logging_flash_test_read_contents_all_sectors_partial_overwrite (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -12262,7 +12387,7 @@ static void logging_flash_test_read_contents_all_sectors_partial_overwrite (CuTe
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -12322,6 +12447,7 @@ static void logging_flash_test_read_contents_all_sectors_partial_overwrite_unuse
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -12381,7 +12507,7 @@ static void logging_flash_test_read_contents_all_sectors_partial_overwrite_unuse
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -12441,6 +12567,7 @@ static void logging_flash_test_read_contents_all_sectors_partial_overwrite_unuse
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -12512,7 +12639,7 @@ static void logging_flash_test_read_contents_all_sectors_partial_overwrite_unuse
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -12572,6 +12699,7 @@ static void logging_flash_test_read_contents_all_sectors_partial_overwrite_unuse
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -12642,7 +12770,7 @@ static void logging_flash_test_read_contents_all_sectors_partial_overwrite_unuse
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -12701,6 +12829,7 @@ static void logging_flash_test_read_contents_all_sectors_partial_overwrite_unuse
 static void logging_flash_test_read_contents_after_erase_new_middle_sector (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -12763,7 +12892,7 @@ static void logging_flash_test_read_contents_after_erase_new_middle_sector (CuTe
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -12849,6 +12978,7 @@ static void logging_flash_test_read_contents_after_erase_new_middle_sector_unuse
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -12912,7 +13042,7 @@ static void logging_flash_test_read_contents_after_erase_new_middle_sector_unuse
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -12998,6 +13128,7 @@ static void logging_flash_test_read_contents_after_erase_new_middle_sector_unuse
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -13073,7 +13204,7 @@ static void logging_flash_test_read_contents_after_erase_new_middle_sector_unuse
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -13159,6 +13290,7 @@ static void logging_flash_test_read_contents_after_erase_new_middle_sector_unuse
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -13233,7 +13365,7 @@ static void logging_flash_test_read_contents_after_erase_new_middle_sector_unuse
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -13318,6 +13450,7 @@ static void logging_flash_test_read_contents_after_erase_new_middle_sector_unuse
 static void logging_flash_test_read_contents_partial_read (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -13358,7 +13491,7 @@ static void logging_flash_test_read_contents_partial_read (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -13413,6 +13546,7 @@ static void logging_flash_test_read_contents_partial_read (CuTest *test)
 static void logging_flash_test_read_contents_partial_read_buffered_entries (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -13450,7 +13584,7 @@ static void logging_flash_test_read_contents_partial_read_buffered_entries (CuTe
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -13499,6 +13633,7 @@ static void logging_flash_test_read_contents_partial_read_buffered_entries (CuTe
 static void logging_flash_test_read_contents_offset_read_in_first_sector (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -13540,7 +13675,7 @@ static void logging_flash_test_read_contents_offset_read_in_first_sector (CuTest
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -13597,6 +13732,7 @@ static void logging_flash_test_read_contents_offset_read_in_first_sector (CuTest
 static void logging_flash_test_read_contents_offset_read_in_second_sector (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -13638,7 +13774,7 @@ static void logging_flash_test_read_contents_offset_read_in_second_sector (CuTes
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -13695,6 +13831,7 @@ static void logging_flash_test_read_contents_offset_read_in_second_sector (CuTes
 static void logging_flash_test_read_contents_offset_read_buffered_entries (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -13732,7 +13869,7 @@ static void logging_flash_test_read_contents_offset_read_buffered_entries (CuTes
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -13781,6 +13918,7 @@ static void logging_flash_test_read_contents_offset_read_buffered_entries (CuTes
 static void logging_flash_test_read_contents_partial_read_with_offset (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -13827,7 +13965,7 @@ static void logging_flash_test_read_contents_partial_read_with_offset (CuTest *t
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -13892,6 +14030,7 @@ static void logging_flash_test_read_contents_partial_read_with_offset (CuTest *t
 static void logging_flash_test_read_contents_offset_past_end (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -13923,7 +14062,7 @@ static void logging_flash_test_read_contents_offset_past_end (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -13966,6 +14105,7 @@ static void logging_flash_test_read_contents_offset_past_end (CuTest *test)
 static void logging_flash_test_read_contents_zero (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -13988,7 +14128,7 @@ static void logging_flash_test_read_contents_zero (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -14031,6 +14171,7 @@ static void logging_flash_test_read_contents_zero (CuTest *test)
 static void logging_flash_test_read_contents_flash_and_buffered_entries (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -14075,7 +14216,7 @@ static void logging_flash_test_read_contents_flash_and_buffered_entries (CuTest 
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -14137,6 +14278,7 @@ static void logging_flash_test_read_contents_flash_and_buffered_entries (CuTest 
 static void logging_flash_test_read_contents_flash_and_buffered_entries_unused_bytes (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -14182,7 +14324,7 @@ static void logging_flash_test_read_contents_flash_and_buffered_entries_unused_b
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -14245,6 +14387,7 @@ static void logging_flash_test_read_contents_flash_and_buffered_entries_unused_b
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -14298,7 +14441,7 @@ static void logging_flash_test_read_contents_flash_and_buffered_entries_unused_b
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -14361,6 +14504,7 @@ static void logging_flash_test_read_contents_flash_and_buffered_entries_unused_b
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -14413,7 +14557,7 @@ static void logging_flash_test_read_contents_flash_and_buffered_entries_unused_b
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -14475,6 +14619,7 @@ static void logging_flash_test_read_contents_flash_and_buffered_entries_unused_b
 static void logging_flash_test_read_contents_full_log_with_buffered_entries (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -14531,7 +14676,7 @@ static void logging_flash_test_read_contents_full_log_with_buffered_entries (CuT
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -14593,6 +14738,7 @@ static void logging_flash_test_read_contents_full_log_with_buffered_entries_unus
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -14650,7 +14796,7 @@ static void logging_flash_test_read_contents_full_log_with_buffered_entries_unus
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -14712,6 +14858,7 @@ static void logging_flash_test_read_contents_full_log_with_buffered_entries_unus
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -14775,7 +14922,7 @@ static void logging_flash_test_read_contents_full_log_with_buffered_entries_unus
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -14837,6 +14984,7 @@ static void logging_flash_test_read_contents_full_log_with_buffered_entries_unus
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -14899,7 +15047,7 @@ static void logging_flash_test_read_contents_full_log_with_buffered_entries_unus
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -14960,6 +15108,7 @@ static void logging_flash_test_read_contents_full_log_with_buffered_entries_unus
 static void logging_flash_test_read_contents_full_buffer_flush_after_incomplete_flush (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -15004,7 +15153,7 @@ static void logging_flash_test_read_contents_full_buffer_flush_after_incomplete_
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -15078,6 +15227,7 @@ static void logging_flash_test_read_contents_full_buffer_flush_after_incomplete_
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -15123,7 +15273,7 @@ static void logging_flash_test_read_contents_full_buffer_flush_after_incomplete_
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -15196,6 +15346,7 @@ static void logging_flash_test_read_contents_full_buffer_flush_after_incomplete_
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -15248,7 +15399,7 @@ static void logging_flash_test_read_contents_full_buffer_flush_after_incomplete_
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -15321,6 +15472,7 @@ static void logging_flash_test_read_contents_full_buffer_flush_after_incomplete_
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -15372,7 +15524,7 @@ static void logging_flash_test_read_contents_full_buffer_flush_after_incomplete_
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -15444,6 +15596,7 @@ static void logging_flash_test_read_contents_full_buffer_flush_after_incomplete_
 static void logging_flash_test_read_contents_null (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -15466,7 +15619,7 @@ static void logging_flash_test_read_contents_null (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -15512,6 +15665,7 @@ static void logging_flash_test_read_contents_null (CuTest *test)
 static void logging_flash_test_read_contents_read_error (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -15545,7 +15699,7 @@ static void logging_flash_test_read_contents_read_error (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -15584,6 +15738,7 @@ static void logging_flash_test_read_contents_read_error (CuTest *test)
 static void logging_flash_test_clear (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -15606,7 +15761,7 @@ static void logging_flash_test_clear (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -15658,6 +15813,7 @@ static void logging_flash_test_clear (CuTest *test)
 static void logging_flash_test_clear_buffered_entry (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -15680,7 +15836,7 @@ static void logging_flash_test_clear_buffered_entry (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -15736,6 +15892,7 @@ static void logging_flash_test_clear_buffered_entry (CuTest *test)
 static void logging_flash_test_clear_flushed_entry (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -15765,7 +15922,7 @@ static void logging_flash_test_clear_flushed_entry (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -15854,6 +16011,7 @@ static void logging_flash_test_clear_flushed_entry (CuTest *test)
 static void logging_flash_test_clear_with_entries_then_fill_buffer (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -15916,7 +16074,7 @@ static void logging_flash_test_clear_with_entries_then_fill_buffer (CuTest *test
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -16012,6 +16170,7 @@ static void logging_flash_test_clear_with_entries_then_fill_buffer (CuTest *test
 static void logging_flash_test_clear_with_entries_then_fill_buffer_unused_bytes (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -16075,7 +16234,7 @@ static void logging_flash_test_clear_with_entries_then_fill_buffer_unused_bytes 
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -16172,6 +16331,7 @@ static void logging_flash_test_clear_with_entries_then_fill_buffer_unused_bytes_
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -16243,7 +16403,7 @@ static void logging_flash_test_clear_with_entries_then_fill_buffer_unused_bytes_
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -16340,6 +16500,7 @@ static void logging_flash_test_clear_with_entries_then_fill_buffer_unused_bytes_
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -16410,7 +16571,7 @@ static void logging_flash_test_clear_with_entries_then_fill_buffer_unused_bytes_
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -16506,6 +16667,7 @@ static void logging_flash_test_clear_with_entries_then_fill_buffer_unused_bytes_
 static void logging_flash_test_clear_after_partial_flush_then_fill_buffer (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -16568,7 +16730,7 @@ static void logging_flash_test_clear_after_partial_flush_then_fill_buffer (CuTes
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -16680,6 +16842,7 @@ static void logging_flash_test_clear_after_partial_flush_then_fill_buffer_unused
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -16743,7 +16906,7 @@ static void logging_flash_test_clear_after_partial_flush_then_fill_buffer_unused
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -16855,6 +17018,7 @@ static void logging_flash_test_clear_after_partial_flush_then_fill_buffer_unused
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -16926,7 +17090,7 @@ static void logging_flash_test_clear_after_partial_flush_then_fill_buffer_unused
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -17038,6 +17202,7 @@ static void logging_flash_test_clear_after_partial_flush_then_fill_buffer_unused
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -17108,7 +17273,7 @@ static void logging_flash_test_clear_after_partial_flush_then_fill_buffer_unused
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -17219,6 +17384,7 @@ static void logging_flash_test_clear_after_partial_flush_then_fill_buffer_unused
 static void logging_flash_test_clear_full_overwrite (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -17273,7 +17439,7 @@ static void logging_flash_test_clear_full_overwrite (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -17357,6 +17523,7 @@ static void logging_flash_test_clear_full_overwrite (CuTest *test)
 static void logging_flash_test_clear_full_overwrite_unused_bytes (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -17412,7 +17579,7 @@ static void logging_flash_test_clear_full_overwrite_unused_bytes (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -17496,6 +17663,7 @@ static void logging_flash_test_clear_full_overwrite_unused_bytes (CuTest *test)
 static void logging_flash_test_clear_full_overwrite_unused_bytes_terminator (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -17563,7 +17731,7 @@ static void logging_flash_test_clear_full_overwrite_unused_bytes_terminator (CuT
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -17647,6 +17815,7 @@ static void logging_flash_test_clear_full_overwrite_unused_bytes_terminator (CuT
 static void logging_flash_test_clear_full_overwrite_unused_bytes_terminator_large (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -17713,7 +17882,7 @@ static void logging_flash_test_clear_full_overwrite_unused_bytes_terminator_larg
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -17797,6 +17966,7 @@ static void logging_flash_test_clear_full_overwrite_unused_bytes_terminator_larg
 static void logging_flash_test_clear_full_buffer_flush_after_incomplete_flush (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -17843,7 +18013,7 @@ static void logging_flash_test_clear_full_buffer_flush_after_incomplete_flush (C
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -17937,6 +18107,7 @@ static void logging_flash_test_clear_full_buffer_flush_after_incomplete_flush_un
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -17984,7 +18155,7 @@ static void logging_flash_test_clear_full_buffer_flush_after_incomplete_flush_un
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -18077,6 +18248,7 @@ static void logging_flash_test_clear_full_buffer_flush_after_incomplete_flush_un
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -18131,7 +18303,7 @@ static void logging_flash_test_clear_full_buffer_flush_after_incomplete_flush_un
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -18224,6 +18396,7 @@ static void logging_flash_test_clear_full_buffer_flush_after_incomplete_flush_un
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -18277,7 +18450,7 @@ static void logging_flash_test_clear_full_buffer_flush_after_incomplete_flush_un
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -18369,6 +18542,7 @@ static void logging_flash_test_clear_full_buffer_flush_after_incomplete_flush_un
 static void logging_flash_test_clear_null (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -18390,7 +18564,7 @@ static void logging_flash_test_clear_null (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);
@@ -18436,6 +18610,7 @@ static void logging_flash_test_clear_null (CuTest *test)
 static void logging_flash_test_clear_erase_error (CuTest *test)
 {
 	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
 	struct spi_flash flash;
 	struct logging_flash logging;
 	int status;
@@ -18457,7 +18632,7 @@ static void logging_flash_test_clear_erase_error (CuTest *test)
 	status = flash_master_mock_init (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&flash, &flash_mock.base);
+	status = spi_flash_init (&flash, &state, &flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&flash, 0x1000000);

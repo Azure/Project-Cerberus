@@ -249,17 +249,23 @@ int flash_master_mock_expect_verify_copy_4byte_explicit (struct flash_master_moc
 }
 
 /**
- * Helper to define an expected command to write data.
+ * Helper to define an expected command to write data with any configuration.
  */
-#define	FLASH_EXP_WRITE_CMD(code, addr, dummy, buf, len)	(struct flash_xfer) {\
+#define	FLASH_EXP_WRITE_EXT_CMD(code, addr, dummy, mode, buf, len, flag_in)	(struct flash_xfer) {\
 	.cmd = code, \
 	.address = addr, \
 	.dummy_bytes = dummy, \
-	.mode_bytes = 0, \
+	.mode_bytes = mode, \
 	.data = (void*) (buf), \
 	.length = len, \
-	.flags = FLASH_FLAG_DATA_TX \
+	.flags = flag_in | FLASH_FLAG_DATA_TX \
 }
+
+/**
+ * Helper to define an expected command to write data.
+ */
+#define	FLASH_EXP_WRITE_CMD(code, addr, dummy, buf, len)	\
+	FLASH_EXP_WRITE_EXT_CMD (code, addr, dummy, 0, buf, len, 0)
 
 /**
  * Helper to define an expected command to erase data.
@@ -325,15 +331,8 @@ int flash_master_mock_expect_verify_copy_4byte_explicit (struct flash_master_moc
 /**
  * Helper to define an expected command to write data with 4 byte address.
  */
-#define	FLASH_EXP_WRITE_4B_CMD(code, addr, dummy, buf, len)	(struct flash_xfer) {\
-	.cmd = code, \
-	.address = addr, \
-	.dummy_bytes = dummy, \
-	.mode_bytes = 0, \
-	.data = (void*) (buf), \
-	.length = len, \
-	.flags = FLASH_FLAG_DATA_TX | FLASH_FLAG_4BYTE_ADDRESS \
-}
+#define	FLASH_EXP_WRITE_4B_CMD(code, addr, dummy, buf, len)	\
+	FLASH_EXP_WRITE_EXT_CMD (code, addr, dummy, 0, buf, len, FLASH_FLAG_4BYTE_ADDRESS)
 
 /**
  * Helper to define an expected command to erase data with 4 byte address.

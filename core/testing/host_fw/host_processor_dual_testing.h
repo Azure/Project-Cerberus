@@ -28,6 +28,7 @@ struct host_processor_dual_testing {
 	HASH_TESTING_ENGINE hash;								/**< Hash engine for API arguments. */
 	RSA_TESTING_ENGINE rsa;									/**< RSA engine for API arguments. */
 	struct flash_master_mock flash_mock_state;				/**< Flash mock for host state information. */
+	struct spi_flash_state flash_context;					/**< Host state flash context. */
 	struct spi_flash flash_state;							/**< Host state flash. */
 	struct host_state_manager host_state;					/**< Host state manager. */
 	struct spi_filter_interface_mock filter;				/**< Mock for the SPI filter. */
@@ -56,7 +57,8 @@ void host_processor_dual_testing_validate_and_release (CuTest *test,
 	struct host_processor_dual_testing *host);
 
 void host_processor_dual_testing_init_host_state (CuTest *test, struct host_state_manager *state,
-	struct flash_master_mock *flash_mock, struct spi_flash *flash);
+	struct flash_master_mock *flash_mock, struct spi_flash *flash,
+	struct spi_flash_state *flash_state);
 
 
 #endif /* HOST_PROCESSOR_DUAL_TESTING_H_ */

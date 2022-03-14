@@ -20,7 +20,7 @@
  * @return 0 if the update manager was initialized successfully or an error code.
  */
 static int flash_updater_init_common (struct flash_updater *updater, struct flash *flash,
-	uint32_t base_addr, size_t max_size, int (*erase) (struct flash*, uint32_t, size_t))
+	uint32_t base_addr, size_t max_size, int (*erase) (const struct flash*, uint32_t, size_t))
 {
 	if ((updater == NULL) || (flash == NULL)) {
 		return FLASH_UPDATER_INVALID_ARGUMENT;

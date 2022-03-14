@@ -221,6 +221,7 @@ struct pfm_flash_testing {
 	HASH_TESTING_ENGINE hash;							/**< Hashing engine for validation. */
 	struct signature_verification_mock verification;	/**< PFM signature verification. */
 	struct flash_master_mock flash_mock;				/**< Flash master for the PFM flash. */
+	struct spi_flash_state state;						/**< PFM flash context. */
 	struct spi_flash flash;								/**< Flash where the PFM is stored. */
 	uint32_t addr;										/**< Base address of the PFM. */
 	uint8_t signature[256];								/**< Buffer for the manifest signature. */
@@ -250,7 +251,7 @@ static void pfm_flash_testing_init_dependencies (CuTest *test, struct pfm_flash_
 	status = flash_master_mock_init (&pfm->flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (&pfm->flash, &pfm->flash_mock.base);
+	status = spi_flash_init (&pfm->flash, &pfm->state, &pfm->flash_mock.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&pfm->flash, 0x1000000);

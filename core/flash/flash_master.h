@@ -133,7 +133,7 @@ struct flash_master {
 	 *
 	 * @return 0 if the transfer was executed successfully or an error code.
 	 */
-	int (*xfer) (struct flash_master *spi, const struct flash_xfer *xfer);
+	int (*xfer) (const struct flash_master *spi, const struct flash_xfer *xfer);
 
 	/**
 	 * Get a set of capabilities supported by the SPI master.
@@ -142,7 +142,7 @@ struct flash_master {
 	 *
 	 * @return A capabilities bitmask for the SPI master.
 	 */
-	uint32_t (*capabilities) (struct flash_master *spi);
+	uint32_t (*capabilities) (const struct flash_master *spi);
 
 	/**
 	 * Get the current frequency used for SPI transfers.
@@ -152,7 +152,7 @@ struct flash_master {
 	 * @return The SPI clock frequency, in Hz, or an error code.  Use ROT_IS_ERROR to check the
 	 * return value.
 	 */
-	int (*get_spi_clock_frequency) (struct flash_master *spi);
+	int (*get_spi_clock_frequency) (const struct flash_master *spi);
 
 	/**
 	 * Set the frequency to use for SPI transfers.
@@ -172,7 +172,7 @@ struct flash_master {
 	 * @return The SPI clock frequency that was configured, in Hz, or an error code.  Use
 	 * ROT_IS_ERROR to check the return value.
 	 */
-	int (*set_spi_clock_frequency) (struct flash_master *spi, uint32_t freq);
+	int (*set_spi_clock_frequency) (const struct flash_master *spi, uint32_t freq);
 };
 
 

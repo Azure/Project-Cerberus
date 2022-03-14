@@ -8,6 +8,7 @@
 #include "spi_flash_sfdp.h"
 #include "flash_common.h"
 #include "common/common_math.h"
+#include "common/unused.h"
 
 
 /**
@@ -152,7 +153,7 @@ struct spi_flash_sfdp_basic_parameter_table_1_5 {
  *
  * @return 0 if the SFDP interface was successfully initialized or an error code.
  */
-int spi_flash_sfdp_init (struct spi_flash_sfdp *sfdp, struct flash_master *flash)
+int spi_flash_sfdp_init (struct spi_flash_sfdp *sfdp, const struct flash_master *flash)
 {
 	struct flash_xfer xfer;
 	int status;
@@ -200,7 +201,7 @@ int spi_flash_sfdp_init (struct spi_flash_sfdp *sfdp, struct flash_master *flash
  */
 void spi_flash_sfdp_release (struct spi_flash_sfdp *sfdp)
 {
-
+	UNUSED (sfdp);
 }
 
 /**
@@ -208,7 +209,7 @@ void spi_flash_sfdp_release (struct spi_flash_sfdp *sfdp)
  *
  * @param sfdp The SFDP information to print.
  */
-void spi_flash_sfdp_dump_header (struct spi_flash_sfdp *sfdp)
+void spi_flash_sfdp_dump_header (const struct spi_flash_sfdp *sfdp)
 {
 	struct flash_xfer xfer;
 	uint32_t sfdp_data[sizeof (struct spi_flash_sfdp_header)];
@@ -251,7 +252,7 @@ void spi_flash_sfdp_dump_header (struct spi_flash_sfdp *sfdp)
  * @return 0 if the basic parameter table was successfully read or an error code.
  */
 int spi_flash_sfdp_basic_table_init (struct spi_flash_sfdp_basic_table *table,
-	struct spi_flash_sfdp *sfdp)
+	const struct spi_flash_sfdp *sfdp)
 {
 	struct flash_xfer xfer;
 	size_t length;
@@ -284,7 +285,7 @@ int spi_flash_sfdp_basic_table_init (struct spi_flash_sfdp_basic_table *table,
  */
 void spi_flash_sfdp_basic_table_release (struct spi_flash_sfdp_basic_table *table)
 {
-
+	UNUSED (table);
 }
 
 /**
@@ -296,7 +297,7 @@ void spi_flash_sfdp_basic_table_release (struct spi_flash_sfdp_basic_table *tabl
  *
  * @return 0 if the capabilities were retrieved successfully or an error code.
  */
-int spi_flash_sfdp_get_device_capabilities (struct spi_flash_sfdp_basic_table *table,
+int spi_flash_sfdp_get_device_capabilities (const struct spi_flash_sfdp_basic_table *table,
 	uint32_t *capabilities)
 {
 	struct spi_flash_sfdp_basic_parameter_table_1_0 *params;
@@ -358,7 +359,7 @@ int spi_flash_sfdp_get_device_capabilities (struct spi_flash_sfdp_basic_table *t
  *
  * @return The size of the device in bytes or an error code.
  */
-int spi_flash_sfdp_get_device_size (struct spi_flash_sfdp_basic_table *table)
+int spi_flash_sfdp_get_device_size (const struct spi_flash_sfdp_basic_table *table)
 {
 	struct spi_flash_sfdp_basic_parameter_table_1_0 *params;
 
@@ -390,7 +391,7 @@ int spi_flash_sfdp_get_device_size (struct spi_flash_sfdp_basic_table *table)
  *
  * @return The device page size or an error code.
  */
-int spi_flash_sfdp_get_page_size (struct spi_flash_sfdp_basic_table *table)
+int spi_flash_sfdp_get_page_size (const struct spi_flash_sfdp_basic_table *table)
 {
 	struct spi_flash_sfdp_basic_parameter_table_1_5 *params;
 	int page = 256;
@@ -415,8 +416,8 @@ int spi_flash_sfdp_get_page_size (struct spi_flash_sfdp_basic_table *table)
  * @param dummy_clocks The number of dummy clocks for the command.
  * @param clocks_per_byte The number of clocks for each dummy byte.
  */
-static void spi_flash_sfdp_parse_read_command (struct spi_flash_sfdp_read_cmd *cmd, uint8_t opcode,
-	uint8_t dummy_clocks, uint8_t clocks_per_byte)
+static void spi_flash_sfdp_parse_read_command (struct spi_flash_sfdp_read_cmd *cmd,
+	uint8_t opcode, uint8_t dummy_clocks, uint8_t clocks_per_byte)
 {
 	uint8_t partial_byte;
 
@@ -442,7 +443,7 @@ static void spi_flash_sfdp_parse_read_command (struct spi_flash_sfdp_read_cmd *c
  *
  * @return 0 if the command information was retrieved successfully or an error code.
  */
-int spi_flash_sfdp_get_read_commands (struct spi_flash_sfdp_basic_table *table,
+int spi_flash_sfdp_get_read_commands (const struct spi_flash_sfdp_basic_table *table,
 	struct spi_flash_sfdp_read_commands *read)
 {
 	struct spi_flash_sfdp_basic_parameter_table_1_0 *params;
@@ -502,7 +503,7 @@ int spi_flash_sfdp_get_read_commands (struct spi_flash_sfdp_basic_table *table,
  *
  * @return true if Flag Status Register should be used.
  */
-bool spi_flash_sfdp_use_busy_flag_status (struct spi_flash_sfdp_basic_table *table)
+bool spi_flash_sfdp_use_busy_flag_status (const struct spi_flash_sfdp_basic_table *table)
 {
 	struct spi_flash_sfdp_basic_parameter_table_1_5 *params;
 
@@ -528,7 +529,7 @@ bool spi_flash_sfdp_use_busy_flag_status (struct spi_flash_sfdp_basic_table *tab
  *
  * @return true if the volatile write enable should be used for status register writes.
  */
-bool spi_flash_sfdp_use_volatile_write_enable (struct spi_flash_sfdp_basic_table *table)
+bool spi_flash_sfdp_use_volatile_write_enable (const struct spi_flash_sfdp_basic_table *table)
 {
 	struct spi_flash_sfdp_basic_parameter_table_1_5 *params;
 
@@ -554,7 +555,7 @@ bool spi_flash_sfdp_use_volatile_write_enable (struct spi_flash_sfdp_basic_table
  *
  * @return true if the device supports dedicated 4-byte address commands.
  */
-bool spi_flash_sfdp_supports_4byte_commands (struct spi_flash_sfdp_basic_table *table)
+bool spi_flash_sfdp_supports_4byte_commands (const struct spi_flash_sfdp_basic_table *table)
 {
 	struct spi_flash_sfdp_basic_parameter_table_1_5 *params;
 	bool opcodes_4b = false;
@@ -589,7 +590,7 @@ bool spi_flash_sfdp_supports_4byte_commands (struct spi_flash_sfdp_basic_table *
  *
  * @return 0 if the switching method was successfully determined or an error code.
  */
-int spi_flash_sfdp_get_4byte_mode_switch (struct spi_flash_sfdp_basic_table *table,
+int spi_flash_sfdp_get_4byte_mode_switch (const struct spi_flash_sfdp_basic_table *table,
 	enum spi_flash_sfdp_4byte_addressing *addr_4byte)
 {
 	struct spi_flash_sfdp_basic_parameter_table_1_5 *params;
@@ -634,10 +635,10 @@ int spi_flash_sfdp_get_4byte_mode_switch (struct spi_flash_sfdp_basic_table *tab
  *
  * @return true if the device will revert on reset or false if not.
  */
-bool spi_flash_sfdp_exit_4byte_mode_on_reset (struct spi_flash_sfdp_basic_table *table)
+bool spi_flash_sfdp_exit_4byte_mode_on_reset (const struct spi_flash_sfdp_basic_table *table)
 {
 	struct spi_flash_sfdp_basic_parameter_table_1_5 *params;
-	bool revert = true;		// Assume a device will revert until SFDP explicit says otherwise.
+	bool revert = true;		// Assume a device will revert unless SFDP explicitly says otherwise.
 
 	if ((table != NULL) && table->sfdp->sfdp_header.parameter0.minor_revision >= 5) {
 		params = (struct spi_flash_sfdp_basic_parameter_table_1_5*) table->data;
@@ -655,7 +656,7 @@ bool spi_flash_sfdp_exit_4byte_mode_on_reset (struct spi_flash_sfdp_basic_table 
  *
  * @return 0 if the enable mode was determined successfully or an error code.
  */
-int spi_flash_sfdp_get_quad_enable (struct spi_flash_sfdp_basic_table *table,
+int spi_flash_sfdp_get_quad_enable (const struct spi_flash_sfdp_basic_table *table,
 	enum spi_flash_sfdp_quad_enable *quad_enable)
 {
 	struct spi_flash_sfdp_basic_parameter_table_1_5 *params;
@@ -714,7 +715,8 @@ int spi_flash_sfdp_get_quad_enable (struct spi_flash_sfdp_basic_table *table,
  *
  * @return 0 if the reset command was retrieved successfully or an error code.
  */
-int spi_flash_sfdp_get_reset_command (struct spi_flash_sfdp_basic_table *table, uint8_t *reset)
+int spi_flash_sfdp_get_reset_command (const struct spi_flash_sfdp_basic_table *table,
+	uint8_t *reset)
 {
 	struct spi_flash_sfdp_basic_parameter_table_1_5 *params;
 	uint8_t command = FLASH_CMD_RST;
@@ -754,7 +756,7 @@ int spi_flash_sfdp_get_reset_command (struct spi_flash_sfdp_basic_table *table, 
  *
  * @return 0 if the power down commands were retrieved successfully or an error code.
  */
-int spi_flash_sfdp_get_deep_powerdown_commands (struct spi_flash_sfdp_basic_table *table,
+int spi_flash_sfdp_get_deep_powerdown_commands (const struct spi_flash_sfdp_basic_table *table,
 	uint8_t *enter, uint8_t *exit)
 {
 	struct spi_flash_sfdp_basic_parameter_table_1_5 *params;
@@ -800,9 +802,9 @@ int spi_flash_sfdp_get_deep_powerdown_commands (struct spi_flash_sfdp_basic_tabl
  *
  * @param table The basic parameters table to print.
  */
-void spi_flash_sfdp_dump_basic_table (struct spi_flash_sfdp_basic_table *table)
+void spi_flash_sfdp_dump_basic_table (const struct spi_flash_sfdp_basic_table *table)
 {
-	uint32_t *sfdp_data;
+	const uint32_t *sfdp_data;
 	int i;
 
 	if (table) {

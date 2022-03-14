@@ -56,7 +56,7 @@ static void host_processor_single_testing_init_dependencies (CuTest *test,
 	CuAssertIntEquals (test, 0, status);
 
 	host_processor_single_testing_init_host_state (test, &host->host_state, &host->flash_mock_state,
-		&host->flash_state);
+		&host->flash_state, &host->flash_context);
 }
 
 /**
@@ -201,9 +201,11 @@ void host_processor_single_testing_validate_and_release (CuTest *test,
  * @param state The host state instance to initialize.
  * @param flash_mock The mock for the flash state storage.
  * @param flash The flash device to initialize for state.
+ * @param flash_state Variable context for the flash device.
  */
 void host_processor_single_testing_init_host_state (CuTest *test, struct host_state_manager *state,
-	struct flash_master_mock *flash_mock, struct spi_flash *flash)
+	struct flash_master_mock *flash_mock, struct spi_flash *flash,
+	struct spi_flash_state *flash_state)
 {
 	int status;
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
@@ -211,7 +213,7 @@ void host_processor_single_testing_init_host_state (CuTest *test, struct host_st
 	status = flash_master_mock_init (flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_init (flash, &flash_mock->base);
+	status = spi_flash_init (flash, flash_state, &flash_mock->base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (flash, 0x1000000);
@@ -243,6 +245,7 @@ void host_processor_single_testing_init_host_state (CuTest *test, struct host_st
 static void host_processor_single_test_init (CuTest *test)
 {
 	struct flash_master_mock flash_mock_state;
+	struct spi_flash_state flash_context;
 	struct spi_flash flash_state;
 	struct host_state_manager host_state;
 	struct spi_filter_interface_mock filter;
@@ -267,7 +270,7 @@ static void host_processor_single_test_init (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	host_processor_single_testing_init_host_state (test, &host_state, &flash_mock_state,
-		&flash_state);
+		&flash_state, &flash_context);
 
 	status = host_processor_single_init (&host, &control.base, &flash_mgr.base, &host_state,
 		&filter.base, &pfm_mgr.base, NULL);
@@ -308,6 +311,7 @@ static void host_processor_single_test_init (CuTest *test)
 static void host_processor_single_test_init_null (CuTest *test)
 {
 	struct flash_master_mock flash_mock_state;
+	struct spi_flash_state flash_context;
 	struct spi_flash flash_state;
 	struct host_state_manager host_state;
 	struct spi_filter_interface_mock filter;
@@ -332,7 +336,7 @@ static void host_processor_single_test_init_null (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	host_processor_single_testing_init_host_state (test, &host_state, &flash_mock_state,
-		&flash_state);
+		&flash_state, &flash_context);
 
 	status = host_processor_single_init (NULL, &control.base, &flash_mgr.base, &host_state,
 		&filter.base, &pfm_mgr.base, NULL);
@@ -380,6 +384,7 @@ static void host_processor_single_test_init_null (CuTest *test)
 static void host_processor_single_test_init_pulse_reset (CuTest *test)
 {
 	struct flash_master_mock flash_mock_state;
+	struct spi_flash_state flash_context;
 	struct spi_flash flash_state;
 	struct host_state_manager host_state;
 	struct spi_filter_interface_mock filter;
@@ -404,7 +409,7 @@ static void host_processor_single_test_init_pulse_reset (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	host_processor_single_testing_init_host_state (test, &host_state, &flash_mock_state,
-		&flash_state);
+		&flash_state, &flash_context);
 
 	status = host_processor_single_init_pulse_reset (&host, &control.base, &flash_mgr.base,
 		&host_state, &filter.base, &pfm_mgr.base, NULL, 100);
@@ -445,6 +450,7 @@ static void host_processor_single_test_init_pulse_reset (CuTest *test)
 static void host_processor_single_test_init_pulse_reset_null (CuTest *test)
 {
 	struct flash_master_mock flash_mock_state;
+	struct spi_flash_state flash_context;
 	struct spi_flash flash_state;
 	struct host_state_manager host_state;
 	struct spi_filter_interface_mock filter;
@@ -469,7 +475,7 @@ static void host_processor_single_test_init_pulse_reset_null (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	host_processor_single_testing_init_host_state (test, &host_state, &flash_mock_state,
-		&flash_state);
+		&flash_state, &flash_context);
 
 	status = host_processor_single_init_pulse_reset (NULL, &control.base, &flash_mgr.base,
 		&host_state, &filter.base, &pfm_mgr.base, NULL, 100);
@@ -517,6 +523,7 @@ static void host_processor_single_test_init_pulse_reset_null (CuTest *test)
 static void host_processor_single_test_init_pulse_reset_invalid_pulse_width (CuTest *test)
 {
 	struct flash_master_mock flash_mock_state;
+	struct spi_flash_state flash_context;
 	struct spi_flash flash_state;
 	struct host_state_manager host_state;
 	struct spi_filter_interface_mock filter;
@@ -541,7 +548,7 @@ static void host_processor_single_test_init_pulse_reset_invalid_pulse_width (CuT
 	CuAssertIntEquals (test, 0, status);
 
 	host_processor_single_testing_init_host_state (test, &host_state, &flash_mock_state,
-		&flash_state);
+		&flash_state, &flash_context);
 
 	status = host_processor_single_init_pulse_reset (&host, &control.base, &flash_mgr.base,
 		&host_state, &filter.base, &pfm_mgr.base, NULL, 0);

@@ -15,12 +15,12 @@
  * to sequential locations in flash.
  */
 struct flash_updater {
-	struct flash *flash;							/**< The flash to manage for updates. */
-	uint32_t base_addr;								/**< The start of the update region. */
-	size_t max_size;								/**< The maximum size of an update. */
-	int update_size;								/**< Expected size of the current update. */
-	uint32_t write_offset;							/**< Offset from the base for the next write. */
-	int (*erase) (struct flash*, uint32_t, size_t);	/**< Function for erasing flash. */
+	struct flash *flash;									/**< The flash to manage for updates. */
+	uint32_t base_addr;										/**< The start of the update region. */
+	size_t max_size;										/**< The maximum size of an update. */
+	int update_size;										/**< Expected size of the current update. */
+	uint32_t write_offset;									/**< Offset from the base for the next write. */
+	int (*erase) (const struct flash*, uint32_t, size_t);	/**< Function for erasing flash. */
 };
 
 
