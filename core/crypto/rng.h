@@ -36,6 +36,7 @@ enum {
 	RNG_ENGINE_INVALID_ARGUMENT = RNG_ENGINE_ERROR (0x00),	/**< Input parameter is null or not valid. */
 	RNG_ENGINE_NO_MEMORY = RNG_ENGINE_ERROR (0x01),			/**< Memory allocation failed. */
 	RNG_ENGINE_RANDOM_FAILED = RNG_ENGINE_ERROR (0x02),		/**< Failed to generate random data. */
+	RNG_ENGINE_SELF_TEST_FAILED = RNG_ENGINE_ERROR (0x03),	/**< An internal self-test of the RNG failed. */
 };
 
 

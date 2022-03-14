@@ -262,6 +262,7 @@ enum {
 	HASH_ENGINE_START_SHA512_FAILED = HASH_ENGINE_ERROR (0x0f),		/**< The engine has not been initialized for SHA-512. */
 	HASH_ENGINE_UNKNOWN_HASH = HASH_ENGINE_ERROR (0x10),			/**< An unknown hash type was requested. */
 	HASH_ENGINE_HASH_IN_PROGRESS = HASH_ENGINE_ERROR (0x11),		/**< Attempt to start a new hash before finishing the previous one. */
+	HASH_ENGINE_SELF_TEST_FAILED = HASH_ENGINE_ERROR (0x12),		/**< An internal self-test of the hash engine failed. */
 };
 
 

@@ -282,6 +282,7 @@ enum {
 	ECC_ENGINE_SECRET_LENGTH_FAILED = ECC_ENGINE_ERROR (0x13),		/**< Failed to get the maximum shared secret length. */
 	ECC_ENGINE_UNSUPPORTED_KEY_LENGTH = ECC_ENGINE_ERROR (0x14),	/**< The ECC key length is not supported by the implementation. */
 	ECC_ENGINE_UNSUPPORTED_HASH_TYPE = ECC_ENGINE_ERROR (0x15),		/**< The hash algorithm for a signature digest is not supported by the implementation. */
+	ECC_ENGINE_SELF_TEST_FAILED = ECC_ENGINE_ERROR (0x16),			/**< An internal self-test of the ECC engine failed. */
 };
 
 

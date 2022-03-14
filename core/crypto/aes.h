@@ -97,7 +97,8 @@ enum {
 	AES_ENGINE_OUT_BUFFER_TOO_SMALL = AES_ENGINE_ERROR (0x07),	/**< Not enough space in an output buffer provided for the operation. */
 	AES_ENGINE_NO_KEY = AES_ENGINE_ERROR (0x08),				/**< No key was set prior to encryption/decryption. */
 	AES_ENGINE_GCM_AUTH_FAILED = AES_ENGINE_ERROR (0x09),		/**< The decrypted plaintext failed authentication. */
-	AES_ENGINE_HW_NOT_INIT = AES_ENGINE_ERROR (0x0A),			/**< The AES hardware has not been initialized. */
+	AES_ENGINE_HW_NOT_INIT = AES_ENGINE_ERROR (0x0a),			/**< The AES hardware has not been initialized. */
+	AES_ENGINE_SELF_TEST_FAILED = AES_ENGINE_ERROR (0x0b),		/**< An internal self-test of the AES engine failed. */
 };
 
 

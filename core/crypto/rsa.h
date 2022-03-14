@@ -189,6 +189,7 @@ enum {
 	RSA_ENGINE_PUBLIC_KEY_FAILED = RSA_ENGINE_ERROR (0x0d),			/**< Failed to initialize a public key from DER data. */
 	RSA_ENGINE_UNSUPPORTED_KEY_LENGTH = RSA_ENGINE_ERROR (0x0e),	/**< The RSA key length is not supported. */
 	RSA_ENGINE_UNSUPPORTED_HASH_TYPE = RSA_ENGINE_ERROR (0x0f),		/**< The encryption hash type is not supported. */
+	RSA_ENGINE_SELF_TEST_FAILED = RSA_ENGINE_ERROR (0x10),			/**< An internal self-test of the RSA engine failed. */
 };
 
 
