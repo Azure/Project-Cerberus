@@ -72,8 +72,8 @@ if [ "$1" = "1" ]; then
 else
 	ecc=''
 	seed=`mktemp -p .`
-	head -c $SEED_LEN /dev/random > $seed
-
+	dd if=/dev/random bs=1 count=$SEED_LEN > $seed 2> /dev/null
+	
 	if [ "$2" = "2" ]; then
 		openssl pkeyutl -in $seed -encrypt -inkey $key -pubin -pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha256 -pkeyopt rsa_mgf1_md:sha256 -out seed.bin
 		if [ $? -ne 0 ]; then
@@ -99,58 +99,58 @@ if [ $CIPHER_LEN -lt 0 ]; then
 	let 'CIPHER_LEN = -(CIPHER_LEN + seed_len)'
 fi
 
-seed_hex=`cat $seed | xxd -p | tr -d '\n'`
+seed_hex=`cat $seed | hexdump -ve '/1 "%02x"' | tr -d '\n'`
 echo "Seed: $seed_hex"
 
-label=`echo -n "signing key" | xxd -p`
+label=`echo -n "signing key" | hexdump -ve '/1 "%02x"'`
 sign_nist="00000001${label}0000000100"
 
 sign_key=`mktemp -p .`
-echo -n $sign_nist | xxd -r -p | openssl dgst -sha256 -mac hmac -macopt hexkey:$seed_hex -out $sign_key -binary
+echo -ne "$(echo -n $sign_nist | sed -e 's/../\\x&/g')" | openssl dgst -sha256 -mac hmac -macopt hexkey:$seed_hex -out $sign_key -binary
 if [ $? -ne 0 ]; then
 	rm -f $seed $sign_key
 	exit 1
 fi
 
 sealing="sealing.bin"
-head -c $CIPHER_LEN /dev/random > cipher.bin
+dd if=/dev/random bs=1 count=$CIPHER_LEN > cipher.bin 2> /dev/null
 
-head -c 32 /dev/zero > $sealing
+dd if=/dev/zero bs=1 count=32 > $sealing 2> /dev/null
 if [ -n "$PMR0" ]; then
-	echo $PMR0 | xxd -r -p >> $sealing
+	echo -ne "$(echo $PMR0 | sed -e 's/../\\x&/g')" >> $sealing
 else
-	head -c 32 /dev/zero >> $sealing
+	dd if=/dev/zero bs=1 count=32 >> $sealing 2> /dev/null
 fi
 
-head -c 32 /dev/zero >> $sealing
+dd if=/dev/zero bs=1 count=32 >> $sealing 2> /dev/null
 if [ -n "$PMR1" ]; then
-	echo $PMR1 | xxd -r -p >> $sealing
+	echo -ne "$(echo $PMR1 | sed -e 's/../\\x&/g')" >> $sealing
 else
-	head -c 32 /dev/zero >> $sealing
+	dd if=/dev/zero bs=1 count=32 >> $sealing 2> /dev/null
 fi
 
-head -c 32 /dev/zero >> $sealing
+dd if=/dev/zero bs=1 count=32 >> $sealing 2> /dev/null
 if [ -n "$PMR2" ]; then
-	echo $PMR2 | xxd -r -p >> $sealing
+	echo -ne "$(echo $PMR2 | sed -e 's/../\\x&/g')" >> $sealing
 else
-	head -c 32 /dev/zero >> $sealing
+	dd if=/dev/zero bs=1 count=32 >> $sealing 2> /dev/null
 fi
 
-head -c 32 /dev/zero >> $sealing
+dd if=/dev/zero bs=1 count=32 >> $sealing 2> /dev/null
 if [ -n "$PMR3" ]; then
-	echo $PMR3 | xxd -r -p >> $sealing
+	echo -ne "$(echo $PMR3 | sed -e 's/../\\x&/g')" >> $sealing
 else
-	head -c 32 /dev/zero >> $sealing
+	dd if=/dev/zero bs=1 count=32 >> $sealing 2> /dev/null
 fi
 
-head -c 32 /dev/zero >> $sealing
+dd if=/dev/zero bs=1 count=32 >> $sealing 2> /dev/null
 if [ -n "$PMR4" ]; then
-	echo $PMR4 | xxd -r -p >> $sealing
+	echo -ne "$(echo $PMR4 | sed -e 's/../\\x&/g')" >> $sealing
 else
-	head -c 32 /dev/zero >> $sealing
+	dd if=/dev/zero bs=1 count=32 >> $sealing 2> /dev/null
 fi
 
-sign=`cat $sign_key | xxd -p | tr -d '\n'`
+sign=`cat $sign_key | hexdump -ve '/1 "%02x"' | tr -d '\n'`
 
 payload=`mktemp -p .`
 cat cipher.bin $sealing > $payload
@@ -160,10 +160,9 @@ if [ $? -ne 0 ]; then
 	exit
 fi
 
-label=`echo -n "encryption key" | xxd -p`
+label=`echo -n "encryption key" | hexdump -ve '/1 "%02x"'`
 enc_nist="00000001${label}0000000100"
 
 echo "Encryption Key:"
-echo -n $enc_nist | xxd -r -p | openssl dgst -sha256 -mac hmac -macopt hexkey:$seed_hex
-
+echo -ne "$(echo -n $enc_nist | sed -e 's/../\\x&/g')"| openssl dgst -sha256 -mac hmac -macopt hexkey:$seed_hex
 rm -f $sign_key $seed $payload
