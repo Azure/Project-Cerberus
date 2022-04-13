@@ -85,5 +85,7 @@ int cmd_background_task_generate_aux_key (struct cmd_background_task *task,
 /* Internal definitions for use by derived types. */
 #define	CMD_BACKGROUND_EXTERNAL_HANDLER			(1U << 31)
 
+#define	CMD_BACKGROUND_TASK_EXTERNAL_HANDLER		0xFF
+
 
 #endif /* CMD_BACKGROUND_TASK_H_ */
