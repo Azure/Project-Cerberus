@@ -7305,6 +7305,11 @@ static void host_flash_manager_dual_test_set_flash_for_rot_access_not_initilized
 
 	host_flash_manager_dual_testing_init (test, &manager, false);
 
+	/* Set the device size to support 4-byte addressing. */
+	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x2000000);
+	CuAssertIntEquals (test, 0, status);
+
 	/* Disable SPI filter. */
 	status = mock_expect (&manager.filter.mock, manager.filter.base.enable_filter, &manager.filter,
 		0, MOCK_ARG (false));
@@ -8234,6 +8239,11 @@ static void host_flash_manager_dual_test_config_spi_filter_flash_type (CuTest *t
 
 	host_flash_manager_dual_testing_init (test, &manager, false);
 
+	/* Set the device size to support 4-byte addressing. */
+	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x2000000);
+	CuAssertIntEquals (test, 0, status);
+
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
@@ -8242,7 +8252,7 @@ static void host_flash_manager_dual_test_config_spi_filter_flash_type (CuTest *t
 	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
 		&manager.handler, 0, MOCK_ARG (0xc2), MOCK_ARG (0x2019));
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_flash_size,
-		&manager.filter, 0, MOCK_ARG (0x1000000));
+		&manager.filter, 0, MOCK_ARG (0x2000000));
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_addr_byte_mode,
 		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
 	status |= mock_expect (&manager.filter.mock,
@@ -8269,6 +8279,11 @@ static void host_flash_manager_dual_test_config_spi_filter_flash_type_4byte (CuT
 
 	host_flash_manager_dual_testing_init (test, &manager, false);
 
+	/* Set the device size to support 4-byte addressing. */
+	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x2000000);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spi_flash_force_4byte_address_mode (&manager.flash0, true);
 	CuAssertIntEquals (test, 0, status);
 
@@ -8283,7 +8298,7 @@ static void host_flash_manager_dual_test_config_spi_filter_flash_type_4byte (CuT
 	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
 		&manager.handler, 0, MOCK_ARG (0xc2), MOCK_ARG (0x2019));
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_flash_size,
-		&manager.filter, 0, MOCK_ARG (0x1000000));
+		&manager.filter, 0, MOCK_ARG (0x2000000));
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_addr_byte_mode,
 		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_4));
 	status |= mock_expect (&manager.filter.mock,
@@ -8312,6 +8327,11 @@ static void host_flash_manager_dual_test_config_spi_filter_flash_type_diff_addr_
 
 	host_flash_manager_dual_testing_init (test, &manager, false);
 
+	/* Set the device size to support 4-byte addressing. */
+	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x2000000);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spi_flash_force_4byte_address_mode (&manager.flash1, true);
 	CuAssertIntEquals (test, 0, status);
 
@@ -8323,7 +8343,7 @@ static void host_flash_manager_dual_test_config_spi_filter_flash_type_diff_addr_
 	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
 		&manager.handler, 0, MOCK_ARG (0xc2), MOCK_ARG (0x2019));
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_flash_size,
-		&manager.filter, 0, MOCK_ARG (0x1000000));
+		&manager.filter, 0, MOCK_ARG (0x2000000));
 
 	status |= flash_master_mock_expect_xfer (&manager.flash_mock1, 0, FLASH_EXP_OPCODE (0xe9));
 
@@ -8354,6 +8374,11 @@ static void host_flash_manager_dual_test_config_spi_filter_flash_type_diff_addr_
 
 	host_flash_manager_dual_testing_init (test, &manager, false);
 
+	/* Set the device size to support 4-byte addressing. */
+	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x2000000);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spi_flash_force_4byte_address_mode (&manager.flash0, true);
 	CuAssertIntEquals (test, 0, status);
 
@@ -8365,7 +8390,7 @@ static void host_flash_manager_dual_test_config_spi_filter_flash_type_diff_addr_
 	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
 		&manager.handler, 0, MOCK_ARG (0xc2), MOCK_ARG (0x2019));
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_flash_size,
-		&manager.filter, 0, MOCK_ARG (0x1000000));
+		&manager.filter, 0, MOCK_ARG (0x2000000));
 
 	status |= flash_master_mock_expect_xfer (&manager.flash_mock1, 0, FLASH_EXP_OPCODE (0xb7));
 
@@ -8587,6 +8612,11 @@ static void host_flash_manager_dual_test_config_spi_filter_flash_type_reset_addr
 
 	host_flash_manager_dual_testing_init (test, &manager, false);
 
+	/* Set the device size to support 4-byte addressing. */
+	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x2000000);
+	CuAssertIntEquals (test, 0, status);
+
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
@@ -8595,7 +8625,7 @@ static void host_flash_manager_dual_test_config_spi_filter_flash_type_reset_addr
 	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
 		&manager.handler, 0, MOCK_ARG (0xef), MOCK_ARG (0x4019));
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_flash_size,
-		&manager.filter, 0, MOCK_ARG (0x1000000));
+		&manager.filter, 0, MOCK_ARG (0x2000000));
 
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, reset_4b, 1,
 		FLASH_EXP_READ_REG (0x15, 1));
@@ -8629,6 +8659,11 @@ static void host_flash_manager_dual_test_config_spi_filter_flash_type_set_size_u
 
 	host_flash_manager_dual_testing_init (test, &manager, false);
 
+	/* Set the device size to support 4-byte addressing. */
+	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x2000000);
+	CuAssertIntEquals (test, 0, status);
+
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
@@ -8637,7 +8672,7 @@ static void host_flash_manager_dual_test_config_spi_filter_flash_type_set_size_u
 	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
 		&manager.handler, 0, MOCK_ARG (0xc2), MOCK_ARG (0x2019));
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_flash_size,
-		&manager.filter, SPI_FILTER_UNSUPPORTED_OPERATION, MOCK_ARG (0x1000000));
+		&manager.filter, SPI_FILTER_UNSUPPORTED_OPERATION, MOCK_ARG (0x2000000));
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_addr_byte_mode,
 		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
 	status |= mock_expect (&manager.filter.mock,
@@ -8665,6 +8700,11 @@ static void host_flash_manager_dual_test_config_spi_filter_flash_type_addr_mode_
 
 	host_flash_manager_dual_testing_init (test, &manager, false);
 
+	/* Set the device size to support 4-byte addressing. */
+	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x2000000);
+	CuAssertIntEquals (test, 0, status);
+
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
@@ -8673,7 +8713,7 @@ static void host_flash_manager_dual_test_config_spi_filter_flash_type_addr_mode_
 	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
 		&manager.handler, 0, MOCK_ARG (0xc2), MOCK_ARG (0x2019));
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_flash_size,
-		&manager.filter, 0, MOCK_ARG (0x1000000));
+		&manager.filter, 0, MOCK_ARG (0x2000000));
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_addr_byte_mode,
 		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
 	status |= mock_expect (&manager.filter.mock,
@@ -8701,6 +8741,11 @@ static void host_flash_manager_dual_test_config_spi_filter_flash_type_reset_addr
 
 	host_flash_manager_dual_testing_init (test, &manager, false);
 
+	/* Set the device size to support 4-byte addressing. */
+	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x2000000);
+	CuAssertIntEquals (test, 0, status);
+
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
@@ -8709,7 +8754,7 @@ static void host_flash_manager_dual_test_config_spi_filter_flash_type_reset_addr
 	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
 		&manager.handler, 0, MOCK_ARG (0xc2), MOCK_ARG (0x2019));
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_flash_size,
-		&manager.filter, 0, MOCK_ARG (0x1000000));
+		&manager.filter, 0, MOCK_ARG (0x2000000));
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_addr_byte_mode,
 		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
 	status |= mock_expect (&manager.filter.mock,
@@ -9054,6 +9099,11 @@ static void host_flash_manager_dual_test_config_spi_filter_flash_type_diff_reset
 
 	host_flash_manager_dual_testing_init (test, &manager, false);
 
+	/* Set the device size to support 4-byte addressing. */
+	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x2000000);
+	CuAssertIntEquals (test, 0, status);
+
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
@@ -9062,7 +9112,7 @@ static void host_flash_manager_dual_test_config_spi_filter_flash_type_diff_reset
 	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
 		&manager.handler, 0, MOCK_ARG (0xef), MOCK_ARG (0x4019));
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_flash_size,
-		&manager.filter, 0, MOCK_ARG (0x1000000));
+		&manager.filter, 0, MOCK_ARG (0x2000000));
 
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, reset_4b, 1,
 		FLASH_EXP_READ_REG (0x15, 1));
@@ -9131,6 +9181,11 @@ static void host_flash_manager_dual_test_config_spi_filter_flash_type_diff_addr_
 
 	host_flash_manager_dual_testing_init (test, &manager, false);
 
+	/* Set the device size to support 4-byte addressing. */
+	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x2000000);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spi_flash_force_4byte_address_mode (&manager.flash1, true);
 	CuAssertIntEquals (test, 0, status);
 
@@ -9142,7 +9197,7 @@ static void host_flash_manager_dual_test_config_spi_filter_flash_type_diff_addr_
 	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
 		&manager.handler, 0, MOCK_ARG (0xc2), MOCK_ARG (0x2019));
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_flash_size,
-		&manager.filter, 0, MOCK_ARG (0x1000000));
+		&manager.filter, 0, MOCK_ARG (0x2000000));
 
 	status |= flash_master_mock_expect_xfer (&manager.flash_mock1, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_OPCODE (0xe9));
@@ -9167,6 +9222,11 @@ static void host_flash_manager_dual_test_config_spi_filter_flash_type_get_reset_
 
 	host_flash_manager_dual_testing_init (test, &manager, false);
 
+	/* Set the device size to support 4-byte addressing. */
+	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x2000000);
+	CuAssertIntEquals (test, 0, status);
+
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
@@ -9175,7 +9235,7 @@ static void host_flash_manager_dual_test_config_spi_filter_flash_type_get_reset_
 	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
 		&manager.handler, 0, MOCK_ARG (0xef), MOCK_ARG (0x4019));
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_flash_size,
-		&manager.filter, 0, MOCK_ARG (0x1000000));
+		&manager.filter, 0, MOCK_ARG (0x2000000));
 
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, FLASH_MASTER_XFER_FAILED,
 		reset_4b, 1, FLASH_EXP_READ_REG (0x15, 1));
@@ -9200,6 +9260,11 @@ static void host_flash_manager_dual_test_config_spi_filter_flash_type_get_reset_
 
 	host_flash_manager_dual_testing_init (test, &manager, false);
 
+	/* Set the device size to support 4-byte addressing. */
+	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x2000000);
+	CuAssertIntEquals (test, 0, status);
+
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
@@ -9208,7 +9273,7 @@ static void host_flash_manager_dual_test_config_spi_filter_flash_type_get_reset_
 	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
 		&manager.handler, 0, MOCK_ARG (0xef), MOCK_ARG (0x4019));
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_flash_size,
-		&manager.filter, 0, MOCK_ARG (0x1000000));
+		&manager.filter, 0, MOCK_ARG (0x2000000));
 
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, reset_4b, 1,
 		FLASH_EXP_READ_REG (0x15, 1));
@@ -9342,6 +9407,11 @@ static void host_flash_manager_dual_test_config_spi_filter_flash_type_addr_mode_
 
 	host_flash_manager_dual_testing_init (test, &manager, false);
 
+	/* Set the device size to support 4-byte addressing. */
+	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x2000000);
+	CuAssertIntEquals (test, 0, status);
+
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
@@ -9350,7 +9420,7 @@ static void host_flash_manager_dual_test_config_spi_filter_flash_type_addr_mode_
 	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
 		&manager.handler, 0, MOCK_ARG (0xc2), MOCK_ARG (0x2019));
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_flash_size,
-		&manager.filter, 0, MOCK_ARG (0x1000000));
+		&manager.filter, 0, MOCK_ARG (0x2000000));
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_addr_byte_mode,
 		&manager.filter, SPI_FILTER_SET_ADDR_MODE_FAILED, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
 
@@ -9429,6 +9499,11 @@ static void host_flash_manager_dual_test_config_spi_filter_flash_type_addr_mode_
 
 	host_flash_manager_dual_testing_init (test, &manager, false);
 
+	/* Set the device size to support 4-byte addressing. */
+	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x2000000);
+	CuAssertIntEquals (test, 0, status);
+
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
@@ -9437,7 +9512,7 @@ static void host_flash_manager_dual_test_config_spi_filter_flash_type_addr_mode_
 	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
 		&manager.handler, 0, MOCK_ARG (0xc2), MOCK_ARG (0x2019));
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_flash_size,
-		&manager.filter, 0, MOCK_ARG (0x1000000));
+		&manager.filter, 0, MOCK_ARG (0x2000000));
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_addr_byte_mode,
 		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
 	status |= mock_expect (&manager.filter.mock,
@@ -9463,6 +9538,11 @@ static void host_flash_manager_dual_test_config_spi_filter_flash_type_reset_addr
 
 	host_flash_manager_dual_testing_init (test, &manager, false);
 
+	/* Set the device size to support 4-byte addressing. */
+	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x2000000);
+	CuAssertIntEquals (test, 0, status);
+
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
@@ -9471,7 +9551,7 @@ static void host_flash_manager_dual_test_config_spi_filter_flash_type_reset_addr
 	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
 		&manager.handler, 0, MOCK_ARG (0xc2), MOCK_ARG (0x2019));
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_flash_size,
-		&manager.filter, 0, MOCK_ARG (0x1000000));
+		&manager.filter, 0, MOCK_ARG (0x2000000));
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_addr_byte_mode,
 		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
 	status |= mock_expect (&manager.filter.mock,
@@ -9504,6 +9584,11 @@ static void host_flash_manager_dual_test_initialize_flash_protection_cs0_3byte_c
 	host_flash_manager_dual_testing_init (test, &manager, false);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
+	/* Set the device size to support 4-byte addressing. */
+	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x2000000);
+	CuAssertIntEquals (test, 0, status);
+
 	rw_region.start_addr = 0x10000;
 	rw_region.length = RSA_ENCRYPT_LEN;
 
@@ -9517,9 +9602,9 @@ static void host_flash_manager_dual_test_initialize_flash_protection_cs0_3byte_c
 	rw_host.writable = &rw_list;
 	rw_host.count = 1;
 
-	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock1, 0x10000,
-		RSA_ENCRYPT_LEN);
-	status |= flash_master_mock_expect_copy_flash_verify (&manager.flash_mock1,
+	status = flash_master_mock_expect_erase_flash_verify_4byte_explicit (&manager.flash_mock1,
+		0x10000, RSA_ENCRYPT_LEN);
+	status |= flash_master_mock_expect_copy_flash_verify_4byte_explicit (&manager.flash_mock1,
 		&manager.flash_mock0, 0x10000, 0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
 
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.clear_flash_dirty_state,
@@ -9562,6 +9647,11 @@ static void host_flash_manager_dual_test_initialize_flash_protection_cs1_3byte_c
 	host_flash_manager_dual_testing_init (test, &manager, true);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
+	/* Set the device size to support 4-byte addressing. */
+	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x2000000);
+	CuAssertIntEquals (test, 0, status);
+
 	rw_region.start_addr = 0x10000;
 	rw_region.length = RSA_ENCRYPT_LEN;
 
@@ -9575,9 +9665,9 @@ static void host_flash_manager_dual_test_initialize_flash_protection_cs1_3byte_c
 	rw_host.writable = &rw_list;
 	rw_host.count = 1;
 
-	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock0, 0x10000,
-		RSA_ENCRYPT_LEN);
-	status |= flash_master_mock_expect_copy_flash_verify (&manager.flash_mock0,
+	status = flash_master_mock_expect_erase_flash_verify_4byte_explicit (&manager.flash_mock0,
+		0x10000, RSA_ENCRYPT_LEN);
+	status |= flash_master_mock_expect_copy_flash_verify_4byte_explicit (&manager.flash_mock0,
 		&manager.flash_mock1, 0x10000, 0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
 
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.clear_flash_dirty_state,
@@ -9620,6 +9710,11 @@ static void host_flash_manager_dual_test_initialize_flash_protection_cs0_4byte_c
 	host_flash_manager_dual_testing_init (test, &manager, false);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
+	/* Set the device size to support 4-byte addressing. */
+	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x2000000);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spi_flash_force_4byte_address_mode (&manager.flash0, true);
 	CuAssertIntEquals (test, 0, status);
 
@@ -9639,9 +9734,9 @@ static void host_flash_manager_dual_test_initialize_flash_protection_cs0_4byte_c
 	rw_host.writable = &rw_list;
 	rw_host.count = 1;
 
-	status = flash_master_mock_expect_erase_flash_verify_4byte (&manager.flash_mock1, 0x10000,
-		RSA_ENCRYPT_LEN);
-	status |= flash_master_mock_expect_copy_flash_verify_4byte (&manager.flash_mock1,
+	status = flash_master_mock_expect_erase_flash_verify_4byte_explicit (&manager.flash_mock1,
+		0x10000, RSA_ENCRYPT_LEN);
+	status |= flash_master_mock_expect_copy_flash_verify_4byte_explicit (&manager.flash_mock1,
 		&manager.flash_mock0, 0x10000, 0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
 
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.clear_flash_dirty_state,
@@ -9684,6 +9779,11 @@ static void host_flash_manager_dual_test_initialize_flash_protection_cs1_4byte_c
 	host_flash_manager_dual_testing_init (test, &manager, true);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
+	/* Set the device size to support 4-byte addressing. */
+	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x2000000);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spi_flash_force_4byte_address_mode (&manager.flash0, true);
 	CuAssertIntEquals (test, 0, status);
 
@@ -9703,9 +9803,9 @@ static void host_flash_manager_dual_test_initialize_flash_protection_cs1_4byte_c
 	rw_host.writable = &rw_list;
 	rw_host.count = 1;
 
-	status = flash_master_mock_expect_erase_flash_verify_4byte (&manager.flash_mock0, 0x10000,
-		RSA_ENCRYPT_LEN);
-	status |= flash_master_mock_expect_copy_flash_verify_4byte (&manager.flash_mock0,
+	status = flash_master_mock_expect_erase_flash_verify_4byte_explicit (&manager.flash_mock0,
+		0x10000, RSA_ENCRYPT_LEN);
+	status |= flash_master_mock_expect_copy_flash_verify_4byte_explicit (&manager.flash_mock0,
 		&manager.flash_mock1, 0x10000, 0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
 
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.clear_flash_dirty_state,
@@ -9748,6 +9848,11 @@ static void host_flash_manager_dual_test_initialize_flash_protection_cs0_4byte_c
 	host_flash_manager_dual_testing_init (test, &manager, false);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
+	/* Set the device size to support 4-byte addressing. */
+	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x2000000);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spi_flash_force_4byte_address_mode (&manager.flash0, true);
 	CuAssertIntEquals (test, 0, status);
 
@@ -9766,9 +9871,9 @@ static void host_flash_manager_dual_test_initialize_flash_protection_cs0_4byte_c
 
 	status = flash_master_mock_expect_xfer (&manager.flash_mock1, 0, FLASH_EXP_OPCODE (0xb7));
 
-	status |= flash_master_mock_expect_erase_flash_verify_4byte (&manager.flash_mock1, 0x10000,
-		RSA_ENCRYPT_LEN);
-	status |= flash_master_mock_expect_copy_flash_verify_4byte (&manager.flash_mock1,
+	status |= flash_master_mock_expect_erase_flash_verify_4byte_explicit (&manager.flash_mock1,
+		0x10000, RSA_ENCRYPT_LEN);
+	status |= flash_master_mock_expect_copy_flash_verify_4byte_explicit (&manager.flash_mock1,
 		&manager.flash_mock0, 0x10000, 0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
 
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.clear_flash_dirty_state,
@@ -9811,6 +9916,11 @@ static void host_flash_manager_dual_test_initialize_flash_protection_cs1_4byte_c
 	host_flash_manager_dual_testing_init (test, &manager, true);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
+	/* Set the device size to support 4-byte addressing. */
+	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x2000000);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spi_flash_force_4byte_address_mode (&manager.flash1, true);
 	CuAssertIntEquals (test, 0, status);
 
@@ -9829,9 +9939,9 @@ static void host_flash_manager_dual_test_initialize_flash_protection_cs1_4byte_c
 
 	status = flash_master_mock_expect_xfer (&manager.flash_mock0, 0, FLASH_EXP_OPCODE (0xb7));
 
-	status |= flash_master_mock_expect_erase_flash_verify_4byte (&manager.flash_mock0, 0x10000,
-		RSA_ENCRYPT_LEN);
-	status |= flash_master_mock_expect_copy_flash_verify_4byte (&manager.flash_mock0,
+	status |= flash_master_mock_expect_erase_flash_verify_4byte_explicit (&manager.flash_mock0,
+		0x10000, RSA_ENCRYPT_LEN);
+	status |= flash_master_mock_expect_copy_flash_verify_4byte_explicit (&manager.flash_mock0,
 		&manager.flash_mock1, 0x10000, 0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
 
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.clear_flash_dirty_state,
@@ -9874,6 +9984,11 @@ static void host_flash_manager_dual_test_initialize_flash_protection_cs0_3byte_c
 	host_flash_manager_dual_testing_init (test, &manager, false);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
+	/* Set the device size to support 4-byte addressing. */
+	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x2000000);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spi_flash_force_4byte_address_mode (&manager.flash1, true);
 	CuAssertIntEquals (test, 0, status);
 
@@ -9892,9 +10007,9 @@ static void host_flash_manager_dual_test_initialize_flash_protection_cs0_3byte_c
 
 	status = flash_master_mock_expect_xfer (&manager.flash_mock1, 0, FLASH_EXP_OPCODE (0xe9));
 
-	status |= flash_master_mock_expect_erase_flash_verify (&manager.flash_mock1, 0x10000,
-		RSA_ENCRYPT_LEN);
-	status |= flash_master_mock_expect_copy_flash_verify (&manager.flash_mock1,
+	status |= flash_master_mock_expect_erase_flash_verify_4byte_explicit (&manager.flash_mock1,
+		0x10000, RSA_ENCRYPT_LEN);
+	status |= flash_master_mock_expect_copy_flash_verify_4byte_explicit (&manager.flash_mock1,
 		&manager.flash_mock0, 0x10000, 0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
 
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.clear_flash_dirty_state,
@@ -9937,6 +10052,11 @@ static void host_flash_manager_dual_test_initialize_flash_protection_cs1_3byte_c
 	host_flash_manager_dual_testing_init (test, &manager, true);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
+	/* Set the device size to support 4-byte addressing. */
+	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x2000000);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spi_flash_force_4byte_address_mode (&manager.flash0, true);
 	CuAssertIntEquals (test, 0, status);
 
@@ -9955,9 +10075,9 @@ static void host_flash_manager_dual_test_initialize_flash_protection_cs1_3byte_c
 
 	status = flash_master_mock_expect_xfer (&manager.flash_mock0, 0, FLASH_EXP_OPCODE (0xe9));
 
-	status |= flash_master_mock_expect_erase_flash_verify (&manager.flash_mock0, 0x10000,
-		RSA_ENCRYPT_LEN);
-	status |= flash_master_mock_expect_copy_flash_verify (&manager.flash_mock0,
+	status |= flash_master_mock_expect_erase_flash_verify_4byte_explicit (&manager.flash_mock0,
+		0x10000, RSA_ENCRYPT_LEN);
+	status |= flash_master_mock_expect_copy_flash_verify_4byte_explicit (&manager.flash_mock0,
 		&manager.flash_mock1, 0x10000, 0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
 
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.clear_flash_dirty_state,
@@ -10159,6 +10279,11 @@ static void host_flash_manager_dual_test_initialize_flash_protection_cs0_multipl
 	host_flash_manager_dual_testing_init (test, &manager, false);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
+	/* Set the device size to support 4-byte addressing. */
+	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x2000000);
+	CuAssertIntEquals (test, 0, status);
+
 	rw_region[0].start_addr = 0x10000;
 	rw_region[0].length = RSA_ENCRYPT_LEN;
 	rw_region[1].start_addr = 0x30000;
@@ -10186,17 +10311,19 @@ static void host_flash_manager_dual_test_initialize_flash_protection_cs0_multipl
 	rw_host.writable = rw_list;
 	rw_host.count = 3;
 
-	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock1, 0x10000,
-		RSA_ENCRYPT_LEN);
-	status |= flash_master_mock_expect_copy_flash_verify (&manager.flash_mock1,
+	status = flash_master_mock_expect_erase_flash_verify_4byte_explicit (&manager.flash_mock1,
+		0x10000, RSA_ENCRYPT_LEN);
+	status |= flash_master_mock_expect_copy_flash_verify_4byte_explicit (&manager.flash_mock1,
 		&manager.flash_mock0, 0x10000, 0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
 
-	status |= flash_master_mock_expect_erase_flash_verify (&manager.flash_mock1, 0x30000, 16);
-	status |= flash_master_mock_expect_copy_flash_verify (&manager.flash_mock1,
+	status |= flash_master_mock_expect_erase_flash_verify_4byte_explicit (&manager.flash_mock1,
+		0x30000, 16);
+	status |= flash_master_mock_expect_copy_flash_verify_4byte_explicit (&manager.flash_mock1,
 		&manager.flash_mock0, 0x30000, 0x30000, RSA_ENCRYPT_TEST2, 16);
 
-	status |= flash_master_mock_expect_erase_flash_verify (&manager.flash_mock1, 0x50000, 32);
-	status |= flash_master_mock_expect_copy_flash_verify (&manager.flash_mock1,
+	status |= flash_master_mock_expect_erase_flash_verify_4byte_explicit (&manager.flash_mock1,
+		0x50000, 32);
+	status |= flash_master_mock_expect_copy_flash_verify_4byte_explicit (&manager.flash_mock1,
 		&manager.flash_mock0, 0x50000, 0x50000, RSA_ENCRYPT_NOPE, 32);
 
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.clear_flash_dirty_state,
@@ -10238,6 +10365,11 @@ static void host_flash_manager_dual_test_initialize_flash_protection_cs1_multipl
 	host_flash_manager_dual_testing_init (test, &manager, true);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
+	/* Set the device size to support 4-byte addressing. */
+	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x2000000);
+	CuAssertIntEquals (test, 0, status);
+
 	rw_region[0].start_addr = 0x10000;
 	rw_region[0].length = RSA_ENCRYPT_LEN;
 	rw_region[1].start_addr = 0x30000;
@@ -10265,17 +10397,19 @@ static void host_flash_manager_dual_test_initialize_flash_protection_cs1_multipl
 	rw_host.writable = rw_list;
 	rw_host.count = 3;
 
-	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock0, 0x10000,
-		RSA_ENCRYPT_LEN);
-	status |= flash_master_mock_expect_copy_flash_verify (&manager.flash_mock0,
+	status = flash_master_mock_expect_erase_flash_verify_4byte_explicit (&manager.flash_mock0,
+		0x10000, RSA_ENCRYPT_LEN);
+	status |= flash_master_mock_expect_copy_flash_verify_4byte_explicit (&manager.flash_mock0,
 		&manager.flash_mock1, 0x10000, 0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
 
-	status |= flash_master_mock_expect_erase_flash_verify (&manager.flash_mock0, 0x30000, 16);
-	status |= flash_master_mock_expect_copy_flash_verify (&manager.flash_mock0,
+	status |= flash_master_mock_expect_erase_flash_verify_4byte_explicit (&manager.flash_mock0,
+		0x30000, 16);
+	status |= flash_master_mock_expect_copy_flash_verify_4byte_explicit (&manager.flash_mock0,
 		&manager.flash_mock1, 0x30000, 0x30000, RSA_ENCRYPT_TEST2, 16);
 
-	status |= flash_master_mock_expect_erase_flash_verify (&manager.flash_mock0, 0x50000, 32);
-	status |= flash_master_mock_expect_copy_flash_verify (&manager.flash_mock0,
+	status |= flash_master_mock_expect_erase_flash_verify_4byte_explicit (&manager.flash_mock0,
+		0x50000, 32);
+	status |= flash_master_mock_expect_copy_flash_verify_4byte_explicit (&manager.flash_mock0,
 		&manager.flash_mock1, 0x50000, 0x50000, RSA_ENCRYPT_NOPE, 32);
 
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.clear_flash_dirty_state,
@@ -10316,6 +10450,11 @@ static void host_flash_manager_dual_test_initialize_flash_protection_null (CuTes
 
 	host_flash_manager_dual_testing_init (test, &manager, false);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
+
+	/* Set the device size to support 4-byte addressing. */
+	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x2000000);
+	CuAssertIntEquals (test, 0, status);
 
 	rw_region.start_addr = 0x10000;
 	rw_region.length = RSA_ENCRYPT_LEN;
@@ -10358,6 +10497,11 @@ static void host_flash_manager_dual_test_initialize_flash_protection_flash_mode_
 
 	host_flash_manager_dual_testing_init (test, &manager, false);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
+
+	/* Set the device size to support 4-byte addressing. */
+	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x2000000);
+	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_force_4byte_address_mode (&manager.flash0, true);
 	CuAssertIntEquals (test, 0, status);
@@ -10408,6 +10552,11 @@ static void host_flash_manager_dual_test_initialize_flash_protection_data_copy_e
 	host_flash_manager_dual_testing_init (test, &manager, false);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
+	/* Set the device size to support 4-byte addressing. */
+	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x2000000);
+	CuAssertIntEquals (test, 0, status);
+
 	rw_region.start_addr = 0x10000;
 	rw_region.length = RSA_ENCRYPT_LEN;
 
@@ -10455,6 +10604,11 @@ static void host_flash_manager_dual_test_initialize_flash_protection_dirty_clear
 	host_flash_manager_dual_testing_init (test, &manager, false);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
+	/* Set the device size to support 4-byte addressing. */
+	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x2000000);
+	CuAssertIntEquals (test, 0, status);
+
 	rw_region.start_addr = 0x10000;
 	rw_region.length = RSA_ENCRYPT_LEN;
 
@@ -10468,9 +10622,9 @@ static void host_flash_manager_dual_test_initialize_flash_protection_dirty_clear
 	rw_host.writable = &rw_list;
 	rw_host.count = 1;
 
-	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock1, 0x10000,
-		RSA_ENCRYPT_LEN);
-	status |= flash_master_mock_expect_copy_flash_verify (&manager.flash_mock1,
+	status = flash_master_mock_expect_erase_flash_verify_4byte_explicit (&manager.flash_mock1,
+		0x10000, RSA_ENCRYPT_LEN);
+	status |= flash_master_mock_expect_copy_flash_verify_4byte_explicit (&manager.flash_mock1,
 		&manager.flash_mock0, 0x10000, 0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
 
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.clear_flash_dirty_state,
@@ -10507,6 +10661,11 @@ static void host_flash_manager_dual_test_initialize_flash_protection_filter_addr
 	host_flash_manager_dual_testing_init (test, &manager, false);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
+	/* Set the device size to support 4-byte addressing. */
+	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x2000000);
+	CuAssertIntEquals (test, 0, status);
+
 	rw_region.start_addr = 0x10000;
 	rw_region.length = RSA_ENCRYPT_LEN;
 
@@ -10520,9 +10679,9 @@ static void host_flash_manager_dual_test_initialize_flash_protection_filter_addr
 	rw_host.writable = &rw_list;
 	rw_host.count = 1;
 
-	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock1, 0x10000,
-		RSA_ENCRYPT_LEN);
-	status |= flash_master_mock_expect_copy_flash_verify (&manager.flash_mock1,
+	status = flash_master_mock_expect_erase_flash_verify_4byte_explicit (&manager.flash_mock1,
+		0x10000, RSA_ENCRYPT_LEN);
+	status |= flash_master_mock_expect_copy_flash_verify_4byte_explicit (&manager.flash_mock1,
 		&manager.flash_mock0, 0x10000, 0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
 
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.clear_flash_dirty_state,
@@ -10561,6 +10720,11 @@ static void host_flash_manager_dual_test_initialize_flash_protection_filter_flas
 	host_flash_manager_dual_testing_init (test, &manager, false);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
+	/* Set the device size to support 4-byte addressing. */
+	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x2000000);
+	CuAssertIntEquals (test, 0, status);
+
 	rw_region.start_addr = 0x10000;
 	rw_region.length = RSA_ENCRYPT_LEN;
 
@@ -10574,9 +10738,9 @@ static void host_flash_manager_dual_test_initialize_flash_protection_filter_flas
 	rw_host.writable = &rw_list;
 	rw_host.count = 1;
 
-	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock1, 0x10000,
-		RSA_ENCRYPT_LEN);
-	status |= flash_master_mock_expect_copy_flash_verify (&manager.flash_mock1,
+	status = flash_master_mock_expect_erase_flash_verify_4byte_explicit (&manager.flash_mock1,
+		0x10000, RSA_ENCRYPT_LEN);
+	status |= flash_master_mock_expect_copy_flash_verify_4byte_explicit (&manager.flash_mock1,
 		&manager.flash_mock0, 0x10000, 0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
 
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.clear_flash_dirty_state,
@@ -10616,6 +10780,11 @@ static void host_flash_manager_dual_test_initialize_flash_protection_filter_erro
 	host_flash_manager_dual_testing_init (test, &manager, false);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
+	/* Set the device size to support 4-byte addressing. */
+	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x2000000);
+	CuAssertIntEquals (test, 0, status);
+
 	rw_region.start_addr = 0x10000;
 	rw_region.length = RSA_ENCRYPT_LEN;
 
@@ -10629,9 +10798,9 @@ static void host_flash_manager_dual_test_initialize_flash_protection_filter_erro
 	rw_host.writable = &rw_list;
 	rw_host.count = 1;
 
-	status = flash_master_mock_expect_erase_flash_verify (&manager.flash_mock1, 0x10000,
-		RSA_ENCRYPT_LEN);
-	status |= flash_master_mock_expect_copy_flash_verify (&manager.flash_mock1,
+	status = flash_master_mock_expect_erase_flash_verify_4byte_explicit (&manager.flash_mock1,
+		0x10000, RSA_ENCRYPT_LEN);
+	status |= flash_master_mock_expect_copy_flash_verify_4byte_explicit (&manager.flash_mock1,
 		&manager.flash_mock0, 0x10000, 0x10000, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN);
 
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.clear_flash_dirty_state,

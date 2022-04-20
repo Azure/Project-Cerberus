@@ -909,8 +909,13 @@ exit:
  * Set the capacity of the flash device.  This must be set before using the interface to the
  * device.
  *
- * NOTE: This call should NOT be used in normal application code.
- * {@link spi_flash_discover_device_properties} should be used to set the device size instead.
+ * While this should not be used in most application code, there are scenarios where setting the
+ * flash device size in this way can be useful.  Specifically, this works when the flash device is
+ * definitively known and the overhead of SFDP is not desirable.  It is also useful for test code.
+ * If this function is used in any other scenario, it is possible to configure the driver in a way
+ * that is not compatible with the flash device.
+ *
+ * In general, {@link spi_flash_discover_device_properties} should be used to set the device size.
  *
  * @param flash The flash instance to configure.
  * @param bytes The capacity of the physical flash device, in bytes.
@@ -927,7 +932,14 @@ int spi_flash_set_device_size (const struct spi_flash *flash, uint32_t bytes)
 
 	flash->state->device_size = bytes;
 	if (bytes > 0x1000000) {
+		/* Assume a device that can switch between address modes. */
+		flash->state->capabilities = (FLASH_CAP_3BYTE_ADDR | FLASH_CAP_4BYTE_ADDR);
 		spi_flash_set_device_commands (flash, NULL, NULL);
+	}
+	else {
+		/* Devices with 16MB or less of storage typically don't support 4-byte address mode, nor do
+		 * they need it. */
+		flash->state->capabilities = FLASH_CAP_3BYTE_ADDR;
 	}
 
 	platform_mutex_unlock (&flash->state->lock);

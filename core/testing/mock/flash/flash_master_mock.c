@@ -560,7 +560,7 @@ int flash_master_mock_expect_erase_flash_4byte (struct flash_master_mock *mock, 
 }
 
 /**
- * Set up expectations for successfully erasing a block of flash using expliict 4-byte address
+ * Set up expectations for successfully erasing a block of flash using explicit 4-byte address
  * commands.
  *
  * @param mock The mock to update.
