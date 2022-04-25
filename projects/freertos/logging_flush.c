@@ -32,7 +32,7 @@ static void logging_flush_task (struct logging_flush *flush)
  *
  * @return 0 if the task was initialized successfully or an error code.
  */
-int logging_flush_init (struct logging_flush *log_task, struct logging *logger)
+int logging_flush_init (struct logging_flush *log_task, const struct logging *logger)
 {
 	int status;
 

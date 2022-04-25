@@ -69,8 +69,8 @@ static void flush_data_background_task (struct flush_data_background *flush_data
  * @return 0 if the persistence task was initialized or an error code.
  */
 int flush_data_background_init (struct flush_data_background *flush_data,
-	struct logging *logger, struct state_manager *system_state, struct state_manager *host_state_0,
-	struct state_manager *host_state_1, int priority)
+	const struct logging *logger, struct state_manager *system_state,
+	struct state_manager *host_state_0, struct state_manager *host_state_1, int priority)
 {
 	int status;
 

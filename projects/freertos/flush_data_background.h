@@ -15,7 +15,7 @@
  * Background task for flushing log contents to flash and persisting non-volatile state information.
  */
 struct flush_data_background {
-	struct logging *logger;					/**< The log instance to flush. */
+	const struct logging *logger;			/**< The log instance to flush. */
 	TaskHandle_t task;						/**< The log background task. */
 	SemaphoreHandle_t lock;					/**< Synchronization to protect task deletion. */
 	struct state_manager *system_state;		/**< The manager for system state to persist. */
@@ -24,8 +24,8 @@ struct flush_data_background {
 };
 
 int flush_data_background_init (struct flush_data_background *flush_data,
-	struct logging *logger, struct state_manager *system_state, struct state_manager *host_state_0,
-	struct state_manager *host_state_1, int priority);
+	const struct logging *logger, struct state_manager *system_state,
+	struct state_manager *host_state_0, struct state_manager *host_state_1, int priority);
 void flush_data_background_release (struct flush_data_background *flush_data);
 
 
