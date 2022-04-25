@@ -66,7 +66,7 @@ struct logging {
 	 *
 	 * @return 0 if the entry was successfully added or an error code.
 	 */
-	int (*create_entry) (struct logging *logging, uint8_t *entry, size_t length);
+	int (*create_entry) (const struct logging *logging, uint8_t *entry, size_t length);
 
 #ifndef LOGGING_DISABLE_FLUSH
 	/**
@@ -77,7 +77,7 @@ struct logging {
 	 *
 	 * @return 0 if the log was successfully flushed or an error code.
 	 */
-	int (*flush) (struct logging *logging);
+	int (*flush) (const struct logging *logging);
 #endif
 
 	/**
@@ -87,7 +87,7 @@ struct logging {
 	 *
 	 * @return 0 if the log was successfully cleared or an error code.
 	 */
-	int (*clear) (struct logging *logging);
+	int (*clear) (const struct logging *logging);
 
 	/**
 	 * Get the amount of data currently stored in the log.  This includes all data in the log,
@@ -98,7 +98,7 @@ struct logging {
 	 * @return The number of bytes in the log or an error code.  Use ROT_IS_ERROR to check the
 	 * return value.
 	 */
-	int (*get_size) (struct logging *logging);
+	int (*get_size) (const struct logging *logging);
 
 	/**
 	 * Get the current contents of the log.  This is the raw log data, so it will include the log
@@ -112,7 +112,7 @@ struct logging {
 	 * @return The number of bytes read from the log or an error code.  Use ROT_IS_ERROR to check
 	 * the return value.
 	 */
-	int (*read_contents) (struct logging *logging, uint32_t offset, uint8_t *contents,
+	int (*read_contents) (const struct logging *logging, uint32_t offset, uint8_t *contents,
 		size_t length);
 };
 

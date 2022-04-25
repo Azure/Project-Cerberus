@@ -11,7 +11,11 @@
 /**
  * Global singleton for the debug log.
  */
-extern struct logging *debug_log;
+#ifndef LOGGING_DEBUG_LOG_CONST_INSTANCE
+extern const struct logging *debug_log;
+#else
+extern const struct logging *const debug_log;
+#endif
 
 
 /**

@@ -7,7 +7,12 @@
 #include "common/unused.h"
 
 
-struct logging *debug_log = NULL;
+/* By default, the global singleton for the debug log is defined here.  However, if the target
+ * project wants to define this to be a constant instance, it needs to be defined and initialized
+ * in that scope. */
+#ifndef LOGGING_DEBUG_LOG_CONST_INSTANCE
+const struct logging *debug_log = NULL;
+#endif
 
 
 /**

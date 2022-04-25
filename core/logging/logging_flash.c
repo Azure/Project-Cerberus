@@ -21,35 +21,35 @@
  *
  * @return 0 if the data was successfully saved or an error code.
  */
-static int logging_flash_save_buffer (struct logging_flash *logging)
+static int logging_flash_save_buffer (const struct logging_flash *logging)
 {
 	size_t write_len;
 	uint8_t curr_sector_num;
 	int status = 0;
 
-	if (logging->next_write != logging->entry_buffer) {
-		write_len = logging->next_write - logging->entry_buffer;
-		curr_sector_num =
-			(FLASH_SECTOR_BASE (logging->next_addr) - logging->base_addr) / FLASH_SECTOR_SIZE;
+	if (logging->state->next_write != logging->state->entry_buffer) {
+		write_len = logging->state->next_write - logging->state->entry_buffer;
+		curr_sector_num = (FLASH_SECTOR_BASE (logging->state->next_addr) - logging->base_addr) /
+			FLASH_SECTOR_SIZE;
 
-		if (FLASH_SECTOR_OFFSET (logging->next_addr) == 0) {
-			status = spi_flash_sector_erase (logging->flash, logging->next_addr);
+		if (FLASH_SECTOR_OFFSET (logging->state->next_addr) == 0) {
+			status = spi_flash_sector_erase (logging->flash, logging->state->next_addr);
 			if (status != 0) {
 				return status;
 			}
 
-			logging->flash_used[curr_sector_num] = 0;
+			logging->state->flash_used[curr_sector_num] = 0;
 
-			if (logging->log_start == curr_sector_num) {
-				int next_sector = (logging->log_start + 1) % LOGGING_FLASH_SECTORS;
-				if (logging->flash_used[next_sector] != 0) {
-					logging->log_start = next_sector;
+			if (logging->state->log_start == curr_sector_num) {
+				int next_sector = (logging->state->log_start + 1) % LOGGING_FLASH_SECTORS;
+				if (logging->state->flash_used[next_sector] != 0) {
+					logging->state->log_start = next_sector;
 				}
 			}
 		}
 
-		status = spi_flash_write (logging->flash, logging->next_addr, logging->entry_buffer,
-			write_len);
+		status = spi_flash_write (logging->flash, logging->state->next_addr,
+			logging->state->entry_buffer, write_len);
 		if (ROT_IS_ERROR (status)) {
 			return status;
 		}
@@ -61,34 +61,35 @@ static int logging_flash_save_buffer (struct logging_flash *logging)
 			status = 0;
 		}
 
-		logging->next_addr += write_len;
-		logging->flash_used[curr_sector_num] += write_len;
+		logging->state->next_addr += write_len;
+		logging->state->flash_used[curr_sector_num] += write_len;
 
 		if (status == 0) {
-			if ((FLASH_SECTOR_OFFSET (logging->next_addr) != 0) &&
-				((logging->write_remain < (int) sizeof (struct logging_entry_header)) ||
-					logging->terminated)) {
-				logging->next_addr = FLASH_SECTOR_BASE (logging->next_addr) + FLASH_SECTOR_SIZE;
+			if ((FLASH_SECTOR_OFFSET (logging->state->next_addr) != 0) &&
+				((logging->state->write_remain < (int) sizeof (struct logging_entry_header)) ||
+					logging->state->terminated)) {
+				logging->state->next_addr =
+					FLASH_SECTOR_BASE (logging->state->next_addr) + FLASH_SECTOR_SIZE;
 			}
 
-			if (logging->next_addr >= (logging->base_addr + LOGGING_FLASH_AREA_LEN)) {
-				logging->next_addr = logging->base_addr;
+			if (logging->state->next_addr >= (logging->base_addr + LOGGING_FLASH_AREA_LEN)) {
+				logging->state->next_addr = logging->base_addr;
 			}
 
-			logging->next_write = logging->entry_buffer;
-			logging->write_remain =
-				sizeof (logging->entry_buffer) - FLASH_SECTOR_OFFSET (logging->next_addr);
-			if (logging->terminated) {
-				logging->flash_used[curr_sector_num] -= sizeof (struct logging_entry_header);
-				logging->terminated = false;
+			logging->state->next_write = logging->state->entry_buffer;
+			logging->state->write_remain = sizeof (logging->state->entry_buffer) -
+				FLASH_SECTOR_OFFSET (logging->state->next_addr);
+			if (logging->state->terminated) {
+				logging->state->flash_used[curr_sector_num] -= sizeof (struct logging_entry_header);
+				logging->state->terminated = false;
 			}
 		}
 		else {
 			/* The write was not fully complete, so move the remaining data to be at the beginning
 			 * of the buffer.  This will ensure it gets written on the next flush. */
-			memmove (logging->entry_buffer, &logging->entry_buffer[write_len],
-				logging->next_write - logging->entry_buffer - write_len);
-			logging->next_write -= write_len;
+			memmove (logging->state->entry_buffer, &logging->state->entry_buffer[write_len],
+				logging->state->next_write - logging->state->entry_buffer - write_len);
+			logging->state->next_write -= write_len;
 		}
 	}
 
@@ -102,7 +103,8 @@ static int logging_flash_save_buffer (struct logging_flash *logging)
  * @param length The length of the entry, not including the entry header.
  * @param id The entry ID.
  */
-static void logging_flash_write_header (struct logging_flash *logging, uint16_t length, uint32_t id)
+static void logging_flash_write_header (const struct logging_flash *logging, uint16_t length,
+	uint32_t id)
 {
 	struct logging_entry_header header;
 
@@ -110,14 +112,14 @@ static void logging_flash_write_header (struct logging_flash *logging, uint16_t 
 	header.length = length + sizeof (header);
 	header.entry_id = id;
 
-	memcpy (logging->next_write, (uint8_t*) &header, sizeof (header));
-	logging->next_write += sizeof (header);
-	logging->write_remain -= sizeof (header);
+	memcpy (logging->state->next_write, (uint8_t*) &header, sizeof (header));
+	logging->state->next_write += sizeof (header);
+	logging->state->write_remain -= sizeof (header);
 }
 
-static int logging_flash_create_entry (struct logging *logging, uint8_t *entry, size_t length)
+int logging_flash_create_entry (const struct logging *logging, uint8_t *entry, size_t length)
 {
-	struct logging_flash *flash_log = (struct logging_flash*) logging;
+	const struct logging_flash *flash_log = (const struct logging_flash*) logging;
 	int status;
 
 	if ((flash_log == NULL) || (entry == NULL)) {
@@ -125,86 +127,87 @@ static int logging_flash_create_entry (struct logging *logging, uint8_t *entry, 
 	}
 
 	if ((length == 0) ||
-		((length + sizeof (struct logging_entry_header) > sizeof (flash_log->entry_buffer)))) {
+		((length + sizeof (struct logging_entry_header) >
+			sizeof (flash_log->state->entry_buffer)))) {
 		return LOGGING_BAD_ENTRY_LENGTH;
 	}
 
-	platform_mutex_lock (&flash_log->lock);
+	platform_mutex_lock (&flash_log->state->lock);
 
-	if (flash_log->terminated ||
-		(flash_log->write_remain < (int) (sizeof (struct logging_entry_header) + length))) {
+	if (flash_log->state->terminated ||
+		(flash_log->state->write_remain < (int) (sizeof (struct logging_entry_header) + length))) {
 
-		if (!flash_log->terminated &&
-			(flash_log->write_remain >= (int) sizeof (struct logging_entry_header))) {
+		if (!flash_log->state->terminated &&
+			(flash_log->state->write_remain >= (int) sizeof (struct logging_entry_header))) {
 			logging_flash_write_header (flash_log, LOGGING_FLASH_TERMINATOR, 0);
-			flash_log->terminated = true;
+			flash_log->state->terminated = true;
 		}
 
 		status = logging_flash_save_buffer (flash_log);
 		if (status != 0) {
-			platform_mutex_unlock (&flash_log->lock);
+			platform_mutex_unlock (&flash_log->state->lock);
 			return status;
 		}
 	}
 
-	logging_flash_write_header (flash_log, length, flash_log->next_entry_id++);
-	memcpy (flash_log->next_write, entry, length);
-	flash_log->next_write += length;
-	flash_log->write_remain -= length;
+	logging_flash_write_header (flash_log, length, flash_log->state->next_entry_id++);
+	memcpy (flash_log->state->next_write, entry, length);
+	flash_log->state->next_write += length;
+	flash_log->state->write_remain -= length;
 
-	platform_mutex_unlock (&flash_log->lock);
+	platform_mutex_unlock (&flash_log->state->lock);
 
 	return 0;
 }
 
-static int logging_flash_flush (struct logging *logging)
+int logging_flash_flush (const struct logging *logging)
 {
-	struct logging_flash *flash_log = (struct logging_flash*) logging;
+	const struct logging_flash *flash_log = (const struct logging_flash*) logging;
 	int status;
 
 	if (flash_log == NULL) {
 		return LOGGING_INVALID_ARGUMENT;
 	}
 
-	platform_mutex_lock (&flash_log->lock);
+	platform_mutex_lock (&flash_log->state->lock);
 	status = logging_flash_save_buffer (flash_log);
-	platform_mutex_unlock (&flash_log->lock);
+	platform_mutex_unlock (&flash_log->state->lock);
 
 	return status;
 }
 
-static int logging_flash_clear (struct logging *logging)
+int logging_flash_clear (const struct logging *logging)
 {
-	struct logging_flash *flash_log = (struct logging_flash*) logging;
+	const struct logging_flash *flash_log = (const struct logging_flash*) logging;
 	int status;
 
 	if (flash_log == NULL) {
 		return LOGGING_INVALID_ARGUMENT;
 	}
 
-	platform_mutex_lock (&flash_log->lock);
+	platform_mutex_lock (&flash_log->state->lock);
 
 	status = spi_flash_block_erase (flash_log->flash, flash_log->base_addr);
 	if (status != 0) {
 		goto exit;
 	}
 
-	memset (flash_log->flash_used, 0, sizeof (flash_log->flash_used));
-	flash_log->log_start = 0;
+	memset (flash_log->state->flash_used, 0, sizeof (flash_log->state->flash_used));
+	flash_log->state->log_start = 0;
 
-	flash_log->next_addr = flash_log->base_addr;
-	flash_log->next_write = flash_log->entry_buffer;
-	flash_log->write_remain = sizeof (flash_log->entry_buffer);
-	flash_log->terminated = false;
+	flash_log->state->next_addr = flash_log->base_addr;
+	flash_log->state->next_write = flash_log->state->entry_buffer;
+	flash_log->state->write_remain = sizeof (flash_log->state->entry_buffer);
+	flash_log->state->terminated = false;
 
 exit:
-	platform_mutex_unlock (&flash_log->lock);
+	platform_mutex_unlock (&flash_log->state->lock);
 	return status;
 }
 
-static int logging_flash_get_size (struct logging *logging)
+int logging_flash_get_size (const struct logging *logging)
 {
-	struct logging_flash *flash_log = (struct logging_flash*) logging;
+	const struct logging_flash *flash_log = (const struct logging_flash*) logging;
 	int sector;
 	int log_size = 0;
 
@@ -212,26 +215,26 @@ static int logging_flash_get_size (struct logging *logging)
 		return LOGGING_INVALID_ARGUMENT;
 	}
 
-	platform_mutex_lock (&flash_log->lock);
+	platform_mutex_lock (&flash_log->state->lock);
 
 	for (sector = 0; sector < LOGGING_FLASH_SECTORS; ++sector) {
-		log_size += flash_log->flash_used[sector];
+		log_size += flash_log->state->flash_used[sector];
 	}
 
-	log_size += (flash_log->next_write - flash_log->entry_buffer);
-	if (flash_log->terminated) {
+	log_size += (flash_log->state->next_write - flash_log->state->entry_buffer);
+	if (flash_log->state->terminated) {
 		log_size -= sizeof (struct logging_entry_header);
 	}
 
-	platform_mutex_unlock (&flash_log->lock);
+	platform_mutex_unlock (&flash_log->state->lock);
 
 	return log_size;
 }
 
-static int logging_flash_read_contents (struct logging *logging, uint32_t offset, uint8_t *contents,
+int logging_flash_read_contents (const struct logging *logging, uint32_t offset, uint8_t *contents,
 	size_t length)
 {
-	struct logging_flash *flash_log = (struct logging_flash*) logging;
+	const struct logging_flash *flash_log = (const struct logging_flash*) logging;
 	int bytes_read = 0;
 	int i;
 	int sectors;
@@ -243,21 +246,24 @@ static int logging_flash_read_contents (struct logging *logging, uint32_t offset
 		return LOGGING_INVALID_ARGUMENT;
 	}
 
-	platform_mutex_lock (&flash_log->lock);
+	platform_mutex_lock (&flash_log->state->lock);
 
-	i = flash_log->log_start;
+	i = flash_log->state->log_start;
 	sectors = 0;
 
-	while ((length != 0) && (sectors < LOGGING_FLASH_SECTORS) && (flash_log->flash_used[i] != 0)) {
-		read_offset = (offset < flash_log->flash_used[i]) ? offset : flash_log->flash_used[i];
-		read_len = (length < (flash_log->flash_used[i] - read_offset)) ?
-			length : (flash_log->flash_used[i] - read_offset);
+	while ((length != 0) && (sectors < LOGGING_FLASH_SECTORS) &&
+		(flash_log->state->flash_used[i] != 0)) {
+
+		read_offset = (offset < flash_log->state->flash_used[i]) ?
+			offset : flash_log->state->flash_used[i];
+		read_len = (length < (flash_log->state->flash_used[i] - read_offset)) ?
+			length : (flash_log->state->flash_used[i] - read_offset);
 
 		if (read_len != 0) {
 			status = spi_flash_read (flash_log->flash,
 				flash_log->base_addr + (FLASH_SECTOR_SIZE * i) + read_offset, contents, read_len);
 			if (status != 0) {
-				platform_mutex_unlock (&flash_log->lock);
+				platform_mutex_unlock (&flash_log->state->lock);
 				return status;
 			}
 		}
@@ -272,17 +278,17 @@ static int logging_flash_read_contents (struct logging *logging, uint32_t offset
 	}
 
 	/* After reading all data from flash, read buffered entries that haven't been flushed yet. */
-	read_len = flash_log->next_write - flash_log->entry_buffer;
-	if (flash_log->terminated) {
+	read_len = flash_log->state->next_write - flash_log->state->entry_buffer;
+	if (flash_log->state->terminated) {
 		read_len -= sizeof (struct logging_entry_header);
 	}
 	read_offset = (offset < read_len) ? offset : read_len;
 	read_len = (length < (read_len - read_offset)) ? length : (read_len - read_offset);
 
-	memcpy (contents, flash_log->entry_buffer + read_offset, read_len);
+	memcpy (contents, flash_log->state->entry_buffer + read_offset, read_len);
 	bytes_read += read_len;
 
-	platform_mutex_unlock (&flash_log->lock);
+	platform_mutex_unlock (&flash_log->state->lock);
 
 	return bytes_read;
 }
@@ -294,13 +300,46 @@ static int logging_flash_read_contents (struct logging *logging, uint32_t offset
  * The log will consume an entire flash erase block.
  *
  * @param logging The log to initialize.
+ * @param state Variable context for the log.  This must be uninitialized.
  * @param flash The flash device where log entries are stored.
  * @param base_addr The starting address for log entries.  This must be aligned to the beginning of
  * an erase block.
  *
  * @return 0 if the log was successfully initialized or an error code.
  */
-int logging_flash_init (struct logging_flash *logging, struct spi_flash *flash, uint32_t base_addr)
+int logging_flash_init (struct logging_flash *logging, struct logging_flash_state *state,
+	const struct spi_flash *flash, uint32_t base_addr)
+{
+	if ((logging == NULL) || (flash == NULL) || (state == NULL)) {
+		return LOGGING_INVALID_ARGUMENT;
+	}
+
+	memset (logging, 0, sizeof (struct logging_flash));
+
+	logging->base.create_entry = logging_flash_create_entry;
+	logging->base.flush = logging_flash_flush;
+	logging->base.clear = logging_flash_clear;
+	logging->base.get_size = logging_flash_get_size;
+	logging->base.read_contents = logging_flash_read_contents;
+
+	logging->state = state;
+	logging->flash = flash;
+	logging->base_addr = base_addr;
+
+	return logging_flash_init_state (logging);
+}
+
+/**
+ * Initialize only the variable state for log in SPI flash.  The rest of the log instance is assumed
+ * to have already been initialized.
+ *
+ * This would generally be used with a statically initialized instance.
+ *
+ * @param logging The log instance that contains the state to initialize.
+ *
+ * @return 0 if the state was successfully initialized or an error code.
+ */
+int logging_flash_init_state (const struct logging_flash *logging)
 {
 	int curr_sector_num;
 	uint8_t *pos;
@@ -311,27 +350,28 @@ int logging_flash_init (struct logging_flash *logging, struct spi_flash *flash, 
 	int found_next = 0;
 	int status;
 
-	if ((logging == NULL) || (flash == NULL)) {
+	if ((logging == NULL) || (logging->state == NULL) || (logging->flash == NULL)) {
 		return LOGGING_INVALID_ARGUMENT;
 	}
 
-	if (FLASH_BLOCK_BASE (base_addr) != base_addr) {
+	if (FLASH_BLOCK_BASE (logging->base_addr) != logging->base_addr) {
 		return LOGGING_STORAGE_NOT_ALIGNED;
 	}
 
-	memset (logging, 0, sizeof (struct logging_flash));
+	memset (logging->state, 0, sizeof (struct logging_flash_state));
 
-	flash_addr = base_addr;
-	end = logging->entry_buffer + sizeof (logging->entry_buffer);
+	flash_addr = logging->base_addr;
+	end = logging->state->entry_buffer + sizeof (logging->state->entry_buffer);
 
 	for (curr_sector_num = 0; curr_sector_num < LOGGING_FLASH_SECTORS; ++curr_sector_num) {
-		status = spi_flash_read (flash, base_addr + (FLASH_SECTOR_SIZE * curr_sector_num),
-			logging->entry_buffer, sizeof (logging->entry_buffer));
+		status = spi_flash_read (logging->flash,
+			logging->base_addr + (FLASH_SECTOR_SIZE * curr_sector_num),
+			logging->state->entry_buffer, sizeof (logging->state->entry_buffer));
 		if (status != 0) {
 			return status;
 		}
 
-		pos = logging->entry_buffer;
+		pos = logging->state->entry_buffer;
 		while ((end - pos) >= (int) sizeof (struct logging_entry_header)) {
 			struct logging_entry_header *header = (struct logging_entry_header*) pos;
 
@@ -386,7 +426,7 @@ int logging_flash_init (struct logging_flash *logging, struct spi_flash *flash, 
 
 					if (prev_entry_id > entry_id) {
 						entry_id = prev_entry_id;
-						logging->log_start = curr_sector_num;
+						logging->state->log_start = curr_sector_num;
 						found_next = 2;
 					}
 					else if (found_next == 0) {
@@ -395,7 +435,7 @@ int logging_flash_init (struct logging_flash *logging, struct spi_flash *flash, 
 					}
 				}
 
-				logging->flash_used[curr_sector_num] += length;
+				logging->state->flash_used[curr_sector_num] += length;
 				pos += length;
 			}
 		}
@@ -406,27 +446,20 @@ int logging_flash_init (struct logging_flash *logging, struct spi_flash *flash, 
 		}
 	}
 
-	if (flash_addr >= (base_addr + LOGGING_FLASH_AREA_LEN)) {
-		flash_addr = base_addr;
+	if (flash_addr >= (logging->base_addr + LOGGING_FLASH_AREA_LEN)) {
+		flash_addr = logging->base_addr;
 	}
 
-	status = platform_mutex_init (&logging->lock);
+	status = platform_mutex_init (&logging->state->lock);
 	if (status != 0) {
 		return status;
 	}
 
-	logging->flash = flash;
-	logging->base_addr = base_addr;
-	logging->next_addr = flash_addr;
-	logging->next_entry_id = entry_id;
-	logging->next_write = logging->entry_buffer;
-	logging->write_remain = sizeof (logging->entry_buffer) - FLASH_SECTOR_OFFSET (flash_addr);
-
-	logging->base.create_entry = logging_flash_create_entry;
-	logging->base.flush = logging_flash_flush;
-	logging->base.clear = logging_flash_clear;
-	logging->base.get_size = logging_flash_get_size;
-	logging->base.read_contents = logging_flash_read_contents;
+	logging->state->next_addr = flash_addr;
+	logging->state->next_entry_id = entry_id;
+	logging->state->next_write = logging->state->entry_buffer;
+	logging->state->write_remain =
+		sizeof (logging->state->entry_buffer) - FLASH_SECTOR_OFFSET (flash_addr);
 
 	return 0;
 }
@@ -437,9 +470,9 @@ int logging_flash_init (struct logging_flash *logging, struct spi_flash *flash, 
  *
  * @param logging The log to release.
  */
-void logging_flash_release (struct logging_flash *logging)
+void logging_flash_release (const struct logging_flash *logging)
 {
 	if (logging) {
-		platform_mutex_free (&logging->lock);
+		platform_mutex_free (&logging->state->lock);
 	}
 }

@@ -7,7 +7,7 @@
 #include "logging_mock.h"
 
 
-static int logging_mock_create_entry (struct logging *logging, uint8_t *entry, size_t length)
+static int logging_mock_create_entry (const struct logging *logging, uint8_t *entry, size_t length)
 {
 	struct logging_mock *mock = (struct logging_mock*) logging;
 
@@ -19,7 +19,7 @@ static int logging_mock_create_entry (struct logging *logging, uint8_t *entry, s
 		MOCK_ARG_CALL (length));
 }
 
-static int logging_mock_flush (struct logging *logging)
+static int logging_mock_flush (const struct logging *logging)
 {
 	struct logging_mock *mock = (struct logging_mock*) logging;
 
@@ -30,7 +30,7 @@ static int logging_mock_flush (struct logging *logging)
 	MOCK_RETURN_NO_ARGS (&mock->mock, logging_mock_flush, logging);
 }
 
-static int logging_mock_clear (struct logging *logging)
+static int logging_mock_clear (const struct logging *logging)
 {
 	struct logging_mock *mock = (struct logging_mock*) logging;
 
@@ -41,7 +41,7 @@ static int logging_mock_clear (struct logging *logging)
 	MOCK_RETURN_NO_ARGS (&mock->mock, logging_mock_clear, logging);
 }
 
-static int logging_mock_get_size (struct logging *logging)
+static int logging_mock_get_size (const struct logging *logging)
 {
 	struct logging_mock *mock = (struct logging_mock*) logging;
 
@@ -52,8 +52,8 @@ static int logging_mock_get_size (struct logging *logging)
 	MOCK_RETURN_NO_ARGS (&mock->mock, logging_mock_get_size, logging);
 }
 
-static int logging_mock_read_contents (struct logging *logging, uint32_t offset, uint8_t *contents,
-	size_t length)
+static int logging_mock_read_contents (const struct logging *logging, uint32_t offset,
+	uint8_t *contents, size_t length)
 {
 	struct logging_mock *mock = (struct logging_mock*) logging;
 

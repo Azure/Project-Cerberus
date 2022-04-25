@@ -9,9 +9,9 @@
 #include "common/unused.h"
 
 
-int logging_memory_create_entry (struct logging *logging, uint8_t *entry, size_t length)
+int logging_memory_create_entry (const struct logging *logging, uint8_t *entry, size_t length)
 {
-	struct logging_memory *mem_log = (struct logging_memory*) logging;
+	const struct logging_memory *mem_log = (const struct logging_memory*) logging;
 	struct logging_entry_header header;
 
 	if ((mem_log == NULL) || (entry == NULL)) {
@@ -48,7 +48,7 @@ int logging_memory_create_entry (struct logging *logging, uint8_t *entry, size_t
 }
 
 #ifndef LOGGING_DISABLE_FLUSH
-int logging_memory_flush (struct logging *logging)
+int logging_memory_flush (const struct logging *logging)
 {
 	UNUSED (logging);
 
@@ -56,9 +56,9 @@ int logging_memory_flush (struct logging *logging)
 }
 #endif
 
-int logging_memory_clear (struct logging *logging)
+int logging_memory_clear (const struct logging *logging)
 {
-	struct logging_memory *mem_log = (struct logging_memory*) logging;
+	const struct logging_memory *mem_log = (const struct logging_memory*) logging;
 
 	if (mem_log == NULL) {
 		return LOGGING_INVALID_ARGUMENT;
@@ -76,9 +76,9 @@ int logging_memory_clear (struct logging *logging)
 	return 0;
 }
 
-int logging_memory_get_size (struct logging *logging)
+int logging_memory_get_size (const struct logging *logging)
 {
-	struct logging_memory *mem_log = (struct logging_memory*) logging;
+	const struct logging_memory *mem_log = (const struct logging_memory*) logging;
 	int log_size = 0;
 
 	if (mem_log == NULL) {
@@ -101,10 +101,10 @@ int logging_memory_get_size (struct logging *logging)
 	return log_size;
 }
 
-int logging_memory_read_contents (struct logging *logging, uint32_t offset, uint8_t *contents,
+int logging_memory_read_contents (const struct logging *logging, uint32_t offset, uint8_t *contents,
 	size_t length)
 {
-	struct logging_memory *mem_log = (struct logging_memory*) logging;
+	const struct logging_memory *mem_log = (const struct logging_memory*) logging;
 	size_t first_copy = 0;
 	int bytes_read = 0;
 	size_t copy_len;

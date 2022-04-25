@@ -20,12 +20,9 @@
 
 
 /**
- * A log that will persistently store entries on flash.
+ * Variable context for a log that stores entries in SPI flash.
  */
-struct logging_flash {
-	struct logging base;						/**< The base logging instance. */
-	struct spi_flash *flash;					/**< The flash where log entries are stored. */
-	uint32_t base_addr;							/**< The base address of the log data on flash. */
+struct logging_flash_state {
 	platform_mutex lock;						/**< Synchronization for log accesses. */
 	uint8_t entry_buffer[FLASH_SECTOR_SIZE];	/**< Buffered entries waiting to be flushed. */
 	uint8_t *next_write;						/**< The next write position in the entry buffer. */
@@ -37,9 +34,21 @@ struct logging_flash {
 	int log_start;								/**< The sector that contains the first entries. */
 };
 
+/**
+ * A log that will persistently store entries in SPI flash.
+ */
+struct logging_flash {
+	struct logging base;						/**< The base logging instance. */
+	struct logging_flash_state *state;			/**< Variable context for the log instance. */
+	const struct spi_flash *flash;				/**< The flash where log entries are stored. */
+	uint32_t base_addr;							/**< The base address of the log data on flash. */
+};
 
-int logging_flash_init (struct logging_flash *logging, struct spi_flash *flash, uint32_t base_addr);
-void logging_flash_release (struct logging_flash *logging);
+
+int logging_flash_init (struct logging_flash *logging, struct logging_flash_state *state,
+	const struct spi_flash *flash, uint32_t base_addr);
+int logging_flash_init_state (const struct logging_flash *logging);
+void logging_flash_release (const struct logging_flash *logging);
 
 
 #endif /* LOGGING_FLASH_H_ */

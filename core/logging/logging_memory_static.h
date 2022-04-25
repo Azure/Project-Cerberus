@@ -8,33 +8,33 @@
 
 
 /* Internal functions declared to allow for static initialization. */
-int logging_memory_create_entry (struct logging *logging, uint8_t *entry, size_t length);
-int logging_memory_flush (struct logging *logging);
-int logging_memory_clear (struct logging *logging);
-int logging_memory_get_size (struct logging *logging);
-int logging_memory_read_contents (struct logging *logging, uint32_t offset, uint8_t *contents,
+int logging_memory_create_entry (const struct logging *logging, uint8_t *entry, size_t length);
+int logging_memory_flush (const struct logging *logging);
+int logging_memory_clear (const struct logging *logging);
+int logging_memory_get_size (const struct logging *logging);
+int logging_memory_read_contents (const struct logging *logging, uint32_t offset, uint8_t *contents,
 	size_t length);
 
 
 /**
- * Constant initializer for the logging API.
+ * Constant initializer for the the flush operation.
  */
 #ifndef LOGGING_DISABLE_FLUSH
-#define	LOGGING_MEMORY_API_INIT  { \
-		.create_entry = logging_memory_create_entry, \
-		.flush = logging_memory_flush, \
-		.clear = logging_memory_clear, \
-		.get_size = logging_memory_get_size, \
-		.read_contents = logging_memory_read_contents \
-	}
+#define	LOGGING_MEMORY_FLUSH_API	.flush = logging_memory_flush,
 #else
+#define	LOGGING_MEMORY_FLUSH_API
+#endif
+
+/**
+ * Constant initializer for the logging API.
+ */
 #define	LOGGING_MEMORY_API_INIT  { \
 		.create_entry = logging_memory_create_entry, \
+		LOGGING_MEMORY_FLUSH_API \
 		.clear = logging_memory_clear, \
 		.get_size = logging_memory_get_size, \
 		.read_contents = logging_memory_read_contents \
 	}
-#endif
 
 
 /**
@@ -43,7 +43,7 @@ int logging_memory_read_contents (struct logging *logging, uint32_t offset, uint
  *
  * There is no validation done on the arguments.
  *
- * @param state Variable context for the log.
+ * @param state_ptr Variable context for the log.
  * @param buffer_ptr The buffer to use for log entries.
  * @param buffer_len Length of the provided log buffer.
  * @param entry_len The length of a single log entry.  This does not include the length of standard
