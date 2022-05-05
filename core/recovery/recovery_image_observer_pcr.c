@@ -5,7 +5,7 @@
 #include <stddef.h>
 #include <string.h>
 #include "recovery_image_observer_pcr.h"
-#include "recovery_image_logging.h"
+#include "recovery_logging.h"
 #include "attestation/pcr_store.h"
 
 
@@ -19,8 +19,8 @@ static void recovery_image_observer_pcr_on_recovery_image_activated (
 	if (active) {
 		status = active->get_hash (active, pcr->hash, measurement, sizeof (measurement));
 		if (status != 0) {
-			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_RECOVERY_IMAGE,
-				RECOVERY_IMAGE_LOGGING_GET_MEASUREMENT_FAIL, pcr->measurement_id, status);
+			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_RECOVERY,
+				RECOVERY_LOGGING_GET_MEASUREMENT_FAIL, pcr->measurement_id, status);
 			return;
 		}
 	}
@@ -28,8 +28,8 @@ static void recovery_image_observer_pcr_on_recovery_image_activated (
 	status = pcr_store_update_versioned_buffer (pcr->store, pcr->hash, pcr->measurement_id,
 		measurement, SHA256_HASH_LENGTH, true, 0);
 	if (status != 0) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_RECOVERY_IMAGE,
-			RECOVERY_IMAGE_LOGGING_RECORD_MEASUREMENT_FAIL, pcr->measurement_id, status);
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_RECOVERY,
+			RECOVERY_LOGGING_RECORD_MEASUREMENT_FAIL, pcr->measurement_id, status);
 	}
 }
 
@@ -99,8 +99,8 @@ void recovery_image_observer_pcr_record_measurement (struct recovery_image_obser
 	struct recovery_image *active;
 
 	if ((observer == NULL) || (manager == NULL)) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_RECOVERY_IMAGE,
-			RECOVERY_IMAGE_LOGGING_RECORD_INVALID, RECOVERY_IMAGE_OBSERVER_INVALID_ARGUMENT, 0);
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_RECOVERY,
+			RECOVERY_LOGGING_RECORD_INVALID, RECOVERY_IMAGE_OBSERVER_INVALID_ARGUMENT, 0);
 		return;
 	}
 

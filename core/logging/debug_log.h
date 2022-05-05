@@ -44,7 +44,7 @@ enum debug_log_component {
 	DEBUG_LOG_COMPONENT_BOOT,					/**< Log entry for the bootloader */
 	DEBUG_LOG_COMPONENT_FLASH,					/**< Log entry for flash. */
 	DEBUG_LOG_COMPONENT_SPI,					/**< Log entry for SPI failures */
-	DEBUG_LOG_COMPONENT_RECOVERY_IMAGE,			/**< Log entry for recovery images */
+	DEBUG_LOG_COMPONENT_RECOVERY,				/**< Log entry for recovery handling */
 	DEBUG_LOG_COMPONENT_MCTP,					/**< Log entry for MCTP stack */
 	DEBUG_LOG_COMPONENT_TPM,					/**< Log entry for TPM */
 	DEBUG_LOG_COMPONENT_RIOT,					/**< Log entry for RIoT */

@@ -238,6 +238,7 @@ int ocp_recovery_device_read_request (const struct ocp_recovery_device *device,
 
 void ocp_recovery_device_checksum_failure (const struct ocp_recovery_device *device);
 void ocp_recovery_device_write_overflow (const struct ocp_recovery_device *device);
+void ocp_recovery_device_write_incomplete (const struct ocp_recovery_device *device);
 
 
 #define	OCP_RECOVERY_DEVICE_ERROR(code)		ROT_ERROR (ROT_MODULE_OCP_RECOVERY_DEVICE, code)

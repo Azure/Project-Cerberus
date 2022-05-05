@@ -6386,6 +6386,86 @@ static void ocp_recovery_device_test_write_overflow_null (CuTest *test)
 	ocp_recovery_device_write_overflow (NULL);
 }
 
+static void ocp_recovery_device_test_write_incomplete_read (CuTest *test)
+{
+	struct ocp_recovery_device_testing recovery;
+	int status;
+	union ocp_recovery_device_cmd_buffer output;
+
+	TEST_START;
+
+	ocp_recovery_device_testing_init (test, &recovery, NULL, 0);
+
+	status = ocp_recovery_device_start_new_command (&recovery.test, OCP_RECOVERY_CMD_INDIRECT_DATA);
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_write_incomplete (&recovery.test);
+
+	status = ocp_recovery_device_read_request (&recovery.test, &output);
+	CuAssertIntEquals (test, OCP_RECOVERY_DEVICE_NO_ACTIVE_COMMAND, status);
+
+	ocp_recovery_device_testing_check_protocol_status (test, &recovery, 3);
+
+	ocp_recovery_device_testing_release (test, &recovery);
+}
+
+static void ocp_recovery_device_test_write_incomplete_write (CuTest *test)
+{
+	struct ocp_recovery_device_testing recovery;
+	int status;
+	union ocp_recovery_device_cmd_buffer message;
+
+	TEST_START;
+
+	ocp_recovery_device_testing_init (test, &recovery, NULL, 0);
+
+	status = ocp_recovery_device_start_new_command (&recovery.test, OCP_RECOVERY_CMD_INDIRECT_DATA);
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_write_incomplete (&recovery.test);
+
+	status = ocp_recovery_device_write_request (&recovery.test, &message, 2);
+	CuAssertIntEquals (test, OCP_RECOVERY_DEVICE_NO_ACTIVE_COMMAND, status);
+
+	ocp_recovery_device_testing_check_protocol_status (test, &recovery, 3);
+
+	ocp_recovery_device_testing_release (test, &recovery);
+}
+
+static void ocp_recovery_device_test_write_incomplete_static_init (CuTest *test)
+{
+	struct ocp_recovery_device_testing recovery;
+	struct ocp_recovery_device test_static = ocp_recovery_device_static_init (&recovery.state,
+		&recovery.hw.base, recovery.cms, 3);
+	int status;
+	union ocp_recovery_device_cmd_buffer output;
+
+	TEST_START;
+
+	ocp_recovery_device_testing_init_dependencies (test, &recovery);
+
+	status = ocp_recovery_device_init_state (&test_static);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_start_new_command (&test_static, OCP_RECOVERY_CMD_INDIRECT_DATA);
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_write_incomplete (&test_static);
+
+	status = ocp_recovery_device_read_request (&test_static, &output);
+	CuAssertIntEquals (test, OCP_RECOVERY_DEVICE_NO_ACTIVE_COMMAND, status);
+
+	ocp_recovery_device_testing_release_dependencies (test, &recovery);
+	ocp_recovery_device_release (&test_static);
+}
+
+static void ocp_recovery_device_test_write_incomplete_null (CuTest *test)
+{
+	TEST_START;
+
+	ocp_recovery_device_write_incomplete (NULL);
+}
+
 
 TEST_SUITE_START (ocp_recovery_device);
 
@@ -6557,5 +6637,9 @@ TEST (ocp_recovery_device_test_write_overflow_read);
 TEST (ocp_recovery_device_test_write_overflow_write);
 TEST (ocp_recovery_device_test_write_overflow_static_init);
 TEST (ocp_recovery_device_test_write_overflow_null);
+TEST (ocp_recovery_device_test_write_incomplete_read);
+TEST (ocp_recovery_device_test_write_incomplete_write);
+TEST (ocp_recovery_device_test_write_incomplete_static_init);
+TEST (ocp_recovery_device_test_write_incomplete_null);
 
 TEST_SUITE_END;

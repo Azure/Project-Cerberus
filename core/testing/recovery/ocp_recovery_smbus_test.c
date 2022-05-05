@@ -7,7 +7,10 @@
 #include <string.h>
 #include "testing.h"
 #include "recovery/ocp_recovery_smbus.h"
+#include "recovery/recovery_logging.h"
+#include "testing/mock/logging/logging_mock.h"
 #include "testing/mock/recovery/ocp_recovery_device_hw_mock.h"
+#include "testing/logging/debug_log_testing.h"
 
 
 TEST_SUITE_LABEL ("ocp_recovery_smbus");
@@ -24,6 +27,7 @@ TEST_SUITE_LABEL ("ocp_recovery_smbus");
  */
 struct ocp_recovery_smbus_testing {
 	struct ocp_recovery_device_hw_mock hw;					/**< Mock for the recovery HW interface. */
+	struct logging_mock log;								/**< Mock for the debug log. */
 	struct ocp_recovery_device_state dev_state;				/**< Variable state of the recovery handler. */
 	struct ocp_recovery_device device;						/**< Device recovery handler. */
 	uint8_t cms_0[OCP_RECOVERY_SMBUS_TESTING_CMS_0_LEN];	/**< Buffer for CMS code R/W region (type 0). */
@@ -45,6 +49,9 @@ static void ocp_recovery_smbus_testing_init_dependencies (CuTest *test,
 	int status;
 
 	status = ocp_recovery_device_hw_mock_init (&smbus->hw);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging_mock_init (&smbus->log);
 	CuAssertIntEquals (test, 0, status);
 
 	smbus->hw.base.supports_forced_recovery = true;
@@ -72,6 +79,9 @@ static void ocp_recovery_smbus_testing_release_dependencies (CuTest *test,
 	int status;
 
 	status = ocp_recovery_device_hw_mock_validate_and_release (&smbus->hw);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging_mock_validate_and_release (&smbus->log);
 	CuAssertIntEquals (test, 0, status);
 
 	ocp_recovery_device_release (&smbus->device);
@@ -324,10 +334,23 @@ static void ocp_recovery_smbus_test_block_write_command_with_bad_pec (CuTest *te
 {
 	struct ocp_recovery_smbus_testing smbus;
 	int status;
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_ERROR,
+		.component = DEBUG_LOG_COMPONENT_RECOVERY,
+		.msg_index = RECOVERY_LOGGING_OCP_PEC_ERROR,
+		.arg1 = 0x29,
+		.arg2 = 0x35
+	};
 
 	TEST_START;
 
 	ocp_recovery_smbus_testing_init (test, &smbus);
+
+	status = mock_expect (&smbus.log.mock, smbus.log.base.create_entry, &smbus.log, 0,
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+	CuAssertIntEquals (test, 0, status);
 
 	ocp_recovery_smbus_start (&smbus.test, 0x69);
 	CuAssertIntEquals (test, 0, smbus.cms_0[0]);
@@ -358,7 +381,9 @@ static void ocp_recovery_smbus_test_block_write_command_with_bad_pec (CuTest *te
 	CuAssertIntEquals (test, 0, smbus.cms_0[0]);
 	CuAssertIntEquals (test, 0, smbus.cms_0[1]);
 
+	debug_log = &smbus.log.base;
 	ocp_recovery_smbus_stop (&smbus.test);
+	debug_log = NULL;
 	CuAssertIntEquals (test, 0, smbus.cms_0[0]);
 	CuAssertIntEquals (test, 0, smbus.cms_0[1]);
 
@@ -532,10 +557,23 @@ static void ocp_recovery_smbus_test_block_write_command_overflow_buffer (CuTest 
 	struct ocp_recovery_smbus_testing smbus;
 	int status;
 	int i;
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_ERROR,
+		.component = DEBUG_LOG_COMPONENT_RECOVERY,
+		.msg_index = RECOVERY_LOGGING_OCP_WRITE_OVERFLOW,
+		.arg1 = 0,
+		.arg2 = 0
+	};
 
 	TEST_START;
 
 	ocp_recovery_smbus_testing_init (test, &smbus);
+
+	status = mock_expect (&smbus.log.mock, smbus.log.base.create_entry, &smbus.log, 0,
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+	CuAssertIntEquals (test, 0, status);
 
 	ocp_recovery_smbus_start (&smbus.test, 0x69);
 
@@ -550,7 +588,9 @@ static void ocp_recovery_smbus_test_block_write_command_overflow_buffer (CuTest 
 		CuAssertIntEquals (test, 0, status);
 	}
 
+	debug_log = &smbus.log.base;
 	status = ocp_recovery_smbus_receive_byte (&smbus.test, 0x55);
+	debug_log = NULL;
 	CuAssertIntEquals (test, OCP_RECOVERY_SMBUS_OVERFLOW, status);
 
 	ocp_recovery_smbus_stop (&smbus.test);
@@ -567,10 +607,23 @@ static void ocp_recovery_smbus_test_block_write_command_overflow_multiple (CuTes
 	struct ocp_recovery_smbus_testing smbus;
 	int status;
 	int i;
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_ERROR,
+		.component = DEBUG_LOG_COMPONENT_RECOVERY,
+		.msg_index = RECOVERY_LOGGING_OCP_WRITE_OVERFLOW,
+		.arg1 = 0,
+		.arg2 = 0
+	};
 
 	TEST_START;
 
 	ocp_recovery_smbus_testing_init (test, &smbus);
+
+	status = mock_expect (&smbus.log.mock, smbus.log.base.create_entry, &smbus.log, 0,
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+	CuAssertIntEquals (test, 0, status);
 
 	ocp_recovery_smbus_start (&smbus.test, 0x69);
 
@@ -585,6 +638,8 @@ static void ocp_recovery_smbus_test_block_write_command_overflow_multiple (CuTes
 		CuAssertIntEquals (test, 0, status);
 	}
 
+	debug_log = &smbus.log.base;
+
 	status = ocp_recovery_smbus_receive_byte (&smbus.test, 0x55);
 	CuAssertIntEquals (test, OCP_RECOVERY_SMBUS_OVERFLOW, status);
 
@@ -598,7 +653,98 @@ static void ocp_recovery_smbus_test_block_write_command_overflow_multiple (CuTes
 	CuAssertIntEquals (test, 0, smbus.cms_0[0]);
 	CuAssertIntEquals (test, 0, smbus.cms_0[1]);
 
+	debug_log = NULL;
+
 	ocp_recovery_smbus_testing_check_protocol_status (test, &smbus, 3);
+
+	ocp_recovery_smbus_testing_release (test, &smbus);
+}
+
+static void ocp_recovery_smbus_test_block_write_command_incomplete_data (CuTest *test)
+{
+	struct ocp_recovery_smbus_testing smbus;
+	int status;
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_ERROR,
+		.component = DEBUG_LOG_COMPONENT_RECOVERY,
+		.msg_index = RECOVERY_LOGGING_OCP_WRITE_INCOMPLETE,
+		.arg1 = 2,
+		.arg2 = 2
+	};
+
+	TEST_START;
+
+	ocp_recovery_smbus_testing_init (test, &smbus);
+
+	status = mock_expect (&smbus.log.mock, smbus.log.base.create_entry, &smbus.log, 0,
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_smbus_start (&smbus.test, 0x69);
+	CuAssertIntEquals (test, 0, smbus.cms_0[0]);
+	CuAssertIntEquals (test, 0, smbus.cms_0[1]);
+
+	status = ocp_recovery_smbus_receive_byte (&smbus.test, OCP_RECOVERY_CMD_INDIRECT_DATA);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, smbus.cms_0[0]);
+	CuAssertIntEquals (test, 0, smbus.cms_0[1]);
+
+	status = ocp_recovery_smbus_receive_byte (&smbus.test, 0x02);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, smbus.cms_0[0]);
+	CuAssertIntEquals (test, 0, smbus.cms_0[1]);
+
+	status = ocp_recovery_smbus_receive_byte (&smbus.test, 0x55);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, smbus.cms_0[0]);
+	CuAssertIntEquals (test, 0, smbus.cms_0[1]);
+
+	debug_log = &smbus.log.base;
+	ocp_recovery_smbus_stop (&smbus.test);
+	debug_log = NULL;
+	CuAssertIntEquals (test, 0, smbus.cms_0[0]);
+	CuAssertIntEquals (test, 0, smbus.cms_0[1]);
+
+	ocp_recovery_smbus_testing_check_protocol_status (test, &smbus, 3);
+
+	ocp_recovery_smbus_testing_release (test, &smbus);
+}
+
+static void ocp_recovery_smbus_test_block_write_command_zero_bytes (CuTest *test)
+{
+	struct ocp_recovery_smbus_testing smbus;
+	int status;
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_ERROR,
+		.component = DEBUG_LOG_COMPONENT_RECOVERY,
+		.msg_index = RECOVERY_LOGGING_OCP_WRITE_ERROR,
+		.arg1 = OCP_RECOVERY_DEVICE_CMD_INCOMPLETE,
+		.arg2 = 0
+	};
+
+	TEST_START;
+
+	ocp_recovery_smbus_testing_init (test, &smbus);
+
+	status = mock_expect (&smbus.log.mock, smbus.log.base.create_entry, &smbus.log, 0,
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_smbus_start (&smbus.test, 0x69);
+
+	status = ocp_recovery_smbus_receive_byte (&smbus.test, OCP_RECOVERY_CMD_INDIRECT_CTRL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_smbus_receive_byte (&smbus.test, 0x00);
+	CuAssertIntEquals (test, 0, status);
+
+	debug_log = &smbus.log.base;
+	ocp_recovery_smbus_stop (&smbus.test);
+	debug_log = NULL;
 
 	ocp_recovery_smbus_testing_release (test, &smbus);
 }
@@ -825,6 +971,14 @@ static void ocp_recovery_smbus_test_block_read_command_failure (CuTest *test)
 	int status;
 	union ocp_recovery_smbus_cmd_buffer expected;
 	const union ocp_recovery_smbus_cmd_buffer *output = NULL;
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_ERROR,
+		.component = DEBUG_LOG_COMPONENT_RECOVERY,
+		.msg_index = RECOVERY_LOGGING_OCP_READ_ERROR,
+		.arg1 = OCP_RECOVERY_DEVICE_UNSUPPORTED,
+		.arg2 = 0
+	};
 
 	TEST_START;
 
@@ -834,12 +988,19 @@ static void ocp_recovery_smbus_test_block_read_command_failure (CuTest *test)
 
 	ocp_recovery_smbus_testing_init (test, &smbus);
 
+	status = mock_expect (&smbus.log.mock, smbus.log.base.create_entry, &smbus.log, 0,
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+	CuAssertIntEquals (test, 0, status);
+
 	ocp_recovery_smbus_start (&smbus.test, 0x69);
 
 	status = ocp_recovery_smbus_receive_byte (&smbus.test, OCP_RECOVERY_CMD_HW_STATUS);
 	CuAssertIntEquals (test, 0, status);
 
+	debug_log = &smbus.log.base;
 	status = ocp_recovery_smbus_transmit_bytes (&smbus.test, 0x69, &output);
+	debug_log = NULL;
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, output);
 
@@ -1029,6 +1190,8 @@ TEST (ocp_recovery_smbus_test_block_write_command_with_pec_twice);
 TEST (ocp_recovery_smbus_test_block_write_command_call_stop_twice);
 TEST (ocp_recovery_smbus_test_block_write_command_overflow_buffer);
 TEST (ocp_recovery_smbus_test_block_write_command_overflow_multiple);
+TEST (ocp_recovery_smbus_test_block_write_command_incomplete_data);
+TEST (ocp_recovery_smbus_test_block_write_command_zero_bytes);
 TEST (ocp_recovery_smbus_test_block_write_command_full_memory_region_with_pec);
 TEST (ocp_recovery_smbus_test_block_write_invalid_command);
 TEST (ocp_recovery_smbus_test_block_write_command_static_init);

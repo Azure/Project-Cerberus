@@ -7,9 +7,9 @@
 #include "flash/flash_util.h"
 #include "host_fw/host_processor_dual.h"
 #include "recovery_image_manager.h"
-#include "recovery_image_logging.h"
 #include "recovery_image_header.h"
 #include "recovery_image_section_header.h"
+#include "recovery_logging.h"
 
 
 /**

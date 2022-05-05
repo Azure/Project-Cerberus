@@ -17,7 +17,7 @@ enum {
 	MCTP_LOGGING_PKT_DROPPED,					/**< MCTP packet dropped. */
 	MCTP_LOGGING_CHANNEL,						/**< MCTP command channel identifier. */
 	MCTP_LOGGING_SET_EID_FAIL,					/**< Failed when processing a Set EID request. */
-	MCTP_LOGGING_MCTP_CONTROL_INVALID_LEN = 6,	/**< Received a MCTP control message with invalid length. */
+	MCTP_LOGGING_MCTP_CONTROL_INVALID_LEN,		/**< Received a MCTP control message with invalid length. */
 	MCTP_LOGGING_MCTP_CONTROL_RSP_CC_FAIL,		/**< Received a MCTP control message with a failed completion code. */
 	MCTP_LOGGING_MCTP_CONTROL_RSP_FAIL,			/**< Failure while processing MCTP control response message. */
 	MCTP_LOGGING_GET_EID_FAIL,					/**< Failed when processing a Get EID request. */

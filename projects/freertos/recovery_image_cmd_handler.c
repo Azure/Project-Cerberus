@@ -7,7 +7,7 @@
 #include "recovery_image_cmd_handler.h"
 #include "common/type_cast.h"
 #include "logging/debug_log.h"
-#include "recovery/recovery_image_logging.h"
+#include "recovery/recovery_logging.h"
 
 
 #define	RECOVERY_IMAGE_RUN_PREPARE_BIT		(1U << 0)
@@ -21,7 +21,8 @@
  * @param handler The task handler instance to update.
  * @param status The status value to set.
  */
-static void recovery_image_cmd_handler_set_status (struct recovery_image_cmd_handler *handler, int status)
+static void recovery_image_cmd_handler_set_status (struct recovery_image_cmd_handler *handler,
+	int status)
 {
 	xSemaphoreTake (handler->task->lock, portMAX_DELAY);
 	handler->status = status;
@@ -57,8 +58,8 @@ static void recovery_image_cmd_handler_execute (struct config_cmd_task_handler *
 		status = recovery_handler->manager->clear_recovery_image_region (recovery_handler->manager,
 			recovery_handler->task->prepare_size);
 		if (status != 0) {
-			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_RECOVERY_IMAGE,
-				RECOVERY_IMAGE_LOGGING_ERASE_FAIL,
+			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_RECOVERY,
+				RECOVERY_LOGGING_ERASE_FAIL,
 				recovery_image_manager_get_port (recovery_handler->manager), status);
 
 			status = RECOVERY_IMAGE_CMD_STATUS (RECOVERY_IMAGE_CMD_STATUS_PREPARE_FAIL, status);
@@ -71,8 +72,8 @@ static void recovery_image_cmd_handler_execute (struct config_cmd_task_handler *
 		status = recovery_handler->manager->write_recovery_image_data (recovery_handler->manager,
 			recovery_handler->task->buffer, recovery_handler->task->buffer_len);
 		if (status != 0) {
-			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_RECOVERY_IMAGE,
-				RECOVERY_IMAGE_LOGGING_WRITE_FAIL,
+			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_RECOVERY,
+				RECOVERY_LOGGING_WRITE_FAIL,
 				recovery_image_manager_get_port (recovery_handler->manager), status);
 
 			status = RECOVERY_IMAGE_CMD_STATUS (RECOVERY_IMAGE_CMD_STATUS_UPDATE_FAIL, status);
@@ -84,16 +85,16 @@ static void recovery_image_cmd_handler_execute (struct config_cmd_task_handler *
 
 		status = recovery_handler->manager->activate_recovery_image (recovery_handler->manager);
 		if (status != 0) {
-			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_RECOVERY_IMAGE,
-				RECOVERY_IMAGE_LOGGING_ACTIVATION_FAIL,
+			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_RECOVERY,
+				RECOVERY_LOGGING_ACTIVATION_FAIL,
 				recovery_image_manager_get_port (recovery_handler->manager), status);
 
 			status = RECOVERY_IMAGE_CMD_STATUS (RECOVERY_IMAGE_CMD_STATUS_ACTIVATION_FAIL, status);
 		}
 	}
 	else {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_WARNING, DEBUG_LOG_COMPONENT_RECOVERY_IMAGE,
-			RECOVERY_IMAGE_LOGGING_NOTIFICATION_ERROR,
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_WARNING, DEBUG_LOG_COMPONENT_RECOVERY,
+			RECOVERY_LOGGING_NOTIFICATION_ERROR,
 			recovery_image_manager_get_port (recovery_handler->manager), action);
 
 		status = RECOVERY_IMAGE_CMD_STATUS (RECOVERY_IMAGE_CMD_STATUS_INTERNAL_ERROR, status);

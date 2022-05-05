@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <time.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
 #include <linux/types.h>
@@ -88,6 +89,11 @@ const char *command = NULL;
 const char *file_name = NULL;
 
 /**
+ * Indicate the specified file should be used to output messages.
+ */
+bool file_out = false;
+
+/**
  * Array of raw data provided to the command.
  */
 uint32_t raw_data[255];
@@ -98,10 +104,71 @@ uint32_t raw_data[255];
 size_t raw_data_count = 0;
 
 /**
+ * Add a delay after sending block write commands before issuing another command.
+ */
+bool use_write_delay = false;
+
+/**
+ * The delay to add after a block write, in microseconds.
+ */
+uint32_t write_delay = 1000;
+
+/**
  * Output verbosity.
  */
 int verbose = 0;
 
+
+/**
+ * Get the current monotonic clock count value.
+ *
+ * @param current Output for the current system time.
+ */
+static void get_current_time (struct timespec *current)
+{
+	int status;
+
+	status = clock_gettime (CLOCK_MONOTONIC, current);
+	if (status != 0) {
+		printf ("Failed to get the current time: %s\n", strerror (errno));
+		exit (1);
+	}
+}
+
+/**
+ * Get the duration between two time values.
+ *
+ * @param start The start time for the time duration.
+ * @param end The end time for the time duration.
+ *
+ * @return The elapsed time, in microseconds.  If either clock is null, the elapsed time will be 0.
+ */
+uint32_t get_time_duration (const struct timespec *start, const struct timespec *end)
+{
+	if ((end == NULL) || (start == NULL)) {
+		return 0;
+	}
+
+	if (start->tv_sec > end->tv_sec) {
+		return 0;
+	}
+	else if (start->tv_sec == end->tv_sec) {
+		if (start->tv_nsec > end->tv_nsec) {
+			return 0;
+		}
+		else {
+			return (end->tv_nsec - start->tv_nsec) / 1000ULL;
+		}
+	}
+	else {
+		uint32_t duration = end->tv_nsec / 1000ULL;
+
+		duration += (1000000000ULL - start->tv_nsec) / 1000ULL;
+		duration += (end->tv_sec - start->tv_sec) * 1000000;
+
+		return duration;
+	}
+}
 
 /**
  * Write data to an open file.
@@ -122,7 +189,7 @@ void write_to_file (int fd, const char *data, int length)
  * Print a single message either to the console or to a file.
  *
  * @param fd The file descriptor for an open file, if the output should be to a file.  Ignored if
- * not using file output (determined by file_name).
+ * not using file output (determined by file_out).
  * @param fmt The formatting string to print.
  * @param ... Formatting arguments.
  */
@@ -140,7 +207,7 @@ void print_message (int fd, const char *fmt, ...)
 		line_len = 255;
 	}
 
-	if (!file_name) {
+	if (!file_out) {
 		printf ("%s", line);
 	}
 	else {
@@ -254,6 +321,8 @@ uint8_t smbus_block_read (uint8_t cmd, uint8_t *payload, uint8_t min_length, uin
 	int smbus_overhead = 1;
 	uint8_t *rx_smbus;
 	uint8_t crc;
+	struct timespec start;
+	struct timespec end;
 
 	if (pec) {
 		smbus_overhead++;
@@ -277,14 +346,21 @@ uint8_t smbus_block_read (uint8_t cmd, uint8_t *payload, uint8_t min_length, uin
 
 	xfer.nmsgs = 2;
 	xfer.msgs = msgs;
+
+	get_current_time (&start);
 	if (ioctl (i2c, I2C_RDWR, &xfer) < 0) {
 		printf ("Failed SMBus block read: %s\n", strerror (errno));
 		exit (1);
 	}
+	get_current_time (&end);
 
 	if (verbose >= 1) {
-		print_byte_array (rx_smbus, 0, length + smbus_overhead - 1, "SMBus Rx", "");
-		printf ("\n");
+		printf ("Read Cmd (%d us): %d\n", get_time_duration (&start, &end), cmd);
+
+		if (verbose >= 2) {
+			print_byte_array (rx_smbus, 0, length + smbus_overhead - 1, "SMBus Rx", "");
+			printf ("\n");
+		}
 	}
 
 	if (length < rx_smbus[0]) {
@@ -334,6 +410,8 @@ void smbus_block_write (uint8_t cmd, uint8_t *payload, uint8_t length)
 	int smbus_overhead = 2;
 	uint8_t *tx_smbus;
 	uint8_t crc;
+	struct timespec start;
+	struct timespec end;
 
 	if (pec) {
 		smbus_overhead++;
@@ -359,11 +437,6 @@ void smbus_block_write (uint8_t cmd, uint8_t *payload, uint8_t length)
 		}
 	}
 
-	if (verbose >= 1) {
-		print_byte_array (tx_smbus, 0, length + smbus_overhead - 1, "SMBus Tx", "");
-		printf ("\n");
-	}
-
 	msgs[0].addr = addr;
 	msgs[0].buf = tx_smbus;
 	msgs[0].len = length + smbus_overhead;
@@ -371,12 +444,29 @@ void smbus_block_write (uint8_t cmd, uint8_t *payload, uint8_t length)
 
 	xfer.nmsgs = 1;
 	xfer.msgs = msgs;
+
+	get_current_time (&start);
 	if (ioctl (i2c, I2C_RDWR, &xfer) < 0) {
 		printf ("Failed SMBus block write: %s\n", strerror (errno));
 		exit (1);
 	}
+	get_current_time (&end);
+
+	if (verbose >= 1) {
+		printf ("Write Cmd (%d us): %d, Length: %d\n", get_time_duration (&start, &end), cmd,
+			length);
+
+		if (verbose >= 2) {
+			print_byte_array (tx_smbus, 0, length + smbus_overhead - 1, "SMBus Tx", "");
+			printf ("\n");
+		}
+	}
 
 	free (tx_smbus);
+
+	if (use_write_delay) {
+		usleep (write_delay);
+	}
 }
 
 
@@ -1780,6 +1870,8 @@ void print_help ()
 	printf ("  -o <hex> :  The offset in a CMS to start reading or writing.  Defaults to 0.\n");
 	printf ("  -p       :  Disable PEC bytes on block reads and writes.\n");
 	printf ("  -r       :  Force the device into recovery mode during reset commands.\n");
+	printf ("  -s       :  Add a delay after every write transaction.\n");
+	printf ("  -S       :  Specify the amount of time, in usec, to delay after write transactions.  Defaults to 1000.\n");
 	printf ("  -v       :  Verbose output for command processing.  Specify multiple times to increase.\n");
 	printf ("  -w       :  Execute a raw write transaction.  Default is to execute a read.\n");
 	printf ("  -h       :  Displays the help menu.\n");
@@ -1878,7 +1970,7 @@ bool is_raw_command ()
 int main (int argc, char *argv[])
 {
 	char dev_name[64];
-	const char *opts = "a:bc:d:efhlo:prvw";
+	const char *opts = "a:bc:d:efhlo:prsS:vw";
 	int opt;
 	int device_num = -1;
 
@@ -1924,6 +2016,14 @@ int main (int argc, char *argv[])
 				force_recovery = true;
 				break;
 
+			case 's':
+				use_write_delay = true;
+				break;
+
+			case 'S':
+				write_delay = strtoul (optarg, NULL, 10);
+				break;
+
 			case 'v':
 				verbose++;
 				break;
@@ -1963,6 +2063,7 @@ int main (int argc, char *argv[])
 	else if ((strcmp ("read_log", command) == 0) || (strcmp ("read_data", command) == 0)) {
 		if (optind < argc) {
 			file_name = argv[optind++];
+			file_out = true;
 		}
 	}
 	else if (is_raw_command ()) {

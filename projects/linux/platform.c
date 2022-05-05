@@ -96,11 +96,15 @@ int platform_increase_timeout (uint32_t msec, platform_clock *timeout)
  *
  * @param currtime The platform_clock type to initialize.
  *
- * @return 0 if the current tickcount was initialized successfully or an error code.
+ * @return 0 if the current tick count was initialized successfully or an error code.
  */
 int platform_init_current_tick (platform_clock *currtime)
 {
 	int status;
+
+	if (currtime == NULL) {
+		return PLATFORM_TIMEOUT_ERROR (EINVAL);
+	}
 
 	status = clock_gettime (CLOCK_MONOTONIC, currtime);
 	if (status != 0) {

@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <string.h>
 #include "ocp_recovery_smbus.h"
+#include "recovery_logging.h"
 #include "common/unused.h"
 #include "crypto/checksum.h"
 
@@ -108,32 +109,53 @@ void ocp_recovery_smbus_start (const struct ocp_recovery_smbus *smbus, uint8_t s
 void ocp_recovery_smbus_stop (const struct ocp_recovery_smbus *smbus)
 {
 	bool pec_valid = true;
+	int status;
 
 	if (smbus == NULL) {
 		return;
 	}
 
-	/* If only a single byte was received, this was a block read command and there is nothing to do
-	 * here. */
-	if (smbus->state->rx_bytes > 1) {
-		if (smbus->state->rx_bytes >= (smbus->state->cmd.block_cmd.byte_count + 2)) {
-			/* There is at least one extra byte, so the command has a PEC byte. */
-			smbus->state->crc = checksum_update_smbus_crc8 (smbus->state->crc,
-				smbus->state->cmd.bytes, smbus->state->cmd.block_cmd.byte_count + 1);
+	/* If no data was received, this was a block read command and there is nothing to do here. */
+	if (smbus->state->rx_bytes > 0) {
 
-			/* The PEC byte will be the one immediately following the block command data. */
-			if (smbus->state->crc !=
-				smbus->state->cmd.bytes[smbus->state->cmd.block_cmd.byte_count + 1]) {
-				pec_valid = false;
+		/* In order to have received a valid command, there needs to be at least the specified
+		 * number of bytes plus an extra byte for the byte count value. */
+		if (smbus->state->rx_bytes > smbus->state->cmd.block_cmd.byte_count) {
+
+			/* If there is at least one extra byte, the command has a PEC byte. */
+			if (smbus->state->rx_bytes >= (smbus->state->cmd.block_cmd.byte_count + 2)) {
+				smbus->state->crc = checksum_update_smbus_crc8 (smbus->state->crc,
+					smbus->state->cmd.bytes, smbus->state->cmd.block_cmd.byte_count + 1);
+
+				/* The PEC byte will be the one immediately following the block command data. */
+				if (smbus->state->crc !=
+					smbus->state->cmd.bytes[smbus->state->cmd.block_cmd.byte_count + 1]) {
+					pec_valid = false;
+				}
+			}
+
+			if (pec_valid) {
+				status = ocp_recovery_device_write_request (smbus->device,
+					&smbus->state->cmd.block_cmd.payload, smbus->state->cmd.block_cmd.byte_count);
+				if (status != 0) {
+					debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_RECOVERY,
+						RECOVERY_LOGGING_OCP_WRITE_ERROR, status, 0);
+				}
+			}
+			else {
+				ocp_recovery_device_checksum_failure (smbus->device);
+
+				debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_RECOVERY,
+					RECOVERY_LOGGING_OCP_PEC_ERROR, smbus->state->crc,
+					smbus->state->cmd.bytes[smbus->state->cmd.block_cmd.byte_count + 1]);
 			}
 		}
-
-		if (pec_valid) {
-			ocp_recovery_device_write_request (smbus->device, &smbus->state->cmd.block_cmd.payload,
-				smbus->state->cmd.block_cmd.byte_count);
-		}
 		else {
-			ocp_recovery_device_checksum_failure (smbus->device);
+			ocp_recovery_device_write_incomplete (smbus->device);
+
+			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_RECOVERY,
+				RECOVERY_LOGGING_OCP_WRITE_INCOMPLETE, smbus->state->rx_bytes,
+				smbus->state->cmd.block_cmd.byte_count);
 		}
 	}
 
@@ -184,6 +206,9 @@ int ocp_recovery_smbus_receive_byte (const struct ocp_recovery_smbus *smbus, uin
 		smbus->state->rx_bytes = OCP_RECOVERY_SMBUS_COMMAND_OVERFLOW;
 		ocp_recovery_device_write_overflow (smbus->device);
 
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_RECOVERY,
+			RECOVERY_LOGGING_OCP_WRITE_OVERFLOW, 0, 0);
+
 		return OCP_RECOVERY_SMBUS_OVERFLOW;
 	}
 
@@ -221,6 +246,9 @@ int ocp_recovery_smbus_transmit_bytes (const struct ocp_recovery_smbus *smbus, u
 		smbus->state->cmd.block_cmd.byte_count = bytes;
 	}
 	else {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_RECOVERY,
+			RECOVERY_LOGGING_OCP_READ_ERROR, bytes, 0);
+
 		/* On a failure, generate an empty response. */
 		smbus->state->cmd.block_cmd.byte_count = 0;
 		bytes = 0;

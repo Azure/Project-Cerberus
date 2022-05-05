@@ -642,7 +642,6 @@ static int ocp_recovery_device_read_indirect_data (const struct ocp_recovery_dev
  * @param device The recovery handler that will process the command.
  * @param data Output buffer for the requested data.  This will only contain the recovery command
  * data.  Any bus protocol data must not be included.
- * @param length Maximum length of the data payload.
  *
  * @return The number of bytes written to the data buffer or an error code.  Use ROT_IS_ERROR to
  * check the return value.
@@ -757,4 +756,17 @@ void ocp_recovery_device_write_overflow (const struct ocp_recovery_device *devic
 		device->state->active_cmd = OCP_RECOVERY_DEVICE_NO_COMMAND;
 		device->state->protocol_status = OCP_RECOVERY_DEVICE_STATUS_PROTO_LENGTH_ERROR;
 	}
+}
+
+/**
+ * Notify the recovery handler that the physical layer has received less data then specified by the
+ * command.  The received command has been discarded and any current command context should be
+ * closed.
+ *
+ * @param device The recovery handler to update.
+ */
+void ocp_recovery_device_write_incomplete (const struct ocp_recovery_device *device)
+{
+	/* This has the same behavior as the overflow case. */
+	ocp_recovery_device_write_overflow (device);
 }
