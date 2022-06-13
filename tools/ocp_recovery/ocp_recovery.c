@@ -22,6 +22,17 @@
 
 
 /**
+ * The maximum amount of data that can be transmitted in a single SMBus block read or write.
+ */
+#define	MAX_SMBUS_BLOCK_SIZE	255
+
+/**
+ * The maximum amount of aligned data that can be read from or written to a CMS.
+ */
+#define	MAX_CMS_BLOCK_SIZE		252
+
+
+/**
  * File descriptor for the I2C bus connected to the device.
  */
 int i2c;
@@ -40,6 +51,16 @@ uint8_t cms_id = 0;
  * Offset within the CMS to access.
  */
 uint32_t cms_offset = 0;
+
+/**
+ * Maximum block size for CMS write.
+ */
+uint32_t cms_block_write = MAX_CMS_BLOCK_SIZE;
+
+/**
+ * Maximum block size for CMS read.
+ */
+uint32_t cms_block_read = MAX_CMS_BLOCK_SIZE;
 
 /**
  * Flag to ignore validation errors when processing commands.  Protocol and bus errors still
@@ -96,7 +117,7 @@ bool file_out = false;
 /**
  * Array of raw data provided to the command.
  */
-uint32_t raw_data[255];
+uint32_t raw_data[MAX_SMBUS_BLOCK_SIZE];
 
 /**
  * Number of raw data entries provided.
@@ -495,7 +516,7 @@ enum {
  */
 void write_command_byte_array (uint8_t cmd)
 {
-	uint8_t data[255];
+	uint8_t data[MAX_SMBUS_BLOCK_SIZE];
 	size_t i;
 
 	/* Only the LSB of each input word is relevant for this command. */
@@ -596,7 +617,7 @@ void write_prot_cap ()
  */
 void read_device_id (bool raw)
 {
-	uint8_t data[255];
+	uint8_t data[MAX_SMBUS_BLOCK_SIZE];
 	char vendor[232];
 	int bytes;
 
@@ -761,7 +782,7 @@ const char *RECOVERY_REASON_STR[] = {
  */
 void read_device_status (bool raw)
 {
-	uint8_t data[255];
+	uint8_t data[MAX_SMBUS_BLOCK_SIZE];
 	int bytes;
 	uint16_t reason;
 
@@ -824,7 +845,7 @@ void write_device_status ()
  */
 void check_protocol_error ()
 {
-	uint8_t data[255];
+	uint8_t data[MAX_SMBUS_BLOCK_SIZE];
 
 	smbus_block_read (DEVICE_STATUS, data, 7, sizeof (data));
 
@@ -1040,7 +1061,7 @@ void check_recovery_status ()
  */
 void read_hw_status (bool raw)
 {
-	uint8_t data[255];
+	uint8_t data[MAX_SMBUS_BLOCK_SIZE];
 	int bytes;
 	uint16_t temp_val;
 	int temperature;
@@ -1135,7 +1156,7 @@ void read_indirect_ctrl (bool raw)
  */
 void write_indirect_ctrl ()
 {
-	uint8_t data[255];
+	uint8_t data[MAX_SMBUS_BLOCK_SIZE];
 	size_t bytes = 0;
 	size_t remain = raw_data_count;
 
@@ -1314,7 +1335,7 @@ uint32_t get_indirect_size ()
  */
 void read_indirect_data ()
 {
-	uint8_t data[255];
+	uint8_t data[MAX_SMBUS_BLOCK_SIZE];
 	int bytes;
 
 	bytes = smbus_block_read (INDIRECT_DATA, data, 0, sizeof (data));
@@ -1337,7 +1358,7 @@ void write_indirect_data ()
 /**
  * Read the entire contents of a single CMS.
  *
- * @param cms The CMS to should be red.
+ * @param cms The CMS to should be read.
  * @param offset An offset within the CMS to start reading.
  * @param file_out Output file for the data.  Null when using a memory buffer.
  * @param data_out Output for a memory buffer with the data.  Null when using a file.
@@ -1351,7 +1372,7 @@ uint32_t dump_cms_data (uint8_t cms, uint32_t offset, const char *file_out, uint
 	uint8_t *data;
 	int fd;
 	uint32_t pos;
-	uint8_t cmd_data[252];
+	uint8_t cmd_data[MAX_CMS_BLOCK_SIZE];
 
 	send_indirect_ctrl (cms, offset);
 	check_protocol_error ();
@@ -1386,7 +1407,7 @@ uint32_t dump_cms_data (uint8_t cms, uint32_t offset, const char *file_out, uint
 
 	pos = 0;
 	while (pos != length) {
-		int bytes = smbus_block_read (INDIRECT_DATA, cmd_data, 0, sizeof (cmd_data));
+		int bytes = smbus_block_read (INDIRECT_DATA, cmd_data, 0, cms_block_read);
 
 		if (bytes == 0) {
 			check_protocol_error ();
@@ -1551,7 +1572,7 @@ void parse_cerberus_log (uint8_t *data, uint32_t length)
  */
 void read_vendor ()
 {
-	uint8_t data[255];
+	uint8_t data[MAX_SMBUS_BLOCK_SIZE];
 	int bytes;
 
 	bytes = smbus_block_read (VENDOR, data, 0, sizeof (data));
@@ -1581,7 +1602,7 @@ void command_load_image ()
 	int fd;
 	bool valid;
 	uint32_t max_length;
-	uint8_t data[252];
+	uint8_t data[MAX_CMS_BLOCK_SIZE];
 	int bytes;
 
 	fd = open (file_name, O_RDONLY);
@@ -1618,7 +1639,7 @@ void command_load_image ()
 	}
 
 	do {
-		bytes = read (fd, data, sizeof (data));
+		bytes = read (fd, data, cms_block_write);
 		if (bytes > 0) {
 			smbus_block_write (INDIRECT_DATA, data, bytes);
 		}
@@ -1643,8 +1664,8 @@ void command_verify_image ()
 	struct stat stat;
 	int fd;
 	uint32_t max_length;
-	uint8_t img_data[252];
-	uint8_t device_data[252];
+	uint8_t img_data[MAX_CMS_BLOCK_SIZE];
+	uint8_t device_data[MAX_CMS_BLOCK_SIZE];
 	int img_bytes;
 	int device_bytes;
 
@@ -1674,9 +1695,9 @@ void command_verify_image ()
 	}
 
 	do {
-		img_bytes = read (fd, img_data, sizeof (img_data));
+		img_bytes = read (fd, img_data, cms_block_read);
 		if (img_bytes > 0) {
-			device_bytes = smbus_block_read (INDIRECT_DATA, device_data, 0, sizeof (device_data));
+			device_bytes = smbus_block_read (INDIRECT_DATA, device_data, 0, cms_block_read);
 
 			if (device_bytes < img_bytes) {
 				printf ("Data length mismatch\n");
@@ -1862,7 +1883,7 @@ void print_help ()
 	printf ("OPTIONS\n");
 	printf ("  -a <hex> :  The 7-bit I2C address, in hex.  This follows the spec and defaults to 0x69.\n");
 	printf ("  -b       :  Show raw response bytes in addition to parsed data.\n");
-	printf ("  -c <num> :  The CMS to use for the operation.  This defaults to 0.\n");
+	printf ("  -c <num> :  The CMS to use for the operation.  Defaults to 0.\n");
 	printf ("  -d <num> :  The I2C device number.  This is required.\n");
 	printf ("  -e       :  Force a PEC error on a raw write command.\n");
 	printf ("  -f       :  Ignore failed error checks during operation validation.\n");
@@ -1870,16 +1891,18 @@ void print_help ()
 	printf ("  -o <hex> :  The offset in a CMS to start reading or writing.  Defaults to 0.\n");
 	printf ("  -p       :  Disable PEC bytes on block reads and writes.\n");
 	printf ("  -r       :  Force the device into recovery mode during reset commands.\n");
+	printf ("  -R       :  Maximum number of bytes to read from a CMS in each command.  Defaults to 252 bytes.\n");
 	printf ("  -s       :  Add a delay after every write transaction.\n");
 	printf ("  -S       :  Specify the amount of time, in usec, to delay after write transactions.  Defaults to 1000.\n");
 	printf ("  -v       :  Verbose output for command processing.  Specify multiple times to increase.\n");
 	printf ("  -w       :  Execute a raw write transaction.  Default is to execute a read.\n");
+	printf ("  -W       :  Maximum number of bytes to write to a CMS in each command.  Defaults to 252 bytes.\n");
 	printf ("  -h       :  Displays the help menu.\n");
 	printf ("\n");
 	printf ("COMMANDS\n");
 	printf ("  recover <file>    : Load a binary image into the device and activate it.\n");
 	printf ("  load_img <file>   : Write a binary file to device memory.\n");
-	printf ("  verify_img <file> : Read device memory and compare it to a specified file.\n");
+	printf ("  verify_img <file> : Read CMS data and compare it to a specified file.\n");
 	printf ("  activate_img      : Activate an image loaded into device memory.\n");
 	printf ("  read_log [file]   : Read and parse contents of a CMS log.  Optionally output to a file.\n");
 	printf ("  read_data [file]  : Raw CMS data read.  Optionally output to a file.\n");
@@ -1905,7 +1928,7 @@ void print_help ()
 	printf ("  command.  For indirect_data, it would take a list of bytes to write.\n");
 	printf ("  Examples:\n");
 	printf ("    reset 0x02 0x0f 0x00\n");
-	printf ("    indirect_ctrl 0x01 0x1234\n");
+	printf ("    indirect_ctrl 0x01 0x00 0x1234\n");
 	printf ("    indirect_data 0x00 0x01 0x02 0x03\n");
 	printf ("\n");
 	printf ("  Raw commands do not use the CMS arguments provided for the normal commands.\n");
@@ -1970,7 +1993,7 @@ bool is_raw_command ()
 int main (int argc, char *argv[])
 {
 	char dev_name[64];
-	const char *opts = "a:bc:d:efhlo:prsS:vw";
+	const char *opts = "a:bc:d:efhlo:prR:sS:vwW:";
 	int opt;
 	int device_num = -1;
 
@@ -2016,6 +2039,10 @@ int main (int argc, char *argv[])
 				force_recovery = true;
 				break;
 
+			case 'R':
+				cms_block_read = strtoul (optarg, NULL, 10);
+				break;
+
 			case 's':
 				use_write_delay = true;
 				break;
@@ -2032,6 +2059,10 @@ int main (int argc, char *argv[])
 				is_read = false;
 				break;
 
+			case 'W':
+				cms_block_write = strtoul (optarg, NULL, 10);
+				break;
+
 			case 'h':
 				print_help ();
 				return 0;
@@ -2040,6 +2071,12 @@ int main (int argc, char *argv[])
 
 	if (device_num < 0) {
 		printf ("No I2C device specified.\n\n");
+		print_usage ();
+		return 1;
+	}
+
+	if ((cms_block_read > MAX_CMS_BLOCK_SIZE) || (cms_block_write > MAX_CMS_BLOCK_SIZE)) {
+		printf ("Invalid CMS read or write value.\n\n");
 		print_usage ();
 		return 1;
 	}
